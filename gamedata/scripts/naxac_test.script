@@ -1,0 +1,234 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+function ggg()
+	local sim = alife()
+	local obj = sim:object("chaes2_arhara_beter1")
+	if obj then sim:release(obj, true) end
+	obj = sim:object("chaes2_arhara_beter2_kluk")
+	if obj then sim:release(obj, true) end
+	sim:create(sim:spawn_id(18021))
+end
+
+function repair()
+	if has_alife_info("naxac_test_repair4") then return end
+
+	local sim = alife()
+	local t, obj
+
+	if not has_alife_info("naxac_test_repair") then
+		obj = sim:story_object(97114)
+		if obj then
+			log1("- перемещаем переход 'Лиманск - Мёртвый Город'\n")
+			sim:teleport_object("", vector():set(-52.046363, -10.754915, -184.263061), 4128, 2993, obj.id)
+		end
+
+		obj = sim:story_object(9110)
+		if obj then
+			log1("- перемещаем переход 'Тёмная Долина - Армейские Склады'\n")
+			sim:teleport_object("", vector():set(-49.27893447876,-1.8120930194855,-24.721027374268),116037,1019, obj.id)
+		end
+
+		obj = sim:object("exit_to_agr_underground_05")
+		if obj then
+			log1("- прячем переход 'Агро-Подземка' под землю\n")
+			sim:teleport_object("", obj.position:add(vector():set(0,-1,0)),
+				obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+		end
+
+		log1("- ставим на все переходы постоянные метки\n")
+		level_tasks.add_lchanger_location()
+
+		obj = sim:object("zat_a23_enter_door")
+		if obj then
+			log1("- фикс двери на Затоне\n")
+			t = naxac_netpk.get(obj, true)
+			t.custom_data = "[collide]\n"..
+							"ignore_static\n"..
+							"[logic]\n"..
+							"cfg = scripts\\zaton\\zat_a23_enter_door.ltx"
+			naxac_netpk.set(obj, t)
+		end
+
+		obj = sim:object("aes_helicopter_0004")
+		if obj then
+			log1("- чиним бессмертный вертолёт на ЧАЭС\n")
+			t = naxac_netpk.get(obj, true)
+			t.custom_data =		"[logic]\n"..
+								"cfg = scripts\\aes\\aes_helicopter_0004.ltx"
+			naxac_netpk.set(obj, t)
+		end
+
+		obj = sim:object("aes_space_restrictor_timer")
+		if obj then
+			log1("- фикс рестриктора с таймером на ЧАЭС\n")
+			t = naxac_netpk.get(obj, true)
+			t.custom_data =	"[logic]\n"..
+							"cfg = scripts\\aes\\aes_space_timer.ltx"	
+			naxac_netpk.set(obj, t)
+		end
+
+		db.actor:give_info_portion("naxac_test_repair")
+	end
+
+	if not has_alife_info("naxac_test_repair2") then
+		obj = sim:object("sysh_treasure_box")
+		if obj then
+			log1("- исправляем квест на записку Сыча в бункере Радара\n")
+			sim:release(obj, true)
+			-- если задание уже получено, но записку из тайника ещё не забрали,
+			-- то заспавним новый тайник
+			if has_alife_info("treasure_sysh_start") and not has_alife_info("treasure_sysh_have") then
+				this.treasure_sysh_spawn()
+			end
+		end
+
+		obj = sim:story_object(18022)
+		if obj == nil then
+			for i=1,65534 do
+				obj = sim:object(i)
+				if obj then
+					if obj:name() == "exit_to_bar_01"
+						and sim:level_name(game_graph():vertex(obj.m_game_vertex_id):level_id()) == "l06_rostok"
+					then
+						log1("- ставим метку на переход Дикая Территория - Бар\n")
+						if level.map_has_object_spot(obj.id, "level_changer1") == 0 then
+							level.map_add_object_spot_ser(obj.id, "level_changer1", "Дикая Территория - Бар")
+						end
+						break
+					end
+				end
+			end
+		end
+
+		if has_alife_info("aes_actor_road") then
+			log1("- добавляем переходу 'Припять - ЧАЭС' вопрос о переходе\n")	-- (только после первого поещения ЧАЭС)
+			obj = alife():object("exit_to_stancia_01")
+			if obj then
+				t = naxac_netpk.get(obj, true)
+				t.silent_mode = 0
+				naxac_netpk.set(obj, t)
+			end
+		end
+
+		db.actor:give_info_portion("naxac_test_repair2")
+	end
+
+	if not has_alife_info("naxac_test_repair3") then
+		log1("- переделываем поломку КПК на Кордоне\n")
+		obj = sim:object("pda_slom_restrictor")
+		if obj then
+			t = naxac_netpk.get(obj, true)
+			t.custom_data =	"[logic]\n"..
+							"cfg = scripts\\esc\\slom_pda_restr.ltx"	
+			naxac_netpk.set(obj, t)
+		end
+		obj = sim:object("bar_lestniza_pda_enabl_timer_restrictor")
+		if obj then
+			t = naxac_netpk.get(obj, true)
+			t.custom_data =	"[logic]\n"..
+							"cfg = scripts\\bar\\lestniza_pda_on_restr.ltx"	
+			naxac_netpk.set(obj, t)
+		end
+		--Удаляем лишнее
+		obj = sim:object("pda_dosent_sdelal_restrictor")
+		if obj then sim:release(obj, true) end
+		for sid = 19009, 19016, 1 do
+			obj = sim:story_object(sid)
+			if obj then sim:release(obj, true) end
+		end
+	end
+
+	db.actor:give_info_portion("naxac_test_repair4")
+end
+
+function after_credits()
+	-- не знаю, зачем это, но пусть будет
+	if not db.gameover_credits_started then return end
+	db.gameover_credits_started = nil
+
+	if not has_alife_info("snp_rings_done") then
+		get_console():execute("main_menu on")
+		get_console():execute("disconnect")
+		return
+	end
+
+	if not has_alife_info("naxac_freeplay_start") then
+		db.actor:give_info_portion("naxac_freeplay_start")
+		
+		local not_del = {
+			["bolt"] = true,
+			["wpn_binoc"] = true,
+			["device_pda"] = true,
+			['netpacket_pda'] = true,
+			["device_torch"] = true
+		}
+		local sim = alife()
+		local obj
+		db.actor:iterate_inventory(function(actor, item)
+			obj = sim:object(item:id())
+			if obj and not_del[item:section()] == nil then
+				sim:release(obj, true)
+			end
+		end,
+		db.actor)
+		
+		db.actor:give_money(1000-db.actor:money())
+		
+		level.disable_input()
+		start_small_timer(2000, this.tele_to_escape)
+	end
+end
+function tele_to_escape()
+	u3_utils.savegame("Финал")
+	start_small_timer(3000, function () spawn_level_changer.jumpTo("exit_ao2") end)
+end
+
+function treasure_sysh_spawn()
+	local sim = alife()
+	local obj = sim:object("sysh_treasure_box")
+	if obj == nil then
+		obj = sim:create("sysh_treasure_ruk",vector():set(-1.9939445257187,-34.253723144531,27.17742729187),4256,2777)
+		local hint = "%c[255,238,155,23]Тайник Сыча\\n%c[default]На флешке Сыча была информация о схроне в лаборатории X-10, надо бы его проверить."
+		level.map_add_object_spot_ser(obj.id, "treasure", hint)
+	end
+end
+
+function lc_question_add()
+	-- Припять - ЧАЭС
+	local obj = alife():object("exit_to_stancia_01")
+	if obj then
+		local t = naxac_netpk.get(obj, true)
+		t.silent_mode = 0
+		naxac_netpk.set(obj, t)
+	end
+end
+
+function restore_anoms()
+	if has_alife_info("snpt_vp1_have") then
+		alife():create("zone_ozero",vector():set(58.848209381104,1.0079244375229,367.44982910156),276095,3760)
+	end
+	for i = 15606, 15618, 1 do
+		alife():create(i)
+	end
+--	local t = {723,726,740,745,746,747,749,750,751,754,755,773}
+--	for i,v in ipairs(t) do alife():create(v) end
+end
+
+function add_spot_lc()
+	local obj = alife():story_object(130029)
+	level.map_add_object_spot_ser(obj.id, "level_changer2", "В Восточную Припять")
+end
+
+function rewrite_restr_logic(obj_name, logic)
+	local obj = alife():object(obj_name)
+	if obj then
+		local cd = logic and "[logic]\ncfg = "..logic or ""
+		naxac_netpk.modify( obj, {custom_data =	cd} )
+		local rest = level.object_by_id(obj.id)
+		if rest then
+			local st = db.storage[rest:id()]
+			st = {}
+			xr_logic.initialize_obj(rest, st, false, db.actor, modules.stype_restrictor, logic or "scripts\\dummy.ltx")
+		end
+	end
+end
+

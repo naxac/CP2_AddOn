@@ -1,0 +1,50 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- original idea by Monnoroch
+-- base script by Malandrinus
+-- scripting by Shadowman
+
+function init(obj)
+    local new_binder = my_binder(obj)
+    obj:bind_object(new_binder)
+end
+
+class "my_binder" (object_binder)
+function my_binder:__init(obj)
+	super(obj)
+end 
+
+function my_binder:reload(section)
+    object_binder.reload(self, section)
+end
+
+function my_binder:reinit()
+    object_binder.reinit(self)
+    db.storage[self.object:id()] = {}
+end
+
+function my_binder:net_spawn(data)
+    sak.out_teleport()
+	difficulty_manager.deathStatChangeDifficulty()
+	meceniy_work.prepare_for_work()
+    return object_binder.net_spawn(self, data)
+end
+
+function my_binder:net_destroy()
+	db.storage[self.object:id()] = nil
+    object_binder.net_destroy(self)
+end
+
+function my_binder:save(packet)
+    object_binder.save(self, packet)
+    xr_logic.save_obj(self.object, packet)
+	xr_statistic.save_ids(packet)
+	log("netpacket pda:save, packet size = %d bytes", packet:w_tell())
+end
+
+function my_binder:load(reader)
+    object_binder.load(self, reader)
+    xr_logic.load_obj(self.object, reader)
+	if reader:r_eof() then return end
+	xr_statistic.load_ids(reader)
+	log("netpacket pda:load, stream size = %d bytes", reader:r_tell())
+end

@@ -1,0 +1,300 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--\\*"НаноЭкзоСкелет "Скат-15М""..С Системой Жизненной Поддержки (СЖП) и С возможностью апгрейда..Меченый(Стрелок)..
+local t_upd = 0
+local f_1 = false
+local f_1_end = false
+
+local f_2 = false
+local f_2_end = false
+
+local f_3 = false
+local f_3_end = false
+
+local f_4 = false
+local f_4_end = false
+
+local is_pleer = false
+
+local lim_health = 0.5
+local lim_psy_health = 0.4
+local lim_bleed = 0.5
+local lim_power = 0.35
+local lim_radiation = 0.6
+
+function on_actor_update()
+	if t_upd>time_global() then return end
+	t_upd=time_global()+500
+
+	if not is_pleer then
+		player_ogg.start_pleer_post_save()
+		is_pleer = true
+	end
+
+	local outfit = db.actor:item_in_slot(6)
+	local sect = outfit and outfit:section() or ""
+	
+	amk_mod.check_armor(sect)
+	
+	if not (outfit
+		and string.find(sect,"exo_mil_exoskeleton_add")
+		and db.actor:alive())
+	then
+		return
+	end
+
+	--\\ исправление вылета при отсутствии черной энергии
+	if sect=="exo_mil_exoskeleton_addrs" then
+		if not meceniy_art.on_actor_update() then
+			db.actor:move_to_ruck(outfit)
+			return
+		end
+	end
+	--\\
+	
+	system_outfit()
+	if sect == "exo_mil_exoskeleton_addr" then
+		new_system_rad()
+	elseif sect == "exo_mil_exoskeleton_addrs" then
+		new_system_rad()
+		new_system_power()
+		new_anti_dot()
+	end
+end
+
+function on_sub_actor_update()
+	update_spawn()
+end
+
+function update_spawn()
+	alife():create("doc_1",vector():set(-198.597,4.488,168.971),25633,1363)
+	alife():create("art_acumm",vector():set(-33.133,3.548,-64.111),198,1960)
+	alife():create("doc_8",vector():set(-33.133,3.548,-64.111),198,1960)
+	alife():create("doc_10",vector():set(-89.387,-2.457,-25.271),19105,2875)
+	alife():create("art_acumm",vector():set(-89.387,-2.457,-25.271),19105,2875)
+	spawner()
+end
+
+function change_exo_cond(cond, id, exo)
+	exo:set_condition(cond)
+end
+
+function doc_use()
+	local e1 = db.actor:object("exo_mil_exoskeleton")
+	if e1 then
+		local cond = e1:condition()
+		alife():release(alife():object(e1:id()))
+		local obj = amk.spawn_item_in_inv("exo_mil_exoskeleton_add")
+		level.client_spawn_manager():add(obj.id, -1, change_exo_cond, cond)
+		news_manager.send_tip(db.actor, "Апгрейд закончен.", nil, "nano", 10000)
+		for i=1,2 do
+			alife():create("art_acumm",vector():set(-89.387,-2.457,-25.271),19105,2875)
+		end
+	else
+		amk.spawn_item_in_inv("doc_1")
+	end
+end
+
+function update_spawn_2()
+	alife():create("art_acumm",vector():set(-89.387,-2.457,-25.271),19105,2875)
+end
+
+function doc_use_2()
+	local e2 = db.actor:object("exo_mil_exoskeleton_add")
+	if e2 then
+		local cond = e2:condition()
+		alife():release(alife():object(e2:id()))
+		local obj = amk.spawn_item_in_inv("exo_mil_exoskeleton_addr")
+		level.client_spawn_manager():add(obj.id, -1, change_exo_cond, cond)
+		news_manager.send_tip(db.actor, "Апгрейд закончен.", nil, "nano", 10000)
+	else
+		amk.spawn_item_in_inv("doc_8")
+	end
+end
+
+
+function doc_use_3()
+	local e3 = db.actor:object("exo_mil_exoskeleton_addr")
+	if e3 then
+		local cond = e3:condition()
+		alife():release(alife():object(e3:id()))
+		local obj = amk.spawn_item_in_inv("exo_mil_exoskeleton_addrs")
+		level.client_spawn_manager():add(obj.id, -1, change_exo_cond, cond)
+		news_manager.send_tip(db.actor, "Апгрейд закончен.", nil, "nano", 10000)
+	else
+		amk.spawn_item_in_inv("doc_10")
+	end
+end
+
+function spawner()
+	alife():create("art_acumm",vector():set(-89.387,-2.457,-25.271),19105,2875)
+end
+
+function system_outfit()
+	if not has_alife_info("skat_health_on") then return end
+	
+	local act = db.actor
+	if (act.health > lim_health) and (act:get_bleeding() <= lim_bleed) then 
+		f_1 = false f_1_end = false
+		return 
+	end
+	
+	local n_heal = act.health <= lim_health
+	local n_bleed = act:get_bleeding() > lim_bleed
+	if not f_1 then
+		if n_heal then
+			news_manager.send_tip(act, "%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Ваше состояние здоровья ниже 50% от обычного состояния. Если у вас есть медпрепараты, то Система Жизненной Поддержки произведёт лечение.", nil, "nano", 5000)
+		elseif n_bleed then
+			news_manager.send_tip(act, "%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]У вас сильное кровотечение. Если у вас есть медпрепараты, то Система Жизненной Поддержки произведёт лечение.", nil, "nano", 5000)
+		end
+	end
+	f_1 = true
+
+	if n_heal then
+		for i,v in ipairs({"medkit","medkit_army","medkit_scientic","suvorotka"}) do
+			if act:object(v) then
+				shiftCheckDropItem()
+				act:eat(act:object(v))
+				f_1 = false
+				break
+			end
+		end
+	elseif n_bleed and act:object("bandage") then
+		shiftCheckDropItem()
+		act:eat(act:object("bandage"))
+		f_1 = false
+	end
+	
+	if f_1==false then
+		do_heal(true,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Обнаружены медпрепараты. Произвожу применение.")
+		f_1_end = false
+	elseif f_1_end==false then
+		do_heal(false,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Медпрепараты не обнаружены.")
+		f_1_end = true
+	end
+end
+
+function new_system_rad()
+	if not has_alife_info("skat_rad_on") then return end
+	
+	local act = db.actor
+	if act.radiation < lim_radiation then 
+		f_2 = false f_2_end = false
+		return 
+	end
+	
+	if not f_2 then
+		news_manager.send_tip(act, "%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Полученная доза радиации близка к критической. Если у Вас есть антирадиационные препараты, то Система Жизненной Поддержки выведет радиацию из организма.", nil, "nano", 5000)
+		f_2 = true
+	end
+	
+	if not f_2_end then
+		local anti_1 = act:object("antirad") 
+		if anti_1 then
+			shiftCheckDropItem()
+			act:eat(anti_1)
+			do_heal(true,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Обнаружены антирадиационные препараты. Система Жизненой Поддержки производит применение.")
+		else
+			do_heal(false,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Антирадиационные препараты не обнаруженны.")
+		end
+		f_2_end = true
+	end
+end
+
+function new_anti_dot()
+	if not has_alife_info("skat_psy_on") then return end
+	
+	local act = db.actor
+	if db.actor.psy_health >= lim_psy_health then
+		f_3 = false f_3_end = false
+		return
+	end
+
+	if not f_3 then
+		news_manager.send_tip(act, "%c[255,160,160,160]".."СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:".."\\n".."%c[255,255,128,128]Полученная доза пси-излучения привела к Вашему зомбированию. Если у вас есть антидоты, то Система Жизненной Поддержки выведет пси-излучение из организма.".."\n", nil, "nano", 5000)
+		f_3 = true
+	end
+	
+	if not f_3_end then
+		local a1 = act:object("antizombie")
+		if a1 then
+			shiftCheckDropItem()
+			act:eat(a1)
+			do_heal(true,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Обнаружены антидоты. Система Жизненой Поддержки производит применение.")
+		else
+			do_heal(false,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Антидоты не обнаруженны.")
+		end
+		f_3_end = true
+	end
+end
+
+
+function new_system_power()
+	if not has_alife_info("skat_power_on") then return end
+	
+	local act = db.actor
+	if act.power > lim_power then 
+		f_4 = false f_4_end = false
+		return 
+	end
+
+	if not f_4 then
+		news_manager.send_tip(act, "%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Вы устали. Ищу энергетики.", nil, "nano", 5000)
+		f_4 = true
+	end
+	
+	if not f_4_end then
+		local el = act:object("energy_drink")
+		if el then
+			shiftCheckDropItem()
+			act:eat(el)
+			do_heal(true,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Обнаруженны энергетики. Произвожу применение.")
+		else
+			do_heal(false,"%c[255,160,160,160]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[255,255,128,128]Энергетиков нет. Отдохните.")
+		end
+		f_4_end = true
+	end
+end
+
+function exo_in_section(item)
+	local itm = item:section()
+	if itm == "exo_mil_exoskeleton_addr" then
+		alife():create(itm, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		alife():release(alife():object(item:id()))
+	end
+end
+
+function have_item_namber(itm,need_namber)
+	return amk_utils.inventory_search(itm, need_namber)
+end
+
+function delete_some_somth(section, count)
+	news_manager.relocate_item(db.actor, "out", section, count)
+	db.actor:iterate_inventory(
+	function(dummy, item)
+	if (count > 0) and (item:section() == section) then
+		alife():release(alife():object(item:id()))
+		count = count - 1
+	end
+	end,
+	db.actor)
+end
+
+function dbglog(fmt,...)    
+	local msg = string.format(fmt, ...)    
+	local msg_no_ws = string.gsub(msg, "%s", "_" )    
+	get_console():execute("dbg:" .. msg_no_ws)
+end
+
+function do_heal(a,str)
+	if a then
+		play_snd([[meceniy\outfit\est_med]])
+	else
+		play_snd([[meceniy\outfit\net_med]])
+	end
+	news_manager.send_tip(db.actor, str, nil, "nano", 5000)
+end
+
+function play_snd(snd)
+	local snd_obj = xr_sound.get_safe_sound_object(snd)
+	snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+end

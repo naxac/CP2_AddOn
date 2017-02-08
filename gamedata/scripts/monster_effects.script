@@ -1,0 +1,475 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- monster_effects.script 
+local snd = xr_sound.get_safe_sound_object("monsters\\pseudodog\\psy_affect_0",	sound_object.s2d)
+local time_next_attack = 2000
+local time_cam_effect = 700
+
+local time_burer_next_attack = 6000
+local time_cat_next_attack = 5000
+local time_boar_next_attack = 400
+local time_zombi_radiation = 700
+
+local sucker_attack_delay = 3000
+local sucker_attack_interval = 18000
+
+local cat_kulon_timer = 2000 -- Akill квест на ловлю котов, время через какое кот пойман
+
+-- Атака насекомых при приближении к чумному или комариному зомби
+local insect_particle = particles_object("ogsm\\ogsm_flies_00")
+local insect_params = {
+	['zombie_plague'] = {
+		ppe = "dead_zone.ppe",
+		ef_id = 1001,
+		sound = xr_sound.get_safe_sound_object([[anomaly\flies]]),
+		hit = 1.0,
+		dist = 10
+	},
+	['zombie_plague_komar'] = {
+		ppe = "total_recall.ppe",
+		ef_id = 1002,
+		sound = xr_sound.get_safe_sound_object([[anomaly\komar]]),
+		hit = 1.5,
+		dist = 12
+	}
+}
+function ef_insect(binder, section)
+	local p = insect_params[section]
+	if binder.object:alive()
+		and binder.object:position():distance_to(db.actor:position()) < p.dist
+	then
+		level.add_pp_effector(p.ppe, p.ef_id, true)
+		level.set_pp_effector_factor(p.ef_id, 0.1)
+
+		local actor = db.actor:position()
+
+		if not insect_particle:playing() then 
+			insect_particle:play_at_pos(vector():set(actor.x, actor.y+1.8, actor.z))
+		else
+			insect_particle:move_to(vector():set(actor.x, actor.y+1.8, actor.z),vector():set(actor.x, actor.y+1.8, actor.z))
+		end
+
+		if not p.sound:playing() then 
+			p.sound:play_at_pos(db.actor, actor)
+	
+			local zh = hit()
+			zh.draftsman = binder.object
+			zh.type = hit.chemical_burn
+			zh.direction = binder.object:position():sub(actor)
+			zh:bone("bip01_spine")
+			zh.power = p.hit
+			zh.impulse = 1.0
+			db.actor:hit(zh)
+		else
+			p.sound:set_position(actor)
+		end
+	else
+		ef_insect_stop(section)
+	end
+end
+function ef_insect_stop(sect)
+	local p = insect_params[sect]
+	level.remove_pp_effector(p.ef_id)
+	insect_particle:stop()
+end
+	
+-- Поцелуй кровососа (Авторы: Artos, Charsi, Shadows)
+local Release, oTarget = nil, nil
+local NextAttack, RestoreTimer = 0, 0
+local function bloodsucker_vampire_timer()
+    return time_global() > RestoreTimer
+end
+local function bloodsucker_actor_release()
+	Release = true
+	if oTarget:id() == 0 then
+		bind_stalker.restore_weapon("bloodsucker")
+		level.enable_input()
+		level.show_indicators()
+		level.remove_pp_effector(1975)
+		level.remove_cam_effector(1978)
+	end
+	local snd = xr_sound.get_safe_sound_object("monsters\\bloodsucker\\vampire_hit")
+	snd:play_no_feedback(oTarget, sound_object.s2d, 0, vector(), 1.0)
+end
+function ef_bloodsucker(binder)
+	local monster = binder.object
+	if string.find(monster:section(), "suck")==nil then return end
+
+	local iTime = time_global()
+	if ((binder.timer_anim or 0) < iTime) or (NextAttack < iTime) then
+		binder.timer_anim = iTime + 2000
+		if oTarget == nil then
+			oTarget = monster:get_enemy()
+		end
+		if oTarget and IAmAStalker[oTarget:clsid()] and monster:see(oTarget) then
+			local iDist = monster:position():distance_to(oTarget:position())
+			if iDist <= 3 then
+				if NextAttack < iTime then	-- and monster.health < 0.5 then
+					if binder.captured then
+						NextAttack = iTime + sucker_attack_interval
+						RestoreTimer = iTime + sucker_attack_delay
+						if oTarget:id() == 0 then
+							bind_stalker.hide_weapon("bloodsucker")
+							level.disable_input() 
+							level.hide_indicators()
+							level.add_pp_effector("escape.ppe",1975,true)
+							level.add_cam_effector("camera_effects\\drunk.anm",1978,false,"")
+							set_actor_dir(monster)
+						end
+						level.add_call(bloodsucker_vampire_timer,bloodsucker_actor_release)
+						local oSnd = sound_object("monsters\\bloodsucker\\vampire_sucking")
+						if not (oSnd and oSnd:playing()) then
+							oSnd:play_no_feedback(oTarget, sound_object.s2d, 0, vector(), 1.0)
+						end
+						monster:play_cycle("vampire_0")	-- залипает анимация
+						binder.captured = nil
+					else
+						xr_logic.mob_capture(monster, true)
+						NextAttack = NextAttack + 500
+						binder.captured = true
+					end
+				end
+			end
+		end
+	elseif Release then
+		Release = nil
+		xr_logic.mob_release(monster)
+		local h = hit()
+		h.power = 0.01
+		h.direction = vector():set(0, 0, 0)
+		h.impulse = 1
+		h.draftsman = monster
+		h.type = hit.wound
+		monster:hit(h)
+		if oTarget:id()==0 then
+			set_actor_dir(monster)
+		end
+		oTarget = nil
+	end
+	if RestoreTimer > iTime and oTarget then
+		oTarget.health = -0.003
+		monster.health = 0.008
+	end
+end
+
+function set_actor_dir(mob)
+	local pos = mob:position()
+	local vDir = pos:sub(db.actor:position())
+	db.actor:set_actor_direction(-vDir:getH())
+	vDir:normalize()
+	pos = mob:position():sub(vDir)
+	db.actor:set_actor_position(pos)
+end
+
+function ef_controller(binder)
+	local npc = binder.object
+	local target = npc:get_enemy()
+	if target and npc:see(target) and target:id() == 0 then
+		if not binder.get_hit then
+			binder.get_hit = time_global() + 100
+			binder.start_anim_hit_cont = true
+		elseif binder.get_hit <= time_global() then
+			local dist = npc:position():distance_to(target:position())
+			if dist <= 1.7 then
+				if binder.start_anim_hit_cont then
+					if npc:animation_count() > 0 then
+						npc:clear_animations()
+					end
+					npc:add_animation("stand_walk_fwd_"..math.random(0,1), true)
+					npc:play_cycle("stand_attack_1", true)
+					
+					local song_start = xr_sound.get_safe_sound_object("monsters\\controller\\controller_hit_2")
+					song_start:play_at_pos(npc, npc:position(), sound_object.s3d)
+					binder.start_anim_hit_cont = false
+				end
+				if not binder.hit_to_enemy then
+					binder.hit_to_enemy = time_global() + 300
+				elseif binder.hit_to_enemy <= time_global() then
+					level.add_cam_effector("camera_effects\\hit_back_left.anm", 777, false, "")
+					
+					local h = hit()
+					h.draftsman = npc
+					h.direction = vector():set(0,0,0)  
+					h:bone("bip01_spine")   
+					h.power     = 0.40     
+					h.impulse   = 1
+					h.type      = hit.wound
+					target:hit(h)
+					
+					binder.hit_to_enemy = nil
+					binder.get_hit = nil
+				end
+			end
+		end
+	end
+	if npc:animation_count() < 1 then
+		local i = math.random(0,5)
+		npc:add_animation("stand_walk_fwd_"..i, true)
+	end
+end
+
+--Psy-Dog SoC ON---------------------------------------------------------
+-- Атака Пси-пса by build 1935
+-- Автор функции: Charsi
+-- Идея: GSC
+-- Дата: 25.02.11
+function ef_pseudodog(binder)
+	if (binder.psydog_timer or 0) < time_global() then
+		local m = binder.object
+		local oTarget = m:get_enemy()
+
+		if oTarget and (oTarget:id()==0) then
+			local a = db.actor
+			local v1 = m:direction()
+			local v2 = a:direction()
+			if (v1.x*v2.x) + (v1.z*v2.z ) < -0.6
+				and m:see(a)
+				and m:position():distance_to(a:position())<20
+			then
+				binder.attack_flag = true
+				level.add_cam_effector("build_1935_pseudodog_effect_1.anm", 991, false, "")
+				level.add_cam_effector("build_1935_pseudodog_effect_2.anm", 992, false, "")
+				level.add_pp_effector ("psy_antenna.ppe", 395, false)
+				
+				local h = hit()
+				h.draftsman = m
+				h.type = hit.telepatic
+				h.direction = vector():set(0,0,0)
+				h.power = 0.05
+				h.impulse = 0.0
+				a:hit(h)
+				snd:play_at_pos(a,a:position())
+				local aitem=a:active_item()
+				if aitem and math.random()<level.get_game_difficulty()/40 and (a:active_slot()==1 or a:active_slot()==2) then
+					if not inventory.on_belt("af_idol_monolita") or math.random() < 0.5 then
+						a:drop_item(aitem)
+						archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
+					end
+				end
+			end
+		end
+		binder.psydog_timer=time_global() + time_next_attack*(1+math.random(-0.2,0.2))+time_cam_effect
+	elseif binder.attack_flag and binder.psydog_timer < time_global() + time_next_attack then
+		level.remove_pp_effector(395)
+		level.remove_cam_effector(991)
+		level.remove_cam_effector(992)
+		binder.attack_flag = nil
+	end
+end
+
+function ef_cat(binder, section)
+	local m = binder.object
+	if (binder.cat_timer or 0) < time_global() then
+		local oTarget = m:get_enemy()
+
+		if oTarget and (oTarget:id()==0) then
+			local a = db.actor
+			local v1 = m:direction()
+			local v2 = a:direction()
+			if (v1.x*v2.x) + (v1.z*v2.z ) < -0.6
+				and m:see(a)
+				and m:position():distance_to(a:position())<10
+			then
+				binder.attack_flag = true
+				level.add_pp_effector("yantar_underground_psi.ppe", 6599, false)
+				level.set_pp_effector_factor(6599, 0.6)
+			end
+		end 
+		binder.cat_timer = time_global() + time_cat_next_attack + 1500
+	elseif binder.attack_flag and binder.cat_timer < time_global() + time_cat_next_attack then
+		level.remove_pp_effector(6599)
+		binder.attack_flag = nil
+	end
+	-- Akill квест на ловлю котов
+	if (section == "cat_quest" or section == "cat_kulon")
+		and m:alive()
+		and (has_alife_info("cat_kulon_start")
+		and not has_alife_info("cat_kulon_have"))
+	then
+		if m:position():distance_to(db.actor:position()) < 2 then			-- расстояние до гг
+			if binder.cat_kulon_timer then
+				if binder.cat_kulon_timer < time_global() then
+					-- удержали рядом нужное время = поймали зверушку
+					binder.cat_kulon_timer = nil
+					m:kill(m)
+					level.map_remove_object_spot(m:id(),"crlc_big")
+				end
+			else
+				binder.cat_kulon_timer = time_global()+cat_kulon_timer
+			end
+		else
+			-- упустили зверушку - ловим сначала
+			binder.cat_kulon_timer = nil
+		end
+	end
+end
+
+function ef_zombie(binder, section)
+	-- Атака насекомых при приближении к чумному или комариному зомби
+	if insect_params[section] then
+		this.ef_insect(binder, section)
+	end
+	
+	if (binder.zombi_timer or 0) < time_global() then
+		local m = binder.object
+		local oTarget = m:get_enemy()
+
+		if oTarget and (oTarget:id()==0) then
+			local a = db.actor
+			if m:position():distance_to(a:position())<2.6 then
+				local h = hit()
+				h.draftsman = m
+				h.type = hit.radiation
+				h.direction = vector():set(0,0,0)
+				h.power = 0.07
+				h.impulse = 0.0
+				a:hit(h)
+			end
+		end
+		binder.zombi_timer = time_global() + time_zombi_radiation*(1+math.random(-0.2,0.2))
+
+		-- Akill квест на защиту госпиталя
+		if (section == "ohota_zombi4"
+			or section == "ohota_zombi5"
+			or section == "zombie_hospital1"
+			or section == "zombie_hospital2"
+			or section == "zombie_hospital3")
+		then
+			if (has_alife_info("defend_hospital_start")
+				and not has_alife_info("defend_hospital_have"))
+				and level.name() == "zaton"
+				and m:alive()
+			then
+				if m:position():distance_to_xz(vector():set(153.94703674316,-6.8251028060913,-138.68576049805)) < 6 then 
+					db.actor:give_info_portion("defend_hospital_fail")
+				end
+			end
+		end
+	end
+end
+
+function ef_boar(binder)
+	if (binder.boar_timer or 0) < time_global() then
+		local m = binder.object
+		local oTarget = m:get_enemy()
+
+		if oTarget and (oTarget:id()==0) then
+			local a = db.actor
+			if m:see(a)
+				and m:position():distance_to(a:position())<2
+			then
+				local h = hit()
+				h.draftsman = m
+				h.type = hit.wound
+				h.direction = vector():set(math.random(-10,10)/10,math.random(0,30)/10,math.random(-10,10)/10)
+				h.power = 0
+				h.impulse = 1000
+				a:hit(h)
+			end
+		end
+		binder.boar_timer=time_global() + time_boar_next_attack*(1+math.random(-0.2,0.2))
+	end
+end
+
+-- Burer COP
+-- Атака бюрера из ЗП
+-- Автор: Shadows
+-- Использованы материалы от Charsi
+function ef_burer(binder)
+	if (binder.burer_timer or 0) < time_global() then
+		local m = binder.object
+		local oTarget = m:get_enemy()
+
+		if oTarget and (oTarget:id()==0) then
+			local a = db.actor
+			local v1 = m:direction()
+			local v2 = a:direction()
+			if (v1.x*v2.x) + (v1.z*v2.z ) < -0.6
+				and m:see(a)
+				and m:position():distance_to(a:position())<25
+			then
+				local diff = level.get_game_difficulty()
+				if math.random()<diff/10 then
+					a.power = -1.0
+				end
+				local aitem=a:active_item()
+				if aitem and math.random()<diff/20
+					and (a:active_slot()==1 or a:active_slot()==2)
+				then
+					if not inventory.on_belt("af_idol_monolita") or math.random() < 0.5 then
+						a:drop_item(aitem)
+						archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
+					end
+				end
+			end
+		end
+		binder.burer_timer=time_global() + time_burer_next_attack*(1+math.random(-0.2,0.2))
+	end
+end
+
+function ef_dog(binder)
+	if (binder.dog_time or 0)<time_global() then 
+		binder.dog_time=time_global()+2000
+		
+		local m = binder.object
+		if m.health>0.05 then
+			local npc=m:get_enemy()
+			if npc and npc:id() == 0
+				and db.actor:see(m) and m:see(db.actor)
+				and math.random()<0.2 
+			then
+				level.add_pp_effector("radiation.ppe", 2012, false)
+				local h = hit() 
+				h.type = hit.telepatic 
+				h.power = 0.02 
+				h.impulse = 0.0 
+				h:bone("bip01_spine") -- чтобы учитывалась броня
+				h.draftsman = m
+				h.direction = m:direction() 
+				db.actor:hit(h) 
+				if math.random()<0.02 then
+					local active_item = db.actor:active_item() 
+					if active_item and active_item:section()~= "bolt" then
+						if (not inventory.on_belt("af_idol_monolita")) or math.random() < 0.5 then
+							db.actor:drop_item(active_item)
+							archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Effectors off
+function stop_effects(binder, who)
+	local mob = binder.object
+	local cls = mob:clsid()
+	if cls == clsid.bloodsucker_s then
+		RestoreTimer = 0
+		if binder.MonsterEffector then
+			binder.MonsterEffector:on_death(mob, who)
+		end
+	elseif cls == clsid.pseudodog_s then
+		if binder.attack_flag then
+			level.remove_pp_effector(395)
+			level.remove_cam_effector(991)
+			level.remove_cam_effector(992)
+			binder.attack_flag = nil
+		end
+	elseif cls == clsid.cat_s then
+		if binder.attack_flag then
+			level.remove_pp_effector(6599)
+			binder.attack_flag = nil
+		end
+	elseif cls == clsid.zombie_s then
+		local section = mob:section()
+		if insect_params[section] then
+			ef_insect_stop(section)
+		end
+	elseif cls == clsid.dog_s then
+		if level.has_pp_effector(2012)~=0 then
+			level.remove_pp_effector(2012)
+		end
+	end
+end
+

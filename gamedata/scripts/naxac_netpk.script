@@ -1,0 +1,1717 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--[[------------------------------------------------------------------------------------------
+	Модуль для работы с net_paket'ами объектов (ТЧ)
+	
+	Использование:
+	получаем таблицу параметров:
+		local data = naxac_netpk.get(se_obj)  -- серверный объект на входе,
+			на выходе - талица
+	пишем данные в объект:
+		naxac_netpk.set(se_obj, data, flag)   -- передаём серверный объект для записи
+			и ранее полученную и изменённую, если надо, таблицу параметров
+			flag - нужно ли переводить объект в оффлайн для вступления в силу изменений
+			(true/false). Нужно, к примеру, при изменении визуала объекта
+
+--]]------------------------------------------------------------------------------------------
+
+local torch_flags = {
+	Active            = 1,
+	NightVisionActive = 2,
+	Attached          = 4
+}
+local addon_flags = {
+	scope    = 1,
+	launcher = 2,
+	silencer = 4
+}
+local trader_flags = {
+	Dummy        = 0,
+	InfiniteAmmo = 1
+}
+local object_flags = {
+	UseSwitches       =    1,
+	SwitchOnline      =    2,
+	SwitchOffline     =    4,
+	Interactive       =    8,
+	VisibleForAI      =   16,
+	UsefulForAI       =   32,
+	OfflineNoMove     =   64,
+	UsedAI_Locations  =  128,
+	UseGroupBehaviour =  256,
+	CanSave           =  512,
+	VisibleForMap     = 1024,
+	UseSmartTerrains  = 2048,
+	CheckForSeparator = 4096,
+	CorpseRemoval     = 8192
+}
+local restrictor_type = {
+	DefaultRestrictorTypeNone = 0,
+	DefaultRestrictorTypeOut  = 1,
+	DefaultRestrictorTypeIn   = 2,
+	RestrictorTypeNone        = 3,
+	RestrictorTypeIn          = 4,
+	RestrictorTypeOut         = 5
+}
+
+local clsid2func = {}
+
+function get(obj, state_only)
+	if obj == nil then return abort("naxac_netpk.get: obj is nil") end
+
+	local class_str = clsid2func[obj:clsid()]
+		or abort("naxac_netpk.get: clsid [%d] not found for object [%s] in 'clsid2func'",
+			obj:clsid(), obj:name())
+	local func = this['read_'..class_str]
+		or abort("naxac_netpk.get: function not found for 'class_str' [%s]", class_str)
+
+	local ret = {}
+
+	ret.net_class_name = class_str
+
+	local stpk = net_packet()
+	stpk:w_begin( 0 )
+	obj:STATE_Write( stpk )
+	stpk:r_seek( 2 )
+	
+	local uppk = nil
+	if not state_only then
+		ret.upd = {}
+		uppk = net_packet()
+		uppk:w_begin( 0 )
+		obj:UPDATE_Write( uppk )
+		uppk:r_seek( 2 )
+	end
+
+	func(ret, stpk, uppk)
+
+	ret.tail = stpk:r_tail()
+	if uppk then
+		ret.upd.tail = uppk:r_tail()
+	end
+	
+	return ret
+end
+
+function set(obj, data, convert)
+	if not (obj and data) then return abort("naxac_netpk.set: obj is nil") end
+
+	local class_str = data.net_class_name
+		or clsid2func[obj:clsid()]
+		or abort("naxac_netpk.set: clsid [%d] not found for object [%s] in 'clsid2func'",
+			obj:clsid(), obj:name())
+	local func = this['write_'..class_str]
+		or abort("naxac_netpk.set: function not found for 'class_str' [%s]", class_str)
+
+	local stpk = net_packet()
+	stpk:w_begin( 0 )
+
+	local uppk = nil
+	if data.upd then
+		uppk = net_packet()
+		uppk:w_begin( 0 )
+	end
+
+	func(data, stpk, uppk)
+
+	stpk:w_tail( data.tail )
+
+	stpk:r_seek( 2 )
+	obj:STATE_Read( stpk, stpk:w_tell() )
+
+	if uppk then
+		uppk:w_tail( data.upd.tail )
+		uppk:r_seek( 2 )
+		obj:UPDATE_Read( uppk )
+	end
+
+	if not convert then return end
+
+	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
+	local sim = alife()
+	if sim then
+		local i = obj.id
+		local o = level.object_by_id( i )
+		if o then
+			if class_str=="se_stalker" then o:stop_talk() end
+			sim:set_switch_online( i, false )
+			sim:set_switch_offline( i, true )
+			amk.convert_npc[ i ] = 1
+		end
+	end
+end
+
+function modify( obj, data, flags )
+	if not ( obj and data ) then return abort("naxac_netpk.modify: obj is nil") end
+
+	-- check modes
+	local state_only	= ( bit_and(flags or 0, 1) == 1 )
+	local convert		= ( bit_and(flags or 0, 2) == 2 )
+
+	local class_str = clsid2func[obj:clsid()]
+		or abort("naxac_netpk.modify: clsid [%d] not found for object [%s] in 'clsid2func'",
+			obj:clsid(), obj:name())
+
+	local func = this['read_'..class_str]
+		or abort("naxac_netpk.modify: read-function not found for 'class_str' [%s]", class_str)
+
+	local tmp = {}
+
+	local stpk = net_packet()
+	stpk:w_begin( 0 )
+	obj:STATE_Write( stpk )
+	stpk:r_seek( 2 )
+	
+	local uppk = nil
+	if not state_only then
+		tmp.upd = {}
+		uppk = net_packet()
+		uppk:w_begin( 0 )
+		obj:UPDATE_Write( uppk )
+		uppk:r_seek( 2 )
+	end
+
+	func(tmp, stpk, uppk)
+
+	tmp.tail = stpk:r_tail()
+	if uppk then
+		tmp.upd.tail = uppk:r_tail()
+	end
+
+	for k, v in pairs(data) do
+		if tmp[k] then tmp[k] = v end
+	end
+	if data.upd and tmp.upd then
+		for k, v in pairs(data.upd) do
+			if tmp.upd[k] then tmp.upd[k] = v end
+		end
+	end
+
+	func = this['write_'..class_str]
+		or abort("naxac_netpk.modify: write-function not found for 'class_str' [%s]",class_str)
+
+	stpk:w_begin( 0 )
+	if uppk then uppk:w_begin( 0 ) end
+
+	func(tmp, stpk, uppk)
+
+	stpk:w_tail( tmp.tail )
+
+	stpk:r_seek( 2 )
+	obj:STATE_Read( stpk, stpk:w_tell() )
+
+	if uppk then
+		uppk:w_tail( tmp.upd.tail )
+		uppk:r_seek( 2 )
+		obj:UPDATE_Read( uppk )
+	end
+
+	if not convert then return end
+
+	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
+	local sim = alife()
+	if sim then
+		local i = obj.id
+		local o = level.object_by_id( i )
+		if o then
+			if class_str=="se_stalker"  then o:stop_talk() end
+			sim:set_switch_online( i, false )
+			sim:set_switch_offline( i, true )
+			amk.convert_npc[ i ] = 1
+		end
+	end
+end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_object
+function read_cse_alife_object( ret, stpk )
+	ret.game_vertex_id  = stpk:r_u16()
+	ret.distance        = stpk:r_float()
+	ret.direct_control  = stpk:r_s32()
+	ret.level_vertex_id	= stpk:r_s32()
+	ret.object_flags    = stpk:r_s32()
+	ret.custom_data     = stpk:r_stringZ()
+	ret.story_id        = stpk:r_s32()
+	ret.spawn_story_id  = stpk:r_s32()
+end
+function write_cse_alife_object( data, stpk )
+	stpk:w_u16     ( data.game_vertex_id )
+	stpk:w_float   ( data.distance )
+	stpk:w_s32     ( data.direct_control )
+	stpk:w_s32     ( data.level_vertex_id )
+	stpk:w_s32     ( data.object_flags )
+	stpk:w_stringZ ( data.custom_data )
+	stpk:w_s32     ( data.story_id)
+	stpk:w_s32     ( data.spawn_story_id )
+end
+-- cse_visual
+function read_cse_visual( ret, stpk )
+	ret.visual_name  = stpk:r_stringZ()
+	ret.visual_flags = stpk:r_u8()
+end
+function write_cse_visual( data, stpk )
+	stpk:w_stringZ ( data.visual_name )
+	stpk:w_u8      ( data.visual_flags )
+end
+-- cse_motion
+function read_cse_motion( ret, stpk )
+	ret.motion_name = stpk:r_stringZ()
+end
+function write_cse_motion( data, stpk )
+	stpk:w_stringZ ( data.motion_name )
+end
+---------------------------------------------------------
+-- cse_alife_dynamic_object_visual
+function read_cse_alife_dynamic_object( ret, stpk, uppk )
+	read_cse_alife_object ( ret, stpk )
+	read_cse_visual       ( ret, stpk )
+end
+function write_cse_alife_dynamic_object( data, stpk, uppk )
+	write_cse_alife_object ( data, stpk )
+	write_cse_visual       ( data, stpk )
+end
+---------------------------------------------------------
+-- cse_alife_creature_abstract
+function read_cse_alife_creature_abstract( ret, stpk, uppk )
+	read_cse_alife_dynamic_object( ret, stpk, uppk )
+	
+	ret.g_team                   = stpk:r_u8()
+	ret.g_squad                  = stpk:r_u8()
+	ret.g_group                  = stpk:r_u8()
+	ret.health                   = stpk:r_float()
+	ret.dynamic_out_restrictions = stpk:r_vu32u16()
+	ret.dynamic_in_restrictions  = stpk:r_vu32u16()
+	ret.killer_id                = stpk:r_u16()
+	ret.game_death_time          = stpk:r_u64()
+	
+	if uppk then
+		local t          = ret.upd
+		t.health         = uppk:r_float()
+		t.timestamp      = uppk:r_s32()
+		t.creature_flags = uppk:r_u8()
+		t.position       = uppk:r_vec3()
+		t.o_model        = uppk:r_float()
+		t.o_torso        = uppk:r_vec3()
+		t.g_team         = uppk:r_u8()
+		t.g_squad        = uppk:r_u8()
+		t.g_group        = uppk:r_u8()
+	end
+end
+function write_cse_alife_creature_abstract( data, stpk, uppk )
+	write_cse_alife_dynamic_object( data, stpk, uppk )
+
+	stpk:w_u8      ( data.g_team )
+	stpk:w_u8      ( data.g_squad )
+	stpk:w_u8      ( data.g_group )
+	stpk:w_float   ( data.health )
+	stpk:w_vu32u16 ( data.dynamic_out_restrictions )
+	stpk:w_vu32u16 ( data.dynamic_in_restrictions )
+	stpk:w_u16     ( data.killer_id )
+	stpk:w_u64     ( data.game_death_time )
+
+	if uppk then
+		local t = data.upd
+		uppk:w_float ( t.health )
+		uppk:w_s32   ( t.timestamp )
+		uppk:w_u8    ( t.creature_flags )
+		uppk:w_vec3  ( t.position )
+		uppk:w_float ( t.o_model )
+		uppk:w_vec3  ( t.o_torso )
+		uppk:w_u8    ( t.g_team )
+		uppk:w_u8    ( t.g_squad )
+		uppk:w_u8    ( t.g_group )
+	end
+end
+-- cse_alife_monster_abstract
+function read_cse_alife_monster_abstract( ret, stpk, uppk )
+	read_cse_alife_creature_abstract( ret, stpk, uppk )
+	
+	ret.base_out_restrictors      = stpk:r_stringZ()
+	ret.base_in_restrictors       = stpk:r_stringZ()
+	ret.smart_terrain_id          = stpk:r_u16()
+	ret.smart_terrain_task_active = stpk:r_u8()
+	
+	if uppk then
+		local t = ret.upd
+		t.next_game_vertex_id     = uppk:r_u16()
+		t.prev_game_vertex_id     = uppk:r_u16()
+		t.distance_from_point     = uppk:r_s32()
+		t.distance_to_point       = uppk:r_s32()
+	end
+end
+function write_cse_alife_monster_abstract( data, stpk, uppk )
+	write_cse_alife_creature_abstract( data, stpk, uppk )
+	
+	stpk:w_stringZ ( data.base_out_restrictors )
+	stpk:w_stringZ ( data.base_in_restrictors )
+	stpk:w_u16     ( data.smart_terrain_id )
+	stpk:w_u8      ( data.smart_terrain_task_active )
+	
+	if uppk then
+		local t = data.upd
+		uppk:w_u16 ( t.next_game_vertex_id )
+		uppk:w_u16 ( t.prev_game_vertex_id )
+		uppk:w_s32 ( t.distance_from_point )
+		uppk:w_s32 ( t.distance_to_point )
+	end
+end
+-- cse_alife_trader_abstract
+function read_cse_alife_trader_abstract( ret, stpk )
+	ret.money              = stpk:r_s32()
+	ret.specific_character = stpk:r_stringZ()
+	ret.trader_flags       = stpk:r_s32()
+	ret.character_profile  = stpk:r_stringZ()
+	ret.community_index    = stpk:r_s32()
+	ret.rank               = stpk:r_s32()
+	ret.reputation         = stpk:r_s32()
+	ret.character_name     = stpk:r_stringZ()
+end
+function write_cse_alife_trader_abstract( data, stpk )
+	stpk:w_s32     ( data.money )
+	stpk:w_stringZ ( data.specific_character )
+	stpk:w_s32     ( data.trader_flags )
+	stpk:w_stringZ ( data.character_profile )
+	stpk:w_s32     ( data.community_index )
+	stpk:w_s32     ( data.rank )
+	stpk:w_s32     ( data.reputation )
+	stpk:w_stringZ ( data.character_name )
+end
+-- cse_ph_skeleton
+function read_cse_ph_skeleton( ret, stpk, uppk )
+	ret.skeleton_name  = stpk:r_stringZ()
+	ret.skeleton_flags = stpk:r_u8()
+	ret.source_id      = stpk:r_u16()
+
+	if bit_and( ret.skeleton_flags, 4 ) ~= 0 then
+		ret.bones_mask  = stpk:r_u64()
+		ret.root_bone   = stpk:r_u16()
+		ret.bbox_min    = stpk:r_vec3()
+		ret.bbox_max    = stpk:r_vec3()
+		ret.bones_count = stpk:r_u16()
+		if ret.bones_count > 0 then
+			ret.bones = {}
+			for i = 1, ret.bones_count do
+				local t = {}
+				t.ph_position = stpk:r_vec_q8()
+				t.ph_rotation = stpk:r_qt_q8()
+				t.enabled     = stpk:r_u8()
+				table.insert ( ret.bones, t )
+			end
+		end
+	end
+
+--	if uppk then
+--		ret.upd.skeleton_flags = uppk:r_u8()
+--	end
+end
+function write_cse_ph_skeleton( data, stpk, uppk )
+	stpk:w_stringZ ( data.skeleton_name )
+	stpk:w_u8      ( data.skeleton_flags )
+	stpk:w_u16     ( data.source_id )
+
+	if bit_and( data.skeleton_flags, 4 ) ~= 0 then
+		stpk:w_u64  ( data.bones_mask )
+		stpk:w_u16  ( data.root_bone )
+		stpk:w_vec3 ( data.bbox_min )
+		stpk:w_vec3 ( data.bbox_max )
+		stpk:w_u16  ( data.bones_count )
+		if data.bones_count > 0 then
+			for i, v in ipairs(data.bones) do
+				stpk:w_vec_q8 ( v.ph_position )
+				stpk:w_qt_q8  ( v.ph_rotation )
+				stpk:w_u8     ( v.enabled )
+			end
+		end
+	end
+
+--	if uppk then
+--		uppk:w_u8 ( data.upd.skeleton_flags )
+--	end
+end
+-- cse_shape
+function read_cse_shape( ret, stpk )
+	local sh = {}
+	local shape_type
+	for i = 1, stpk:r_u8() do
+		shape_type = stpk:r_u8()
+		if shape_type == 0 then		-- sphere
+			sh[i] = { ["shtype"] = shape_type,
+				      ["center"] = stpk:r_vec3(),
+					  ["radius"] = stpk:r_float() }
+		else				-- box
+			local m = matrix()
+			stpk:r_matrix( m )
+			sh[i] = { ["shtype"]     = shape_type,
+					  ["box_matrix"] = m }
+		end
+	end
+	ret.shapes = sh
+end
+function write_cse_shape( data, stpk )
+	local t = data.shapes
+	local n = #t
+	stpk:w_u8( n )
+	local sh
+	for i = 1, n do
+		sh = t[i]
+		stpk:w_u8( sh.shtype )
+		if sh.shtype == 0 then
+			stpk:w_vec3( sh.center ); stpk:w_float( sh.radius )
+		else
+			stpk:w_matrix( sh.box_matrix )
+		end
+	end
+end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_ph_skeleton_object
+function read_cse_alife_ph_skeleton_object( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	read_cse_ph_skeleton          ( ret, stpk, uppk )
+end
+function write_cse_alife_ph_skeleton_object( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	write_cse_ph_skeleton          ( data, stpk, uppk )
+end
+----------------------------------------------------------------------------------------------------------
+function read_cse_alife_creature_actor( ret, stpk, uppk )
+	read_cse_alife_creature_abstract ( ret, stpk, uppk )
+	read_cse_alife_trader_abstract   ( ret, stpk )
+	read_cse_ph_skeleton             ( ret, stpk, uppk )
+
+	-- cse_alife_creature_actor
+	ret.holder_id				= stpk:r_u16()
+
+	if uppk then
+		local t                 = ret.upd
+		t.actor_state           = uppk:r_u16()
+		t.actor_accel_header    = uppk:r_u16()
+		t.actor_accel_data      = uppk:r_s32()
+		t.actor_velocity_header = uppk:r_u16()
+		t.actor_velocity_data   = uppk:r_s32()
+		t.actor_radiation       = uppk:r_float()
+		t.actor_weapon          = uppk:r_u8()
+		t.num_items             = uppk:r_u16()
+	end
+end
+function write_cse_alife_creature_actor( data, stpk, uppk )
+	write_cse_alife_creature_abstract	( data, stpk, uppk )
+	write_cse_alife_trader_abstract		( data, stpk )
+	write_cse_ph_skeleton				( data, stpk, uppk )
+
+	-- cse_alife_creature_actor
+	stpk:w_u16	( data.holder_id )
+
+	if uppk then
+		local t = data.upd
+		uppk:w_u16	( t.actor_state )
+		uppk:w_u16	( t.actor_accel_header )
+		uppk:w_s32	( t.actor_accel_data )
+		uppk:w_u16	( t.actor_velocity_header )
+		uppk:w_s32	( t.actor_velocity_data )
+		uppk:w_float( t.actor_radiation )
+		uppk:w_u8	( t.actor_weapon )
+		uppk:w_u16	( t.num_items )
+	end
+end
+
+function read_se_stalker( ret, stpk, uppk )
+	read_cse_alife_trader_abstract  ( ret, stpk )
+	read_cse_alife_monster_abstract ( ret, stpk, uppk )
+
+	-- cse_alife_human_abstract
+	ret.predicate5  = stpk:r_vu32u8()
+	ret.predicate4  = stpk:r_vu32u8()
+
+	read_cse_ph_skeleton ( ret, stpk, uppk )
+
+	-- cse_alife_human_stalker
+	if uppk then
+		ret.upd.start_dialog = uppk:r_stringZ()
+	end
+
+	-- se_stalker
+	local a = stpk:r_u8()
+	if a == 3 then ret.job_online_condlist = stpk:r_stringZ() end
+	ret.job_online           = a
+	ret.was_in_smart_terrain = stpk:r_u8()
+	ret.death_dropped        = stpk:r_u8()
+	ret.resupply_time        = (stpk:r_eof() and 0) or stpk:r_s16()
+end
+function write_se_stalker( data, stpk, uppk )
+	write_cse_alife_trader_abstract  ( data, stpk )
+	write_cse_alife_monster_abstract ( data, stpk, uppk )
+
+	-- cse_alife_human_abstract
+	stpk:w_vu32u8 ( data.predicate5 )
+	stpk:w_vu32u8 ( data.predicate4 )
+
+	write_cse_ph_skeleton ( data, stpk, uppk )
+
+	-- cse_alife_human_stalker
+	if uppk then
+		uppk:w_stringZ ( data.upd.start_dialog )
+	end
+
+	-- se_stalker
+	stpk:w_u8  ( data.job_online )
+	if data.job_online == 3 then stpk:w_stringZ ( data.job_online_condlist ) end
+	stpk:w_u8  ( data.was_in_smart_terrain )
+	stpk:w_u8  ( data.death_dropped )
+	stpk:w_s16 ( data.resupply_time )
+end
+
+function get_character_name( se_npc )
+	local pk = net_packet()
+	local tmp = {}
+	se_npc:STATE_Write ( pk )
+	read_cse_alife_trader_abstract ( tmp, pk )
+	return tmp.character_name
+end
+
+function read_se_monster( ret, stpk, uppk )
+	read_cse_alife_monster_abstract ( ret, stpk, uppk )
+	read_cse_ph_skeleton            ( ret, stpk, uppk )
+
+	-- cse_alife_monster_base
+	ret.spec_object_id = stpk:r_u16()
+
+	-- se_monster
+	local n = stpk:r_u8()
+	if n >= 4 then
+		ret.state = true
+		n = n - 4
+	else
+		ret.state = false
+	end
+	ret.job_online = n
+	if n == 3 then ret.job_online_condlist = stpk:r_stringZ() end
+	ret.was_in_smart_terrain = stpk:r_u8()
+end
+function write_se_monster( data, stpk, uppk )
+	write_cse_alife_monster_abstract ( data, stpk, uppk )
+	write_cse_ph_skeleton            ( data, stpk, uppk )
+
+	-- cse_alife_monster_base
+	stpk:w_u16 ( data.spec_object_id )
+
+	-- se_monster
+	local n = data.job_online
+	if data.state then stpk:w_u8( n + 4 )
+	else stpk:w_u8( n ) end
+	if n == 3 then stpk:w_stringZ ( data.job_online_condlist ) end
+	stpk:w_u8 ( data.was_in_smart_terrain )
+end
+
+function read_se_trader( ret, stpk, uppk )
+	read_cse_alife_dynamic_object  ( ret, stpk, uppk )
+	read_cse_alife_trader_abstract ( ret, stpk )
+
+	-- se_trader
+	ret.resupply_time = ( stpk:r_eof() and 0 ) or stpk:r_s16()
+end
+function write_se_trader( data, stpk, uppk )
+	write_cse_alife_dynamic_object  ( data, stpk, uppk )
+	write_cse_alife_trader_abstract ( data, stpk )
+
+	-- se_trader
+	stpk:w_s16 ( data.resupply_time )
+end
+
+function read_se_heli( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	read_cse_motion               ( ret, stpk )
+	read_cse_ph_skeleton          ( ret, stpk, uppk )
+
+	-- cse_alife_helicopter
+	ret.startup_animation = stpk:r_stringZ()
+	ret.engine_sound      = stpk:r_stringZ()
+end
+function write_se_heli( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	write_cse_motion               ( data, stpk )
+	write_cse_ph_skeleton          ( data, stpk, uppk )
+
+	-- cse_alife_helicopter
+	stpk:w_stringZ ( data.startup_animation )
+	stpk:w_stringZ ( data.engine_sound )
+end
+
+function read_se_car( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	read_cse_ph_skeleton          ( ret, stpk, uppk )
+
+	-- cse_alife_car
+	ret.health = stpk:r_float()
+end
+function write_se_car( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	write_cse_ph_skeleton          ( data, stpk, uppk )
+
+	-- cse_alife_car
+	stpk:w_float ( data.health )
+end
+
+function read_cse_alife_inventory_item( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+
+	-- cse_alife_item
+	ret.condition = stpk:r_float()
+
+	if uppk then
+		local t = ret.upd
+		local n = uppk:r_u8()
+		t.num_items = n
+		if n ~= 0 then
+			t.ph_position = uppk:r_vec3()
+			t.ph_rotation = uppk:r_qt_q8()
+			if bit_and(n, 64) == 64 then
+				t.ph_angular_vel = uppk:r_vec_q8()
+			end
+			if bit_and(n, 128) == 128 then
+				t.ph_linear_vel = uppk:r_vec_q8()
+			end
+		end
+	end
+end
+function write_cse_alife_inventory_item( data, stpk, uppk )
+	write_cse_alife_dynamic_object( data, stpk, uppk )
+
+	-- cse_alife_item
+	stpk:w_float( data.condition )
+
+	if uppk then
+		local t = data.upd
+		local n = t.num_items
+		uppk:w_u8( n )
+		if n ~= 0 then
+			uppk:w_vec3  ( t.ph_position )
+			uppk:w_qt_q8 ( t.ph_rotation )
+			if bit_and(n, 64) == 64 then
+				uppk:w_vec_q8 ( t.ph_angular_vel )
+			end
+			if bit_and(n, 128) == 128 then
+				uppk:w_vec_q8 ( t.ph_linear_vel )
+			end
+		end
+	end
+end
+
+function read_cse_alife_item_pda( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_pda
+	ret.original_owner     = stpk:r_u16()
+	ret.specific_character = stpk:r_stringZ()
+	ret.info_portion       = stpk:r_stringZ()
+end
+function write_cse_alife_item_pda( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_pda
+	stpk:w_u16     ( data.original_owner )
+	stpk:w_stringZ ( data.specific_character )
+	stpk:w_stringZ ( data.info_portion )
+end
+
+function read_se_item_torch( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_torch
+	if uppk then
+		ret.upd.torch_flags = uppk:r_u8()
+	end
+
+	-- se_item_torch
+	ret.worked_time = (stpk:r_eof() and 0) or stpk:r_s32()
+end
+function write_se_item_torch( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_torch
+	if uppk then
+		uppk:w_u8 ( data.upd.torch_flags )
+	end
+
+	-- se_item_torch
+	stpk:w_s32 (data.worked_time)
+end
+
+function read_cse_alife_item_document( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_document
+	ret.info_portion = stpk:r_stringZ()
+end
+function write_cse_alife_item_document( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_document
+	stpk:w_stringZ ( data.info_portion )
+end
+
+function read_cse_alife_item_custom_outfit( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_custom_outfit
+	if uppk then
+		ret.upd.condition = uppk:r_u8()
+	end
+end
+function write_cse_alife_item_custom_outfit( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_custom_outfit
+	if uppk then
+		uppk:w_u8 ( data.upd.condition )
+	end
+end
+
+function read_cse_alife_item_ammo( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_ammo
+	ret.ammo_left         = stpk:r_u16()
+
+	if uppk then
+		ret.upd.ammo_left = uppk:r_u16()
+	end
+end
+function write_cse_alife_item_ammo( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_ammo
+	stpk:w_u16 ( data.ammo_left )
+
+	if uppk then
+		uppk:w_u16 ( data.upd.ammo_left )
+	end
+end
+	
+function get_ammo_size( obj )
+	local pk = net_packet()
+	cse_alife_item_ammo.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 2 )
+	return pk:r_u16()	-- ammo_left
+end
+
+function get_ammo_type( obj )
+	local pk = net_packet()
+	cse_alife_item_weapon.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 1 )
+	return pk:r_u8()	-- ammo_type
+end
+
+function get_ammo_elapsed( obj )
+	local pk = net_packet()
+	cse_alife_item_weapon.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 5 )
+	return pk:r_u16()	-- ammo_elapsed
+end
+
+function read_cse_alife_item_weapon( ret, stpk, uppk )
+	read_cse_alife_inventory_item ( ret, stpk, uppk )
+
+	-- cse_alife_item_weapon
+	ret.ammo_current   = stpk:r_u16()
+	ret.ammo_elapsed   = stpk:r_u16()
+	ret.weapon_state   = stpk:r_u8()
+	ret.addon_flags    = stpk:r_u8()
+	ret.ammo_type      = stpk:r_u8()
+
+	if uppk then
+		local t        = ret.upd
+		t.condition    = uppk:r_u8()
+		t.weapon_flags = uppk:r_u8()
+		t.ammo_elapsed = uppk:r_u16()
+		t.addon_flags  = uppk:r_u8()
+		t.ammo_type    = uppk:r_u8()
+		t.weapon_state = uppk:r_u8()
+		t.weapon_zoom  = uppk:r_u8()
+	end
+end
+function write_cse_alife_item_weapon( data, stpk, uppk )
+	write_cse_alife_inventory_item ( data, stpk, uppk )
+
+	-- cse_alife_item_weapon
+	stpk:w_u16 ( data.ammo_current )
+	stpk:w_u16 ( data.ammo_elapsed )
+	stpk:w_u8  ( data.weapon_state )
+	stpk:w_u8  ( data.addon_flags )
+	stpk:w_u8  ( data.ammo_type )
+
+	if uppk then
+		local t    = data.upd
+		uppk:w_u8  ( t.condition )
+		uppk:w_u8  ( t.weapon_flags )
+		uppk:w_u16 ( t.ammo_elapsed )
+		uppk:w_u8  ( t.addon_flags )
+		uppk:w_u8  ( t.ammo_type )
+		uppk:w_u8  ( t.weapon_state )
+		uppk:w_u8  ( t.weapon_zoom )
+	end
+end
+
+function read_cse_alife_item_weapon_magazined( ret, stpk, uppk )
+	read_cse_alife_item_weapon ( ret, stpk, uppk )
+
+	-- cse_alife_item_weapon_magazined
+	if uppk then
+		ret.upd.current_fire_mode = uppk:r_u8()
+	end
+end
+function write_cse_alife_item_weapon_magazined( data, stpk, uppk )
+	write_cse_alife_item_weapon ( data, stpk, uppk )
+
+	-- cse_alife_item_weapon_magazined
+	if uppk then
+		uppk:w_u8 ( data.upd.current_fire_mode )
+	end
+end
+
+function read_cse_alife_item_weapon_shotgun( ret, stpk, uppk )
+	read_cse_alife_item_weapon_magazined ( ret, stpk, uppk )
+
+	-- cse_alife_item_weapon_shotgun
+	if uppk then
+		ret.upd.ammo_ids = uppk:r_vu8u8()
+	end
+end
+function write_cse_alife_item_weapon_shotgun( data, stpk, uppk )
+	write_cse_alife_item_weapon_magazined ( data, stpk, uppk )
+
+	-- cse_alife_item_weapon_shotgun
+	if uppk then
+		uppk:w_vu8u8 ( data.upd.ammo_ids )
+	end
+end
+
+function read_cse_alife_item_weapon_magazined_w_gl( ret, stpk, uppk )
+	-- cse_alife_item_weapon_magazined_w_gl
+	if uppk then
+		ret.upd.grenade_mode = uppk:r_u8()
+	end
+
+	read_cse_alife_item_weapon_magazined ( ret, stpk, uppk )
+end
+function write_cse_alife_item_weapon_magazined_w_gl( data, stpk, uppk )
+	-- cse_alife_item_weapon_magazined_w_gl
+	if uppk then
+		uppk:w_u8 ( data.upd.grenade_mode )
+	end
+
+	write_cse_alife_item_weapon_magazined ( data, stpk, uppk )
+end
+
+function read_cse_alife_object_breakable( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	
+	-- cse_alife_object_breakable
+	ret.health = stpk:r_float()
+end
+function write_cse_alife_object_breakable( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	
+	-- cse_alife_object_breakable
+	stpk:w_float ( data.health )
+end
+
+function read_cse_alife_object_physic( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	read_cse_ph_skeleton          ( ret, stpk, uppk )
+	
+	-- cse_alife_object_physic
+	ret.physic_type = stpk:r_s32()
+	ret.mass        = stpk:r_float()
+	ret.fixed_bones = stpk:r_stringZ()
+end
+function write_cse_alife_object_physic( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	write_cse_ph_skeleton          ( data, stpk, uppk )
+	
+	-- cse_alife_object_physic
+	stpk:w_s32     ( data.physic_type )
+	stpk:w_float   ( data.mass )
+	stpk:w_stringZ ( data.fixed_bones )
+end
+
+function read_cse_alife_object_hanging_lamp( ret, stpk, uppk )
+	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+	read_cse_ph_skeleton          ( ret, stpk, uppk )
+	
+	-- cse_alife_object_hanging_lamp
+	ret.main_color          = stpk:r_s32()
+	ret.main_brightness     = stpk:r_float()
+	ret.main_color_animator = stpk:r_stringZ()
+	ret.main_range          = stpk:r_float()
+	ret.light_flags         = stpk:r_u16()
+	ret.startup_animation   = stpk:r_stringZ()
+	ret.lamp_fixed_bones    = stpk:r_stringZ()
+	ret.health              = stpk:r_float()
+	ret.main_virtual_size   = stpk:r_float()
+	ret.ambient_radius      = stpk:r_float()
+	ret.ambient_power       = stpk:r_float()
+	ret.ambient_texture     = stpk:r_stringZ()
+	ret.main_texture        = stpk:r_stringZ()
+	ret.main_bone           = stpk:r_stringZ()
+	ret.main_cone_angle     = stpk:r_float()
+	ret.glow_texture        = stpk:r_stringZ()
+	ret.glow_radius         = stpk:r_float()
+	ret.ambient_bone        = stpk:r_stringZ()
+end
+function write_cse_alife_object_hanging_lamp( data, stpk, uppk )
+	write_cse_alife_dynamic_object ( data, stpk, uppk )
+	write_cse_ph_skeleton          ( data, stpk, uppk )
+	
+	-- cse_alife_object_hanging_lamp
+	stpk:w_s32     ( data.main_color )
+	stpk:w_float   ( data.main_brightness )
+	stpk:r_stringZ ( data.main_color_animator )
+	stpk:w_float   ( data.main_range )
+	stpk:w_u16     ( data.light_flags )
+	stpk:r_stringZ ( data.startup_animation )
+	stpk:r_stringZ ( data.lamp_fixed_bones )
+	stpk:w_float   ( data.health )
+	stpk:w_float   ( data.main_virtual_size )
+	stpk:w_float   ( data.ambient_radius )
+	stpk:w_float   ( data.ambient_power )
+	stpk:r_stringZ ( data.ambient_texture )
+	stpk:r_stringZ ( data.main_texture )
+	stpk:r_stringZ ( data.main_bone )
+	stpk:w_float   ( data.main_cone_angle )
+	stpk:r_stringZ ( data.glow_texture )
+	stpk:w_float   ( data.glow_radius )
+	stpk:r_stringZ ( data.ambient_bone )
+end
+
+function read_cse_alife_object_climable( ret, stpk, uppk )
+	read_cse_alife_object ( ret, stpk )
+	read_cse_shape        ( ret, stpk )
+	
+	-- cse_alife_object_climable
+	ret.game_material     = stpk:r_stringZ()
+end
+function write_cse_alife_object_climable( data, stpk, uppk )
+	write_cse_alife_object ( data, stpk )
+	write_cse_shape        ( data, stpk )
+	
+	-- cse_alife_object_climable
+	stpk:w_stringZ         ( data.game_material )
+end
+
+function read_cse_alife_space_restrictor( ret, stpk, uppk )
+	read_cse_alife_object ( ret, stpk )
+	read_cse_shape        ( ret, stpk )
+	
+	-- cse_alife_space_restrictor
+	ret.restrictor_type   = stpk:r_u8()
+end
+function write_cse_alife_space_restrictor( data, stpk, uppk )
+	write_cse_alife_object ( data, stpk )
+	write_cse_shape        ( data, stpk )
+	
+	-- cse_alife_space_restrictor
+	stpk:w_u8              ( data.restrictor_type )
+end
+
+function read_cse_alife_level_changer( ret, stpk, uppk )
+	read_cse_alife_space_restrictor ( ret, stpk, uppk )
+	
+	-- cse_alife_level_changer
+	ret.dest_game_vertex_id  = stpk:r_u16()
+	ret.dest_level_vertex_id = stpk:r_s32()
+	ret.dest_position        = stpk:r_vec3()
+	ret.dest_direction       = stpk:r_vec3()
+	ret.dest_level_name      = stpk:r_stringZ()
+	ret.dest_graph_point     = stpk:r_stringZ()
+	ret.silent_mode          = stpk:r_u8()
+end
+function write_cse_alife_level_changer( data, stpk, uppk )
+	write_cse_alife_space_restrictor ( data, stpk, uppk )
+	
+	-- cse_alife_level_changer
+	stpk:w_u16     ( data.dest_game_vertex_id )
+	stpk:w_s32     ( data.dest_level_vertex_id )
+	stpk:w_vec3    ( data.dest_position )
+	stpk:w_vec3    ( data.dest_direction )
+	stpk:w_stringZ ( data.dest_level_name )
+	stpk:w_stringZ ( data.dest_graph_point )
+	stpk:w_u8      ( data.silent_mode )
+end
+	
+function read_cse_alife_anomalous_zone( ret, stpk, uppk )
+	read_cse_alife_space_restrictor ( ret, stpk, uppk )
+	
+	-- cse_alife_custom_zone
+	ret.max_power        = stpk:r_float()
+	ret.owner_id         = stpk:r_s32()
+	ret.enabled_time     = stpk:r_s32()
+	ret.disabled_time    = stpk:r_s32()
+	ret.start_time_shift = stpk:r_s32()
+	
+	-- cse_alife_anomalous_zone
+	ret.offline_interactive_radius = stpk:r_float()
+	ret.artefact_spawn_count       = stpk:r_u16()
+	ret.artefact_position_offset   = stpk:r_s32()
+end
+function write_cse_alife_anomalous_zone( data, stpk, uppk )
+	write_cse_alife_space_restrictor ( data, stpk, uppk )
+	
+	-- cse_alife_custom_zone
+	stpk:w_float ( data.max_power )
+	stpk:w_s32   ( data.owner_id )
+	stpk:w_s32   ( data.enabled_time )
+	stpk:w_s32   ( data.disabled_time )
+	stpk:w_s32   ( data.start_time_shift )
+	
+	-- cse_alife_anomalous_zone
+	stpk:w_float ( data.offline_interactive_radius )
+	stpk:w_u16   ( data.artefact_spawn_count )
+	stpk:w_s32   ( data.artefact_position_offset )
+end
+
+function read_se_zone_anom( ret, stpk, uppk )
+	read_cse_alife_anomalous_zone ( ret, stpk, uppk )
+	
+	-- se_zone_anom
+	local n = stpk:r_u8()
+	ret.last_spawn_time_present = n
+	if n == 1 then
+		ret.last_spawn_time = stpk:r_CTime()
+	end
+end
+function write_se_zone_anom( data, stpk, uppk )
+	write_cse_alife_anomalous_zone ( data, stpk, uppk )
+
+	-- se_zone_anom
+	stpk:w_u8( data.last_spawn_time_present )
+	if data.last_spawn_time_present == 1 then
+		stpk:w_CTime ( data.last_spawn_time )
+	end
+end
+
+function read_cse_alife_zone_visual( ret, stpk, uppk )
+	read_cse_alife_anomalous_zone( ret, stpk, uppk )
+	read_cse_visual( ret, stpk )
+
+	-- cse_alife_zone_visual
+	ret.idle_animation		= stpk:r_stringZ()
+	ret.attack_animation	= stpk:r_stringZ()
+end
+function write_cse_alife_zone_visual( data, stpk, uppk )
+	write_cse_alife_anomalous_zone( data, stpk, uppk )
+	write_cse_visual( data, stpk )
+
+	-- cse_alife_zone_visual
+	stpk:w_stringZ( data.idle_animation )
+	stpk:w_stringZ( data.attack_animation )
+end
+
+function read_se_zone_visual( ret, stpk, uppk )
+	read_cse_alife_zone_visual( ret, stpk, uppk )
+
+	-- se_zone_visual
+	local n = stpk:r_u8()
+	ret.last_spawn_time_present = n
+	if n == 1 then
+		ret.last_spawn_time = stpk:r_CTime()
+	end
+end
+function write_se_zone_visual( data, stpk, uppk )
+	write_cse_alife_zone_visual( data, stpk, uppk )
+
+	-- se_zone_visual
+	stpk:w_u8( data.last_spawn_time_present )
+	if data.last_spawn_time_present == 1 then
+		stpk:w_CTime ( data.last_spawn_time )
+	end
+end
+-- cse_alife_torrid_zone
+function read_cse_alife_torrid_zone( ret, stpk, uppk )
+	read_cse_alife_anomalous_zone( ret, stpk, uppk )
+	read_cse_motion( ret, stpk )
+end
+function write_cse_alife_torrid_zone( data, stpk, uppk )
+	write_cse_alife_anomalous_zone( data, stpk, uppk )
+	write_cse_motion( data, stpk )
+end
+
+function read_se_respawn( ret, stpk, uppk )
+	read_cse_alife_space_restrictor( ret, stpk, uppk )
+	
+	-- se_respawn
+	local n = stpk:r_u8()
+	ret.spawned_obj = {}
+	if n > 0 then
+		for  i = 1, n do
+			table.insert( ret.spawned_obj, stpk:r_u16() )
+		end
+	end
+	if not stpk:r_eof() then
+		ret.respawn_time = stpk:r_CTime( )
+	end
+end
+function write_se_respawn( data, stpk, uppk )
+	write_cse_alife_space_restrictor( data, stpk, uppk )
+	
+	-- se_respawn
+	local n = #data.spawned_obj
+	stpk:w_u8( n )
+	for i, v in ipairs( data.spawned_obj ) do
+		stpk:w_u16( v )
+	end
+	if data.respawn_time then
+		stpk:w_CTime( data.respawn_time )
+	end
+end
+
+function read_se_smart_terrain( ret, stpk, uppk )
+	read_cse_alife_space_restrictor( ret, stpk, uppk )
+	
+	-- se_smart_terrain
+	ret.duration_end_present	= stpk:r_CTime()
+	ret.idle_end_present		= stpk:r_CTime()
+	ret.gulag_working			= stpk:r_u8()	-- r_bool
+	if ret.gulag_working ~= 0 then
+		-- gulag:load_common
+		local t = {}
+		ret.gulag = t
+		t.Object_begin_job			= {}
+		t.Object_didnt_begin_job	= {}
+		t.ObjectJob					= {}
+		t.casualities 		= stpk:r_u8()
+		t.state       		= stpk:r_u8()
+		t.stateBegin 		= stpk:r_CTime()
+		t.population				= stpk:r_u8()
+		t.population_comed			= stpk:r_u8()
+		t.population_non_exclusive	= stpk:r_u8()
+		t.loaded_jobs = {}
+		local job
+		for i = 1, stpk:r_u8() do
+			job = {}
+			table.insert( t.loaded_jobs, job )
+			job.begin            = stpk:r_u32()
+			job.fill_idle        = stpk:r_u32()
+			job.idle_after_death_end = stpk:r_u32()
+		end
+		-- read npc_info
+		ret.npc_info = {}
+		local o_id
+		for i = 1, stpk:r_u8() do
+			o_id = stpk:r_u16()
+			local o = {}
+			ret.npc_info[o_id] = o
+			o.o_group   = stpk:r_u8()
+			o.o_squad   = stpk:r_u8()
+			o.exclusive = stpk:r_bool()
+			o.stay_end  = stpk:r_CTime()
+			-- gulag:load_obj
+			t.Object_begin_job[o_id] = stpk:r_bool()
+			t.Object_didnt_begin_job[o_id] = stpk:r_bool()
+			t.ObjectJob[o_id] = stpk:r_u8()
+		end
+		ret.population_locked = stpk:r_bool()
+	end
+end
+function write_se_smart_terrain( data, stpk, uppk )
+	write_cse_alife_space_restrictor( data, stpk, uppk )
+	
+	-- se_smart_terrain
+	stpk:w_CTime( data.duration_end_present )
+	stpk:w_CTime( data.idle_end_present )
+	stpk:w_u8( data.gulag_working )
+	if data.gulag_working ~= 0 then
+		-- gulag:save_common
+		local t = data.gulag
+		stpk:w_u8( t.casualities )
+		stpk:w_u8( t.state )
+		stpk:w_CTime( t.stateBegin )
+		stpk:w_u8(t.population)
+		stpk:w_u8(t.population_comed)
+		stpk:w_u8(t.population_non_exclusive)
+		stpk:w_u8( #t.loaded_jobs )
+		for i, job in ipairs(t.loaded_jobs) do
+			stpk:w_u32( job.begin )
+			stpk:w_u32( job.fill_idle )
+			stpk:w_u32( job.idle_after_death_end )
+		end
+		-- write npc_info
+		stpk:w_u8( table.size(data.npc_info) )
+		for id, v in pairs( data.npc_info ) do
+			stpk:w_u16  ( id )
+			stpk:w_u8   ( v.o_group )
+			stpk:w_u8   ( v.o_squad )
+			stpk:w_bool ( v.exclusive )
+			stpk:w_CTime ( v.stay_end )
+			-- gulag:save_obj
+			stpk:w_bool ( t.Object_begin_job[id] )
+			stpk:w_bool ( t.Object_didnt_begin_job[id] )
+			stpk:w_u8   ( t.ObjectJob[id] )
+		end
+		stpk:w_bool ( data.population_locked )
+	end
+end
+----------------------------------------------------------------------------------------------
+-- Парсим custom_data в таблицу
+function parse_custom_data(str)
+	local ret = {}
+	local s,v
+	local now_sect = ""
+	for line in string.gfind(str, "([^\n]+)\n*") do
+		s = string.match(line, "^%s*(%b[])")
+		if s then
+			s = s:sub(2, -2)
+			ret[s] = {}
+			now_sect = s
+		elseif now_sect~="" then
+			s, v = string.match(line, "^%s*([%w%-%._]+)%s*=*%s*([^;]*)")
+			s = s and trim(s) or ""
+			if s~=nil and s~="" then
+				v = v and trim(v) or "<nil>"
+				ret[now_sect][s] = v~="" and v or "<nil>"
+			end
+		end
+	end
+	return ret
+end
+-- Генерируем из таблицы строку для custom_data
+function gen_custom_data(tbl)
+	local ret = ""
+	for k,v in pairs(tbl) do
+		ret = ret.."["..k.."]\n"
+		for kk,vv in pairs(v) do
+			ret = ret..kk..(vv=="<nil>" and "\n" or " = "..vv.."\n")
+		end
+	end
+	return ret
+end
+------ OGSE + -------------------------------------------------------------------------------
+function mul_43(res, m1, m2)
+	if res.mul_43 then
+		res:mul_43(m1, m2)
+	else
+		local res_00 = m1.j.x * m2.i.y + m1.k.x * m2.i.z + m1.i.x * m2.i.x;
+		local res_01 = m1.j.y * m2.i.y + m1.k.y * m2.i.z + m1.i.y * m2.i.x;
+		local res_02 = m1.j.z * m2.i.y + m1.k.z * m2.i.z + m1.i.z * m2.i.x;
+		--
+		local res_10 = m1.i.x * m2.j.x + m1.k.x * m2.j.z + m1.j.x * m2.j.y;
+		local res_11 = m1.k.y * m2.j.z + m1.j.y * m2.j.y + m1.i.y * m2.j.x;
+		local res_12 = m1.k.z * m2.j.z + m1.j.z * m2.j.y + m1.i.z * m2.j.x;
+		--
+		local res_20 = m1.i.x * m2.k.x + m1.k.x * m2.k.z + m1.j.x * m2.k.y;
+		local res_21 = m1.k.y * m2.k.z + m1.j.y * m2.k.y + m1.i.y * m2.k.x;
+		local res_22 = m1.k.z * m2.k.z + m1.j.z * m2.k.y + m1.i.z * m2.k.x;
+		--
+		local res_30 = m1.i.x * m2.c.x + m1.k.x * m2.c.z + m1.j.x * m2.c.y + m1.c.x;
+		local res_31 = m1.k.y * m2.c.z + m1.j.y * m2.c.y + m1.i.y * m2.c.x + m1.c.y;
+		local res_32 = m1.k.z * m2.c.z + m1.j.z * m2.c.y + m1.i.z * m2.c.x + m1.c.z;
+		--
+		res:set(
+			vector():set(res_00, res_01, res_02),
+			vector():set(res_10, res_11, res_12),
+			vector():set(res_20, res_21, res_22),
+			vector():set(res_30, res_31, res_32)
+			)
+		res._14_ = 0.0
+		res._24_ = 0.0
+		res._34_ = 0.0
+		res._44_ = 1.0
+	end
+	return res
+end
+
+function transform_tiny(m, v)
+	local res = vector()
+	return transform_tiny_(m, res, v)
+end
+function transform_tiny_(m, res, v)
+	res.x = m.i.x * v.x + m.k.x * v.z + m.j.x * v.y + m.c.x;
+	res.y = m.k.y * v.z + m.j.y * v.y + m.i.y * v.x + m.c.y;
+	res.z = m.k.z * v.z + m.j.z * v.y + m.i.z * v.x + m.c.z;
+	return res
+end
+----------------------------------------------------------------------------------------------------
+-- выделение из матрицы углов поворота в последовательности x,z,y
+-- подразумевается, что матрица является правильной матрицей поворота
+-- функция содрана из библиотеки Wild Magic 5
+function extract_euler_xzy(m)
+	if m.i.y < 1 then
+		if m.i.y > -1 then
+			local az = math.asin(-m.i.y)
+			local ax = math.atan2(m.k.y, m.j.y)
+			local ay = math.atan2(m.i.z, m.i.x)
+			return ax, az, ay
+		else
+			local az = math.pi / 2
+			local ax = -math.atan2(-m.k.x, m.k.z)
+			local ay = 0
+			return ax, az, ay
+		end
+	else
+		local az = -math.pi / 2
+		local ax = math.atan2(-m.k.x, m.k.z)
+		local ay = 0
+		return ax, az, ay
+	end
+end
+
+local base_box_vertices = {
+	vector():set(-.5, -.5, -.5),
+	vector():set(-.5, -.5,  .5),
+	vector():set(-.5,  .5,  .5),
+	vector():set(-.5,  .5, -.5),
+	vector():set( .5,  .5,  .5),
+	vector():set( .5,  .5, -.5),
+	vector():set( .5, -.5,  .5),
+	vector():set( .5, -.5, -.5),
+}
+function build_box_vertices(xformed_box_transformation)
+	local vertices = {}
+	for i,v in ipairs(base_box_vertices) do
+		vertices[i] = transform_tiny(xformed_box_transformation, v)
+	end
+	return vertices
+end
+
+function build_plane(arg1, arg2, arg3)
+	local d13 = vector():sub(arg3, arg1)
+	local d12 = vector():sub(arg2, arg1)
+	local plane = {}
+	plane.n = vector():crossproduct(d13, d12):normalize() -- нормаль к плоскости
+	plane.d = - arg1:dotproduct(plane.n) -- точка на плоскости, которая одновременно находится
+	-- на нормали к этой плоскости, выходящей из начала координат (ближайшая к началу координат 
+	-- точка плоскости)
+	return plane
+end
+
+-- получение world-трансформации объекта
+function get_xform(cobj)
+	local xform = matrix()
+	if type(cobj.get_go_float) == "function" then
+		local a = {}
+		for i=0,15 do
+			a[i] = cobj:get_go_float(80 + i*4)
+		end
+		xform:set(
+			vector():set(a[0], a[1], a[2]),
+			vector():set(a[4], a[5], a[6]),
+			vector():set(a[8], a[9], a[10]),
+			vector():set(a[12], a[13], a[14])
+		)
+	else
+		xform:set(
+			vector():set(1, 0, 0),
+			vector():set(0, 1, 0),
+			vector():set(0, 0, 1),
+			cobj:position()
+		)
+	end
+	xform._14_ = 0
+	xform._24_ = 0
+	xform._34_ = 0
+	xform._44_ = 1
+	--print_matrix("xform", xform)
+	--print_vector("pos", cobj:position())
+	return xform
+end
+
+function decompose_matrix(m, offset, scale, rotation, shear)
+	offset:set(
+		vector():set(1,0,0), 
+		vector():set(0,1,0), 
+		vector():set(0,0,1), 
+		m.c)
+	offset._44_ = 1.0
+	--
+	local sx = m.i:magnitude()
+	local sy = m.j:magnitude()
+	local sz = m.k:magnitude()
+	scale:set(
+		vector():set(sx,0,0), 
+		vector():set(0,sy,0), 
+		vector():set(0,0,sz), 
+		vector())
+	scale._44_ = 1.0
+	rotation:set(
+		vector():set(m.i:div(sx)),
+		vector():set(m.j:div(sy)),
+		vector():set(m.k:div(sz)),
+		vector())
+	rotation._44_ = 1.0
+	shear:set(matrix():identity())
+end
+
+function combine_transformations(transl, scale, rotation, shear)
+	return mul_43(
+		matrix(),
+		transl,
+		mul_43(
+			matrix(),
+			shear,
+			mul_43(
+				matrix(),
+				rotation,
+				scale)
+		)
+	)
+end
+
+function get_all_shapes_data( cobj )
+	local data = {}
+	
+	data.sobj = alife():object(cobj:id())
+	local row_data = naxac_netpk.get( data.sobj, true )
+	local shapes_row_data = row_data.shapes
+	
+	local xform_orig = get_xform( cobj )
+	
+	local xoffset = matrix()
+	local xscale = matrix()
+	local xrot = matrix()
+	local xshear = matrix()
+	
+	decompose_matrix(xform_orig, xoffset, xscale, xrot, xshear)
+	
+	local xform_comp = combine_transformations(matrix():identity(), xscale, xrot, xshear)
+	
+	data.xform = xoffset
+	
+	data.game_vertex_id = row_data.game_vertex_id
+	data.distance = row_data.distance
+	data.level_vertex_id = row_data.level_vertex_id
+	if row_data.dest_game_vertex_id then	-- for level changer
+		data.dest_game_vertex_id = row_data.dest_game_vertex_id
+	elseif row_data.max_power then			-- for anomaly zone
+		data.max_power = row_data.max_power
+	end
+	
+	data.shapes = {}
+	for i = 1, #shapes_row_data do
+		local shape = {}
+		data.shapes[i] = shape
+		local shp = shapes_row_data[i]
+		if shp.shtype == 0 then
+			shape.t = 0
+			shape.offset = shp.center
+			shape.r = shp.radius
+		elseif shp.shtype == 1 then
+			shape.t = 1
+			local m = matrix():set(shp.box_matrix)
+			shape.m = mul_43(matrix(), xform_comp, m)
+			shape.v = build_box_vertices(mul_43(matrix(), data.xform, shape.m))
+			shape.planes = {}
+			shape.planes[1] = build_plane(shape.v[1],shape.v[4],shape.v[6])
+			shape.planes[2] = build_plane(shape.v[2],shape.v[3],shape.v[4])
+			shape.planes[3] = build_plane(shape.v[7],shape.v[6],shape.v[5])
+			shape.planes[4] = build_plane(shape.v[5],shape.v[3],shape.v[2])
+			shape.planes[5] = build_plane(shape.v[4],shape.v[3],shape.v[5])
+			shape.planes[6] = build_plane(shape.v[2],shape.v[1],shape.v[7])
+			
+			local offset = matrix()
+			local scale = matrix()
+			local rotation = matrix()
+			local shear = matrix()
+			decompose_matrix(shape.m, offset, scale, rotation, shear)
+			shape.a = {extract_euler_xzy(rotation)}
+			shape.offset = {offset.c.x, offset.c.y, offset.c.z}
+			shape.scale = {scale.i.x, scale.j.y, scale.k.z}
+			shape.shear = {shear.i.y, shear.i.z, shear.j.z}
+		else
+			log("get_all_shapes_data: unknown shape type: %s", tostring(shp.shtype))
+		end
+	end
+	return data
+end
+
+function distance_from_shape_boundary(pos, shape, point)
+	if shape.t == 0 then
+		return (shape.r - vector():sub(vector():add(pos, shape.offset), point):magnitude())
+	elseif shape.t == 1 then
+		local dist = math.huge
+		for _,plane in ipairs(shape.planes) do
+			-- плоскость задана нормалью и растоянием
+			local a = plane.n:dotproduct(point) + plane.d
+			if a < dist then
+				dist = a
+			end
+		end
+		return dist
+	else
+		abort('distance_from_shape_boundary: unknown shape type: %s', tostring(shape.t))
+	end
+end
+
+function distance_from_zone_boundary(zone_data, point)
+	local dist = -math.huge
+	for i,shape in ipairs(zone_data.shapes) do
+		local d = distance_from_shape_boundary(zone_data.xform.c, shape, point)
+		if d > dist then
+			dist = d
+		end
+	end
+	return dist
+end
+------------ OGSE - -------------------------------------------------------------------------
+
+function init()
+	local clsid2type = {
+		actor				= 'cse_alife_creature_actor',
+
+		script_stalker		= 'se_stalker',
+
+		bloodsucker_s		= 'se_monster',
+		boar_s				= 'se_monster',
+		burer_s				= 'se_monster',
+		cat_s				= 'se_monster',
+		chimera_s			= 'se_monster',
+		controller_s		= 'se_monster',
+		dog_s				= 'se_monster',
+		flesh_s				= 'se_monster',
+		fracture_s			= 'se_monster',
+		gigant_s			= 'se_monster',
+		poltergeist_s		= 'se_monster',
+		pseudodog_s			= 'se_monster',
+		psy_dog_s			= 'se_monster',
+		snork_s				= 'se_monster',
+		tushkano_s			= 'se_monster',
+		zombie_s			= 'se_monster',
+
+		script_trader		= 'se_trader',
+
+		['crow']			= 'cse_alife_creature_abstract',
+
+		script_heli			= 'se_heli',
+
+		car_s 				= 'se_car',
+
+		artefact 			= 'cse_alife_inventory_item',
+		artefact_s 			= 'cse_alife_inventory_item',
+		device_detector_simple = 'cse_alife_inventory_item',
+		obj_antirad			= 'cse_alife_inventory_item',
+		obj_attachable		= 'cse_alife_inventory_item',
+		obj_bandage			= 'cse_alife_inventory_item',
+		obj_bolt			= 'cse_alife_inventory_item',
+		obj_bottle			= 'cse_alife_inventory_item',
+		obj_explosive		= 'cse_alife_inventory_item',
+		obj_food			= 'cse_alife_inventory_item',
+		obj_medkit			= 'cse_alife_inventory_item',
+		wpn_grenade_f1		= 'cse_alife_inventory_item',
+		wpn_grenade_launcher = 'cse_alife_inventory_item',
+		wpn_grenade_rgd5	= 'cse_alife_inventory_item',
+		wpn_scope			= 'cse_alife_inventory_item',
+		wpn_scope_s			= 'cse_alife_inventory_item',
+		wpn_silencer		= 'cse_alife_inventory_item',
+
+		device_pda			= 'cse_alife_item_pda',
+
+		device_torch_s		= 'se_item_torch',
+
+		obj_document		= 'cse_alife_item_document',
+
+		equ_exo				= 'cse_alife_item_custom_outfit',
+		equ_military		= 'cse_alife_item_custom_outfit',
+		equ_scientific		= 'cse_alife_item_custom_outfit',
+		equ_stalker			= 'cse_alife_item_custom_outfit',
+		equ_stalker_s		= 'cse_alife_item_custom_outfit',
+
+		wpn_ammo			= 'cse_alife_item_ammo',
+		wpn_ammo_m209		= 'cse_alife_item_ammo',
+		wpn_ammo_og7b		= 'cse_alife_item_ammo',
+		wpn_ammo_vog25		= 'cse_alife_item_ammo',
+
+		wpn_knife_s 		= 'cse_alife_item_weapon',
+
+		wpn_binocular_s		= 'cse_alife_item_weapon_magazined',
+		wpn_hpsa_s	 		= 'cse_alife_item_weapon_magazined',
+		wpn_lr300_s 		= 'cse_alife_item_weapon_magazined',
+		wpn_pm_s 			= 'cse_alife_item_weapon_magazined',
+		wpn_rpg7_s 			= 'cse_alife_item_weapon_magazined',
+		wpn_svd_s	 		= 'cse_alife_item_weapon_magazined',
+		wpn_svu_s 			= 'cse_alife_item_weapon_magazined',
+		wpn_usp45_s 		= 'cse_alife_item_weapon_magazined',
+		wpn_val_s 			= 'cse_alife_item_weapon_magazined',
+		wpn_vintorez_s 		= 'cse_alife_item_weapon_magazined',
+		wpn_walther_s 		= 'cse_alife_item_weapon_magazined',
+
+		wpn_bm16_s 			= 'cse_alife_item_weapon_shotgun',
+		wpn_rg6_s 			= 'cse_alife_item_weapon_shotgun',
+		wpn_shotgun_s 		= 'cse_alife_item_weapon_shotgun',
+
+		wpn_ak74_s 			= 'cse_alife_item_weapon_magazined_w_gl',
+		wpn_groza_s 		= 'cse_alife_item_weapon_magazined_w_gl',
+
+		obj_breakable		= 'cse_alife_object_breakable',
+
+		obj_phskeleton		= 'cse_alife_ph_skeleton_object',
+
+		obj_physic			= 'cse_alife_object_physic',
+		obj_phys_destroyable = 'cse_alife_object_physic',
+		script_phys			= 'cse_alife_object_physic',	-- se_physic
+
+		aem_lamp			= 'cse_alife_object_hanging_lamp',
+		hanging_lamp		= 'cse_alife_object_hanging_lamp',
+
+		inventory_box		= 'cse_alife_dynamic_object',
+		projector			= 'cse_alife_dynamic_object',
+
+		obj_climable		= 'cse_alife_object_climable',
+
+		script_restr		= 'cse_alife_space_restrictor',
+
+		level_changer		= 'cse_alife_level_changer',
+
+		nogravity_zone		= "cse_alife_anomalous_zone",
+		zone_radioactive	= "cse_alife_anomalous_zone",
+
+		zone_buzz_s			= 'se_zone_anom',
+		zone_electra_s		= 'se_zone_anom',
+		zone_galant_s		= 'se_zone_anom',
+		zone_ice_s			= 'se_zone_anom',
+		zone_mbald_s		= 'se_zone_anom',
+		zone_mincer_s		= 'se_zone_anom',
+		zone_mosquito_bald	= 'se_zone_anom',
+		zone_zharka_s		= 'se_zone_anom',
+
+		ameba_zone			= 'cse_alife_zone_visual',
+		zone_rusty_hair		= 'cse_alife_zone_visual',
+
+		zone_bfuzz_s		= 'se_zone_visual',
+
+		torrid_zone			= 'cse_alife_torrid_zone',
+
+		respawn				= 'se_respawn',
+
+		smart_terrain		= 'se_smart_terrain'
+	}
+	for cls_id, cls in pairs(clsid2type) do
+		if clsid[cls_id] and this["read_"..cls] and this["write_"..cls] then
+			clsid2func[ clsid[cls_id] ] = cls
+		--	log("%s = %s", cls_id, tostring(clsid[cls_id]))
+		else
+			abort("naxac_netpk.init: clsid [%s:%s:%s] can't added, read:%s, write:%s",
+				cls_id, tostring(clsid[cls_id]), cls,
+				type(this["read_"..cls]),
+				type(this["write_"..cls]) )
+		end
+	end
+	
+	return true
+end
+
+function get_str_clsid(cls)
+	return clsid2func[cls] or "nil"
+end
+---------------------------------------------------------------------------------------------
+function set_flag(obj_flags, flag_name, mode)
+	local flag = object_flags[flag_name]
+	if flag then
+		local b = bit_and(obj_flags, flag) ~= 0
+		if mode==false and b then
+			return bit_and(obj_flags, bit_not(flag))
+		elseif mode==true and not b then
+			return bit_and(obj_flags, flag)
+		else
+			return obj_flags
+		end
+	else
+		log("! naxac_netpk.set_flag: Unknown flag name '%s'", tostring(flag_name))
+	end
+	return obj_flags
+end

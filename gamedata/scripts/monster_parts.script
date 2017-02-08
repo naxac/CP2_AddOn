@@ -1,0 +1,133 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Отрезание запчастей монстров ножом и озвучка. Для отрезания достаточно, чтобы нож был в рюкзаке.
+local monster = nil
+local snd = nil
+
+-- Ножи, которыми можно отрезать
+local knives = {
+	"wpn_addon_shtyk_nozh",
+	"wpn_bat_a",
+	"wpn_bat_b",
+	"wpn_elf",
+	"wpn_knif2",
+	"wpn_knif3",
+	"wpn_knif4",
+	"wpn_knifa",
+	"wpn_knife",
+	"wpn_knife_m",
+	"wpn_knife_n",
+	"wpn_knife_new",
+	"wpn_machete",
+	"wpn_kukri",
+	"wpn_topor",
+}
+local timer_start = false
+local parts = {}
+
+function on_part_take(obj)
+	local b = sys_ini:r_bool_ex(obj:section(), "monster_part", false)
+	if timer_start then
+		if b then parts[obj:id()] = obj:section() end
+		return
+	end
+	if not ( monster and b ) then return end
+
+	if actor_has_knife() then
+		snd = xr_sound.get_safe_sound_object("zwuk\\inv_mutant_loot_"..math.random(1,9))
+		snd:play_at_pos(db.actor, vector(), 0, sound_object.s2d)
+		archievements.acv_count_event("acv_gvdr", 1000, "Живодёр")
+
+		local gd = level.get_game_difficulty()
+		if gd > game_difficulty.novice then
+			bind_stalker.hide_weapon("monter_parts")
+			xr_s.register_callback("update", monster_parts.check_move,
+				{
+					timer = time_global() + gd*2000,	--snd:length(),
+					parent = monster:id(),
+					pos = db.actor:position()
+				}
+			)
+			level.start_stop_menu(level.main_input_receiver(), true)
+			parts = {}
+			parts[obj:id()] = obj:section()
+			timer_start = true
+		end
+	else
+		db.actor:transfer_item(obj, monster)
+		amk.send_tip("Для отрезания трофеев нужен нож.",nil,nil,5,"nano")
+	end
+end
+
+function actor_has_knife()
+	for i, section in ipairs(knives) do
+		if db.actor:object(section) or db.actor:object("fake_"..section) then
+			return true
+		end
+	end
+	return false
+end
+
+function on_monster_use(victim, who)
+	xr_s.register_callback("on_item_take", monster_parts.on_part_take)
+	monster = victim
+end
+
+local tmr = nil
+function on_monster_stop_use()
+	remove_small_timer(tmr)
+	tmr = start_small_timer(200, function()
+		xr_s.unregister_callback("on_item_take", monster_parts.on_part_take, true)
+	end)
+	monster = nil
+end
+
+function check_move(delta, p)
+	if p.timer > time_global() then
+		if db.actor:position():distance_to_sqr(p.pos) > 0.06
+			or (monster~=nil and monster:id()~=p.parent)
+		then
+			bind_stalker.restore_weapon("monter_parts")
+			if snd and snd:playing() then snd:stop() end
+			
+			local npc = level.object_by_id(p.parent)
+			if npc then
+				local item
+				for i in pairs(parts) do
+					item = level.object_by_id(i)
+					if item then db.actor:transfer_item(item, npc) end
+				end
+			end
+			parts = {}
+			
+			xr_s.unregister_callback("update", monster_parts.check_move, true)
+			timer_start = false
+		end
+	else
+		if snd and snd:playing() then snd:stop() end
+		bind_stalker.restore_weapon("monter_parts")
+		timer_start = false
+		send_trophy()
+		parts = {}
+		xr_s.unregister_callback("update", monster_parts.check_move, true)
+	end
+end
+
+function send_trophy()
+	if table.size(parts) == 0 then return end
+	local tmp = {}
+	local n
+	for id, sect in pairs(parts) do
+		table.add(tmp, sect)
+	end
+	
+	local sms = "%c[255,105,239,146]Получены трофеи:\\n%c[default]"
+	for sect, num in pairs(tmp) do
+		sms = sms..game.translate_string(get_inv_name(sect))..
+			( num>1 and " x"..num or "" ).."\\n"
+	end
+	sms = sms:sub(1, -3)
+	
+	local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_thing")
+	db.actor:give_game_news(sms, task_texture, task_rect, 0, 5000)
+end
+

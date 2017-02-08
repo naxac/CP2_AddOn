@@ -1,0 +1,29 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "n_timer"
+
+function n_timer:__init(msg)
+	self.caption = msg or "check n_timer"
+	log1("\n- "..self.caption..": start")
+	self.last_val = 0
+	self.tmr = profile_timer()
+	self.tmr:start()
+end
+
+function n_timer:get(msg, stop_it)
+	if msg==nil then msg = self.caption end
+	
+	self.tmr:stop()
+	local t = self.tmr:time()
+	log1(msg.." :: "..tostring(t-self.last_val))
+	self.last_val = t
+	if stop_it then
+		log1("! total :: "..t.."\n")
+	else
+		log1("~ total :: "..t)
+		self.tmr:start()
+	end
+end
+
+function start_timer(msg)
+	return n_timer(msg)
+end

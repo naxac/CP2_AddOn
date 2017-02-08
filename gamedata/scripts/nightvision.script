@@ -1,0 +1,59 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Съемные ПНВ
+local work_pnv = nil
+
+function load_pnv()
+	local id = amk.load_variable("nv_on")
+	if id then
+		id = tonumber(id)
+		if id == nil then amk.del_variable("nv_on") return end
+		local obj = alife():object(id)
+		if obj==nil or has_alife_info("no_pnv") then return end
+		work_pnv = id
+		local effector = sys_ini:r_string(obj:section_name(), "ppe")
+		level.add_pp_effector(effector..".ppe", 1034, true)
+		start_small_timer( 2000, function() bind_torch.switch_nv(id, 1) end )
+	end
+end
+
+function pnv_off()
+	bind_torch.switch_nv(work_pnv, 0)
+	work_pnv = nil
+	amk.del_variable("nv_on")
+	local snd = xr_sound.get_safe_sound_object([[weapons\nv_off]])
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	level.remove_pp_effector(1034)
+end
+function switch_pnv()
+	if level.main_input_receiver() then return end
+	local pnv = db.actor:item_in_slot(11)
+	if pnv then
+		local id = amk.load_variable("nv_on")
+		if id then
+			pnv_off()
+		else
+			if has_alife_info("no_pnv") or has_alife_info("pnv_off") then return end
+			local snd = xr_sound.get_safe_sound_object([[weapons\nv_start]])
+			snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			local effector = sys_ini:r_string(pnv:section(), "ppe")
+			level.add_pp_effector(effector..".ppe", 1034, true)
+			work_pnv = pnv:id()
+			amk.save_variable("nv_on", work_pnv)
+			bind_torch.switch_nv(work_pnv, 1)
+		end
+	end
+end
+
+-- отключение ПНВ при убирании из слота
+function checking_droped_obj(obj)
+	if work_pnv==obj:id() then
+		pnv_off()
+	end
+end
+
+-- отключение ПНВ из поршня
+function no_pnv()
+	if amk.load_variable("nv_on") then
+		pnv_off()
+	end
+end
