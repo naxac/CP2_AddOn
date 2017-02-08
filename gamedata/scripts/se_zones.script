@@ -1,0 +1,216 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+function is_single_player_game  ()
+  if (_G.alife == nil) then
+    return  (true)
+  end
+  
+  if (alife() ~= nil) then
+    return  (true)
+  end
+  
+  if (_G.IsGameTypeSingle == nil) then
+    return  (true)
+  end
+
+  if (IsGameTypeSingle() == true) then
+    return  (true)
+  end
+
+  return    (false)
+end
+
+class "se_zone_anom" (cse_anomalous_zone)
+function se_zone_anom:__init (section) super (section)  
+end
+function se_zone_anom:on_register()
+  cse_anomalous_zone.on_register(self)
+  
+  --self.artefact_spawn_idle = 60*60*1000*utils.cfg_get_number(system_ini(), self:section_name(), "artefact_spawn_idle", self, false, 24)
+   self.artefact_spawn_idle = 60*60*1000*getIniValueFloat(self:section_name(), "artefact_spawn_idle", 24, nil)
+  --self.artefact_spawn_rnd = utils.cfg_get_number(system_ini(), self:section_name(), "artefact_spawn_rnd", self, false, 100)
+   self.artefact_spawn_rnd = getIniValueFloat(self:section_name(), "artefact_spawn_rnd", 100, nil)
+-- self.anim = false
+end
+
+function se_zone_anom:on_unregister()
+  cse_anomalous_zone.on_unregister(self)
+--  mylog("unreg " .. tostring(self.id))  
+end
+
+function se_zone_anom:update()
+	cse_anomalous_zone.update(self)
+
+	if self.last_spawn_time == nil then
+		self.last_spawn_time = game.get_game_time()
+	end
+
+	if string.find(self:name(),"amk_")==nil then
+--		amk.mylog("allowing artefact spawn for "..self:name())
+		if game.get_game_time():diffSec(self.last_spawn_time) >= self.artefact_spawn_idle then
+			self.last_spawn_time = game.get_game_time()
+			if math.random(90) <= self.artefact_spawn_rnd then
+				local sobj = self:spawn_artefacts()
+				bind_det_arts.add_artefact(sobj:section_name(), sobj.id)
+			--	log1("# se_zone_anom:spawn_artefacts: "..sobj:name())
+			end
+		end 
+--	else
+--		amk.mylog("Preventing artefact spawn for "..self:name())
+	end
+end
+function se_zone_anom:STATE_Write(packet)
+  cse_anomalous_zone.STATE_Write(self, packet)
+
+  if (is_single_player_game() == false) then
+    return
+  end
+  
+  if self.last_spawn_time == nil then
+    packet:w_u8(0)
+  else
+    packet:w_u8(1)
+    utils.w_CTime(packet, self.last_spawn_time)
+  end 
+end
+-- восстановление
+
+function se_zone_anom:STATE_Read( packet, size , f )
+	local packet1,radius=repack_zone(packet,size)
+	self.radius = radius
+
+	cse_anomalous_zone.STATE_Read( self, packet1, size )
+
+	if editor() then return end
+
+	if (is_single_player_game() == false) then return end
+
+	local flag = packet1:r_u8()
+	if flag == 1 then
+		self.last_spawn_time = utils.r_CTime(packet1)
+	end
+end
+
+-- Code is based on bardak's sample
+function repack_zone(packet,size)
+	local a_radius=0
+	local packet1 = net_packet()
+  
+	-- свойства cse_alife_object
+	packet1:w_u16(packet:r_u16()) -- game_vertex_id 0
+	packet1:w_float(packet:r_float()) -- cse_alife_object__unk1_f32 2
+	packet1:w_u32(packet:r_u32()) -- cse_alife_object__unk2_u32 6
+	packet1:w_u32(packet:r_u32()) -- cse_alife_object__unk2_u32 10
+	packet1:w_s32(packet:r_s32()) -- object_flags 14
+	packet1:w_stringZ(packet:r_stringZ()) -- custom_data 18
+	local sid=packet:r_s32() --19
+	packet1:w_s32(sid) -- story_id
+  --amk.mylog(sid)
+	packet1:w_s32(packet:r_s32()) -- se_alife_object__unk3_u32 23
+
+	-- свойства cse_shape
+	local shape_count = packet:r_u8() -- 27
+	packet1:w_u8(shape_count)
+	for i=1,shape_count do
+		local shape_type = packet:r_u8() --28
+		packet1:w_u8(shape_type)
+		if shape_type == 0 then
+			-- sphere
+			packet1:w_vec3(packet:r_vec3()) -- center 29
+			a_radius = packet:r_float()  -- 41
+			packet1:w_float(a_radius)
+		else
+			-- box
+			local v1 = packet:r_vec3()
+			local v2 = packet:r_vec3()
+			local v3 = packet:r_vec3()
+			local v4 = packet:r_vec3()
+			packet1:w_vec3(v1)
+			packet1:w_vec3(v2)
+			packet1:w_vec3(v3)
+			packet1:w_vec3(v4)
+		--	amk.mylog("|i|="..v1.x.."|j|="..v2.y.."|k|="..v3.z.."|c|="..v4.x)
+			a_radius=math.sqrt(v1:magnitude()*v1:magnitude()+v3:magnitude()*v3:magnitude())/2
+		end
+	end
+
+	-- свойства cse_alife_space_restrictor
+	packet:r_u8()
+	packet1:w_u8(0) --  -- restrictor_type -- 45 or 89
+	while not packet:r_eof() do
+		packet1:w_u8(packet:r_u8())
+	end
+
+	packet1:r_seek(0)
+	return packet1,a_radius
+end
+
+class "se_zone_visual" (cse_zone_visual)
+function se_zone_visual:__init (section) super (section)
+end
+function se_zone_visual:on_register()
+  cse_zone_visual.on_register(self)
+  
+  --self.artefact_spawn_idle = 60*60*1000*utils.cfg_get_number(system_ini(), self:section_name(), "artefact_spawn_idle", self, false, 24)
+   self.artefact_spawn_idle = 60*60*1000*getIniValueFloat(self:section_name(), "artefact_spawn_idle", 24, nil)
+  --self.artefact_spawn_rnd = utils.cfg_get_number(system_ini(), self:section_name(), "artefact_spawn_rnd", self, false, 100) 
+   self.artefact_spawn_rnd = getIniValueFloat(self:section_name(), "artefact_spawn_rnd", 100, nil)
+end
+function se_zone_visual:update()
+	cse_zone_visual.update(self)
+
+	if self.last_spawn_time == nil then
+		self.last_spawn_time = game.get_game_time()
+	end
+
+	if game.get_game_time():diffSec(self.last_spawn_time) >= self.artefact_spawn_idle then
+		self.last_spawn_time = game.get_game_time()
+		if math.random(90) <= self.artefact_spawn_rnd then
+			local sobj = self:spawn_artefacts()
+			bind_det_arts.add_artefact(sobj:section_name(), sobj.id)
+		--	log1("# se_zone_visual:spawn_artefacts: "..sobj:name())
+		end
+	end 
+end
+
+function se_zone_visual:STATE_Write(packet)
+  cse_zone_visual.STATE_Write(self, packet)
+
+  if (is_single_player_game() == false) then
+    return
+  end
+  
+  if self.last_spawn_time == nil then
+    packet:w_u8(0)
+  else
+    packet:w_u8(1)
+    utils.w_CTime(packet, self.last_spawn_time)
+  end 
+end
+-- восстановление
+function se_zone_visual:STATE_Read( packet, size )
+  cse_zone_visual.STATE_Read( self, packet, size )
+  
+  if editor() then
+    return
+  end
+  
+  if (is_single_player_game() == false) then
+    return
+  end
+  
+  local flag = packet:r_u8()
+  if flag == 1 then
+    self.last_spawn_time = utils.r_CTime(packet)
+  end
+end
+
+
+
+--' Рестрикторы
+class "se_restrictor" (cse_alife_space_restrictor)
+function se_restrictor:__init (section) super (section)
+end
+function se_restrictor:keep_saved_data_anyway()
+  return true
+end

@@ -1,0 +1,430 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--схема удаления трупов сталкеров
+local summ_corpses = 0 --общее допустимое число трупов на всех территориях (не включая СИД)
+local tabl_corpses={}
+local tabl_corpses_9510={}
+local tabl_stalkers = {}
+
+local outfit_additional_max = 1 -- количество бронежилетов, которые сталкеры оставят себе про запас (останется самый ценный)
+local tabl_outfits_all = {}
+
+--схема удаления трупов монстров
+local tabl_monsters_dead={} --все мёртвые монстры
+local summ_dead_monsters = 0 --общее допустимое число трупов монстров
+
+--плюс схема удаления бесхозного оружия
+local summ_weapons = 0 --общее допустимое число бесхозного оружия на всех территориях.
+local dist_to_weapons = 150 --расстояние от ГГ, свыше которого считается оружие.
+local dist_from_weapons_to_trup = 1 --расстояние от ствола до оставшихся трупов, свыше которого считается оружие.
+local tabl_weapons={}
+
+-- временные таблицы
+local all_objects = {}
+local objects_by_parent = {}
+local parent_by_obj = {}
+
+function scan()
+	local table_insert = table.insert
+	local sim = alife()
+	local sobj = nil
+	local p_id
+	
+	for i=1,65534 do
+		sobj = sim:object(i)
+		if sobj then
+			all_objects[i] = sobj
+			p_id = sobj.parent_id
+			if p_id and p_id~=65535 then
+				if objects_by_parent[p_id] == nil then objects_by_parent[p_id] = {} end
+				table_insert(objects_by_parent[p_id], i)
+				parent_by_obj[i] = p_id
+			end
+		end
+	end
+end
+
+function strn_fix(obj)
+	local strn_id = obj:smart_terrain_id()
+	if strn_id ~= 65535 then
+		local strn = alife():object(strn_id)
+		if strn and strn:clsid() ~= clsid.smart_terrain then
+			log("! Обнаружена привязка к несуществующему smart_terrain: %s, smart_terrain_id: %s. Привязка удалена.",
+				obj:name(), tostring(strn_id))
+			obj:clear_smart_terrain()
+		end
+	end
+end
+
+function off_corpses()
+--	local tmr = naxac_debug.start_timer("sak_off_corpses")
+
+	meceniy_outfit.is_pleer = false
+
+	this.scan()
+	
+--	tmr:get("scan")
+
+	local graph = game_graph()
+	local sim = alife()
+
+	local actor_level = level.name()
+	local actorpos = db.actor:position()
+	
+	local b = amk.load_variable("blowout",0)
+	local is_blowout = (b>0 and b<4)			-- активен ли выброс
+	local level_changing = has_alife_info("level_changing")	-- была ли смена уровня
+	local is_first_run = not has_alife_info("x_first_run")	-- первая ли загрузка
+	local released = false
+
+	local obj_clsid, obj_level, obj_name, obj_sect
+	local rel = {}
+	-- главный цикл
+	for i, obj in pairs(all_objects) do
+		if graph:valid_vertex_id(obj.m_game_vertex_id) then
+			obj_clsid = obj:clsid()
+			obj_level = sim:level_name( graph:vertex(obj.m_game_vertex_id):level_id() )
+			obj_name = obj:name()
+			obj_sect = obj:section_name()
+			released = false
+
+			-- нет хозяина
+			if parent_by_obj[i]==nil then
+				-- сталкер
+				if IAmAStalker[obj_clsid] then
+					if level_changing and obj_level~=actor_level then
+						
+						if not obj:alive() then
+							-- проверка трупа сталкера, если не в исключениях - в таблицу и бум удалять
+							if protected_items.is_corps_keep_by_story_id(obj)==false and
+								sak.can_be_resurrected(obj)==false and
+								protected_items.obj_is_protected(obj,"tabl_corps_keep","exactly")==false
+							then 
+								if obj.m_story_id > 9510 then 
+									table.insert(tabl_corpses, obj)
+								else
+									table.insert(tabl_corpses_9510, obj) -- эти трупы пысовские - не удаляются
+								end
+							end
+							released = true
+						else -- живой сталкер - в список на раскуркуливание!
+							if not protected_items.is_no_offline_alife_npc(obj) then
+								table.insert(tabl_stalkers, obj)
+							end
+						end
+					end
+					if obj:alive() then
+						strn_fix(obj)
+					end
+
+				-- монстр
+				elseif IAmAMonster[obj_clsid] then
+					if level_changing and obj_level~=actor_level then
+						if not obj:alive() then
+							-- труп
+							table.insert(tabl_monsters_dead, obj)
+							released = true
+						end
+					end
+					if obj:alive() then strn_fix(obj) end
+
+				-- удалем аномалии
+				elseif amk_anoms.is_anomaly(obj_clsid) then
+					if is_blowout==false and amk_anoms.can_remove_anom(obj, obj_level) then
+						sim:release(obj, true)
+						released = true
+					end
+
+				elseif obj_clsid == clsid.artefact or obj_clsid == clsid.artefact_s then
+					-- детекторы артефактов
+					if obj_level==actor_level then
+						bind_det_arts.add_artefact(obj_sect, i)
+					end
+
+					-- удаляем глючные арты только на первой загрузке
+					if is_first_run then
+						-- проблемые арты в Пещере
+						if (obj_level == "peshera")
+							and ( obj_sect == "af_ameba_slime" 
+							or obj_sect == "af_ameba_slug" 
+							or obj_sect == "af_ameba_mica" )
+						then
+							sim:release(obj, true)
+							released = true
+
+						-- проблемые арты в СД
+						elseif (obj_level == "lost_village")
+							and ( obj_sect == "af_life_heart"
+							or obj_sect == "af_rusty_thorn"
+							or obj_sect == "af_rusty_sea-urchin"
+							or obj_sect == "af_rusty_kristall" )
+						then
+							sim:release(obj, true)
+							released = true
+						end
+					end
+
+				-- оружие
+				elseif IAmAWeapon[obj_clsid] then
+					if level_changing and ( protected_items.obj_is_protected(obj,"tabl_wpn_keep","like") == false ) then
+						if (obj_level == "l10_radar" or obj_level == "hospital") and (obj_level ~= actor_level) then
+							--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
+							sim:release(obj, true)
+							released = true
+						elseif obj.position:distance_to(actorpos) > dist_to_weapons then 
+							table.insert(tabl_weapons, obj)
+							released = true
+						end
+					end
+
+				elseif obj_clsid == clsid.inventory_box then
+					-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
+					if transparent_treasure.IsChangeable(obj_sect) then
+						if obj_level==actor_level then
+							if obj_sect ~= "m_inventory_box" then
+								if obj_sect == "a_inventory_box41" then
+									xr_sound.get_safe_sound_object([[zwuk\pluton]]):play_at_pos(db.actor, sobj.position, 0, sound_object.s3d+sound_object.looped)
+								end
+								sim:set_switch_online(i, true)
+								sim:set_switch_offline(i, true)
+							end
+						end
+					end
+					released = true
+
+				elseif obj_clsid == clsid.respawn then
+					amk_mod.add_respawner(obj)
+					released = true
+
+				-- трупы ворон
+				elseif obj_sect == "mutant_crow" then
+					sim:release(obj, true)
+					released = true
+				end
+
+			-- в инвентаре
+			else
+				-- для фикса маркеров
+				gps_habar.add_item(obj)
+
+				-- Замки
+				if obj_sect == "zamok" then
+					local ii = parent_by_obj[i]
+					zamok.restore(all_objects[ii], ii)
+
+				-- Броники
+				elseif level_changing
+					and ( obj_clsid == clsid.equ_stalker_s
+					or obj_clsid == clsid.equ_stalker )
+					and obj_sect~="meceniy_outfit_new" 
+					and not string.find(obj_sect, "exo_mil_exoskeleton")
+				then
+					table.insert(tabl_outfits_all, obj)
+					released = true
+
+				-- rx_gl
+				elseif string.find(obj_sect, "gl_test_shell")
+					or string.find(obj_sect, "gl_fake_missile")
+				then
+					sim:release(obj, true)
+					released = true
+				end
+			end
+		end
+
+		if not released then
+			-- Удаление лишних гранат
+			if not xrs_grenade.release_grenade(obj) then
+				amk_offline_alife.add_fresh_meat(obj)
+			else
+				rel[#rel+1] = i
+			end
+		else
+			rel[#rel+1] = i
+		end
+	end -- for
+	
+	for i, ii in ipairs(rel) do
+		all_objects[ii] = nil
+	end
+	rel = nil
+
+--	tmr:get("scan 2")
+
+	if level_changing then
+		--раскуркуливание сталкеров по броникам
+		if outfit_additional_max > 0 then -- если сталкерам можно иметь "резервные" броники
+			table.sort(tabl_outfits_all, maxOutfit)
+		end
+
+		for i=1,#tabl_stalkers,1 do
+			clear_outfits(tabl_stalkers[i])
+			-- оффлайновая торговля
+			amk_offline_alife.process_trade(tabl_stalkers[i])
+		end
+
+		--зачистка мёртвых монстров
+		if table.getn(tabl_monsters_dead) > summ_dead_monsters then
+		--	table.sort(tabl_monsters_dead,max_comp)
+			if table.getn(tabl_monsters_dead) > summ_dead_monsters then
+				local b = table.getn(tabl_monsters_dead)
+				local n = b
+				while b > summ_dead_monsters and n > 0 do
+					local corps = tabl_monsters_dead[n]
+					if item_found(corps.id) == false then --если нету "запчастей" - удаляем
+						sim:release(corps,true)
+						table.remove(tabl_monsters_dead,n)
+						b=b-1
+					end
+					n=n-1
+				end
+			end
+		end
+
+	--	tmr:get("release monsters")
+
+		--зачистка мёртвых человеков
+		if table.getn(tabl_corpses) > summ_corpses then
+		--	table.sort(tabl_corpses,max_comp)
+			if table.getn(tabl_corpses) > summ_corpses then
+				local b = table.getn(tabl_corpses)
+				local n = b
+				while b > summ_corpses and n > 0 do
+					local corps = tabl_corpses[n]
+					if item_found(corps.id) == false  then
+						sim:release(corps,true)
+						table.remove(tabl_corpses,n)
+						b=b-1
+					end
+					n=n-1
+				end
+			end
+		end
+
+	--	tmr:get("release stalkers")
+
+		--зачистка оружия
+		if table.getn(tabl_weapons) > summ_weapons then
+		--	table.sort(tabl_weapons,max_comp)
+			local twa = table.getn(tabl_weapons)
+			while twa > summ_weapons do
+				local wpn = tabl_weapons[twa]
+				local wpn_name = wpn:name()
+				if (get_dist_to_trup_9510(wpn) == true and get_dist_to_trup(wpn) == true) then
+					local weapon = tabl_weapons[twa]
+					sim:release(weapon,true)
+					table.remove(tabl_weapons,twa)
+				end
+				twa=twa-1
+			end
+		end
+
+		db.actor:disable_info_portion("level_changing")
+	end
+
+--	tmr:get("release weapons", true)
+
+	-- удаляем ненужное
+	all_objects = nil
+	objects_by_parent = nil
+	parent_by_obj = nil
+end 
+
+function get_dist_to_trup(wpn)
+	local poswpn = wpn.position
+	for i=1,table.getn(tabl_corpses),1 do
+		if (poswpn:distance_to(tabl_corpses[i].position) < dist_from_weapons_to_trup) then 
+			return false
+		end
+	end
+	return true
+end
+
+function get_dist_to_trup_9510(wpn)
+	local poswpn = wpn.position
+	for i=1,table.getn(tabl_corpses_9510),1 do
+		if (poswpn:distance_to(tabl_corpses_9510[i].position) < dist_from_weapons_to_trup) then
+			return false
+		end
+	end
+	return true
+end
+
+function item_found(corps_id)
+	local t = objects_by_parent[corps_id]
+	if t then
+		for i=1,#t do
+			if item_keep(all_objects[t[i]]) then
+				return true
+			end
+		end 
+	end
+	return false
+end
+
+function item_keep(item)
+	if not item then return false end
+    -- проверка на предметы, тела с которыми нужно оставить
+	local s = item:section_name()
+	if protected_items.obj_is_protected(item,"tabl_items_keep","like")
+		or protected_items.is_grab_body_item_keep(s)
+		or protected_items.is_unique_wpn_keep(s)
+	then
+		return true
+	end
+	--проверка по списку оружия
+    return protected_items.obj_is_protected(item,"tabl_wpn_keep","like")
+end
+
+function max_comp(i1,i2) -- возвращает true если i1 меньше i2
+	local actorpos = db.actor:position()
+	return i1.position:distance_to(actorpos) < i2.position:distance_to(actorpos)
+end
+
+function clear_outfits(npc)
+	local outfitsOnStalker = 0
+	local money = 0
+	local npc_id = npc.id
+
+	local tbl = amk.read_stalker_params(npc)
+	local vis = string.explode(tbl.visual,"\\")
+	vis = vis[#vis]
+	local npc_lvl = xrs_armor.get_npc_visual_level(vis)
+--	log1("# clear_outfits: npc ["..npc:name().."]")
+	local outfit, outfitCost
+	for i = #tabl_outfits_all, 1, -1 do
+		outfit = tabl_outfits_all[i]
+		if outfit.parent_id == npc_id then
+			-- Если броник лучше нашего, и можно его оставить, то не "продаём"
+			local lvl = xrs_armor.get_outfit_level(outfit:section_name())
+			if lvl > npc_lvl
+				and outfitsOnStalker > outfit_additional_max
+			then
+				outfitsOnStalker = outfitsOnStalker + 1
+			--	log1("* has outfit ["..outfit:name().."]"..
+			--		" outfit level: "..lvl..", npc vis level: ["..vis..":"..npc_lvl.."]")
+			else
+				outfitCost = amk_offline_alife.get_item_cost(outfit)
+				if outfitCost > 0 then
+					money = money + math.floor(outfitCost / 10)
+				end
+				
+			--	log1("* sell outfit ["..outfit:name().."]"..
+			--		" outfit level: "..lvl..", npc vis level: ["..vis..":"..npc_lvl.."]")
+				alife():release(outfit, true)
+				table.remove(tabl_outfits_all, i)
+			end
+		end
+	end
+
+	if (money > 0) then
+	--	log1("- money: "..money)
+		tbl.money = (tbl.money or 0) + money
+		amk.write_stalker_params(tbl, npc, true)
+	end
+end
+
+function maxOutfit(i1,i2) -- возвращает true если i1 меньше i2 (самые ценные в конце таблицы)
+	local cost1 = sys_ini:r_float(i1:section_name(), "cost")
+	local cost2 = sys_ini:r_float(i2:section_name(), "cost")
+	return cost1 < cost2
+end

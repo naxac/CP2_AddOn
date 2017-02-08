@@ -1,0 +1,78 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- -----------------------------
+--  DreamMod v0.2 by Ab@dDon ---
+-- -----------------------------
+local dream_time = 0
+local sleep_time = 0
+local isSleepActive = false
+local set_sleep_time = 0
+local get_seconds = amk.game_seconds
+
+local function check_sleep_time()
+	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
+		level.set_time_factor(level.main_time_factor)
+		return true
+	end
+	return false
+end
+local function restore_time_factor()
+	set_sleep_time = 0
+end
+
+function main(scale)		-- in hours
+	isSleepActive = true
+	db.actor:stop_talk()
+	bind_stalker.hide_weapon("sleep")
+	level.disable_input()
+	sleep_manager.starter (scale)
+end
+
+function starter(scale)
+	dream_time = scale
+	sleep_time = amk.game_minutes()
+
+	game.start_tutorial("time_scaling")
+
+	set_sleep_time = get_seconds() + scale*3600
+
+	level.set_time_factor(15000)
+	level.add_call(check_sleep_time, restore_time_factor)
+end
+
+function dreamer()
+	if isSleepActive then
+		local dream = dream.sleep_video_name_callback()
+		if dream ~= "" then game.start_tutorial(dream)
+		else game.start_tutorial("without_dream") end
+	end
+end
+
+function stopper()
+	if not isSleepActive then
+		return
+	end
+
+	isSleepActive = false
+
+	if db.actor:alive() then
+		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "")
+		level.add_pp_effector("yantar_underground_psi.ppe", 2007, false)
+		level.add_pp_effector("total_recall.ppe", 2008, false)
+		bind_stalker.restore_weapon("sleep")
+		local snd_obj = xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\states\breath\breath_2]])
+		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 15.0)
+	    level.add_cam_effector("camera_effects\\hit_back_left.anm", 26, false, "")
+		
+		local slept = (amk.game_minutes() - sleep_time)/60	-- in hours
+	--	log1("sleep_manager.stopper: slept = "..slept..", dream_time = "..dream_time)
+		amk_mod.reduce_need_sleep(slept)
+
+		archievements.acv_count_event("acv_slp", 2160, "Засоня", slept)
+	end
+	level.enable_input()
+end
+
+
+function is_sleep_active()
+	return isSleepActive
+end

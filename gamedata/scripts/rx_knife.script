@@ -1,0 +1,575 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+---- AI Additions ----
+---- Rulix aka Bak ----
+---- 8.3.2010,27.03.2016
+
+local knife_actions_permitted = {		-- экшены, с которых разрешено переключение на action_knife_attack
+[stalker_ids.action_combat_planner] = true,
+--[xr_actions_id.combat_zombied_base] = true,
+--[xr_actions_id.combat_zombied_base+1] = true,
+--[xr_actions_id.combat_camper_base] = true,
+--[xr_actions_id.combat_camper_base+1] = true,
+--[xr_actions_id.stohe_camper_base+1] = true,
+--[xr_actions_id.stohe_camper_base+1] = true,
+[xr_actions_id.combat_monolith_base] = true,
+}
+
+local function printf(s, ...)
+--	rx_utils.printf("kn:"..s,...)
+end
+
+-- добавление недостающего типа хита
+if not hit.wound_2 then
+	hit.wound_2 = hit.fire_wound+1	-- 9
+end
+
+local kn_ini = ini_file([[misc\rx_knife.ltx]])
+ASSERTX(kn_ini:section_exist("main"),"no kn_ini")
+local knife_sets = {weapon_to_spawn = rx_utils.read_from_ini(kn_ini,"main","weapon_to_spawn","wpn_knife",1),
+					spawn_chance = rx_utils.read_from_ini(kn_ini,"main","spawn_chance",0.1),
+					communities = {},
+					ranks = {},
+					forbidden_factions = rx_utils.parse_list(kn_ini,"main","forbidden_factions",true),
+					forbidden_npcs = rx_utils.collect_sections(kn_ini,{"forbidden_npcs"}),
+					attack_courage = rx_utils.collect_sections(kn_ini,{"attack_courage"},true)}
+
+for k,v in ipairs(rx_utils.get_rank_list()) do
+	if kn_ini:section_exist(v) then
+		knife_sets.ranks[v] = {addhit_actor = rx_utils.read_from_ini(kn_ini,v,"k_actor",1),
+								addhit_stalker = rx_utils.read_from_ini(kn_ini,v,"k_stalker",1),
+								addhit_mutant = rx_utils.read_from_ini(kn_ini,v,"k_mutant",1)}
+	end
+end
+for k,v in ipairs(rx_utils.get_communities_list()) do
+	knife_sets.communities[v] = {courage = rx_utils.read_from_ini(kn_ini,v,"courage",1),
+								mutant_hunt = rx_utils.read_from_ini(kn_ini,v,"mutant_hunt",true,0)}
+end
+kn_ini = nil
+
+local check_prd = 1000
+--local actor_hit_anm = [[camera_effects\actor_move\down.anm]]
+local actor_hit_ppe = "fire_hit.ppe"
+
+local sneak_attack = 1
+local close_attack = 2
+
+local attack_clsids = {}
+for name,cls_id in pairs(rx_utils.creatures_clslist) do
+	attack_clsids[cls_id] = knife_sets.attack_courage[name]
+end
+knife_sets.attack_courage = nil
+
+local small_mutant_clsids = {
+	[clsid.dog_s] = true,
+	[clsid.flesh_s] = true,
+	[clsid.cat_s] = true,
+	[clsid.snork_s] = true,
+	[clsid.tushkano_s] = true,
+}
+
+targets = {}
+
+local function is_low_target(trg)
+	local cls_id = trg:clsid()
+	if IsStalker(nil,cls_id) then
+		if trg:character_community() == "zombied" then
+			return trg:bone_position("bip01_pelvis").y+0.2 > trg:bone_position("bip01_head").y
+		end
+		return trg:body_state() == move.crouch
+	end
+	if cls_id == clsid.zombie_s then
+		return trg:bone_position("bip01_pelvis").y+0.2 > trg:bone_position("bip01_head").y
+	end
+	return small_mutant_clsids[cls_id] == true
+end
+
+local function is_easy_target(trg,cls_id)
+	return ( cls_id == clsid.zombie_s
+		and trg:bone_position("bip01_pelvis").y+0.2 > trg:bone_position("bip01_head").y )
+		or ( trg:is_stalker()
+		and trg:character_community() == "zombied"
+		and xr_wounded.is_wounded(trg) )
+end
+
+local function remove_target(npc_id,st,delay)
+	if st.target and targets[st.target] == npc_id then
+		targets[st.target] = nil
+	end
+	if delay then
+		st.delay = time_global()+delay
+	end
+	st.target = nil
+end
+
+local function get_target(npc,be,st)
+	if not npc:see(be) then
+		return false
+	end
+	local be_id,be_pos,be_lvid = be:id(),be:position(),be:level_vertex_id()
+	local dist = npc:position():distance_to(be_pos)
+	if targets[be_id] or be:is_wounded()
+		or dist > 15 or (not npc:accessible(be_lvid))
+		or level.vertex_position(be_lvid):distance_to_sqr(be_pos) > 3
+	then
+		return false
+	end
+	local courage = st.eva.courage
+	local knife_active = npc:active_slot() == 0
+	if knife_active then
+		courage = courage+15
+	end
+	local be_see_me = be:see(npc)
+	if be_see_me then
+		courage = courage-10
+	end
+	local bec = be:clsid()
+	if bec==clsid.script_stalker and be:critically_wounded() then
+		courage = courage+5
+	end
+	if is_easy_target(be,bec) then
+		courage = courage+20
+	end
+	local is_monster = IsMonster(nil,bec)
+	if (is_monster and not st.eva.cmhunt)
+		or (not attack_clsids[bec])
+		or courage < attack_clsids[bec]+3*dist
+		or npc.health < 0.35
+	then
+		return false
+	end
+	if (not be_see_me) and npc:body_state() == move.crouch
+		and dist < 6 and npc.health > 0.7
+	then
+		st.target = be_id
+		st.type = sneak_attack
+		return true
+	end
+	if is_monster then
+		if (not knife_active) and math.random() > 0.8 then
+			return false
+		end
+		local bee = be:get_enemy()
+		bee = bee and bee:id() == npc:id()
+		if (not bee) and npc.health > 1-courage/150 and be.health < npc.health then
+			st.target = be_id
+			st.type = close_attack
+			st.timer = st.timer+6000
+			return true
+		end
+	else
+		local npc_wpn,be_wpn = npc:active_item(),be:active_item()
+		if dist > 4 and ( courage > 70
+			or not (be_wpn and rx_utils.item_is_fa(be_wpn) and npc_wpn
+			and npc:active_slot() ~= 0 and npc_wpn:get_ammo_in_magazine() ~= 0
+			and be_wpn:get_ammo_in_magazine() ~= 0) )
+		then
+			st.target = be_id
+			st.type = close_attack
+			st.timer = st.timer+6000
+			return true
+		end
+	end
+	return false
+end
+
+class "evaluator_knife_attack" (property_evaluator)
+function evaluator_knife_attack:__init(npc,name,storage) super (nil,name)
+	self.st = storage
+	storage.delay = 0
+	storage.timer = 0
+	storage.eva = self
+	self.check_timer = 0
+	local comm = npc:character_community()
+	self.courage = rx_ai.get_var(npc,"courage")
+	if not self.courage then
+		self.courage = math.random(25,npc:character_rank()/40+51) -- 25-60..25-90
+		rx_ai.save_var(npc,"courage",self.courage)
+	end
+	self.courage = self.courage*knife_sets.communities[comm].courage
+	self.cmhunt = knife_sets.communities[comm].mutant_hunt
+end
+
+function evaluator_knife_attack:evaluate()
+	if self.st.delay > time_global() then
+		return false
+	end
+	local npc = self.object
+	if not npc:item_in_slot(0) then
+		remove_target(npc:id(),self.st,spawn_knife(npc) and 3000 or 30000)
+		return false
+	end
+	local st = self.st
+	local be = npc:best_enemy()
+	if not be then
+		if st.target and level.object_by_id(st.target) then
+			return true
+		end
+		remove_target(npc:id(),st,2000)
+		return false
+	end
+	if knife_actions_permitted[npc:motivation_action_manager():current_action_id()] ~= true then
+		remove_target(npc:id(),self.st,2000)
+		return false
+	end
+	local target = st.target and level.object_by_id(st.target)
+	if not target and st.target then
+		remove_target(npc_id,st)
+	end
+	local npc_id,tg = npc:id(),time_global()
+	if target then
+		local target_pos = target:position()
+		local dist = target_pos:distance_to(npc:position())
+		if targets[st.target] then
+			if targets[st.target] ~= npc_id then
+				remove_target(npc_id,st)
+			elseif st.target ~= be:id() and dist > 4 then
+				remove_target(npc_id,st,6000)
+			else
+				if st.type == sneak_attack and target:see(npc) then
+					if dist < self.courage/9 then
+						st.type = close_attack
+						return true
+					else
+						remove_target(npc_id,st,15000)
+						return false
+					end
+				elseif st.type == close_attack and self.courage < 16+4*dist then
+					remove_target(npc_id,st,15000)
+					return false
+				end
+				return true
+			end
+		else
+			if dist > 15 then
+				remove_target(npc_id,st)
+				target = nil
+			end
+		end
+	end
+	if self.check_timer > tg then
+		return target ~= nil
+	end
+	self.check_timer = tg+check_prd
+	if npc:critically_wounded() then
+		return false
+	end
+	return get_target(npc,be,st)
+end
+
+
+class "action_knife_attack" (action_base)
+function action_knife_attack:__init(npc,action_name,storage) super (nil,action_name)
+	self.st = storage
+	self.rankt = knife_sets.ranks[ranks.get_obj_rank_name(npc)]
+end
+function action_knife_attack:hit_callback(amount,dir,who)
+end
+function action_knife_attack:initialize()
+	action_base.initialize(self)
+	local npc = self.object
+	self.st.timer = time_global()+80000
+	self.start_time = time_global()
+	self.mental_time = 0
+	if rx_wmgr then
+		rx_wmgr.get_wm(npc):disable(self.st.timer)
+	end
+	npc:set_desired_position()
+	npc:set_desired_direction()
+	npc:set_mental_state(anim.danger)
+	npc:set_movement_type(move.run)
+	npc:set_path_type(game_object.level_path)
+	npc:set_detail_path_type(move.criteria)
+	npc:set_sight(look.path_dir,nil,0)
+	npc:movement_enabled(true)
+	targets[self.st.target] = npc:id()
+	local knife = npc:item_in_slot(0)
+	npc:set_item(object.aim1,knife)
+	self.knp = get_knife_params(knife)
+	self.fire_dist = math.max(2.6,self.knp.fire_dist)
+	self.attack_dist = self.fire_dist-1.4
+--	rx_ai.subscribe_for_events(npc,self)
+end
+
+function action_knife_attack:execute()
+	action_base.execute(self)
+	local npc,tg,st = self.object,time_global(),self.st
+	local npc_id = npc:id()
+	if st.timer < tg then
+		remove_target(npc_id,st,10000)
+		return
+	end
+	local target = level.object_by_id(st.target)
+	if not target then
+		remove_target(npc_id,st)
+		return
+	end
+	local target_pos = target:position()
+	local dist = target_pos:distance_to_xz(npc:position())
+	if not target:alive() then
+		if not self.relax_time then
+			if dist < 4 then
+				rx_sound.set_sound_play(npc_id,"enemy_death")
+			end
+			if npc:best_enemy() then
+				remove_target(npc_id,st)
+				get_target(npc,npc:best_enemy(),st)
+			else
+				self.relax_time = tg+math.random(500,1500)
+				npc:set_sight(target,true,true)
+--				npc:set_dest_level_vertex_id(target:level_vertex_id())
+				npc:set_movement_type(move.stand)
+			end
+		elseif self.relax_time > tg then
+		else
+			self.relax_time = nil
+			remove_target(npc_id,st)
+		end
+		return
+	end
+	if dist > 5 and not npc:best_enemy() then
+		remove_target(npc_id,st)
+		return
+	end
+	if self.hit_time and self.hit_time < time_global() then
+		if dist < self.fire_dist then
+			self:additional_hit(target)
+		end
+		self.hit_time = nil
+	end
+	if npc:animation_count() > 0 then
+		npc:set_sight(look.fire_point,target:bone_position("bip01_neck"))
+		return
+	end
+	local vertex = utils.send_to_nearest_accessible_vertex(npc,target:level_vertex_id())
+	if level.vertex_position(vertex):distance_to_sqr(target_pos) > (st.target==0 and 4 or 8) then
+		printf("knife_attack[%s]:not accessible %s",npc:character_name(),target:name())
+		remove_target(npc_id,st,10000)
+		return
+	end
+	local acti = npc:active_item() and npc:active_slot() == 0
+	if acti and dist < self.attack_dist+(npc:path_completed() and 0.3 or 0) and npc:see(target) then
+		self:attack(target)
+		npc:set_movement_type(move.stand)
+	else
+		if IsStalker(target) then
+			if target:see(npc) then
+				rx_sound.set_sound_play(npc_id,"knife_attack")
+			end
+		else
+			rx_sound.set_sound_play(npc_id,"knife_attack_mutant")
+		end
+		npc:set_movement_type(move.run)
+	end
+	if not acti then
+		if self.start_time+5000 < tg then
+			remove_target(npc_id,st,15000)
+			return
+		end
+		npc:set_mental_state(anim.danger)
+	elseif st.type == sneak_attack then
+		npc:set_body_state(move.crouch)
+		npc:set_mental_state(anim.danger)
+	elseif st.type == close_attack then
+		if dist < self.attack_dist-0.1 then
+			if is_low_target(target) then
+				npc:set_body_state(move.crouch)
+			else
+				npc:set_body_state(move.standing)
+			end
+		else
+			npc:set_body_state(move.standing)
+		end
+		if dist > self.attack_dist+1.3 then
+			npc:set_mental_state(anim.panic)
+		elseif dist < self.attack_dist+0.1 then
+			npc:set_mental_state(anim.danger)
+		end
+	end
+	if dist < self.attack_dist+0.3 then
+		npc:set_sight(look.fire_point,target:bone_position("bip01_neck"))
+		return
+	elseif npc:path_completed() and st.target==0 then
+		printf("knife_attack[%s]:cant reach %s",npc:character_name(),target:name())
+		remove_target(npc_id,st,15000)
+		return
+	end
+	if npc:mental_state() == anim.panic then
+		npc:set_sight(look.path_dir,nil,0)
+	else
+		npc:set_sight(look.fire_point,target:bone_position("bip01_neck"))
+	end
+end
+
+function action_knife_attack:finalize()
+	action_base.finalize(self)
+	local npc = self.object
+	if not npc:alive() then
+		remove_target(npc:id(),self.st)
+		return
+	end
+	local target = (not self.relax_time) and self.st.target and level.object_by_id(self.st.target)
+	if target and (not target:alive()) and target:position():distance_to(npc:position()) < 3.5 then
+		printf("knife_attack[%s]:play fin sound",npc:character_name())
+		rx_sound.set_sound_play(npc:id(),"enemy_death")
+	end
+	remove_target(npc:id(),self.st)
+	if rx_wmgr then
+		rx_wmgr.get_wm(npc):enable()
+	end
+	npc:clear_animations()
+	npc:set_sight(look.direction,npc:direction(),0)
+	npc:set_item(object.idle,npc:active_item())
+	npc:set_mental_state(anim.danger)
+	npc:set_movement_type(move.walk)
+	self.hit_time = nil
+	self.relax_time = nil
+	rx_sound.block_alarm_sound(npc)
+--	rx_ai.unsubscribe_from_events(npc:id(),self)
+end
+
+function action_knife_attack:attack(target)
+	if not self.hit_time and self.object:animation_count() == 0 then
+		self.stype = math.random() > 0.7 and 1 or 0
+		add_knife_anims(self.object,self.stype)
+		self.hit_time = time_global()+(self.stype == 0 and 310 or 450)
+	end
+end
+
+local bones_tbl = {"bip01_head","bip01_neck","bip01_spine","bip01_spine1","bip01_pelvis","bip01_l_thigh","bip01_l_calf","bip01_r_thigh","bip01_r_calf","bip01_r_clavicle","bip01_l_clavicle","bip01_r_upperarm","bip01_l_upperarm","bip01_r_hand","bip01_l_hand"}
+
+function action_knife_attack:additional_hit(target)
+	local npc = self.object
+	if not (npc:see(target) or target:see(npc)) then
+--		printf("additional_hit: not see")
+		return
+	end
+	local power = self.knp["hit"..self.stype]
+	local cls = target:clsid()
+	if cls == clsid.script_stalker then
+		power = power*self.rankt.addhit_stalker
+	elseif rx_utils.is_actor(nil,cls) then
+		power = power*self.rankt.addhit_actor
+	else
+		power = power*self.rankt.addhit_mutant
+	end
+	if power == 0 then
+		power = 0.01
+	end
+	power = power*(0.5+math.random())
+	local bone = bones_tbl[math.random(#bones_tbl)]
+	if yaw(npc:direction(),target:direction()) < 0.6 then
+		bone = "bip01_head"
+	end
+	if rx_utils.is_actor(nil,cls) then
+		if actor_hit_anm then
+			level.add_cam_effector(actor_hit_anm,944,false,"")
+		end
+		if actor_hit_ppe then
+			level.add_pp_effector(actor_hit_ppe,943,false)
+			level.set_pp_effector_factor(943,0.1,0.3)
+		end
+	end
+	local hi = hit()
+	hi:bone(bone)
+	hi.type = hit[self.knp["type"..self.stype]]
+	hi.power = power
+	hi.impulse = self.knp["impulse"..self.stype]
+	hi.draftsman = npc
+	hi.direction = target:center():sub(npc:center())
+	target:hit(hi)
+	self.knp.sound:play(target,target:center())
+	if power > 0.5 then
+		local pe = {'1','2','2a'}
+		particles_object([[hit_fx\hit_flesh_0]]..pe[math.random(3)]):play_at_pos(target:bone_position(bone))
+	end
+end
+
+function add_knife_anims(npc,n)
+	npc:clear_animations()
+	if npc:body_state() == move.crouch then
+		rx_utils.add_anim(npc,"cr_all_5_attack_"..n,true)
+	else
+		rx_utils.add_anim(npc,"norm_all_5_attack_"..n,true)
+	end
+end
+
+function spawn_knife(npc)
+	if knife_sets.spawn_chance > 0 and not rx_ai.get_var(npc,"kn_spawn") then
+		rx_ai.save_var(npc,"kn_spawn",true)
+		local knife = npc:item_in_slot(0)
+		if (not knife) and math.random() < knife_sets.spawn_chance then
+			local money = math.max(0,npc:money()-300)
+			npc:give_money(-npc:money()+money)
+			alife():create(knife_sets.weapon_to_spawn,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
+			return true
+		end
+	end
+end
+
+local knife_params = {}
+function get_knife_params(knife)
+	local section = knife and knife:section() or "wpn_knife"
+	if knife_params[section] then
+		return knife_params[section]
+	end
+	local t = {}
+	t.fire_dist = rx_utils.read_from_ini(nil,section,"fire_distance",1.5)
+	t.sound = rx_sound.dihud_sound(section,"snd_shoot")	--rx_utils.read_from_ini(nil,section,"snd_shoot",[[weapons\knife_1]],2)
+	t.hit0 = rx_utils.read_from_ini(nil,section,"hit_power",1.5)
+	t.hit1 = rx_utils.read_from_ini(nil,section,"hit_power_2",2.5)
+	t.impulse0 = rx_utils.read_from_ini(nil,section,"hit_impulse",10)
+	t.impulse1 = rx_utils.read_from_ini(nil,section,"hit_impulse_2",10)
+	t.type0 = rx_utils.read_from_ini(nil,section,"hit_type","wound",1)
+	t.type1 = rx_utils.read_from_ini(nil,section,"hit_type_2","wound",1)
+	ASSERTX(hit[t.type0] and hit[t.type1],"rx_knife:incorrect hit type %s/%s in %s",t.type0,t.type1,section)
+	knife_params[section] = t
+	return t
+end
+
+evid_knife_attack = rx_ai.base_id+35
+actid_knife_attack = evid_knife_attack
+
+knife_actions_permitted[actid_knife_attack] = true
+--rx_ai.no_talk_actions[actid_knife_attack] = true
+--rx_ai.death_disable_evas[evid_knife_attack] = false
+
+function add_to_binder(npc,ini,scheme,section,storage)
+	local manager = npc:motivation_action_manager()
+	if knife_sets.forbidden_factions[npc:character_community()]
+		or knife_sets.forbidden_npcs[npc:name()]
+		or knife_sets.forbidden_npcs[npc:section()]
+		or (not npc:alive()) or rx_utils.IsTrader(npc)
+	then
+		manager:add_evaluator(evid_knife_attack,property_evaluator_const(false))
+		return
+	end
+	manager:add_evaluator(evid_knife_attack,evaluator_knife_attack(npc,"evaluator_knife_attack",storage))
+	local action = action_knife_attack(npc,"knife_attack",storage)
+	action:add_precondition(world_property(stalker_ids.property_alive,true))
+	action:add_precondition(world_property(xr_evaluators_id.sidor_wounded_base,false))
+	if rx_gl then
+		action:add_precondition(world_property(rx_gl.evid_gl_fire,false))
+	end
+	if rx_bandage then
+		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
+	end
+	if xrs_grenade and xrs_grenade.evid_aaa_grenade then
+		action:add_precondition(world_property(xrs_grenade.evid_crazy_grenadier,false))
+		action:add_precondition(world_property(xrs_grenade.evid_aaa_grenade,false))
+	end
+--	if blowout_scheme and blowout_scheme.evid_outside then
+--		action:add_precondition(world_property(blowout_scheme.evid_outside,false))
+--	end
+	action:add_precondition(world_property(evid_knife_attack,true))
+	action:add_effect(world_property(evid_knife_attack,false))
+	manager:add_action(actid_knife_attack,action)
+	-- включение в планировщик
+	for i,id in ipairs({stalker_ids.action_combat_planner,stalker_ids.action_danger_planner,xr_actions_id.alife}) do
+		action = manager:action(id)
+		action:add_precondition(world_property(evid_knife_attack,false))
+	end
+end
+
+function set_scheme(npc,ini,scheme,section)
+	local st = xr_logic.assign_storage_and_bind(npc,ini,scheme,section)
+end

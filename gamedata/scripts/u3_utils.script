@@ -1,0 +1,93 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-----------------------------------------------------------------------------
+-- u3_utils.script
+-- zestawik maіych funkcji i klas, przydatnych w innych skryptach.
+-- tam, gdzie nie jest napisane inaczej, autor: utak3r.
+-- 
+-- Last update: 2009.12.29
+-----------------------------------------------------------------------------
+
+--
+-- Sprawdzenie, czy jest gra i czy aktor jest їywy
+--
+function isGameOn()
+	return level.present() and db.actor and db.actor:alive()
+end
+
+--
+-- Zapis stanu gry (save)
+--
+function savegame(save_name, save_anyway)
+	if not isGameOn() then return end
+	if (not save_anyway) and game_options.AutoSave==false then return end
+	if has_alife_info("no_autosave") then
+        cant_save("Сейв не создан - во время выполнения этого задания сохраняться нельзя")
+		return
+	end
+	if amk.has_timer("no_save") or amk.load_variable("no_save", false) then
+--        cant_save("Автосохранение не создано - прошло мало времени с момента последней загрузки")
+		log("~ u3_utils.savegame: Can't save: too little timeout while loading")
+        return
+    end
+	
+	save_name = save_name:clear()
+	if string.len(save_name)>60 then
+		save_name = string.sub(save_name,1,58).."..."
+	end
+	get_console():execute("save "..save_name)
+end
+
+function savegame_date(save_name)
+	savegame(save_name..". "..game.translate_string(level.name())..". День "..(amk.game_days()+1))
+end
+function savegame_lc(name, to_level)
+	savegame(name.." "..game.translate_string(level.name()).." - "..game.translate_string(to_level)..". День "..(amk.game_days()+1))
+end
+function savegame_on_level()
+	savegame("Сохранение на уровне. "..game.translate_string(level.name())..". День "..(amk.game_days()+1), true)
+end
+
+function can_save() -- не сохраняем во время открытых окон, когда нельзя сделать квиксейв
+	return level.main_input_receiver()==nil
+end
+
+function cant_save(reason) -- сообщение, что нельзя сохраняться во время определенных действий
+	local hud = get_hud():AddCustomStatic("cant_walk", true)
+	hud:wnd():SetText(reason)
+end
+----------------------------------------------------------------------------------------------
+-- Save Rename mod
+function on_save_rename(str, old_lvl)
+	local save_name = old_user_name().."_"..str
+	local fs = getFS()
+	if fs:exist("$game_saves$", save_name..".sav") then
+		local new_svname
+		if str == "quicksave" then
+			new_svname = string.format( "День %d. %02d.%02d. %s",
+				(amk.game_days()+1), level.get_time_hours(), level.get_time_minutes(),
+				game.translate_string(level.name()) )
+		elseif str == "autosave" then
+			new_svname = "Переход "..game.translate_string(old_lvl or "<unknown level>")..
+				" - "..game.translate_string(level.name())
+		else
+			return
+		end
+		new_svname = new_svname:clear()
+
+		local f1 = fs:update_path("$game_saves$", save_name..".sav")
+		local f2 = fs:update_path("$game_saves$", new_svname..".sav")
+		if str == "autosave" then
+			fs:file_rename(f1, f2, true)
+			return
+		else
+			fs:file_copy(f1, f2)
+		end
+
+		if fs:exist("$game_saves$", save_name..".dds") then
+			f1 = fs:update_path("$game_saves$", save_name..".dds")
+			f2 = fs:update_path("$game_saves$", new_svname..".dds")
+			fs:file_copy(f1, f2)
+		end
+	end
+end
+

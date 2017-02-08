@@ -1,0 +1,227 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+---- AI Additions ----
+---- Rulix aka Bak ----
+---- 29.7.2009,06.01.2016
+
+function printf(s, ...)
+--	rx_utils.printf("ff:"..s,...)
+end
+
+local ff_ini = ini_file("misc\\rx_ff.ltx")
+ASSERTX(ff_ini:section_exist("main"),"no ff_ini")
+local ff_sets = {forbiddens = {
+					factions = rx_utils.parse_list(ff_ini,"main","forbidden_factions",true),
+					npcs = rx_utils.parse_list(ff_ini,"main","forbidden_npcs",true)},
+				enabled = rx_utils.read_from_ini(ff_ini,"main","enabled",true,0)}
+ff_ini = nil
+
+class "evaluator_dont_shoot" (property_evaluator)
+function evaluator_dont_shoot:__init(npc,name,storage) super (nil,name)
+	self.st = storage
+end
+function evaluator_dont_shoot:evaluate()
+	local npc = self.object
+	local enemy = npc:best_enemy()
+	local res = false
+	if enemy and enemy:is_alive() and npc:see(enemy) and (not enemy:is_wounded()) then
+		local wpn = npc:active_item()
+		local slot = npc:active_slot()
+		if wpn and (slot == 2 or slot == 1) and wpn:get_ammo_in_magazine() > 0 then
+			res,self.st.vdist = friends_on_fire_line(npc, enemy)
+		end
+	end
+	return (res == true)
+end
+
+local function get_vertex(npc,dist)
+	local lv = npc:level_vertex_id()
+	if not npc:accessible(lv) then return nil end	-- попал за аи-сетку?
+	local rnd1,ang = math.random(100)
+	if rnd1 < 43 then
+		ang = math.random(40,70)
+	elseif rnd1 < 58 then
+		ang = math.random(150,210)
+	else
+		ang = math.random(290,320)
+	end
+	local dir = vector_rotate_y(npc:direction(),ang)
+	return npc:vertex_in_direction(lv,dir,dist)
+end
+
+class "action_verso" (action_base)
+function action_verso:__init (npc,action_name,storage) super (nil,action_name)
+	self.st = storage
+end
+function action_verso:initialize()
+	action_base.initialize(self)
+	local npc = self.object
+	self.is_camper = (db.storage[npc:id()].script_combat_type == "camper")
+					or ( (db.storage[npc:id()].active_scheme == "camper")
+					and not npc:motivation_action_manager():evaluator(xr_evaluators_id.stohe_camper_base+2):evaluate() )
+	if npc:path_completed() then
+		npc:set_desired_position()
+		npc:set_desired_direction()
+	end
+	npc:set_mental_state(anim.danger)
+	npc:set_item(object.aim1,npc:active_item())
+	local enemy = npc:best_enemy()
+	if not self.is_camper then
+		state_mgr.set_state(npc,"assault",nil,nil,{look_object = enemy},{animation = true})
+	else
+		state_mgr.set_state(npc,state_mgr.get_state(npc),nil,nil,{look_object = enemy},{animation = true})
+	end
+end
+function action_verso:execute()
+	action_base.execute(self)
+	if self.is_camper then
+		return
+	end
+	local npc = self.object
+	if (not self.vertex) and (not npc:path_completed())
+		and npc:movement_type() ~= move.stand
+	then
+		return
+	end
+	if not self.vertex or npc:path_completed() or self.timer < time_global() then
+		self.vertex = get_vertex(npc,self.st.vdist)
+		self.timer = time_global()+800*self.st.vdist
+	end
+	if self.vertex then
+		npc:set_dest_level_vertex_id(self.vertex)
+	end
+end
+function action_verso:finalize()
+	action_base.finalize(self)
+	self.vertex = nil
+	state_mgr.set_state(self.object,"idle")
+	rx_sound.block_alarm_sound(self.object)
+end
+
+evid_dont_shoot = rx_ai.base_id+25
+actid_dont_shoot = evid_dont_shoot
+
+function add_to_binder(npc,ini,scheme,section,storage)
+	local manager = npc:motivation_action_manager()
+	if not (ff_sets.enabled and not ff_sets.forbiddens.factions[npc:character_community()] and not ff_sets.forbiddens.npcs[npc:name()] and not ff_sets.forbiddens.npcs[npc:section()]) then
+		manager:add_evaluator(evid_dont_shoot,property_evaluator_const(false))
+		return
+	end
+	manager:add_evaluator(evid_dont_shoot,evaluator_dont_shoot(npc,"eva_dont_shoot",storage))
+	local action = action_verso(npc,"act_dont_shoot",storage)
+	action:add_precondition(world_property(stalker_ids.property_alive,true))
+	action:add_precondition(world_property(xr_evaluators_id.sidor_wounded_base,false))
+	if rx_bandage then
+		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
+	end
+	if rx_gl then
+		action:add_precondition(world_property(rx_gl.evid_gl_fire,false))
+		action:add_precondition(world_property(rx_gl.evid_gl_reload,false))
+	end
+	if rx_facer then
+		action:add_precondition(world_property(rx_facer.evid_facer,false))
+	end
+	if rx_knife then
+		action:add_precondition(world_property(rx_knife.evid_knife_attack,false))
+	end
+	if xrs_grenade and xrs_grenade.evid_aaa_grenade then
+		action:add_precondition(world_property(xrs_grenade.evid_aaa_grenade,false))
+	end
+	if blowout_scheme and blowout_scheme.evid_outside then
+		action:add_precondition(world_property(blowout_scheme.evid_outside,false))
+	end
+	action:add_precondition(world_property(evid_dont_shoot,true))
+	action:add_effect(world_property(evid_dont_shoot,false))
+	manager:add_action(actid_dont_shoot,action)
+	-- включение в планировщик
+	action = manager:action(stalker_ids.action_combat_planner)
+	action:add_precondition(world_property(evid_dont_shoot,false))
+end
+
+function set_scheme(npc,ini,scheme,section)
+	local st = xr_logic.assign_storage_and_bind(npc,ini,scheme,section)
+end
+
+local disp_stor = {}
+local disp_time = {}
+
+local function get_weapon_dispersion(npc)
+	local wpn = npc:best_weapon()
+	if not wpn then
+		return 0
+	elseif (disp_time[wpn:id()] or 0) > time_global() then
+		return disp_stor[wpn:id()] or 0
+	end
+	local section = wpn:section()
+	local base = sys_ini:r_float(section,"fire_dispersion_base")*math.pi/180
+	local condition_factor = 1 + sys_ini:r_float(section,"fire_dispersion_condition_factor")*(1-wpn:condition())
+	local silencer = 1
+	if rx_utils.addon_attached(wpn,"sl") then
+		local ss = rx_utils.read_from_ini(nil,section,"silencer_name","__",1)
+		silencer = rx_utils.read_from_ini(nil,ss,"fire_dispersion_base_k",1)
+	end
+	local amt = rx_wmgr and rx_wmgr.read_wpn_params(section).amt or rx_utils.parse_list(nil,section,"ammo_class")
+	local as = #amt == 1 and amt[1] or amt[rx_utils.get_ammo_type(wpn)+1]
+	local k_disp = sys_ini:r_float(as,"k_disp")
+	local result = base*silencer*k_disp*condition_factor
+	disp_stor[wpn:id()] = result
+	disp_time[wpn:id()] = time_global()+50000
+--	printf("get_current_dispersion[%s][%s] %s",npc:name(),wpn:name(),result)
+	return result
+end
+
+local min_check_prd = 250	-- проверка друзей примерно 4 раза в секунду
+function friends_on_fire_line(npc, enemy)
+	local sid = npc:id()
+	local st = rx_ai.get_storage(sid,"fofl")
+	local tg = time_global()
+	if (st.wait or 0) >= tg then
+		return st.f, st.d
+	end
+
+	local npc_pos = npc:bone_position("bip01_l_finger02")
+	local enemy_pos = enemy:bone_position("bip01_spine")
+	if rx_knife then
+		local ktrg = rx_knife.targets[enemy:id()]
+		if ktrg and ktrg ~= sid then
+			local hunter = level.object_by_id(ktrg)
+			if hunter and npc:relation(hunter) ~= game_object.enemy and npc:see(hunter) then
+				local h_dist = hunter:position():distance_to_sqr(enemy_pos)
+				if h_dist < 13 and h_dist+1 < npc_pos:distance_to_sqr(enemy_pos) then
+					st.f,st.d = true,5
+					st.wait = tg+2000
+					return true,5
+				end
+			end
+		end
+	end
+	local dir_aim = enemy_pos:sub(npc_pos)
+	local be_dist = dir_aim:magnitude()
+	if be_dist > 3 then
+		local disp = get_weapon_dispersion(npc) + 0.025	--npc:accuracy()
+		local aH,aP = dir_aim:getH(),dir_aim:getP()
+		for o in npc:memory_visible_objects() do
+			local friend = o:object()
+			if friend and friend.clsid and friend:is_alive() and friend:id() ~= sid then
+				if IsStalker(friend) and npc:relation(friend) ~= game_object.enemy then
+					local friend_dir = friend:center():sub(npc_pos)
+					local friend_dist = friend_dir:magnitude()-0.5
+					if friend_dist < be_dist then
+						local fH,fP = friend_dir:getH(),friend_dir:getP()
+						local f = disp+0.28/friend_dist
+						if (aH > fH and aH-fH or fH-aH) < f and (aP > fP and aP-fP or fP-aP) < f*1.8 then
+							if (not friend:is_wounded()) or (aP > fP and aP-fP or fP-aP) < f*0.5 then
+								st.f = true
+								st.d = math.min(25,4*be_dist/(be_dist-friend_dist))
+								st.wait = tg+1500
+								return true,st.d
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	st.wait = tg+min_check_prd
+	st.f,st.d = false,4
+    return false,4
+end

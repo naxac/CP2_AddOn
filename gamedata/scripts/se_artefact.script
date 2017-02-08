@@ -1,0 +1,32 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "se_artefact"	(cse_alife_item_artefact)
+
+function se_artefact:__init (section) super (section)
+--	log("~ se_artefact:__init: %s", section)
+	self.is_day_night = sys_ini:r_bool_ex(section, "is_day_night", false)
+end
+--------------------
+function se_artefact:can_switch_offline ()
+	return cse_alife_item_artefact.can_switch_offline (self)
+end
+--------------------
+function se_artefact:can_switch_online ()
+    -- если есть родитель, либо арт только сварили, либо он не ночной вовсе,
+	-- то ничего не делаем
+	if self.is_day_night == false
+		or self.parent_id ~= 65535
+		or self.is_transformed
+	then
+		return cse_alife_item_artefact.can_switch_online (self)
+    end
+
+	--printf ("CAN_SWITCH_ONLINE called")
+
+	local h = level.get_time_hours()
+	if (h >= 0 and h < 5) or self.online then	-- если пришло время... либо уже в онлайне
+		return cse_alife_item_artefact.can_switch_online (self)
+	else
+		return false
+	end
+end
+--------------------

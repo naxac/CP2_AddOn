@@ -1,0 +1,195 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local pick_from_condlist = xr_logic.pick_section_from_condlist
+local parse_condlist = xr_logic.parse_condlist
+local cfg_get_str = utils.cfg_get_string
+
+-- game hours
+local RESUPLY_TIME = 30
+local RESUPLY_RND = 10
+
+local trade_manager = {}
+local def_ini_file = "misc\\trade_generic.ltx"
+local def_ini = ini_file(def_ini_file)
+
+local traders = {
+	['amk_vitek_voron']        = { info = "trade_voron_enough",    cnt = 5  }, -- Витёк Ворон
+	['mil_freedom_member0018'] = { info = "trade_maks_enough",     cnt = 4  }, -- Макс
+	['escape_trader']          = { info = "trade_sidor_enough",    cnt = 3  }, -- Сидорович
+	['bar_barman']             = { info = "trade_barman_enough",   cnt = 5  }, -- Бармен
+	['bar_dolg_petrenko']      = { info = "trade_petrenko_enough", cnt = 4  }, -- Петренко
+	['mil_freedom_member0021'] = { info = "trade_skraga_enough",   cnt = 3  }, -- Скряга
+	['yantar_ecolog_general']  = { info = "trade_sakharov_enough", cnt = 5  }, -- Сахаров
+	['Sak']                    = { info = "trade_sak_enough",      cnt = 5  }, -- Сяк
+	['prip_dok_arh']           = { info = "trade_doktor_enough",   cnt = 4  }, -- Доктор 1
+	['dcity_dok_bolot']        = { info = "trade_doktor_enough",   cnt = 4  }, -- Доктор 2
+	['sak_military_stalker']   = { info = "trade_sherstyk_enough", cnt = 3  }, -- Шерстюк
+	['val_bandit_trader']      = { info = "trade_jlob_enough",     cnt = 3  }, -- Жила
+	['esc_soldier_commander']  = { info = "trade_kuznezov_enough", cnt = 4  }, -- Кузнецов
+	['marsh_dan']              = { info = "trade_dan_enough",      cnt = 5  }  -- Дэн
+}
+
+function trade_init(npc, cfg)
+	local t = trade_manager[npc:id()]
+--	printf("TRADE INIT[%s]", npc:name())
+	local str
+	if t == nil then	-- if first run
+		t = {}
+		trade_manager[npc:id()] = t
+
+		if cfg ~= def_ini_file then
+			t.config = ini_file(cfg)
+		end
+
+		-- коэфициенты покупки
+		str = cfg_get_str(t.config or def_ini, "trader", "buy_condition", npc, true, "")
+		if str == nil then
+			abort("Incorrect trader settings. Can't find buy_condition. [%s]->[%s]", npc:name(), cfg)
+		end
+		t.buy_condition = parse_condlist(npc, "trade_manager", "buy_condition", str)
+
+		-- коэфициенты продажи
+		str = cfg_get_str(t.config or def_ini, "trader", "sell_condition", npc, true, "")
+		if str == nil then
+			abort("Incorrect trader settings. Can't find sell_condition. [%s]->[%s]", npc:name(), cfg)
+		end
+		t.sell_condition = parse_condlist(npc, "trade_manager", "sell_condition", str)
+
+		-- список закупки
+		if t.config then
+			str = cfg_get_str(t.config, "trader", "buy_supplies", npc, false, "")
+			if str ~= nil then
+				t.is_trader = true
+				t.buy_supplies = str
+			end
+		end
+	end
+
+	-- устанавливаем параметры торговли...
+	str = pick_from_condlist(db.actor, npc, t.buy_condition)
+	if str then
+		npc:buy_condition(t.config or def_ini, str)
+	--	t.current_buy_condition = str
+	end
+
+	str = pick_from_condlist(db.actor, npc, t.sell_condition)
+	if str then
+		npc:sell_condition(t.config or def_ini, str)
+	--	t.current_sell_condition = str
+	end
+end
+
+function update(npc)
+	local t = trade_manager[npc:id()]
+	if t == nil then return end
+
+	local lim = traders[npc:name()]
+	if t.is_trader or lim then
+		local se_obj = alife():object(npc:id())
+		local hours = amk.game_hours()
+	--	log1("trade_manager: npc["..npc:name().."] inited, resupply_time = "..se_obj.resupply_time)
+		if se_obj.resupply_time <= hours then
+			if t.buy_supplies then
+				local buy_supplies = parse_condlist(npc, "trade_manager", "buy_supplies", t.buy_supplies)
+				local sect = pick_from_condlist(db.actor, npc, buy_supplies)
+				if sect then
+					npc:buy_supplies(t.config, sect)
+				end
+			end
+
+			se_obj.resupply_time = hours + RESUPLY_TIME + math.random(-RESUPLY_RND, RESUPLY_RND)
+
+			-- Обновляем бартер
+			if lim then
+				for i = 1, lim.cnt do
+					if has_alife_info(lim.info..i) then
+						db.actor:disable_info_portion(lim.info..i)
+					end
+				end
+			end
+		--	log1("- resupply: "..npc:name()..", next time: "..se_obj.resupply_time)
+		end
+	end
+end
+
+function save(obj, packet)
+--	local tt = trade_manager[obj:id()]
+	--' Сохраняем присутствует ли инициализированная торговля в принципе.
+--	if tt == nil then
+	if true then
+		packet:w_bool(false)
+		return
+	else
+		packet:w_bool(true)
+	end
+
+	packet:w_stringZ("")
+	packet:w_stringZ("")
+	packet:w_stringZ("")
+	packet:w_stringZ("")
+
+	packet:w_s32(0)
+	packet:w_s32(0)
+end
+
+function load(obj, packet)
+	local a = packet:r_bool()
+	if a == false then
+		return
+	end
+
+	a = packet:r_stringZ()
+	a = packet:r_stringZ()
+	a = packet:r_stringZ()
+	a = packet:r_stringZ()
+	
+	a = packet:r_s32()
+	a = packet:r_s32()
+end
+
+-------------------------------------------------------------------------------
+local remove_items = {}
+local need_remove = false
+
+function start_trade()
+	local npc = level.get_second_talker(0)
+	local t = trade_manager[npc:id()]
+	-- Барахло удаляем только у торговцев с ассортиментом
+	if t ~= nil and t.is_trader then
+		need_remove = true
+		remove_items = {}
+	else
+		need_remove = false
+	end
+end
+
+function on_trade(item, sell_bye)
+	if need_remove == false then return end
+	if sell_bye == true then
+		remove_items[item:id()] = true
+	else
+		remove_items[item:id()] = nil
+	end
+end
+
+function stop_trade()
+	if need_remove == false then return end
+	local sim = alife()
+	local obj
+	for id in pairs(remove_items) do
+		obj = sim:object(id)
+		if obj and trade_manager[obj.parent_id] then
+			sim:release(obj, true)
+		end
+	end
+	remove_items = {}
+end
+
+--[[-----------------------------------------------------------------------------
+function get_trade_params(id)
+	local t = trade_manager[id]
+	if t then
+		return t.config or def_ini, t.current_sell_condition, t.current_buy_condition
+	end
+	return nil, nil, nil
+end
+--]]-----------------------------------------------------------------------------

@@ -1,0 +1,271 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+---- AI Additions ----
+---- Rulix aka Bak ----
+---- 09.01.2016
+
+function printf(s, ...)
+--	rx_utils.printf("reload:"..s,...)
+end
+
+local forbidden_schemes = {patrol = true,remark = true}
+
+-- добавление недостающих команд для оружия
+if not object.aim_force_full1 then
+	object.aim_ready1 = object.drop+1					-- eObjectActionAimReady1 = 12
+	object.aim_ready2 = object.aim_ready1+1				-- eObjectActionAimReady2 = 13
+	object.aim_force_full1 = object.aim_ready2+1		-- eObjectActionAimForceFull1 = 14
+	object.aim_force_full2 = object.aim_force_full1+1	-- eObjectActionAimForceFull2 = 15
+end
+
+local scheme_enabled = true
+local elapsed_percent = 80/100		-- процент загруженности магазина, при котором перезарядка не требуется
+local reload_one = false			-- перезаряжать только текущее оружие
+local clean_gun = 10/100			-- чинить оружие при перезарядке на % состояния
+
+function get_weapon_to_reload(npc,active_only,stock)
+	local active,active_id = npc:active_item(), nil
+	if active and rx_utils.item_is_fa(active) then
+		local mag_size = rx_utils.get_mag_size(active:section())
+		local aminmag = active:get_ammo_in_magazine()
+		if aminmag < mag_size*elapsed_percent
+			and active:get_ammo_total() > (stock and aminmag*2 or aminmag)
+		then
+			return active,mag_size
+		end
+		active_id = active:id()
+	end
+	if active_only then
+		return
+	end
+	if reload_one then
+		local wpn = rx_utils.get_weapon(npc)
+		if (not wpn) or wpn:id() == active_id then
+			return
+		end
+		local mag_size = rx_utils.get_mag_size(wpn:section())
+		local aminmag = wpn:get_ammo_in_magazine()
+		return aminmag < mag_size*elapsed_percent and wpn:get_ammo_total() > (stock and aminmag*2 or aminmag) and wpn,mag_size
+	end
+	local wm = nil	--rx_utils.get_wm(npc,true)	не совместима со старым менеджером оружия
+	local wpns = {}
+	if wm then
+		wpns = wm.weapons
+	else
+		local types = {}
+		local item, typ
+		for i=0,npc:object_count()-1 do
+			item = npc:object(i)
+			if rx_utils.item_is_fa(item) then
+				typ = rx_utils.get_wpn_type(item:section())
+				if not types[typ] then
+					types[typ] = true
+					wpns[#wpns+1] = item
+				end
+			end
+		end
+	end
+	for i=1,#wpns do
+		if (wm and wpns[i].id or wpns[i]:id()) ~= active_id then
+			local wpn = wm and level.object_by_id(wpns[i].id) or wpns[i]
+			local mag_size = rx_utils.get_mag_size(wpn:section())
+			local aminmag = wpn:get_ammo_in_magazine()
+			if aminmag < mag_size*elapsed_percent
+				and wpn:get_ammo_total() > (stock and aminmag*2 or aminmag)
+			then
+				return wpn,mag_size
+			end
+		end
+	end
+end
+
+class "evaluator_reload" (property_evaluator)
+function evaluator_reload:__init(npc,name,storage) super (nil,name)
+	self.st = storage
+	self.delay = time_global()+math.random(3000,5000)
+end
+function evaluator_reload:evaluate()
+	local npc = self.object
+	if self.delay > time_global() then
+		return false
+	end
+	if npc:best_enemy() or xr_wounded.is_wounded(npc) or npc:is_talking() then
+		self.delay = time_global()+math.random(5000,15000)	-- НПС занят
+		return false
+	end
+	local stlib = state_lib.states[state_mgr.get_state(npc)]
+	if (stlib.animation ~= nil and stlib.animation ~= "idle")
+		or stlib.weapon == "fire" or stlib.weapon == "sniper_fire"
+		or forbidden_schemes[db.storage[npc:id()].active_scheme]
+	then
+		self.delay = time_global()+8000	-- НПС занят
+		return false
+	end
+	if self.st.act then
+		return true
+	end
+	if rx_utils.IsTrader(npc) then
+		self.delay = math.huge
+		return false
+	end
+	local wpn,mag = get_weapon_to_reload(npc)
+	if wpn then
+		self.st.weapon = wpn:id()
+		self.st.mag_size = mag
+		return true
+	end
+	self.delay = time_global()+20000
+	return false
+end
+
+class "action_reload" (action_base)
+function action_reload:__init (npc,action_name,storage) super (nil,action_name)
+	self.st = storage
+end
+function action_reload:initialize()
+	action_base.initialize(self)
+	local npc = self.object
+	if rx_wmgr then
+		local wm = rx_wmgr.get_wm(npc)
+		wm:disable(math.huge)
+		wm:return_items()
+	end
+	npc:clear_animations()
+	if npc:path_completed() then
+		npc:set_sight(look.cur_dir,nil,0)
+	elseif npc:mental_state() == anim.danger and npc:sight_params().m_sight_type ~= look.path_dir then
+		npc:set_dest_level_vertex_id(npc:level_vertex_id())
+		npc:set_desired_position(npc:position())
+	end
+	state_mgr.lock(npc,true)
+	self.st.act = true
+end
+function action_reload:execute()
+	action_base.execute(self)
+	local npc = self.object
+	local id = self.st.weapon
+	local wpn = level.object_by_id(id)
+	if not (wpn and wpn:parent() and wpn:parent():id() == npc:id()) then
+		self.st.act = nil
+		return
+	end
+	local magsize = self.st.mag_size
+	local elapsed = wpn:get_ammo_in_magazine()
+	local actit = npc:active_item()
+	if actit and actit:id() ~= id and not npc:weapon_unstrapped() then
+		npc:set_item(object.idle,actit)
+		return
+	elseif not (actit and npc:weapon_unstrapped() and actit:id() == id) then	-- оружие ещё не активно
+	elseif self.do_id ~= id then
+		self.do_id = id
+		local shotgun = rx_utils.read_from_ini(nil,wpn:section(),"tri_state_reload",false,0)
+		self.timer = time_global()+(shotgun and (magsize-elapsed)*1600 or 3500)
+		if clean_gun then
+			wpn:set_condition(math.min(1,wpn:condition()+clean_gun*wpn:condition()))
+		end
+	elseif elapsed >= magsize then
+		local wpn,mag = get_weapon_to_reload(npc)
+		if wpn then
+			self.st.weapon = wpn:id()
+			self.st.mag_size = mag
+		else
+			self.st.act = nil
+		end
+		return
+	elseif self.timer < time_global() then
+		wpn:set_ammo_elapsed(magsize)	-- если сам полностью зарядить не смог - поможет чит
+		return
+	end
+	npc:set_item(object.aim_force_full1,wpn)
+end
+function action_reload:finalize()
+    action_base.finalize(self)
+	local npc = self.object
+	if not npc:alive() then
+		return
+	end
+	local wpn = level.object_by_id(self.st.weapon)
+	if wpn then
+		npc:set_item(object.idle,wpn)
+		local at = wpn:get_ammo_total()
+		if at < self.st.mag_size and at == wpn:get_ammo_in_magazine() then
+			wpn:set_ammo_elapsed(self.st.mag_size)
+		end
+	end
+	if rx_wmgr then
+		rx_wmgr.get_wm(npc):enable()
+	end
+	state_mgr.lock(npc,false)
+	self.timer = 0
+	self.do_id = nil
+	self.st.weapon = nil
+	self.st.mag_size = nil
+	self.st.act = nil
+end
+
+evid_reload = rx_ai.base_id+5
+actid_reload = evid_reload
+
+function add_to_binder(npc,ini,scheme,section,storage)
+	local manager = npc:motivation_action_manager()
+	if (not scheme_enabled)
+		or npc:character_community() == "zombied"
+		or (not npc:alive())
+		or rx_utils.IsTrader(npc)
+	then
+		manager:add_evaluator(evid_reload,property_evaluator_const(false))
+		return
+	end
+	manager:add_evaluator(evid_reload,evaluator_reload(npc,"eva_reload",storage))
+	local action = action_reload(npc,"act_reload",storage)
+	action:add_precondition(world_property(stalker_ids.property_alive,true))
+	action:add_precondition(world_property(stalker_ids.property_danger,false))
+	action:add_precondition(world_property(stalker_ids.property_enemy,false))
+	action:add_precondition(world_property(xr_evaluators_id.sidor_wounded_base,false))
+	action:add_precondition(world_property(xr_evaluators_id.state_mgr+3,true))	-- отключить эту срань
+	if rx_bandage then
+		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
+	end
+	if rx_gl then
+		action:add_precondition(world_property(rx_gl.evid_gl_reload,false))
+	end
+	if post_combat_idle then
+		action:add_precondition(world_property(post_combat_idle.evid_post_combat,false))
+	end
+	if xr_help_wounded then
+		action:add_precondition(world_property(xr_help_wounded.evid_wounded_exist,false))
+	end
+	if xr_corpse_detection then
+		action:add_precondition(world_property(xr_corpse_detection.evid_corpse_exist,false))
+	end
+	if xrs_grenade and xrs_grenade.evid_aaa_grenade then
+		action:add_precondition(world_property(xrs_grenade.evid_aaa_grenade,false))
+	end
+	if blowout_scheme and blowout_scheme.evid_outside then
+		action:add_precondition(world_property(blowout_scheme.evid_outside,false))
+	end
+	action:add_precondition(world_property(evid_reload,true))
+	action:add_effect(world_property(evid_reload,false))
+	manager:add_action(actid_reload,action)
+	-- включение в планировщик
+	for n,id in ipairs({xr_actions_id.alife,xr_actions_id.stohe_meet_base+1}) do
+		action = manager:action(id)
+		action:add_precondition(world_property(evid_reload,false))
+	end
+end
+
+function set_scheme(npc,ini,scheme,section)
+	local st = xr_logic.assign_storage_and_bind(npc,ini,scheme,section)
+end
+
+--[[
+function enable_scheme(npc,a)
+	local manager = npc:motivation_action_manager()
+	if a == true then
+		local storage = db.storage[npc:id()].reload
+		manager:remove_evaluator(evid_reload)
+		manager:add_evaluator(evid_reload,evaluator_reload(npc,"eva_reload",storage))
+	elseif a == false then
+		manager:remove_evaluator(evid_reload)
+		manager:add_evaluator(evid_reload,property_evaluator_const(false))
+	end
+end]]

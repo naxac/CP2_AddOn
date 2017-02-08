@@ -1,0 +1,352 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--'-------------------------------------------------------------------------------------------------------------------
+--' ai additions
+--' общая озвучка персонажей
+--' Rulix aka Bak
+--' 10.03.2016
+--'--------------------------------------------------------------------------------------------------------------------
+local nstl = 64
+local theme = {}
+local sound_table = {}
+local mute_npcs = {}
+
+local function id()
+	return sound_theme.id()
+end
+
+function load_sounds()
+	stalker_ids.sound_enemy_killed_or_wounded = stalker_ids.sound_enemy_critically_wounded+1	-- fix wrong export id
+	local snd_ini = ini_file([[misc\rx_script_sound.ltx]])
+	ASSERTX(snd_ini:section_exist("list"),"There is no section [list] in rx_script_sound.ltx")
+	local n = snd_ini:line_count("list")
+	local result,section,value
+	for i=0,n-1 do
+		result,section,value  = snd_ini:r_line("list",i,"","")
+		if theme[section] == nil and (value == '' or _G[value] ~= nil) then
+			theme[section] = npc_sound_generic(snd_ini,section)
+		end
+	end
+	mute_npcs = rx_utils.collect_sections(snd_ini,{"mute_characters"})
+end
+
+function set_sound_play(npc_id,sound,cb_func)
+--	rx_ai.printf("SET_SOUND_PLAY. theme[%s] object[%s]", tostring(sound), npc_id)
+	local snd_theme = theme[sound]
+	if not snd_theme then
+		rx_ai.printf("set_sound_play. Wrong sound theme [%s], npc[%s]", tostring(sound), npc_id)
+		return
+	end
+	if sound_table[npc_id] == nil then
+		if snd_theme:play(npc_id) then
+			snd_theme.npc[npc_id].cb = cb_func
+			sound_table[npc_id] = snd_theme
+			return true
+		end
+--	else
+--		rx_ai.printf("rx_sound: cannot play sound [%s] because i'm [%s] already play snd [%s]",sound,npc_id,sound_table[npc_id].section)
+	end
+end
+
+function npc_update(npc)
+	local npc_id = npc:id()
+	if sound_table[npc_id] then
+		if npc:alive() then 
+			if not sound_table[npc_id]:is_playing(npc) then
+--				rx_ai.printf("SOUND_CALLBACK from [%s] sound_path [%s]",npc_id,sound_table[npc_id].path)
+				sound_table[npc_id]:callback(npc_id)
+				sound_table[npc_id] = nil
+			end
+		else
+			sound_table[npc_id] = nil
+		end
+	end
+end
+
+class "npc_sound_generic"
+function npc_sound_generic:__init(snd_ini,section)
+	self.section = section
+	--' Хранит параметры звука для каждого NPC
+	self.npc = {}
+	--' Параметры вычитывания звука
+	self.internal_type = stalker_ids[rx_utils.read_from_ini(snd_ini,section,"sound","_nil",1)]
+	if not self.internal_type then
+		self.prefix = rx_utils.read_from_ini(snd_ini,section,"npc_prefix",true,0)
+		self.path = rx_utils.read_from_ini(snd_ini,section,"path","",1)
+		self.shuffle = rx_utils.read_from_ini(snd_ini,section,"shuffle","rnd",1)
+--		self.is_combat_sound = rx_utils.read_from_ini(snd_ini,section,"is_combat_sound",false,0) or nil
+		self.pda_snd = rx_utils.read_from_ini(snd_ini,section,"pda_snd",false,0) or nil
+		self.type = snd_type[rx_utils.read_from_ini(snd_ini,section,"type","_nil",1)]
+	end
+	self.group_snd = rx_utils.read_from_ini(snd_ini,section,"group_snd",false,0) or nil
+	-- Время задержки начала отыгрывания звука
+	local delay = rx_utils.parse_list(snd_ini,section,"delay_sound",nil,true)
+	self.min_delay = delay[1] or 0
+	self.max_delay = delay[2] or self.min_delay
+	--' Интервал проигрывания звука
+	local interval = rx_utils.parse_list(snd_ini,section,"idle")
+	self.min_idle = tonumber(interval[1])
+	self.max_idle = tonumber(interval[2])
+	self.rnd = tonumber(interval[3])/100
+	if snd_ini:line_exist(section,"avail_communities") then
+		self.avail_communities = rx_utils.parse_list(snd_ini,section,"avail_communities",true)
+	end
+	if self.group_snd then
+		self.can_play_group_sound = true
+	end
+end
+function npc_sound_generic:init_npc(npc)
+--	rx_utils.printf("rx_sound:init_npc[%s] %s %s",npc:name(),self.section,self.type)
+	if self.internal_type then
+		self.npc[npc:id()] = {}
+		return
+	end
+	
+	local f = getFS()
+	local character_prefix	
+	if self.prefix == false then
+		character_prefix = npc:sound_prefix()
+		npc:sound_prefix("characters_voice\\")
+--[[	else
+		local new_prefix
+		local npc_prefix = npc:sound_prefix()
+		if not f:exist("$game_sounds$",npc_prefix..self.path..".ogg") and not f:exist("$game_sounds$",npc_prefix..self.path.."1.ogg") then
+			for i=1,3 do
+				local prefix = string.gsub(npc_prefix,"%human_(%w+)","human_0"..i,1)
+				if f:exist("$game_sounds$",prefix..self.path..".ogg") or f:exist("$game_sounds$",prefix..self.path.."1.ogg") then
+					new_prefix = prefix
+					rx_ai.printf("found new sounds %s prefix %s", tostring(self.path), prefix)
+					break
+				end
+			end
+		end
+		if new_prefix then
+			character_prefix = npc_prefix
+			npc:sound_prefix(new_prefix)
+		end]]
+	end
+
+	local npc_data = {path = {}}
+	npc_data.id = id()
+	npc_data.max = npc:add_sound(self.path, nstl, self.type or snd_type.monster_talk, 2, 1, npc_data.id) - 1
+	if f:exist("$game_sounds$",npc:sound_prefix()..self.path..".ogg") ~= nil then
+		npc_data.path[1] = npc:sound_prefix()..self.path
+	else
+		local num = 1
+		while f:exist("$game_sounds$",npc:sound_prefix()..self.path..num..".ogg") do
+			npc_data.path[num] = npc:sound_prefix()..self.path..num
+			num = num + 1
+		end
+	end
+
+	if character_prefix then
+		npc:sound_prefix(character_prefix)
+	end
+--	if self.group_snd then
+--		self.can_play_group_sound = true
+--	end
+	self.npc[npc:id()] = npc_data
+end
+function npc_sound_generic:play(npc_id)
+	local npc = level.object_by_id(npc_id)
+	if npc == nil then
+		rx_ai.printf("sound[%s]:coudnt find npc!!!",npc_id)
+		return false
+	end
+--	if npc:active_sound_count() > 0 then
+--		return false
+--	end
+	local npc_data = self.npc[npc_id]
+	if not npc_data then
+		return false
+	end
+	-- кто-то уже говорит групповой звук
+	if self.group_snd and not self.can_play_group_sound then
+		return false
+	end
+	-- не повезло сказать
+	if math.random() > self.rnd then
+		return false
+	end
+	-- время ещё не пришло
+	if npc_data.played_time and time_global()-npc_data.played_time < self.idle_time then
+		return false
+	end
+	npc_data.played_time = nil
+	if self.group_snd then
+		self.can_play_group_sound = false
+	end
+	-- если стандартный звук - команда играть
+	if self.internal_type then
+		npc:play_sound(self.internal_type, self.max_delay, self.min_delay)
+		return true
+	end
+	--' Выбор звука, который играть.
+	self.played_id = self:select_next_sound(npc_data)
+	-- звуков нет, или последовательность уже отыграна
+	if self.played_id == -1 then
+		return false
+	end
+	-- play_sound (u32 internal_type, u32 max_start_time, u32 min_start_time, u32 max_stop_time, u32 min_stop_time, u32 id)
+	npc:play_sound(npc_data.id, self.max_delay, self.min_delay, 1, 0, self.played_id)
+	-- проверка на существование звука дублирующего основной по ПДА. Если он есть то играть и его.
+	if self.pda_snd then
+		local f = getFS()
+		local snd = npc_data.path[self.played_id+1]
+		if snd and f:exist("$game_sounds$",snd.."_pda.ogg") ~= nil and npc:position():distance_to_sqr(db.actor:position()) >= 100 then
+			if self.pda_snd_obj ~= nil and self.pda_snd_obj:playing() then
+				self.pda_snd_obj:stop()
+			end
+			self.pda_snd_obj = xr_sound.get_safe_sound_object(snd.."_pda")	--sound_object(snd.."_pda")
+			self.pda_snd_obj:play_at_pos(db.actor, vector():set(0,0,0), self.max_delay, sound_object.s2d)
+			self.pda_snd_obj.volume = 0.8
+		end
+	end
+	return true
+end
+function npc_sound_generic:select_next_sound(npc_data)
+	if npc_data.max < 0 then
+		return -1
+	end
+	if self.shuffle == "rnd" then
+		if npc_data.max == 0 then
+			return 0
+		end
+		if self.played_id ~= nil then
+			if npc_data.max == 1 then
+				return 1-self.played_id
+			end
+			local played_id = math.random(0,npc_data.max-1)
+			if played_id >= self.played_id then
+				return played_id + 1
+			end
+			return played_id
+		end
+		return math.random(0,npc_data.max)
+	end
+	if self.shuffle == "seq" then
+		if self.played_id == nil then
+			return 0
+		end
+		if self.played_id < npc_data.max then
+			return self.played_id + 1
+		end
+		return -1
+	end
+	if self.shuffle == "loop" then
+		if self.played_id == nil then
+			return 0
+		end
+		if self.played_id < npc_data.max then
+			return self.played_id + 1
+		end
+		return 0
+	end
+end
+function npc_sound_generic:callback(npc_id)
+	if self.group_snd then
+		self.can_play_group_sound = true
+	end
+	self.idle_time = math.random(self.min_idle,self.max_idle) * 1000
+	local npc_data = self.npc[npc_id]
+	if npc_data then
+		npc_data.played_time = time_global()
+		if npc_data.cb then
+			npc_data.cb[1](npc_data.cb[2],self)
+			npc_data.cb = nil
+		end
+	end
+end
+function npc_sound_generic:reset(npc_id)
+	local npc = level.object_by_id(npc_id)
+	self.npc[npc_id].played_time = nil
+	self.played_id = nil
+	if self.group_snd then
+		self.can_play_group_sound = true
+	end
+	stop_sounds(npc)
+	if self.pda_snd_obj ~= nil then
+		self.pda_snd_obj:stop()
+		self.pda_snd_obj = nil
+	end
+end
+function npc_sound_generic:is_playing(obj)
+--  Проверка играется ли сейчас звук у нпс
+	return obj:active_sound_count() ~= 0 or (self.pda_snd_obj and self.pda_snd_obj:playing())
+end
+function npc_sound_generic:stop(obj_id)
+	local npc = level.object_by_id(obj_id)
+	stop_sounds(npc)
+	if self.pda_snd_obj and self.pda_snd_obj:playing() then
+		self.pda_snd_obj:stop()
+		self.pda_snd_obj = nil
+	end
+end
+
+--' Загрузка звуков НПС
+function init_npc_sound(npc)
+	if not mute_npcs[npc:name()] then
+		local comm = npc:character_community()
+		for _,s in pairs(theme) do
+			if not s.avail_communities or s.avail_communities[comm] then
+				s:init_npc(npc)
+			end
+		end
+	end
+end
+
+--' Для убирания звуков при переключении с боевых схем на комбат планнер
+function block_alarm_sound(npc)
+	if npc:best_enemy() then
+--		local st = db.storage[npc:id()]
+--		if st and st.state_mgr.combat then
+--			block_alarm_sound_i(npc)
+--		else
+			npc:motivation_action_manager():action(xr_actions_id.state_mgr+1).block_sound = true
+--		end
+	end
+end
+
+function block_alarm_sound_i(npc)
+	local npc_id = npc:id()
+	if npc:best_enemy() and not sound_table[npc_id] and not (db.sound[npc_id] and db.sound[npc_id].theme and db.sound[npc_id].theme ~= "") then
+		npc:set_fastcall(stop_sounds,npc)
+	end
+end
+
+function stop_sounds(obj)
+	if obj and obj:alive() then
+		obj:set_sound_mask(-1)
+		obj:set_sound_mask(0)
+	end
+	return true
+end
+--'--------------------------------------------------------------------------------------------------------------------
+--' класс для проигрывания звуков из конфига объекта
+--'--------------------------------------------------------------------------------------------------------------------
+class "dihud_sound"
+function dihud_sound:__init(section,name,typ)
+	self.st = {}
+	self.type = typ
+	local k,sline = 0,name
+	while sys_ini:line_exist(section,sline) do
+		k = k+1
+		self.st[k] = rx_utils.parse_list(sys_ini,section,sline,nil,true)
+		sline = name..k
+	end
+end
+
+function dihud_sound:play(obj,pos,delay,volume)
+	local s = self.st[math.random(#self.st)]
+	if s and s[1] and s[1] ~= "" then
+		local snd = rx_utils.get_sound(s[1])
+		local dly = (delay or 0)+(s[3] or 0)
+		if pos then
+			snd:play_at_pos(obj,pos,dly,self.type or sound_object.s3d)
+		else
+			snd:play(obj,dly,self.type or sound_object.s3d)
+		end
+		if volume or s[2] then
+			snd.volume = (volume or 1)*(s[2] or 1)
+		end
+	end
+end
