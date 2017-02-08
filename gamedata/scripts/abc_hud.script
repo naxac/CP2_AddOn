@@ -1,15 +1,15 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --'*******************************************************************************
---'   **   **   -- Dynamic HUD Gift from ATT, Arharа and Kolmogor --   **   **  
+--'   **   **   -- Dynamic HUD Gift from ATT, ArharГ  and Kolmogor --   **   **  
 --'*******************************************************************************
--- Назначается в опциях:
-local suithud_enable = game_options.DynHud > 0	-- худ костюма
-local blurs_enable = game_options.DynHud == 2	-- эффект запотевания
--- чтобы отключить эффект, поставьте вместо единицы ноль:
-local blood_enable = 1							-- эффект ранения
-local bleed_enable = 1							-- эффект плохого самочувствия
-local zoom_enable = 1							-- эффект прицеливания
-local otladka = 0								-- вывод в лог
+-- ГЌГ Г§Г­Г Г·Г ГҐГІГ±Гї Гў Г®ГЇГ¶ГЁГїГµ:
+local suithud_enable = game_options.DynHud > 0	-- ГµГіГ¤ ГЄГ®Г±ГІГѕГ¬Г 
+local blurs_enable = game_options.DynHud == 2	-- ГЅГґГґГҐГЄГІ Г§Г ГЇГ®ГІГҐГўГ Г­ГЁГї
+-- Г·ГІГ®ГЎГ» Г®ГІГЄГ«ГѕГ·ГЁГІГј ГЅГґГґГҐГЄГІ, ГЇГ®Г±ГІГ ГўГјГІГҐ ГўГ¬ГҐГ±ГІГ® ГҐГ¤ГЁГ­ГЁГ¶Г» Г­Г®Г«Гј:
+local blood_enable = 1							-- ГЅГґГґГҐГЄГІ Г°Г Г­ГҐГ­ГЁГї
+local bleed_enable = 1							-- ГЅГґГґГҐГЄГІ ГЇГ«Г®ГµГ®ГЈГ® Г±Г Г¬Г®Г·ГіГўГ±ГІГўГЁГї
+local zoom_enable = 1							-- ГЅГґГґГҐГЄГІ ГЇГ°ГЁГ¶ГҐГ«ГЁГўГ Г­ГЁГї
+local otladka = 0								-- ГўГ»ГўГ®Г¤ Гў Г«Г®ГЈ
 --------------------------------------------------------------------------------
 local suitHudName_wotType = {
 	["bandit_gaz_outfit_"]				= "hud_gaz",
@@ -17,53 +17,53 @@ local suitHudName_wotType = {
 	["monolit_gaz_outfit_"]				= "hud_gaz",
 	["neytral_exo_gaz_outfit_"]			= "hud_gaz",
 	["neytral_gaz_outfit_"]				= "hud_gaz",
-	["neytral_novice_gaz_outfit_"]		= "hud_gaz",
-	["outfit_svoboda_"]					= "hud_gaz",
+	["neytral_novice_gaz_outfit_"]			= "hud_gaz",
+	["outfit_svoboda_"]				= "hud_gaz",
 	["svoboda_gaz_outfit_"]				= "hud_gaz",
-	["svoboda_heavy_gaz_outfit_"]		= "hud_gaz",
+	["svoboda_heavy_gaz_outfit_"]			= "hud_gaz",
 	["dolg_scientific_outfit"]			= "hud_sci",
 	["scientist_suit_white"]			= "hud_sci",
-	["fire_outfit"]						= "hud_sci",
-	["ecolog_outfit"]					= "hud_sci",
-	["freedom_scientific_outfit"]		= "hud_sci",
+	["fire_outfit"]					= "hud_sci",
+	["ecolog_outfit"]				= "hud_sci",
+	["freedom_scientific_outfit"]			= "hud_sci",
 	["merc_scientific_outfit"]			= "hud_sci",
-	["monolit_scientific_outfit"]		= "hud_sci",
+	["monolit_scientific_outfit"]			= "hud_sci",
 	["protection_outfit"]				= "hud_sci",
-	["nebo_exo_outfit"]					= "hud_sci",
+	["nebo_exo_outfit"]				= "hud_sci",
 	["nebo_scientific_outfit"]			= "hud_sci",
 	["scientific_outfit"]				= "hud_sci",
 	["killer_gaz_outfit_"]				= "hud_merc",
-	["outfit_killer_"]					= "hud_merc",
-	["gagarin_outfit"]					= "hud_merc",
-	["voshod_outfit"]					= "hud_merc",
-	["military_outfit"]					= "hud_mil",
+	["outfit_killer_"]				= "hud_merc",
+	["gagarin_outfit"]				= "hud_merc",
+	["voshod_outfit"]				= "hud_merc",
+	["military_outfit"]				= "hud_mil",
 	["militaryspec_outfit"]				= "hud_mil",
-	["outfit_specnaz_"]					= "hud_mil",
-	["specops_outfit"]					= "hud_mil",
-	["nano_outfit"]						= "hud_nano",
-	["nano_suit"]						= "hud_nano",
+	["outfit_specnaz_"]				= "hud_mil",
+	["specops_outfit"]				= "hud_mil",
+	["nano_outfit"]					= "hud_nano",
+	["nano_suit"]					= "hud_nano",
 	["broken_exoskeleton"]				= "hud_exo",
 	["dolg_black_exoskeleton"]			= "hud_exo",
 	["exo_bandit_outfit"]				= "hud_exo",
-	["exo_outfit"]						= "hud_exo",
+	["exo_outfit"]					= "hud_exo",
 	["killer_blue_exoskeleton"]			= "hud_exo",
 	["military_exo_outfit"]				= "hud_exo",
 	["monolit_exoskeleton"]				= "hud_exo",
-	["neytral_exo_antigas_outfit"]		= "hud_exo",
-	["outfit_exo_"]						= "hud_exo",
+	["neytral_exo_antigas_outfit"]			= "hud_exo",
+	["outfit_exo_"]					= "hud_exo",
 	["svoboda_exoskeleton"]				= "hud_exo",
-	["svoboda_yellow_exo_outfit_"]		= "hud_exo",	
-    ["outfit_lethalspeed_exo_m1"]       = "hud_exo",
-    ["outfit_lethalspeed_exo_m2"]       = "hud_exo",
-    ["voen_exo_outfit"]                 = "hud_exo",
-    ["killer_green_exoskeleton"]        = "hud_exo",
-    ["exo_doktor_outfit"]               = "hud_exo",
-    ["exo_military_outfit"]             = "hud_exo",
-    ["exo_knight_outfit"]               = "hud_exo",
-    ["exo_scientist_outfit"]            = "hud_sci",
-    ["seva_scient_outfit"]              = "hud_sci"              
+	["svoboda_yellow_exo_outfit_"]			= "hud_exo",	
+ 	["outfit_lethalspeed_exo_m1"]			= "hud_exo",
+	["outfit_lethalspeed_exo_m2"]			= "hud_exo",
+	["voen_exo_outfit"]				= "hud_exo",
+	["killer_green_exoskeleton"]			= "hud_exo",
+	["exo_doktor_outfit"]				= "hud_exo",
+	["exo_military_outfit"]				= "hud_exo",
+	["exo_knight_outfit"]				= "hud_exo",
+	["exo_scientist_outfit"]			= "hud_sci",
+	["seva_scient_outfit"]				= "hud_sci"              
 }
--- кэш, секция костюма = тип худа
+-- ГЄГЅГё, Г±ГҐГЄГ¶ГЁГї ГЄГ®Г±ГІГѕГ¬Г  = ГІГЁГЇ ГµГіГ¤Г 
 local section2hud = {}
 local function get_hud_type(outfit)
 	local res = section2hud[outfit]
@@ -246,8 +246,8 @@ end
 function init_blurs()
 	if not blurs_enable then return end
 	if mycurrent_suithud ~= nil
-		and suit_condition~="red3"	-- много дырок, стекло не запотевает
-		and wotsuittype~="hud_sci"	-- вентиляция в научных костюмах
+		and suit_condition~="red3"	-- Г¬Г­Г®ГЈГ® Г¤Г»Г°Г®ГЄ, Г±ГІГҐГЄГ«Г® Г­ГҐ Г§Г ГЇГ®ГІГҐГўГ ГҐГІ
+		and wotsuittype~="hud_sci"	-- ГўГҐГ­ГІГЁГ«ГїГ¶ГЁГї Гў Г­Г ГіГ·Г­Г»Гµ ГЄГ®Г±ГІГѕГ¬Г Гµ
 	then
 		local zoom=67.5/device().fov
 		zoom=(zoom-1)*1.5+1
@@ -264,9 +264,9 @@ function init_blurs()
 end
 
 local blurs=nil
-local blurval=0 -- уровень запотевания от 0 до 1
-local blurlt=0 -- время последнего обновления
-local blurcyctime=0 -- время начала последнего цикла дыхания (выдох)
+local blurval=0 -- ГіГ°Г®ГўГҐГ­Гј Г§Г ГЇГ®ГІГҐГўГ Г­ГЁГї Г®ГІ 0 Г¤Г® 1
+local blurlt=0 -- ГўГ°ГҐГ¬Гї ГЇГ®Г±Г«ГҐГ¤Г­ГҐГЈГ® Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГї
+local blurcyctime=0 -- ГўГ°ГҐГ¬Гї Г­Г Г·Г Г«Г  ГЇГ®Г±Г«ГҐГ¤Г­ГҐГЈГ® Г¶ГЁГЄГ«Г  Г¤Г»ГµГ Г­ГЁГї (ГўГ»Г¤Г®Гµ)
 local blurlastphase=0
 
 function set_blurs(enabled,rect)
@@ -285,15 +285,15 @@ function set_blurs(enabled,rect)
 		return    
 	end
   
--- Циклы в зависимости от силы дыхания: 0->1->0 0->1->2->4->5->0 0->1->2->3->4->5->0 5->4->3->4->5 4->3->4
+-- Г–ГЁГЄГ«Г» Гў Г§Г ГўГЁГ±ГЁГ¬Г®Г±ГІГЁ Г®ГІ Г±ГЁГ«Г» Г¤Г»ГµГ Г­ГЁГї: 0->1->0 0->1->2->4->5->0 0->1->2->3->4->5->0 5->4->3->4->5 4->3->4
 	local power=db.actor.power
-	local period=1.0+power*power*1.0 -- текущая частота дыхания от 30 до 120 циклов в минуту
+	local period=1.0+power*power*1.0 -- ГІГҐГЄГіГ№Г Гї Г·Г Г±ГІГ®ГІГ  Г¤Г»ГµГ Г­ГЁГї Г®ГІ 30 Г¤Г® 120 Г¶ГЁГЄГ«Г®Гў Гў Г¬ГЁГ­ГіГІГі
 	local expirt=0.3
 	local breathpower=3
 	
 	local _time = time_global()
-	local delta=(_time-blurlt)/1000 -- дельта в секундах
-	local phase=(_time-blurcyctime)/1000 -- фаза дыхательного цикла в сек.
+	local delta=(_time-blurlt)/1000 -- Г¤ГҐГ«ГјГІГ  Гў Г±ГҐГЄГіГ­Г¤Г Гµ
+	local phase=(_time-blurcyctime)/1000 -- ГґГ Г§Г  Г¤Г»ГµГ ГІГҐГ«ГјГ­Г®ГЈГ® Г¶ГЁГЄГ«Г  Гў Г±ГҐГЄ.
 	blurlt=_time
 	if phase>period then
 		phase=phase%period
@@ -303,7 +303,7 @@ function set_blurs(enabled,rect)
 		blurlastphase=0
 	end
   
-	local blurdelta=delta*-0.7 -- работа вентиляции
+	local blurdelta=delta*-0.7 -- Г°Г ГЎГ®ГІГ  ГўГҐГ­ГІГЁГ«ГїГ¶ГЁГЁ
 	if blurlastphase<expirt and phase<expirt then
 		blurdelta=blurdelta+(phase-blurlastphase)*breathpower
 	elseif blurlastphase<expirt then
@@ -339,9 +339,9 @@ function set_blurs(enabled,rect)
 end
 
 
--- Эффект прицеливания
--- Автор: Bak
--- Адаптация: Charsi
+-- ГќГґГґГҐГЄГІ ГЇГ°ГЁГ¶ГҐГ«ГЁГўГ Г­ГЁГї
+-- ГЂГўГІГ®Г°: Bak
+-- ГЂГ¤Г ГЇГІГ Г¶ГЁГї: Charsi
 local pre_fov = 0
 local precf = 0
 local zbias = Frect():set(0,0,1027,768)
