@@ -1,0 +1,369 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--[[-----------------------------------------------------------------------------------------------
+ Description       : Чит-аддон для мода ОП-2
+ Created           : 02.11.2014
+ Last update       : 03.07.2015
+ Copyright         : naxac / naxac.spaces.ru /
+--]]-----------------------------------------------------------------------------------------------
+
+cheat_list = nil
+gameIsOn = false
+local particles = {}
+local anoms = nil
+
+function start_menu(self)
+	if game_options.Spawner==false then return end
+	gameIsOn = (level.present() and db.actor and db.actor:alive())
+	if self.naxac_dlg == nil then
+		self.naxac_dlg = cheat_main.ui_cheat_general()
+		self.naxac_dlg:InitControls(20,20,self)
+		self:AttachChild(self.naxac_dlg)
+		self.naxac_dlg:Show(true)
+	else
+		local shown = self.naxac_dlg:IsShown()
+		self.naxac_dlg:Show(shown==false)
+	end
+end
+
+class "ui_cheat_general" (CUIScriptWnd)
+
+function ui_cheat_general:__init() super() end
+
+function ui_cheat_general:__finalize() end
+
+function ui_cheat_general:InitControls(x, y, handler)
+	self:Init(x, y, 391,130)
+	self:SetAutoDelete(true)
+	
+	local back = CUIFrameWindow()
+	back:SetAutoDelete(true)
+	back:Init("ui_icons_PDA_dialog_frame",0, 0, 391,130)
+	self:AttachChild(back)
+	
+	local con = get_console()
+	
+	self.show_spawn =		function()
+								cheat_main.show_spawn_menu(handler)
+							end
+	self.show_teleport =	function()
+								naxac_teleport.start_menu(handler)
+							end
+	self.show_mapspot =		function()
+								add_item_spot.start_menu(handler)
+							end
+	self.on_GodMode =	function()
+							local mode = con:get_bool("g_god")
+							con:execute("g_god "..(mode==true and "off" or "on"))
+						end
+	self.on_UnlimAmmo =	function()
+							local mode = con:get_bool("g_unlimitedammo")
+							con:execute("g_unlimitedammo "..(mode==true and "off" or "on"))
+						end
+	self.show_restr =	function()
+							handler:OnButton_return_game()
+							cheat_main.show_restrictors()
+						end
+	self.show_anom =	function()
+							handler:OnButton_return_game()
+							cheat_main.show_anomalies()
+						end
+	self.on_peace = 	function()
+							handler:OnButton_return_game()
+							cheat_main.armistice()
+						end
+	
+	local st = CUIStatic()
+	st:SetAutoDelete(true)
+	st:Init(15,7,80,20)
+	st:SetText("Cheat Addon for «Cumulative Pack-2» by naxac ©")
+	st:SetTextColor(255,255,127,150)
+	back:AttachChild(st)
+	
+	local btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 10, 30, 117, 29)
+	btn:SetText("Спавн-меню")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-3)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_show_spawn")
+	handler:AddCallback("btn_show_spawn", ui_events.BUTTON_CLICKED, self.show_spawn, self)
+	
+	btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 137, 30, 117, 29)
+	btn:SetText("Телепортатор")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-3)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_teleport")
+	handler:AddCallback("btn_teleport", ui_events.BUTTON_CLICKED, self.show_teleport, self)
+	btn:Enable(gameIsOn)
+	
+	btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 264, 30, 117, 29)
+	btn:SetText("Поиск предметов")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-2)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_mapspot")
+	handler:AddCallback("btn_mapspot", ui_events.BUTTON_CLICKED, self.show_mapspot, self)
+	btn:Enable(gameIsOn)
+	
+	btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 10, 70, 117, 29)
+	btn:SetText(#particles==0 and "Показать рестрикторы" or "Скрыть рестрикторы")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-3)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_showrestr")
+	handler:AddCallback("btn_showrestr", ui_events.BUTTON_CLICKED, self.show_restr, self)
+	btn:Enable(gameIsOn)
+	
+	btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 137, 70, 117, 29)
+	btn:SetText(anoms==nil and "Отметить аномалии" or "Убрать метки")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-3)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_showanom")
+	handler:AddCallback("btn_showanom", ui_events.BUTTON_CLICKED, self.show_anom, self)
+	btn:Enable(gameIsOn)
+	
+	btn = CUI3tButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_button_ordinary", 264, 70, 117, 29)
+	btn:SetText("Перемирие")
+	btn:SetTextAlign(CGameFont.alCenter)
+	btn:SetTextY(-3)
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_peace")
+	handler:AddCallback("btn_peace", ui_events.BUTTON_CLICKED, self.on_peace, self)
+	btn:Enable(gameIsOn)
+	
+	btn = CUICheckButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_checker",20,105,150,20)
+	btn:SetText("Режим \"God mode\"")
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_godmode")
+	handler:AddCallback("btn_godmode", ui_events.BUTTON_CLICKED, self.on_GodMode, self)
+	btn:SetCheck(con:get_bool("g_god"))
+	
+	btn = CUICheckButton()
+	btn:SetAutoDelete(true)
+	btn:Init("ui_checker",190,105,150,20)
+	btn:SetText("Безлимитный боезапас")
+	btn:SetTextColor(255,216,186,140)
+	back:AttachChild(btn)
+	handler:Register(btn, "btn_unlim_ammo")
+	handler:AddCallback("btn_unlim_ammo", ui_events.BUTTON_CLICKED, self.on_UnlimAmmo, self)
+	btn:SetCheck(con:get_bool("g_unlimitedammo"))
+end
+
+function show_spawn_menu(self)
+	if cheat_list == nil then
+		if getFS():exist("$game_config$", "spawn_list.ltx")==nil then
+			local t = collect_sections.main()
+			_G["collect_sections"] = nil
+			cheat_list = {}
+			local p
+			for k,v in pairs(t) do
+				cheat_list[k] = {}
+				p = cheat_list[k]
+				for _,s in ipairs(v) do p[#p+1] = {s, game.translate_string(get_inv_name(s))} end
+				table.sort(cheat_list[k], sort_main)
+			end
+		else
+			cheat_list = {}
+			local spawn_ini = ini_file("spawn_list.ltx")
+			local sections = {"weapons","ammo","addons","outfits","artefacts","items","quest_items","mobs"}
+			local result, id, value, t
+			for k,v in pairs(sections) do
+				cheat_list[v] = {}
+				if spawn_ini:section_exist(v) then
+					t = cheat_list[v]
+					for i=0,spawn_ini:line_count(v)-1 do
+						result, id, value = spawn_ini:r_line(v,i,"","")
+						id = trim(id)
+						t[#t+1] = {id, game.translate_string(get_inv_name(id))}
+					end
+					table.sort(cheat_list[v], sort_main)
+				end
+			end
+		end
+	end
+	
+	local spawn_menu = ui_cheat_soc.cheat_menu()
+	spawn_menu.owner = self
+	
+	self:GetHolder():start_stop_menu(spawn_menu, true)
+	self:GetHolder():start_stop_menu(self, true)
+	self:Show(false)
+end
+
+-- Сортируем предметы по алфавиту: чтоб было проще искать нужное
+function sort_main(s1,s2)
+	local sname = sort_by_name(s1[2], s2[2])
+	if sname ~= nil then return sname end
+	return sort_by_section(s1[1], s2[1])
+end
+
+function sort_by_name(n1, n2)
+	n1 = string.lower1(n1)
+	n2 = string.lower1(n2)
+	local cnt = math.min(#n1, #n2)
+	local l1, l2
+	for a=1,cnt do
+		l1 = n1:sub(a,a):byte()
+		l2 = n2:sub(a,a):byte()
+		if l1~=l2 then return l1<l2 end
+	end
+	return nil
+end
+	
+function sort_by_section(s1, s2)
+	local cnt = math.min(#s1, #s2)
+	local l1, l2
+	for a=1,cnt do
+		l1 = s1:sub(a,a):byte()
+		l2 = s2:sub(a,a):byte()
+		if l1~=l2 then return l1<l2 end
+	end
+	return #s1<#s2
+end
+
+function give_mob_icon(section)
+	local t = {}
+	local texture = sys_ini:r_string_ex(section, "icon", "ui_npc_monster_mutant_boar")
+	
+	local tex_info = GetTextureInfo(texture, texture)
+	local rect = tex_info:get_rect()
+	t.x = rect.x1
+	t.y = rect.y1
+	t.w = rect.x2 - rect.x1
+	t.h = rect.y2 - rect.y1
+	return t, tex_info:get_file_name()
+end
+
+function show_restrictors()
+	if _G.show_restrictors_cheat then
+		for k, v in pairs(particles) do
+			if v.particle:playing() then
+				v.particle:stop_deffered()
+				level.map_remove_object_spot(v.id, "red_location_1")
+			end
+		end
+		particles = {}
+		amk.send_tip("Отображение рестрикторов %c[255,255,0,0]отключено")
+		_G.show_restrictors_cheat = nil
+		xr_s.unregister_callback("update", cheat_main.particle_update)
+	else
+		local obj, p
+		for i=1,65534 do
+			-- показываем только заспавненные скриптом рестрикторы
+			obj = level.object_by_id(i)
+			if obj and obj:clsid() == clsid.script_restr then
+				if obj:name() == obj:section()..i then
+					p = particles_object("ghoul\\anomal-04-blue-field")
+					p:play_at_pos(obj:position())
+					table.insert(particles, {particle=p,pos=obj:position(),id=obj:id()})
+					level.map_add_object_spot(obj:id(), "red_location_1", obj:name())
+				end
+			end
+		end
+		if #particles>0 then
+			_G.show_restrictors_cheat = true
+			amk.send_tip("Отображение рестрикторов ("..tostring(#particles).." шт) %c[255,0,255,0]включено")
+			xr_s.register_callback("update", cheat_main.particle_update)
+		else
+			amk.send_tip("Скриптовых рестрикторов не найдено")
+		end
+	end
+end
+
+function particle_update()
+	for i,v in pairs(particles) do
+		if alife():object(v.id)==nil then
+			v.particle:stop_deffered()
+		--	level.map_remove_object_spot(v.id, "red_location_1")
+			particles[i] = nil
+			if #particles==0 then
+				xr_s.unregister_callback("update", cheat_main.particle_update)
+				_G.show_restrictors_cheat=nil
+			end
+		else
+			if not v.particle:playing() then
+				v.particle:play_at_pos(v.pos)
+			end
+		end
+	end
+end
+
+function show_anomalies()
+	if anoms==nil then
+		anoms = {}
+		local obj
+		for i=1,65534 do
+			obj = level.object_by_id(i)
+			if obj and amk_anoms.is_anomaly(obj:clsid()) then
+				level.map_add_object_spot(obj:id(), 'red_location_1', obj:name())
+				table.insert(anoms, obj:id())
+			end
+		end
+		amk.send_tip("Метки на аномалии установлены.")
+	else
+		for k,v in pairs(anoms) do
+			level.map_remove_object_spot(v, 'red_location_1')
+		end
+		anoms = nil
+		amk.send_tip("Метки с аномалий удалены.")
+	end
+end
+
+function armistice()
+	local ini = ini_file("creatures\\game_relations.ltx")
+	local result, comm, rel
+	for i=1, ini:line_count("communities_relations")-1 do
+		result, comm, rel = ini:r_line("communities_relations",i,"","")
+		rel = tonumber( string.match(rel, "^%s*([%d%-]+)") )
+		if rel and rel>=0 then
+			relation_registry.set_community_goodwill(comm, 0, math.max(500, rel))
+		end
+	end
+end
+
+function transfer_box_items(box_from, box_to)
+	log1("start")
+	local box1 = alife():object("m_inventory_box27942")
+	local box2 = alife():object("m_inventory_box21922")	--level_prefix_inventory_box_0003
+	if box1 and box2 then
+		log1("alife objects found")
+		local lBox1 = level.object_by_id(box1.id)
+		local lBox2 = level.object_by_id(box2.id)
+		if lBox1 and lBox2 then
+			log1("boxes is online")
+			local cnt = lBox1:inv_box_count()
+			if cnt>0 then
+				log1("transfer start : count "..cnt)
+				local itm
+				for i=0,cnt-1 do
+					itm = lBox1:object_from_inv_box(i)
+					lBox1:transfer_item(itm, lBox2)
+				end
+				amk.send_tip("Перемещено "..tostring(cnt).." предметов.")
+			end
+		end
+	end
+end
+

@@ -1,0 +1,319 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local get_wnd = level.main_input_receiver
+
+local keys = {
+	[1] = 'ESCAPE', [2] = '1', [3] = '2', [4] = '3', [5] = '4', [6] = '5', [7] = '6', [8] = '7',
+	[9] = '8', [10] = '9', [11] = '0', [12] = 'MINUS', [13] = 'EQUALS', [14] = 'BACK', [15] = 'TAB', [16] = 'Q',
+	[17] = 'W', [18] = 'E', [19] = 'R', [20] = 'T', [21] = 'Y', [22] = 'U', [23] = 'I', [24] = 'O', [25] = 'P',
+	[26] = 'LBRACKET', [27] = 'RBRACKET', [28] = 'RETURN', [29] = 'LCONTROL', [30] = 'A', [31] = 'S', [32] = 'D',
+	[33] = 'F', [34] = 'G', [35] = 'H', [36] = 'J', [37] = 'K', [38] = 'L', [39] = 'SEMICOLON', [40] = 'APOSTROPHE',
+	[41] = 'GRAVE', [42] = 'LSHIFT', [43] = 'BACKSLASH', [44] = 'Z', [45] = 'X', [46] = 'C', [47] = 'V', [48] = 'B',
+	[49] = 'N', [50] = 'M', [51] = 'COMMA', [52] = 'PERIOD', [53] = 'SLASH', [54] = 'RSHIFT', [55] = 'MULTIPLY',
+	[56] = 'LMENU', [57] = 'SPACE', [58] = 'CAPITAL', [59] = 'F1', [60] = 'F2', [61] = 'F3', [62] = 'F4', [63] = 'F5',
+	[64] = 'F6', [65] = 'F7', [66] = 'F8', [67] = 'F9', [68] = 'F10', [69] = 'NUMLOCK', [70] = 'SCROLL', [71] = 'NUMPAD7',
+	[72] = 'NUMPAD8', [73] = 'NUMPAD9', [74] = 'SUBTRACT', [75] = 'NUMPAD4', [76] = 'NUMPAD5', [77] = 'NUMPAD6',
+	[78] = 'ADD', [79] = 'NUMPAD1', [80] = 'NUMPAD2', [81] = 'NUMPAD3', [82] = 'NUMPAD0', [83] = 'DECIMAL', [87] = 'F11',
+	[88] = 'F12', [100] = 'F13', [101] = 'F14', [102] = 'F15', [112] = 'KANA', [121] = 'CONVERT', [123] = 'NOCONVERT',
+	[125] = 'YEN', [141] = 'NUMPADEQUALS', [144] = 'CIRCUMFLEX', [145] = 'AT', [146] = 'COLON', [147] = 'UNDERLINE',
+	[148] = 'KANJI', [149] = 'STOP', [150] = 'AX', [151] = 'UNLABELED', [156] = 'NUMPADENTER', [157] = 'RCONTROL',
+	[179] = 'NUMPADCOMMA', [181] = 'DIVIDE', [183] = 'SYSRQ', [184] = 'RMENU', [197] = 'PAUSE', [199] = 'HOME',
+	[200] = 'UP', [201] = 'PRIOR', [203] = 'LEFT', [205] = 'RIGHT', [207] = 'END', [208] = 'DOWN', [209] = 'NEXT',
+	[210] = 'INSERT', [211] = 'DELETE', [219] = 'LWIN', [220] = 'RWIN', [221] = 'APPS', [337] = 'MOUSE1', [338] = 'MOUSE2'
+	}
+
+function bind2key(bind)
+	return keys[bind_to_dik(bind)]
+end
+function dik2key(dik)
+	return keys[dik]
+end
+
+-- фикс смены типа гранаты
+local grenades = {"grenade_rgd5", "grenade_f1", "grenade_f1_double", "grenade_m61", "grenade_7643b", "grenade_he", "grenade_sg", "grenade_fb", "grenade_gd-05", "grenade_flash"}
+function grenade_change()
+	local a = db.actor
+	if a:active_slot() == 3 then
+		local itm = a:item_in_slot(3)
+		local gr
+		if itm == nil then
+			for k,v in pairs(grenades) do
+				gr = a:object(v)
+				if gr then a:move_to_slot_and_activate(gr) break end
+			end
+			return
+		end
+		
+		local sect = itm:section()
+		local n = #grenades
+		local pos = 0
+		-- ищем текущую позицию в таблице
+		for i=1,n do
+			if grenades[i]==sect then
+				pos = i
+				break
+			end
+		end
+		-- ищем доступные гранаты дл€ перемещени€ в слот - по пор€дку
+		for i=1,n do
+			pos = pos + 1
+			if pos>n then pos = 1 end
+			gr = a:object(grenades[pos])
+			if gr and grenades[pos]~=sect then
+				a:move_to_ruck(itm)
+				a:move_to_slot_and_activate(gr)
+				break
+			end
+		end
+	end
+end
+
+function use_from_slot(n)
+	local s = ui_inv_add.getSlots()[n]
+	if s then
+		local item = db.actor:object(s)
+		if item then
+			db.actor:eat(item)
+			show_use_item(s)
+		end
+	end
+end
+
+function use_bandage()
+	local obj = db.actor:object('bandage')
+	if obj then	
+		db.actor:eat(obj)
+		show_use_item('bandage')
+	end
+end
+function use_medkit()
+	local medkits = {'medkit','medkit_army','medkit_scientic'}
+	local obj
+	for i=1,#medkits do
+		obj = db.actor:object(medkits[i])
+		if obj then
+			db.actor:eat(obj)
+			show_use_item(medkits[i])
+			break
+		end
+	end
+end
+function show_use_item(section)
+	local st = get_hud():AddCustomStatic("item_used", true)
+	st:wnd():SetText("»спользовано: "..game.translate_string(get_inv_name(section)))
+	st.m_endTime = time_global()/1000 + 4
+end
+
+-- √рупповой перенос предметов в/из нычки/трупа
+local carbody_addons, used_box
+local reg_callbacks = {
+	on_item_take = "on_item_take",
+	on_item_drop = "on_item_drop"
+}
+
+function on_info(info_id)
+	if info_id == "ui_car_body" then
+		carbody_addons = CCarbodyAddons(get_wnd(), used_box)
+	elseif info_id == "ui_car_body_hide" then
+		xr_s.unregister_callback("on_info", this.on_info)
+		carbody_addons:Remove()
+		carbody_addons = nil
+		used_box = nil
+	end
+end
+
+function on_use(obj, who)
+	if not ( ( IsMonster(obj) or IsStalker(obj) ) and ShiftPressed ) then
+		_G['recolor_items'] = true
+	end
+	used_box = obj
+	xr_s.register_callback("on_info", this.on_info)
+end
+
+function clear_used_box()
+	used_box = nil
+	_G['recolor_items'] = nil
+end
+	
+function on_item_drop(obj)
+	local s = obj:section()
+	if s == "separator" then return end
+
+	local sobj = alife():object(obj:id())
+	if sobj and sobj.parent_id == 0 then return end
+
+	carbody_addons.droped_section = s
+	carbody_addons.taken_section = nil
+end
+
+function on_item_take(obj)
+	local s = obj:section()
+	if s == "separator" then return end
+
+	local outfit = db.actor:item_in_slot(6)
+	if outfit and outfit:id() == obj:id() then return end
+
+	carbody_addons.taken_section = s
+	carbody_addons.droped_section = nil
+end
+
+-------------------------
+class "CCarbodyAddons" (CUIScriptWnd)
+
+function CCarbodyAddons:__init(owner, used_box) super()
+	self.owner = owner
+	self.used_box = used_box
+	self:InitControls()
+	self:Show(true)
+	for k,v in pairs(reg_callbacks) do
+		xr_s.register_callback(k, this[v])
+	end
+end
+
+function CCarbodyAddons:InitControls()
+	self:Init(0,0,1024,768)
+	self:Enable(true)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("carbody_addons.xml")
+	self:Register(xml:Init3tButton("move_btn", self), "move_btn")
+	self.owner:AttachChild(self)
+	self:AddCallback("move_btn", ui_events.BUTTON_CLICKED, self.move_items, self)
+	
+	if self.used_box:clsid()==clsid.inventory_box then
+		self:Register(xml:Init3tButton("repack_btn", self), "repack_btn")
+		self:AddCallback("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo, self)
+	end
+	
+	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
+end
+
+function CCarbodyAddons:repack_ammo()
+	dunin_ammo.repack_in_box(self.used_box)
+end
+
+function CCarbodyAddons:Remove()
+	self.DescrWnd:Remove()
+	self.owner:DetachChild(self)
+	for k,v in pairs(reg_callbacks) do
+		xr_s.unregister_callback(k, this[v])
+	end
+	akill.check_habar_in_box1(used_box)
+end
+
+function CCarbodyAddons:move_items()
+	local box = self.used_box
+	local actor = db.actor
+	if self.droped_section then
+		actor:iterate_inventory(function (dummy, item)
+			if item:section() == self.droped_section then
+				actor:transfer_item(item, box)
+			end 
+		end, nil)
+
+	elseif self.taken_section then
+		if box:clsid()==clsid.inventory_box then
+			local item
+			for i=0, box:inv_box_count()-1 do
+				item = box:object_from_inv_box(i)
+				if item:section() == self.taken_section then
+					box:transfer_item(item, actor)
+				end
+			end
+		else
+			box:iterate_inventory(function (dummy, item)
+				if item:section() == self.taken_section then
+					box:transfer_item(item, actor)
+				end 
+			end, nil)
+		end
+	end
+
+	self.droped_section = nil
+	self.taken_section = nil
+end
+
+-- Поломка и износ холодного оружия
+local time_shift = time_global()
+local wpn_power	= {
+	['wpn_kuvalda']	= true,
+	['wpn_crowbar']	= true,
+	['wpn_topor']	= true,
+	['wpn_machete'] = true,
+	['wpn_kukri']	= true
+}
+function steel_arms()
+	if db.actor:active_slot()~=0 then return end
+	if time_shift > time_global() then return end
+	
+	local wpn = db.actor:active_item()
+	if wpn == nil then return end
+	-- длительность анимации получить нельз€ - будем считать "на глаз"
+	time_shift = time_global() + 750
+	
+	local sec = wpn:section()
+	-- ”сталость от махани€ желез€кой
+	-- все ножи не провер€ем, только самое т€желое
+	local dif = level.get_game_difficulty() + 1
+	if wpn_power[sec] then
+		db.actor.power = - dif * wpn:get_weight() * 0.01
+	end
+	
+	if level.get_target_dist() + 0.2 > sys_ini:r_float(sec, "fire_distance") then return end
+	
+	local d = sys_ini:r_float(sec, "condition_shot_dec")
+	local cond = wpn:condition() - dif * d
+	wpn:set_condition(cond)
+	if cond < 0.05 then
+		start_small_timer(200, function() kostya_dialog.remove_wpn(wpn:id()) end)
+	end
+end
+
+------------------------------
+local binds_actions = {}
+local dik_actions = {}
+
+binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
+binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
+binds_actions[key_bindings.kWPN_NEXT] = hotkeys.grenade_change
+binds_actions[key_bindings.kNIGHT_VISION] = function() nightvision.switch_pnv() end
+binds_actions[key_bindings.kUSE_BANDAGE] = function() use_from_slot(2) end
+binds_actions[key_bindings.kUSE_MEDKIT] = function() use_from_slot(1) end
+binds_actions[key_bindings.kQUICK_SAVE] = function()
+	if game_options.SaveRen then
+		start_small_timer(1000, u3_utils.on_save_rename, "quicksave")
+	end
+end
+binds_actions[key_bindings.kSCORES] = function()
+	if device():is_paused() then return end
+	reminder.start_remind()
+	arc_ui_dosimeter.show()
+end
+binds_actions[key_bindings.kCAM_4] = function()
+	if inventory.on_belt("runner_tele") then
+		fly.runner()
+	else
+		fly.returner()
+	end
+end
+binds_actions[key_bindings.kTORCH] = function()
+	if db.actor:item_in_slot(9) then
+		local snd = xr_sound.get_safe_sound_object("zwuk\\inv_torch")
+		snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 0.7)
+	end
+end
+
+dik_actions[DIK_keys.DIK_F3] = function() use_from_slot(3) end
+dik_actions[DIK_keys.DIK_F4] = function() use_from_slot(4) end
+dik_actions[DIK_keys.DIK_F10] = function() ui_console.show_console() end
+
+function on_key(dik, bind)
+	if not db.actor:alive() then return end
+	if get_wnd()~=nil then return end
+	
+	if binds_actions[bind] then
+		binds_actions[bind]()
+	elseif dik_actions[dik] then
+		dik_actions[dik]()
+	end
+end

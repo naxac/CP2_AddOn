@@ -1,0 +1,103 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local belt = {}
+local belt_id = {}
+
+local satiety_arts = {}
+local weight_arts = {}
+local rad_arts = {}
+
+local wthr = nil
+
+function remove_from_belt(item)
+	local id = item:id()
+	if belt_id[id] then
+		belt_id[id] = nil
+		
+		local sect =  item:section()
+		table.sub(belt, sect)
+		
+		if sect == "af_idol_monolita" and wthr~=nil then
+			level.set_weather(wthr)
+			wthr = nil
+		end
+		
+		local n = satiety_arts[id]
+		if n then
+			arc_radiation.change_arts_satiety(-n)
+			satiety_arts[id] = nil
+		end
+		n = rad_arts[id]
+		if n then
+			arc_radiation.change_inv_radiation(n)
+			rad_arts[id] = nil
+		end
+		n = weight_arts[id]
+		if n then
+			xr_actor.change_actor_weight(-n)
+			weight_arts[id] = nil
+		end
+	end
+end
+
+function add_on_belt(item)
+	local id = item:id()
+	if belt_id[id]==nil then
+		belt_id[id] = true
+		
+		local sect = item:section()
+		table.add(belt, sect)
+		
+		if sect == "af_idol_monolita" then
+			wthr = level.get_weather()
+			level.set_weather("grey")
+		end
+		
+		if item:is_artefact() then
+			local n = sys_ini:r_float(sect, "satiety_restore_speed")
+			if n~=0 and satiety_arts[id]==nil then
+				satiety_arts[id] = n
+				arc_radiation.change_arts_satiety(n)
+			end
+			
+			n = sys_ini:r_float(sect, "radiation_restore_speed")
+			if n>0 and rad_arts[id]==nil then
+				rad_arts[id] = n
+				arc_radiation.change_inv_radiation(-n)
+			end
+			
+			n = sys_ini:r_float_ex(sect, "additional_inventory_weight")
+			if n and weight_arts[id]==nil then
+				weight_arts[id] = n
+				xr_actor.change_actor_weight(n)
+			end
+		end
+	end
+end
+
+
+-- предмет на поясе, проверка по секции
+function on_belt(sect)
+	return belt[sect]
+end
+
+-- предмет на поясе, проверка по game_object
+function item_on_belt(item)
+	return belt_id[item:id()]~=nil
+end
+
+function is_free_belt_slot()
+	return db.actor:belt_count() < sys_ini:r_u32('inventory', 'max_belt')
+end
+
+function get_free_belt_slot()
+	if is_free_belt_slot() then return end
+	
+	local item
+	for i = 0, db.actor:belt_count()-1 do
+		item = db.actor:item_on_belt(i)
+		if item:is_artefact() and item:section()~="af_invul" then
+			db.actor:move_to_ruck(item)
+			return
+		end
+	end
+end
