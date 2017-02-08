@@ -1,0 +1,52 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local callbacks = {
+	net_spawn = {},
+	net_destroy = {},
+	update = {},
+	on_info = {},
+	on_item_take = {},
+	on_item_take_from_box = {},
+	on_item_drop = {},
+	on_item_use = {},
+	on_item_select = {},
+	on_item_focus = {},
+	on_item_focus_lost = {},
+	on_slot = {},
+	on_ruck = {},
+	on_key_press = {},
+	on_key_release = {},
+	on_mouse_wheel = {}
+}
+local unreg_queue = {}
+
+function register_callback(name, func, userobj)
+	local tbl = callbacks[name] or abort("xr_s.register_callback: unknown callback name: %s", name)
+	tbl[func] = {userobj = userobj}
+end
+
+function unregister_callback(name, func, queue)
+	local tbl = callbacks[name] or abort("xr_s.unregister_callback: unknown callback name: %s", name)
+	if queue then
+		unreg_queue[func] = name
+	else
+		tbl[func] = nil
+	end
+end
+
+function on_event(name, ...)
+	for func, t in pairs(callbacks[name]) do
+		if t.userobj then
+			local args = {...}
+			args[#args+1] = t.userobj
+			func(unpack(args))
+		else
+			func(...)
+		end
+	end
+
+	for k, v in pairs(unreg_queue) do
+		callbacks[v][k] = nil
+	end
+	unreg_queue = {}
+end
+

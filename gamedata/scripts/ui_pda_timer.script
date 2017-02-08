@@ -1,0 +1,233 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "list_item" (CUIListItemEx)
+
+function list_item:__init() super()
+	self:SetWndRect		(0,0,296,18)
+	
+	self.nm					= CUIStatic	()
+	self.nm:SetAutoDelete	(true)
+	self:AttachChild		(self.nm)
+	self.nm:SetWndRect		(1,0,190,18)
+	self.nm:SetTextColor	(255,216,186,140)
+	
+	self.tm					= CUIStatic	()
+	self.tm:SetAutoDelete	(true)
+	self:AttachChild		(self.tm)
+	self.tm:SetWndRect		(195,0,100,18)
+	self.tm:SetTextColor	(255,216,186,140)
+end
+------------------------------------------------------------------------------------
+class "UITimerWnd" (CUIScriptWnd)
+
+function UITimerWnd:__init(owner) super()
+	self.owner = owner
+	self:InitControls()
+	self:InitCallbacks()
+	self:FillList()
+end
+
+function UITimerWnd:InitControls()
+	self:Init(0, 0, 1024, 768)
+	
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_pda_timer.xml")
+	
+	local back = xml:InitFrame("back_frame", self)
+	
+	xml:InitStatic("caption", back)
+	self.capt_days = xml:InitStatic("cap_days", back)
+	xml:InitStatic("cap_hours", back)
+	xml:InitStatic("cap_minutes", back)
+	
+	xml:InitButton("hint_msg", back)
+	
+	self.edit_d = xml:InitSpinNum("edit_days", back)
+	self.edit_h = xml:InitSpinNum("edit_hours", back)
+	self.edit_m = xml:InitSpinNum("edit_minutes", back)
+	self.edit_msg = new_edit_box.CUIEditBox_new(back, 7, 131, 286, 'pda')
+	
+	self.check_alarm = xml:InitCheck("check_alarm", back)
+	self:Register(self.check_alarm, "check_alarm")
+	
+	local btn = xml:InitButton("btn_list", back)
+	self:Register(btn, "button_list")
+	btn = xml:Init3tButton("btn_start", back)
+	self:Register(btn, "button_start")
+	btn = xml:Init3tButton("btn_quit", back)
+	self:Register(btn, "button_quit")
+	
+	self.list_frame = xml:InitFrame("list_timers_frame", self)
+	self.list_tmr = xml:InitList("list_timers", self.list_frame)
+	self.list_frame:Show(false)
+	
+	self.message_box = CUIMessageBoxEx()
+	self:Register(self.message_box,"message_box")
+	self.msgbox_mode = 0
+end
+
+function UITimerWnd:InitCallbacks()
+	self:AddCallback("message_box", ui_events.MESSAGE_BOX_OK_CLICKED, self.OnMsgOk, self)
+	self:AddCallback("button_list", ui_events.BUTTON_CLICKED, self.ShowList, self)
+	self:AddCallback("check_alarm", ui_events.BUTTON_CLICKED, self.OnButtonAlarm, self)
+	self:AddCallback("button_start", ui_events.BUTTON_CLICKED, self.OnButtonStart, self)
+	self:AddCallback("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit, self)
+end
+
+function UITimerWnd:OnButtonAlarm()
+	local s = self.check_alarm:GetCheck()
+	self.capt_days:Show(not s)
+	self.edit_d:Show(not s)
+end
+
+function UITimerWnd:FillList()
+	local timers = amk.load_table("timers")
+	local t, p, timer
+	for i = 0, 4, 1 do
+		timer = xr_timers.get_timer("pda_timer"..i)
+		if timer then
+			local itm = list_item()
+			t = self:time2dhm(timer.time_shift/60000)
+			p = (timer.params=="" and "<no message>") or timer.params
+			if #p>50 then p = p:sub(1,48).."..." end
+			itm.nm:SetText(p)
+			itm.tm:SetText(t)
+			self.list_tmr:AddItem(itm)
+		end
+	end
+
+	timer = xr_timers.get_timer("pda_alarm")
+	if timer then
+		t = self:time2dhm(timer.time_shift/60000)
+		local itm = list_item()
+		itm.nm:SetText("Будильник")
+		itm.nm:SetTextColor(255,0,255,0)
+		itm.tm:SetText(t)
+		self.list_tmr:AddItem(itm)
+	end
+end
+
+function UITimerWnd:time2dhm(m)
+	m = math.floor(m)
+	local h = math.floor(m/60)
+	m = m%60
+	local d = math.floor(h/24)
+	h = h%24
+	return string.format("%d дн. %d ч. %d мин.", d, h, m)
+end
+
+function UITimerWnd:ShowList()
+	local s = self.list_frame:IsShown()
+	self.list_frame:Show(not s)
+	if not s then
+		self.list_frame:SetWndPos(self:GetCursorX()+20, self:GetCursorY())
+	end
+end
+
+function UITimerWnd:OnMsgOk()
+	if self.msgbox_mode == 1 then
+		self:OnButtonQuit()
+	end
+end
+
+function UITimerWnd:OnButtonStart()
+	if self.check_alarm:GetCheck() then
+		self:StartAlarmClock()
+	else
+		self:StartTimer()
+	end
+end
+
+function UITimerWnd:StartAlarmClock()
+	local h = tonumber(self.edit_h:GetText())
+	local m = tonumber(self.edit_m:GetText())
+	if h == nil or m == nil then
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Не задано время!")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+		return
+	end
+	
+	h = math.clamp(h,0,23)
+	m = math.clamp(m ,0,59)
+	local lh = level.get_time_hours()
+	local lm = level.get_time_minutes()
+	if h < lh then h = h + 24
+	elseif h == lh and m < lm then h = h + 23 end
+	
+	if m < lm then m = m + 60; h = h - 1 end
+	
+	h = h-lh
+	m = m-lm
+	amk.g_start_timer("pda_alarm", 0, h, m)
+	
+	self.msgbox_mode = 1
+	self.message_box:Init("msg_box_no_new_patch")
+	self.message_box:SetText(string.format("Будильник сработает через %d ч. %d мин.", h, m))
+	self:GetHolder():start_stop_menu(self.message_box, true)
+end
+
+function UITimerWnd:StartTimer()
+	local d = (tonumber(self.edit_d:GetText()) or 0) *24*60
+	local h = (tonumber(self.edit_h:GetText()) or 0) *60
+	local m = (tonumber(self.edit_m:GetText()) or 0)
+	
+	local t = d+h+m
+	if t <= 0 then
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Неверно задано время!")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+		return
+	end
+	
+	local a = 0
+	while xr_timers.has_timer("pda_timer"..a) do
+		a = a + 1
+		if a>4 then
+			self.message_box:Init("select_map")
+			self.message_box:SetText("%c[red]Ошибка!\\n%c[default]Нельзя запускать более пяти тайеров одновременно.")
+			self:GetHolder():start_stop_menu(self.message_box, true)
+			return
+		end
+	end
+	local msg = self.edit_msg:GetText()
+	amk.g_start_timer("pda_timer"..a, 0, 0, t, msg)
+	
+	self.msgbox_mode = 1
+	self.message_box:Init("msg_box_no_new_patch")
+	self.message_box:SetText("Таймер запущен на "..self:time2dhm(t))
+	self:GetHolder():start_stop_menu(self.message_box, true)
+end
+
+function UITimerWnd:OnButtonQuit()
+	self.owner:Enable(true)
+	self:GetHolder():start_stop_menu(self, true)
+end
+
+-- Для ввода с цифровой клавиатуры
+local numpads = {
+	[DIK_keys.DIK_NUMPAD0] = DIK_keys.DIK_0,
+	[DIK_keys.DIK_NUMPAD1] = DIK_keys.DIK_1,
+	[DIK_keys.DIK_NUMPAD2] = DIK_keys.DIK_2,
+	[DIK_keys.DIK_NUMPAD3] = DIK_keys.DIK_3,
+	[DIK_keys.DIK_NUMPAD4] = DIK_keys.DIK_4,
+	[DIK_keys.DIK_NUMPAD5] = DIK_keys.DIK_5,
+	[DIK_keys.DIK_NUMPAD6] = DIK_keys.DIK_6,
+	[DIK_keys.DIK_NUMPAD7] = DIK_keys.DIK_7,
+	[DIK_keys.DIK_NUMPAD8] = DIK_keys.DIK_8,
+	[DIK_keys.DIK_NUMPAD9] = DIK_keys.DIK_9
+}
+function UITimerWnd:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+	self.edit_msg:OnKeyboard(dik, keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:OnButtonQuit() 
+		elseif dik == DIK_keys.DIK_RETURN or dik == DIK_keys.DIK_NUMPADENTER then
+			self:OnButtonStart()
+		elseif numpads[dik] then
+			level.send_event_key_press(numpads[dik])
+			level.send_event_key_release(numpads[dik])
+		end
+	end
+	return true
+end

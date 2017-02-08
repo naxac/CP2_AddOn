@@ -1,0 +1,138 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local _wnd = nil
+
+function change_info(str)
+	local info = "skat_"..str.."_on"
+	if has_alife_info(info) then
+		db.actor:disable_info_portion(info)
+	else
+		db.actor:give_info_portion(info)
+	end
+end
+
+class "UISkatInputPanel" (CUIScriptWnd)
+
+local params = {
+	['exo_mil_exoskeleton_add'] = {
+		health = true,
+		rad = false,
+		power = false,
+		psy = false
+	},
+	['exo_mil_exoskeleton_addr'] = {
+		health = true,
+		rad = true,
+		power = false,
+		psy = false
+	},
+	['exo_mil_exoskeleton_addrs'] = {
+		health = true,
+		rad = true,
+		power = true,
+		psy = true
+	}
+}
+local texts = {
+	health = 'Система регенерации здоровья',
+	rad = 'Антирадиационная защита',
+	power = 'Система восстановления сил',
+	psy = 'Защита мозговой деятельности'
+}
+local reg_callbacks = {
+	on_item_drop = "check_armor",
+	on_slot = "on_slot",
+	on_ruck = "check_armor"
+}
+	
+function UISkatInputPanel:__init(st, section) super()
+	self.owner = st.owner
+	self.sect = section
+	
+	for k,v in pairs(reg_callbacks) do
+		xr_s.register_callback(k, this[v])
+	end
+	
+	self:Init(0, 0, 1024, 768)
+	self:SetAutoDelete(true)
+	
+	self.frame = CUIFrameWindow()
+	self.frame:SetAutoDelete(true)
+	self.frame:Init("ui_icons_PDA_dialog_frame",0, 0, 200, 150)
+	st.stat:AttachChild(self.frame)
+	
+	self.quit = CUIButton()
+	self.quit:SetAutoDelete(true)
+	local w = 17*kScreen
+	self.quit:Init("ui_PDA_checker_t", self.frame:GetWidth()-w-4, 4, w, 17)
+	self.quit:SetStretchTexture(true)
+	self.frame:AttachChild(self.quit)
+	self:Register(self.quit, "btn_quit")
+	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.Hide, self)
+	
+	local t = params[section]
+	local step, n = 25, 0
+	local nm
+	for k, v in pairs(t) do
+		nm = 'check_'..k
+		self[nm] = CUICheckButton()
+		self[nm]:SetAutoDelete(true)
+		self[nm]:Init("ui_PDA_checker",15,25+n*step,90,20)
+		self[nm]:SetText(texts[k])
+		self[nm]:SetTextColor(255,216,186,140)
+		self.frame:AttachChild(self[nm])
+		self:Register(self[nm], "c"..k)
+		self:AddCallback("c"..k, ui_events.BUTTON_CLICKED, ui_skat_input.change_info, k)
+		self[nm]:SetCheck(v and has_alife_info("skat_"..k.."_on"))
+		self[nm]:Enable(v)
+		n = n + 1
+	end
+	
+	self:ShowWnd()
+	
+	_wnd = self
+end
+
+function UISkatInputPanel:CheckWnd(section)
+	if self.sect ~= section then
+		self.sect = section
+		local t = params[section]
+		local nm
+		for k, v in pairs(t) do
+			self[nm]:SetCheck(v and has_alife_info("skat_"..k.."_on"))
+			self[nm]:Enable(v)
+		end
+	end
+end
+
+function UISkatInputPanel:ShowWnd()
+	self.frame:SetWndPos(
+		math.min(self.owner:GetCursorX(), 1024-self.frame:GetWidth()),
+		math.min(self.owner:GetCursorY(), 768-self.frame:GetHeight())
+	)
+	self.frame:Show(true)
+end
+
+function UISkatInputPanel:Hide()
+	self.frame:Show(false)
+end
+
+function UISkatInputPanel:Remove()
+	for k,v in pairs(reg_callbacks) do
+		xr_s.unregister_callback(k, this[v])
+	end
+	_wnd = nil
+end
+
+function check_armor(item)
+	if params[item:section()] then
+		_wnd:Hide()
+	end
+end
+
+function on_slot(item)
+	if params[item:section()]==nil then
+		_wnd:Hide()
+	else
+		_wnd:CheckWnd(item:section())
+	end
+end

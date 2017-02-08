@@ -1,0 +1,283 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Чтобы можно было закрывать на замок любые тайники, поставить 0 вместо 1
+local lock_box_only = 1
+
+local zamok_box = {}
+local can_lock_visuals = {
+	["equipment_box_01_case"] = true,
+	["equipment_box_02_case"] = true,
+	["equipment_box_03_case"] = true,
+	["equipment_electric_box_01_case"] = true,
+	["equipment_electric_box_02_case"] = true,
+	["equipment_hatch_01_case"] = true,
+	["equipment_hatch_02_case"] = true,
+	["equipment_instrument_case_01_case"] = true,
+	["equipment_seif_01_case"] = true,
+	["equipment_seif_02_case"] = true,
+	["equipment_seif_03_case"] = true,
+	["equipment_zaz968_case"] = true,
+	["expl_dinamit"] = true,
+	["seif_01"] = true
+}
+
+function restore(se_box, box_id)
+	if se_box and se_box:clsid() == clsid.inventory_box then
+		if zamok_box[box_id] == nil then
+			local data = naxac_netpk.get(se_box, true)
+			local t = naxac_netpk.parse_custom_data(data.custom_data)
+			if t["password"] then
+			--	log1("add protected box: "..se_box:name())
+				table.insert(amk_offline_alife.protected.ids, box_id)
+			end
+			zamok_box[box_id] = 1
+		else
+			zamok_box[box_id] = zamok_box[box_id] + 1
+		end
+	end
+end
+
+function remove(box, item)
+	if item and item.section and item:section() == "zamok" and box then
+		local box_id = box:id()
+		local n = zamok_box[box_id]
+		if n==nil then return end
+		if n>1 then
+			zamok_box[box_id] = n - 1
+		else	-- проверим, стоит ли ящик под защитой
+			for i, v in pairs(amk_offline_alife.protected.ids) do
+				if v == box_id then
+					this.change_box_data(box)
+					table.remove(amk_offline_alife.protected.ids, i)
+					amk_offline_alife.update_tables(level.name())
+					amk.send_tip("", 'С тайника убрали замок.', nil, 5, "nano")
+					break
+				end
+			end
+			zamok_box[box_id] = nil
+		end
+	end
+end
+
+function add(item)
+	if item:section() == "zamok" and _G["biznes_remove_special_item"]==nil then
+		local sitem = alife():object(item:id()) -- получаем серверный объект
+		if sitem == nil then return end		-- если удалили замок, то ничего не делаем
+		local pid = sitem.parent_id
+		local se_box = alife():object(pid) -- получаем серверный объект хозяина
+		if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
+			if zamok_box[pid]==nil then		-- если в тайнике ещё нет замков
+				zamok_box[pid] = 1
+				-- Покажем меню
+				local box = level.object_by_id(pid)
+				if lock_box_only==1 then
+					local visual = string.explode(box:get_visual_name(), "\\")
+					visual = visual[#visual]
+				--	log1("# "..box:name().." : "..visual)
+					if can_lock_visuals[visual] then
+						level.start_stop_menu(zamok.ui_codelock(se_box, box, 1), true)
+					else
+						level.start_stop_menu(zamok.ui_codelock(nil, box, 2), true)
+					end
+				else
+					level.start_stop_menu(zamok.ui_codelock(se_box, box, 1), true)
+				end
+			else	-- иначе - ничего не делаем
+				zamok_box[pid] = zamok_box[pid]+1
+			end
+		end
+	end
+end
+
+class "ui_codelock" (CUIScriptWnd)
+
+function ui_codelock:__init(se_box, cl_box, mode) super()
+	if mode == 2 then
+		self.shift = true
+		self:InitControls()
+		return
+	end
+
+	self.se_box = se_box					-- серверный объект запираемого ящика
+	self.cl_box = cl_box					-- клиентский объект
+	self.install = (mode == 1)	-- ставим ли мы замок впервый раз, или вводим код, чтобы его открыть
+	self.check_code = false
+	self:InitControls()
+	if not self.install then
+		local data = naxac_netpk.get(se_box, true)
+		local t = naxac_netpk.parse_custom_data(data.custom_data)
+		self.code = (t['password'] and t['password']['code']) or "000000"
+	end
+	ShowInvDescr(false)
+end
+
+function ui_codelock:InitControls()
+	self:Init(0,0,1024,768)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_codelock.xml")
+
+	local back = xml:InitFrame("frame", self)
+	self.capt = xml:InitStatic("caption", back)
+
+	local btn = xml:InitButton("button_quit", back)
+	self:Register(btn, "btn_quit")
+	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.on_ButtonCancel, self)
+
+	if self.shift then
+		btn:SetText("OK")
+		self.capt:SetTextY(self.capt:GetTextY() + 12)
+		self.capt:SetText("%c[UI_orange]На этот тайник невозможно установить замок.")
+		return
+	end
+
+	xml:InitFrame("edit_frame", back)
+	self.code_edit = xml:InitEditBox("edit_code", back)
+	self:Register(self.code_edit, "edit")
+	self:AddCallback("edit", ui_events.EDIT_TEXT_CHANGED, self.on_ChangeCode, self)
+	self.code_edit:SetNumbersOnly(true)	-- только цифры
+
+	btn = xml:InitButton("button_ok", back)
+	self:Register(btn, "btn_ok")
+	self:AddCallback("btn_ok", ui_events.BUTTON_CLICKED, self.on_ButtonOk, self)
+	btn:SetText(self.install and "Установить" or "OK")
+end
+
+function ui_codelock:on_ChangeCode()
+	if self.install then return end
+	self.capt:SetText("%c[default]Введите шестизначный код:")
+	if self.code_edit:GetText()==self.code then
+		self.code_edit:SetTextColor(GetARGB(255,0,255,0))
+	else
+		self.code_edit:SetTextColor(GetARGB(255,255,50,50))
+	end
+end
+
+function ui_codelock:on_ButtonCancel()
+	if self.install == false then 
+		hotkeys.clear_used_box()
+		self.cl_box:set_nonscript_usable(true)
+	end
+	self:GetHolder():start_stop_menu(self, true)
+	ShowInvDescr(true)
+end
+
+function ui_codelock:on_ButtonOk()
+	local str = self.code_edit:GetText()
+--	log1("ui_codelock: code = "..str)
+	if #str<6 then
+		self.capt:SetText("%c[UI_orange]Необходимо ввести 6 цифр!")
+		return
+	end
+	
+	if self.install then
+		local data = naxac_netpk.get(self.se_box, true)
+		data.custom_data =	"[logic]\n"..
+							"cfg = scripts\\code_inventory_box.ltx\n"..
+							"[password]\n"..
+							"code = "..str
+		naxac_netpk.set(self.se_box, data)
+		table.insert(amk_offline_alife.protected.ids, self.se_box.id)
+		amk_offline_alife.update_tables(level.name())
+		amk.send_tip("", 'Заперли тайник на замок.', nil, 5, "nano")
+		-- Перезагружаем логику
+		local st = db.storage[self.se_box.id]
+		st = {}
+		xr_logic.initialize_obj(self.cl_box, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
+		
+		self:on_ButtonCancel()
+	else
+		if self.code == str then
+			self:GetHolder():start_stop_menu(self, true)
+			ShowInvDescr(true)
+			self.cl_box:set_nonscript_usable(true)
+			db.actor:open_inventory_box(self.cl_box)
+		else
+			self.capt:SetText("%c[red]Код введён неверно!")
+		end
+	end
+end
+-- Для ввода с цифровой клавиатуры
+local numpads = {
+	[DIK_keys.DIK_NUMPAD0] = DIK_keys.DIK_0,
+	[DIK_keys.DIK_NUMPAD1] = DIK_keys.DIK_1,
+	[DIK_keys.DIK_NUMPAD2] = DIK_keys.DIK_2,
+	[DIK_keys.DIK_NUMPAD3] = DIK_keys.DIK_3,
+	[DIK_keys.DIK_NUMPAD4] = DIK_keys.DIK_4,
+	[DIK_keys.DIK_NUMPAD5] = DIK_keys.DIK_5,
+	[DIK_keys.DIK_NUMPAD6] = DIK_keys.DIK_6,
+	[DIK_keys.DIK_NUMPAD7] = DIK_keys.DIK_7,
+	[DIK_keys.DIK_NUMPAD8] = DIK_keys.DIK_8,
+	[DIK_keys.DIK_NUMPAD9] = DIK_keys.DIK_9
+}
+function ui_codelock:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE or dik == bind_to_dik(key_bindings.kUSE) then
+			self:on_ButtonCancel()
+		elseif dik == DIK_keys.DIK_RETURN or dik == DIK_keys.DIK_NUMPADENTER then
+			self:on_ButtonOk()
+		elseif numpads[dik] then
+			level.send_event_key_press(numpads[dik])
+			level.send_event_key_release(numpads[dik])
+		end
+	end
+	return true
+end
+
+-- Вызывается при открытии тайника из логики, если на нём стоит замок
+function show_codelock(actor, box)
+	local se_box = alife():object(box:id())
+	if se_box then
+--		log1("show_codelock for se_box: "..se_box:name())
+		box:set_nonscript_usable(false)
+		level.start_stop_menu(zamok.ui_codelock(se_box, box, 0), true)
+	end
+end
+
+-- Забираем тайник вместе с содержимым на 'kUSE + Shift'
+-- Вызывается из логики
+function transfer_all(actor, box)
+	if not ShiftPressed then return false end
+	
+	box:set_nonscript_usable( false )
+	shiftCheckDropItem()
+
+	local n = box:inv_box_count()
+	local a = db.actor
+	if n>0 then
+		local item
+		for i=0,n-1 do
+			item = box:object_from_inv_box(i)
+			box:transfer_item(item, a)
+		end
+	end
+	local sim = alife()
+	local se_box = sim:object(box:id())
+	if se_box then sim:release(se_box, true) end
+	sim:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
+	hotkeys.clear_used_box()
+end
+
+-- Перезагрузка логики ящика без перевода в оффлайн
+function change_box_data(box)
+	local box_id = box:id()
+	local se_box = alife():object(box_id)
+	if se_box then
+	--	log1("box found: "..se_box:name())
+		local inifilename = nil
+		local data = naxac_netpk.get(se_box, true)
+		if se_box:section_name() == "m_inventory_box" then	-- самопальный тайник
+			data.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
+			inifilename = "scripts\\new_inventory_box.ltx"
+		else		-- какой-то другой
+			data.custom_data = ""
+			inifilename = "scripts\\treasure_inventory_box.ltx"
+		end
+		naxac_netpk.set(se_box, data)
+		-- Перезагружаем логику
+		local st = db.storage[box_id]
+		st = {}
+		xr_logic.initialize_obj(box, st, false, db.actor, modules.stype_item, inifilename)
+	end
+end
+

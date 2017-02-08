@@ -1,0 +1,56 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local sound = {
+	medkit				= {"zwuk\\inv_medic"},
+	medkit_army			= {"zwuk\\inv_medic"},
+	medkit_scientic		= {"zwuk\\inv_medic"},
+	kolbasa				= {"zwuk\\inv_food","zwuk\\inv_kolbasa"},
+	vodka				= {"zwuk\\inv_vodka","zwuk\\inv_flaska"},
+	energy_drink		= {"zwuk\\inv_drinking","zwuk\\inv_softdrink"},
+	bandage				= {"zwuk\\inv_bandage"},
+	antirad				= {"zwuk\\inv_pills"},
+	conserva			= {"zwuk\\inv_conserva"},
+	bread				= {"zwuk\\inv_sandwich","zwuk\\inv_kolbasa"},
+	sandwich			= {"zwuk\\inv_sandwich"},
+	flaska				= {"zwuk\\inv_drinking","zwuk\\inv_flaska","zwuk\\inv_water"},
+	beer_a				= {"zwuk\\inv_vodka","zwuk\\inv_softdrink","zwuk\\inv_water"},
+	suvorotka			= {"zwuk\\inv_pills"},
+	antizombie			= {"zwuk\\inv_pills"},
+	d_pantenol			= {"zwuk\\inv_pills"},
+	mozg				= {"zwuk\\inv_food"},
+	bezoar				= {"zwuk\\inv_food"},
+	mushroom			= {"zwuk\\inv_food"},
+	sweetness			= {"zwuk\\inv_kolbasa","zwuk\\inv_sandwich"},
+	pampers				= {"script_replics\\bandit_1\\idle\\bandit_idle_2"},
+	repair_item_outfit	= {"zwuk\\inv_repair_outfit_1","zwuk\\inv_repair_outfit_2","zwuk\\inv_repair_outfit_3"},
+	repair_item_weapon	= {"zwuk\\inv_repair_weapon_1","zwuk\\inv_repair_weapon_2","zwuk\\inv_repair_weapon_3","zwuk\\inv_repair_weapon_4"},
+	acumm				= {"zwuk\\inv_acumm"}
+}
+local last_tmr, eat_snd = nil, nil
+
+function use_snd(section)
+	if sound[section] and _G['biznes_remove_special_item']==nil then 
+		if eat_snd and eat_snd:playing() then
+			eat_snd:stop()
+		end
+		
+		local s = sound[section]
+		eat_snd = xr_sound.get_safe_sound_object(table.random(s))
+		eat_snd:play_at_pos(db.actor, vector(), 0, sound_object.s2d)
+
+		local gd = level.get_game_difficulty()
+		if gd > 0 then
+			remove_small_timer(last_tmr)
+			bind_stalker.hide_weapon("eat")
+			last_tmr = start_small_timer( gd*2000, this.stop_eat )
+		end
+	end
+end
+
+function stop_eat()
+	if eat_snd and eat_snd:playing() then
+		eat_snd:stop()
+	end
+	bind_stalker.restore_weapon("eat")
+end
+
+	

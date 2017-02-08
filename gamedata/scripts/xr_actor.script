@@ -1,0 +1,79 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- получение некоторых значений с плавающей запятой
+-- параметры бега
+function get_walk_accel()         return db.actor:get_actor_float(1440) end
+function get_jump_speed()         return db.actor:get_actor_float(1444) end
+function get_run_factor()         return db.actor:get_actor_float(1448) end
+function get_run_back_factor()    return db.actor:get_actor_float(1452) end
+function get_walk_back_factor()   return db.actor:get_actor_float(1456) end
+function get_crouch_factor()      return db.actor:get_actor_float(1460) end
+function get_climb_factor()       return db.actor:get_actor_float(1464) end
+function get_sprint_factor()      return db.actor:get_actor_float(1468) end
+function get_walk_strafe_factor() return db.actor:get_actor_float(1472) end
+function get_run_strafe_factor()  return db.actor:get_actor_float(1476) end
+-- параметры стрельбы
+function get_disp_base()          return db.actor:get_actor_float(1484) end -- в радианах
+function get_disp_aim()           return db.actor:get_actor_float(1488) end -- в радианах
+function get_disp_vel_factor()    return db.actor:get_actor_float(1492) end
+function get_disp_accel_factor()  return db.actor:get_actor_float(1496) end
+function get_disp_crouch_factor() return db.actor:get_actor_float(1500) end
+function get_disp_crouch_no_accel_factor()  return db.actor:get_actor_float(1504) end
+-- получение некоторых целых и логических значений
+-- режим прицеливания
+function zoom_mode() return bit_and(db.actor:get_actor_int(nil, 1480), 1) end -- возвращает 0/1
+
+-- установка некоторых значений
+-- параметры бега
+function set_sprint_factor(v)      db.actor:set_actor_float(nil, v, 1468) end
+function set_jump_speed(v)         db.actor:set_actor_float(nil, v, 1444) end
+function set_walk_accel(v)         db.actor:set_actor_float(nil, v, 1440) end
+function set_run_factor(v)         db.actor:set_actor_float(nil, v, 1448) end
+function set_run_back_factor(v)    db.actor:set_actor_float(nil, v, 1452) end
+function set_walk_back_factor(v)   db.actor:set_actor_float(nil, v, 1456) end
+function set_crouch_factor(v)      db.actor:set_actor_float(nil, v, 1460) end
+function set_climb_factor(v)       db.actor:set_actor_float(nil, v, 1464) end
+function set_walk_strafe_factor(v) db.actor:set_actor_float(nil, v, 1472) end
+function set_run_strafe_factor(v)  db.actor:set_actor_float(nil, v, 1476) end
+-- параметры стрельбы
+function set_disp_base(v)          db.actor:set_actor_float(nil, v, 1484) end -- в радианах
+
+function set_jump_power( v )
+  db.actor:set_actor_condition_float( nil, v, 276 )
+end
+function set_walk_power( v )
+  db.actor:set_actor_condition_float( nil, v, 284 )
+end
+
+------------------------------------------------------------------------------------
+local tbl_check = {}
+function change_move(s, mode)
+	if mode then
+		tbl_check[s] = nil
+		for k,v in pairs(tbl_check) do return end		-- can't enable
+		set_walk_accel(sys_ini:r_float("actor", "walk_accel"))
+		set_jump_speed(sys_ini:r_float("actor", "jump_speed"))
+	else
+		tbl_check[s] = true
+		for k in pairs(tbl_check) do
+			if k~=s then return end		-- alreday disabled
+		end
+		set_walk_accel(0)
+		set_jump_speed(0)
+	end
+end
+
+function change_actor_weight(v)
+	local a = db.actor
+	local mw = a:get_actor_max_weight()
+	local mww = a:get_actor_max_walk_weight()
+	a:set_actor_max_weight(mw+v)
+	a:set_actor_max_walk_weight(mww+v)
+end
+-----------------------------------------------------------------------------------------
+-- CInventoryItem
+function set_item_slot( item, slot )
+	item:set_inventory_item_int( 156, slot )
+end
+function get_item_slot( item )
+	return item:get_inventory_item_int( nil, 156 )
+end

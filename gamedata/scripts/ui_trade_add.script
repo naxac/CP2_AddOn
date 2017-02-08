@@ -1,0 +1,92 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local wnd = nil
+local wndX = { wide = 96, normal = 19 }
+
+function on_info(info_id)
+	if info_id == "ui_trade" then
+		if not wnd then	
+			wnd = TradeWnd(level.get_trade_wnd())
+		end
+		trade_manager.start_trade()
+		_G['recolor_items'] = true
+		db.actor:invalidate_inventory()
+	--	update_inventory_window()
+	elseif info_id == "ui_trade_hide" then
+		if wnd then
+			wnd:DetachWnd()
+			wnd = nil
+		end
+		trade_manager.stop_trade()
+		_G['recolor_items'] = nil
+ 	end
+end
+
+---------------------------------------------------------------------
+local reg_callbacks = {
+	on_item_take = "on_change_weight",
+	on_item_drop = "on_change_weight"
+}
+class "TradeWnd" (CUIScriptWnd)
+
+function TradeWnd:__init(owner) super()
+	self.owner = owner
+	self:Init(0, 0, 1024, 768)
+	self:InitControls()
+	for k,v in pairs(reg_callbacks) do
+		xr_s.register_callback(k, this[v])
+	end
+end
+
+function TradeWnd:InitControls()
+	self.stat = CUIStatic()
+	self.stat:Init(0, 0, 1024, 768)
+	self.owner:AttachChild(self.stat)
+	self.stat:Show(true)
+	
+	local x = isWideScreen and wndX.wide or wndX.normal
+	
+	self.wght = CUIStatic()
+	self.wght:SetAutoDelete(true)
+	self.wght:Init(x, 735, 400, 25)
+	self.wght:SetFont(GetFontGraffiti22Russian())
+	self.wght:SetTextComplexMode(true)
+	self.stat:AttachChild(self.wght)
+	self:calc_and_change()
+	
+	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
+end
+
+function TradeWnd:calc_and_change()
+	local a = db.actor
+	-- Получаем текущий вес инвентаря
+	local wght = a:get_inventory_weight()
+	-- Получаем максимально допустимый вес
+	local mw = a:get_actor_max_weight()
+	-- Добавлен ли вес костюмом
+	local outfit = a:get_current_outfit()
+	if outfit then
+		mw = mw + sys_ini:r_float_ex(outfit:section(), "additional_inventory_weight2", 0) * outfit:condition()
+	end
+	
+	local color_str = (wght<mw and "%c[255,238,155,23]") or "%c[255,255,0,0]"
+		
+	local text = "%c[255,170,170,185]Вес: "..
+		color_str..string.format("%.1f", wght)..
+		" %c[255,238,155,23]/"..string.format("%.1f", mw)
+	
+	self.wght:SetText(text)
+end
+
+function TradeWnd:DetachWnd()
+	self.DescrWnd:Remove()
+	self.owner:DetachChild(self.stat)
+	for k,v in pairs(reg_callbacks) do
+		xr_s.unregister_callback(k, this[v])
+	end
+end
+---------------------------------------------------------------------------
+function on_change_weight()
+	if wnd then
+		wnd:calc_and_change()
+	end
+end
