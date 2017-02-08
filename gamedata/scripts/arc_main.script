@@ -1,0 +1,28 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+	
+function lose_item(obj)
+	local obj_sect = obj:section()
+	if obj:is_artefact() 
+		and ( bind_det_arts.is_detected_art(obj_sect) 
+		or obj_sect:find("^kolba_") )
+	then
+		arc_arts.register_artefact(obj_sect, -1)
+	elseif string.find(obj_sect, "arc_art_box_") then
+		arc_containers.on_lose_container(obj:id(), obj_sect)
+	end
+end
+
+function get_item(obj)
+	local obj_sect = obj:section()
+    if string.find(obj_sect, "arc_art_box_") then
+		arc_containers.register_container(obj:id(), obj_sect)
+	elseif string.find(obj_sect, "arc_diary_") then
+		local n = obj_sect:sub(11)
+		if not has_alife_info("kontroler_diary_info_"..n) then
+			db.actor:give_info_portion("kontroler_diary_info_"..n)
+		else
+			amk.send_tip("Совсем не разобрать ничего, выкину-ка я лучше эту бумажку...", "Меченый:")
+		end
+		arc.remove_obj(obj:id())
+	end
+end

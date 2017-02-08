@@ -1,0 +1,67 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+function on_mm_init(mm)
+	db.actor:give_info_portion("paused_on_load")
+	level.hide_indicators()
+	
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_mm_autopause.xml")
+	mm.intro_static = xml:InitStatic("intro_static", mm)
+
+	mm.sv = level.get_snd_volume()
+	local con = get_console()
+	mm.sound_volume_eff = con:get_float("snd_volume_eff")
+	con:execute("snd_volume_eff 0")
+	mm.sound_volume_music = con:get_float("snd_volume_music")
+	con:execute("snd_volume_music 0")
+	level.set_snd_volume(0)
+
+	-- картинка загружаемой территории
+	mm.level_intro = CUIStatic()
+	mm.level_intro:SetWndRect(Frect():set(257,369,257+512,369+256))
+	mm.level_intro:InitTexture("intro\\intro_"..level.name())
+	if device().aspect_ratio < 0.75 then
+		mm.level_intro:SetStretchTexture(true)
+	end
+	mm:AttachChild(mm.level_intro)
+end
+
+function mm_on_kbd(mm)
+	level.show_indicators()
+	level.set_snd_volume(mm.sv)
+	local console = get_console()
+	console:execute("snd_volume_eff " .. mm.sound_volume_eff) 
+	console:execute("snd_volume_music " .. mm.sound_volume_music)
+	console:execute("main_menu off")
+	db.actor:disable_info_portion("paused_on_load")
+
+	this.start_timer_no_save()
+end
+
+function on_upd()
+	if device().precache_frame<3 then
+		xr_s.unregister_callback("update", autopause.on_upd, true)
+		if _G.g_start_avi then
+			_G.press_any_key_on_start = false
+			this.start_timer_no_save()
+		else
+			get_console():execute("main_menu on")
+		end
+	end
+end
+-----------------------------------------------
+function main()
+	if game_options.LoadPause then
+		_G.press_any_key_on_start = true
+		xr_s.register_callback("update", autopause.on_upd)
+	end
+end
+
+function start_timer_no_save()
+	amk.start_timer("no_save", 5)
+	local st = get_hud():AddCustomStatic("cs_inviz", true)
+	local wnd = st:wnd()
+	wnd:SetTextComplexMode(true)
+	wnd:SetTextST("st_no_save")
+	st.m_endTime = -1
+end
