@@ -1,4 +1,3 @@
--- -*- mode: lua; encoding: windows-1251 -*-
 local math_random = math.random
 
 function is_level_atp(fs, ss)
@@ -6661,7 +6660,6 @@ function remove_city_starshoy_metka()
 		level.map_remove_object_spot(obj.id,"crlc_big")
 	end
 end
-
 function metka_tema_likvidator()
 	local obj = alife():object("city_tema_likvidator") 
 	if obj then
@@ -6673,6 +6671,31 @@ function remove_tema_likvidator_metka()
 	if obj then
 		level.map_remove_object_spot(obj.id,"crlc_big")
 	end
+end
+-- Выдадим ГГ покоцаный ствол, раз у него ничего больше нет
+function marader_weapon()
+	news_manager.relocate_item(db.actor, "in", "wpn_toz34_short")
+	sak.create_items_actor("ammo_12x70_buck")
+	local se_obj = amk.spawn_item_in_inv("wpn_toz34_short")
+	level.client_spawn_manager():add( se_obj.id, 0, 
+		function (cond, id, obj)
+			obj:set_condition(cond)
+		end,
+	0.91-0.12*level.get_game_difficulty() )
+end
+
+function actor_has_weapon()
+	local res = false
+	db.actor:iterate_inventory(function(actor, item)
+		if (not res) and isMagazinedWeapon(item) then
+			res = true
+		end
+	end,
+	db.actor)
+	return res
+end
+function actor_dont_has_weapon()
+	return not actor_has_weapon()
 end
 
 function metka_norman()
