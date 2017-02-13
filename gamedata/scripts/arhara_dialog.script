@@ -3796,13 +3796,13 @@ function netu_kontrolera_sms()
 news_manager.send_tip(db.actor, "%c[255,160,160,160]НОРМАН:\\n%c[255,255,128,128]Эй, сталкер! Я знал, что за мной придут люди из Последнего дня и ушёл за хутор поближе к периметру. Там меня и найдёшь - вижу, что ты смелый человек, если сунулся на этот хутор.", nil, nil, 35000, nil, [[characters_voice\ozvuchka\norman_vstrecha]])
 end
 function sms_obmorok1()
-news_manager.send_tip(db.actor, "%c[255,160,160,160]СТРЕЛОК:\\n%c[255,255,128,128]Эй, Обморок, ответь. Надо стрелку забить - есть предложение, выгодное для нас обоих.", nil, nil, 15000, nil, [[characters_voice\ozvuchka\strelok_dcity14]])
+news_manager.send_tip(db.actor, "%c[255,160,160,160]СТРЕЛОК:\\n%c[255,255,128,128]Эй, Обморок, ответь. Надо стрелку забить - есть предложение, выгодное для нас обоих.", nil, nil, 15000, nil, [[characters_voice\ozvuchka\strelok_dcity14]], "arhara_dialog.sms_obmorok2()", 4)
 end
 function sms_obmorok2()
-news_manager.send_tip(db.actor, "%c[255,160,160,160]ОБМОРОК:\\n%c[255,255,128,128]Это кто такой бурый? Проверка связи от наёмников? Ну дык я могу повторить - все вы козлы.", nil, nil, 20000, nil, [[characters_voice\ozvuchka\obmorok_vstrecha1]])
+news_manager.send_tip(db.actor, "%c[255,160,160,160]ОБМОРОК:\\n%c[255,255,128,128]Это кто такой бурый? Проверка связи от наёмников? Ну дык я могу повторить - все вы козлы.", nil, nil, 20000, nil, [[characters_voice\ozvuchka\obmorok_vstrecha1]], "arhara_dialog.sms_obmorok3()")
 end
 function sms_obmorok3()
-news_manager.send_tip(db.actor, "%c[255,160,160,160]СТРЕЛОК:\\n%c[255,255,128,128]Это не наёмники. Это нейтралы. Есть мысль, как унести отсюда ноги. Ты ведь об этом давно мечтаешь? На кону - переход с этой территории в обмен на твою помощь. Встретимся на нейтральной земле. Назначай место.", nil, nil, 25000, nil, [[characters_voice\ozvuchka\strelok_dcity13]])
+news_manager.send_tip(db.actor, "%c[255,160,160,160]СТРЕЛОК:\\n%c[255,255,128,128]Это не наёмники. Это нейтралы. Есть мысль, как унести отсюда ноги. Ты ведь об этом давно мечтаешь? На кону - переход с этой территории в обмен на твою помощь. Встретимся на нейтральной земле. Назначай место.", nil, nil, 25000, nil, [[characters_voice\ozvuchka\strelok_dcity13]], "arhara_dialog.sms_obmorok4()", 2)
 end
 function sms_obmorok4()
 news_manager.send_tip(db.actor, "%c[255,160,160,160]ОБМОРОК:\\n%c[255,255,128,128]Э нет... Нет тут нейтральной земли... Нарисуешься у нашего лагеря, что у водокачки - ближе к периметру, в овраге валяется старый бензовоз. Там и увидимся. Подходи вдоль колючки - засветишься у моих орлов из лагеря - пристрелят. Но не вздумай мня развести.", nil, nil, 30000, nil, [[characters_voice\ozvuchka\obmorok_vstrecha2]])
@@ -6758,7 +6758,32 @@ end
 
 --' получим Позиционер от Нормана
 function pozisioner_norman(first_speaker, second_speaker)
-dialogs.relocate_item_section(second_speaker, "stco","in")
+	dialogs.relocate_item_section(second_speaker, "stco","in")
+	naxac_test.rewrite_restr_logic("sms_obmorok_restrictor", "scripts\\dead_city\\sms_obmorok_restrictor.ltx")
+	naxac_test.rewrite_restr_logic("strelka_obmorok_restrictor", "scripts\\dead_city\\strelka_obmorok_restrictor.ltx")
+	local sim = alife()
+	local obj = sim:object("dcity_obmorok")
+	if obj then
+		local data = naxac_netpk.get(obj, true)
+		local cd = naxac_netpk.parse_custom_data(data.custom_data)
+		cd.logic.on_hit = "hit"
+		cd.logic.on_death = "death"
+		cd.hit = {on_info = "{=hit_by_actor} %+dcity_obmorok_enemy%"}
+		cd.death = {on_info = "{=killed_by_actor} %+dcity_obmorok_enemy%"}
+		data.custom_data = naxac_netpk.gen_custom_data(cd)
+		naxac_netpk.set(obj, data)
+	end
+	obj = sim:object("dcity_bodyguard_obmorok")
+	if obj then
+		local data = naxac_netpk.get(obj, true)
+		local cd = naxac_netpk.parse_custom_data(data.custom_data)
+		cd.logic.on_hit = "hit"
+		cd.logic.on_death = "death"
+		cd.hit = {on_info = "{=hit_by_actor} %+dcity_obmorok_enemy%"}
+		cd.death = {on_info = "{=killed_by_actor} %+dcity_obmorok_enemy%"}
+		data.custom_data = naxac_netpk.gen_custom_data(cd)
+		naxac_netpk.set(obj, data)
+	end
 end
 
 --' убираем защиту центра МГ

@@ -163,7 +163,7 @@ function evaluator_danger:evaluate()
 	if is_stalker_obj and is_friend
 		and best_danger_object:character_community() == self.object:character_community()
 	then
-		if not self.object:relation(best_danger_object) == game_object.enemy then
+		if self.object:relation(best_danger_object) ~= game_object.enemy then
 			return false
 		end
 	end
@@ -223,7 +223,7 @@ function evaluator_danger:evaluate()
 
 	-- Отсеиваем по дистанции
 	if check_danger_distance(self.object, best_danger) == false then
-	--	printf("DANGER [%s]->[%s] [FALSE] danger_distance", self.object:name(), best_danger_name)
+	--	log("DANGER [%s]->[%s] [FALSE] danger_distance", self.object:name(), best_danger_object:name())
 		return false
 	end
 
@@ -285,8 +285,8 @@ end
 -- BINDER
 ----------------------------------------------------------------------------------------------------------------------
 function add_to_binder(object, ini, scheme, section, storage)
-  		local operators	= {}
-	  	local properties  = {}
+  	--	local operators	= {}
+	-- 	local properties  = {}
 		
 	   	local manager = object:motivation_action_manager()
 
@@ -389,7 +389,7 @@ function check_danger_distance(npc, danger)
 	local bd_type = danger:type()
 	local danger_distance_sqr = danger:position():distance_to_sqr(npc:position())	
 	
---	printf("DANGER_DIST [%s] [%s]", npc:name(), tostring(danger_distance_sqr))
+--	log("DANGER_DIST [%s] [%s]", npc:name(), tostring(danger_distance_sqr))
 
 	if danger_settings ~= nil then
 		if danger_distance_sqr >= danger_settings.ignore_distance then

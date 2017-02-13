@@ -762,7 +762,16 @@ end
 
 function killed_by_actor(actor, npc)
 	local t = db.storage[npc:id()].death
-	return t and t.killer == actor:id()
+	if t and t.killer then
+		if t.killer == actor:id() then
+			return true
+		end
+		local obj = level.object_by_id(t.killer)
+		if obj and obj:clsid() == clsid.obj_explosive then
+			return true
+		end
+	end
+	return false
 end
 
 function actor_has_weapon (actor, npc)

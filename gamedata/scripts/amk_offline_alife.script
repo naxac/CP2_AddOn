@@ -20,10 +20,7 @@ local is_ammo = {
 	
 off_npcs={}
 items={}
-relation_matrix={}
-tables_ready = false
 local no_sell_table = {}
-local item_dependence = {}
 local always_keep_item = {}
 
 local wpn_fp = {}
@@ -35,7 +32,6 @@ local iCounter = 1
 local iTime = -1
 -- Как часто делать апдейты, игровые минуты
 local iFreq = 60
-local initialized = false
 
 local monster_params = {}
 
@@ -148,11 +144,9 @@ local rate_art_found = 100		-- Рейтинг за артефакты
 local to_actor = 150			-- расстояние до актёра, на котором работает оффлайн-алайф
 
 function init()
-	if (initialized == false) then
-		build_tables()
-		iTime = (amk.game_minutes() - iFreq) + 3
-		initialized = true
-	end
+	build_tables()
+	iTime = (amk.game_minutes() - iFreq) + 3
+	off_npcs={}
 end
 
 function update()
@@ -264,98 +258,26 @@ end
 
 --строим таблицу неписей, монстров и оружия
 function build_tables()
-	-- Почистим таблицу
---	off_npcs={}	
---	local obj
---	for a=1,65534 do
---		obj = alife():object(a)
---		add_fresh_meat(obj)
---	end
+	rel_enemy = sys_ini:r_float("game_relations", "goodwill_enemy")
+	rel_friend = sys_ini:r_float("game_relations", "goodwill_friend")
 
-	-- rel_enemy,rel_friend = utils.cfg_get_number(sys_ini, "game_relations", "goodwill_enemy", nil, false, -1000), utils.cfg_get_number(sys_ini, "game_relations", "goodwill_friend", nil, false, 1000)
-	-- local s_comm_list = utils.cfg_get_string(sys_ini, "game_relations", "communities", nil, false, "", "")
-	rel_enemy,rel_friend = getIniValueFloat("game_relations", "goodwill_enemy", -1000, nil), getIniValueFloat("game_relations", "goodwill_friend", 1000, nil)
-	local s_comm_list = getIniValueString("game_relations", "communities", "", nil)
-	local comm_list = {}
-	local s_value = string.explode(trim(s_comm_list), ",", true)
-	for a=1, #s_value, 2 do
-		local s_comm = s_value[a]
-		table.insert(comm_list, s_comm)
-	end
-  
-	local tmp={}
-	local result, id, value = nil, nil, nil
-	local n = iniLinesCount("communities_relations",nil)
-	for a=0,n-1 do
-		result, id, value = getIniLine("communities_relations",a,"","",nil)
-		if id~=nil and trim(id)~="" and trim(id)~=nil then
-			relation_matrix[trim(id)]={}
-			table.insert(tmp, trim(id))
-		end
-	end
-	
-	for a=1,#tmp do
-		-- local value = utils.cfg_get_string(sys_ini, "communities_relations", tmp[a], nil, false, "", "")
-		local value = getIniValueString("communities_relations", tmp[a], "", nil)
-		local idx = tmp[a]
-		local m_value = string.explode(trim(value), ",", true)
-		for i=1, #m_value do
-			local idx2 = comm_list[i]
-			local v = m_value[i]
-			if relation_matrix[idx] and idx2~=nil and v ~= nil then
-				relation_matrix[idx][idx2]=tonumber(trim(v))
-			end
-		end
-	end
-	
+	-- Добавим в таблицу, что нельзя продавать.
 	no_sell_table = {}
 	local sini = ini_file("misc\\trade_generic.ltx")
-	-- local cfg_sell = utils.cfg_get_string(sini, "trader", "sell_condition", npc, false, false, "")
 	local cfg_sell = sini:r_string("trader", "sell_condition")
-	-- amk.dump_table(iniLines)
 	if sini and sini:section_exist(cfg_sell) then
 		local result, id, value = nil, nil, nil
 		for a = 0, sini:line_count(cfg_sell)-1 do
 			result, id, value = sini:r_line(cfg_sell,a,"","")
 			if id and (value==nil or value=="") then
-				-- Добавим в таблицу, что нельзя продавать.
 				no_sell_table[id] = true
 			end
 		end
 	end
 
-	local iniFileName = "misc\\death_generic.ltx"
-	--local death_ini = ini_file(iniFileName)
-    --' Заполняем таблицу зависимостей
-	item_dependence = {}
-	local n = iniLinesCount("item_dependence", iniFileName)
-	local id, value = "", ""
-	for i=0,n-1 do
-		result, id, value	= getIniLine("item_dependence",i,"","", iniFileName)
-		item_dependence[id] = {}
-		local vvv = parse_names(value)
-		for k,v in pairs(vvv) do
-			item_dependence[id][v] = true
-		end
-	end
- 	--' Предметы, которые нельзя продавать (квестовые например)
-	always_keep_item = {}
-    local n = iniLinesCount("keep_items", iniFileName)
-	for i=0,n-1 do
-		result, id, value	= getIniLine("keep_items",i,"","", iniFileName)
-        if value == "true" then
-            always_keep_item[id] = true
-        end
-    end
-	
-	tables_ready = true
-end
-
-function update_npc_tables()
-	off_npcs={}
-	bFlag = false
-	iTime = amk.game_minutes()
-	iCounter = 1
+	--' Предметы, которые нельзя продавать (квестовые например)
+	-- уже было загружено в death_manager, возьмём оттуда
+	always_keep_item = death_manager.get_keep_items()
 end
 
 function update_trade()
@@ -522,7 +444,7 @@ function collect_info(victim,map)
 				if opponent and opponent.id~=victim.id and opponent.health and opponent.can_switch_online and opponent:can_switch_online() and opponent:name() == off_npcs[map].stalkers[a].name  then
 					if victim.position:distance_to(opponent.position)<look_radius then
 						if opponent:health()>0 then
-							local rel = relation_check(victim,opponent)
+							local rel = relation_registry.get_goodwill(victim.id, opponent.id)
 							if rel>=rel_friend then
 								table.insert(vdata.friends, {id = opponent.id, name = opponent:name()})
 							elseif rel<=rel_enemy then
@@ -602,15 +524,6 @@ function collect_info(victim,map)
 	end
 
 	return vdata
-end
-
--- получаем отношение группировки к неписю, в оффлайне фактически равно личным отношениям неписей
-function relation_check(victim,opponent)
-	if relation_matrix[opponent:community()] and relation_matrix[opponent:community()][victim:community()] then
-		return relation_matrix[opponent:community()][victim:community()]
-	else
-		return 0
-	end
 end
 
 -- Вокруг враги! Что же делать..
