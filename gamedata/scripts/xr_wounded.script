@@ -637,141 +637,51 @@ end
 
 -- Помощь раненому
 function help_wounded(npc)
-	if npc:name()=="esc_vagon_wounded"
-		or npc:name()=="val_escort_bandit_halfdead"
+	if npc:name()=="esc_vagon_wounded"				-- Толик
+		or npc:name()=="val_escort_bandit_halfdead"	-- Жила
+		or npc:name()=="esc_bridge_soldier5"		-- Кузнецов
 	then return end
-	
---	local snd = xr_sound.get_safe_sound_object("characters_voice\\human_01\\newbie\\help\\wounded_thanx\\thanx_"..math_random(1,3))
---	snd:play_no_feedback(npc, sound_object.s3d, 0, npc:position(), 1.0)
-	xr_sound.set_sound_play(npc, "help_thanx")
 
-	amk.start_timer("healing_enemies",math_random(20,30), {npc:id(), npc:character_community()} )
-	npc:set_character_community("stalker", 0, 0)
-	npc:set_relation(game_object.friend, db.actor)
+	xr_sound.set_sound_play( npc, "help_thanx" )
+
+	amk.start_timer( "healing_enemies", math_random(20,30),
+		{npc:id(), npc:character_community()} )
+	npc:set_character_community( "stalker", 0, 0 )
+	npc:set_relation( game_object.friend, db.actor )
+	npc:enable_memory_object( db.actor, false )
+	local sobj = alife():object( npc:id() )
+	if sobj then sobj:brain():can_choose_alife_tasks( false ) end
 end
 
-
-local smarts = {
-		l01_escape = {
-			esc2_most = {0,1},
-			esc2_bandit_les = {0,1},
-			esc2_smart_stalker_exit = {0,1},
-			esc_farm_lager = {0,1},
-			esc2_st_fox_place = {0,1}
-		},
-		l02_garbage = {
-			gar_smart_graveyard = {0,1},
-			gar_smart_garage = {0,1},
-			gar_smart_bandit3 = {0,1},
-			gar_smart_stalkers_1 = {0,1}
-		},
-		l03_agroprom = {
-			agr2_st_factory = {0,1}
-		},
-		l03u_agr_underground = {
-			agr2_st_factory = {0,1}
-		},
-		l04_darkvalley = {
-			val_smart_bandit_1 = {0,3}
-		},
-		l04u_labx18 = {
-			val_smart_bandit_1 = {0,1}
-		},
-		l06_rostok = {
-			ros_smart_stalker1 = {1,2},
-			ros_smart_stalker3 = {1,2},
-			ros_smart_stalker_bandits1 = {1,2}
-		},
-		l07_military = {
-			mil_smart_dolg_kamp = {2,3},
-			mil_lager = {2,3}
-		},
-		l08_yantar = {
-			yan_st_stalker2 = {1,2}
-		},
-		l10_radar = {
-			rad2_loner_0000 = {2,3},
-			rad2_loner_0001 = {2,3},
-			rad2_loner_0002 = {2,3}
-		},
-		l11_pripyat = {
-			pri_smart_neutral_stalker1 = {3,3},
-			pri_stadium_help = {3,3}
-		},
-		marsh = {
-			stalker_green1 = {0,1,2,3},
-			stalker_green2 = {0,1,2,3},
-			kalmyak_marsh = {0,1,2,3}
-		}
-}
-	
-local smarts_avail = {}
---local smarts_other = {}
-local wound_id
-function custom_change(npc)
-	local obj = alife():object(npc:id())
-	local packet_wounded = amk.read_stalker_params(obj)
-	local level = level.name()
-	local obj_rank = get_npc_rank(npc)
-	if smarts[level] then
-		for k,v in pairs(smarts) do
-			for kk,vv in pairs(smarts[k]) do
-				local smarts_rank_min = vv[1] 
-				local smarts_rank_max = vv[2]	
-				if obj_rank and obj_rank >= smarts_rank_min and obj_rank <= smarts_rank_max then
-					local smart = alife():object(kk)
-					if smart and smart:is_gulag_available() and smart.gulag_working then
-						if string_find(level,string_sub(kk,1,3)) then
-							table.insert(smarts_avail,smart)
-						--else
-							--table.insert(smarts_other,smart)
-						end
-					end
-				end		
+-- dsh +
+function help_wounded_delayed( id, comm )
+	id = tonumber( id )
+	local npc = level.object_by_id( id )
+	if npc and npc:alive() and not npc:wounded() then
+		if math_random() < 0.25 then
+			npc:set_character_community( comm )
+			npc:set_relation( game_object.enemy, db.actor )
+		else
+			if npc:character_reputation() < 0 then
+				npc:change_character_reputation( 0 - npc:character_reputation() )
 			end
 		end
-	end	
-	wound_id = npc:id()
-	if smarts_avail and npc:alive() then 
-		if #smarts_avail > 1 then
-			table_sort(smarts_avail,max_comp)
-		end
-		if #smarts_avail > 0 then
-			packet_wounded.custom = "[smart_terrains]\n"..smarts_avail[1]:name().." = true"
-			packet_wounded.health = 1
-			packet_wounded.updhealth = 1
-			amk.write_stalker_params(packet_wounded,obj)
-		end
-	--elseif smarts_other then 
-	--	if table.getn(smarts_other) > 1 then
-	--		table_sort(smarts_other,max_comp)
-	--	end
-	--	if table.getn(smarts_other) > 0 then
-	--		packet_wounded.custom = "[smart_terrains]\n"..smarts_other[1]:name().." = true"
-	--		amk.write_stalker_params(packet_wounded,obj)
-	--	end
 	end
-	local unreg_id = obj:smart_terrain_id()    
-	if unreg_id ~= 65535 and npc:alive() then      
-		local unreg = alife():object(unreg_id)
-		if unreg then        
-			unreg:unregister_npc(obj) 
-		end  
-	end
+	custom_change( id )
 end
 
-function get_npc_rank(obj)
-	local sobj = alife():object(obj:id())
-	if sobj and sobj.rank and sobj:rank()  then
-		return math_floor(sobj:rank()/290)
-	end
-	return nil
-end
 
-function max_comp(i1,i2) -- возвращает true если i1 меньше i2
-	if wound_id then
-		local sobj = alife():object(wound_id)
-		local sobj_pos = sobj.position
-		return i1.position:distance_to(sobj_pos) < i2.position:distance_to(sobj_pos)
+function custom_change( id )
+	local sobj = alife():object( id )
+	if sobj then
+		naxac_netpk.modify( sobj, {custom_data = ""}, 1 )
+
+		local npc = level.object_by_id( id )
+		if npc then
+			xr_gulag.resetJob( npc )
+		end
+		smart_terrain.unregister_npc( sobj )
+		sobj:brain():can_choose_alife_tasks( true )
+		sobj:brain():update()
 	end
 end
