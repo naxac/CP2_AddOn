@@ -63,8 +63,9 @@ function se_stalker:can_switch_offline ()
 --  elseif amk.convert_npc[self.id]==false then
   --  return false
   end
-  if self:get_job_online() ~= nil then
-    return not self:get_job_online()
+  local job = self:get_job_online()
+  if job ~= nil then
+    return not job
   else
     return cse_alife_human_stalker.can_switch_offline (self)
   end
@@ -82,8 +83,9 @@ function se_stalker:can_switch_online ()
     return false
   end
 
-  if self:get_job_online() ~= nil then
-    return self:get_job_online()
+  local job = self:get_job_online()
+  if job ~= nil then
+    return job
   end
 
   if self.ini == nil or self.spawner == nil then
@@ -138,7 +140,7 @@ end
 function se_stalker:STATE_Read (packet, size)
 	cse_alife_human_stalker.STATE_Read (self, packet, size)
 
-	if self.script_version >= 3 then
+--	if self.script_version >= 3 then
 		local t = packet:r_u8()
 		t=bit_and(t,3) -- Задел на будущее
 		if t == 0 then
@@ -152,25 +154,23 @@ function se_stalker:STATE_Read (packet, size)
 
 			self.job_online = xr_logic.parse_condlist(nil, "se_stalker:STATE_Read", "job_online", self.job_online_condlist)
 		end
-	end
+--	end
 
-	if self.script_version >= 5 then
+--	if self.script_version >= 5 then
 		self.was_in_smart_terrain = packet:r_bool()
-	end
+--	end
 
-	if self.script_version >= 6 then
+--	if self.script_version >= 6 then
 		-- Прочитаем состояние раненности.
 		local ddw = packet:r_u8()
 		self.death_droped		= bit_and(ddw,1)==1
 		self.wounded			= bit_and(ddw,2)==2
 		self.treasure_processed	= bit_and(ddw,4)==4
-	end
-	
-	if not packet:r_eof() then
-		local _time = packet:r_s16()
-		self.resupply_time = amk.game_hours() + _time
+--	end
+
+	local _time = packet:r_eof() and -1 or packet:r_s16()
+	self.resupply_time = amk.game_hours() + _time
 	--	log1("se_stalker:STATE_Read["..self:name().."] -> resupply_time = "..self.resupply_time)
-	end
 end
 --------------------
 function se_stalker:on_before_register()
@@ -204,8 +204,9 @@ function se_stalker:on_register()
 		end
 		amk_names_lists.add_name(self)
 	end
-
-
+	-- dsh: Принудительно установим мобам flInteractive
+	-- Есть подозрение, что те, у кого этот флаг сброшен, а таких полно в all.spawn, не обходят аномалии.
+	alife():set_interactive( self, true )
   --' Нарисовать мапспот с собой
 --' if sim_statistic.show_stalker_spot == true and self:alive() then
 --'   local community, rank = sim_statistic.getNpcType(self)
@@ -287,9 +288,7 @@ end
 function se_trader:STATE_Read (packet, size)
 	cse_alife_trader.STATE_Read (self, packet, size)
 
-	if not packet:r_eof() then
-		local _time = packet:r_s16()
-		self.resupply_time = amk.game_hours() + _time
+	local _time = packet:r_eof() and -1 or packet:r_s16()
+	self.resupply_time = amk.game_hours() + _time
 	--	log1("se_trader:STATE_Read["..self:name().."] -> resupply_time = "..self.resupply_time)
-	end
 end
