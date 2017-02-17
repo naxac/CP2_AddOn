@@ -69,43 +69,43 @@ local level_anoms={
 
 local level_arts, max_arts_count = nil, 1
 
-local level_vertexes= {
-	l01_escape				= 595499,
-	l02_garbage				= 382663,
-	l03_agroprom			= 437421,
-	l03u_agr_underground	= 4932,
-	l04_darkvalley			= 390125,
-	l04u_labx18				= 7581,
-	l05_bar					= 99539,
-	l06_rostok				= 67713,
-	l08_yantar				= 141471,
-	l08u_brainlab			= 8008,
-	l07_military			= 418268,
-	l10_radar				= 227189,
-	l11_pripyat				= 261219,
-	l12_stancia				= 477923,
-	l12u_sarcofag			= 10672,
-	l12u_control_monolith	= 3982,
-	l12_stancia_2			= 264577,
-	l10u_bunker				= 8821,
-	atp_for_test22			= 1049687,
-	peshera					= 32341,
-	puzir					= 377572,
-	aver					= 1790762,
-	av_peshera				= 172637,
-	limansk					= 61524,
-	hospital				= 7865,
-	generators				= 752337,
-	warlab					= 7776,
-	red_forest				= 166431,
-	lost_village			= 49127,
-	marsh					= 528961,
-	dead_city				= 551769,
-	zaton					= 1851251,
-	jupiter					= 1486320,
-	pripyat					= 487255,
-	jupiter_underground		= 41001,
-	labx8					= 6781
+local level2vertexes = {
+	l01_escape				= { min = 0,    max = 251,  lvl = 595499  },
+	l02_garbage				= { min = 252,  max = 415,  lvl = 382663  },
+	l03_agroprom			= { min = 416,  max = 702,  lvl = 437421  },
+	l03u_agr_underground	= { min = 703,  max = 810,  lvl = 4932    },
+	l04_darkvalley			= { min = 811,  max = 1108, lvl = 390125  },
+	l04u_labx18				= { min = 1109, max = 1167, lvl = 7581    },
+	l05_bar					= { min = 1168, max = 1307, lvl = 99539   },
+	l06_rostok				= { min = 1308, max = 1437, lvl = 67713   },
+	l08_yantar				= { min = 1438, max = 1528, lvl = 141471  },
+	l08u_brainlab			= { min = 1529, max = 1544, lvl = 8008    },
+	l07_military			= { min = 1545, max = 1861, lvl = 418268  },
+	l10_radar				= { min = 1862, max = 2116, lvl = 227189  },
+	l11_pripyat				= { min = 2117, max = 2272, lvl = 261219  },
+	l12_stancia				= { min = 2273, max = 2401, lvl = 477923  },
+	l12u_sarcofag			= { min = 2402, max = 2466, lvl = 10672   },
+	l12u_control_monolith	= { min = 2467, max = 2516, lvl = 3982    },
+	l12_stancia_2			= { min = 2517, max = 2660, lvl = 264577  },
+	l10u_bunker				= { min = 2661, max = 2791, lvl = 8821    },
+	atp_for_test22			= { min = 2792, max = 2861, lvl = 1049687 },
+	peshera					= { min = 2862, max = 2880, lvl = 32341   },
+	puzir					= { min = 2881, max = 2885, lvl = 377572  },
+	aver					= { min = 2886, max = 2908, lvl = 1790762 },
+	av_peshera				= { min = 2909, max = 2987, lvl = 172637  },
+	limansk					= { min = 2988, max = 3027, lvl = 61524   },
+	hospital				= { min = 3028, max = 3075, lvl = 7865    },
+	generators				= { min = 3076, max = 3152, lvl = 752337  },
+	warlab					= { min = 3153, max = 3223, lvl = 7776    },
+	red_forest				= { min = 3224, max = 3323, lvl = 166431  },
+	lost_village			= { min = 3324, max = 3336, lvl = 49127   },
+	marsh					= { min = 3337, max = 3581, lvl = 528961  },
+	dead_city				= { min = 3582, max = 3659, lvl = 551769  },
+	zaton					= { min = 3660, max = 3699, lvl = 1851251 },
+	jupiter					= { min = 3700, max = 3747, lvl = 1486320 },
+	pripyat					= { min = 3748, max = 3770, lvl = 487255  },
+	jupiter_underground		= { min = 3771, max = 3829, lvl = 41001   },
+	labx8					= { min = 3830, max = 3850, lvl = 6781    }
 }
 
 local vertexes = {}
@@ -113,28 +113,15 @@ local vertexes = {}
 --[[-------------------------- variable and table ---------------------end--]]
 --[[-------------------------- function for spawn --------------------------]]
 function getVertexes(lvl_name)
-	local gv, i, v = {}, 0, nil
-	local sim = alife()
-	local gg = game_graph()
-	local f = false
-	while gg:valid_vertex_id(i) do
-		v = gg:vertex(i)
-		if sim:level_name(v:level_id()) == lvl_name then
-			f = true
-			gv[#gv+1] = i
-		elseif f then
-			break
-		end
-		i = i + 1
-	end
-	vertexes.min = math.min(unpack(gv))
-	vertexes.max = math.max(unpack(gv))
-	vertexes.lvl = level_vertexes[lvl_name]
-		or abort("amk_anoms.getVertexes: max level_vertex not found for level [%s]", lvl_name)
+	local t = level2vertexes[lvl_name]
+		or abort("amk_anoms.getVertexes: vertexes not found for level [%s]", lvl_name)
+	vertexes.min = t.min
+	vertexes.max = t.max
+	vertexes.lvl = t.lvl
 end
 
 function get_max_level_vertex()
-	return level_vertexes[level.name()]
+	return level2vertexes[level.name()].lvl
 		or abort("amk_anoms.get_max_level_vertex: level_vertex not found for level [%s]", level.name())
 end
 
@@ -192,7 +179,7 @@ function init()
 end 
 
 function after_blow_on()
-	for lvl in pairs(level_anoms) do
+	for lvl in pairs(level2vertexes) do
 		db.actor:disable_info_portion("testsak_"..lvl)
 	end
 	
@@ -204,11 +191,14 @@ end
 
 function can_remove_anom(sobj, map)
 	if not check_exclusion(sobj,map) then
-		local status=get_anomaly_status(sobj)
-		if status=="" or status=="on" then
-			set_anomaly_status(sobj,"del")
-			return true
-		end
+		set_online_anomaly_status(sobj.id,"del")
+		return true
+	elseif math.random() < 0.2
+		and news_main.isIsolatedLevel(map)
+		and not has_alife_info("testsak_"..map)
+	then
+		db.actor:give_info_portion("testsak_"..map)
+		amk_anoms.spawn_anom_art(sobj)
 	end
 	return false
 end
@@ -279,6 +269,42 @@ function generate_arts(lname)
 	end
 end
 
+function spawn_anom_art(sobj)
+	local sect = sobj:section_name()
+	local art_section
+	if sys_ini:line_exist(sect, "artefacts") then
+		local str = sys_ini:r_string(sect, "artefacts")
+		if str == nil or str == "" then return false end
+		local tmp = string.explode(str, ",", true)
+		local arts = { all = {} }
+		for i = 1, #tmp, 2 do
+			arts[tmp[i]] = tonumber(tmp[i+1])
+			table.insert(arts.all, tmp[i])
+		end
+		art_section = table.random(arts.all)
+	--	log("amk_anoms.spawn_anom_art: attempt to create artefact '%s' in '%s'", art_section, sobj:name())
+		if math.random(1,1000)/1000 > arts[art_section] then
+	--		log("! failed")
+			return false
+		end
+	else
+		return false
+	end
+	if not art_section then return false end
+
+	local pos = sobj.position
+	local x = math.random(-30,30)/100
+	local z = math.random(-30,30)/100
+	local y = math.random(30,50)/100
+	local art = alife():create(art_section,
+					    pos:add(vector():set(x,y,z)),
+						sobj.m_level_vertex_id,
+						sobj.m_game_vertex_id)
+	del_ai_flag(art)
+--	log("- successfully")
+	return true
+end
+
 function generate_anomaly()
 	local new_lv=math_random(1,vertexes.lvl)
 	local actor_pos=db.actor:position()
@@ -341,7 +367,6 @@ function spawn_anomaly(section,pos,gv,lv,shape,status)
 	if sobj then
 		local tbl = amk.get_anomaly_data(sobj)
 		tbl.shapes=shape
-		tbl.custom=modify_anomaly_custom_data(tbl.custom,status)
 		amk.set_anomaly_data(tbl, sobj)
 	end
 	return sobj
@@ -420,35 +445,8 @@ function check_coordinates(pos, lname)
 	return true
 end
 
-function get_anomaly_status(sobj)
-	local tbl = amk.get_anomaly_data(sobj)
-	local cd=tbl.custom
-	cd=amk.parse_custom_data(cd)
-	if not cd.dyn_anom then return "" end
-	if not cd.dyn_anom.status then return "" end
-	return cd.dyn_anom.status
-end
-
 function is_anomaly(class_id)
 	return (class_id and anoms_classes[class_id]==true)
-end
-
-function modify_anomaly_custom_data(cd,status)
-	cd=amk.parse_custom_data(cd)
-	if not cd then cd={} end
-	if not cd.dyn_anom then cd.dyn_anom={} end 
-	cd.dyn_anom.status=status
-	return amk.gen_custom_data(cd)
-end
-
-function set_anomaly_status(sobj,status)
-	if sobj then
-		local anom_id=sobj.id
-		local tbl=amk.get_anomaly_data(sobj)
-		tbl.custom=modify_anomaly_custom_data(tbl.custom,status)
-		amk.set_anomaly_data(tbl, sobj)
-		set_online_anomaly_status(anom_id,status)
-	end
 end
 
 function set_online_anomaly_status(obj_id,status)
@@ -646,12 +644,7 @@ function anom_binder:__init(obj) super(obj) end
 function anom_binder:net_spawn(sobj)
 	if not object_binder.net_spawn( self,sobj ) then return false end
 
-	local status=get_anomaly_status(sobj)
-	if status=="del" or status=="off" then
-		self.object:disable_anomaly()
-	else
-		amk_anoms.add_anomaly(sobj.id,sobj.position,sobj.radius)
-	end
+	amk_anoms.add_anomaly(sobj.id,sobj.position,sobj.radius)
 	return true
 end
 
