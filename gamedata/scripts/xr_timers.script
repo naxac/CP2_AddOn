@@ -7,21 +7,17 @@ class "nTimers"
 function nTimers:__init()
 	self.timers = {}
 	self.to_start = {}
+	self.stmr_id = 0
 	self.need_sort = false
-	self.ms = get_ms()
 end
 
 function nTimers:load_timers()
-	local tmp = amk.load_table("timers")
-	local m = self.ms
-	if not has_alife_info("timers_fix") then
-		m = 0
-		db.actor:give_info_portion("timers_fix")
-	end
-	for i, v in ipairs(tmp) do
+	local tmp = amk.load_table( "timers" )
+	local ms = get_ms()
+	for i, v in ipairs( tmp ) do
 		local t = {}
 		t.name = v[1]
-		t.time = v[2] + m
+		t.time = v[2] + ms
 		t.params = v[3] or ""
 		table.insert(self.timers, t)
 	end
@@ -30,50 +26,53 @@ end
 
 function nTimers:save_timers()
 	local tmp = {}
-	for i, v in ipairs(self.timers) do
-		table.insert( tmp, { v.name, v.time - self.ms, v.params} )
+	local ms = get_ms()
+	for i, v in ipairs( self.timers ) do
+		if v.no_save == nil then
+			table.insert( tmp, { v.name, v.time - ms, v.params} )
+		end
 	end
-	amk.save_table("timers", tmp)
+	amk.save_table( "timers", tmp )
 end
 
 function nTimers:check_timers()
-
-	self.ms = get_ms()
-
-	if #self.timers == 0 then return end
-
 	if self.need_sort then
 		self.need_sort = false
-		table.sort(self.timers, function(t1, t2)
+		table.sort( self.timers, function(t1, t2)
 			return t1.time > t2.time
-		end)
+		end )
 	end
 
 	local tmr, f = nil, false
+	local ms = get_ms()
 	for i = #self.timers, 1, -1 do
 		tmr = self.timers[i]
-		if self.ms > tmr.time then
+		if ms > tmr.time then
 			f = true
-			table.insert( self.to_start, { n = tmr.name, p = tmr.params } )
-			table.remove(self.timers)
+			table.insert( self.to_start, { n = tmr.name, p = tmr.params, f = tmr.func } )
+			table.remove( self.timers )
 		else
 			break
 		end
 	end
 
 	if f then
-		for i, v in ipairs(self.to_start) do
-			xr_timers_actions.timer_action( v.n, v.p )
+		for i, v in ipairs( self.to_start ) do
+			if v.f then
+				v.f( unpack(v.p) )
+			else
+				xr_timers_actions.timer_action( v.n, v.p )
+			end
 		end
 		self.to_start = {}
 	end
 end
 
 function nTimers:get_timer( name )
-	for i, v in ipairs(self.timers) do
+	for i, v in ipairs( self.timers ) do
 		if v.name == name then
 			local t = table.copy( {}, v )
-			t.time_shift = t.time - self.ms
+			t.time_shift = t.time - get_ms()
 			return t
 		end
 	end
@@ -81,7 +80,7 @@ function nTimers:get_timer( name )
 end
 
 function nTimers:has_timer( name )
-	for i, v in ipairs(self.timers) do
+	for i, v in ipairs( self.timers ) do
 		if v.name == name then
 			return true
 		end
@@ -91,7 +90,7 @@ end
 
 function nTimers:has_timer_parameter(name, parameter)
 	local res = false
-	for i, v in ipairs(self.timers) do
+	for i, v in ipairs( self.timers ) do
 		if v.name == name and v.params == parameter then
 			res = true
 			break
@@ -103,7 +102,7 @@ end
 function nTimers:remove_timer( name )
 	for i = #self.timers, 1, -1 do
 		if self.timers[i].name == name then
-			table.remove(self.timers, i)
+			table.remove( self.timers, i )
 		end
 	end
 	self.need_sort = true
@@ -112,9 +111,9 @@ end
 function nTimers:start_timer( name, time, params )
 	local t = {}
 	t.name = name
-	t.time = time + self.ms
+	t.time = time + get_ms()
 	t.params = params or ""
-	table.insert(self.timers, t)
+	table.insert( self.timers, t )
 	self.need_sort = true
 	return true
 end
@@ -134,6 +133,21 @@ function nTimers:start_game_timer( name, delay_d, delay_h, delay_m, parameters )
 	local tmr = ( delay_d*60*24 + delay_h*60 + delay_m ) * 60 * 1000
 	return self:start_timer( name, tmr, parameters )
 end
+
+function nTimers:start_small_timer( time_ms, func, ... )
+	ASSERT( time_ms and func, "nTimers:start_small_timer: incorrect parameters: [ %s : %s ]",
+		tostring(time_ms), tostring(func) )
+	local t = {}
+	t.name = "smltmr_"..self.stmr_id
+	t.time = time_ms * level.main_time_factor + get_ms()
+	t.func = func
+	t.params = {...}
+	t.no_save = true
+	self.stmr_id = self.stmr_id + 1
+	table.insert( self.timers, t )
+	self.need_sort = true
+	return t.name
+end
 ----------------------------------------------------------
 function get_mgr()
 	if mgr == nil then mgr = nTimers() end
@@ -141,16 +155,12 @@ function get_mgr()
 end
 
 function init()
-	xr_timers_actions.timer_action("~~ timers init ~~", "") -- init actions
+	xr_timers_actions.timer_action( "~~ timers init ~~", "" ) -- init actions
 	get_mgr():load_timers()
 end
 
-local upd_time = 0
-function update(delta)
-	upd_time = upd_time + delta
-	if upd_time < 100 then return end
+function update( delta )
 	get_mgr():check_timers()
-	upd_time = 0
 end
 
 function save()
@@ -164,18 +174,26 @@ function start_game_timer(...)
 	return get_mgr():start_game_timer(...)
 end
 
-function remove_timer(name)
-	get_mgr():remove_timer(name)
+function remove_timer( name )
+	get_mgr():remove_timer( name )
 end
 
-function has_timer(name)
-	return get_mgr():has_timer(name)
+function has_timer( name )
+	return get_mgr():has_timer( name )
 end
-function get_timer(name)
-	return get_mgr():get_timer(name)
+function get_timer( name )
+	return get_mgr():get_timer( name )
 end
 
-function has_timer_par(name, p)
-	return get_mgr():has_timer_parameter(name, p)
+function has_timer_par( name, p )
+	return get_mgr():has_timer_parameter( name, p )
+end
+
+-- небольшой несохраняемый таймер в реальном времени
+_G['start_small_timer'] = function ( time, func, ... )
+	return get_mgr():start_small_timer( time, func, ... )
+end
+_G['remove_small_timer'] = function ( name )
+	get_mgr():remove_timer( name )
 end
 

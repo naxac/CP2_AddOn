@@ -38,7 +38,7 @@ function PDAAdd:InitControls()
 			level.start_stop_menu(self.owner, true)
 		end
 		self:Register(xml:InitButton("btn_off", self), "button_off")
-		self:AddCallback("button_off", ui_events.BUTTON_CLICKED, self.OnQuit, self)
+		self:AddCallbackEx("button_off", ui_events.BUTTON_CLICKED, self.OnQuit, self)
 			
 		level.start_stop_menu(self, true)
 	else
@@ -50,20 +50,19 @@ function PDAAdd:InitControls()
 		local btn = xml:InitButton("btn_off", self.stat)
 		self:Register(btn, "button_off")
 		self:AddCallback("button_off", ui_events.BUTTON_CLICKED,
-			function() level.start_stop_menu(level.main_input_receiver(), true) end,
-				self)
+			function() level.start_stop_menu(level.main_input_receiver(), true) end )
 	
 		btn = xml:InitButton("btn_show_message_dlg", self.stat)
 		self:Register(btn, "button_msg")
-		self:AddCallback("button_msg", ui_events.BUTTON_CLICKED, self.ShowSmsDlg, self)
+		self:AddCallbackEx("button_msg", ui_events.BUTTON_CLICKED, self.ShowSmsDlg, self)
 		
 		btn = xml:InitButton("btn_show_notepad", self.stat)
 		self:Register(btn, "button_notes")
-		self:AddCallback("button_notes", ui_events.BUTTON_CLICKED, self.ShowNotepadDlg, self)
+		self:AddCallbackEx("button_notes", ui_events.BUTTON_CLICKED, self.ShowNotepadDlg, self)
 		
 		btn = xml:InitButton("btn_show_timer", self.stat)
 		self:Register(btn, "button_timer")
-		self:AddCallback("button_timer", ui_events.BUTTON_CLICKED, self.ShowTimerDlg, self)
+		self:AddCallbackEx("button_timer", ui_events.BUTTON_CLICKED, self.ShowTimerDlg, self)
 	end
 end
 
@@ -87,6 +86,7 @@ end
 
 function PDAAdd:DetachWnd()
 	if self.stat then
+		self:unregister_self()
 		self.owner:DetachChild(self.stat)
 	end
 end

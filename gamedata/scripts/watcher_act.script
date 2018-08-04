@@ -424,27 +424,30 @@ function act_grab_body:execute()
 			end,
 			nil)
 			if isstalker then
-				-- По стоимости награбленного определяем, что будем говорить
-				self.st.loot_snd = "loot_"..(num > 5000 and "good" or "bad")
-				
-				num=gi:money() 
-				if num and num >0 then 
-					local deadmoney = num
-					local gi_rank = ranks.get_obj_rank_name(gi)
-					if gi_rank ~= nil then
-						if gi_rank == "novice" and deadmoney >=70 then
-							deadmoney=math_random(25,70)    
-						elseif gi_rank == "experienced" and deadmoney >=150 then
-							deadmoney=math_random(50,150)  
-						elseif gi_rank == "veteran" and deadmoney >=220 then
-							deadmoney=math_random(100,220) 
-						elseif gi_rank == "master" and deadmoney >=300 then
-							deadmoney=math_random(200,300)  
+				local m=gi:money() 
+				if m and m >0 then 
+					num = num + m
+					local deadmoney = m
+					if not game_options.RealMoney then
+						local gi_rank = ranks.get_obj_rank_name(gi)
+						if gi_rank ~= nil then
+							if gi_rank == "novice" and deadmoney >=70 then
+								deadmoney=math_random(25,70)    
+							elseif gi_rank == "experienced" and deadmoney >=150 then
+								deadmoney=math_random(50,150)  
+							elseif gi_rank == "veteran" and deadmoney >=220 then
+								deadmoney=math_random(100,220) 
+							elseif gi_rank == "master" and deadmoney >=300 then
+								deadmoney=math_random(200,300)  
+							end
 						end
 					end
 					npc:give_money(deadmoney) 
-					gi:give_money(-num) 
+					gi:give_money(-m) 
 				end
+				
+				-- По стоимости награбленного определяем, что будем говорить
+				self.st.loot_snd = "loot_"..(num > 5000 and "good" or "bad")
 			end
 			corpse_checked[gi:id()]=false
 		end

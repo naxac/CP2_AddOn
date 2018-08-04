@@ -493,11 +493,8 @@ function motivator_binder:save(packet)
 --	printf("motivator_binder:save(): self.object:name()='%s'", self.object:name())
 	object_binder.save(self, packet)
 
-	packet:w_bool(false)
-
 	xr_logic.save_obj(self.object, packet)
 	dialog_manager.save(self.object, packet)
-	trade_manager.save(self.object, packet)
 
 	if self.rot_time == 65535 and not self.object:alive() then
 	--	помер, либо гг нашел труп - выставляем время гниения
@@ -519,30 +516,24 @@ function motivator_binder:load(reader)
 --	printf("motivator_binder:object_binder.load(): self.object:name()='%s'", self.object:name())
 
 	if reader:r_eof() then
-	--	abort("Это сохранение повреждено - удалите его! motivator_binder:load "..self.object:name())
+		-- abort("Это сохранение повреждено - удалите его! motivator_binder:load "..self.object:name())
 		remove_zavis.remove_obj(self.object)
 		if not self.object then
 			return
 		end
 	end
 
-	local unused = reader:r_bool()
-
 	xr_logic.load_obj(self.object, reader)
---	dialog_manager.load(self.object, reader)
 	local npc_script_version = alife():object(self.object:id()).script_version
 	dialog_manager.load(self.object, reader, npc_script_version)
-	trade_manager.load(self.object, reader)
   
-	if not reader:r_eof() then -- для обратной совместимости
-		self.rot_time = reader:r_u16()
-	end
+	self.rot_time = reader:r_u16()
 
-	if reader:r_eof() then return end
 	local i = reader:r_u8()
-	for k = 1,i do
-		local key = reader:r_u16()
-		self.opened_doors[key] = true
+	if i>0 then
+		for k = 1,i do
+			self.opened_doors[reader:r_u16()] = true
+		end
 	end
 end
 

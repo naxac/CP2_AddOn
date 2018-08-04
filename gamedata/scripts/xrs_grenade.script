@@ -465,7 +465,10 @@ function action_fire_in_the_hole:execute()
 		local gr = get_grenade(self.a.grenade)
 	--	log1("throw grenade ["..gr:section()..":"..self.a.grenade.."] : npc '"..npc:name().."'")
 		throw(self.a.grenade,self.a.throwing_type,self.a.target_point)
-		level.map_add_object_spot(self.a.grenade, "grenade_location", gr:section())
+	--	level.map_add_object_spot(self.a.grenade, "grenade_location", gr:section())
+		local be = npc:best_enemy()
+		local mark = be and be:id()==0 and "red" or nil
+		ui_grenade_marks.add_new_marker(self.a.grenade, mark)
 		
 		grenades[gr:id()] = self.a.grenades[gr:section()].explode_time + self.can_explode
 		
@@ -654,9 +657,11 @@ function update(delta)
 			if obj then
 				obj:explode(0)
 				to_remove[k]=true
+				ui_grenade_marks.start_fading(k)
 			end
 		else
 			to_remove[k]=true
+			ui_grenade_marks.start_fading(k)
 		end
 	end
 
@@ -704,6 +709,9 @@ function update(delta)
 	for k in pairs(to_remove) do
 		test_grenades[k] = nil
 	end
+	
+	amk.oau_watchdog=178
+	ui_grenade_marks.update_grenade_marks()
 end
 
 function death_callback(npc)
@@ -794,7 +802,8 @@ function release_grenade(sobj)
 end
 
 function fake_pickup(obj)
-	level.map_remove_object_spot(obj:id(), "grenade_location")
+--	level.map_remove_object_spot(obj:id(), "grenade_location")
+	ui_grenade_marks.start_fading(obj:id())
 	for k,v in ipairs(gr_types) do
 		if obj:section()==v.."_test" or obj:section()==v.."_fake" then
 			local sobj = alife():object(obj:id())

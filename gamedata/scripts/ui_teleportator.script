@@ -19,7 +19,6 @@ function destination:__init() super()
 	self.pm:SetFont(GetFontLetterica18Russian())
 	self.pm:SetTextColor(255,216,186,140)
 ]]
-	ShowInvDescr(false)
 end
 
 class "teleportator_menu" (CUIScriptWnd)
@@ -31,6 +30,7 @@ function teleportator_menu:__init() super()
 	self:InitControls()
 	self:InitCallBacks()
 	self:FillList()
+	BlockUIDescr(true)
 end
 
 function teleportator_menu:__finalize() end
@@ -92,9 +92,9 @@ function teleportator_menu:InitControls()
 end
 
 function teleportator_menu:InitCallBacks()
-	self:AddCallback("btn_ok", ui_events.BUTTON_CLICKED, self.on_ok, self)
-	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit, self)
-	self:AddCallback("list_window", ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked, self)
+	self:AddCallbackEx("btn_ok", ui_events.BUTTON_CLICKED, self.on_ok, self)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit, self)
+	self:AddCallbackEx("list_window", ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked, self)
 end
 
 function teleportator_menu:OnKeyboard(dik, keyboard_action)
@@ -126,6 +126,7 @@ function teleportator_menu:on_ok()
 end
 
 function teleportator_menu:on_quit()
+	self:unregister_self()
 	self:GetHolder():start_stop_menu(self, true)
-	ShowInvDescr(true)
+	BlockUIDescr(false)
 end

@@ -370,7 +370,7 @@ function Cmeet_manager:process_use()
     end
     return
   end
-
+  
   local t
   if db.actor:active_item() and IAmAWeapon[db.actor:active_item():clsid()] then
     t = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.use_wpn)
@@ -392,6 +392,7 @@ function Cmeet_manager:process_use()
 
   if t == "true" then
     self.npc:enable_talk()
+	self:check_trade()
   elseif t == "false" then
     self.npc:disable_talk()
     if is_talking then
@@ -401,10 +402,19 @@ function Cmeet_manager:process_use()
     if not is_talking then
 --      printf("MM3 %s start talk", self.npc:name())
       db.actor:run_talk_dialog(self.npc)
+	  self:check_trade()
     end
   end
 end
 
+function Cmeet_manager:check_trade()
+	local can_trade = self.npc:is_trade_enabled()
+	if self.a.can_trade == "false" and can_trade then
+		self.npc:disable_trade()
+	elseif self.a.can_trade == "true" and not can_trade then
+		self.npc:enable_trade()
+	end
+end
 ----------------------------------------------------------------------------------------------------------------------
 -- binder
 ----------------------------------------------------------------------------------------------------------------------
@@ -498,6 +508,7 @@ function init_meet(npc, ini, section, st, scheme)
     def.syndata     = "backoff@threat_weap"
     def.precond     = "usability"
     def.abuse     = "true"
+	def.can_trade = "true"
   elseif tostring(scheme) == "kamp" then
     def.meet_state    = "2|wait"
     def.meet_state_wpn  = ""
@@ -509,6 +520,7 @@ function init_meet(npc, ini, section, st, scheme)
     def.syndata     = ""
     def.precond     = "usability"
     def.abuse     = "false"
+	def.can_trade = "true"
   --[[elseif npc_community == "monolith" or
     --npc_community == "killer" or
     npc_community == "zombied" then
@@ -521,7 +533,8 @@ function init_meet(npc, ini, section, st, scheme)
     def.use_wpn     = "false"
     def.syndata     = ""
     def.precond     = "visibility"
-    def.abuse     = "false"]]
+    def.abuse     = "false"
+	def.can_trade = "false"]]
 elseif npc_community == "fotoman" then
     def.meet_state    = ""
     def.meet_state_wpn  = ""
@@ -533,6 +546,7 @@ elseif npc_community == "fotoman" then
     def.syndata     = ""
     def.precond     = "usability"
     def.abuse     = "false"
+	def.can_trade = "false"
   elseif npc_community == "military" or
     npc_community == "bandit"
   then
@@ -546,6 +560,7 @@ elseif npc_community == "fotoman" then
     def.syndata     = ""
     def.precond     = "usability"
     def.abuse     = "true"
+	def.can_trade = "true"
   else
     def.meet_state    = "2|wait"
     def.meet_state_wpn  = ""
@@ -557,6 +572,7 @@ elseif npc_community == "fotoman" then
     def.syndata     = ""
     def.precond     = "usability"
     def.abuse     = "true"
+	def.can_trade = "true"
   end
 
 
@@ -574,6 +590,7 @@ elseif npc_community == "fotoman" then
     st.syndata      = parse_syn_data(npc, def.syndata)
     st.precond      = def.precond
     st.abuse      = def.abuse
+    st.can_trade  = def.can_trade
   elseif tostring(section) == "no_meet" then
     st.meet_state   = parse_data(npc, "")
     st.meet_state_wpn = parse_data(npc, "")
@@ -587,6 +604,7 @@ elseif npc_community == "fotoman" then
     st.syndata      = parse_syn_data(npc, "")
     st.precond      = "usability"
     st.abuse      = "false"
+    st.can_trade  = "false"
   else
     st.meet_state   = parse_data(npc, utils.cfg_get_string(ini, section, "meet_state", npc, false, "", def.meet_state))
     st.meet_state_wpn = parse_data(npc, utils.cfg_get_string(ini, section, "meet_state_wpn", npc, false, "", def.meet_state_wpn))
@@ -600,6 +618,7 @@ elseif npc_community == "fotoman" then
     st.syndata      = parse_syn_data(npc, utils.cfg_get_string(ini, section, "synpairs", npc, false, "", def.syndata))
     st.precond      = utils.cfg_get_string(ini, section, "precond", npc, false, "", def.precond)
     st.abuse      = utils.cfg_get_string(ini, section, "abuse", npc, false, "", def.abuse)
+    st.can_trade  = utils.cfg_get_string(ini, section, "can_trade", npc, false, "", def.can_trade)
   end
 
   --print_table(st)

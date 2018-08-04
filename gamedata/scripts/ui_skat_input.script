@@ -67,7 +67,7 @@ function UISkatInputPanel:__init(st, section) super()
 	self.quit:SetStretchTexture(true)
 	self.frame:AttachChild(self.quit)
 	self:Register(self.quit, "btn_quit")
-	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.Hide, self)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.Hide, self)
 	
 	local t = params[section]
 	local step, n = 25, 0
@@ -98,6 +98,7 @@ function UISkatInputPanel:CheckWnd(section)
 		local t = params[section]
 		local nm
 		for k, v in pairs(t) do
+			nm = 'check_'..k
 			self[nm]:SetCheck(v and has_alife_info("skat_"..k.."_on"))
 			self[nm]:Enable(v)
 		end
@@ -120,6 +121,7 @@ function UISkatInputPanel:Remove()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unregister_callback(k, this[v])
 	end
+	self:unregister_self()
 	_wnd = nil
 end
 

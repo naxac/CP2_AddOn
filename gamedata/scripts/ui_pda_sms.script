@@ -47,17 +47,17 @@ function UIMsgWnd:InitControls()
 end
 
 function UIMsgWnd:InitCallbacks()
-	self:AddCallback("edit", ui_events.EDIT_TEXT_CHANGED, self.ChangeText, self)
-	self:AddCallback("button_lang", ui_events.BUTTON_CLICKED, self.OnChangeLanguage, self)
-	self:AddCallback("button_clear", ui_events.BUTTON_CLICKED,
-		function()
-			self.st:SetText(cur)
-			self.txt = cur
-			self:ChangeCost()
-		end,
-	self)
-	self:AddCallback("button_send", ui_events.BUTTON_CLICKED, self.OnButtonSend, self)
-	self:AddCallback("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit, self)
+	self:AddCallbackEx("edit", ui_events.EDIT_TEXT_CHANGED, self.ChangeText, self)
+	self:AddCallbackEx("button_lang", ui_events.BUTTON_CLICKED, self.OnChangeLanguage, self)
+	self:AddCallbackEx("button_clear", ui_events.BUTTON_CLICKED, self.OnButtonClear, self)
+	self:AddCallbackEx("button_send", ui_events.BUTTON_CLICKED, self.OnButtonSend, self)
+	self:AddCallbackEx("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit, self)
+end
+
+function UIMsgWnd:OnButtonClear()
+	self.st:SetText(cur)
+	self.txt = cur
+	self:ChangeCost()
 end
 
 function UIMsgWnd:OnButtonSend()
@@ -87,6 +87,7 @@ end
 
 function UIMsgWnd:OnButtonQuit()
 	self.owner:Enable(true)
+	self:unregister_self()
 	self:GetHolder():start_stop_menu(self, true)
 end
 
@@ -194,7 +195,7 @@ function find_answer(text)
 				"Здорово, коль не шутишь.",
 				"Приветствую. Как оно?",
 				"Чего эфир засоряешь, "..act_name.."?!",
-				"Доброго времени. Что, "..act_name..", тоже заняться нечем? Подруливай в Бар)"
+				"Доброго времени. Что, "..act_name..", тоже заняться нечем? Подруливай в Бар."
 			}
 			local npc_name, comm = amk_names_lists.get_strings(true, "stalker", "dolg", "freedom")
 			amk.send_tip(table.random(t), npc_name, math.random(7,12), 10, comm)

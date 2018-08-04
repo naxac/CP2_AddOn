@@ -1,6 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- Чтобы можно было закрывать на замок любые тайники, поставить 0 вместо 1
-local lock_box_only = 1
 
 local zamok_box = {}
 local can_lock_visuals = {
@@ -48,7 +46,7 @@ function remove(box, item)
 				if v == box_id then
 					this.change_box_data(box)
 					table.remove(amk_offline_alife.protected.ids, i)
-					amk_offline_alife.update_tables(level.name())
+					--amk_offline_alife.update_tables(level.name())
 					amk.send_tip("", 'С тайника убрали замок.', nil, 5, "nano")
 					break
 				end
@@ -69,7 +67,7 @@ function add(item)
 				zamok_box[pid] = 1
 				-- Покажем меню
 				local box = level.object_by_id(pid)
-				if lock_box_only==1 then
+				if game_options.LockBoxOnly then
 					local visual = string.explode(box:get_visual_name(), "\\")
 					visual = visual[#visual]
 				--	log1("# "..box:name().." : "..visual)
@@ -91,6 +89,7 @@ end
 class "ui_codelock" (CUIScriptWnd)
 
 function ui_codelock:__init(se_box, cl_box, mode) super()
+	BlockUIDescr(true)
 	if mode == 2 then
 		self.shift = true
 		self:InitControls()
@@ -107,7 +106,6 @@ function ui_codelock:__init(se_box, cl_box, mode) super()
 		local t = naxac_netpk.parse_custom_data(data.custom_data)
 		self.code = (t['password'] and t['password']['code']) or "000000"
 	end
-	ShowInvDescr(false)
 end
 
 function ui_codelock:InitControls()
@@ -121,7 +119,7 @@ function ui_codelock:InitControls()
 
 	local btn = xml:InitButton("button_quit", back)
 	self:Register(btn, "btn_quit")
-	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.on_ButtonCancel, self)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_ButtonCancel, self)
 
 	if self.shift then
 		btn:SetText("OK")
@@ -133,12 +131,12 @@ function ui_codelock:InitControls()
 	xml:InitFrame("edit_frame", back)
 	self.code_edit = xml:InitEditBox("edit_code", back)
 	self:Register(self.code_edit, "edit")
-	self:AddCallback("edit", ui_events.EDIT_TEXT_CHANGED, self.on_ChangeCode, self)
+	self:AddCallbackEx("edit", ui_events.EDIT_TEXT_CHANGED, self.on_ChangeCode, self)
 	self.code_edit:SetNumbersOnly(true)	-- только цифры
 
 	btn = xml:InitButton("button_ok", back)
 	self:Register(btn, "btn_ok")
-	self:AddCallback("btn_ok", ui_events.BUTTON_CLICKED, self.on_ButtonOk, self)
+	self:AddCallbackEx("btn_ok", ui_events.BUTTON_CLICKED, self.on_ButtonOk, self)
 	btn:SetText(self.install and "Установить" or "OK")
 end
 
@@ -157,8 +155,9 @@ function ui_codelock:on_ButtonCancel()
 		hotkeys.clear_used_box()
 		self.cl_box:set_nonscript_usable(true)
 	end
+	self:unregister_self()
 	self:GetHolder():start_stop_menu(self, true)
-	ShowInvDescr(true)
+	BlockUIDescr(false)
 end
 
 function ui_codelock:on_ButtonOk()
@@ -177,7 +176,7 @@ function ui_codelock:on_ButtonOk()
 							"code = "..str
 		naxac_netpk.set(self.se_box, data)
 		table.insert(amk_offline_alife.protected.ids, self.se_box.id)
-		amk_offline_alife.update_tables(level.name())
+		--amk_offline_alife.update_tables(level.name())
 		amk.send_tip("", 'Заперли тайник на замок.', nil, 5, "nano")
 		-- Перезагружаем логику
 		local st = db.storage[self.se_box.id]
