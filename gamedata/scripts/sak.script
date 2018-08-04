@@ -161,7 +161,8 @@ function add_new_gener_to_pripyat()
 add_new_lc(97106,1830,"В Центральную Припять","info_way_arhara_gener_pripyat",3)
 end
 function add_new_chaes2_to_chaes()
-add_new_lc(97102,11299,"На ЧАЭС-1","info_way_arhara_chaes2_chaes",3)
+	add_new_lc(97102,11299,"На ЧАЭС-1","info_way_arhara_chaes2_chaes",3)
+	add_new_lc(97115, 0, "На ЧАЭС-2", "perehod_chaes2_na_chaes", 1)
 end
 function add_new_gener_to_hospital()
 add_new_lc(11521,1558,"В Госпиталь","info_way_arhara_gener_hospital",1)
@@ -197,15 +198,18 @@ end
 -- levchn больше не нужен. 
 -- При добавлении сюда новых переходов прописывать им в алспавне spawn_story_id, равный story_id.
 function add_new_lc(levch,levchn,levchm,info,dir)
-	local objt = alife():story_object(levch)
-	if not objt then
---		alife():create(levchn)
-		alife():create(alife():spawn_id(levch))
+	local sim = alife()
+	local objt = sim:story_object(levch)
+	if objt then
+		log("~ level changer with story_id [%d] already exist! Respawn...", levch)
+		sim:release(objt, true)
 	end
-	local obj = alife():story_object(levch)
+	local obj = sim:create(sim:spawn_id(levch))
 	if obj then
 		level.map_add_object_spot_ser(obj.id, "level_changer"..tostring(dir),levchm)
-		db.actor:give_info_portion(info)
+		if not has_alife_info(info) then
+			db.actor:give_info_portion(info)
+		end
 		show_lc_info(obj)
 	end
 end
@@ -287,7 +291,8 @@ function out_excess_lc()
 		[97111] = "info_way_arhara_dcity_rostok",
 		[97112] = "info_way_arhara_atp_dead_city",
 		[97113] = "info_way_arhara_dcity_zaton",
-		[97114] = "info_way_arhara_lima_dcity"
+		[97114] = "info_way_arhara_lima_dcity",
+		[97115] = "perehod_chaes2_na_chaes"
 	}
 	local sim = alife()
 	local lc

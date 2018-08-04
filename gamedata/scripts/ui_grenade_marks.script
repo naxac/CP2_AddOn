@@ -1,0 +1,87 @@
+----------------------------------------------------
+-- Description : установка маркера на кинутую гранату в стиле ЗП
+-- Author : Charsi
+-- Date : 11/06/2012
+----------------------------------------------------
+local detect_distance = 35
+local initial_spot = level.get_game_difficulty() < 2
+local initial_spot_overdist = level.get_game_difficulty() < 1
+
+local colors = {
+	black	= {10,10,10},
+	full	= {255,255,255},
+	red		= {180,60,90},
+	green	= {60,180,90}
+}
+
+local grenade_marks = {}
+local level_object = level.object_by_id
+local wnd = CUIScriptWnd()
+get_hud():AddDialogToRender(wnd)
+local xml = CScriptXmlInit()
+xml:ParseFile("grenade_mark.xml")
+
+-- добавление маркера для объекта по его id
+function add_new_marker(obj_id, color)
+	local obj = level_object(obj_id)
+	if not obj then return end
+	local dir = obj:position():sub(db.actor:position())
+	local dist = dir:magnitude()
+	if dist < 100 then
+		local mark_st = xml:InitStatic("mark",wnd)
+		local sdir = device().cam_dir
+		local angle = math.atan2(-sdir.x,sdir.z)
+		local c,s = math.cos(angle), math.sin(angle)
+		mark_st:SetHeading( - math.atan2(dir.x * c + dir.z * s,-dir.x * s + dir.z * c) )
+		local clr = colors[color] or colors.full
+		local a = (initial_spot_overdist or initial_spot and dist <= detect_distance) and 255 or 1
+		mark_st:SetColor(GetARGB(a,clr[1],clr[2],clr[3]))
+		table.insert(grenade_marks,obj_id,{st=mark_st,a=a,ta=a,c=clr})
+	end
+end
+
+local s,c,apos
+-- обновление статиков
+function update_grenade_marks()
+	for id,t in pairs( grenade_marks ) do
+		if not s then
+			local sdir = device().cam_dir
+			local angle = math.atan2( -sdir.x , sdir.z )
+			c = math.cos(angle)
+			s = math.sin(angle)
+			apos = db.actor:position()
+		end
+		if t.a > t.ta then
+			t.a = t.a-(t.rem and 4 or 2) > t.ta and t.a-(t.rem and 4 or 2) or t.ta
+		elseif t.a < t.ta then
+			t.a = t.a+3 < t.ta and t.a+3 or t.ta
+		end
+		t.st:SetColor(GetARGB(t.a,t.c[1],t.c[2],t.c[3]))
+		local obj = level_object(id)
+		if not obj or t.rem and t.a < 5 then
+			wnd:DetachChild(t.st)
+			grenade_marks[id]=nil
+		else
+			local dir = obj:position():sub(apos)
+			t.st:SetHeading( - math.atan2(dir.x * c + dir.z * s, - dir.x * s + dir.z * c) )
+			if not t.rem then
+				local dist = dir:magnitude()-3
+				t.ta = dist > detect_distance and 0 or dist < 0 and 255 or 255-math.ceil(224*dist/detect_distance)
+			end
+		end
+	end
+	if s then s = nil end
+end
+
+-- детач статиков при выгрузке уровня
+function remove_grenade_marks()
+	get_hud():RemoveDialogToRender(wnd)
+end
+
+-- затухание маркера
+function start_fading(obj_id)
+	if grenade_marks[obj_id] then
+		grenade_marks[obj_id].ta=0
+		grenade_marks[obj_id].rem=true
+	end
+end

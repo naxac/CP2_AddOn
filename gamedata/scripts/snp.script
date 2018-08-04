@@ -1040,9 +1040,15 @@ function spawn_bunker_jupiter()
 end
 
 function spawn_brodaga()
-	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Стрелок, только что получил сообщение от Бродяги. Нет его на лёжке. Что-то случилось, он в подвале какого-то дома. Найди его, он долго не протянет.".."\n", nil, nil, 20000)
+	local actor = db.actor
+	news_manager.send_tip(actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Стрелок, только что получил сообщение от Бродяги. Нет его на лёжке. Что-то случилось, он в подвале какого-то дома. Найди его, он долго не протянет.".."\n", nil, nil, 20000)
 	create_wounded("brodaga_mg",vector():set(-79.084762573242,0.13354560732841,156.9275970459),266398,3621)
-	new_dialog.create_items(db.actor,"medkit",1)
+	if actor:object("medkit") == nil
+		and actor:object("medkit_army") == nil
+		and actor:object("medkit_scientic") == nil
+	then
+		sak.create_items(actor,"medkit",1)
+	end
 end
 
 function brodaga_give_medkit(first_speaker, second_speaker)
@@ -1482,9 +1488,12 @@ function btr_garbage1_done(num)
 			db.actor:give_info_portion("snpt_garbage1_have2")
 			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Молодец! Я не сомневался в тебе! Жарко было? Жду тебя с отчётом!".."\n", 2, nil, 20000)
 			-- убираем Фенрира и Вульфа со Скадовска
-			alife():release(object_by_section_offline("fenrir_zaton"))
-			alife():release(object_by_section_offline("wolffrend_zaton"))
-			alife():release(object_by_section_offline("wolffrend_talk_zaton"))
+			local sobj = object_by_section_offline("fenrir_zaton")
+			if sobj then alife():release(sobj) end
+			sobj = object_by_section_offline("wolffrend_zaton")
+			if sobj then alife():release(sobj) end
+			sobj = object_by_section_offline("wolffrend_talk_zaton")
+			if sobj then alife():release(sobj) end
 		end
 	end
 end

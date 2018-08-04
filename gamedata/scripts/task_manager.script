@@ -133,6 +133,9 @@ function CRandomTask:__init()
     
 		if self.task_ini:line_exist(id, "target") then
 			curr_task_info.target		= self.task_ini:r_string(id, "target")
+			if self.task_ini:line_exist(id, "items_count") then
+				curr_task_info.items_count = self.task_ini:r_u32(id, "items_count")
+			end
 		end
 		if self.task_ini:line_exist(id, "text") then
 			curr_task_info.text			= self.task_ini:r_string(id, "text")
@@ -311,28 +314,20 @@ function CRandomTask:load(p)
 --	log("^^^ LOAD")
 	--' Считаем количество записей
 --	local rt0=p:r_tell()
-	local ii = p:r_u8()
-	local i = ii
-	if ii==255 then i = p:r_u8() end
+	local i = p:r_u8()
 --	log("tasks "..i)
 	local v, id, hash
 	for k = 1,i do
 		hash = p:r_u16() 
 		id = hash_to_id[hash] or abort("CRandomTask:load :: Cannot find id for hash %d!",hash)
 		local t = self.task_info[id] or abort("CRandomTask:load :: Cannot find task for id %s!",id)
-		if ii==255 then
-			t.enabled = p:r_bool()
-			t.enabled_props = p:r_bool()
-			t.status = num_to_status[p:r_u8()]
-		else
-			local f = p:r_u8()
-			t.enabled = bit_and(f, 8)==8
-			t.enabled_props = bit_and(f, 16)==16
-			f = bit_and(f, bit_not(8+16))
-			t.status = num_to_status[f]
-		end
+		local f = p:r_u8()
+		t.enabled = bit_and(f, 8)==8
+		t.enabled_props = bit_and(f, 16)==16
+		f = bit_and(f, bit_not(8+16))
+		t.status = num_to_status[f]
 
-		v = ( ii==255 and p:r_u32() ) or p:r_u16()
+		v = p:r_u16()
 		if v ~= 0 then
 			t.selected_target = v
 		end
@@ -527,10 +522,10 @@ function CRandomTask:task_complete(p1, p2)
 
   local sel_task = self.task_info[self.active_task_by_type[p1]]
   if sel_task == nil then
-    printf("!!!")
-    print_table(self.active_task_by_type)
-    printf("!!!")
-    print_table(self.task_info)
+    log("!!!")
+    table.print(self.active_task_by_type)
+    log("!!!")
+    table.print(self.task_info)
 --    abort("WRONG RANDOM TASK %s %s", tostring(p1), tostring(p2))
     return false
   end
@@ -547,19 +542,19 @@ function CRandomTask:task_complete(p1, p2)
   end
 
   if p2 == 1 then
-    if string.find(p1, "eliminate_lager") ~= nil then
+    if sel_task.type ==	"eliminate_lager" then
       local oo = alife():object(sel_task.selected_target)
       if oo and oo.gulag:get_population_comed() == 0 then
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
-    elseif string.find(p1, "defend_lager") ~= nil then
+    elseif sel_task.type ==	"defend_lager" then
       --' Квест выполнен потому что рейд прекратился
       if xr_gulag.getGulagState(sel_task.defend_target) == 0 then
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
-    elseif string.find(p1, "kill_stalker") ~= nil then
+    elseif sel_task.type ==	"kill_stalker" then
       local oo = alife():object(sel_task.selected_target)
 
       --' Проверка бага
@@ -578,18 +573,11 @@ function CRandomTask:task_complete(p1, p2)
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
-    elseif string.find(p1, "artefact") ~= nil then
-      if db.actor:object(sel_task.target) ~= nil then
-        self.task_info[self.active_task_by_type[p1]].status = "completed"
-        return true
-      end
-    elseif string.find(p1, "monster_part") ~= nil then
-      if db.actor:object(sel_task.target) ~= nil then
-        self.task_info[self.active_task_by_type[p1]].status = "completed"
-        return true
-      end
-    elseif string.find(p1, "find_item") ~= nil then
-      if db.actor:object(sel_task.target) ~= nil then
+    elseif sel_task.type ==	"artefact"
+		or sel_task.type == "monster_part"
+		or sel_task.type == "find_item"
+	then
+      if amk_utils.inventory_search(sel_task.target, sel_task.items_count) then
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
@@ -624,7 +612,7 @@ function CRandomTask:task_fail(p1, p2)
       self.task_info[self.active_task_by_type[p1]].last_task_time = game.get_game_time()
       return true
     end
-    if string.find(p1, "defend_lager") ~= nil then
+    if sel_task.type == "defend_lager" then
       if alife():object(sel_task.selected_target).gulag:get_population_comed() == 0 then
         self.task_info[self.active_task_by_type[p1]].status = "failed"
         self.task_info[self.active_task_by_type[p1]].last_task_time = game.get_game_time()
@@ -861,32 +849,27 @@ end
 -- Проверяется наличие квестовых предметов
 function CRandomTask:completed_task(actor, npc, p1, p2, p3)
 --  amk.mylog("Checking quest items p1 "..tostring(p1).." p2 "..tostring(p2).." p3 "..tostring(p3))
-  if not p3 then return false end
+	if not p3 then return false end
 --  amk.mylog("chp1")
-  local tid=self.task_id_by_desc_phrase_id[p2]
+	local tid=self.task_id_by_desc_phrase_id[p2]
 --  amk.mylog("chp2")
-  if not tid then return false end
+	if not tid then return false end
 --  amk.mylog("chp3")
-  local task_desc=self.task_info[tid]
+	local task_desc=self.task_info[tid]
 --  amk.mylog("chp4")
-  if task_desc.status~="completed" then return false end
+	if task_desc.status~="completed" then return false end
 --  amk.mylog("chp5")
-  local can_finish = true
-  if task_desc.type == "artefact" then
-    if db.actor:object(task_desc.target) == nil then
-      can_finish = false
-    end
-  elseif task_desc.type == "monster_part" then
-    if db.actor:object(task_desc.target) == nil then
-      can_finish = false
-    end
-  elseif task_desc.type == "find_item" then
-    if db.actor:object(task_desc.target) == nil then
-      can_finish = false
-    end
-  end
+	local can_finish = true
+	if task_desc.type == "artefact"
+		or task_desc.type == "monster_part"
+		or task_desc.type == "find_item"
+	then
+		if not amk_utils.inventory_search(task_desc.target, task_desc.items_count) then
+			can_finish = false
+		end
+	end
 --  amk.mylog("can finish " .. tostring(can_finish))
-  return can_finish
+	return can_finish
 end
 
 --' Создается диалог актера, в котором будут выдаваться задания.
@@ -924,77 +907,65 @@ end
 --' Функция, в которой будет выдаваться вещевая награда за выполненные квесты
 function CRandomTask:task_reward(npc, actor, p1, p2)
 --  amk.mylog("Rewarding p1 "..tostring(p1).." p2 "..tostring(p2))
-  local parent = self:get_parent(npc) 
-  local v=self.task_id_by_completed_phrase_id[p2]
+	local parent = self:get_parent(npc) 
+	local v=self.task_id_by_completed_phrase_id[p2]
 --  amk.mylog("Rewarding ")
 
---  for k,v in pairs(self.active_task_by_type) do 
-  if true then
-    local task_desc = self.task_info[v]
+	local task_desc = self.task_info[v]
     if task_desc.status == "completed" and task_desc.parent == parent then
-      --' Забираем у игрока квестовый предмет.
-      local can_finish = true
-      if task_desc.type == "artefact" then
-        if db.actor:object(task_desc.target) == nil then
-          can_finish = false
-        else
-          dialogs.relocate_item_section(npc, task_desc.target, "out")
-        end
-      elseif task_desc.type == "monster_part" then
-        if db.actor:object(task_desc.target) == nil then
-          can_finish = false
-        else
-          dialogs.relocate_item_section(npc, task_desc.target, "out")
-        end
-      elseif task_desc.type == "find_item" then
-        if db.actor:object(task_desc.target) == nil then
-          can_finish = false
-        else
-          dialogs.relocate_item_section(npc, task_desc.target, "out")
-        end
-      end
-  
-      if can_finish == true then
-        self.task_info[v].status = "rewarded"
-        
-        if task_desc.reward_money ~= nil then
-          dialogs.relocate_money(npc, task_desc.reward_money, "in")
-        end
-        
-        if task_desc.reward_item ~= nil then
-			create_reward(task_desc.reward_item)
-        end
-
-        if task_desc.reward_reputation ~= nil then
-			db.actor:change_character_reputation(task_desc.reward_reputation)
-        end
-
-        if task_desc.reward_relation ~= nil then
-          for kk,vv in pairs(task_desc.reward_relation) do
-            relation_registry.change_community_goodwill (kk, db.actor:id(), tonumber(vv))
-          end
-        end
-
-        if task_desc.reward_rank ~= nil then
-		  xr_statistic.add_actor_rank(task_desc.reward_rank*2)
-        end
-		
-        if task_desc.reward_script ~= nil then
-		  _G.task_manager[task_desc.reward_script]()
-        end
-
-		if cycle_task[task_desc.type] then
-			local koef = 0
-			if not has_alife_info("stat_"..task_desc.name) then
-				koef = 1
-				db.actor:give_info_portion("stat_"..task_desc.name)
+		--' Забираем у игрока квестовый предмет.
+		local can_finish = true
+		if task_desc.type == "artefact"
+			or task_desc.type == "monster_part"
+			or task_desc.type == "find_item"
+		then
+			if amk_utils.inventory_search(task_desc.target, task_desc.items_count) then
+				sak.out_item_namber(task_desc.target, task_desc.items_count or 1)
+			else
+				can_finish = false
 			end
-			actor_stats.add_points("quests", task_desc.name, 1, koef)
-			archievements.acv_count_3event("acv_ct", 500, "Наёмник", "acv_ct2", 1000, "Стаханов", "acv_ct3", 2000, "Папа Карло")
 		end
-	  end
-    end 
-  end
+
+		if can_finish == true then
+			self.task_info[v].status = "rewarded"
+
+			if task_desc.reward_money ~= nil then
+				dialogs.relocate_money(npc, task_desc.reward_money, "in")
+			end
+
+			if task_desc.reward_item ~= nil then
+				create_reward(task_desc.reward_item)
+			end
+
+			if task_desc.reward_reputation ~= nil then
+				db.actor:change_character_reputation(task_desc.reward_reputation)
+			end
+
+			if task_desc.reward_relation ~= nil then
+				for kk,vv in pairs(task_desc.reward_relation) do
+					relation_registry.change_community_goodwill (kk, db.actor:id(), tonumber(vv))
+				end
+			end
+
+			if task_desc.reward_rank ~= nil then
+				xr_statistic.add_actor_rank(task_desc.reward_rank*2)
+			end
+
+			if task_desc.reward_script ~= nil then
+				_G.task_manager[task_desc.reward_script]()
+			end
+
+			if cycle_task[task_desc.type] then
+				local koef = 0
+				if not has_alife_info("stat_"..task_desc.name) then
+					koef = 1
+					db.actor:give_info_portion("stat_"..task_desc.name)
+				end
+				actor_stats.add_points("quests", task_desc.name, 1, koef)
+				archievements.acv_count_3event("acv_ct", 500, "Наёмник", "acv_ct2", 1000, "Стаханов", "acv_ct3", 2000, "Папа Карло")
+			end
+		end
+	end
 end
 --' Функция, в которой будет выдаваться вещевая награда за выполненные сторилайновые квесты
 function CRandomTask:task_reward_storyline(task)
@@ -1198,7 +1169,10 @@ function CRandomTask:remind()
 		if not sms[sid] then 
 			sms[sid] = get_parent_name(parent, sid)
 		end
-		if task_desc.type == "artefact" or task_desc.type == "monster_part" or task_desc.type == "find_item" then
+		if task_desc.type == "artefact"
+		  or task_desc.type == "monster_part"
+		  or task_desc.type == "find_item"
+		then
 		  txt_desc = task_desc.name
 		else
 		  txt_desc = return_task_by_type[task_desc.type]

@@ -2,13 +2,8 @@
 local edibles = {}		-- всЄ съедобное, что можно положить в €чейку (секци€ = true), заполн€етс€ из конфига 'misc\inv_add.ltx'
 local slot2section = {}	-- то, что находитс€ в €чейках (слот = секци€), храним в псторе
 local section2slot = {}	-- то, что находитс€ в €чейках (секци€ = слот)
-local section2cnt = {}	-- количество предметов в инвентаре (секци€ = количество)
 local slotsKeys = {}	-- клавиши использовани€ предметов (слот = код клавиши)
--- настройки интерфейса
-local cfg = {
-	wide = {icnX = 12, icnW = 33, keyX = 40, keyW = 16},
-	normal = {icnX = 15, icnW = 45, keyX = 53, keyW = 16}
-}
+
 local wnd = nil				-- класс
 local slotInFocus = nil		-- €чейка, над которой находитс€ курсор
 local selectedItem = nil	-- последний выбранный предмет в инвентаре
@@ -19,7 +14,9 @@ local reg_callbacks = {
 	on_item_select = "on_item_select",
 	on_key_release = "on_key_release",
 	on_item_focus_lost = "on_item_focus_lost",
-	on_item_focus = "on_item_focus"
+	on_item_focus = "on_item_focus",
+	on_item_drop = "on_item_drop",
+	on_item_take = "on_item_take"
 }
 local info2stop = {
 	ui_inventory	= bit_or(1,4),	ui_inventory_hide	= bit_or(2,8),
@@ -52,11 +49,49 @@ function on_info(info_id)
 	end
 end
 
+function qslot_focus(i)
+	local sect = slot2section[i]
+	if sect~="" then
+		local obj = db.actor:object(sect)
+		if obj then
+			ui_inv_descr.on_item_focus(obj)
+		end
+	end
+	slotInFocus = i
+	wnd.slots[i]:SetColor(GetARGB(45, 255, 255, 255))
+end
+function qslot_focus_lost(i)
+	if i == slotInFocus then
+		local sect = slot2section[i]
+		if sect~="" then
+			local obj = db.actor:object(sect)
+			if obj then
+				ui_inv_descr.on_item_focus_lost(obj)
+			end
+		end
+		slotInFocus = nil
+	end
+	wnd.slots[i]:SetColor(GetARGB(0, 255, 255, 255))
+end
+function qslot_dbclick(i)
+	section2slot[slot2section[i]] = nil
+	slot2section[i] = ""
+	wnd:DrawSlotIcon(i)
+end
+
+function wpn_slot_focus(n)
+	slotInFocus = n
+end
+function wpn_slot_focus_lost(n)
+	if n == slotInFocus then
+		slotInFocus = nil
+	end
+end
+
 class "InvWnd" (CUIScriptWnd)
 
 function InvWnd:__init(owner) super()
 	self.owner = owner
-	self.p = (isWideScreen and cfg.wide) or cfg.normal
 	self:Init(0, 0, 1024, 768)
 	self:InitControls()
 	for k,v in pairs(reg_callbacks) do
@@ -77,8 +112,27 @@ function InvWnd:InitControls()
 
 	self.slots = {}
 	for i=1,4 do
-		self.slots[i] = xml:InitStatic("slot"..i, self.stat)
-		self:DrawSlot(i)
+		local s = xml:InitStatic("slot"..i, self.stat)
+		self.slots[i] = s
+		s:InitTexture("ui_slot_h")
+		s:SetStretchTexture(true)
+		s:SetColor(GetARGB(0, 255, 255, 255))
+		
+		s.icn = xml:InitStatic("slot_icon", s)
+		s.icn:InitTexture("ui\\ui_icon_equipment")
+		s.icn:SetStretchTexture(true)
+		
+		s.key = xml:InitStatic("slot_key", s)
+		s.key:SetText(hotkeys.dik2key(slotsKeys[n]) or "")
+		s.key:SetFont(GetFontSmall())
+		
+		local name = "qslot_"..i
+		self:Register(s, name)
+		self:AddCallback(name, ui_events.STATIC_FOCUS_RECEIVED, this.qslot_focus, i)
+		self:AddCallback(name, ui_events.STATIC_FOCUS_LOST, this.qslot_focus_lost, i)
+		self:AddCallback(name, ui_events.WINDOW_LBUTTON_DB_CLICK, this.qslot_dbclick, i)
+		
+		self:DrawSlotIcon(i)
 	end
 
 	local st, name
@@ -86,94 +140,23 @@ function InvWnd:InitControls()
 		name = "wpn_slot_"..i
 		st = xml:InitStatic(name, self.stat)
 		self:Register(st, name)
-		self:AddCallback(name, ui_events.STATIC_FOCUS_RECEIVED,
-			function ()
-				slotInFocus = i+10
-			end,
-		self)
-		self:AddCallback(name, ui_events.STATIC_FOCUS_LOST,
-			function()
-				if i+10 == slotInFocus then
-					slotInFocus = nil
-				end
-			end,
-		self)
+		self:AddCallback(name, ui_events.STATIC_FOCUS_RECEIVED, this.wpn_slot_focus, i)
+		self:AddCallback(name, ui_events.STATIC_FOCUS_LOST, this.wpn_slot_focus_lost, i)
 	end
 
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
 end
-function InvWnd:DrawSlot(n)
-	local s = self.slots[n]
-	s:InitTexture("ui_slot_h")
-	s:SetStretchTexture(true)
-	s:SetColor(GetARGB(0, 255, 255, 255))
-	
-	s.icn = CUIStatic()
-	s.icn:SetAutoDelete(true)
-	s.icn:Init(self.p.icnX, 14, self.p.icnW, 45)
-	s.icn:InitTexture("ui\\ui_icon_equipment")
-	s.icn:SetStretchTexture(true)
-	s:AttachChild(s.icn)
-	
-	local key = CUIStatic()
-	key:SetAutoDelete(true)
-	key:Init(self.p.keyX, 1, self.p.keyW, 16)
-	key:SetText(hotkeys.dik2key(slotsKeys[n]) or "")
-	key:SetFont(GetFontSmall())
-	key:SetTextAlign(CGameFont.alCenter)
-	s:AttachChild(key)
-	
-	local name = "qslot_"..n
-	self:Register(s, name)
-	self:AddCallback(name, ui_events.STATIC_FOCUS_RECEIVED,
-		function()
-			local sect = slot2section[n]
-			if sect~="" then
-				local obj = db.actor:object(sect)
-				if obj then
-					ui_inv_descr.on_item_focus(obj)
-				end
-			end
-			slotInFocus = n
-			s:SetColor(GetARGB(45, 255, 255, 255))
-		end,
-	self)
-	self:AddCallback(name, ui_events.STATIC_FOCUS_LOST,
-		function()
-			if n == slotInFocus then
-				local sect = (slotInFocus and slot2section[slotInFocus]) or ""
-				if sect~="" then
-					local obj = db.actor:object(sect)
-					if obj then
-						ui_inv_descr.on_item_focus_lost(obj)
-					end
-				end
-				slotInFocus = nil
-			end
-			s:SetColor(GetARGB(0, 255, 255, 255))
-		end,
-	self)
-	self:AddCallback(name, ui_events.WINDOW_LBUTTON_DB_CLICK,
-		function()
-			section2slot[slot2section[n]] = nil
-			slot2section[n] = ""
-			self:DrawSlotIcon(n)
-		end,
-	self)
-	
-	self:DrawSlotIcon(n)
-end
 
 function InvWnd:DrawSlotIcon(n)
 	local s = self.slots[n]
-	
-	local sz = GetIconParams(slot2section[n])
+	local sect = slot2section[n]
+	local sz = GetIconParams(sect)
 	
 	s.icn:SetOriginalRect(sz.x, sz.y, sz.w, sz.h)
-	if (section2cnt[slot2section[n]] or 0) < 1 then
-		s.icn:SetColor(GetARGB(70, 200, 200, 200))
-	else
+	if sect~="" and amk_utils.inventory_search(sect) then
 		s.icn:SetColor(GetARGB(255, 255, 255, 255))
+	else
+		s.icn:SetColor(GetARGB(70, 200, 200, 200))
 	end
 end
 
@@ -198,31 +181,21 @@ function InvWnd:HideSkatPanel()
 	if self.skat_panel then self.skat_panel:Hide() end
 end
 ------------------------------------------------------------------------------------------
--- from bind_stalker
 function on_item_take(item)
 	local sect = item:section()
-	if not edibles[sect] then return end
-	local n = section2cnt[sect] or 0
-	section2cnt[sect] = n + 1
 	-- получили первый предмет из €чейки при открытом инвентаре
-	if wnd and section2slot[sect] and n==0 then
+	if section2slot[sect] and amk_utils.inventory_search(sect, 2)==false then
 		wnd.slots[section2slot[sect]].icn:SetColor(GetARGB(255, 255, 255, 255))
 	end
 end
-
 function on_item_drop(item)
 	local sect = item:section()
-	if not edibles[sect] then return end
-	local n = section2cnt[sect] or 0
-	if n>1 then section2cnt[sect] = n - 1
-	else
-		section2cnt[sect] = nil
-		-- использовали последний предмет из €чейки при открытом инвентаре
-		if wnd and section2slot[sect] then
-			wnd.slots[section2slot[sect]].icn:SetColor(GetARGB(70, 200, 200, 200))
-		end
+	-- использовали последний предмет из €чейки при открытом инвентаре
+	if section2slot[sect] and amk_utils.inventory_search(sect)==false then
+		wnd.slots[section2slot[sect]].icn:SetColor(GetARGB(70, 200, 200, 200))
 	end
 end
+
 -- ¬ыделение предмета в инвентаре
 local repkits = {
 	['repair_item_outfit'] = true,
@@ -234,18 +207,16 @@ local checking_slots = {
 	[1] = true,		-- pistol
 	[2] = true,		-- automatic
 	[6] = true,		-- outfit
-	[9] = true,		-- flashlight
+	[9] = true,		-- torch
 	[11] = true		-- night-vision
 }
 
 function on_item_select(item)
 	local sect = item:section()
-	if repkits[sect] then
+	if edibles[sect] or repkits[sect] then
 		selectedItem = sect
-		return
 	elseif db.actor:is_in_slot(item) then
 		if sect:find("exo_mil_exoskeleton_add") then wnd:ShowSkatPanel(sect) end
-		return
 	elseif isMagazinedWeapon(item) then
 		local slot = xr_actor.get_item_slot(item)
 		if slot~=1 and slot~=2 then return end
@@ -258,26 +229,21 @@ function on_item_select(item)
 		end
 		selectedWpn = item
 	end
-	
-	if not edibles[sect] then selectedItem = nil return end
-	selectedItem = sect
 end
 
 function on_key_release(dik)
 	if dik==DIK_keys.DIK_LMOUSE then
 		if selectedWpn then
-			if slotInFocus and slotInFocus > 10 then
-				slotInFocus = slotInFocus - 10
+			if slotInFocus then
 				if xr_actor.get_item_slot(selectedWpn) ~= slotInFocus then
 					xr_actor.set_item_slot(selectedWpn, slotInFocus)
 				end
 			end
 			slotInFocus = nil
 			selectedWpn = nil
-			return
-		end
 
-		if selectedItem~=nil then
+		elseif selectedItem~=nil then
+			-- проверим ремкомплекты и батарейку
 			if repkits[selectedItem] and repair_slot~=nil then
 				if repair_slot == 9 or repair_slot == 11 then
 					bind_torch.charge(selectedItem, repair_slot)
@@ -334,10 +300,9 @@ end
 function restore_slot(item)
 	if isMagazinedWeapon(item) and alife():object(item:id()) then
 		local slot = xr_actor.get_item_slot(item)
-		if (slot==1 or slot==2)
-			and sys_ini:r_u32(item:section(), "slot") ~= slot
-		then
-			xr_actor.set_item_slot(item, bit_xor(slot, 3))
+		local ini_slot = sys_ini:r_u32(item:section(), "slot")
+		if ini_slot ~= slot then
+			xr_actor.set_item_slot(item, ini_slot)
 		end
 	end
 end
@@ -379,16 +344,20 @@ function init()
 	end
 	-- то, что в слотах
 	slot2section = amk.load_table("quick_slots")
-	if #slot2section==0 then slot2section = {"medkit", "bandage", "antirad", "conserva"} end
+	if #slot2section==0 then
+		for i = 1, 4 do
+			slot2section[i] = ini:r_string("def_slots", "slot_"..i)
+		end
+	end
 	for i,s in ipairs(slot2section) do
 		if s~="" then section2slot[s] = i end
 	end
 	-- клавиши
 	slotsKeys = {
-		bind_to_dik(key_bindings.kUSE_MEDKIT),
-		bind_to_dik(key_bindings.kUSE_BANDAGE),
-		DIK_keys.DIK_F3,
-		DIK_keys.DIK_F4
+		[1] = bind_to_dik(key_bindings.kUSE_MEDKIT),
+		[2] = bind_to_dik(key_bindings.kUSE_BANDAGE),
+		[3] = DIK_keys.DIK_F3,
+		[4] = DIK_keys.DIK_F4
 	}
 end
 

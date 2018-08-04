@@ -64,12 +64,33 @@ end
 function bread10_have()
   	return sak.have_item_namber("bread",5) ~= false 
 end
-function has_soldiers_bribe(actor, npc)
+function has_soldiers_bribe(first_speaker, second_speaker)
 	return sak.have_item_namber("vodka",1) ~= false
 end
-function give_soldiers_bribe(actor, npc)
+function can_vodka_start(first_speaker, second_speaker)
+	local npc = ( first_speaker:id() == 0 and second_speaker ) or first_speaker
+	if npc:profile_name() == "esc_soldier_commander" then
+		return xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0) >= 2
+			and not has_alife_info("esc_bridge_vodka_start")
+	end
+	return false
+end
+function cant_vodka_start(first_speaker, second_speaker)
+	return not can_vodka_start(first_speaker, second_speaker)
+end
+function is_kuzya(first_speaker, second_speaker)
+	local npc = ( first_speaker:id() == 0 and second_speaker ) or first_speaker
+	return npc:profile_name() == "esc_soldier_commander"
+end
+function give_soldiers_bribe(first_speaker, second_speaker)
 	sak.out_item_namber("vodka",1)
 	archievements.acv_count_event("acv_bribe", 20, "Честный налогоплательщик")
+	if has_alife_info("esc_bridge_vodka_start") then return end
+	local npc = ( first_speaker:id() == 0 and second_speaker ) or first_speaker
+	if npc:profile_name() == "esc_soldier_commander" then
+		local v = xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0)
+		xr_logic.pstor_store(db.actor, "kuzvodka", v+1)
+	end
 end
 function have_krysyk_goods()
   	return sak.have_item_namber("af_electra_moonlight",3) ~= false and sak.have_item_namber("af_dummy_glassbeads",1) ~= false
@@ -871,6 +892,8 @@ end
 
 function give_esc_bridge_vodka(first_speaker, second_speaker)
 	sak.out_item_namber("vodka",10)
+	local del = xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0, true)
+	log("give_esc_bridge_vodka: delete variable 'kuzvodka' %d", del)
 end
 function give_esc_bridge_ammo(first_speaker, second_speaker)
 --	dialogs.relocate_item_section(first_speaker, "ammo_5.45x39_ap", "in")

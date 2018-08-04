@@ -42,7 +42,7 @@ end
 function UIPlayer:__init(owner) super()
 	self.owner = owner
 	self:InitControls()
-	ShowInvDescr(false)
+	BlockUIDescr(true)
 	menu = self
 end
 
@@ -71,13 +71,13 @@ function UIPlayer:InitControls()
 	self.track_name = xml:InitLabel("track_name", self)
 	-- копирайт
 	self:Register(xml:InitStatic("btn_copyright", self), "copyright")
-	self:AddCallback("copyright", ui_events.STATIC_FOCUS_RECEIVED,
+	self:AddCallbackEx("copyright", ui_events.STATIC_FOCUS_RECEIVED,
 		function (wnd)
 			local st = wnd:GetStatic("copyright_text")
 			if not st:IsShown() then st:Show(true) end
 		end,
 	self)
-	self:AddCallback("copyright", ui_events.STATIC_FOCUS_LOST,
+	self:AddCallbackEx("copyright", ui_events.STATIC_FOCUS_LOST,
 		function (wnd)
 			local st = wnd:GetStatic("copyright_text")
 			if st:IsShown() then st:Show(false) end
@@ -96,18 +96,18 @@ function UIPlayer:InitControls()
 	self.time_scale:SetColor(GetARGB(255,155,205,155))
 
 	self:Register(xml:InitButton("button_stop", self), "btn_stop")
-	self:AddCallback("btn_stop", ui_events.BUTTON_CLICKED, self.OnBtnStop, self)
+	self:AddCallbackEx("btn_stop", ui_events.BUTTON_CLICKED, self.OnBtnStop, self)
 	self:Register(xml:InitButton("button_next", self), "btn_next")
-	self:AddCallback("btn_next", ui_events.BUTTON_CLICKED, player_ogg.play_next)
+	self:AddCallbackEx("btn_next", ui_events.BUTTON_CLICKED, player_ogg.play_next)
 	self:Register(xml:InitButton("button_prev", self), "btn_prev")
-	self:AddCallback("btn_prev", ui_events.BUTTON_CLICKED, self.OnPrevTrack, self)
+	self:AddCallbackEx("btn_prev", ui_events.BUTTON_CLICKED, self.OnPrevTrack, self)
 
 	--Кнопки музыкальных файлов
 	for i=1,12 do
 		btn = xml:InitButton("btn_track_"..i, self)
 		btn:SetHighlightColor(GetARGB(255,220,157,10))
 		self:Register(btn, "track_"..i)
-		self:AddCallback("track_"..i, ui_events.BUTTON_CLICKED, 
+		self:AddCallbackEx("track_"..i, ui_events.BUTTON_CLICKED, 
 			function(wnd)
 				wnd:OffRadio()		-- отключаем радио
 				play_radio = nil
@@ -148,7 +148,7 @@ function UIPlayer:InitControls()
 			end
 		end
 
-		self:AddCallback("btn_flash_"..i, ui_events.BUTTON_CLICKED,
+		self:AddCallbackEx("btn_flash_"..i, ui_events.BUTTON_CLICKED,
 			function (wnd)
 				local ws = player_ogg.return_slot(0)
 				player_ogg.s_stop(true)
@@ -168,7 +168,7 @@ function UIPlayer:InitControls()
 			btn:Enable(false)
 		end
 		self:Register(btn, "btn_"..i)
-		self:AddCallback("btn_"..i, ui_events.BUTTON_CLICKED,
+		self:AddCallbackEx("btn_"..i, ui_events.BUTTON_CLICKED,
 			function (wnd)
 				wnd:OffRadio()		-- отключаем предыдущий радио-трек
 				wnd:OffWorkTrack()	-- отключаем музыку
@@ -183,7 +183,7 @@ function UIPlayer:InitControls()
 
 	-- Кнопка Выход
 	self:Register(xml:InitButton("btn_quit", self),"btn_quit")
-	self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.Quit, self)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.Quit, self)
 
 	--кнопки громкости
 	local cur = (player_ogg.sound_vol_return())*5	-- получаем текущий индекс
@@ -194,7 +194,7 @@ function UIPlayer:InitControls()
 			btn:Enable(false)					-- отключаем
 		end
 		self:Register(btn, "btn_vol_"..i)
-		self:AddCallback("btn_vol_"..i, ui_events.BUTTON_CLICKED,
+		self:AddCallbackEx("btn_vol_"..i, ui_events.BUTTON_CLICKED,
 			function (wnd)
 				local v = player_ogg.sound_vol_return()
 				local b = wnd:GetButton("btn_vol_"..tostring(v*5))	-- гасим и включаем предыдущую кнопку
@@ -213,7 +213,7 @@ function UIPlayer:InitControls()
 	btn = xml:InitButton("btn_repeat", self)
 	btn:InitTexture("ui\\vr_repeat_"..r)
 	self:Register(btn, "btn_ring")
-	self:AddCallback("btn_ring", ui_events.BUTTON_CLICKED, self.ChangeRepeat, self)
+	self:AddCallbackEx("btn_ring", ui_events.BUTTON_CLICKED, self.ChangeRepeat, self)
 
 	st = xml:InitStatic("copyright", self)
 	self:Register(st, "copyright_text")
@@ -361,9 +361,10 @@ function UIPlayer:ChangeRepeat()
 end
 
 function UIPlayer:Quit()
+	self:unregister_self()
 	self:GetHolder():start_stop_menu (self,true)
 	player_ogg.set_menu_show(false)
-	ShowInvDescr(true)
+	BlockUIDescr(false)
 	amk.spawn_item_in_inv("player")
 	menu = nil
 end
