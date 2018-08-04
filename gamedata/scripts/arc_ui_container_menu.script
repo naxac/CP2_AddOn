@@ -141,7 +141,7 @@ function arc_container_menu:__init() super()
 	self.put_buttons = {}
 	
 	self:UpdateMenu()
-	ShowInvDescr(false)
+	BlockUIDescr(true)
 end
 
 function arc_container_menu:UpdateMenu()
@@ -231,7 +231,7 @@ function arc_container_menu:DrawButtons()
 		q:Init(130,50,100,30)
 		
 		self:AttachChild(q)
-		self:AddCallback("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit, self)
+		self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit, self)
 	end
 	
 	local p = self.btn_prev
@@ -248,7 +248,7 @@ function arc_container_menu:DrawButtons()
 		p:Init(50,50,50,30)
 		
 		self:AttachChild(p)
-		self:AddCallback("btn_prev", ui_events.BUTTON_CLICKED, self.prev_container, self)
+		self:AddCallbackEx("btn_prev", ui_events.BUTTON_CLICKED, self.prev_container, self)
 	end
 	
 	local n = self.btn_next
@@ -265,7 +265,7 @@ function arc_container_menu:DrawButtons()
 		n:Init(250,50,50,30)
 		
 		self:AttachChild(n)
-		self:AddCallback("btn_next", ui_events.BUTTON_CLICKED, self.next_container, self)
+		self:AddCallbackEx("btn_next", ui_events.BUTTON_CLICKED, self.next_container, self)
 	end
   
 	local f = (arc_containers.get_inv_containers_number()>1)
@@ -275,9 +275,10 @@ end
 
 function arc_container_menu:on_quit()
 	arc_containers.respawn_container(cur_cont_index)
+	self:unregister_self()
 	self:GetHolder():start_stop_menu(self,true)
 	arc_containers.set_menu_showed(false)
-	ShowInvDescr(true)
+	BlockUIDescr(false)
 end
 
 function arc_container_menu:OnKeyboard(dik, keyboard_action)

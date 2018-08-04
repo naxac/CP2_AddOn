@@ -178,11 +178,11 @@ function CCarbodyAddons:InitControls()
 	xml:ParseFile("carbody_addons.xml")
 	self:Register(xml:Init3tButton("move_btn", self), "move_btn")
 	self.owner:AttachChild(self)
-	self:AddCallback("move_btn", ui_events.BUTTON_CLICKED, self.move_items, self)
+	self:AddCallbackEx("move_btn", ui_events.BUTTON_CLICKED, self.move_items, self)
 	
 	if self.used_box:clsid()==clsid.inventory_box then
 		self:Register(xml:Init3tButton("repack_btn", self), "repack_btn")
-		self:AddCallback("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo, self)
+		self:AddCallbackEx("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo, self)
 	end
 	
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
@@ -194,6 +194,7 @@ end
 
 function CCarbodyAddons:Remove()
 	self.DescrWnd:Remove()
+	self:unregister_self()
 	self.owner:DetachChild(self)
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unregister_callback(k, this[v])
@@ -233,7 +234,7 @@ function CCarbodyAddons:move_items()
 	self.taken_section = nil
 end
 
--- Поломка и износ холодного оружия
+-- ѕоломка и износ холодного оружи€
 local time_shift = time_global()
 local wpn_power	= {
 	['wpn_kuvalda']	= true,

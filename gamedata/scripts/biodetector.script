@@ -3,6 +3,11 @@
 -------------------------------------------------------------------------
 local fading = true				-- затухание (без локатора не работает)
 
+local need_update = false
+
+local level_object = level.object_by_id
+local trader_clsid = clsid.script_trader
+
 local counter = 1
 local max_count = 100	-- количество отображаемых объектов
 local max_dist = 60
@@ -204,7 +209,7 @@ function getColor(obj,cls)
 	if obj:id() == 0 then
 		return colors["actor"]
 	else
-		if IAmAStalker[cls] or cls==clsid.script_trader then
+		if IAmAStalker[cls] or cls==trader_clsid then
 			if obj:alive() then
 				return colors["stalker"]
 			else
@@ -249,6 +254,10 @@ function sectFound(sect)
 	return nil
 end
 
+function switch_bioradar( f )
+	need_update = f
+end
+
 local upd_shift, upd_num = 10, 0
 function update(delta)
 	if delta < upd_shift then
@@ -262,7 +271,7 @@ function update(delta)
 
 --    local t = profile_timer()
 --    t:start()
-	if (inventory.on_belt("bioradar") or inventory.on_belt("bioradar2")) and not bind_stalker.scopeUsed then
+	if need_update and not bind_stalker.scopeUsed then
 		detectorShowed = true
 		--get_console():execute("load ~~~ biomap on belt")
 		
@@ -298,7 +307,7 @@ function update(delta)
 		local objPos, x, y, dir, color, corner, cls
 		local custom_static
 		local dotName
-		local vect
+		local vect, obj
 		local sdir = device().cam_dir
 		
 		-- вращение локатора. угол от 0 до 2Пи
@@ -312,8 +321,10 @@ function update(delta)
 
 		counter = 1
 		amk.oau_watchdog = 18102
-		for id,obj in pairs(db.creatures) do
-			cls = obj.clsid and obj:clsid()
+		for id in pairs(db.creatures) do
+			obj = level_object(id)
+			amk.oau_reason = "biodetector update: "..( obj and obj:name() or tostring(id) )
+			cls = obj and obj.clsid and obj:clsid()
 			if not cls then
 				biodetectorRemove()
 				return
@@ -322,7 +333,7 @@ function update(delta)
 			if objPos and objPos:distance_to_xz(actorPos) <= max_dist and
 				(IAmAStalker[cls] or
 				IAmAMonster[cls] or
-				cls == clsid.script_trader)
+				cls == trader_clsid)
 			then
 				-- определяем цвет
 				color = getColor(obj,cls)
@@ -372,7 +383,7 @@ function update(delta)
 				end
 			end
 		end
-		amk.oau_watchdog = 18103
+
 		if counter<=max_count then
 			-- зачистка неактуальных точек
 			for i = counter, max_count do

@@ -112,6 +112,7 @@ function actor_binder:net_destroy()
 		self.dist_wnd = nil
 		self.dist_func = nil
 	end
+	ui_grenade_marks.remove_grenade_marks()
 
 	db.del_actor(self.object)
 
@@ -385,7 +386,6 @@ function actor_binder:on_item_take (obj)
 	archievements.on_item_take(obj)
 	fly.returner_clear_pos()
 
-	ui_inv_add.on_item_take(obj)
 	xr_s.on_event("on_item_take", obj)
 
 	actor_take_item.check(obj)
@@ -420,7 +420,6 @@ function actor_binder:on_item_drop (obj)
 	zamok.add(obj)
 	
 	nightvision.checking_droped_obj(obj) -- ПНВ
-	ui_inv_add.on_item_drop(obj)
 	
 	actor_drop_item.check(obj)
 	
@@ -793,7 +792,7 @@ function actor_binder:update(delta)
     end
   end]]
 
-	amk.oau_watchdog=184
+	amk.oau_watchdog=179
 	bind_det_arts.update()
   
 	amk.oau_watchdog=0
@@ -968,11 +967,8 @@ function actor_binder:load(reader)
 		self.critical=2
 		self.wt=time_global()+60000
 	end
-	
+
 	ui_pda_notepad.on_load_game()
-	
-	-- только установили, ничего не сохранено
-	if reader:r_eof() then return end
 
 	-- Загружаем активный слот
 	local slot = reader:r_u8()

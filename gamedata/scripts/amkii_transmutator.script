@@ -242,7 +242,6 @@ function CAmkMergerArtefact:__init()
 	if table.getn(aRecSections) > 0 then
 		self:SaveInfo("Rec")
 	end
-	ShowInvDescr(false)
 end
 
 --[[
@@ -317,7 +316,8 @@ end
 --* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 class "CAmkDeviceTransmutator" (CUIScriptWnd)
-function CAmkDeviceTransmutator:__init(iLevelDevice) super()	
+function CAmkDeviceTransmutator:__init(iLevelDevice) super()
+	BlockUIDescr(true)
 --	_log("*****   Device Init   *****")
 	self.iLevelDevice = iLevelDevice
 	self:InitInterface()	
@@ -356,7 +356,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonClear:SetOriginalRect(248,365,23,39)
     self.oButtonClear:Init(420,62,23,39)
     self:AttachChild(self.oButtonClear)
-    self:AddCallback("oButtonClear", ui_events.BUTTON_CLICKED, self.ClearSlots, self)
+    self:AddCallbackEx("oButtonClear", ui_events.BUTTON_CLICKED, self.ClearSlots, self)
 	--[[
 	--	CUIButton()
 	--	Прикрепляем текстовый индикатор аномалии.
@@ -387,7 +387,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonQuit:SetFont(GetFontGraffiti19Russian())
 	self.oButtonQuit:Init(406,302,92,25)
     self:AttachChild(self.oButtonQuit)
-    self:AddCallback("oButtonQuit", ui_events.BUTTON_CLICKED, self.Quit, self)
+    self:AddCallbackEx("oButtonQuit", ui_events.BUTTON_CLICKED, self.Quit, self)
 	
 	--[[
 	--	CUIButton()
@@ -403,7 +403,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonStart:SetFont(GetFontGraffiti19Russian())
     self.oButtonStart:Init(189,302,92,25)	
     self:AttachChild(self.oButtonStart)
-    self:AddCallback("oButtonStart", ui_events.BUTTON_CLICKED, self.Start, self)
+    self:AddCallbackEx("oButtonStart", ui_events.BUTTON_CLICKED, self.Start, self)
 	--[[
 	--	CUIButton()
 	--	Прикрепляем кнопку управления СкроллБаром 'налево'.
@@ -415,7 +415,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonPrevLeft:SetOriginalRect(9,393,39,23)
     self.oButtonPrevLeft:Init(24,167,39,23)	
     self:AttachChild(self.oButtonPrevLeft)
-    self:AddCallback("oButtonPrevLeft", ui_events.BUTTON_CLICKED, self.PreviewScrollLeft, self)
+    self:AddCallbackEx("oButtonPrevLeft", ui_events.BUTTON_CLICKED, self.PreviewScrollLeft, self)
 	--[[
 	--	CUIButton()
 	--	Прикрепляем кнопку управления СкроллБаром 'направо'.
@@ -427,7 +427,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonPrevRight:SetOriginalRect(52,393,39,23)
     self.oButtonPrevRight:Init(404,167,39,23)	
     self:AttachChild(self.oButtonPrevRight)
-    self:AddCallback("oButtonPrevRight", ui_events.BUTTON_CLICKED, self.PreviewScrollRight, self)
+    self:AddCallbackEx("oButtonPrevRight", ui_events.BUTTON_CLICKED, self.PreviewScrollRight, self)
 	--[[
 	--	CUIButton()
 	--	Прикрепляем кнопку управления РецептБаром 'налево'.
@@ -439,7 +439,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonRecLeft:SetOriginalRect(9,393,39,23)
     self.oButtonRecLeft:Init(24,246,39,23)	
     self:AttachChild(self.oButtonRecLeft)
-    self:AddCallback("oButtonRecLeft", ui_events.BUTTON_CLICKED, self.ReceptScrollLeft, self)
+    self:AddCallbackEx("oButtonRecLeft", ui_events.BUTTON_CLICKED, self.ReceptScrollLeft, self)
 	--[[
 	--	CUIButton()
 	--	Прикрепляем кнопку управления РецептБаром 'направо'.
@@ -451,7 +451,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonRecRight:SetOriginalRect(52,393,39,23)
     self.oButtonRecRight:Init(404,246,39,23)	
     self:AttachChild(self.oButtonRecRight)
-    self:AddCallback("oButtonRecRight", ui_events.BUTTON_CLICKED, self.ReceptScrollRight, self)
+    self:AddCallbackEx("oButtonRecRight", ui_events.BUTTON_CLICKED, self.ReceptScrollRight, self)
 end
 
 --[[
@@ -516,7 +516,7 @@ function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 		oScrollButton:Init(x, aButton.y, w, aButton.hg)
 		self:AttachChild(oScrollButton)
 		local sFuncString = "amkii_transmutator.oDevice:AddArtefact("..iSectIndex..",\""..iBarName.."\")"
-		self:AddCallback("oScrollButton"..iSectIndex..iBarName, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
+		self:AddCallbackEx("oScrollButton"..iSectIndex..iBarName, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
 		aButton.oSlot = oScrollButton
 	end
 end
@@ -603,7 +603,7 @@ function CAmkDeviceTransmutator:InitResultButton(sArtSection)
 		local w = t.w * kScreen
 		oRes:Init(430+(50-w)/2, 69, w, 50)
 		self:AttachChild(oRes)
-		self:AddCallback("oButtonResult", ui_events.BUTTON_CLICKED, self.UpdateDevice, self)	
+		self:AddCallbackEx("oButtonResult", ui_events.BUTTON_CLICKED, self.UpdateDevice, self)	
 --		_log("... Init oButtonResult")
 	end			
 end
@@ -701,7 +701,7 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 				oCmpnSlot:Init(x, aButton.y, w, aButton.hg)	
 				self:AttachChild(oCmpnSlot)
 				local sFuncString = "amkii_transmutator.oDevice:DelArtefact("..iKey..")"
-				self:AddCallback("oCmpnSlot"..iKey, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
+				self:AddCallbackEx("oCmpnSlot"..iKey, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
 	--			_log("... Init oCmpnSlot"..iKey)
 				--[[
 				--	Сохраняем данные.
@@ -839,8 +839,9 @@ end
 --]]
 function CAmkDeviceTransmutator:Quit()
 	amkDisableDevice()
+	self:unregister_self()
 	self:GetHolder():start_stop_menu(self,true)
-	ShowInvDescr(true)
+	BlockUIDescr(false)
 end
 
 --[[
