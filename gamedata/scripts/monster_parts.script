@@ -90,11 +90,16 @@ function check_move(delta, p)
 			if snd and snd:playing() then snd:stop() end
 			
 			local npc = level.object_by_id(p.parent)
+			local item
 			if npc then
-				local item
 				for i in pairs(parts) do
 					item = level.object_by_id(i)
 					if item then db.actor:transfer_item(item, npc) end
+				end
+			else  -- мутант куда-то пропал?
+				for i in pairs( parts ) do
+					item = alife():object( i )
+					if item then alife():release( item, true ) end
 				end
 			end
 			parts = {}

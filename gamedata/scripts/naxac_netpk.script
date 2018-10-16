@@ -1,17 +1,6 @@
---[[------------------------------------------------------------------------------------------
-	Модуль для работы с net_paket'ами объектов (ТЧ)
-	
-	Использование:
-	получаем таблицу параметров:
-		local data = naxac_netpk.get(se_obj)  -- серверный объект на входе,
-			на выходе - талица
-	пишем данные в объект:
-		naxac_netpk.set(se_obj, data, flag)   -- передаём серверный объект для записи
-			и ранее полученную и изменённую, если надо, таблицу параметров
-			flag - нужно ли переводить объект в оффлайн для вступления в силу изменений
-			(true/false). Нужно, к примеру, при изменении визуала объекта
+-- -*- mode: lua; encoding: windows-1251 -*-
 
---]]------------------------------------------------------------------------------------------
+-- Модуль для работы с net_paket'ами объектов, "заточен" под солянку
 
 local torch_flags = {
 	Active            = 1,
@@ -54,7 +43,7 @@ local restrictor_type = {
 
 local clsid2func = {}
 
-function get(obj, state_only)
+function get( obj, flags )
 	if obj == nil then return abort("naxac_netpk.get: obj is nil") end
 
 	local class_str = clsid2func[obj:clsid()]
@@ -73,7 +62,7 @@ function get(obj, state_only)
 	stpk:r_seek( 2 )
 	
 	local uppk = nil
-	if not state_only then
+	if bit_and( ( flags or 0 ), net_packet.f_state ) == 0 then
 		ret.upd = {}
 		uppk = net_packet()
 		uppk:w_begin( 0 )
@@ -91,7 +80,7 @@ function get(obj, state_only)
 	return ret
 end
 
-function set(obj, data, convert)
+function set(obj, data, flags)
 	if not (obj and data) then return abort("naxac_netpk.set: obj is nil") end
 
 	local class_str = data.net_class_name
@@ -123,7 +112,7 @@ function set(obj, data, convert)
 		obj:UPDATE_Read( uppk )
 	end
 
-	if not convert then return end
+	if bit_and( ( flags or 0 ), net_packet.f_convert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -142,10 +131,6 @@ end
 function modify( obj, data, flags )
 	if not ( obj and data ) then return abort("naxac_netpk.modify: obj is nil") end
 
-	-- check modes
-	local state_only	= ( bit_and(flags or 0, 1) == 1 )
-	local convert		= ( bit_and(flags or 0, 2) == 2 )
-
 	local class_str = clsid2func[obj:clsid()]
 		or abort("naxac_netpk.modify: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
@@ -161,7 +146,7 @@ function modify( obj, data, flags )
 	stpk:r_seek( 2 )
 	
 	local uppk = nil
-	if not state_only then
+	if bit_and( ( flags or 0 ), net_packet.f_state ) == 0 then
 		tmp.upd = {}
 		uppk = net_packet()
 		uppk:w_begin( 0 )
@@ -194,7 +179,6 @@ function modify( obj, data, flags )
 	func( tmp, stpk, uppk )
 
 	stpk:w_tail( tmp.tail )
-
 	stpk:r_seek( 2 )
 	obj:STATE_Read( stpk, stpk:w_tell() )
 
@@ -204,7 +188,7 @@ function modify( obj, data, flags )
 		obj:UPDATE_Read( uppk )
 	end
 
-	if not convert then return end
+	if bit_and( ( flags or 0 ), net_packet.f_convert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -1010,6 +994,19 @@ function write_cse_alife_space_restrictor( data, stpk, uppk )
 	stpk:w_u8              ( data.restrictor_type )
 end
 
+function read_se_restrictor( ret, stpk, uppk )
+	read_cse_alife_space_restrictor( ret, stpk, uppk )
+
+	-- se_restrictor
+	ret.activated = stpk:r_bool()
+end
+function write_se_restrictor( data, stpk, uppk )
+	write_cse_alife_space_restrictor( data, stpk, uppk )
+
+	-- se_restrictor
+	stpk:w_bool( data.activated )
+end
+
 function read_cse_alife_level_changer( ret, stpk, uppk )
 	read_cse_alife_space_restrictor ( ret, stpk, uppk )
 	
@@ -1456,7 +1453,7 @@ function get_all_shapes_data( cobj )
 	local data = {}
 	
 	data.sobj = alife():object(cobj:id())
-	local row_data = naxac_netpk.get( data.sobj, true )
+	local row_data = naxac_netpk.get( data.sobj, net_packet.f_state )
 	local shapes_row_data = row_data.shapes
 	
 	local xform_orig = get_xform( cobj )
@@ -1654,6 +1651,8 @@ function init()
 
 		script_restr		= 'cse_alife_space_restrictor',
 
+		zone_subway      = 'se_restrictor',
+
 		level_changer		= 'cse_alife_level_changer',
 
 		nogravity_zone		= "cse_alife_anomalous_zone",
@@ -1665,7 +1664,7 @@ function init()
 		zone_ice_s			= 'se_zone_anom',
 		zone_mbald_s		= 'se_zone_anom',
 		zone_mincer_s		= 'se_zone_anom',
-		zone_mosquito_bald	= 'se_zone_anom',
+		zone_mosquito_bald_s	= 'se_zone_anom',
 		zone_zharka_s		= 'se_zone_anom',
 
 		ameba_zone			= 'cse_alife_zone_visual',

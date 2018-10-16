@@ -62,7 +62,7 @@ function action_door:__init(obj, storage)
 	storage.door_action = self
 end
 function action_door:reset_scheme(loading)
-	printf("_bp: action_door:reset_scheme: self.object:name()='%s'", self.object:name())
+	-- printf("_bp: action_door:reset_scheme: self.object:name()='%s'", self.object:name())
 	self.initialized = false
 	
 	local ph_shell = self.object:get_physics_shell()
@@ -141,9 +141,9 @@ function action_door:fastcall()
 end
 
 function action_door:close_action()
-	printf("_bp: close_action(): %d", time_global())
+	-- printf("_bp: close_action(): %d", time_global())
 
-	printf("_bp: action_door:update(): door blocked")
+	-- printf("_bp: action_door:update(): door blocked")
 	-- Закрыли до предела, будем блокировать
 	if self.st.no_force == true then
 		self.joint:set_max_force_and_velocity(0, 0, 0)
@@ -158,7 +158,7 @@ function action_door:close_action()
 end
 
 function action_door:open_door(disable_snd)
-	printf("_bp: [%s] action_door:open_door()", self.object:name())
+	-- printf("_bp: [%s] action_door:open_door()", self.object:name())
 	if not disable_snd then
 		if self.st.snd_open_start then
 			self:door_play_snd_from_set(self.st.snd_open_start)
@@ -179,17 +179,17 @@ end
 
 function action_door:is_closed()
 	local angle = self.joint:get_axis_angle(90)
-	printf("_bp[%s]: action_door:update(): angle %f limits %f, %f",
-		self.object:name(), angle, self.low_limits, self.hi_limits)
+	-- printf("_bp[%s]: action_door:update(): angle %f limits %f, %f",
+		-- self.object:name(), angle, self.low_limits, self.hi_limits)
 	if angle <= self.low_limits then
-		printf("_bp: close_check(): true")
+		-- printf("_bp: close_check(): true")
 		return true
 	end
 	return false
 end
 
 function action_door:close_door(disable_snd)
-	printf("_bp: [%s] action_door:close_door()", self.object:name())
+	-- printf("_bp: [%s] action_door:close_door()", self.object:name())
 --	local disable_snd = self:is_closed()
 	if not disable_snd then
 		if self.st.snd_close_start then
@@ -202,7 +202,7 @@ function action_door:close_door(disable_snd)
 	self.object:set_fastcall(self.fastcall,self)
 	self.object:set_fastcall(self.fastcall,self)
 
-	printf("_bp: action_door:close_door()")
+	-- printf("_bp: action_door:close_door()")
 	if self.st.no_force == true then
 		self.joint:set_max_force_and_velocity(0, 0, 0)
 	else
@@ -255,15 +255,8 @@ function action_door:use_callback(door, npc)
 --	end
 end
 function action_door:hit_callback(obj, amount, local_direction, who, bone_index)
-	local who_name
-	if who then
-		who_name = who:name()
-	else
-		who_name = "nil"
-	end
-
-	printf("DOOR: hit_callback: obj='%s', amount=%d, who='%s', bone='%s'", obj:name(), amount, who_name, bone_index)
-	print_table(self.st.hit_on_bone)
+	-- printf("DOOR: hit_callback: obj='%s', amount=%d, who='%s', bone='%s'", obj:name(), amount, (who and who:name() or "nil"), bone_index)
+	-- print_table(self.st.hit_on_bone)
 	if self.st.hit_on_bone[bone_index] ~= nil then
 		local section = xr_logic.pick_section_from_condlist(db.actor, self.object, self.st.hit_on_bone[bone_index].state)
 		xr_logic.switch_to_section(obj, self.st, section)
@@ -276,7 +269,7 @@ end
 
 ---------------------------------------------------------------------------------------------------------------------
 function add_to_binder(npc, ini, scheme, section, storage)
-	printf("DEBUG: add_to_binder: scheme='%s', section='%s'", scheme, section)
+	-- printf("DEBUG: add_to_binder: scheme='%s', section='%s'", scheme, section)
 
 	local new_action = action_door(npc, storage)
 
@@ -320,7 +313,7 @@ end
 
 -- Вызывается на апдейте НПС
 -- пробегается по всем дверям и пытается открыть те, которые находятся рядом с НПС
--- возвращает список дверей, которую открыл данный НПС
+-- возвращает список дверей, которые открыл данный НПС
 function try_to_open_door(npc)
 --	if true then return {} end
 	local opened_doors = {}

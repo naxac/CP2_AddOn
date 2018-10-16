@@ -30,46 +30,60 @@ function dik2key(dik)
 end
 
 -- фикс смены типа гранаты
-local grenades = {"grenade_rgd5", "grenade_f1", "grenade_f1_double", "grenade_m61", "grenade_7643b", "grenade_he", "grenade_sg", "grenade_fb", "grenade_gd-05", "grenade_flash"}
-function grenade_change()
+local grenades = {
+	"grenade_rgd5",
+	"grenade_f1",
+	"grenade_f1_double",
+	"grenade_m61",
+	"grenade_7643b",
+	"grenade_he",
+	"grenade_sg",
+	"grenade_fb",
+	"grenade_gd-05",
+	"grenade_flash"
+}
+local sect2pos = {}
+for i, v in ipairs(grenades) do
+	sect2pos[v] = i
+end
+
+function switch_grenade()
 	local a = db.actor
-	if a:active_slot() == 3 then
-		local itm = a:item_in_slot(3)
-		local gr
-		if itm == nil then
-			for k,v in pairs(grenades) do
-				gr = a:object(v)
-				if gr then a:move_to_slot_and_activate(gr) break end
-			end
-			return
-		end
-		
-		local sect = itm:section()
-		local n = #grenades
-		local pos = 0
-		-- ищем текущую позицию в таблице
-		for i=1,n do
-			if grenades[i]==sect then
-				pos = i
+	if not a:alive() then return end
+	if a:active_slot() ~= 3 then return end
+
+	local itm = a:item_in_slot( 3 )
+	if itm == nil then
+		for k,v in pairs( grenades ) do
+			itm = a:object(v)
+			if itm then
+				a:move_to_slot_and_activate( itm )
 				break
 			end
 		end
-		-- ищем доступные гранаты дл€ перемещени€ в слот - по пор€дку
-		for i=1,n do
-			pos = pos + 1
-			if pos>n then pos = 1 end
-			gr = a:object(grenades[pos])
-			if gr and grenades[pos]~=sect then
-				a:move_to_ruck(itm)
-				a:move_to_slot_and_activate(gr)
-				break
-			end
+		return
+	end
+
+	local sect = itm:section()
+	local pos = sect2pos[sect]
+	ASSERT( pos, "%s:grenade_change : unregistered grenade section [%s]", script_name(), sect )
+	local n = #grenades
+	for i = 1, n - 1 do
+		local j = math.fmod( pos + i, n )
+		local gr = a:object( grenades[j] )
+		if gr  then
+			a:move_to_ruck( itm )
+			a:move_to_slot_and_activate( gr )
+			break
 		end
 	end
 end
 
+local slots = ui_inv_add.getSlots()
 function use_from_slot(n)
-	local s = ui_inv_add.getSlots()[n]
+	if not db.actor:alive() then return end
+
+	local s = slots[n]
 	if s then
 		local item = db.actor:object(s)
 		if item then
@@ -79,30 +93,12 @@ function use_from_slot(n)
 	end
 end
 
-function use_bandage()
-	local obj = db.actor:object('bandage')
-	if obj then	
-		db.actor:eat(obj)
-		show_use_item('bandage')
-	end
-end
-function use_medkit()
-	local medkits = {'medkit','medkit_army','medkit_scientic'}
-	local obj
-	for i=1,#medkits do
-		obj = db.actor:object(medkits[i])
-		if obj then
-			db.actor:eat(obj)
-			show_use_item(medkits[i])
-			break
-		end
-	end
-end
 function show_use_item(section)
-	local st = get_hud():AddCustomStatic("item_used", true)
-	st:wnd():SetText("»спользовано: "..game.translate_string(get_inv_name(section)))
+	local st = get_hud():AddCustomStatic( "item_used", true )
+	st:wnd():SetText( "»спользовано: "..game.translate_string( get_inv_name( section ) ) )
 	st.m_endTime = time_global()/1000 + 4
 end
+
 
 -- √рупповой перенос предметов в/из нычки/трупа
 local carbody_addons, used_box
@@ -113,7 +109,7 @@ local reg_callbacks = {
 
 function on_info(info_id)
 	if info_id == "ui_car_body" then
-		carbody_addons = CCarbodyAddons(get_wnd(), used_box)
+		carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
 	elseif info_id == "ui_car_body_hide" then
 		xr_s.unregister_callback("on_info", this.on_info)
 		carbody_addons:Remove()
@@ -123,7 +119,7 @@ function on_info(info_id)
 end
 
 function on_use(obj, who)
-	if not ( ( IsMonster(obj) or IsStalker(obj) ) and ShiftPressed ) then
+	if not ( ( IsMonster(obj) or IsStalker(obj) ) and ShiftPressed() ) then
 		_G['recolor_items'] = true
 	end
 	used_box = obj
@@ -135,42 +131,20 @@ function clear_used_box()
 	_G['recolor_items'] = nil
 end
 	
-function on_item_drop(obj)
-	local s = obj:section()
-	if s == "separator" then return end
-
-	local sobj = alife():object(obj:id())
-	if sobj and sobj.parent_id == 0 then return end
-
-	carbody_addons.droped_section = s
-	carbody_addons.taken_section = nil
-end
-
-function on_item_take(obj)
-	local s = obj:section()
-	if s == "separator" then return end
-
-	local outfit = db.actor:item_in_slot(6)
-	if outfit and outfit:id() == obj:id() then return end
-
-	carbody_addons.taken_section = s
-	carbody_addons.droped_section = nil
-end
-
 -------------------------
-class "CCarbodyAddons" (CUIScriptWnd)
+class "CUICarbodyAddons" (CUIScriptWnd)
 
-function CCarbodyAddons:__init(owner, used_box) super()
+function CUICarbodyAddons:__init(owner, used_box) super()
 	self.owner = owner
 	self.used_box = used_box
 	self:InitControls()
 	self:Show(true)
 	for k,v in pairs(reg_callbacks) do
-		xr_s.register_callback(k, this[v])
+		xr_s.register_callback(k, self[v], {self = self} )
 	end
 end
 
-function CCarbodyAddons:InitControls()
+function CUICarbodyAddons:InitControls()
 	self:Init(0,0,1024,768)
 	self:Enable(true)
 
@@ -178,31 +152,31 @@ function CCarbodyAddons:InitControls()
 	xml:ParseFile("carbody_addons.xml")
 	self:Register(xml:Init3tButton("move_btn", self), "move_btn")
 	self.owner:AttachChild(self)
-	self:AddCallbackEx("move_btn", ui_events.BUTTON_CLICKED, self.move_items, self)
+	self:AddCallbackEx("move_btn", ui_events.BUTTON_CLICKED, self.move_items)
 	
 	if self.used_box:clsid()==clsid.inventory_box then
 		self:Register(xml:Init3tButton("repack_btn", self), "repack_btn")
-		self:AddCallbackEx("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo, self)
+		self:AddCallbackEx("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo)
 	end
 	
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
 end
 
-function CCarbodyAddons:repack_ammo()
+function CUICarbodyAddons:repack_ammo()
 	dunin_ammo.repack_in_box(self.used_box)
 end
 
-function CCarbodyAddons:Remove()
+function CUICarbodyAddons:Remove()
 	self.DescrWnd:Remove()
 	self:unregister_self()
 	self.owner:DetachChild(self)
 	for k,v in pairs(reg_callbacks) do
-		xr_s.unregister_callback(k, this[v])
+		xr_s.unregister_callback(k, self[v])
 	end
 	akill.check_habar_in_box1(used_box)
 end
 
-function CCarbodyAddons:move_items()
+function CUICarbodyAddons:move_items()
 	local box = self.used_box
 	local actor = db.actor
 	if self.droped_section then
@@ -234,6 +208,29 @@ function CCarbodyAddons:move_items()
 	self.taken_section = nil
 end
 
+function CUICarbodyAddons:on_item_drop(obj)
+	local s = obj:section()
+	if s == "separator" then return end
+
+	local sobj = alife():object(obj:id())
+	if sobj and sobj.parent_id == 0 then return end
+
+	self.droped_section = s
+	self.taken_section = nil
+end
+
+function CUICarbodyAddons:on_item_take(obj)
+	local s = obj:section()
+	if s == "separator" then return end
+
+	local outfit = db.actor:item_in_slot(6)
+	if outfit and outfit:id() == obj:id() then return end
+
+	self.taken_section = s
+	self.droped_section = nil
+end
+
+
 -- ѕоломка и износ холодного оружи€
 local time_shift = time_global()
 local wpn_power	= {
@@ -244,10 +241,12 @@ local wpn_power	= {
 	['wpn_kukri']	= true
 }
 function steel_arms()
-	if db.actor:active_slot()~=0 then return end
+	local actor = db.actor
+	if not actor:alive() then return end
+	if actor:active_slot()~=0 then return end
 	if time_shift > time_global() then return end
 	
-	local wpn = db.actor:active_item()
+	local wpn = actor:active_item()
 	if wpn == nil then return end
 	-- длительность анимации получить нельз€ - будем считать "на глаз"
 	time_shift = time_global() + 750
@@ -257,7 +256,7 @@ function steel_arms()
 	-- все ножи не провер€ем, только самое т€желое
 	local dif = level.get_game_difficulty() + 1
 	if wpn_power[sec] then
-		db.actor.power = - dif * wpn:get_weight() * 0.01
+		actor.power = - dif * wpn:get_weight() * 0.01
 	end
 	
 	if level.get_target_dist() + 0.2 > sys_ini:r_float(sec, "fire_distance") then return end
@@ -276,21 +275,27 @@ local dik_actions = {}
 
 binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
-binds_actions[key_bindings.kWPN_NEXT] = hotkeys.grenade_change
-binds_actions[key_bindings.kNIGHT_VISION] = function() nightvision.switch_pnv() end
+binds_actions[key_bindings.kWPN_NEXT] = hotkeys.switch_grenade
+binds_actions[key_bindings.kNIGHT_VISION] = function()
+	if not db.actor:alive() then return end
+	nightvision.switch_pnv()
+end
 binds_actions[key_bindings.kUSE_BANDAGE] = function() use_from_slot(2) end
 binds_actions[key_bindings.kUSE_MEDKIT] = function() use_from_slot(1) end
 binds_actions[key_bindings.kQUICK_SAVE] = function()
-	if game_options.SaveRen then
-		start_small_timer(1000, u3_utils.on_save_rename, "quicksave")
-	end
+	u3_utils.on_quicksave()
+end
+binds_actions[key_bindings.kQUICK_LOAD] = function()
+	u3_utils.load_quicksave()
 end
 binds_actions[key_bindings.kSCORES] = function()
+	if not db.actor:alive() then return end
 	if device():is_paused() then return end
 	reminder.start_remind()
 	arc_ui_dosimeter.show()
 end
 binds_actions[key_bindings.kCAM_4] = function()
+	if not db.actor:alive() then return end
 	if inventory.on_belt("runner_tele") then
 		fly.runner()
 	else
@@ -298,6 +303,7 @@ binds_actions[key_bindings.kCAM_4] = function()
 	end
 end
 binds_actions[key_bindings.kTORCH] = function()
+	if not db.actor:alive() then return end
 	if db.actor:item_in_slot(9) then
 		local snd = xr_sound.get_safe_sound_object("zwuk\\inv_torch")
 		snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 0.7)
@@ -309,12 +315,12 @@ dik_actions[DIK_keys.DIK_F4] = function() use_from_slot(4) end
 dik_actions[DIK_keys.DIK_F10] = function() ui_console.show_console() end
 
 function on_key(dik, bind)
-	if not db.actor:alive() then return end
 	if get_wnd()~=nil then return end
 	
 	if binds_actions[bind] then
 		binds_actions[bind]()
-	elseif dik_actions[dik] then
+	end
+	if dik_actions[dik] then
 		dik_actions[dik]()
 	end
 end

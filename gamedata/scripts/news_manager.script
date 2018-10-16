@@ -341,6 +341,7 @@ function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka
 	if timeout == nil then timeout = 0 end
 	if showtime == nil then showtime = 5000 end
 
+  if not string.find( command_line(), "-no_snd" ) then
 	if ozvuchka then
 		--' играем озвучку
 		xr_sound.stop_prev_sms_sound()
@@ -349,10 +350,6 @@ function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka
 		
 		--' Необходимо поставить время показа по длине сцены
 		showtime = ozvuchka_snd:length() + 500
-	--	local length = ozvuchka_snd:length()
-	--	if length > showtime then
-	--		showtime = length
-	--	end
 	else
 		--' Играем дефолтный звук
 		pda_tips:play_no_feedback(db.actor, sound_object.s2d, timeout, vector(), 1.0)
@@ -368,6 +365,7 @@ function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka
 			end
 		end
 	end
+  end
 	
 	if func then
 		amk.start_timer("run", timeout + showtime/1000 + (_shift or 1), func)

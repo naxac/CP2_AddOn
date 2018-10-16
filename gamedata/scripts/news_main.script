@@ -761,14 +761,6 @@ end
 
 function IsAnomaly(obj)
 	return (obj and amk_anoms.is_anomaly(obj:clsid()))
-	--[[if (obj) then
-		local otype = get_clsid(obj)
-		if (otype>172 and otype<180) then
-			return true
-		else		
-		end
-	end
-	return false]]
 end
 
 
@@ -1543,8 +1535,8 @@ function check_news()
 
 	spammers = {}
 	amk.oau_reason="cn start_timer"	
-  if not amk.has_g_timer("news_check") then
-    amk.g_start_timer("news_check", 0, 0, timer_check_freq)
+  if not xr_timers.has_timer("news_check") then
+    xr_timers.start_game_timer("news_check", 0, 0, timer_check_freq)
   end  
 end
 
@@ -1982,7 +1974,7 @@ function do_seen_monster()
 	end
 
 	if #avail > 0 then
-		local t = avail[math_random(#avail)]
+		local t = table_random(avail)
 		local z = news_data.do_seen_monster_templates[t]
 		local obj
 		if (z) then
@@ -2637,11 +2629,13 @@ function create_treasurebox()
 	local actor = db.actor
 	local obj = alife():create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
 	if (obj) then
-		local t = naxac_netpk.get(obj, true)
+		local t = naxac_netpk.get(obj, net_packet.f_state)
 		-- —бросим флаги, чтобы объект не уходил в оффлайн
 		t.object_flags = bit_and(t.object_flags, bit_not(197))
 		t.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
 		naxac_netpk.set(obj, t)
+		obj = alife():object( obj.id )
+		obj:use_ai_locations( false )
 		--amk.add_spot_on_map(obj.id, "treasure_spot", "My treasure")
 	end
 end

@@ -36,7 +36,7 @@ function repair()
 		--	log1("- фикс двери на Затоне\n")
 			t = { custom_data = "[collide]\n".."ignore_static\n"..
 							    "[logic]\n".."cfg = scripts\\zaton\\zat_a23_enter_door.ltx" }
-			naxac_netpk.modify( obj, t )
+			naxac_netpk.modify( obj, t, net_packet.f_state )
 		end
 
 		obj = sim:object( "aes_helicopter_0004" )
@@ -44,7 +44,7 @@ function repair()
 		--	log1("- чиним бессмертный вертолёт на ЧАЭС\n")
 			t = { custom_data = "[logic]\n"..
 								"cfg = scripts\\aes\\aes_helicopter_0004.ltx" }
-			naxac_netpk.modify( obj, t )
+			naxac_netpk.modify( obj, t, net_packet.f_state )
 		end
 
 		naxac_test.rewrite_restr_logic("aes_space_restrictor_timer",
@@ -87,7 +87,7 @@ function repair()
 		--	log1("- добавляем переходу 'Припять - ЧАЭС' вопрос о переходе\n")	-- (только после первого поещения ЧАЭС)
 			obj = alife():object( "exit_to_stancia_01" )
 			if obj then
-				naxac_netpk.modify( obj, { silent_mode = 0 } )
+				naxac_netpk.modify( obj, { silent_mode = 0 }, net_packet.f_state )
 			end
 		end
 
@@ -124,7 +124,7 @@ function repair()
 		t.custom_data =	"[smart_terrains]\n".."none = true\n"..
 						"[logic]\n".."cfg = scripts\\jorik.ltx"
 		t.visual_name = "actors\\neytral\\stalker_bar_security"
-		naxac_netpk.modify( obj, t, 3 )
+		naxac_netpk.modify( obj, t, net_packet.f_state + net_packet.f_convert )
 	end
 	
 	db.actor:give_info_portion( "naxac_test_repair5" )
@@ -189,7 +189,7 @@ function lc_question_add()
 	-- Припять - ЧАЭС
 	local obj = alife():object("exit_to_stancia_01")
 	if obj then
-		local t = naxac_netpk.get(obj, true)
+		local t = naxac_netpk.get(obj, net_packet.f_state)
 		t.silent_mode = 0
 		naxac_netpk.set(obj, t)
 	end
@@ -215,7 +215,7 @@ function rewrite_restr_logic( obj_name, logic )
 	local obj = alife():object( obj_name )
 	if obj then
 		local cd = logic and "[logic]\ncfg = "..logic or ""
-		naxac_netpk.modify( obj, {custom_data =	cd} )
+		naxac_netpk.modify( obj, {custom_data =	cd}, net_packet.f_state )
 		local rest = level.object_by_id( obj.id )
 		if rest then
 			local st = db.storage[rest:id()]
@@ -236,7 +236,7 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 		end
 	end
 
-	local t = naxac_netpk.get( ruck, true )
+	local t = naxac_netpk.get( ruck, net_packet.f_state )
 	t.custom_data  = "[logic]\n".."cfg = scripts\\new_inventory_box.ltx"
 	t.object_flags = bit_and( t.object_flags, bit_not(197) )
 	naxac_netpk.set( ruck, t )

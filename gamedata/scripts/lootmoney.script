@@ -8,32 +8,33 @@ function lootmoney(npc)
 			local deadmoney = money
 
 			if not game_options.RealMoney then
-                		local npc_rank = ranks.get_obj_rank_name(npc)
-
+				local npc_rank = ranks.get_obj_rank_name(npc)
 				if npc_rank ~= nil then
-					if npc_rank == "novice" and deadmoney >=150 then deadmoney=math.random(100,150)    
-					elseif npc_rank == "experienced" and deadmoney >=300 then deadmoney=math.random(200,300)  
-					elseif npc_rank == "veteran" and deadmoney >=450 then deadmoney=math.random(380,450) 
-					elseif npc_rank == "master" and deadmoney >=600 then deadmoney=math.random(500,600) end
-                    		end
+					if npc_rank == "novice" and money >=150 then deadmoney=math.random(100,150)    
+					elseif npc_rank == "experienced" and money >=300 then deadmoney=math.random(200,300)  
+					elseif npc_rank == "veteran" and money >=450 then deadmoney=math.random(380,450) 
+					elseif npc_rank == "master" and money >=600 then deadmoney=math.random(500,600)  
+					end
+				end
 			end
 
-			local news_texti = "\\n%c[255,255,0,0]ГЊВёГ°ГІГўГ»Г© Г±ГІГ Г«ГЄГҐГ°: %c[default]"..npc:character_name().."\\n%c[255,255,0,0]ГЋГЎГ­Г Г°ГіГ¦ГҐГ­Г® Г¤ГҐГ­ГҐГЈ: %c[default]"..game.translate_string(tostring(deadmoney).."Г°ГіГЎ.")
+			local news_texti = "%c[255,255,0,0]Мёртвый сталкер: %c[default]"..npc:character_name()..
+					"\\n%c[255,255,0,0]Обнаружено денег: %c[default]"..deadmoney.."руб."
 			db.actor:give_game_news(news_texti, "ui\\ui_iconsTotal", Frect():set(0,0,83,47), 1, 4000)
 			db.actor:give_money(deadmoney)
 			game_stats.money_quest_update(deadmoney) 
 			npc:give_money(-money)
-			archievements.acv_count_event("acv_mar", 50000, "ГЊГ Г°Г®Г¤ВёГ°", deadmoney)
+			archievements.acv_count_event("acv_mar", 50000, "Мародёр", deadmoney)
 		end
 	end
 
-	-- Г ГўГІГ®Г®ГЎГ»Г±ГЄ ГІГ°ГіГЇГ 
+	-- автообыск трупа
 	if game_options.AutoGrab then
 		start_transfer_all_desired(npc)
 	end
 end
 	
--- Г ГўГІГ®Г®ГЎГ»Г±ГЄ ГІГ°ГіГЇГ . Г±ГЇГЁГ±Г®ГЄ ГЇГҐГ°ГҐГ­Г®Г±ГЁГ¬Г»Гµ ГЇГ°ГҐГ¤Г¬ГҐГІГ®Гў. ГЇГ®ГЁГ±ГЄ ГЇГ® Г·Г Г±ГІГЁГ·Г­Г®Г¬Гі Г±Г®ГўГЇГ Г¤ГҐГ­ГЁГѕ.
+-- автообыск трупа. список переносимых предметов. поиск по частичному совпадению.
 local favorites = {
 	"ammo",
 	"money_loot",

@@ -352,6 +352,7 @@ local teleports = {
 	["arhara_obman35"] = {keep = true, pay = 20000, autosave = "l03u_agr_underground", goto_func = {"exit_ao35"}},
 	["arhara_obman36"] = {keep = true, pay = 20000, autosave = "jupiter_underground", goto_func = {"exit_ao36"}}
 }
+local pay_art = nil
 
 function create_level_changer(
 	p_story_id,	-- STORY_ID нового level_changer (понадобится нам позже)
@@ -390,36 +391,29 @@ function create_level_changer(
 	data.dest_graph_point		= "start_actor_02"
 	data.silent_mode			= p_silent
 
-	naxac_netpk.modify( obj, data, 1 )
-	
-	level.add_pp_effector ("teleport.ppe", 2006, false)
+	naxac_netpk.modify( obj, data, net_packet.f_state )
+	bind_lc.shift_send_sms()
 end
 
 function jumpTo(where)
-	level.enable_input()
-
 	if not db.actor:alive() then return end
 
 	local actor = db.actor
 	local place = places[where]
 	local view = place.view and vector():set(unpack(place.view)) or vector():set(0,0,0)
 
-	if place.lvl == level.name() then
-		level.add_pp_effector ("teleport.ppe", 2006, false)
-		start_small_timer(300, function()
-			actor:set_actor_position( vector():set(unpack(place.pos)) )
+	level.add_pp_effector ("teleport.ppe", 2006, false)
+	start_small_timer(300, function()
+		level.enable_input()
+		if place.lvl == level.name() then
 			local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
 			snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)	
-		end)
-	else
-		create_level_changer(9799, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(),
-			place.lv,
-			place.gv,
-			vector():set(unpack(place.pos)),
-			view,
-			place.lvl,
-			1)
-	end
+			actor:set_actor_position( vector():set(unpack(place.pos)) )
+		else
+			create_level_changer(9799, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(),
+				place.lv, place.gv, vector():set(unpack(place.pos)), view, place.lvl, 1)
+		end
+	end )
 end
 
 -- Калбек на потерю предмета // теперь на юзание (naxac)
@@ -434,7 +428,11 @@ function do_teleport(obj_sect)
 
 	if telepot_allowed(obj_sect) then
 		-- телепортируем
-		teleport_start(obj_sect)
+		if teleports[obj_sect].pay or teleports[obj_sect].art then
+			level.start_stop_menu( CUITeleportMsg(obj_sect), true )
+		else
+			teleport_start(obj_sect)
+		end
 	else
 		-- неудача
 		teleport_fail(obj_sect)
@@ -442,8 +440,6 @@ function do_teleport(obj_sect)
 end
 
 function telepot_allowed(obj_sect)
---	local num = teleports[obj_sect].pay
-
 	if has_alife_info("no_teleport_near_heli_btr") then 
 		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 10000)
 		return false
@@ -452,48 +448,32 @@ function telepot_allowed(obj_sect)
 		return false
 	elseif actor_is_in_danger() then
 		return false
-	-- Заменено на артефакты, а то бредятина какая-то
---	elseif num and db.actor:money() < num then
---		news_manager.send_tip(db.actor, "Для телепортации недостаточно денег.", nil, "nano", 20000)
---		return false
---	elseif not drrr.weight_ok() then
---		news_manager.send_tip(db.actor, "Телепортация перегруженного человека невозможна по техническим причинам. Снизьте вес или отремонтируйте бронекостюм.", nil, "nano", 20000)
---		return false
 	elseif teleports[obj_sect].art and not (db.actor:object(teleports[obj_sect].art)) then  	
 		-- если арт не нужен или его нет у ГГ
 		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(get_inv_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
 		return false
-	elseif teleports[obj_sect].pay and not remove_art(teleports[obj_sect].art) then
-		news_manager.send_tip(db.actor, "Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 15000)
+	elseif teleports[obj_sect].pay and not has_remove_art(teleports[obj_sect].art) then
+		news_manager.send_tip(db.actor, "Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 10000)
 		return false
 	end
 	return true
 end
-function remove_art(no_art)
-	local art_clsids = {[clsid.artefact_s] = true, [clsid.artefact] = true}
-	local del_item, item_cost
+function has_remove_art(no_art)
+	local item, item_cost
 	local min_cost = 1000000
 	local actor = db.actor
-	actor:iterate_inventory(function(dummy, item)
-		if actor:is_on_belt(item)
-			and art_clsids[item:clsid()]
-			and no_art ~= item:section()
-		then
+	pay_art = nil
+	for i = 0, actor:belt_count()-1 do
+		item = actor:item_on_belt(i)
+		if item:is_artefact() and item:section() ~= no_art then
 			item_cost = item:cost()
-			if item_cost<min_cost then	
-				del_item = item
+			if item_cost < min_cost then	
+				pay_art = item:id()
 				min_cost = item_cost
 			end
 		end
-	end,
-	actor)
-	if del_item then
-		news_manager.relocate_item(actor, "out", del_item:section())
-		local obj = alife():object(del_item:id())
-		if obj then alife():release(obj, true) end
-		return true
 	end
-	return false
+	return pay_art ~= nil
 end
 -- наличие опасности в зависимости от уровня сложности
 function actor_is_in_danger()
@@ -521,22 +501,34 @@ function teleport_start(obj_sect)
 		u3_utils.savegame_lc("Телепорт", to_level)
 	end
 
-	db.actor:disable_info_portion("no_gravigun")
+	start_small_timer( 2000, function()
+		db.actor:disable_info_portion("no_gravigun")
 
---	local num = teleports[obj_sect].pay
---	if num then
---		aem_manager.manage_money(num, "out")
---	end
+		-- отбираем арт
+		if teleports[obj_sect].art then
+			sak.out_item_namber(teleports[obj_sect].art,1)
+		end
+		-- и ещё один...
+		if pay_art then
+			local se_art = alife():object(pay_art)
+			if se_art then
+				news_manager.relocate_item(actor, "out", se_art:section_name())
+				alife():release(se_art, true)
+			end
+		end
+	end )
 
-	-- отбираем арт
-	if teleports[obj_sect].art then
-		sak.out_item_namber(teleports[obj_sect].art,1)
+	local where = table.random( teleports[obj_sect].goto_func )
+	-- проверим вес
+	if db.actor:get_inventory_weight() > 350 then
+		news_manager.send_tip(db.actor, "Внимание! Слишком большой вес: возможен сбой телепортации!", nil, "nano", 10000)
+		if math.random() > 0.4 then where = get_gluk() end
 	end
 
 	level.disable_input()
 
 	-- вызываем случайную функцию для данного телепорта. таймер дается для автосейва
-	amk.start_timer("teleport_jumpto", 3.0, table.random(teleports[obj_sect].goto_func))
+	amk.start_timer( "teleport_jumpto", 3.0, where )
 end
 
 function teleport_fail(obj_sect)
@@ -615,4 +607,78 @@ function get_places(lname)
 		if #t>0 then return table.random(t) end
 	end
 	return nil
+end
+
+function get_gluk()
+	local tmp = {}
+	for k in pairs( places ) do
+		table.insert( tmp, k )
+	end
+	return table.random( tmp )
+end
+------------------------------------------------------------------------------------------
+class "CUITeleportMsg" ( CUIScriptWnd )
+
+function CUITeleportMsg:__init( teleport )
+	super()
+
+	self.teleport = teleport
+
+	self:Init( 0, 0, 1024, 768 )
+
+	self.message_box = CUIMessageBoxEx()
+	self:Register( self.message_box, "message_box" )
+	self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes )
+	self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_NO_CLICKED, self.OnMsgNo )
+
+	local msg = "При телепортации будут потеряны артефакты: "
+	local f = false
+	if pay_art then
+		local obj = alife():object( pay_art )
+		if obj then
+			f = true
+			msg = msg..game.translate_string( get_inv_name( obj:section_name() ) )
+		end
+	end
+	if teleports[teleport].art then
+		msg = msg..( f and ", " or "" )..game.translate_string( get_inv_name( teleports[teleport].art ) )
+	end
+	msg = msg..".\\nПродолжить?"
+
+	start_small_timer( 500, self.ShowMessage, self, msg )
+end
+
+function CUITeleportMsg:ShowMessage( msg )
+	self.message_box:Init( "message_box_change_level" )
+	self.message_box:SetText( msg )
+	self:GetHolder():start_stop_menu( self.message_box, true )
+end
+
+function CUITeleportMsg:OnMsgYes()
+	teleport_start( self.teleport )
+	self:OnQuit()
+end
+
+function CUITeleportMsg:OnMsgNo()
+	teleport_fail( self.teleport )
+	self:OnQuit()
+end
+
+function CUITeleportMsg:OnQuit()
+	self:unregister_self()
+	self:GetHolder():start_stop_menu( self, true )
+end
+
+function CUITeleportMsg:OnKeyboard( dik, keyboard_action )
+	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
+	
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:OnMsgNo()
+		elseif dik == DIK_keys.DIK_RETURN then
+			self:OnMsgYes()
+		end
+	end
+
+	return true
 end
