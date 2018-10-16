@@ -106,12 +106,6 @@ function actor_binder:net_destroy()
 		actor_stats.remove_from_ranking(self.object:id())
 	end
 
-	if self.dist_wnd then
-		xr_s.unregister_callback("update", self.dist_func)
-		get_hud():RemoveDialogToRender(self.dist_wnd)
-		self.dist_wnd = nil
-		self.dist_func = nil
-	end
 	ui_grenade_marks.remove_grenade_marks()
 
 	db.del_actor(self.object)
@@ -149,21 +143,7 @@ function actor_binder:net_destroy()
 	end
 
 	xr_sound.stop_all_sound_object()
---[[
-	if iniStatistic then
-		get_console():execute("load ~~~ amk.dump_table(iniLines):")
-		amk.dump_table(iniLines)
-		get_console():execute("load ~~~ amk.dump_table(iniOtherLines):")
-		amk.dump_table(iniOtherLines)
-		get_console():execute("load ~~~ amk.dump_table(iniStat):")
-		local t = {}
-		for sect, count in pairs(iniStat) do
-			table.insert(t, {sect, count})
-		end
-		table.sort(t, function(t1, t2) return t1[2] > t2[2] end)
-		amk.dump_table(t)
-	end
-]]
+
 	set_extensions_flags(0)
 	object_binder.net_destroy(self)
 end
@@ -233,19 +213,19 @@ function actor_binder:inv_item_select(obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:mouse_wheel(w)
-	xr_s.on_event("on_mouse_wheel", w-100000)
+	xr_s.on_event("on_mouse_wheel", w>100000)
 end
 ----------------------------------------------------------------------------------------------------------------------
 local kShifts = { [DIK_keys.DIK_RSHIFT] = true, [DIK_keys.DIK_LSHIFT] = true }
 function actor_binder:key_press(dik)
-	if kShifts[dik] then _G.ShiftPressed = true end
+	if kShifts[dik] then ShiftPressed(true) end
 	local bind = dik_to_bind(dik)
 	hotkeys.on_key(dik, bind)
 	xr_s.on_event("on_key_press", dik, bind)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:key_release(dik)
-	if kShifts[dik] then _G.ShiftPressed = nil end
+	if kShifts[dik] then ShiftPressed(false) end
 	xr_s.on_event("on_key_release", dik, dik_to_bind(dik))
 end
 ----------------------------------------------------------------------------------------------------------------------
@@ -280,7 +260,7 @@ function actor_binder:take_item_from_box(box, item)
 	-- если калбек на взятие предмета из тайника поставить сюда, а не в on_item_take, то калбек сработает только один раз
 	-- и не будет вызываться каждый раз при лоаде, поэтому поршнем его отсекать не нужно
 	fly.returner_clear_pos(item)
-	snp.check_treasure_item(item, box)
+	actor_take_item_from_box.check_treasure_item(item, box)
 	spawn_level_changer.on_take_teleportator(item)
 	braad_test.mina_band2(item)
 	
@@ -291,7 +271,7 @@ function actor_binder:take_item_from_box(box, item)
 			level.start_stop_menu(level.main_input_receiver(), true)
 
 			-- здесь можно прописывать калбеки взятия на проверку по секции тайника, чтобы не придумывать уникальные предметы
-			snp.check_treasure(box)
+			actor_take_item_from_box.check_treasure(box)
 		
 			local sim = alife()
 			sim:create("treasure_item", vector():set(0, 0, 0), 0, 0, 0)
@@ -389,15 +369,6 @@ function actor_binder:on_item_take (obj)
 	xr_s.on_event("on_item_take", obj)
 
 	actor_take_item.check(obj)
-	
-	--[[ фикс переодевания гг при взятии броника
-	if obj:clsid() == clsid.equ_stalker_s then
-		local outfit = db.actor:get_current_outfit()
-		if outfit and outfit:id() ~= obj:id() and alife():object(outfit:id())~=nil then
-			db.actor:transfer_item(outfit, db.actor)
-		end
-	end
-	]]
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:on_item_drop (obj)
@@ -476,10 +447,6 @@ function actor_binder:update(delta)
 		then
 			self.object:give_info_portion("storyline_actor_start")
 			_G.g_start_avi = true
-		end
-		
-		if not has_alife_info("encyclopedy") and has_alife_info("arhara_shaxter_start") then
-			self.object:give_info_portion("encyclopedy")
 		end
 
 		if not has_alife_info("global_dialogs") then
@@ -603,55 +570,33 @@ function actor_binder:update(delta)
 			if not scopeUsed then
 				local item = actor:active_item()
 				if item then
-					--log1("- actor:active_item():section()="..tostring(item:section()))
-					
-					if ui_inv_descr.is_nv_scope_wpn(item:section()) and ( not xr_conditions.is_day() ) then
-						level.add_pp_effector("bast.ppe", 1035, true)
-						get_console():execute ("r2_mblur 0.6")
-						self.nv_on = true
-					end
+					local section = item:section()
+					local cls = item:clsid()
+					--log1("- actor:active_item():section()="..tostring(section))
 						
-					if item:clsid() == clsid.wpn_binocular_s then
-						if item:section()=="wpn_binoc_dist" and self.dist_wnd == nil then
-							self.dist_wnd = CUIStatic()
-							self.dist_wnd:Init(250, 150, 100, 50)
-							self.dist_wnd:SetFont(GetFontLetterica25())
-							self.dist_wnd:SetTextColor(255,25,120,25)
-							get_hud():AddDialogToRender(self.dist_wnd)
-							self.dist_func = function (time_delta, wnd)
-								if wnd then
-									wnd:SetText(string.format("%.2f", level.get_target_dist()))
-								end
-							end
-							xr_s.register_callback("update", self.dist_func, self.dist_wnd)
-						end
+					if cls == clsid.wpn_binocular_s then
 						scopeUsed = true
-					elseif IAmAWeapon[item:clsid()] then
+					elseif IAmAWeapon[cls] then
 						local t = amk.get_weapon_data(alife():object(item:id()), true)
 						scopeUsed = ( bit_and(t.addon_flags, 1) == 1
-							or sys_ini:r_u32(item:section(), "scope_status") == 1 )
+							or sys_ini:r_u32(section, "scope_status") == 1 )
+					end
+					if scopeUsed then
+						hud_scope.on_scope_used( section )
 					end
 				end
 			end
 		else
 			scopeUsed = false
-			if self.dist_wnd then
-				xr_s.unregister_callback("update", self.dist_func)
-				get_hud():RemoveDialogToRender(self.dist_wnd)
-				self.dist_wnd = nil
-				self.dist_func = nil
-			end
-			if self.nv_on then
-				self.nv_on = nil
-				level.remove_pp_effector(1035)
-				get_console():execute ("r2_mblur 0.")
-			end
+			hud_scope.on_scope_unused()
 		end
+
 		if ui_rad.enabled then
 			ui_rad.update(not scopeUsed)
 			sak.show_time(scopeUsed)
 		end
 	end
+
 	amk.oau_watchdog=300
 	arc_radiation.on_actor_update(delta)
 	amk.oau_watchdog=3002
@@ -677,7 +622,7 @@ function actor_binder:update(delta)
 -- ----------------------------------------------------- ARENA_EXTENSION_MOD--------------------------------------------------------
 	aem_manager.get_aem():update()
 -- ----------------------------------------------------- ARENA_EXTENSION_MOD--------------------------------------------------------
-	amk.oau_watchdog=191
+	amk.oau_watchdog=1911
   
 	-- Обновление отключения ввода с клавиатуры.
 	if self.st.disable_input_time ~= nil and

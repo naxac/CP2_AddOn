@@ -1,0 +1,73 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local level_object = level.object_by_id
+local sim = alife()
+local reg_callbacks = {
+	on_info = "on_info",
+	on_key_press = "on_key_press",
+	on_key_release = "on_key_release",
+	on_item_focus_lost = "on_item_focus_lost",
+	on_item_focus = "on_item_focus"
+}
+local itemInFocus = nil
+local selItem = nil
+local inv_wnd = nil
+
+function add(wnd)
+	for k, v in pairs(reg_callbacks) do
+		xr_s.register_callback( k, this[ v ] )
+	end
+	inv_wnd = wnd
+end
+
+function remove()
+	for k, v in pairs(reg_callbacks) do
+		xr_s.unregister_callback( k, this[ v ] )
+	end
+	itemInFocus = nil
+	selItem = nil
+	inv_wnd = nil
+end
+
+function on_info(info_id)
+	if info_id == "ui_inventory_hide" then
+		remove()
+	end
+end
+
+function on_key_press(dik, bind)
+	if bind ~= key_bindings.kWPN_FIRE then return end
+	
+	if itemInFocus then
+		selItem = itemInFocus
+	end
+end
+
+function on_key_release(dik, bind)
+	if bind ~= key_bindings.kWPN_FIRE then return end
+
+	if selItem and selItem ~= itemInFocus
+		and sim:object(selItem)
+	then
+		local item1 = level_object(selItem)
+		if item1 then
+			local item2 = nil
+			if itemInFocus and sim:object(itemInFocus) then
+				item2 = level_object(itemInFocus)
+			end
+			inv_wnd:on_drag_drop(item1, item2)
+		end
+	end
+
+	selItem = nil
+end
+
+function on_item_focus(item)
+	itemInFocus = item:id()
+end
+
+function on_item_focus_lost(item)
+	if itemInFocus == item:id() then
+		itemInFocus = nil
+	end
+end
+

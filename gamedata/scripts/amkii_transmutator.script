@@ -1,11 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---[[
-Developed by AMK-Team
-File:  amkii_transmutator.script
-Copyright:  ©  AMK-Team 2009
-Author: Refresh
-Since: 14.01.2009 1:04
---]]
+
+-- Developed by AMK-Team
+-- File:  amkii_transmutator.script
+-- Copyright:  ©  AMK-Team 2009
+-- Author: Refresh
+-- Since: 14.01.2009 1:04
 
 local dbug = true
 
@@ -24,9 +23,8 @@ local aRecsInfo = nil		-- table данные результатов варки для рецептного скролла
 local aRecSections = nil	-- table список секций артов в рецептном скролле
 local aAnomId = nil			-- integer id аномалии вблизи
 local iInfo = nil			-- string название инфопоршня рецепта
---[[
+
 --	Инфа для кнопок на скроллбаре.
---]]
 local aScrollBar = {
 	{x =  73, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 128, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -36,9 +34,7 @@ local aScrollBar = {
 	{x = 348, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil}
 }
 
---[[
 --	Инфа для кнопок на панели артефактов.
---]]
 local aCmpnSlots = {
 	{x =  73, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 128, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -47,9 +43,7 @@ local aCmpnSlots = {
 	{x = 293, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 348, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil}
 }
---[[
 --	Инфа для кнопок на рецептбаре.
---]]
 local aRecBar = {
     {x =  92,  y = 235,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
     {x = 171,  y = 235,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -90,10 +84,8 @@ function dump_table(tbl)
   --get_console():execute("flush")
 end
 
---[[
 -- 	Заспавнить предмет в инвентарь к актору.
 -- 	@param     	string           sItemSection     	Секция предмета который нужно заспавнить.
---]]
 function amkCreateItemActor(sItemSection)
 	if alife() and sItemSection then
 		return alife():create(sItemSection, db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
@@ -111,12 +103,8 @@ function amkDelObj(iId)
 end	
 
 
-
---[[
---	amkEnableDevice()
 --	Включить девайс...
 --	@param	integer	iLevelDevice	Уровень девайса. (нужно для апгрейда)
---]]
 function amkEnableDevice(iLevelDevice)
 	if oDevice or db.actor==nil or db.actor:alive()~=true then return end
 	amkCreateItemActor("amk_transmutator")
@@ -172,22 +160,13 @@ function amkEnableDevice(iLevelDevice)
 				end
 			end
 		end
-		if type(aReciptsHave)=="table" then
-			-- amk.dump_table(aReciptsHave)
-		end
---[[		if type(aRecSections)=="table" then
-			amk.dump_table(aRecSections)
-		end]]
 	end
 	CAmkMergerArtefact()
 	oDevice = CAmkDeviceTransmutator(iLevelDevice)
 	level.start_stop_menu(oDevice, true)
 end
 
---[[
---	amkDisableDevice()
 --	Выключить девайс...
---]]
 function amkDisableDevice()	
 	if oRes then oDevice:DetachChild(oRes) end
 	if oNotkomp then oDevice:DetachChild(oNotkomp) end
@@ -244,10 +223,7 @@ function CAmkMergerArtefact:__init()
 	end
 end
 
---[[
---	IterateInventory()
 --	Итерация по инвентарю актора и поиск в нем артов.
---]]
 function CAmkMergerArtefact:IterateInventory()
 	db.actor:iterate_inventory(function(npc, item)
 		-- if (item:clsid() == clsid.artefact or item:clsid() == clsid.artefact_s or amk_mod.is_komponent(item:section())) and not string.find(item:section(), "cocoon") then
@@ -257,11 +233,8 @@ function CAmkMergerArtefact:IterateInventory()
 	end, db.actor)
 end
 
---[[
---	SaveInfo(имя скроллбара)
 --	Собираем и сохраняем в нужном нам виде информацию об артах и рецептах.
 --	@param	string	iBarName		Тип скролла для сохранения (инвентарный - "Inv" / рецептный - "Rec").
---]]
 function CAmkMergerArtefact:SaveInfo(iBarName)
 	local aTmpTbl = {}	
 --	_log("*****   Search Artefacts   *****")
@@ -328,16 +301,10 @@ end
 function CAmkDeviceTransmutator:__finalize() 
 end
 
---[[
---	InitInterface()
 --	Инициализация окна и статических элементов управления.
---]]
 function CAmkDeviceTransmutator:InitInterface()	
 	self:Init(50,50,531,359)
-	--[[
-	--	CUIStatic()
 	--	Прикрепляем статический элемент 'фон'.
-	--]]	
 	self.oBackGround = CUIStatic()
     self.oBackGround:SetWindowName("oBackGround") 
     self.oBackGround:SetAutoDelete(true)
@@ -345,10 +312,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oBackGround:SetOriginalRect(3,7,531,359)  
     self.oBackGround:Init(3,7,531,359) 
     self:AttachChild(self.oBackGround)
-	--[[
-	--	CUIButton()
 	--	Прикрепляем кнопку очистки панели компонентов для варки.
-	--]]		
 	self.oButtonClear = CUIButton()
 	self.oButtonClear:SetWindowName("oButtonClear")  
 	self.oButtonClear:SetAutoDelete(true)
@@ -356,11 +320,8 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonClear:SetOriginalRect(248,365,23,39)
     self.oButtonClear:Init(420,62,23,39)
     self:AttachChild(self.oButtonClear)
-    self:AddCallbackEx("oButtonClear", ui_events.BUTTON_CLICKED, self.ClearSlots, self)
-	--[[
-	--	CUIButton()
+    self:AddCallbackEx("oButtonClear", ui_events.BUTTON_CLICKED, self.ClearSlots)
 	--	Прикрепляем текстовый индикатор аномалии.
-	--]]		
 	self.oaAnomaly = CUIStatic()
 	self.oaAnomaly:SetWindowName("oaAnomaly")
 	self.oaAnomaly:SetAutoDelete(true)
@@ -373,10 +334,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oaAnomaly:SetFont(GetFontGraffiti22Russian())	 		
     self.oaAnomaly:Init(30,306,1200,25)
     self:AttachChild(self.oaAnomaly)
-	--[[
-	--	CUIButton()
 	--	Прикрепляем кнопку завершения работы'выход'.
-	--]]		
 	self.oButtonQuit = CUIButton()
 	self.oButtonQuit:SetWindowName("oButtonQuit")  
 	self.oButtonQuit:SetAutoDelete(true)
@@ -387,12 +345,9 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonQuit:SetFont(GetFontGraffiti19Russian())
 	self.oButtonQuit:Init(406,302,92,25)
     self:AttachChild(self.oButtonQuit)
-    self:AddCallbackEx("oButtonQuit", ui_events.BUTTON_CLICKED, self.Quit, self)
+    self:AddCallbackEx("oButtonQuit", ui_events.BUTTON_CLICKED, self.Quit)
 	
-	--[[
-	--	CUIButton()
 	--	Прикрепляем кнопку на старт трансмутации'старт'.
-	--]]		
 	self.oButtonStart = CUIButton()
 	self.oButtonStart:SetWindowName("oButtonStart")  
 	self.oButtonStart:SetAutoDelete(true)
@@ -403,11 +358,8 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonStart:SetFont(GetFontGraffiti19Russian())
     self.oButtonStart:Init(189,302,92,25)	
     self:AttachChild(self.oButtonStart)
-    self:AddCallbackEx("oButtonStart", ui_events.BUTTON_CLICKED, self.Start, self)
-	--[[
-	--	CUIButton()
+    self:AddCallbackEx("oButtonStart", ui_events.BUTTON_CLICKED, self.Start)
 	--	Прикрепляем кнопку управления СкроллБаром 'налево'.
-	--]]		
 	self.oButtonPrevLeft = CUIButton()
 	self.oButtonPrevLeft:SetWindowName("oButtonPrevLeft")  
 	self.oButtonPrevLeft:SetAutoDelete(true)
@@ -415,11 +367,8 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonPrevLeft:SetOriginalRect(9,393,39,23)
     self.oButtonPrevLeft:Init(24,167,39,23)	
     self:AttachChild(self.oButtonPrevLeft)
-    self:AddCallbackEx("oButtonPrevLeft", ui_events.BUTTON_CLICKED, self.PreviewScrollLeft, self)
-	--[[
-	--	CUIButton()
+    self:AddCallbackEx("oButtonPrevLeft", ui_events.BUTTON_CLICKED, self.PreviewScrollLeft)
 	--	Прикрепляем кнопку управления СкроллБаром 'направо'.
-	--]]	
 	self.oButtonPrevRight = CUIButton()
 	self.oButtonPrevRight:SetWindowName("oButtonPrevRight")  
 	self.oButtonPrevRight:SetAutoDelete(true)
@@ -427,11 +376,8 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonPrevRight:SetOriginalRect(52,393,39,23)
     self.oButtonPrevRight:Init(404,167,39,23)	
     self:AttachChild(self.oButtonPrevRight)
-    self:AddCallbackEx("oButtonPrevRight", ui_events.BUTTON_CLICKED, self.PreviewScrollRight, self)
-	--[[
-	--	CUIButton()
+    self:AddCallbackEx("oButtonPrevRight", ui_events.BUTTON_CLICKED, self.PreviewScrollRight)
 	--	Прикрепляем кнопку управления РецептБаром 'налево'.
-	--]]		
 	self.oButtonRecLeft = CUIButton()
 	self.oButtonRecLeft:SetWindowName("oButtonRecLeft")  
 	self.oButtonRecLeft:SetAutoDelete(true)
@@ -439,11 +385,8 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonRecLeft:SetOriginalRect(9,393,39,23)
     self.oButtonRecLeft:Init(24,246,39,23)	
     self:AttachChild(self.oButtonRecLeft)
-    self:AddCallbackEx("oButtonRecLeft", ui_events.BUTTON_CLICKED, self.ReceptScrollLeft, self)
-	--[[
-	--	CUIButton()
+    self:AddCallbackEx("oButtonRecLeft", ui_events.BUTTON_CLICKED, self.ReceptScrollLeft)
 	--	Прикрепляем кнопку управления РецептБаром 'направо'.
-	--]]	
 	self.oButtonRecRight = CUIButton()
 	self.oButtonRecRight:SetWindowName("oButtonRecRight")  
 	self.oButtonRecRight:SetAutoDelete(true)
@@ -451,16 +394,13 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oButtonRecRight:SetOriginalRect(52,393,39,23)
     self.oButtonRecRight:Init(404,246,39,23)	
     self:AttachChild(self.oButtonRecRight)
-    self:AddCallbackEx("oButtonRecRight", ui_events.BUTTON_CLICKED, self.ReceptScrollRight, self)
+    self:AddCallbackEx("oButtonRecRight", ui_events.BUTTON_CLICKED, self.ReceptScrollRight)
 end
 
---[[
---	UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 --	Инициализируем элементы нашего псевдо СкроллБара.
 --	@param	integer	iStartIndex	Стартовый индекс для таблицы артефактов.
 --	@param	integer	iFinalIndex	Финальный индекс для таблицы артефактов.
 --	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
---]]
 function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 	local iCurrentButton = 0
 	for iSectIndex = iStartIndex, iFinalIndex do
@@ -473,30 +413,26 @@ function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 			aButton = aRecBar[iCurrentButton]
 			aSectInfo = aRecsInfo[iSectIndex]
 		end
-		--[[
+
 		--	Очищаем обьект кнопки из таблицы видимых элементов.
-		--]]
 		if aButton.oSlot then
 			self:DetachChild(aButton.oSlot)
 			aButton.oSlot = nil
 		end
-		--[[
+
 		--	Завершаем апдейт скролла если уже нет
 		--	элементов для инициализации.
-		--]]		
 		if not aSectInfo then
 			return
 		end
-		--[[
+
 		--	Получаем позицию иконки.
-		--]]			 
 		local x = aSectInfo.x
 		local y = aSectInfo.y
 		local w = aSectInfo.w
 		local h = aSectInfo.h
-		--[[
+
 		--	Создаем псевдо слот для арта.
-		--]]				
 		local oScrollButton = CUIButton()
 		oScrollButton:SetWindowName("oScrollButton"..iSectIndex..iBarName)
 		oScrollButton:SetAutoDelete(true)	
@@ -515,16 +451,12 @@ function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 		x = aButton.x + (aButton.wt - w)/2
 		oScrollButton:Init(x, aButton.y, w, aButton.hg)
 		self:AttachChild(oScrollButton)
-		local sFuncString = "amkii_transmutator.oDevice:AddArtefact("..iSectIndex..",\""..iBarName.."\")"
-		self:AddCallbackEx("oScrollButton"..iSectIndex..iBarName, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
+		self:AddCallbackEx("oScrollButton"..iSectIndex..iBarName, ui_events.BUTTON_CLICKED, self.AddArtefact, iSectIndex, iBarName)
 		aButton.oSlot = oScrollButton
 	end
 end
 
---[[
---	PreviewScrollLeft()
 --	Полистать СкроллБар влево.
---]]
 function CAmkDeviceTransmutator:PreviewScrollLeft()
 	if aArtsInfo[aInterval[1] - 1] and aArtsInfo[aInterval[2] - 1] then
 		aInterval = {aInterval[1] - 1, aInterval[2] - 1}
@@ -532,10 +464,7 @@ function CAmkDeviceTransmutator:PreviewScrollLeft()
 	end
 end
 
---[[
---	PreviewScrollRight()
 --	Полистать СкроллБар вправо.
---]]
 function CAmkDeviceTransmutator:PreviewScrollRight()
 	if aArtsInfo[aInterval[1] + 1] and aArtsInfo[aInterval[2] + 1] then
 		aInterval = {aInterval[1] + 1, aInterval[2] + 1}
@@ -543,10 +472,7 @@ function CAmkDeviceTransmutator:PreviewScrollRight()
 	end
 end
 
---[[
---	ReceptScrollLeft()
 --	Полистать РецептБар влево.
---]]
 function CAmkDeviceTransmutator:ReceptScrollLeft()
 	if aRecsInfo[aRecInterval[1] - 1] and aRecsInfo[aRecInterval[2] - 1] then
 		aRecInterval = {aRecInterval[1] - 1, aRecInterval[2] - 1}
@@ -554,10 +480,7 @@ function CAmkDeviceTransmutator:ReceptScrollLeft()
 	end
 end
 
---[[
---	ReceptScrollRight()
 --	Полистать РецептБар вправо.
---]]
 function CAmkDeviceTransmutator:ReceptScrollRight()
 	if aRecsInfo[aRecInterval[1] + 1] and aRecsInfo[aRecInterval[2] + 1] then
 		aRecInterval = {aRecInterval[1] + 1, aRecInterval[2] + 1}
@@ -565,10 +488,8 @@ function CAmkDeviceTransmutator:ReceptScrollRight()
 	end
 end
 
---[[
---	OnKeyboard(DIK, KeyboardAction)
---	Виндим клавиши для управления.
---]]
+
+--	Биндим клавиши для управления.
 function CAmkDeviceTransmutator:OnKeyboard(DIK, KeyboardAction)
 	CUIScriptWnd.OnKeyboard(self, DIK, KeyboardAction)
 	if KeyboardAction == ui_events.WINDOW_KEY_PRESSED then
@@ -579,21 +500,14 @@ function CAmkDeviceTransmutator:OnKeyboard(DIK, KeyboardAction)
 	return true
 end
 
---[[
---	InitResultButton(sArtSection)
+
 --	Инициализация слота для результата трансмутации.
 --	@param	string	sArtSection	Секция артефакта, результата трансмутации.
---]]
 function CAmkDeviceTransmutator:InitResultButton(sArtSection)
 	if sys_ini:section_exist(sArtSection) then
-		
 		--	Получаем координаты для иконки.
-		--
 		local t = GetIconParams(sArtSection)
-		--[[
 		--	Инициализация слота.
-		--
-		--self.oButtonResult = CUIButton()]]	
 		oRes = CUIButton()	
 		oRes:SetWindowName("oButtonResult")  
 		oRes:SetAutoDelete(true)	
@@ -648,12 +562,10 @@ function CAmkDeviceTransmutator:UpdateDevice()
 	self:UpdScrollBar(aRecInterval[1], aRecInterval[2], "Rec")
 end
 
---[[
---	AddArtefact(индекс секции в таблице компонентов, название скролла)
+
 --	Добавить артефакт на панель активных компонентов.
 --	@param	integer	iSectIndex	Индекс секции артефакта который нужно добавить в слот.
 --	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
---]]
 function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)	
 	if oRes ~= nil then
 		self:UpdateDevice()
@@ -673,23 +585,17 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 	if aSectInfo.iCount == 0 then
 		return
 	end
-	--[[
 	--	Итерируем по панели компонентов и ищем свободный слот.
-	--]]
 	if iBarName == "Inv" then
 		for iKey, aButton in pairs(aCmpnSlots) do
 			if aButton.oSlot == nil then
 				aSectInfo.iCount = aSectInfo.iCount - 1
-				--[[
 				--	Получаем координаты иконки.
-				--]]			
 				local x = aSectInfo.x
 				local y = aSectInfo.y
 				local w = aSectInfo.w
 				local h = aSectInfo.h
-				--[[
 				--	Инициализируем псевдо слот. (кнопку)
-				--]]				
 				local oCmpnSlot = CUIButton()
 				oCmpnSlot:SetWindowName("oCmpnSlot"..iKey)  
 				oCmpnSlot:SetAutoDelete(true)		
@@ -703,14 +609,10 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 				local sFuncString = "amkii_transmutator.oDevice:DelArtefact("..iKey..")"
 				self:AddCallbackEx("oCmpnSlot"..iKey, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
 	--			_log("... Init oCmpnSlot"..iKey)
-				--[[
 				--	Сохраняем данные.
-				--]]	
 				aButton.oSlot = oCmpnSlot
 				aButton.iSectIndex = iSectIndex
-				--[[
 				--	Апдейтим СкроллБар.
-				--]]	
 				self:UpdScrollBar(aInterval[1], aInterval[2], "Inv")				
 				break
 			end
@@ -734,15 +636,6 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 				local tblNotKomp = {}
 				local CountLostKomp = 0
 				for cSect, m in pairs(aReciptsHave[info]["komp"]) do
---[[					if aReciptsHave[info]["komp"][cSect] ~= "added" then
-						CountLostKomp = CountLostKomp + 1
-						local str = game.translate_string(amk.get_inv_name(cSect))
-						if txtNotkomp == "" then
-							txtNotkomp = str
-						else
-							txtNotkomp = txtNotkomp..", "..str
-						end
-					end]]
 					if aReciptsHave[info]["komp"][cSect] ~= "added" then
 						table.insert(tblNotKomp, game.translate_string(amk.get_inv_name(cSect)))
 					end
@@ -773,7 +666,7 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 			oNotkomp = CUIStatic()
 			oNotkomp:SetWindowName("oNotkomp")
 			oNotkomp:SetAutoDelete(true)
---			oNotkomp:SetText("Не хватает компонентов: "..tostring(txtNotkomp))
+			oNotkomp:SetText("Не хватает компонентов: "..tostring(txtNotkomp))
 			oNotkomp:SetText("Для варки не хватает компонентов")
 			oNotkomp:SetTextColor(255,255,0,0)
 			oNotkomp:SetFont(GetFontGraffiti19Russian())
@@ -794,10 +687,7 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 	end
 end
 
---[[
---	ClearSlots()
 --	Очистка панели компонентов для варки.
---]]
 function CAmkDeviceTransmutator:ClearSlots()
 	for iKey, aButton in pairs(aCmpnSlots) do
 		if aCmpnSlots[iKey] ~=nil then
@@ -806,18 +696,14 @@ function CAmkDeviceTransmutator:ClearSlots()
 	end
 end
 
---[[
---	DelArtefact(iCmpnSlotIndex)
+
 --	Удалить артефакт из панели компонентов.
 --	@param	integer	iSectIndex	Индекс слота панели компонентов.
 --	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
---]]
 function CAmkDeviceTransmutator:DelArtefact(iCmpnSlotIndex)
 	aButton = aCmpnSlots[iCmpnSlotIndex]
 	aSectInfo = aArtsInfo[aButton.iSectIndex]
-	--[[
 	--	Если слот активный, то отключаем его.
-	--]]
 	if aButton.oSlot then
 		self:DetachChild(aButton.oSlot)
 		aSectInfo.iCount = aSectInfo.iCount + 1
@@ -833,10 +719,8 @@ function CAmkDeviceTransmutator:DelArtefact(iCmpnSlotIndex)
 	end
 end
 
---[[
---	Quit()
+
 --	Выход.
---]]
 function CAmkDeviceTransmutator:Quit()
 	amkDisableDevice()
 	self:unregister_self()
@@ -844,12 +728,9 @@ function CAmkDeviceTransmutator:Quit()
 	BlockUIDescr(false)
 end
 
---[[
---	Start()
+
 --	Старт трансмутации.
---]]
 function CAmkDeviceTransmutator:Start()
-	-- local aCmpnButtons = {aCmpnSlots[1], aCmpnSlots[2], aCmpnSlots[3], aCmpnSlots[4]}
 	-- с пустыми слотами компонентов и вне аномалии не стартуем
 	if not aAnomaly then return end
 	local count = 0
@@ -859,14 +740,7 @@ function CAmkDeviceTransmutator:Start()
 		end
 	end
 	if count == 0 then return end
---[[	for iKey, aButton in pairs(aCmpnButtons) do
-		if aButton.oSlot == nil or aButton.iSectIndex == nil then
-			return
-		end
-	end]]
-	--[[
 	--	Попытаться трансмутировать артефакты.
-	--]]
 	CAmkTransmutacion()
 end
 
@@ -877,14 +751,9 @@ end
 
 class "CAmkTransmutacion"
 
---[[
---	__init()
 --	Конструктор класса.
---]]
 function CAmkTransmutacion:__init()
 --	_log("*****   Transmutacion   *****")
-	-- self.ini = ini_file("scripts\\transmutator_schemes.ltx")
-	-- self.aSchemes = self:iniData()
 	self.sTransmutants = self:SearchSchemes()
 	if self.sTransmutants ~= nil then
 		self:CreateAtrefact()
@@ -894,82 +763,41 @@ function CAmkTransmutacion:__init()
 	end
 end
 
---[[
---	iniData()
---	Считываем данные с ини файла.
---]]
---[[function CAmkTransmutacion:iniData()
-	if self.ini:section_exist("schemes") then
-		local result, id, value = nil, nil, nil
-		local aSchemes = {}
-		for index = 0, self.ini:line_count("schemes")-1 do
-			result, id, value = self.ini:r_line("schemes",index,"","")
-			if id~="" and id~=nil then
-				table.insert(aSchemes, id)
-			end
-		end
-		return aSchemes
-	end
-	return nil
-end]]
-
---[[
---	SearchSchemes()
 --	Поиск подходящей схемы трансмутации.
---]]
 function CAmkTransmutacion:SearchSchemes()
 	local sTransmutants
---[[	if self.aSchemes~=nil and table.getn(self.aSchemes) < 1 then
-		return
-	end]]
---[[	local function sSort(a,b)
-		return (a > b)
-	end]]
---[[	local aCmpnSects = {
-		aArtsInfo[aCmpnSlots[1].iSectIndex].sSection,
-		aArtsInfo[aCmpnSlots[2].iSectIndex].sSection, 
-		aArtsInfo[aCmpnSlots[3].iSectIndex].sSection,
-		aArtsInfo[aCmpnSlots[4].iSectIndex].sSection		
-	}]]
 	local aCmpnSects = {}
 	for iKey, aButton in pairs(aCmpnSlots) do
 		if aCmpnSlots[iKey].iSectIndex ~= nil then
 			table.insert(aCmpnSects, aArtsInfo[aCmpnSlots[iKey].iSectIndex].sSection)
 		end
 	end
-	-- table.sort(aCmpnSects,sSort)
-	-- if aAnomaly then
-		-- dump_table(aCmpnSects)
-		-- result = amk_mod.check_komp(aAnomaly,aCmpnSects)
-		numArts = table.getn(aCmpnSects)
-		for info, recept in pairs(aRecipts) do
-			local count = 0
-			for k,v in pairs(aRecipts[info]["komp"]) do
-				-- считаем ,сколько компонентов в рецепте
-				count = count + 1
-			end
-			if count == numArts then
-				for i=1, numArts do
-					local af = aCmpnSects[i]			
-					if not aRecipts[info]["komp"][af] then
-						break
-					end
-					if i == count then 
-						sTransmutants = aRecipts[info]["cel"] --перебрали все арты и есть результат
-						-- dump_table(sTransmutants)
-						iInfo = info
-					end
+
+	numArts = table.getn(aCmpnSects)
+	for info, recept in pairs(aRecipts) do
+		local count = 0
+		for k,v in pairs(aRecipts[info]["komp"]) do
+			-- считаем ,сколько компонентов в рецепте
+			count = count + 1
+		end
+		if count == numArts then
+			for i=1, numArts do
+				local af = aCmpnSects[i]			
+				if not aRecipts[info]["komp"][af] then
+					break
+				end
+				if i == count then 
+					sTransmutants = aRecipts[info]["cel"] --перебрали все арты и есть результат
+					-- dump_table(sTransmutants)
+					iInfo = info
 				end
 			end
 		end
-	-- end
+	end
 	return sTransmutants
 end
 
---[[
---	CreateAtrefact()
 --	Создание артефакта трансмутанта.
---]]
 function CAmkTransmutacion:CreateAtrefact()
 	-- собираем табличку подготовленных для варки компонентов
 	local komp = {}
@@ -980,19 +808,11 @@ function CAmkTransmutacion:CreateAtrefact()
 		if aCmpnSlots[i].iSectIndex ~= nil then
 			local aButton = aCmpnSlots[i]
 			local aArtInfo = aArtsInfo[aButton.iSectIndex]
-			--[[
 			--	Вытащить артефакт из базы компонентов.
-			--]]
 			local oObject = aArtInfo.aArts[table.getn(aArtInfo.aArts)]
 			local obj_sect = oObject:section()
--- [[			table.insert(komp, oObject:id())
-			-- komp[obj_sect] = oObject:id()
-			-- aRecipts[iInfo]["komp"][obj_sect] = oObject:id()]]
-			-- _log("... Deletion Artefact["..i.."] ID : "..oObject:id().." section : "..obj_sect)
 			table.remove(aArtInfo.aArts, table.getn(aArtInfo.aArts))
-			--[[
 			--	Удалить артефакт и очистить слот.
-			--]]
 			amkDelObj(oObject:id())
 			oDevice:DetachChild(aButton.oSlot)
 			aCmpnSlots[i].iSectIndex = nil
@@ -1011,7 +831,6 @@ function CAmkTransmutacion:CreateAtrefact()
 	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
 	local remove_anomaly_id = remove_anomaly and aAnomId or nil
 	local result, udacha 	= amk_mod.af_select_result(v_udachi, v_virogd, virogd, cel, komp)
---     local info                = aRecipts[iInfo]["info"]
 	local info              = iInfo
 	local lv 				= db.actor:level_vertex_id()
 	local gv 				= db.actor:game_vertex_id()
@@ -1042,16 +861,9 @@ function CAmkTransmutacion:CreateAtrefact()
 			end
 		end
 	end
-	-- alife():create(self.sTransmutant, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
---	_log("... Creating Artefact : "..self.sTransmutant)
-	-- oDevice:InitResultButton(self.sTransmutant)
-	-- oDevice:Quit()
 end
 
---[[
---	Shooting()
 --	Долбонуть актора из-за того что пихает в девайс все, что попало.
---]]
 function CAmkTransmutacion:Shooting()
 --	_log("Shemes not Found")
 	oDevice:Quit()

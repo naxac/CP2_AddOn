@@ -5,7 +5,7 @@ local deathCountLimitUp = 1
 function deathStatCollect()
 	local f = getFS()
 	amk.send_tip("%c[255,255,0,0]Зафиксирована смерть сталкера по кличке "..actor_name()..".%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 0, 15, "questman_death")
-	local flist = f:file_list_open_ex("$game_saves$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "death_*.sta")
+	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "death_*.sta")
 	local f_cnt = flist:Size()
 
 	if f_cnt > 0 then
@@ -22,21 +22,21 @@ function deathStatCollect()
 		--amk.send_tip(deathCount, "Уборщик", 0, 15, "nano")
 
 		local fileNameNew = "death_"..lastDate.."_"..tostring(deathCount + 1)..".sta"
-		local f1 = f:update_path("$game_saves$", fileName)
-		local f2 = f:update_path("$game_saves$", fileNameNew)
+		local f1 = f:update_path("$game_stats$", fileName)
+		local f2 = f:update_path("$game_stats$", fileNameNew)
 		--amk.send_tip(f1, "Уборщик", 0, 15, "nano")
 		--amk.send_tip(f2, "Уборщик", 0, 15, "nano")
 		f:file_rename(f1, f2, true)
 	else-- не актуально так как файл будет создан копированием при старте новой игры, но пусть будет :)
 		--amk.send_tip("ГГ помер первый раз", "Уборщик", 0, 15, "nano")
 		
-		local f1 = f:update_path("$game_saves$", "game_setup.ltx")
+		local f1 = f:update_path("$fs_root$", "fsgame.ltx")
 
 		local gameTime = game.get_game_time()
 		local year,month,day,h,m,s,ms = gameTime:get()
 		local lastDate = string.format('%04d%02d%02d', year, month, day)
 
-		local f2 = f:update_path("$game_saves$", "death_"..lastDate.."_1.sta")
+		local f2 = f:update_path("$game_stats$", "death_"..lastDate.."_1.sta")
 		
 		f:file_copy(f1, f2)
 	end
@@ -48,7 +48,7 @@ function deathStatChangeDifficulty()
 	--amk.send_tip(tostring(difficultyNumber), "Уборщик", 0, 15, "nano")
 	
 	local f = getFS()
-	local flist = f:file_list_open_ex("$game_saves$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "death_*.sta")
+	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "death_*.sta")
 	local f_cnt = flist:Size()
 	--amk.send_tip(tostring(f_cnt), "Уборщик", 0, 15, "nano")
 
@@ -71,8 +71,8 @@ function deathStatChangeDifficulty()
 			--amk.send_tip("%c[255,0,255,0]Привет, Меченый! Посмотрим на что ты годишься...%c[default]", "Уборщик", 0, 15, "nano")
 			
 			--clear statistics
-			local f1 = f:update_path("$game_saves$", fileName)
-			local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+			local f1 = f:update_path("$game_stats$", fileName)
+			local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 			f:file_rename(f1, f2, true)
 		else
 			local deathCount = tonumber(string.sub(fileName, _second + 1, string.find(fileName, ".", 1, true) - 1))
@@ -91,8 +91,8 @@ function deathStatChangeDifficulty()
 						end
 						
 						--clear statistics
-						local f1 = f:update_path("$game_saves$", fileName)
-						local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+						local f1 = f:update_path("$game_stats$", fileName)
+						local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 						f:file_rename(f1, f2, true)
 					else
 						if lastDate ~= dateNow then
@@ -107,8 +107,8 @@ function deathStatChangeDifficulty()
 								end
 								
 								--clear statistics
-								local f1 = f:update_path("$game_saves$", fileName)
-								local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+								local f1 = f:update_path("$game_stats$", fileName)
+								local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 								f:file_rename(f1, f2, true)
 							end
 						end
@@ -117,16 +117,16 @@ function deathStatChangeDifficulty()
 					--amk.send_tip("%c[255,0,255,0]Кто трогал мою статистику ? Найду - накажу !!!%c[default]", "Уборщик", 0, 15, "nano")
 					
 					--clear statistics
-					local f1 = f:update_path("$game_saves$", fileName)
-					local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+					local f1 = f:update_path("$game_stats$", fileName)
+					local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 					f:file_rename(f1, f2, true)
 				end
 			else
 				--amk.send_tip("%c[255,0,255,0]Кто трогал мою статистику ? Найду - накажу !!!%c[default]", "Уборщик", 0, 15, "nano")
 			
 				--clear statistics
-				local f1 = f:update_path("$game_saves$", fileName)
-				local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+				local f1 = f:update_path("$game_stats$", fileName)
+				local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 				f:file_rename(f1, f2, true)
 			end
 		end
@@ -134,8 +134,8 @@ function deathStatChangeDifficulty()
 		-- перенесено в intro_dream
 		-- amk.send_tip("%c[255,0,255,0]Обнаружен новый сталкер: Меченый. Добавлен в базу данных сети.%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 0, 15, "questman_death")
 		
-		local f1 = f:update_path("$game_saves$", "game_setup.ltx")
-		local f2 = f:update_path("$game_saves$", "death_"..dateNow.."_0.sta")
+		local f1 = f:update_path("$fs_root$", "fsgame.ltx")
+		local f2 = f:update_path("$game_stats$", "death_"..dateNow.."_0.sta")
 		
 		f:file_copy(f1, f2)
 	end

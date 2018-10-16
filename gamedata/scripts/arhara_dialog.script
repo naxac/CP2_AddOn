@@ -117,9 +117,11 @@ end
 --' спавним наши телепорты в Саркофаге
 function arhara_teleport()
 	local sim = alife()
-	for i=1,5 do
-		sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
-	end
+	sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
+	sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
+	sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
+	sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
+	sim:create("arhara_tele",vector():set(37.431,56.184,32.087),4591,2417)
 	sim:create("wpn_aa12",vector():set(37.432,56.184,32.087),4591,2417)
 end
 
@@ -377,8 +379,11 @@ function butilka()
 	}, {
 		pos = {-136.90090942383,-28.73921585083,-359.18383789063}, lv = 113558, gv = 18
 	} }
+	local sobj
 	for i, v in ipairs(t) do
-		del_ai_flag( sim:create("lekarstvo",vector():set(unpack(v.pos)),v.lv,v.gv) )
+		sobj = sim:create("lekarstvo",vector():set(unpack(v.pos)),v.lv,v.gv)
+		sobj = sim:object(sobj.id)
+		sobj:use_ai_locations(false)
 	end
 	sim:create("zasada_tonnel_agro_3",vector():set(-163.62464904785,-25.436117172241,-356.86444091797),85709,31)
 	sim:create("zasada_tonnel_agro_1",vector():set(-168.9747467041,-25.435110092163,-352.73577880859),81063,31)
@@ -1108,7 +1113,7 @@ end
 -- Akill begin
 --' проверим наличие РПГ-7 для Калинина
 function kalinin_btr_vzyt_have() 
-	return amk_utils.inventory_search("wpn_rpg7",1) ~= false
+	return amk_utils.inventory_search("wpn_rpg7",1)
 end
 -- Akill end
 --' получим М249
@@ -1434,16 +1439,6 @@ news_manager.send_tip(db.actor, "Телепорт на входе базы отключён.", nil, nil, 30
 end
 end
 
-function checking_taken_item45(obj)
-    if obj:section()=="kluch_dell_teleport" then delete_teleport_baza_vxod(obj)
-	end
-    if obj:section()=="wpn_pkm_m1" then
-		amk.drop_item(db.actor,obj)
-		amk.remove_item(obj)
-	    amk.spawn_item_in_inv("wpn_pkm")
-	end
-end
-
 function delete_teleport_baza_vuxod(story_id)
 local se_obj = alife():story_object(17001)
 if se_obj then
@@ -1466,22 +1461,14 @@ end
 end
 
 --' отключим отсроченно рестриктором, а лучше дадим смс
---function checking_taken_item47(obj)
---    if obj:section()=="kluch_dell_teleport2" then delete_teleport_taynik(obj)
--- end
---end
-function checking_taken_item47(obj)
-    if obj:section()=="kluch_dell_teleport2" then sms_otkl_teleport(obj)
- end
-end
 function sms_otkl_teleport()
-news_manager.send_tip(db.actor, "Телепорт на входе в секретную пещеру на Неразведанной Земле через несколько часов будет отключён.", nil, nil, 25000)
+	news_manager.send_tip(db.actor, "Телепорт на входе в секретную пещеру на Неразведанной Земле через несколько часов будет отключён.", nil, nil, 25000)
 end
 
 function delete_teleport_plen(story_id)
 local se_obj = alife():story_object(17004)
 if se_obj then
-alife():release(se_obj)
+alife():release(se_obj, true)
 news_manager.send_tip(db.actor, "Телепорт ловушки отключён.", nil, nil, 30000)
 end
 end
@@ -1489,7 +1476,7 @@ end
 function delete_teleport_vhod_otsek(story_id)
 local se_obj = alife():story_object(17014)
 if se_obj then
-alife():release(se_obj)
+alife():release(se_obj, true)
 news_manager.send_tip(db.actor, "Телепорт на входе в 3 отсек Госпиталя отключён.", nil, nil, 30000)
 end
 end
@@ -1497,7 +1484,7 @@ end
 function delete_tele_blok_vhod_otsek(story_id)
 local se_obj = alife():story_object(17015)
 if se_obj then
-alife():release(se_obj)
+alife():release(se_obj, true)
 news_manager.send_tip(db.actor, "Телепорт, блокирующий выход из отсека, отключён.", nil, nil, 30000)
 end
 end
@@ -1509,12 +1496,12 @@ end
 
 --' заспавним немного артов на НЗ
 function spawn_aver_art1()
-local obj = alife():create("af_spirit_1",vector():set(-311.500,0.390,-338.304),335058,2890)
-local obj = alife():create("af_fireball",vector():set(52.464,-13.941,-186.119),959429,2908)
-local obj = alife():create("af_cristall",vector():set(-338.465,-26.910,176.832),287481,2891)
-local obj = alife():create("af_armor_2",vector():set(125.058,38.844,397.450),1088689,2899)
-local obj = alife():create("af_fireball",vector():set(-126.538,-53.295,-185.044),652148,2897)
-local obj = alife():create("art_acumm",vector():set(-276.414,-23.379,250.316),396447,2891)
+alife():create("af_spirit_1",vector():set(-311.500,0.390,-338.304),335058,2890)
+alife():create("af_fireball",vector():set(52.464,-13.941,-186.119),959429,2908)
+alife():create("af_cristall",vector():set(-338.465,-26.910,176.832),287481,2891)
+alife():create("af_armor_2",vector():set(125.058,38.844,397.450),1088689,2899)
+alife():create("af_fireball",vector():set(-126.538,-53.295,-185.044),652148,2897)
+alife():create("art_acumm",vector():set(-276.414,-23.379,250.316),396447,2891)
 end
 
 --' заспавним ящик с оружием
@@ -1550,13 +1537,14 @@ end
 
 --' заспавним ещё немного артов на НЗ
 function spawn_aver_art2()
-local obj = alife():create("af_vyvert",vector():set(-252.372,-1.190,-325.960),436604,2892)
-local obj = alife():create("af_gravi",vector():set(-163.165,51.365,-415.454),588454,2890)
-local obj = alife():create("af_drops",vector():set(-119.568,22.321,64.620),664582,2894)
-local obj = alife():create("af_vyvert",vector():set(-391.785,58.160,361.651),194833,2887)
-local obj = alife():create("af_blood",vector():set(345.540,4.877,-87.297),1485407,2902)
-local obj = alife():create("af_mincer_meat",vector():set(306.971,-38.273,386.180),1415062,2904)
-local obj = alife():create("af_electra_sparkler",vector():set(134.876,14.633,66.266),1105003,2902)
+local sim = alife()
+sim:create("af_vyvert",vector():set(-252.372,-1.190,-325.960),436604,2892)
+sim:create("af_gravi",vector():set(-163.165,51.365,-415.454),588454,2890)
+sim:create("af_drops",vector():set(-119.568,22.321,64.620),664582,2894)
+sim:create("af_vyvert",vector():set(-391.785,58.160,361.651),194833,2887)
+sim:create("af_blood",vector():set(345.540,4.877,-87.297),1485407,2902)
+sim:create("af_mincer_meat",vector():set(306.971,-38.273,386.180),1415062,2904)
+sim:create("af_electra_sparkler",vector():set(134.876,14.633,66.266),1105003,2902)
 end
 
 --' отдадим сумку и сейф медику
@@ -1567,24 +1555,25 @@ end
 
 --' заспавним лекарства на Кордоне для Гинеколога
 function spawn_medik_lekarstvo()
-local obj = alife():create("tabletki_1",vector():set(-166.571,-25.436,-355.526),83083,31)
-local obj = alife():create("tabletki_1",vector():set(-166.505,-25.436,-355.355),83083,31)
-local obj = alife():create("tabletki_1",vector():set(-166.422,-25.436,-355.300),83083,31)
-local obj = alife():create("tabletki_1",vector():set(-166.341,-25.436,-355.283),83083,31)
-local obj = alife():create("tabletki_2",vector():set(-166.244,-25.436,-355.316),83749,31)
-local obj = alife():create("tabletki_2",vector():set(-166.231,-25.436,-355.447),83749,31)
-local obj = alife():create("tabletki_2",vector():set(-166.292,-25.436,-355.622),83083,31)
-local obj = alife():create("tabletki_2",vector():set(-166.387,-25.436,-355.658),83083,31)
-local obj = alife():create("tabletki_3",vector():set(-166.623,-25.436,-355.636),83083,31)
-local obj = alife():create("tabletki_3",vector():set(-166.528,-25.436,-355.599),83083,31)
-local obj = alife():create("tabletki_3",vector():set(-165.907,-25.442,-355.554),83749,31)
-local obj = alife():create("tabletki_3",vector():set(-166.406,-24.904,-356.780),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.603,-24.897,-356.939),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.925,-24.904,-356.899),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.966,-24.899,-356.982),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.797,-24.901,-356.916),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.639,-24.900,-356.907),83083,31)
-local obj = alife():create("shpriz",vector():set(-166.480,-24.899,-356.897),83083,31)
+local sim = alife()
+sim:create("tabletki_1",vector():set(-166.571,-25.436,-355.526),83083,31)
+sim:create("tabletki_1",vector():set(-166.505,-25.436,-355.355),83083,31)
+sim:create("tabletki_1",vector():set(-166.422,-25.436,-355.300),83083,31)
+sim:create("tabletki_1",vector():set(-166.341,-25.436,-355.283),83083,31)
+sim:create("tabletki_2",vector():set(-166.244,-25.436,-355.316),83749,31)
+sim:create("tabletki_2",vector():set(-166.231,-25.436,-355.447),83749,31)
+sim:create("tabletki_2",vector():set(-166.292,-25.436,-355.622),83083,31)
+sim:create("tabletki_2",vector():set(-166.387,-25.436,-355.658),83083,31)
+sim:create("tabletki_3",vector():set(-166.623,-25.436,-355.636),83083,31)
+sim:create("tabletki_3",vector():set(-166.528,-25.436,-355.599),83083,31)
+sim:create("tabletki_3",vector():set(-165.907,-25.442,-355.554),83749,31)
+sim:create("tabletki_3",vector():set(-166.406,-24.904,-356.780),83083,31)
+sim:create("shpriz",vector():set(-166.603,-24.897,-356.939),83083,31)
+sim:create("shpriz",vector():set(-166.925,-24.904,-356.899),83083,31)
+sim:create("shpriz",vector():set(-166.966,-24.899,-356.982),83083,31)
+sim:create("shpriz",vector():set(-166.797,-24.901,-356.916),83083,31)
+sim:create("shpriz",vector():set(-166.639,-24.900,-356.907),83083,31)
+sim:create("shpriz",vector():set(-166.480,-24.899,-356.897),83083,31)
 end
 
 --' проверим наличие медикаментов
@@ -1631,7 +1620,7 @@ end
 
 --' а это рюкзачок тайника Пилигрима
 function new_inventory17()
-local se_obj = alife():create("m_inventory_box17", vector():set(144.712,-3.956,-313.140),1121536,2900)
+alife():create("m_inventory_box17", vector():set(144.712,-3.956,-313.140),1121536,2900)
 end
 
 --' проверим наличие вещей для Пилигрима
@@ -3083,7 +3072,7 @@ function mesto_gg_na_chaes2_sms()
 	-- дописываем логику цели БТР
 	obj = sim:story_object(9992)
 	if obj then
-		local data = naxac_netpk.get(obj, true)
+		local data = naxac_netpk.get(obj, net_packet.f_state)
 		local cd = naxac_netpk.parse_custom_data(data.custom_data)
 		cd.logic.on_death = "death"
 		cd.death = {on_info = "%=arhara_dialog.kluk_pogib_sms5%"}
@@ -3126,7 +3115,7 @@ news_manager.send_tip(db.actor, "%c[255,160,160,160]ПРИЗРАК:\\n%c[255,255,128,12
 		cd.smart_terrains	= { none = "true" }
 		cd.logic			= { cfg = "scripts\\hospital\\hospital_pantera.ltx" }
 		local data			= { custom_data = naxac_netpk.gen_custom_data(cd) }
-		naxac_netpk.modify(obj, data, 1)
+		naxac_netpk.modify(obj, data, net_packet.f_state)
 	end
 end
 function after_kluk_pogib_sms3()
@@ -6682,7 +6671,7 @@ function spawn_bomba_i_mina()
 	sim:assign_story_id(nil, nil, obj.id, 18020)
 	-- спавним невидимую бомбу
 	obj = sim:create("explosive_bomba",vector():set(-228.545,-28.910,-223.067),26466,40)
-	naxac_netpk.modify(obj, {visual_name = "physics\\equipment_cache\\equipment_rucksack_01_case"})
+	naxac_netpk.modify(obj, {visual_name = "physics\\equipment_cache\\equipment_rucksack_01_case"}, net_packet.f_state)
 	-- удаляем нахрен не нужный ящик с динамитом
 	obj = sim:story_object(17048)
 	if obj then sim:release(obj, true) end
@@ -7221,7 +7210,7 @@ function pozisioner_norman(first_speaker, second_speaker)
 		cd.smart_terrains	= { none = "true" }
 		cd.logic			= { cfg = "scripts\\dead_city\\dcity_obmorok.ltx" }
 		local data			= { custom_data = naxac_netpk.gen_custom_data(cd) }
-		naxac_netpk.modify(obj, data, 1)
+		naxac_netpk.modify(obj, data, net_packet.f_state)
 	end
 	obj = sim:object("dcity_bodyguard_obmorok")
 	if obj then
@@ -7230,7 +7219,7 @@ function pozisioner_norman(first_speaker, second_speaker)
 		cd.smart_terrains	= { none = "true" }
 		cd.logic			= { cfg = "scripts\\dead_city\\dcity_bodyguard_obmorok.ltx" }
 		local data			= { custom_data = naxac_netpk.gen_custom_data(cd) }
-		naxac_netpk.modify(obj, data, 1)
+		naxac_netpk.modify(obj, data, net_packet.f_state)
 	end
 end
 
@@ -7605,7 +7594,7 @@ function repair_pant_dinamit()
 		local data =	"[spawner]\n".."cond = {+esc_pantera_bomba_spawn}\n"..
 						"[smart_terrains]\n".."none = true\n"..
 						"[logic]\n".."cfg = scripts\\esc\\esc_pantera_bomba.ltx"
-		naxac_netpk.modify(npc, {custom_data = data}, 1)
+		naxac_netpk.modify(npc, {custom_data = data}, net_packet.f_state)
 	end
 end
 

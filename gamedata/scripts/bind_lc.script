@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Биндер level_changer
+local no_send_sms = false
 
 function bind( obj )
 	obj:bind_object( lc_binder(obj) )
@@ -21,8 +22,8 @@ function lc_binder:net_spawn( data )
 	if not object_binder.net_spawn( self, data ) then
 		return false
 	end
-	
-	if alife():object( self.object:id() ) ~= nil then
+	local se_obj = alife():object( self.object:id() )
+	if se_obj ~= nil then
 		self.sh_data = naxac_netpk.get_all_shapes_data( self.object )
 	end
 	return true
@@ -31,7 +32,7 @@ end
 function lc_binder:update(delta)
 	object_binder.update(self, delta)
 	
-	if not self.sh_data then return end
+	if (not self.sh_data) or no_send_sms then return end
 	
 	local dist = naxac_netpk.distance_from_zone_boundary( self.sh_data, db.actor:position() )
 	
@@ -49,3 +50,8 @@ function lc_binder:update(delta)
 		self.sms_sent = nil
 	end
 end
+
+function shift_send_sms()
+	no_send_sms = true
+end
+

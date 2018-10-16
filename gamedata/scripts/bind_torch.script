@@ -5,6 +5,8 @@ local devices = {}
 
 local need_init = true
 
+local good_charge = 0.87
+
 -- battery charge level = {settings}
 local torch_settings = {
 	[1] = {
@@ -260,22 +262,17 @@ function broke_torch()
 	end
 end
 
-function charge(acumm, slot)
-	if acumm ~= "acumm" then return end
-	local obj = db.actor:object("acumm")
-	local se_obj = obj and alife():object(obj:id())
-	if se_obj then
-		local dev = db.actor:item_in_slot(slot)
-		if dev and devices[dev:id()] then
-			if has_alife_info("no_pnv") then
-				amk.send_tip("Невозможно заменить батарею: устройство неисправно.", "", nil, nil, "nano")
-			elseif dev:condition() > 0.8 then
-				amk.send_tip("Аккумулятор не нуждается в замене.", "", nil, nil, "nano")
-			else
-				devices[dev:id()]:charge()
-				alife():release(se_obj, true)
-				zvuki.use_snd("acumm")
-			end
-		end
+function charge(acumm, torch)
+	if not devices[torch:id()] then return end
+
+	if has_alife_info("no_pnv") then
+		amk.send_tip("Невозможно заменить батарею: устройство неисправно.", "", nil, nil, "nano")
+	elseif torch:condition() > good_charge then
+		amk.send_tip("Аккумулятор заряжен и не нуждается в замене.", "", nil, nil, "nano")
+	else
+		devices[torch:id()]:charge()
+		local se_obj = alife():object(acumm:id())
+		if se_obj then alife():release(se_obj, true) end
+		zvuki.use_snd("acumm")
 	end
 end

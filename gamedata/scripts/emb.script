@@ -188,40 +188,41 @@ function worker(index)
 	local obj
 	
 	-- удаляем текущий объект
-	if embs[idx] then
+	local t = embs[idx] or abort("%s : worker: unknown index %d", script_name(), idx)
+	if t then
 	
 		-- выключаем звук рюкзака
-		if embs[idx].rukzak and embs[idx].rukzak.sound then
-			stop_sound(embs[idx].rukzak.sound)
+		if t.rukzak and t.rukzak.sound then
+			stop_sound(t.rukzak.sound)
 		end
 		
 		-- выключаем звук рестриктора
-		if embs[idx].restrictor and embs[idx].restrictor.sound then
-			stop_sound(embs[idx].restrictor.sound)
+		if t.restrictor and t.restrictor.sound then
+			stop_sound(t.restrictor.sound)
 		end
 
 		-- выключаем звук телепорта
-		if embs[idx].teleport and embs[idx].teleport.sound then
-			stop_sound(embs[idx].teleport.sound)
+		if t.teleport and t.teleport.sound then
+			stop_sound(t.teleport.sound)
 		end
 
 		-- удаляем телепорт
-		if embs[idx].teleport then
-			kostya_dialog.delete_teleport(embs[idx].teleport.section)
+		if t.teleport then
+			kostya_dialog.delete_teleport(t.teleport.section)
 		end
 
 		-- удаляем предыдущую записку
-		if embs[idx].note then
-			amk.remove_item_from_inventory_by_name(embs[idx].note, db.actor)
+		if t.note then
+			amk.remove_item_from_inventory_by_name(t.note, db.actor)
 		end
 		
 		-- выдаем поршень
-		if embs[idx].info then
-			db.actor:give_info_portion(embs[idx].info)
+		if t.info then
+			db.actor:give_info_portion(t.info)
 		end
 
 		-- выполняем функцию
-		if embs[idx].func then
+		if t.func then
 			loadstring(embs[idx].func)()
 		end
 	end
@@ -231,22 +232,23 @@ function worker(index)
 	amk.save_variable("emb_idx", idx)
 
 	-- создаем следующий объект
-	if embs[idx] then
+	t = embs[idx]
+	if t then
 	
 		-- рюкзак
-		obj = embs[idx].rukzak
+		obj = t.rukzak
 		if obj then
 			alife():create(obj.section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
 		end
 
 		-- рестриктор
-		obj = embs[idx].restrictor
+		obj = t.restrictor
 		if obj then
 			snp.create_restrictor(vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv, obj.radius, obj.func)
 		end
 
 		-- телепорт
-		obj = embs[idx].teleport
+		obj = t.teleport
 		if obj then
 			if obj.position == "actor" then
 				kostya_dialog.create_teleport(obj.section, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id())
@@ -269,21 +271,22 @@ function start_sound()
 	if not idx then return end
 	
 	local obj
+	local t = embs[idx] or abort("%s : start_sound: unknown index %d", script_name(), idx)
 	
 	-- рюкзаки
-	obj = embs[idx].rukzak
+	obj = t.rukzak
 	if obj and obj.sound and obj.location == level.name() then
 		play_sound(obj.sound, vector():set(obj.position.x, obj.position.y, obj.position.z))
 	end
 
 	-- рестрикторы
-	obj = embs[idx].restrictor
+	obj = t.restrictor
 	if obj and obj.sound and obj.location == level.name() then
 		play_sound(obj.sound, vector():set(obj.position.x, obj.position.y, obj.position.z))
 	end
 
 	-- телепорты
-	obj = embs[idx].teleport
+	obj = t.teleport
 	if obj and obj.sound and obj.location == level.name() then
 		play_sound(obj.sound, vector():set(obj.position.x, obj.position.y, obj.position.z))
 	end

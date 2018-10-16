@@ -17,12 +17,6 @@ local string_gsub = string.gsub
 local string_rep = string.rep
 local string_gfind = string.gfind
 
---[[game_milliseconds() = 0
-game_seconds() = 0
-game_minutes() = 0
-game_hours() = 0
-game_days() = 0]]
-
 ----------------
 local npc_spawner={}  --служебный массив, работает автоматически - не трогать шаловливыми ручками
 
@@ -356,9 +350,6 @@ end
 function del_variable(variable_name)
   local vn=compress_name(variable_name)
   local npc_id = xr_logic.get_pda_id(vn,"удаляем")
---[[  if db.storage[db.actor:id()].pstor[vn] then
-    db.storage[db.actor:id()].pstor[vn] = nil
-  end]]
     if db.storage[npc_id].pstor[vn] then
     db.storage[npc_id].pstor[vn] = nil
   end
@@ -438,26 +429,6 @@ end
 -- Внимание! Строки в структуре не должны содержать символов с кодами 0-31.
 function pack_array_to_string(array)
   return string_char(1)..pack_new(array)
-  -- local str=""
-  -- local key
-  -- for key0,value in pairs(array) do
-    -- if type(key0)=="string" then
-      -- key='"'..key0..'"'
-    -- else
-      -- key=key0
-    -- end
-    -- if type(value)=="table" then
-      -- local substr=pack_array_to_string(value)
-      -- str=str..key.."=>{"..substr.."}|"
-    -- elseif type(value)=="customdata" or type(value)=="function" then
-      -- mylog("Custom data and function isn't supported")
-    -- elseif type(value)=="boolean" or type(value)=="number" then
-      -- str=str..key.."=>"..tostring(value).."|"
-    -- else
-      -- str=str..key..'=>"'..value..'"|'
-    -- end
-  -- end
-  -- return str
 end
 
 function unpack_array_from_string(str)
@@ -487,13 +458,12 @@ local pack_type_bool=3
 local pack_type_table=4
 local pack_val_endtable=5
 
---[[
- Новый формат упаковки: 
- table ::= subtable
- subtable ::= keytype key valuetype ( value | subtable 0x5 )
- keytype ::= ( 0x1 | 0x2 | 0x3 | 0x4 )
- valuetype ::= ( 0x1 | 0x2 | 0x3 | 0x4 )
-]]
+-- Новый формат упаковки: 
+-- table ::= subtable
+-- subtable ::= keytype key valuetype ( value | subtable 0x5 )
+-- keytype ::= ( 0x1 | 0x2 | 0x3 | 0x4 )
+-- valuetype ::= ( 0x1 | 0x2 | 0x3 | 0x4 )
+
 function pack_new(tbl)
   local ret=""
   for k,v in pairs(tbl) do
@@ -743,15 +713,14 @@ function on_npc_spawn(npc)
   end
 end
 function __npc_spawn_case(npc,select_string)
-  --[[
-  здесь описываем вызовы, оформялять в виде
 
-  if select_string=="название условия" then
-    <вызов сторонних функций>
-    -- можно передавать npc как параметр
-  end
-  
-  ]]
+--  здесь описываем вызовы, оформялять в виде
+
+--  if select_string=="название условия" then
+--    <вызов сторонних функций>
+--    -- можно передавать npc как параметр
+--  end
+
 --user area 
 -----------
 end
@@ -916,9 +885,9 @@ function mod_call(i,...)
   amk_mod[i](...)
 end
 
-function load_table(name)
+function load_table(name, def)
 	local var=load_variable(name, nil)
-	return var or {}
+	return var or def or {}
 end
 
 function save_table(name,tbl)
@@ -1360,6 +1329,13 @@ end
 
 -- таблица параметров и серверный объект на входе
 function write_stalker_params(tbl,sobj,noconvert)
+  if #tbl.custom > 0
+    and string.find( tbl.custom, "[logic]", 1, true )
+    and not string.find( tbl.custom, "[smart_terrains]", 1, true )
+  then
+    tbl.custom = tbl.custom.."\n[smart_terrains]\n".."none = true"
+  end
+
   local stpk=net_packet()
   local uppk=net_packet()
   amk.fill_stalker_packet(tbl,stpk,uppk)
@@ -1614,29 +1590,6 @@ function get_breakable_data(sobj)
   amk.parse_object_physic_packet(t,stpk,uppk,size)
   -- amk.mylog("rsp "..size.." "..size1.." "..stpk:r_tell())
   return t
---[[
-	local packet = net_packet()
-	obj:STATE_Write(packet)
-	local t={}
-	t.game_vertex_id = packet:r_u16()
-	t.distance = packet:r_float()
-	t.direct_control = packet:r_s32()
-	t.level_vertex_id = packet:r_s32()
-	t.object_flags = packet:r_s32()
-	t.custom_data = packet:r_stringZ()
-	t.story_id = packet:r_s32()
-	t.spawn_story_id = packet:r_s32()
-	
-	t.visual_name = packet:r_stringZ()
-	t.visual_flags = packet:r_u8()
-	
-	t.health = packet:r_float()
-
-	if packet:r_elapsed() ~= 0 then
-		abort("left=%d", packet:r_elapsed())
-	end
-	return t
-	]]
 end
 
 function set_breakable_data(t,sobj)
@@ -1654,25 +1607,6 @@ function set_breakable_data(t,sobj)
   uppk:r_seek(0)
   sobj:STATE_Read(stpk,size)
   sobj:UPDATE_Read(uppk)
-
-	--[[
-	local packet = net_packet()
-	obj:STATE_Write(packet)
-	packet:w_begin(t.game_vertex_id)
-	packet:w_float(t.distance)
-	packet:w_s32(t.direct_control)
-	packet:w_s32(t.level_vertex_id)
-	packet:w_s32(t.object_flags)
-	packet:w_stringZ(t.custom_data)
-	packet:w_s32(t.story_id)
-	packet:w_s32(t.spawn_story_id)
-	packet:w_stringZ(t.visual_name)
-	packet:w_u8(t.visual_flags)
-	packet:w_float(t.health)
-
-	packet:r_seek(0)
-	obj:STATE_Read(packet, packet:w_tell())
-	]]
 end
 
 function on_REspawn(obj,respawner)
@@ -1705,22 +1639,39 @@ function get_spawner_data(sobj)
   amk.parse_shape_packet(t,stpk,uppk,size)
 	
 	t.restrictor_type = stpk:r_u8()
-	t.spawned_obj_count = stpk:r_u8()
+	local n = stpk:r_u8()
+	t.spawned_obj = {}
+	if n > 0 then
+		for  i = 1, n do
+			table.insert( t.spawned_obj, stpk:r_u16() )
+		end
+	end
+	if not stpk:r_eof() then
+		t.respawn_time = stpk:r_CTime()
+	end
   -- amk.mylog("rsp "..size.." "..size1.." "..stpk:r_tell())
   return t
 end
 
 function set_spawner_data(t,sobj)
-  local stpk=net_packet()
-  local uppk=net_packet()
-	
-  amk.fill_object_packet(t,stpk,uppk)
-  amk.fill_shape_packet(t,stpk,uppk)
+	local stpk=net_packet()
+	local uppk=net_packet()
+
+	amk.fill_object_packet(t,stpk,uppk)
+	amk.fill_shape_packet(t,stpk,uppk)
 	stpk:w_u8(t.restrictor_type)
-	stpk:w_u8(t.spawned_obj_count)
+	
+	local n = #t.spawned_obj
+	stpk:w_u8(n)
+	for i, v in ipairs( t.spawned_obj ) do
+		stpk:w_u16( v )
+	end
+	if t.respawn_time then
+		stpk:w_CTime( t.respawn_time )
+	end
 	
   local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size1=uppk:w_tell()
   -- amk.mylog("wsp "..size.." "..size1)
   stpk:r_seek(0)
   uppk:r_seek(0)
@@ -1821,8 +1772,8 @@ function get_restrictor_data(sobj)
 	local uppk=net_packet()
 	sobj:STATE_Write(stpk)
 	sobj:UPDATE_Write(uppk)
-	local size=stpk:w_tell()
-	local size1=uppk:w_tell()
+	-- local size=stpk:w_tell()
+	-- local size1=uppk:w_tell()
 --	amk.mylog("rsp "..size.." "..size1)
 	stpk:r_seek(0)
 	uppk:r_seek(0)
@@ -1844,7 +1795,7 @@ function set_restrictor_data(t,sobj)
 	stpk:w_u8(t.restrictor_type)
 
 	local size=stpk:w_tell()
-	local size1=uppk:w_tell()
+	-- local size1=uppk:w_tell()
 --	amk.mylog("wsp "..size.." "..size1)
 	stpk:r_seek(0)
 	uppk:r_seek(0)
@@ -1857,8 +1808,8 @@ function get_trader_data(sobj)
 	local uppk=net_packet()
 	sobj:STATE_Write(stpk)
 	sobj:UPDATE_Write(uppk)
-	local size=stpk:w_tell()
-	local size1=uppk:w_tell()
+	-- local size=stpk:w_tell()
+	-- local size1=uppk:w_tell()
 --	amk.mylog("rsp "..size.." "..size1)
 	stpk:r_seek(0)
 	uppk:r_seek(0)
@@ -1882,7 +1833,7 @@ function set_trader_data(t,sobj)
 	stpk:w_s16(t.resupply_time)
 
 	local size=stpk:w_tell()
-	local size1=uppk:w_tell()
+	-- local size1=uppk:w_tell()
 --	amk.mylog("wsp "..size.." "..size1)
 	stpk:r_seek(0)
 	uppk:r_seek(0)
@@ -1895,8 +1846,8 @@ function get_invbox_data(sobj)
 	local uppk=net_packet()
 	sobj:STATE_Write(stpk)
 	sobj:UPDATE_Write(uppk)
-	local size=stpk:w_tell()
-	local size1=uppk:w_tell()
+	-- local size=stpk:w_tell()
+	-- local size1=uppk:w_tell()
 --	amk.mylog("rsp "..size.." "..size1)
 	stpk:r_seek(0)
 	uppk:r_seek(0)
@@ -1915,7 +1866,7 @@ function set_invbox_data(t,sobj)
   amk.fill_visual_packet(t,stpk,uppk)
 	
   local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size1=uppk:w_tell()
   -- amk.mylog("wsp "..size.." "..size1)
   stpk:r_seek(0)
   uppk:r_seek(0)
@@ -1986,8 +1937,8 @@ function get_ammo_params(sobj)
   local uppk=net_packet()
   sobj:STATE_Write(stpk)
   sobj:UPDATE_Write(uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size=stpk:w_tell()
+--  local size1=uppk:w_tell()
   stpk:r_seek(0)
   uppk:r_seek(0)
   local t={}
@@ -2008,7 +1959,7 @@ function set_ammo_params(t,sobj)
   amk.fill_item_ammo_packet(t,stpk,uppk)
 	
   local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size1=uppk:w_tell()
   stpk:r_seek(0)
   uppk:r_seek(0)
   sobj:STATE_Read(stpk,size)
@@ -2020,8 +1971,8 @@ function get_item_params(sobj)
   local uppk=net_packet()
   sobj:STATE_Write(stpk)
   sobj:UPDATE_Write(uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size=stpk:w_tell()
+--  local size1=uppk:w_tell()
   stpk:r_seek(0)
   uppk:r_seek(0)
   local t={}
@@ -2040,7 +1991,7 @@ function set_item_params(t,sobj)
   amk.fill_item_packet(t,stpk,uppk)
 	
   local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size1=uppk:w_tell()
   stpk:r_seek(0)
   uppk:r_seek(0)
   sobj:STATE_Read(stpk,size)
@@ -2059,8 +2010,8 @@ function get_destroyable_data(sobj)
   local uppk=net_packet()
   sobj:STATE_Write(stpk)
   sobj:UPDATE_Write(uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size=stpk:w_tell()
+--  local size1=uppk:w_tell()
   -- amk.mylog("rsp "..size.." "..size1)
   stpk:r_seek(0)
   uppk:r_seek(0)
@@ -2083,7 +2034,7 @@ function set_destroyable_data(t,sobj)
   amk.fill_object_physic_packet(t,stpk,uppk)
 	
   local size=stpk:w_tell()
-  local size1=uppk:w_tell()
+--  local size1=uppk:w_tell()
   -- amk.mylog("wsp "..size.." "..size1)
   stpk:r_seek(0)
   uppk:r_seek(0)

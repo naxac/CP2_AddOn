@@ -1,12 +1,31 @@
---[[---------------------------------------------------------------------------------------
-	File              : collect_sections.script
-	Description       : Извлечение секций игровых объектов из кофигов
-	Created           : 11.05.2014
-	Last update       : 21.10.2015
-	Copyright         : naxac / naxac.spaces.ru /
---]]---------------------------------------------------------------------------------------
-local included = {"system.ltx"}
-local sections = {}
+-- -*- mode: lua; encoding: windows-1251 -*-
+-----------------------------------------------------------------------------------------
+-- File                  : collect_sections.script
+-- Description    : Извлечение секций игровых объектов из кофигов
+-- Created          : 11.05.2014
+-- Last update   : 08.10.2018
+-- Author            : naxac
+-----------------------------------------------------------------------------------------
+-- add extensions 
+local sini = sys_ini
+if sini == nil then
+	sini = system_ini()
+	ini_file.r_clsid_ex = function ( ini, section, line, def )
+		if ini:section_exist( section ) and ini:line_exist( section, line ) then
+			return ini:r_clsid( section, line )
+		end
+		return def
+	end
+	ini_file.r_bool_ex = function ( ini, section, line, def )
+		if ini:section_exist( section ) and ini:line_exist( section, line ) then
+			return ini:r_bool( section, line )
+		end
+		return def
+	end
+end
+
+local included = { "system.ltx" }
+local sections = nil
 local classes = {
 	weapons = {
 		[clsid.wpn_ak74]                = true,
@@ -134,44 +153,61 @@ local new_clsids = {
 }
 	
 
-function main(rewrite)
-	-- добавим в таблицу новые классы, если они есть
-	for k,t in pairs(new_clsids) do
-		for _,v in ipairs(t) do
-			if clsid[v] then
-				if classes[k] == nil then classes[k] = {} end
-				classes[k][clsid[v]] = true
-			end
-		end
-	end
-	
-	for k in pairs(classes) do
-		sections[k] = {}
-	end
-	
-	if io then	-- можем писать в файл
-		local fs = getFS()
-		if (fs:exist("$game_config$", "spawn_list.ltx")==nil) or rewrite then
-			local f1 = fs:update_path("$fs_root$", "fsgame.ltx")
-			local f2 = fs:update_path("$game_config$", "spawn_list.ltx")
-			fs:file_copy(f1, f2)
-			
-			this.collect()
-			
-			local file = io.open(f2,"w")
-			if file then
-				for k,v in pairs(sections) do
-					file:write("[",k,"]\n")
-					for _,s in pairs(v) do
-						file:write(s,"\n")
-					end
-					file:write("\n")
+function main( rewrite )  -- rewrite: перезаписать ини-файл
+	if sections == nil then
+		sections = {}
+		-- добавим в таблицу новые классы, если они есть
+		for k, t in pairs( new_clsids ) do
+			for _,v in ipairs( t ) do
+				if clsid[ v ] then
+					if classes[ k ] == nil then classes[ k ] = {} end
+					classes[ k ][ clsid[v] ] = true
 				end
-				file:close(file)
 			end
 		end
-	else	-- не можем
-		this.collect()
+
+		for k in pairs( classes ) do
+			sections[ k ] = {}
+		end
+
+		if io then	-- можем писать в файл
+			local fs = getFS()
+			local ex = fs:exist( "$game_config$", "spawn_list.ltx" )  -- проверим, записан ли файл
+			if ex == nil or rewrite then
+				local ff = fs:update_path( "$game_config$", "spawn_list.ltx" )
+				if ex == nil then
+					local f1 = fs:update_path( "$fs_root$", "fsgame.ltx" )
+					fs:file_copy( f1, ff )
+				end
+
+				this.collect()
+
+				local file = io.open( ff, "w" )
+				if file then
+					for k,v in pairs(sections) do
+						file:write( "[", k, "]\n" )
+						for _,s in pairs(v) do
+							file:write( s, "\n" )
+						end
+						file:write( "\n" )
+					end
+					file:close( file )
+				end
+			else        -- если записан, читаем из ини
+				local ini = ini_file( "spawn_list.ltx" )
+				local res, id, val
+				for k in pairs( sections ) do
+					if ini:section_exist( k ) then
+						for i = 0, ini:line_count( k ) - 1 do
+							res, id, val = ini:r_line( k, i, "", "" )
+							table.insert( sections[ k ], id )
+						end
+					end
+				end
+			end
+		else	-- не можем
+			this.collect()
+		end
 	end
 	
 	return sections
@@ -179,96 +215,95 @@ end
 
 function collect()
 	local fs = getFS()
-	local path, file, f
+	local path, file, ex
 	while true do
-		path = included[1]
-		f = fs:exist("$game_config$", path)
-		if f==nil then
-			log1("~~collect_sections: incorrect path: '%s'", path)
-		elseif f.modif ~= 0 then
-			file = fs:r_open("$game_config$", path)
-			find_somewhat(file:r_stringZ(), path)
+		path = included[ 1 ]
+		ex = fs:exist( "$game_config$", path )
+		if ex == nil then
+			log( "! collect_sections: incorrect path: '%s'", path )
+		elseif f.modif == 0 then
+			log( "~ collect_sections: folder 'config(s)' hasn't full unpack! Path not found: [%s]", path )
 		else
-			log1("~~collect_sections: folder 'config(s)' hasn't full unpack! Path not found: [%s]", path)
-		--	log1("~~collect_sections: папка 'config(s)' распакована не полностью! Не найден путь: [%s]", path)
+			file = fs:r_open( "$game_config$", path )
+			find_somewhat( file:r_stringZ(), path )
 		end
-		table.remove(included, 1)
-		if #included==0 then return true end
+		table.remove( included, 1 )
+		if #included == 0 then return true end
 	end
 end
 
 -- Ищем секции и инклуды в файле
-function find_somewhat(file, path)
+function find_somewhat( file, path )
 	-- если путь многоуровневый, то сформируем путь для инклуда
 	local do_path = nil
-	if path:find("\\") then
+	if path:find( "\\" ) then
 		do_path = ""
-		for s in string.gmatch(path, "([%w_]+)\\") do
+		for s in string.gmatch( path, "([%w_]+)\\" ) do
 			do_path = do_path..s.."\\"
 		end
-	--	log1('do-path: %s', do_path)
+	--	log( "do-path: %s", do_path )
 	end
 	
 	local sect
-	for line in string.gmatch(file, "[^\n]+") do
-		sect = string.match(line, "^(%b[])")
-		path = string.match(line, '^#include%s+(%b"")')
+	for line in string.gmatch( file, "[^\n]+" ) do
+		sect = string.match( line, "^(%b[])" )
+		path = string.match( line, '^#include%s+(%b"")' )
 		if sect then	-- нашли секцию
-			sect = sect:sub(2,-2)
-			if check_section(sect) then
-			--	log1("- collect_sections: section found [%s]", sect)
+			sect = sect:sub( 2, -2 )
+			if check_section( sect ) then
+			--	log( "- collect_sections: section found [%s]", sect )
 			end
 		elseif path then		-- нашли инклуд
-			path = path:sub(2,-2)
+			path = path:sub( 2, -2 )
 			if do_path then path = do_path..path end
-		--	log1("- collect_sections: include file found '%s'", path)
-			table.insert(included, path)
+		--	log( "- collect_sections: include file found '%s'", path )
+			table.insert( included, path )
 		end
 	end
 end
 
 -- Записываем найденные секции в таблицу по группам
-function check_section(sect)
-	local cls = sys_ini:r_clsid_ex(sect, "class")
+function check_section( sect )
+	local cls = sini:r_clsid_ex( sect, "class" )
 	if cls then
-		if sys_ini:line_exist(sect, "inv_name")
-			and sys_ini:line_exist(sect, "visual")
-			and sys_ini:line_exist(sect, "description") then	-- inventory item
+		if sini:line_exist( sect, "inv_name" )
+			and sini:line_exist( sect, "visual" )
+			and sini:line_exist( sect, "description" ) then	-- inventory item
 			
-			if sys_ini:r_bool_ex(sect, "can_take", true)==false	-- can't take it
-				or sect:find("^mp_") then -- from multiplayer
+			if sini:r_bool_ex( sect, "can_take", true ) == false	-- can't take it
+				or sect:find( "^mp_" ) then -- from multiplayer
 				return false
 			end
 			
 			-- quest items
-			if sys_ini:r_bool_ex(sect, "quest_item", false)==true then
-				table.insert(sections.quest_items, sect)
+			if sini:r_bool_ex( sect, "quest_item", false ) == true then
+				table.insert( sections.quest_items, sect )
 				return true
 			end
 			-- from table 'classes'
-			for k,v in pairs(classes) do
-				if v[cls] then
-					table.insert(sections[k], sect)
+			for k,v in pairs( classes ) do
+				if v[ cls ] then
+					table.insert( sections[ k ], sect )
 					return true
 				end
 			end
 			-- other items
-			table.insert(sections.items, sect)
+			table.insert( sections.items, sect )
 			return true
-		elseif classes.mobs[cls] then		-- monster
-			table.insert(sections.mobs, sect)
+		elseif classes.mobs[ cls ] then		-- monster
+			table.insert( sections.mobs, sect )
 			return true
-		elseif classes.npc[cls] then	-- stalker
-			table.insert(sections.npc, sect)
+		elseif classes.npc[ cls ] then	-- stalker
+			table.insert( sections.npc, sect )
 			return true
-		elseif classes.anomalies[cls] then	-- anomaly
-			table.insert(sections.anomalies, sect)
+		elseif classes.anomalies[ cls ] then	-- anomaly
+			table.insert( sections.anomalies, sect )
 			return true
-		elseif classes.cars[cls] then		-- car
-			table.insert(sections.cars, sect)
+		elseif classes.cars[ cls ] then		-- car
+			table.insert( sections.cars, sect )
 			return true
-		else								-- other obect
-			table.insert(sections.others, sect)
+		else								-- other sections
+			table.insert( sections.others, sect )
 			return true
 		end
 	end

@@ -188,9 +188,11 @@ end
 check_tbl['snp_pda5'] = function ( obj )
 	if not has_alife_info("snpt_pp1_have2") then
 		-- Прайм заболел
-		local se_npc = snp.object_by_section_offline("bibliofrend_talk_zaton")
-		if se_npc then alife():release(se_npc, true) end
-		local se_obj = snp.object_by_section_offline("bibliofrend_zaton")
+		local se_obj = snp.object_by_section_offline("bibliofrend_talk_zaton")
+		if se_obj then
+			alife():release(se_obj, true)
+		end
+		se_obj = snp.object_by_section_offline("bibliofrend_zaton")
 		local params = amk.read_monster_params(se_obj)
 		params.visual = "monsters\\bibliotekar\\bibliotekar_black"
 		amk.write_monster_params(params,se_obj)
@@ -1328,6 +1330,10 @@ check_tbl["nv_bad"] = function (item)
 end
 check_tbl["nv_good"] = check_tbl["nv_bad"]
 check_tbl["nv_bast"] = check_tbl["nv_bad"]
+check_tbl["device _scaner"] = function ( item )
+	if has_alife_info( "spatial_subway_start" ) then return end
+	db.actor:give_info_portion( "spatial_subway_start" )
+end
 
 function check(item)
 	local sect = item:section()

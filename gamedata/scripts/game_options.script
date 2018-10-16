@@ -1,11 +1,11 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---[[---------------------------------------------------------------------------------------
-	File		: game_options.script
-	Description	: Сохранение дополнительных игровых опций
-	Created		: 03.12.2014
-	Last update	: 31.12.2015
-	Author		: naxac
---]]---------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
+-- File               : game_options.script
+-- Description  : Сохранение дополнительных игровых опций
+-- Created        : 03.12.2014
+-- Last update : 31.12.2015
+-- Author          : naxac
+-------------------------------------------------------------------------------------------
 -- При добавлении новой опции обязательно выставить дефолтное значение!
 -- Типы сохраняемых значений: string, number и boolean
 -- Опции ОП-2
@@ -13,6 +13,8 @@ AutoDif		= false	-- автоматическая смена уровня сложности
 AutoGrab	= false	-- автообыск трупов
 AutoSave	= true	-- автосохранение
 DynBio		= true	-- динамический биорадар
+DynBioF     = true    -- затухание меток на биорадаре
+DynBioH    = false   -- ухардкоренный биорадар (положение меток меняется только при прохождении по ним локатора, направление - всегда на север)
 FullAnim	= true	-- расширенные анимации
 FastRespawn	= false	-- частый респавн
 LoadPause	= true	-- пауза после загрузки
@@ -21,16 +23,18 @@ TrTrs		= false	-- малозаметные тайники
 DEBUG		= false	-- debug
 -- АМК-опции
 DynHud		= 2 	-- динамический худ
-AmkTrs		= 0		-- тайники
-DynMusic	= true	-- динамическая музыка
+AmkTrs		= 2		-- тайники
+DynMusic	= false	-- динамическая музыка
 -- Новое
 AutoZoom	= false			-- изменение режима прицеливания однокраннм нажатием кнопки
 LockBoxOnly	= true		-- не на все тайники можно повесить замок
 NewRadio	= false			-- вместо Сказочника - радио "Чернобыльский Апрель"
+RndReward  = false           -- рандомная награда за циклические квесты (еще в разработке)
 RealMoney   = false           -- с нпс снимаются реально имеющиеся у него деньги
-SaveRen		= true			-- Save Rename mod: копирование быстрых сохранений в резерв
+SaveRen		= true			-- копирование быстрых сохранений в резерв
 Console		= true
 Spawner		= true
+
 UserName	= user_name()	-- текущее имя пользователя
 
 -- Вызывается один раз при загрузке скриптов
@@ -44,16 +48,16 @@ function load_game_options()
 	else
 		local file = io.open(fs:update_path("$app_data_root$", "game.options"), "r")
 		local opt, val, n = "", "", 0
-		local module = _G[script_name()]
+		local m = _G[script_name()]
 		for line in file:lines() do
 			opt, val = string.match(line, "([%w_]+)%s*=%s*(.+)")
 		--	log1("load options: "..tostring(opt).." = "..tostring(val))
-			if opt and module[opt]~=nil then
+			if opt and m[opt]~=nil then
 				n = tonumber(val)
-				if n then module[opt] = n
-				elseif val=='true' then module[opt] = true
-				elseif val=='false' then module[opt] = false
-				elseif val~="" then module[opt] = val end
+				if n then m[opt] = n
+				elseif val=='true' then m[opt] = true
+				elseif val=='false' then m[opt] = false
+				elseif val~="" then m[opt] = val end
 			end
 		end
 		file:close(file)
@@ -71,12 +75,4 @@ function save_game_options()
 		end
 	end
 	file:close(file)
-end
---------------------------------------------------------------------
-
-function GetUserName() return UserName end
-
-function SetUserName(str)
-	UserName = trim(tostring(str))
-	if UserName==nil or UserName=="" then UserName = old_user_name() end
 end

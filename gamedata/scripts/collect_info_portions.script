@@ -1,0 +1,103 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-----------------------------------------------------------------------------------------
+-- File                  : collect_info_portions.script
+-- Description    : Чтение инфопорций из конфигов
+-- Created          : 28.09.2018
+-- Last update   : 08.10.2018
+-- Author            : naxac
+-----------------------------------------------------------------------------------------
+
+local info_portions = nil
+local files = nil
+local info_count = 0
+
+function main( need_sort )
+--	log( "%s: start", script_name() )
+	if info_portions then
+		return info_portions, files, info_count
+	else
+		info_portions = {}
+		files = {}
+	end
+
+	local str = system_ini():r_string( "info_portions", "files" )
+	for s in string.gmatch( str, "[%w_]+" ) do
+		table.insert( files, s )
+	end
+	-- table.print( files )
+
+	local fs = getFS()
+	local ex, p
+	for i, f  in ipairs( files ) do
+		p = "gameplay\\"..f..".xml"
+		ex = fs:exist( "$game_config$", p )
+		if not ex then
+			info_portions[ f ] = "File not exist"
+--			log( "! %s: Error! File not found: [%s]", script_name(), p )
+		elseif ex.modif == 0 then
+			info_portions[ f ] = "File don't unpack"
+--			log( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
+		else
+			local file = fs:r_open( "$game_config$", p )
+			info_portions[ f ] = {}
+--			log( "parse file %s", p )
+			parse_file( file:r_stringZ(), info_portions[ f ] )
+		end
+	end
+
+	info_count = 0
+	for k, v in pairs( info_portions ) do
+		if type( v ) == "table" then
+			if need_sort then
+				table.sort( v, sort_info )
+			end
+			info_count = info_count + #v
+		end
+	end
+--	log( "info_portions count: %d", n )
+
+--	table.print( info_portions )
+--	log( "%s: complete", script_name() )
+	return info_portions, files, info_count
+end
+
+function parse_file( str, tbl )
+	-- удалим комментарии
+	local n
+	str, n = string.gsub( str, "<!%-%-.-%-%->", "" )
+--	log( "delete %s comments", n )
+	str, n = string.gsub( str, "%s*/>", "></info_portion>" )
+--	log( "correct %d tags", n )
+
+	for info, chck_str in string.gmatch( str, '<info_portion%s+id=(%b"")>(.-)</info_portion>' ) do
+		local t = {}
+		t.info = info:sub( 2, -2 )
+	--	log( "found info: %s", t.info )
+		if chck_str then
+			-- ищем внутренние тэги (таски, артиклы и т.д.)
+			for tag, sss, end_tag in string.gmatch( chck_str, "<([%w_]+)>([%w%.%-_]+)</([%w_]+)>" ) do
+	--			log( "read tags [ %s : %s : %s ]", tag, sss, end_tag )
+				if t[ tag ] == nil then
+					t[ tag ] = {}
+				end
+				table.insert( t[ tag ], sss )
+			end
+		end
+		table.insert( tbl, t )
+	end
+end
+
+-- сортируем поршни по алфавиту
+function sort_info( t1, t2 )
+	local s1, s2 = t1.info, t2.info
+	local n = math.min( #s1, #s2 )
+	local b1, b2
+	for a = 1, n do
+		b1 = s1:sub( a, a ):byte()
+		b2 = s2:sub( a, a ):byte()
+		if b1 ~= b2 then
+			return b1 < b2
+		end
+	end
+	return #s1 < #s2
+end

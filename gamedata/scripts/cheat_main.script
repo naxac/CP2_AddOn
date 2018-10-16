@@ -1,10 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---[[-----------------------------------------------------------------------------------------------
- Description       : Чит-аддон для мода ОП-2
- Created           : 02.11.2014
- Last update       : 03.07.2015
- Copyright         : naxac / naxac.spaces.ru /
---]]-----------------------------------------------------------------------------------------------
 
 cheat_list = nil
 gameIsOn = false
@@ -42,33 +36,33 @@ function ui_cheat_general:InitControls(x, y, handler)
 	
 	local con = get_console()
 	
-	self.show_spawn =		function()
-								cheat_main.show_spawn_menu(handler)
+	self.show_spawn =		function( wnd )
+								cheat_main.show_spawn_menu( wnd )
 							end
-	self.show_teleport =	function()
-								naxac_teleport.start_menu(handler)
+	self.show_teleport =	function( wnd )
+								naxac_teleport.start_menu( wnd )
 							end
-	self.show_mapspot =		function()
-								add_item_spot.start_menu(handler)
+	self.show_mapspot =		function( wnd )
+								add_item_spot.start_menu( wnd )
 							end
-	self.on_GodMode =	function()
+	self.on_GodMode =	function( wnd )
 							local mode = con:get_bool("g_god")
 							con:execute("g_god "..(mode==true and "off" or "on"))
 						end
-	self.on_UnlimAmmo =	function()
+	self.on_UnlimAmmo =	function( wnd )
 							local mode = con:get_bool("g_unlimitedammo")
 							con:execute("g_unlimitedammo "..(mode==true and "off" or "on"))
 						end
-	self.show_restr =	function()
-							handler:OnButton_return_game()
+	self.show_restr =	function( wnd )
+							wnd:OnButton_return_game()
 							cheat_main.show_restrictors()
 						end
-	self.show_anom =	function()
-							handler:OnButton_return_game()
+	self.show_anom =	function( wnd )
+							wnd:OnButton_return_game()
 							cheat_main.show_anomalies()
 						end
-	self.on_peace = 	function()
-							handler:OnButton_return_game()
+	self.on_peace = 	function( wnd )
+							wnd.owner:OnButton_return_game()
 							cheat_main.armistice()
 						end
 	
@@ -88,7 +82,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_show_spawn")
-	handler:AddCallback("btn_show_spawn", ui_events.BUTTON_CLICKED, self.show_spawn)
+	handler:AddCallbackEx("btn_show_spawn", ui_events.BUTTON_CLICKED, self.show_spawn)
 	
 	btn = CUI3tButton()
 	btn:SetAutoDelete(true)
@@ -99,7 +93,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_teleport")
-	handler:AddCallback("btn_teleport", ui_events.BUTTON_CLICKED, self.show_teleport)
+	handler:AddCallbackEx("btn_teleport", ui_events.BUTTON_CLICKED, self.show_teleport)
 	btn:Enable(gameIsOn)
 	
 	btn = CUI3tButton()
@@ -111,7 +105,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_mapspot")
-	handler:AddCallback("btn_mapspot", ui_events.BUTTON_CLICKED, self.show_mapspot)
+	handler:AddCallbackEx("btn_mapspot", ui_events.BUTTON_CLICKED, self.show_mapspot)
 	btn:Enable(gameIsOn)
 	
 	btn = CUI3tButton()
@@ -123,7 +117,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_showrestr")
-	handler:AddCallback("btn_showrestr", ui_events.BUTTON_CLICKED, self.show_restr)
+	handler:AddCallbackEx("btn_showrestr", ui_events.BUTTON_CLICKED, self.show_restr)
 	btn:Enable(gameIsOn)
 	
 	btn = CUI3tButton()
@@ -135,7 +129,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_showanom")
-	handler:AddCallback("btn_showanom", ui_events.BUTTON_CLICKED, self.show_anom)
+	handler:AddCallbackEx("btn_showanom", ui_events.BUTTON_CLICKED, self.show_anom)
 	btn:Enable(gameIsOn)
 	
 	btn = CUI3tButton()
@@ -147,7 +141,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_peace")
-	handler:AddCallback("btn_peace", ui_events.BUTTON_CLICKED, self.on_peace)
+	handler:AddCallbackEx("btn_peace", ui_events.BUTTON_CLICKED, self.on_peace)
 	btn:Enable(gameIsOn)
 	
 	btn = CUICheckButton()
@@ -157,7 +151,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_godmode")
-	handler:AddCallback("btn_godmode", ui_events.BUTTON_CLICKED, self.on_GodMode)
+	handler:AddCallbackEx("btn_godmode", ui_events.BUTTON_CLICKED, self.on_GodMode)
 	btn:SetCheck(con:get_bool("g_god"))
 	
 	btn = CUICheckButton()
@@ -167,43 +161,24 @@ function ui_cheat_general:InitControls(x, y, handler)
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	handler:Register(btn, "btn_unlim_ammo")
-	handler:AddCallback("btn_unlim_ammo", ui_events.BUTTON_CLICKED, self.on_UnlimAmmo)
+	handler:AddCallbackEx("btn_unlim_ammo", ui_events.BUTTON_CLICKED, self.on_UnlimAmmo)
 	btn:SetCheck(con:get_bool("g_unlimitedammo"))
 end
 
 function show_spawn_menu(self)
 	if cheat_list == nil then
-		if getFS():exist("$game_config$", "spawn_list.ltx")==nil then
-			local t = collect_sections.main()
-			_G["collect_sections"] = nil
-			cheat_list = {}
-			local p
-			for k,v in pairs(t) do
-				cheat_list[k] = {}
-				p = cheat_list[k]
-				for _,s in ipairs(v) do p[#p+1] = {s, game.translate_string(get_inv_name(s))} end
-				table.sort(cheat_list[k], sort_main)
+		cheat_list = {}
+		local sections = collect_sections.main()
+		for k, v in pairs( sections ) do
+			local t = {}
+			cheat_list[ k ] = t
+			for i, s in ipairs( v ) do
+				table.insert( t, { s, game.translate_string( get_inv_name( s ) ) } )
 			end
-		else
-			cheat_list = {}
-			local spawn_ini = ini_file("spawn_list.ltx")
-			local sections = {"weapons","ammo","addons","outfits","artefacts","items","quest_items","mobs"}
-			local result, id, value, t
-			for k,v in pairs(sections) do
-				cheat_list[v] = {}
-				if spawn_ini:section_exist(v) then
-					t = cheat_list[v]
-					for i=0,spawn_ini:line_count(v)-1 do
-						result, id, value = spawn_ini:r_line(v,i,"","")
-						id = trim(id)
-						t[#t+1] = {id, game.translate_string(get_inv_name(id))}
-					end
-					table.sort(cheat_list[v], sort_main)
-				end
-			end
+			table.sort( t, sort_main )
 		end
 	end
-	
+
 	local spawn_menu = ui_cheat_soc.cheat_menu()
 	spawn_menu.owner = self
 	

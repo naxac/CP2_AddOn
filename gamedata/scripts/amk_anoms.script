@@ -1,8 +1,11 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---[[-------------------------- variable and table --------------------------]]
+---------------------------- variable and table --------------------------
 local table_sort=table.sort
 local math_random=math.random
 local string_find=string.find
+
+local sim = alife()
+local gg = game_graph()
 
 local anoms_classes={
 	[clsid.zone_buzz_s]=true,
@@ -67,7 +70,8 @@ local level_anoms={
 
 }
 
-local level_arts, max_arts_count = nil, 1
+local level_arts
+local max_arts_count = 1
 
 local level2vertexes = {
 	l01_escape				= { min = 0,    max = 251,  lvl = 595499  },
@@ -110,14 +114,12 @@ local level2vertexes = {
 
 local vertexes = {}
 
---[[-------------------------- variable and table ---------------------end--]]
---[[-------------------------- function for spawn --------------------------]]
+---------------------------- variable and table ---------------------end--
+---------------------------- function for spawn --------------------------
 function getVertexes(lvl_name)
 	local t = level2vertexes[lvl_name]
 		or abort("amk_anoms.getVertexes: vertexes not found for level [%s]", lvl_name)
-	vertexes.min = t.min
-	vertexes.max = t.max
-	vertexes.lvl = t.lvl
+	return table.copy( {}, t )
 end
 
 function get_max_level_vertex()
@@ -125,11 +127,19 @@ function get_max_level_vertex()
 		or abort("amk_anoms.get_max_level_vertex: level_vertex not found for level [%s]", level.name())
 end
 
+function get_locations()
+	local ret = {}
+	for k in pairs( level_anoms ) do
+		ret[ #ret + 1 ] = k
+	end
+	return ret
+end
+
 function init()
 	local lname=level.name()
 	if not level_anoms[lname] then return end
 	
-	getVertexes(lname)
+	vertexes = getVertexes(lname)
 	
 	local string_gfind = string.gfind
 	local table_insert = table.insert
@@ -176,6 +186,8 @@ function init()
 	if blow>0 and blow<4 then return end
 
 	generate_anoms()
+
+	spatial_subway.init()
 end 
 
 function after_blow_on()
@@ -205,8 +217,6 @@ end
 
 function pre_blow_off()
 	local sobj, map
-	local sim = alife()
-	local gg = game_graph()
 	for i=1,65534 do
 		sobj=sim:object(i)
 		if sobj and anoms_classes[sobj:clsid()] then
@@ -230,6 +240,19 @@ function generate_anoms()
 	end
 end
  
+function get_nearest_gv( pos )
+	local min_dist, new_gv= 100000, 0
+	local g1
+	for a = vertexes.min, vertexes.max, 1 do 
+		g1 = gg:vertex(a):game_point()
+		if g1:distance_to(pos)<min_dist then 
+			min_dist = g1:distance_to(pos) 
+			new_gv = a
+		end
+	end
+	return new_gv
+end
+
 function generate_arts(lname)
 	local max_rnd = 0
 	for k,v in pairs(level_arts) do
@@ -238,27 +261,19 @@ function generate_arts(lname)
 
 	local cnt,mxx=0,math_random(1,max_arts_count)
 	local new_lv, new_gv, pos, min_dist, g1
-	local ggraph = game_graph()
-	local sim = alife()
 
 	while cnt < mxx do
 		new_lv=math_random(1, vertexes.lvl)
 		pos = level.vertex_position(new_lv)
 		if check_coordinates(pos,lname) then
-			new_gv = 0
-			min_dist = 100000
-			for a = vertexes.min, vertexes.max, 1 do 
-				g1 = ggraph:vertex(a):game_point()
-				if g1:distance_to(pos)<min_dist then 
-					min_dist = g1:distance_to(pos) 
-					new_gv = a
-				end
-			end
+			new_gv = get_nearest_gv( pos )
 
 			local rnd = math_random(1, max_rnd)
 			for sect, val in pairs(level_arts) do
 				if rnd <= val*10 then
-					del_ai_flag( sim:create(sect, pos, new_lv, new_gv) )
+					local se_art = sim:create(sect, pos, new_lv, new_gv)
+					se_art = sim:object( se_art.id )
+					se_art:use_ai_locations( false )
 				--	log("# spawn artefact: %s", sect)
 					cnt = cnt + 1
 					break
@@ -296,11 +311,12 @@ function spawn_anom_art(sobj)
 	local x = math.random(-30,30)/100
 	local z = math.random(-30,30)/100
 	local y = math.random(30,50)/100
-	local art = alife():create(art_section,
+	local art = sim:create(art_section,
 					    pos:add(vector():set(x,y,z)),
 						sobj.m_level_vertex_id,
 						sobj.m_game_vertex_id)
-	del_ai_flag(art)
+	art = sim:object( art.id )
+	art:use_ai_locations(false)
 --	log("- successfully")
 	return true
 end
@@ -311,16 +327,7 @@ function generate_anomaly()
 	local pos = level.vertex_position(new_lv)
 	if actor_pos:distance_to(pos)<5 then return false end
 	if not check_coordinates(pos, level.name()) then return false end
-	local new_gv = 0
-	local min_dist = 100000 
-	for a = vertexes.min, vertexes.max do 
-		g1 = game_graph():vertex(a):game_point()
-		if g1:distance_to(pos)<min_dist then 
-			min_dist = g1:distance_to(pos) 
-			new_gv = a
-		end
-	end
-	
+	local new_gv = get_nearest_gv( pos )
 	return spawn_rand_anom(pos,new_gv,new_lv)
 end 
 
@@ -347,27 +354,26 @@ function spawn_rand_anom(pos,gv,lv)
 		shape1=section[2]
 		section="amk_zone_"..section[1]..suffix
 	end
-	shapes[1]={}
-	shapes[1].shtype=shape1.shtype
-	if shape1.shtype == 0 then
-		shapes[1].radius = shape1.radius
-		shapes[1].center = vector():set( unpack(shape1.center) )
+	local t = {}
+	shapes[1] = t
+	t.shtype=shape1.shtype
+	if t.shtype == 0 then
+		t.radius = shape1.radius
+		t.center = vector():set( unpack(shape1.center) )
 	else
-		shapes[1].v1 = vector():set( unpack(shape1.v1) )
-		shapes[1].v2 = vector():set( unpack(shape1.v2) )
-		shapes[1].v3 = vector():set( unpack(shape1.v3))
-		shapes[1].offset = vector():set( unpack(shape1.offset) )
+		t.box_matrix = matrix():set(
+					vector():set( unpack(shape1.v1) ),
+					vector():set( unpack(shape1.v2) ),
+					vector():set( unpack(shape1.v3) ),
+					vector():set( unpack(shape1.offset) )
+				)
 	end
 
-	return spawn_anomaly(section,pos,gv,lv,shapes,"on")
-end
-
-function spawn_anomaly(section,pos,gv,lv,shape,status)
-	local sobj = amk.spawn_item(section,pos,gv,lv)
+	local sobj = sim:create( section, pos, lv, gv )
 	if sobj then
-		local tbl = amk.get_anomaly_data(sobj)
-		tbl.shapes=shape
-		amk.set_anomaly_data(tbl, sobj)
+		local data = {}
+		data.shapes = shapes
+		naxac_netpk.modify( sobj, data )
 	end
 	return sobj
 end
@@ -458,13 +464,13 @@ function set_online_anomaly_status(obj_id,status)
 			amk_anoms.restrictor_deleted(obj_id,obj:name())
 		else
 			obj:enable_anomaly()
-			local sobj=alife():object(obj_id)
+			local sobj=sim:object(obj_id)
 			amk_anoms.add_anomaly(obj_id,sobj.position,sobj.radius)
 		end
 	end
 end
---[[-------------------------- function for spawn ---------------------end--]]
---[[-------------------------- npc and anom_binder -------------------------]]
+---------------------------- function for spawn ---------------------end--
+---------------------------- npc and anom_binder -------------------------
 local anoms_for_npc={}
 local npcs_for_anom={}
 local actual_anoms_for_npc={}
@@ -567,7 +573,7 @@ function syncronize(npc)
 		local dist, sobj
 		for id in pairs(anoms) do
 			dist=0
-			sobj=alife():object(id)
+			sobj=sim:object(id)
 			if sobj then
 				dist=npc:position():distance_to_sqr(sobj.position)
 			else
@@ -584,7 +590,6 @@ function syncronize(npc)
 
 	local add,rem="",""
 	local first=true
-	local remt = {}
 	for id,name in pairs(actual) do
 		if not anoms[id] then
 			if first then
@@ -596,11 +601,9 @@ function syncronize(npc)
 			if npcs_for_anom[id] then
 				npcs_for_anom[id][nid]=nil
 			end
-		--	actual[id]=nil
-			table.insert(remt, id)
+			actual[id]=nil
 		end
 	end
-	for i, v in ipairs(remt) do actual[v]=nil end
 
 	first=true
 	for id,name in pairs(anoms) do
@@ -709,7 +712,5 @@ function get_anomaly_list_for_pos(posn,radius)
 	end
 	return ret
 end
---[[-------------------------- npc and anom_binder --------------------end--]]
---[[-------------------------- ------------------ --------------------------]]
---function update()
---end
+---------------------------- npc and anom_binder --------------------end--
+---------------------------- ------------------ --------------------------

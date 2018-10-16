@@ -74,9 +74,13 @@ end
 function runner()
 	if not inventory.on_belt("runner_tele") then return end
 	
---	if run_allowed() then
-		do_run()
---	end
+	if not run_allowed() then
+		local obj = db.actor:object("runner_tele")
+		if obj then db.actor:move_to_ruck(obj) end
+		return
+	end
+
+	do_run()
 end
 
 function do_run()
@@ -84,35 +88,40 @@ function do_run()
 
 	local pos = db.actor:position()
 	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
---	db.actor:give_info_portion("teleport_started")
-	db.actor:set_actor_position(level.vertex_position(level.vertex_in_direction(db.actor:level_vertex_id(), device().cam_dir, 900)))
---	db.actor:give_info_portion("teleport_finished")
+	local new_pos = level.vertex_position(level.vertex_in_direction( db.actor:level_vertex_id(), device().cam_dir, 900) )
+	if db.actor:get_inventory_weight() > 350 and math.random() > 0.85 then
+		new_pos = new_pos:add( vector():set( 0, math.random(5, 25), 0 ) )
+	end
+	db.actor:set_actor_position( new_pos )
 	
-	local path = math.ceil(pos:distance_to(db.actor:position()))
-	local pay = path
-	db.actor:give_money(-pay)
-	game_stats.money_quest_update(-pay) 
+	local path = math.ceil( pos:distance_to(db.actor:position()) )
 	archievements.acv_count_event("acv_run", 30000, "Электровеник", path)
 end
 
+local sended = false
 function run_allowed()
+	if db.actor:get_inventory_weight() > 350 and not sended then
+		news_manager.send_tip(db.actor, "Большой вес! Возможен сбой.", nil, "nano", 15000)
+		sended = true
+	else
+		sended = false
+	end
+
 	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 20000)
+		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 15000)
 		return false
 	elseif has_alife_info("snp_proper7014_done") and not has_alife_info("snp_video_arhiv_done") then
-		news_manager.send_tip(db.actor, "Телепортация невозможна. Нет связи с центром управления.", nil, "nano", 20000)
-		return false
-	elseif db.actor:active_item() then
-		news_manager.send_tip(db.actor, "Ускоритель не работает при наличии в руках любого предмета или оружия. Для восстановления функциональности исправьте ситуацию.", nil, "nano", 20000)
+		news_manager.send_tip(db.actor, "Телепортация невозможна по техническим причинам.", nil, "nano", 15000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
-	elseif db.actor:money() < 1000 then
-		news_manager.send_tip(db.actor, "Для телепортации недостаточно денег.", nil, "nano", 20000)
-		return false
---	elseif not drrr.weight_ok() then
---		news_manager.send_tip(db.actor, "Телепортация перегруженного человека невозможна по техническим причинам. Снизьте вес или отремонтируйте бронекостюм.", nil, "nano", 20000)
---		return false
+	end
+
+	local active_item = db.actor:active_item()
+	if active_item and math.random() > 0.8
+		and active_item:section() ~= "bolt"
+	then
+		db.actor:drop_item( active_item )
 	end
 	return true
 end
@@ -167,16 +176,11 @@ function returner_update()
 			double_click = nil
 		end
 	end
-	
---	if returner_pos and db.actor:active_item() then
---		returner_pos = nil
---	end
 end
 
 function returner_set_pos()
 	fly.stop()
 
---	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	returner_pos = db.actor:position()
 	news_manager.send_tip(db.actor, "Позиция сохранена.", nil, "nano")
 end
@@ -189,13 +193,10 @@ function set_pos_allowed()
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
 		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 20000)
 		return false
---	elseif db.actor:active_item() then
---		news_manager.send_tip(db.actor, "Возвращатель не работает при наличии в руках любого предмета или оружия. Для восстановления функциональности исправьте ситуацию.", nil, "nano", 20000)
---		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif returner_temp_pos:distance_to(db.actor:position()) > 0.001 then 
-		news_manager.send_tip(db.actor, "Ошибка установки позиции. При задании позиции нельзя перемещаться.", nil, "nano", 20000)
+		news_manager.send_tip(db.actor, "Ошибка установки позиции. При задании позиции нельзя перемещаться.", nil, "nano", 5000)
 		return false
 	end
 	return true
@@ -205,28 +206,30 @@ function do_returner()
 	fly.stop()
 	
 	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
---	db.actor:give_info_portion("teleport_started")
 	db.actor:set_actor_position(returner_pos)
---	db.actor:give_info_portion("teleport_finished")
 end
 
 function returner_allowed()
+	local active_item = db.actor:active_item()
+	if active_item and math.random() > 0.8
+		and active_item:section() ~= "bolt"
+	then
+		db.actor:drop_item( active_item )
+	end
+
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
-		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 20000)
+		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 10000)
 		return false
---	elseif db.actor:active_item() then
---		news_manager.send_tip(db.actor, "Возвращатель не работает при наличии в руках любого предмета или оружия. Для восстановления функциональности исправьте ситуацию.", nil, "nano", 20000)
---		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif not returner_pos then 
-		news_manager.send_tip(db.actor, "Не задана позиция возвращения. Для установки позиции нажмите дважды клавишу Возвращателя.", nil, "nano", 20000)
+		news_manager.send_tip(db.actor, "Не задана позиция возвращения. Для установки позиции нажмите дважды клавишу Возвращателя.", nil, "nano", 10000)
 		return false
-	elseif returner_pos:distance_to_xz(db.actor:position()) > 50 then 
-		news_manager.send_tip(db.actor, "Возвращение невозможно из-за слишком большого расстояния. Для смены позиции нажмите дважды клавишу Возвращателя.", nil, "nano", 20000)
+	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then 
+		news_manager.send_tip(db.actor, "Возвращение невозможно из-за слишком большого расстояния. Для смены позиции нажмите дважды клавишу Возвращателя.", nil, "nano", 10000)
 		return false
-	elseif returner_pos:distance_to(db.actor:position()) < 1 then 
-		news_manager.send_tip(db.actor, "Слишком малое расстояние между текущей и заданной позицией. Для выполнения возвращения нужно отойти подальше.", nil, "nano", 20000)
+	elseif returner_pos:distance_to(db.actor:position()) < 0.6 then 
+		news_manager.send_tip(db.actor, "Слишком малое расстояние между текущей и заданной позицией. Для выполнения возвращения нужно отойти подальше.", nil, "nano", 10000)
 		return false
 	end
 	return true
