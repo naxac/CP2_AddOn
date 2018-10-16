@@ -3,7 +3,7 @@
 
 -- чтение текста опций
 function GetUserText(handler, option)
-	local flist = getFS():file_list_open_ex("$game_saves$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*."..option)
+	local flist = getFS():file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*."..option)
 	
 	if flist:Size() > 0 then
 		handler:SetText(string.sub(flist:GetAt(0):NameFull(), 1, -5))
@@ -21,7 +21,7 @@ function SetUserText(previous, new, option)
 	local f2
 
 	if previous ~= "" then
-		f2 = f:update_path("$game_saves$", previous.."."..option)
+		f2 = f:update_path("$game_stats$", previous.."."..option)
 		if f:exist(f2) then
 			f:file_delete(f2)
 		end
@@ -36,7 +36,7 @@ function SetUserText(previous, new, option)
 		if #str == 0 then return end
 		str = str:sub(1, -2)
 		local f1 = f:update_path("$fs_root$", "fsgame.ltx")
-		f2 = f:update_path("$game_saves$", str.."."..option)
+		f2 = f:update_path("$game_stats$", str.."."..option)
 		f:file_copy(f1, f2)
 	end
 end
@@ -44,7 +44,7 @@ end
 -- покупка квестовых предметов
 function buy_quest_item()
 	local f = getFS()
-	local flist = f:file_list_open_ex("$game_saves$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.buy")
+	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.buy")
 	if flist:Size() == 0 then return end
 
 	fname = flist:GetAt(0):NameFull()
@@ -73,7 +73,7 @@ function buy_quest_item()
 	end
   end
   
-	local f1 = f:update_path("$game_saves$", fname)
+	local f1 = f:update_path("$game_stats$", fname)
 	f:file_delete(f1)
 end
 
@@ -107,7 +107,7 @@ local found_name = ""
 -- удаление проблемных объектов
 function del_bad_objects()
 	local f = getFS()
-	local flist = f:file_list_open_ex("$game_saves$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.del")
+	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.del")
 	if flist:Size() == 0 then return end
 	local fname = flist:GetAt(0):NameFull()
 	local bad_objects = string.explode(fname:sub(1, -5), "%s", true)
@@ -127,7 +127,7 @@ function del_bad_objects()
 	if #found_name>0 then found_name = found_name:sub(1,-3) end
 	if #not_found_name>0 then not_found_name = not_found_name:sub(1,-3) end
 	
-	local f1 = f:update_path("$game_saves$", fname)
+	local f1 = f:update_path("$game_stats$", fname)
 	f:file_delete(f1)
 end
 

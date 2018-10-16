@@ -76,29 +76,29 @@ end
 -- ƒл€ других случаев можно и отдельную функцию написать.
 string.explode = function ( str, div, clear )
 	local ret = {}
-	for s in string.gmatch(str, "([^"..div.."]+)") do
-		ret[#ret+1] = (clear and trim(s) or s)
+	for s in string.gmatch( str, "([^"..div.."]+)" ) do
+		ret[ #ret+1 ] = ( clear and trim( s ) or s )
 	end
 	return ret
 end
 -- 'string.lower/upper' с поддержкой кириллицы.
-string.lower1 = function (str)
-	return string.lower(str:gsub("([ј-я])",
-		function(s) return string.char(s:byte()+32) end):gsub("®", "Є"))
+string.lower1 = function ( str )
+	return string.lower( str:gsub( "([ј-я])",
+		function( s ) return string.char( s:byte()+32 ) end ):gsub( "®", "Є" ) )
 end
-string.upper1 = function (str)
-	return string.upper(str:gsub("([а-€])",
-		function(s) return string.char(s:byte()-32) end):gsub("Є", "®"))
+string.upper1 = function ( str )
+	return string.upper( str:gsub( "([а-€])",
+		function( s ) return string.char( s:byte()-32 ) end ):gsub( "Є", "®" ) )
 end
 -- очистка строки от "лишних" символов (полезно при работе с FS)
-string.clear = function (str)
-	return str:gsub( "%p", function(s) return s:match("[%.%-_]*") end )
+string.clear = function ( str )
+	return str:gsub( "%p", function( s ) return s:match( "[%.%-_]*" ) end )
 end
 --// math
 -- выравнивание значени€ n в пределы от min до max
 math.clamp = function( n, min, max )
 	if min>max then min,max=max,min end
-	return (n>max and max) or (n<min and min) or n
+	return ( n>max and max ) or ( n<min and min ) or n
 end
 -- округление числа
 --math.round = function ( n )
@@ -110,17 +110,17 @@ end
 if table.size == nil then
 	table.size = function ( t )
 		local n = 0
-		for _ in pairs(t) do n = n + 1 end
+		for _ in pairs( t ) do n = n + 1 end
 		return n
 	end
 end
 -- получаем копию таблицы
 table.copy = function ( tbl, src )
-	for k,v in pairs(src) do
-		if type(v) == 'table' then
-			tbl[k] = table.copy( {}, v )
+	for k,v in pairs( src ) do
+		if type( v ) == 'table' then
+			tbl[ k ] = table.copy( {}, v )
 		else
-			tbl[k] = v
+			tbl[ k ] = v
 		end
 	end
 	return tbl
@@ -133,16 +133,16 @@ table.find = function( tbl, val )
 	end
 	return false
 end
-table.add = function( tbl, key )
-	local n = tbl[key]
-	tbl[key] = (n or 0) + 1
+table.add = function( tbl, key, v )
+	local n = tbl[key] or 0
+	tbl[key] = n + (v or 1)
 end
-table.sub = function( tbl, key )
-	local n = tbl[key]
-	if n==nil or n==1 then
+table.sub = function( tbl, key, v )
+	local n = tbl[key] or 0
+	if n <= (v or 1) then
 		tbl[key] = nil
 	else
-		tbl[key] = n - 1
+		tbl[key] = n - (v or 1)
 	end
 end
 table.random = function ( tbl )
@@ -229,15 +229,25 @@ ini_file.r_bool_ex = function (ini, section, line, def)
 end
 
 -- class 'game_object'
-game_object.is_alive = function(obj)
-	local cls = (obj and obj.clsid) and obj:clsid() or -1
-	return (IAmAStalker[cls] or IAmAMonster[cls]) and obj:alive()
+-- CEntityAlive
+game_object.is_alive = function( obj )
+	local cls = ( obj and obj.clsid ) and obj:clsid() or -1
+	return ( IAmAStalker[ cls ] or IAmAMonster[ cls ] ) and obj:alive()
 end
-game_object.is_wounded = function (obj)
+game_object.is_wounded = function ( obj )
 	return obj:is_stalker() and obj:alive() and obj:wounded()
+end
+-- CInventoryItem
+game_object.get_slot = function ( obj )
+	return obj:get_inventory_item_int( nil, 156 )
+end
+game_object.set_slot = function ( obj, slot )
+	obj:set_inventory_item_int( 156, slot )
 end
 
 -- class 'net_packet'
+net_packet.f_state      = 1
+net_packet.f_convert = 2
 -- read
 local CTime_0 = game.CTime()
 net_packet.r_vec_q8 = function( pk )
@@ -322,23 +332,50 @@ net_packet.w_CTime = function( pk, v )
 	end
 end
 
+-- class 'Frect'
+Frect.mul = function ( rect, x, y )
+	if y==nil then y = x end
+	rect.x1 = rect.x1*x; rect.y1 = rect.y1*y;
+	rect.x2 = rect.x2*x; rect.y2 = rect.y2*y;
+	return rect
+end
+Frect.div = function ( rect, x, y )
+	if y==nil then y = x end
+	rect.x1 = rect.x1/x; rect.y1 = rect.y1/y;
+	rect.x2 = rect.x2/x; rect.y2 = rect.y2/y;
+	return rect
+end
+Frect.width = function ( rect )
+	return rect.x2 - rect.x1
+end
+Frect.height = function ( rect )
+	return rect.y2 - rect.y1
+end
+
 -- class 'CUIScriptWnd'
 local wnd_id        = 1
 local registered_windows = {}
-CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func )
-	local id = self.CUIScriptWnd_id
+CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
+	local id = self.__CUIScriptWnd_id
 	if id == nil then
 		id = wnd_id
 		wnd_id = wnd_id + 1
-		self.CUIScriptWnd_id = id
-		registered_windows[ id ] = self
+		self.__CUIScriptWnd_id = id
+		registered_windows[ id ] = {}
+		registered_windows[ id ].w = self
 	end
+	if registered_windows[ id ][ ui_name ] == nil then
+		registered_windows[ id ][ ui_name ] = {}
+	end
+	registered_windows[ id ][ ui_name ][ ui_event ] = { ... }
 
 	self:AddCallback( ui_name, ui_event,
 		function ( i )
-			local wnd = registered_windows[ i ]
-			if wnd then
-				func( wnd )
+			local t = registered_windows[ i ]
+			if t then
+				local wnd = registered_windows[ i ].w
+				local p = registered_windows[ i ][ ui_name ][ ui_event ]
+				func( wnd, unpack( p ) )
 			else
 				log( "[%s]: ignore callback for unregistered window %s: ui_name = %s, ui_event = %s",
 					script_name(), i, ui_name, ui_event )
@@ -347,9 +384,20 @@ CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func )
 	id )
 end
 CUIScriptWnd.unregister_self = function ( self )
-	local id = self.CUIScriptWnd_id
-		or abort("[%s]: CUIScriptWnd_id not found", script_name() )
-	registered_windows[ id ] = nil
+	local id = self.__CUIScriptWnd_id
+	if id == nil then
+		log("[%s]: CUIScriptWnd.unregister_self : __CUIScriptWnd_id not found", script_name() )
+	else
+		registered_windows[ id ] = nil
+	end
+	log("CUIScriptWnd.unregister_self: registered windows count [%d]", table.size(registered_windows) )
+end
+CUIScriptWnd.InitEditBoxEx = function ( self, ui_name, stat, pos_x, pos_y, width, type )
+	self[ui_name] = new_edit_box.CUIEditBox_new( stat, pos_x, pos_y, width, type )
+	self.unregister_self = function ( wnd )
+		wnd[ui_name]:unregister_self()
+		CUIScriptWnd.unregister_self( wnd )
+	end
 end
 
 -- namespace 'level'
@@ -373,7 +421,7 @@ relation_registry.change_goodwill = function (who_id, to_whom_id, goodwill_chang
 	return db.actor:change_goodwill_ex(who_id, to_whom_id, goodwill_change)
 end
 
--- other global functions
+-- global functions
 _G['get_inv_name'] = function (section)
 	return sys_ini:r_string_ex(section, "inv_name", section)
 end
@@ -391,29 +439,26 @@ _G['GetIconParams'] = function (section)
 end
 
 _G['old_user_name'] = user_name
-_G['user_name'] = game_options.GetUserName
+_G['user_name'] = function( name )
+	if name == nil then
+		return game_options.UserName
+	elseif type( name ) == "string" then
+		game_options.UserName = string.clear( name )
+		return true
+	end
+	log("! Wrong user name: %s", utils.to_str( name ) )
+	return false
+end
+
 _G['actor_name'] = function()
 	return ( has_alife_info("esc_find_doctor_done") and "—трелок" ) or "ћеченый"
 end
-
-local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
-local ru = [[йцукенгшщзхъфывапролджэ€чсмитьбю.…÷” ≈Ќ√Ўў«’Џ/‘џ¬јѕ–ќЋƒ∆Ёя„—ћ»“№Ѕё,"є;:?]]
-local tt = {}
-for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
-_G['translit']  = function (l) return tt[l] or l end
 
 _G['shiftCheckDropItem'] = function()
 	_G['biznes_remove_special_item']= true
 	start_small_timer(300,
 		function() _G['biznes_remove_special_item'] = nil end
 	)
-end
-
-_G['del_ai_flag'] = function( obj )
-	if obj == nil then return end
-	local data = naxac_netpk.get( obj )
-	data.object_flags = bit_and( data.object_flags, bit_not(128) )
-	naxac_netpk.set( obj, data )
 end
 
 local IsBlocked = false
@@ -424,6 +469,21 @@ _G['BlockUIDescr'] = function( b )
 		IsBlocked = b
 	end
 end
+
+local ShiftHold = false
+_G['ShiftPressed'] = function( b )
+	if b == nil then
+		return ShiftHold
+	else
+		ShiftHold = b
+	end
+end
+
+local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
+local ru = [[йцукенгшщзхъфывапролджэ€чсмитьбю.…÷” ≈Ќ√Ўў«’Џ/‘џ¬јѕ–ќЋƒ∆Ёя„—ћ»“№Ѕё,"є;:?]]
+local tt = {}
+for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
+_G['translit']  = function (l) return tt[l] or l end
 
 --tmr:stop()
 --log1( "# loading xray_extensions: "..tostring(tmr:time()) )

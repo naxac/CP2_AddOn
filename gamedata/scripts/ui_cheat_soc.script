@@ -80,7 +80,7 @@ function cheat_menu:InitControls()
 	self.btn_del:Enable(false)
 	self:Register(self.btn_del, "btn_del")
 	-- Поиск по имени
-	self.edit_box = new_edit_box.CUIEditBox_new(self.dialog, 308, 112, 202)
+	self:InitEditBoxEx("edit_box", self.dialog, 308, 112, 202)
 	
 	self.section_name = xml:InitStatic("main_dialog:sect_wnd", self.dialog)
 	
@@ -109,16 +109,17 @@ function cheat_menu:InitControls()
 end
 
 function cheat_menu:InitCallBacks()
-	self:AddCallback("tab",				ui_events.TAB_CHANGED,				self.OnTabChange,			self)
-	self:AddCallback("btn_cancel",		ui_events.BUTTON_CLICKED,			self.OnBtnCancel,			self)
-	self:AddCallback("btn_spawn",		ui_events.BUTTON_CLICKED,			self.OnBtnSpawn,			self)
-	self:AddCallback("btn_del",			ui_events.BUTTON_CLICKED,			self.OnBtnDelete,			self)
-	self:AddCallback("btn_search",		ui_events.BUTTON_CLICKED,			self.SearchItem,			self)
-	self:AddCallback("list_window",		ui_events.LIST_ITEM_CLICKED, 		self.OnListItemClicked,		self)
-	self:AddCallback("list_window",		ui_events.WINDOW_LBUTTON_DB_CLICK,	self.OnListItemDbClicked,	self)
+	self:AddCallbackEx("tab", ui_events.TAB_CHANGED, self.OnTabChange)
+	self:AddCallbackEx("btn_cancel", ui_events.BUTTON_CLICKED, self.OnBtnCancel)
+	self:AddCallbackEx("btn_spawn", ui_events.BUTTON_CLICKED, self.OnBtnSpawn)
+	self:AddCallbackEx("btn_del", ui_events.BUTTON_CLICKED, self.OnBtnDelete)
+	self:AddCallbackEx("btn_search", ui_events.BUTTON_CLICKED, self.SearchItem)
+	self:AddCallbackEx("list_window", ui_events.LIST_ITEM_CLICKED,  self.OnListItemClicked)
+	self:AddCallbackEx("list_window", ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked,	self)
 end
 
 function cheat_menu:OnBtnCancel()
+	self:unregister_self()
 	self:GetHolder():start_stop_menu	(self.owner, true) --new(show main window)
 	self:GetHolder():start_stop_menu	(self,true)
 	self.owner:Show						(true)
@@ -252,7 +253,6 @@ function cheat_menu:OnBtnSpawn()
 	
 	local num = self.edit_box:GetText()
 	num = tonumber(num)~=nil and math.max(math.ceil(tonumber(num)), 1) or 1
-	if self.menu_index==5 then _G['from_cheat_menu'] = true end
 	local a = db.actor
 	local sim = alife()
 	for i=1,num do
@@ -283,7 +283,7 @@ end
 
 function cheat_menu:OnKeyboard(dik, keyboard_action)
 	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
-	self.edit_box:OnKeyboard(dik, keyboard_action)
+
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		if dik == DIK_keys.DIK_ESCAPE then self:OnBtnCancel()
 		elseif dik == DIK_keys.DIK_RETURN then self:OnBtnSpawn()

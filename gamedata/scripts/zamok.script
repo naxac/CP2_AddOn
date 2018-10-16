@@ -21,7 +21,7 @@ local can_lock_visuals = {
 function restore(se_box, box_id)
 	if se_box and se_box:clsid() == clsid.inventory_box then
 		if zamok_box[box_id] == nil then
-			local data = naxac_netpk.get(se_box, true)
+			local data = naxac_netpk.get(se_box, net_packet.f_state)
 			local t = naxac_netpk.parse_custom_data(data.custom_data)
 			if t["password"] then
 			--	log1("add protected box: "..se_box:name())
@@ -102,7 +102,7 @@ function ui_codelock:__init(se_box, cl_box, mode) super()
 	self.check_code = false
 	self:InitControls()
 	if not self.install then
-		local data = naxac_netpk.get(se_box, true)
+		local data = naxac_netpk.get(se_box, net_packet.f_state)
 		local t = naxac_netpk.parse_custom_data(data.custom_data)
 		self.code = (t['password'] and t['password']['code']) or "000000"
 	end
@@ -119,7 +119,7 @@ function ui_codelock:InitControls()
 
 	local btn = xml:InitButton("button_quit", back)
 	self:Register(btn, "btn_quit")
-	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_ButtonCancel, self)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_ButtonCancel)
 
 	if self.shift then
 		btn:SetText("OK")
@@ -169,12 +169,12 @@ function ui_codelock:on_ButtonOk()
 	end
 	
 	if self.install then
-		local data = naxac_netpk.get(self.se_box, true)
+		local data = {}
 		data.custom_data =	"[logic]\n"..
 							"cfg = scripts\\code_inventory_box.ltx\n"..
 							"[password]\n"..
 							"code = "..str
-		naxac_netpk.set(self.se_box, data)
+		naxac_netpk.modify(self.se_box, data, net_packet.f_state)
 		table.insert(amk_offline_alife.protected.ids, self.se_box.id)
 		--amk_offline_alife.update_tables(level.name())
 		amk.send_tip("", 'Заперли тайник на замок.', nil, 5, "nano")
@@ -236,7 +236,7 @@ end
 -- Забираем тайник вместе с содержимым на 'kUSE + Shift'
 -- Вызывается из логики
 function transfer_all(actor, box)
-	if not ShiftPressed then return false end
+	if not ShiftPressed() then return false end
 	
 	box:set_nonscript_usable( false )
 	shiftCheckDropItem()
@@ -264,7 +264,7 @@ function change_box_data(box)
 	if se_box then
 	--	log1("box found: "..se_box:name())
 		local inifilename = nil
-		local data = naxac_netpk.get(se_box, true)
+		local data = {}
 		if se_box:section_name() == "m_inventory_box" then	-- самопальный тайник
 			data.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
 			inifilename = "scripts\\new_inventory_box.ltx"
@@ -272,7 +272,7 @@ function change_box_data(box)
 			data.custom_data = ""
 			inifilename = "scripts\\treasure_inventory_box.ltx"
 		end
-		naxac_netpk.set(se_box, data)
+		naxac_netpk.modify(se_box, data, net_packet.f_state)
 		-- Перезагружаем логику
 		local st = db.storage[box_id]
 		st = {}

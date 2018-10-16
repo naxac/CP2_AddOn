@@ -10,7 +10,6 @@ function on_info(info_id)
 		trade_manager.start_trade()
 		_G['recolor_items'] = true
 		db.actor:invalidate_inventory()
-	--	update_inventory_window()
 	elseif info_id == "ui_trade_hide" then
 		if wnd then
 			wnd:DetachWnd()
@@ -23,8 +22,8 @@ end
 
 ---------------------------------------------------------------------
 local reg_callbacks = {
-	on_item_take = "on_change_weight",
-	on_item_drop = "on_change_weight"
+	on_item_take = "calc_and_change",
+	on_item_drop = "calc_and_change"
 }
 class "TradeWnd" (CUIScriptWnd)
 
@@ -33,7 +32,7 @@ function TradeWnd:__init(owner) super()
 	self:Init(0, 0, 1024, 768)
 	self:InitControls()
 	for k,v in pairs(reg_callbacks) do
-		xr_s.register_callback(k, this[v])
+		xr_s.register_callback( k, self[v], {self = self} )
 	end
 end
 
@@ -81,12 +80,7 @@ function TradeWnd:DetachWnd()
 	self.DescrWnd:Remove()
 	self.owner:DetachChild(self.stat)
 	for k,v in pairs(reg_callbacks) do
-		xr_s.unregister_callback(k, this[v])
+		xr_s.unregister_callback(k, self[v])
 	end
 end
----------------------------------------------------------------------------
-function on_change_weight()
-	if wnd then
-		wnd:calc_and_change()
-	end
-end
+

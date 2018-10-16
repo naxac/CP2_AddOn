@@ -21,7 +21,8 @@ local parent_by_story = {
   [506] = "petrenko",
   [607] = "lisiy",
   [515] = "mercenary",
-  [9613] = "green"
+  [9613] = "green",
+  [032] = "bridge_commander"
 }
 
 local story_by_parent = {
@@ -38,7 +39,8 @@ local story_by_parent = {
   petrenko          = 506,
   lisiy           = 607,
   mercenary         = 515,
-  green    = 9613
+  green    = 9613,
+  bridge_commander = 032
 }
 
 local return_task_by_type = {
@@ -133,8 +135,14 @@ function CRandomTask:__init()
     
 		if self.task_ini:line_exist(id, "target") then
 			curr_task_info.target		= self.task_ini:r_string(id, "target")
-			if self.task_ini:line_exist(id, "items_count") then
-				curr_task_info.items_count = self.task_ini:r_u32(id, "items_count")
+			if self.task_ini:line_exist(id, "target_count") then
+				curr_task_info.target_count = self.task_ini:r_u32(id, "target_count")
+			end
+			if curr_task_info.type == "find_item"
+				and (not sys_ini:section_exist(curr_task_info.target))
+				and alife():object(curr_task_info.target) ~= nil
+			then
+				curr_task_info.is_unique_item = true
 			end
 		end
 		if self.task_ini:line_exist(id, "text") then
@@ -143,67 +151,59 @@ function CRandomTask:__init()
 		if self.task_ini:line_exist(id, "description") then
 			curr_task_info.description	= self.task_ini:r_string(id, "description")				
 		end
-		curr_task_info.time				= utils.cfg_get_number(self.task_ini, id, "time", nil, false)
+		curr_task_info.time				= self.task_ini:r_u32_ex(id, "time")
 
-		curr_task_info.idle_time		= utils.cfg_get_number(self.task_ini, id, "idle_time", nil, false, 24*60*60) --' Время между выдачами задания (в игровых секундах)
-		curr_task_info.prior			= utils.cfg_get_number(self.task_ini, id, "prior", nil, false, 0) --' Приоритет квеста, выдаются доступные квесты с наименьшим приоритетом
+		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", 24*60*60) --' Время между выдачами задания (в игровых секундах)
+		curr_task_info.prior			= self.task_ini:r_float_ex(id, "prior", 0) --' Приоритет квеста, выдаются доступные квесты с наименьшим приоритетом
 	
 		if self.task_ini:line_exist(id, "init_condition") then
 			curr_task_info.init_condition = xr_logic.parse_condlist(db.actor, "task_manager", "init_condition", self.task_ini:r_string(id, "init_condition"))
 		end
 
-		local sss = utils.cfg_get_string(self.task_ini, id, "reward_item", nil, false, "")
-		if sss ~= nil then
-			curr_task_info.reward_item = se_respawn.parse_names(sss) 
-		else
-			curr_task_info.reward_item = sss
+		if self.task_ini:line_exist(id, "reward_item") then
+			curr_task_info.reward_items = parse_reward_items( self.task_ini:r_string(id, "reward_item") )
 		end
-		curr_task_info.reward_money = utils.cfg_get_number(self.task_ini, id, "reward_money", nil, false)		
-		curr_task_info.reward_script = utils.cfg_get_string(self.task_ini, id, "reward_script", nil, false, "")
-    -- Награда информацией
---    amk.mylog("reward info read")
-    local reward_info=utils.cfg_get_string(self.task_ini, id, "reward_info", nil, false,"")   
-    if reward_info=="" then reward_info=nil end
-    curr_task_info.reward_info = reward_info
-    if reward_info then
-       self:read_info_reward_section(self.task_ini,reward_info,curr_task_info)
-    end
---    amk.mylog("reward info read done")
-    -- Диалог для квестовой жертвы
-    curr_task_info.target_dialog = utils.cfg_get_string(self.task_ini, id, "target_dialog", nil, false,"")
-    ----------------------
-  
-		if self.task_ini:line_exist(id, "community") then
-			curr_task_info.community = self.task_ini:r_string(id, "community")
-		end		
-
-		curr_task_info.reward_rank			= utils.cfg_get_number(self.task_ini, id, "reward_rank", nil, false, 0)
-		curr_task_info.reward_reputation	= utils.cfg_get_number(self.task_ini, id, "reward_reputation", nil, false)
-		curr_task_info.reward_relation		= parse_key_value(utils.cfg_get_string(self.task_ini, id, "reward_relation", nil, false, ""))
 		
-		if self.task_ini:line_exist(id, "condlist") then
-			curr_task_info.condlist			= xr_logic.parse_condlist(db.actor, "task_manager", "condlist", self.task_ini:r_string(id, "condlist"))
-		else
-			curr_task_info.condlist			= xr_logic.parse_condlist(db.actor, "task_manager", "condlist", "true")
-		end		
+		curr_task_info.reward_money = self.task_ini:r_u32_ex(id, "reward_money", nil)		
+		curr_task_info.reward_script = self.task_ini:r_string_ex(id, "reward_script", nil)
+		-- Награда информацией
+		-- amk.mylog("reward info read")
+		curr_task_info.reward_info = self.task_ini:r_string_ex(id, "reward_info", nil)
+		if curr_task_info.reward_info then
+			self:read_info_reward_section(curr_task_info)
+		end
+		-- amk.mylog("reward info read done")
+		-- Диалог для квестовой жертвы
+		curr_task_info.target_dialog = self.task_ini:r_string_ex(id, "target_dialog", nil)
+		----------------------
+        -- всё равно не используется
+		-- if self.task_ini:line_exist(id, "community") then
+			-- curr_task_info.community = self.task_ini:r_string(id, "community")
+		-- end		
+
+		curr_task_info.reward_rank			= self.task_ini:r_float_ex(id, "reward_rank", 0)
+		curr_task_info.reward_reputation	= self.task_ini:r_float_ex(id, "reward_reputation", nil)
+		curr_task_info.reward_relation		= parse_key_value( self.task_ini:r_string_ex(id, "reward_relation", "") )
+		
+		curr_task_info.condlist			= xr_logic.parse_condlist( db.actor, "task_manager", "condlist", self.task_ini:r_string_ex(id, "condlist", "true") )		
 	
-		curr_task_info.need_return			= utils.cfg_get_bool(self.task_ini, id, "need_return", nil, false, true)
+		curr_task_info.need_return			= self.task_ini:r_bool_ex(id, "need_return", true)
 
 		curr_task_info.init_phrase_id		= self:gen_phrase_id()
 		curr_task_info.desc_phrase_id		= self:gen_phrase_id()
 		curr_task_info.yes_phrase_id		= self:gen_phrase_id()
 		curr_task_info.no_phrase_id			= self:gen_phrase_id()
-    curr_task_info.completed_phrase_id = self:gen_phrase_id()
-	
-    --' По умолчанию квест доступен для выдачи
+		curr_task_info.completed_phrase_id = self:gen_phrase_id()
+
+		--' По умолчанию квест доступен для выдачи
 		curr_task_info.enabled				= true
-    --' Доступен ли квест по своим свойствам. По умолчанию всегда недоступен.
-    --' Этот параметр зависит от наличия целей для квестов и того срабатывает ли прекондишн квеста
+		--' Доступен ли квест по своим свойствам. По умолчанию всегда недоступен.
+		--' Этот параметр зависит от наличия целей для квестов и того срабатывает ли прекондишн квеста
 		curr_task_info.enabled_props		= false
 
-    --' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
+		--' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
 		curr_task_info.status				= "normal"
-  end
+	end
 
   --' Создание дополнительных ассоциативных таблиц для облегчения поиска
   self.task_id_by_type = {}
@@ -242,24 +242,43 @@ function CRandomTask:__init()
 end
 
 --------- Награда информацией --------
-function CRandomTask:read_info_reward_section(ini,sect,container)
+function CRandomTask:read_info_reward_section(tbl)
 --  amk.mylog("reading section "..sect)
-  --container.reward_info_portion=utils.cfg_get_string(ini,sect,"info_portion",nil,true,"")
-  local rip = utils.cfg_get_string(ini,sect,"info_portion",nil,true,"")
-  if rip ~= nil then
-    container.reward_info_portion = se_respawn.parse_names(rip)
-  else
-    container.reward_info_portion = rip
-  end
-  container.reward_info_dialog={}
-  local phr=1
-  while true do
-    local phrase_id=utils.cfg_get_string(ini,sect,"phrase_"..phr,nil,false,"")
---    amk.mylog("phrase_"..phr.." is "..phrase_id)
-    phr=phr+1
-    if phrase_id==nil or phrase_id=="" then break end
-    container.reward_info_dialog[#container.reward_info_dialog+1] = phrase_id
-  end  
+	if tbl.reward_info == nil then return false end
+
+	local section = tbl.reward_info
+	local rip = self.task_ini:r_string_ex(section, "info_portion", nil)
+	if rip == nil then
+		log("! CRandomTask:read_info_reward_section: error! Section [%s] not exist in task_manager.ltx or line 'info_portion' not exist in this", section)
+		tbl.reward_info = nil
+		return false
+	else
+		tbl.reward_info_portion = se_respawn.parse_names(rip)
+	end
+	-- проверим, может инфо уже выдано
+	local n = 0
+	for i, v in ipairs(tbl.reward_info_portion) do
+		if has_alife_info(v) then
+			n = n + 1
+		end
+	end
+	if n == #tbl.reward_info_portion then
+		tbl.reward_info_portion = nil
+		tbl.reward_info = nil
+		log("- CRandomTask:read_info_reward_section: actor already has info for section [%s]", section)
+		return false
+	end
+
+	tbl.reward_info_dialog={}
+	local phr=1
+	while true do
+		local phrase_id = self.task_ini:r_string_ex(section, "phrase_"..phr, nil)
+		if phrase_id == nil then break end
+		-- amk.mylog("phrase_"..phr.." is "..phrase_id)
+		phr = phr + 1
+		tbl.reward_info_dialog[#tbl.reward_info_dialog+1] = phrase_id
+	end
+	return true
 end
 --------------------------------------
 --' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
@@ -429,10 +448,10 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
 
   --' Выбираем текущую цель квеста
   if task_desc.target_objects ~= nil then
-    self.task_info[task_id].selected_target = task_desc.target_objects[math_random(#task_desc.target_objects)]
-    printf("TARGET DEBUG INFO")
-    printf("selected = %s", tostring(self.task_info[self.task_id_by_yes_phrase_id[p2]].selected_target))
-    print_table(task_desc.target_objects)
+    self.task_info[task_id].selected_target = table.random( task_desc.target_objects )
+    -- printf("TARGET DEBUG INFO")
+    -- printf("selected = %s", tostring(self.task_info[self.task_id_by_yes_phrase_id[p2]].selected_target))
+    -- print_table(task_desc.target_objects)
   end
 
   if task_desc.type == "eliminate_lager" then
@@ -573,11 +592,18 @@ function CRandomTask:task_complete(p1, p2)
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
-    elseif sel_task.type ==	"artefact"
+    -- unique item
+    elseif sel_task.is_unique_item then
+      local se_item = alife():object(sel_task.selected_target)
+      if se_item and se_item.parent_id == 0 then
+        self.task_info[self.active_task_by_type[p1]].status = "completed"
+        return true
+      end
+    elseif sel_task.type == "artefact"
 		or sel_task.type == "monster_part"
 		or sel_task.type == "find_item"
 	then
-      if amk_utils.inventory_search(sel_task.target, sel_task.items_count) then
+      if amk_utils.inventory_search(sel_task.target, sel_task.target_count) then
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
       end
@@ -860,11 +886,16 @@ function CRandomTask:completed_task(actor, npc, p1, p2, p3)
 	if task_desc.status~="completed" then return false end
 --  amk.mylog("chp5")
 	local can_finish = true
-	if task_desc.type == "artefact"
+	if task_desc.is_unique_item then
+		local se_item = alife():object(task_desc.selected_target)
+		if se_item == nil or se_item.parent_id ~= 0 then
+			can_finish = false
+		end
+	elseif task_desc.type == "artefact"
 		or task_desc.type == "monster_part"
 		or task_desc.type == "find_item"
 	then
-		if not amk_utils.inventory_search(task_desc.target, task_desc.items_count) then
+		if not amk_utils.inventory_search(task_desc.target, task_desc.target_count) then
 			can_finish = false
 		end
 	end
@@ -915,12 +946,22 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
     if task_desc.status == "completed" and task_desc.parent == parent then
 		--' Забираем у игрока квестовый предмет.
 		local can_finish = true
-		if task_desc.type == "artefact"
+		if task_desc.is_unique_item then
+			local item= level.object_by_id(task_desc.selected_target)
+			if item and item:parent() and item:parent():id()  == 0 then
+				shiftCheckDropItem()
+				news_manager.relocate_item(db.actor, "out", item:section())
+				db.actor:transfer_item(item, npc)
+			else
+				can_finish = false
+			end
+		elseif task_desc.type == "artefact"
 			or task_desc.type == "monster_part"
 			or task_desc.type == "find_item"
 		then
-			if amk_utils.inventory_search(task_desc.target, task_desc.items_count) then
-				sak.out_item_namber(task_desc.target, task_desc.items_count or 1)
+			if amk_utils.inventory_search(task_desc.target, task_desc.target_count) then
+				shiftCheckDropItem()
+				sak.out_item_namber(task_desc.target, task_desc.target_count or 1)
 			else
 				can_finish = false
 			end
@@ -933,8 +974,8 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
 				dialogs.relocate_money(npc, task_desc.reward_money, "in")
 			end
 
-			if task_desc.reward_item ~= nil then
-				create_reward(task_desc.reward_item)
+			if task_desc.reward_items ~= nil then
+				create_reward(task_desc.reward_items)
 			end
 
 			if task_desc.reward_reputation ~= nil then
@@ -995,12 +1036,10 @@ function CRandomTask:init_reward_dialog(dlg, parent)
   local phrase_script = phr:GetPhraseScript()
 --  amk.mylog("Creating reward dialog")
 
---[[
-	phr = dlg:AddPhrase("tm_"..parent.."_job_complete", "1", "0", -10000)
-  phrase_script = phr:GetPhraseScript()
-  phrase_script:AddAction("task_manager.action_task_reward")
-  phrase_script:AddPrecondition("task_manager.precondition_have_completed_job")
-]]
+--  phr = dlg:AddPhrase("tm_"..parent.."_job_complete", "1", "0", -10000)
+--  phrase_script = phr:GetPhraseScript()
+--  phrase_script:AddAction("task_manager.action_task_reward")
+--  phrase_script:AddPrecondition("task_manager.precondition_have_completed_job")
       
   phr = dlg:AddPhrase("tm_"..parent.."_job_ask", "2", "0", -10000)
   phrase_script = phr:GetPhraseScript()
@@ -1073,49 +1112,59 @@ end
 function CRandomTask:register_target(obj)
   if IAmAStalker[obj:clsid()] then
     --' Возможно регистрируется цель для квеста "убить сталкера"
-    for k,v in pairs(self.task_id_by_type["kill_stalker"]) do 
-      if obj.alive ~= nil and obj:alive() == true and
-        obj:profile_name() == self.task_info[v].target 
-      then
-        if self.task_info[v].target_objects == nil then
-          self.task_info[v].target_objects = {}
+    if not (obj.alive ~= nil and obj:alive() == true) then
+      return
+    end
+    local t
+    for k,v in pairs(self.task_id_by_type["kill_stalker"]) do
+      t = self.task_info[v]
+      if obj:profile_name() == t.target then
+        if t.target_objects == nil then
+          t.target_objects = {}
         end
 --        printf("@@@register new target %s[%s] for task %s", obj:name(), obj.id, v)
-        self.task_info[v].target_objects[#self.task_info[v].target_objects+1] = obj.id
+        t.target_objects[#t.target_objects+1] = obj.id
       end
     end
 
   elseif obj:clsid() == clsid.smart_terrain then
     --' Возможно регистрируется цель для квеста "вынести лагерь"
+    local t
     for k,v in pairs(self.task_id_by_type["eliminate_lager"]) do
-      if obj:name() == self.task_info[v].target then
-        if self.task_info[v].target_objects == nil then
-          self.task_info[v].target_objects = {}
+      t = self.task_info[v]
+      if obj:name() == t.target then
+        if t.target_objects == nil then
+          t.target_objects = {}
         end
-        self.task_info[v].target_objects[#self.task_info[v].target_objects+1] = obj.id
+        t.target_objects[#t.target_objects+1] = obj.id
       end
     end
     --' Либо регистрируется цель для квеста "защитить лагерь"
     for k,v in pairs(self.task_id_by_type["defend_lager"]) do
-      if obj:name() == self.task_info[v].target then
+      t = self.task_info[v]
+      if obj:name() == t.target then
         --' Проверка что в кастом дате указано от кого защищать
         local sm_ini = obj:spawn_ini()
         local defend_target = utils.cfg_get_number(sm_ini, "random_task", "defend_target", nil, true)
-        if self.task_info[v].target_objects == nil then
-          self.task_info[v].target_objects = {}
+        if t.target_objects == nil then
+          t.target_objects = {}
         end
-        self.task_info[v].target_objects[#self.task_info[v].target_objects+1] = obj.id
+        t.target_objects[#t.target_objects+1] = obj.id
       end
     end
 
   else
     --' Возможно регистрируется цель для квеста "найти предмет"
+    local t
     for k,v in pairs(self.task_id_by_type["find_item"]) do
-      if obj:section_name() == self.task_info[v].target then
-        if self.task_info[v].target_objects == nil then
-          self.task_info[v].target_objects = {}
+      t =self.task_info[v]
+      if obj:section_name() == t.target
+        or obj:name() == t.target   -- unique item
+      then
+        if t.target_objects == nil then
+          t.target_objects = {}
         end
-        self.task_info[v].target_objects[#self.task_info[v].target_objects+1] = obj.id
+        t.target_objects[#t.target_objects+1] = obj.id
       end       
     end
   end
@@ -1250,6 +1299,9 @@ end
 function init_green_task_dialog(dlg)
   get_random_task():init_task_dialog(dlg, "green")
 end
+function init_bridge_commander_task_dialog(dlg)
+  get_random_task():init_task_dialog(dlg, "bridge_commander")
+end
 
 function init_trader_reward_dialog(dlg)
   get_random_task():init_reward_dialog(dlg, "trader")
@@ -1292,6 +1344,9 @@ function init_mercenary_reward_dialog(dlg)
 end
 function init_green_reward_dialog(dlg)
   get_random_task():init_reward_dialog(dlg, "green")
+end
+function init_bridge_commander_reward_dialog(dlg)
+  get_random_task():init_reward_dialog(dlg, "bridge_commander")
 end
 
 function has_active_vendor_task(actor, npc)
@@ -1397,7 +1452,7 @@ function show_reward(actor,npc,p1,p2)
 	
 	if task_details == nil then return end
 	
-	local reward_text = format_reward_text(task_details.reward_item)
+	local reward_text = format_reward_text(task_details.reward_items)
 	local reward_money = task_details.reward_money
 	local f_phrase = "Я"
 	if task_details.time then
@@ -1427,7 +1482,6 @@ function show_reward(actor,npc,p1,p2)
 			db.actor:give_talk_message(reward_money .. " RU", task_texture, task_rect,"iconed_trade_info")
 		end
 	end
-	
 end
 -- Склонение слова в зависимости от числа. Автор - Charsi
 function declension(num,a1,a2,a3)
@@ -1435,40 +1489,56 @@ function declension(num,a1,a2,a3)
 end
 
 function format_reward_text(reward_list)
-	local rwd = {}
-	local reward_text = ""
 	if reward_list == nil then return "" end
-	for i,v in pairs(reward_list) do
-		table.add(rwd, v)
-	end
+
+	local reward_text = ""
 	local n
-	for i,v in pairs(rwd) do
+	for i,v in pairs(reward_list) do
 		n = v>1 and " x"..tostring(v) or ""
 		reward_text = reward_text .. get_string(news_manager.get_inv_name(i)) .. n .. ", "
 	end
+
 	return string_sub (reward_text, 1, -3)
 end
 
 function create_reward(t)
-	local sp = {}
-	for k,v in pairs(t) do
-		table.add(sp, v)
-	end
 	local sim = alife()
 	local a = db.actor
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_thing")
 	local news_text = "%c[255,105,239,146]"..get_string("general_in_item").."\\n".."%c[default]"
 	local txt
-	for k,v in pairs(sp) do
+	for k,v in pairs(t) do
 		for i=1,v do
 			sim:create(k, vector(), 0, 0, 0)
 		end
-		txt = news_text..get_string(news_manager.get_inv_name(k))..(v>1 and "%c[255,160,160,160] x"..tostring(v) or "")
+		txt = news_text..get_string( get_inv_name(k) )..( v>1 and "%c[255,160,160,160] x"..tostring(v) or "" )
 		if a:is_talking() then
 			a:give_talk_message(txt, task_texture, task_rect, "iconed_answer_item")
 		end
 		a:give_game_news(txt, task_texture, task_rect, 0, 5000)
 	end
+end
+
+function parse_reward_items( str )
+	local ret = {}
+	local last_sect
+	for s in string.gfind( str, "[_%w%-%.]+" ) do
+		if last_sect then
+			if tonumber(s) then
+				table.add(ret, last_sect, tonumber(s))
+				last_sect = nil
+			else
+				table.add(ret, last_sect)
+				last_sect = s
+			end
+		else
+			last_sect = s
+		end
+	end
+	if last_sect then
+		table.add(ret, last_sect)
+	end
+	return ret
 end
 
 -- имя вендора

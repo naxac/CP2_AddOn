@@ -135,13 +135,18 @@ function create_items(obj, section, number, rnd)
 				local new_pos = obj:position():add(vector():set(x,y,z))
 
 				local num_in_box =  _G['ammo_sections'][section]
+				local se_obj
 				while number > num_in_box do
-					del_ai_flag( sim:create_ammo(section, new_pos, obj:level_vertex_id(),
-						obj:game_vertex_id(), 65535, num_in_box) )
+					se_obj = sim:create_ammo(section, new_pos, obj:level_vertex_id(),
+						obj:game_vertex_id(), 65535, num_in_box)
+					se_obj = sim:object(se_obj.id)
+					se_obj:use_ai_locations( false )
 					number = number - num_in_box
 				end
-				del_ai_flag( sim:create_ammo(section, new_pos, obj:level_vertex_id(),
-						obj:game_vertex_id(), 65535, number) )
+				se_obj = sim:create_ammo(section, new_pos, obj:level_vertex_id(),
+						obj:game_vertex_id(), 65535, number)
+				se_obj = sim:object(se_obj.id)
+				se_obj:use_ai_locations( false )
 			end
 		end
     else
@@ -152,10 +157,12 @@ function create_items(obj, section, number, rnd)
 				z = _random(-30,30)/100
 				y = _random(30,50)/100
 
-				del_ai_flag( sim:create(section,
+				local se_obj = sim:create(section,
 					    obj:position():add(vector():set(x,y,z)),
 						obj:level_vertex_id(),
-						obj:game_vertex_id()) )
+						obj:game_vertex_id())
+				se_obj = sim:object(se_obj.id)
+				se_obj:use_ai_locations( false )
 			end
         end
     end    
@@ -204,10 +211,12 @@ function create_obligatory_items(obj, item , count)
 		z = _random(-30,30)/100
 		y = _random(30,50)/100
 
-		del_ai_flag( alife():create(item,	
+		local se_obj = alife():create(item,	
 			    obj:position():add(vector():set(x,y,z)),
 				obj:level_vertex_id(),	
-				obj:game_vertex_id()) )
+				obj:game_vertex_id())
+		se_obj = alife():object(se_obj.id)
+		se_obj:use_ai_locations( false )
 	end
 end
 

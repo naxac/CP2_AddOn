@@ -5,7 +5,18 @@ local string_gfind = string.gfind
 local string_find = string.find
 local table_insert = table.insert
 
-local cell_size = 25
+local cell_size = 25  -- размер иконки в описании свойств предмета
+
+local shift_show_descr = 700  -- через какое время после наведения курсора будет показано окно, ms
+
+
+local reg_callbacks = {
+	on_item_focus = "OnItemFocus",
+	on_item_focus_lost = "OnItemFocusLost",
+	on_key_press = "OnKeyPress",
+	on_mouse_wheel = "OnMouseWheel",
+	update = "OnUpdate"
+}
 
 -- Пушки, для которых дополнительное описание не пишем
 local forbidden_wpns = {
@@ -256,15 +267,7 @@ function GetEatableParams(section)
 	end
 	return ret
 end
-
-local itemInFocus = -1
-local wnd = nil
-local reg_callbacks = {
-	on_item_focus = "on_item_focus",
-	on_item_focus_lost = "on_item_focus_lost",
-	on_key_press = "on_key_press",
-	on_mouse_wheel = "on_mouse_wheel"
-}
+--------------------------------------------------------------------------------------------------------
 
 class "CUIDescriptionWnd" (CUIScriptWnd)
 
@@ -274,9 +277,9 @@ function CUIDescriptionWnd:__init(st) super()
 	self.scrollPos = 0
 	self.k_icon = cell_size*kScreen/50
 	
-	itemInFocus = -1
+	self.itemInFocus = -1
 	for k,v in pairs(reg_callbacks) do
-		xr_s.register_callback(k, this[v])
+		xr_s.register_callback( k, self[v], { self = self } )
 	end
 	
 	self:Init(0, 0, 1024, 768)
@@ -301,16 +304,15 @@ function CUIDescriptionWnd:__init(st) super()
 	self.max_cond_w = self.condition:GetWidth()
 	
 	self.frame:Show(false)
-	
-	wnd = self
 end
 
 function CUIDescriptionWnd:HideDescription()
 	if self.frame:IsShown() then self.frame:Show(false) end
 end
 
-function CUIDescriptionWnd:OnMouseWheel(n)
+function CUIDescriptionWnd:OnMouseWheel(mode)
 	if self.frame:IsShown() then
+		local n = mode and -40 or 40 
 		local mx = self.scroll_v:GetMaxScrollPos()
 		if mx > self.scroll_height then mx = mx - self.scroll_height end
 		self.scrollPos = math.clamp(self.scrollPos + n, 0, mx)
@@ -444,7 +446,12 @@ function CUIDescriptionWnd:ShowDescription(item)
 	local sect = item:section()
 	local cond = item:condition()
 	
-	self.inv_name:SetTextST(get_inv_name(sect))
+	if game_options.DEBUG then
+		self.inv_name:SetText( get_string( get_inv_name(sect) )..
+			"\\n%c[160,160,160,160]"..sect )
+	else
+		self.inv_name:SetTextST(get_inv_name(sect))
+	end
 	
 	self.addH = 0
 	local s = get_string(sys_ini:r_string(sect, "description"))
@@ -510,8 +517,8 @@ function CUIDescriptionWnd:ShowDescription(item)
 	self.weight:SetText(string_format("Вес: %.2f кг.", wght))
 
 	self.condition:SetWidth(self.max_cond_w*cond)
-	local g = (cond >= 0.5 and 255) or cond*510
-	local r = (cond < 0.5 and 255) or (1-cond)*510
+	local g = math.min( cond*510, 255 )
+	local r = math.min( (1-cond)*510, 255 )
 	self.condition:SetColor(GetARGB(255, r, g, 0))
 	self.condition:SetText(string_format("состояние: %.1f%%", cond*100))
 
@@ -535,42 +542,40 @@ end
 
 function CUIDescriptionWnd:Remove()
 	for k,v in pairs(reg_callbacks) do
-		xr_s.unregister_callback(k, this[v])
+		xr_s.unregister_callback(k, self[v])
 	end
-	wnd = nil
-end
----------------------------------------------------------------------------------------------------
-function on_item_focus(item)
-	itemInFocus = item:id()
-	start_small_timer(700, this.check_show_descr, itemInFocus)
+	self.shift_tmr = nil
 end
 
-function on_item_focus_lost(item)
-	if itemInFocus==item:id() then
-		itemInFocus = -1
-	end
-	wnd:HideDescription()
+function CUIDescriptionWnd:OnItemFocus( item )
+	self.itemInFocus = item:id()
+	self.shift_tmr = time_global() + shift_show_descr
 end
 
-function check_show_descr(id)
-	if not wnd then return end
-	if alife():object(id) and itemInFocus == id then
-		wnd:ShowDescription(level_object(id))
+function CUIDescriptionWnd:OnItemFocusLost( item )
+	if self.itemInFocus==item:id() then
+		self.itemInFocus = nil
 	end
+	self:HideDescription()
 end
 
-function on_key_press(dik)
-	if (dik==DIK_keys.DIK_LMOUSE or dik==DIK_keys.DIK_RMOUSE) then
-		wnd:HideDescription()
-		itemInFocus = -1
+function CUIDescriptionWnd:OnUpdate( delta )
+	if self.shift_tmr and self.shift_tmr < time_global() then
+		if self.itemInFocus and alife():object( self.itemInFocus ) then
+			self:ShowDescription( level_object(self.itemInFocus) )
+		end
+		self.shift_tmr = nil
 	end
 end
 
-function on_mouse_wheel(w)
-	if wnd.scroll_work then
-		wnd:OnMouseWheel(w<0 and 40 or -40)
+function CUIDescriptionWnd:OnKeyPress(dik, bind)
+	if ( dik==DIK_keys.DIK_LMOUSE or dik==DIK_keys.DIK_RMOUSE ) then
+		self:HideDescription()
+		self.itemInFocus = nil
 	end
 end
+
+------------------------------------------------------------------------------
 
 function is_nv_scope_wpn(section)
 	return nv_scopes_wpn[section] ~= nil

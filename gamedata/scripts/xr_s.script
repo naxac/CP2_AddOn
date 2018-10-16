@@ -18,6 +18,7 @@ local callbacks = {
 	on_mouse_wheel = {}
 }
 local unreg_queue = {}
+local need_clear = false
 
 function register_callback(name, func, userobj)
 	local tbl = callbacks[name] or abort("xr_s.register_callback: unknown callback name: %s", name)
@@ -28,25 +29,33 @@ function unregister_callback(name, func, queue)
 	local tbl = callbacks[name] or abort("xr_s.unregister_callback: unknown callback name: %s", name)
 	if queue then
 		unreg_queue[func] = name
+		need_clear = true
 	else
 		tbl[func] = nil
 	end
 end
 
-function on_event(name, ...)
-	for func, t in pairs(callbacks[name]) do
+function on_event( name, ... )
+	for func, t in pairs( callbacks[ name ] ) do
 		if t.userobj then
-			local args = {...}
-			args[#args+1] = t.userobj
-			func(unpack(args))
+			local args = { ... }
+			args[ #args+1 ] = t.userobj
+			if t.userobj.self then
+				func( t.userobj.self, unpack( args ) )
+			else
+				func( unpack( args ) )
+			end
 		else
-			func(...)
+			func( ... )
 		end
 	end
 
-	for k, v in pairs(unreg_queue) do
-		callbacks[v][k] = nil
+	if need_clear then
+		for k, v in pairs( unreg_queue ) do
+			callbacks[ v ][ k ] = nil
+		end
+		unreg_queue = {}
+		need_clear = false
 	end
-	unreg_queue = {}
 end
 

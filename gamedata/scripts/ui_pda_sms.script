@@ -47,11 +47,11 @@ function UIMsgWnd:InitControls()
 end
 
 function UIMsgWnd:InitCallbacks()
-	self:AddCallbackEx("edit", ui_events.EDIT_TEXT_CHANGED, self.ChangeText, self)
-	self:AddCallbackEx("button_lang", ui_events.BUTTON_CLICKED, self.OnChangeLanguage, self)
-	self:AddCallbackEx("button_clear", ui_events.BUTTON_CLICKED, self.OnButtonClear, self)
-	self:AddCallbackEx("button_send", ui_events.BUTTON_CLICKED, self.OnButtonSend, self)
-	self:AddCallbackEx("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit, self)
+	self:AddCallbackEx("edit", ui_events.EDIT_TEXT_CHANGED, self.ChangeText)
+	self:AddCallbackEx("button_lang", ui_events.BUTTON_CLICKED, self.OnChangeLanguage)
+	self:AddCallbackEx("button_clear", ui_events.BUTTON_CLICKED, self.OnButtonClear)
+	self:AddCallbackEx("button_send", ui_events.BUTTON_CLICKED, self.OnButtonSend)
+	self:AddCallbackEx("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit)
 end
 
 function UIMsgWnd:OnButtonClear()
@@ -66,9 +66,8 @@ function UIMsgWnd:OnButtonSend()
 		self.message_box:SetText("Недостаточно средств для отправки сообщения!")
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	elseif #self.txt>1 then
-		local name = ( has_alife_info("esc_find_doctor_done") and "Стрелок" ) or "Меченый"
 		local text = self.txt:gsub(cur, "")
-		amk.send_tip("%c[255,255,128,128]"..text, name, nil, 10, "meceniy")
+		amk.send_tip("%c[255,255,128,128]"..text, actor_name(), nil, 10, "meceniy")
 		db.actor:give_money(-self.cost)
 	--	news_manager.relocate_money(db.actor, "out", self.cost)
 		self:OnButtonQuit()
@@ -206,10 +205,9 @@ end
 
 function do_blow_msg()
 	local timer = xr_timers.get_timer("blow_shift")
-	local time = timer.time_shift
 	local act_name = actor_name()
 	
-	local h = math.floor(time/(3600000))
+	local h = math.floor(timer.time_shift/(3600000))
 	local d = math.floor(h/24)
 	h = h%24
 	

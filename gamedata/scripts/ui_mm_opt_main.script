@@ -130,21 +130,21 @@ function options_dialog:UpdateDependControls()
 end
 
 function options_dialog:InitCallBacks()
-	self:AddCallback("tab",					ui_events.TAB_CHANGED,		self.OnTabChange,			self)
-	self:AddCallback("btn_advanced_graphic",ui_events.BUTTON_CLICKED,	self.OnBtnAdvGraphic,		self)
-	self:AddCallback("btn_accept",			ui_events.BUTTON_CLICKED,	self.OnBtnAccept,			self)
-	self:AddCallback("btn_cancel",			ui_events.BUTTON_CLICKED,	self.OnBtnCancel,			self)
-	self:AddCallback("btn_default_graphic",	ui_events.BUTTON_CLICKED,	self.OnBtnDefGraph,			self)
-	self:AddCallback("btn_default_sound",	ui_events.BUTTON_CLICKED,	self.OnBtnDefSound,			self)
-	self:AddCallback("combo_r2",			ui_events.LIST_ITEM_SELECT,	self.OnR2changed,			self)
-	self:AddCallback("combo_preset",		ui_events.LIST_ITEM_SELECT,	self.OnPresetChanged,		self)
-	self:AddCallback("btn_simply_graphic",	ui_events.BUTTON_CLICKED,	self.OnSimplyGraphic,		self)
-	self:AddCallback("btn_keyb_default",	ui_events.BUTTON_CLICKED,	self.OnBtnDefault,			self)
+	self:AddCallbackEx("tab",					ui_events.TAB_CHANGED,		self.OnTabChange)
+	self:AddCallbackEx("btn_advanced_graphic",ui_events.BUTTON_CLICKED,	self.OnBtnAdvGraphic)
+	self:AddCallbackEx("btn_accept",			ui_events.BUTTON_CLICKED,	self.OnBtnAccept)
+	self:AddCallbackEx("btn_cancel",			ui_events.BUTTON_CLICKED,	self.OnBtnCancel)
+	self:AddCallbackEx("btn_default_graphic",	ui_events.BUTTON_CLICKED,	self.OnBtnDefGraph)
+	self:AddCallbackEx("btn_default_sound",	ui_events.BUTTON_CLICKED,	self.OnBtnDefSound)
+	self:AddCallbackEx("combo_r2",			ui_events.LIST_ITEM_SELECT,	self.OnR2changed)
+	self:AddCallbackEx("combo_preset",		ui_events.LIST_ITEM_SELECT,	self.OnPresetChanged)
+	self:AddCallbackEx("btn_simply_graphic",	ui_events.BUTTON_CLICKED,	self.OnSimplyGraphic)
+	self:AddCallbackEx("btn_keyb_default",	ui_events.BUTTON_CLICKED,	self.OnBtnDefault)
 --	self:AddCallback("btn_check_updates",	ui_events.BUTTON_CLICKED,	self.OnBtnCheckUpdates,		self)
 
-	self:AddCallback("btn_cancel_download",	ui_events.BUTTON_CLICKED,	self.OnBtn_CancelDownload,	self)
+	self:AddCallbackEx("btn_cancel_download",	ui_events.BUTTON_CLICKED,	self.OnBtn_CancelDownload)
 
-	self:AddCallback("list_difficulty",		ui_events.LIST_ITEM_SELECT,	self.OnDifficultyChanged,	self)
+	self:AddCallbackEx("list_difficulty",		ui_events.LIST_ITEM_SELECT,	self.OnDifficultyChanged)
 end
 
 function options_dialog:OnBtnCheckUpdates()
@@ -256,30 +256,24 @@ function options_dialog:OnSimplyGraphic()
 end
 
 function options_dialog:OnKeyboard(dik, keyboard_action)
-	local res = CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
-	
-	if res==false then
-	
-		local bind = dik_to_bind(dik)
-		
-		if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-			if dik == DIK_keys.DIK_ESCAPE then
-				if self.dlg_video_adv:IsShown() then
-					self.dlg_video_adv:Show	(false)
-					self.dlg_video:Show		(true)
-				elseif self.dlg_gameplay_add:IsShown() then
-					self:OnBtnSwitchGameplay()
-				else
-					self:GetHolder():start_stop_menu	(self.owner, true) --new(show main window)
-					self:GetHolder():start_stop_menu	(self,true)
-					self.owner:Show						(true)
-				end
-			end	
-		
-		end
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			if self.dlg_video_adv:IsShown() then
+				self.dlg_video_adv:Show	(false)
+				self.dlg_video:Show		(true)
+			elseif self.dlg_gameplay_add:IsShown() then
+				self:OnBtnSwitchGameplay()
+			else
+				self:GetHolder():start_stop_menu	(self.owner, true) --new(show main window)
+				self:GetHolder():start_stop_menu	(self,true)
+				self.owner:Show						(true)
+			end
+		end	
 	end
-	   
-	return res
+
+	return true
 end
 
 function options_dialog:OnBtn_CancelDownload()
@@ -305,9 +299,13 @@ function options_dialog:GameSetupMenuLoad()
 	self.userName:SetText(user_name())
 	self.save_rename:SetCheck(game_options.SaveRen)
 	self.auto_zoom:SetCheck(game_options.AutoZoom)
+	self.zamok:SetCheck(game_options.LockBoxOnly)
+	self.real_money:SetCheck(game_options.RealMoney)
+	self.rnd_reward:SetCheck(game_options.RndReward)
+
 	self.n_spawner:SetCheck(game_options.Spawner)
 	self.n_console:SetCheck(game_options.Console)
-	self.check_debug:SetCheck(game_options.DEBUG)
+
 	if self.new_radio:IsEnabled() then
 		self.new_radio:SetCheck(game_options.NewRadio)
 	end
@@ -331,12 +329,15 @@ function options_dialog:GameSetupMenuSave()
 	game_options.DynHud = self.amk_hud:GetActiveIndex()
 	game_options.DynMusic = self.amk_music:GetCheck()
 	
-	game_options.SetUserName(self.userName:GetText())
+	user_name(self.userName:GetText())
+
 	game_options.SaveRen = self.save_rename:GetCheck()
 	game_options.Console = self.n_console:GetCheck()
 	game_options.Spawner = self.n_spawner:GetCheck()
-	game_options.DEBUG = self.check_debug:GetCheck()
 	game_options.AutoZoom = self.auto_zoom:GetCheck()
+	game_options.LockBoxOnly = self.zamok:GetCheck()
+	game_options.RealMoney = self.real_money:GetCheck()
+	game_options.RndReward = self.rnd_reward:GetCheck()
 	game_options.NewRadio = ( self.new_radio:IsEnabled() and self.new_radio:GetCheck() ) or false
 
 	ui_mm_opt_add.SetUserText(self.prev_buy, self.buy:GetText(), "buy")

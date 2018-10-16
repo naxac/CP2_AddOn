@@ -55,33 +55,33 @@ end
 
 function main_menu:InitCallBacks()
 	-- new game
-	self:AddCallback("btn_novice",		ui_events.BUTTON_CLICKED,				self.OnButton_new_novice_game,		self)
-	self:AddCallback("btn_stalker",		ui_events.BUTTON_CLICKED,				self.OnButton_new_stalker_game,		self)
-	self:AddCallback("btn_veteran",		ui_events.BUTTON_CLICKED,				self.OnButton_new_veteran_game,		self)
-	self:AddCallback("btn_master",		ui_events.BUTTON_CLICKED,				self.OnButton_new_master_game,		self)
-	self:AddCallback("btn_spawn",		ui_events.BUTTON_CLICKED,				self.OnButton_load_spawn,			self)
+	self:AddCallbackEx("btn_novice",		ui_events.BUTTON_CLICKED,				self.OnButton_new_novice_game)
+	self:AddCallbackEx("btn_stalker",		ui_events.BUTTON_CLICKED,				self.OnButton_new_stalker_game)
+	self:AddCallbackEx("btn_veteran",		ui_events.BUTTON_CLICKED,				self.OnButton_new_veteran_game)
+	self:AddCallbackEx("btn_master",		ui_events.BUTTON_CLICKED,				self.OnButton_new_master_game)
+	self:AddCallbackEx("btn_spawn",		ui_events.BUTTON_CLICKED,				self.OnButton_load_spawn)
 	-- options																											
-	self:AddCallback("btn_options",     ui_events.BUTTON_CLICKED,				self.OnButton_options_clicked,		self)
+	self:AddCallbackEx("btn_options",     ui_events.BUTTON_CLICKED,				self.OnButton_options_clicked)
 	-- load																												
-	self:AddCallback("btn_load",        ui_events.BUTTON_CLICKED,				self.OnButton_load_clicked,			self)
+	self:AddCallbackEx("btn_load",        ui_events.BUTTON_CLICKED,				self.OnButton_load_clicked)
 	-- save																												
-	self:AddCallback("btn_save",		ui_events.BUTTON_CLICKED,				self.OnButton_save_clicked,			self)
-	self:AddCallback("btn_save_level",	ui_events.BUTTON_CLICKED,				self.OnButton_save_level_clicked,	self)
+	self:AddCallbackEx("btn_save",		ui_events.BUTTON_CLICKED,				self.OnButton_save_clicked)
+	self:AddCallbackEx("btn_save_level",	ui_events.BUTTON_CLICKED,				self.OnButton_save_level_clicked)
 	-- multiplayer																										
 --	self:AddCallback("btn_multiplayer", ui_events.BUTTON_CLICKED,				self.OnButton_multiplayer_clicked,	self)
 	-- quit																												
-	self:AddCallback("btn_quit",		ui_events.BUTTON_CLICKED,				self.OnButton_quit_clicked,			self)
-	self:AddCallback("btn_quit_to_mm",	ui_events.BUTTON_CLICKED,				self.OnButton_disconnect_clicked,	self)
-	self:AddCallback("btn_ret",			ui_events.BUTTON_CLICKED,				self.OnButton_return_game,			self)
-	self:AddCallback("btn_lastsave",	ui_events.BUTTON_CLICKED,				self.OnButton_last_save,			self)
-	self:AddCallback("btn_credits",		ui_events.BUTTON_CLICKED,				self.OnButton_credits_clicked,		self)
+	self:AddCallbackEx("btn_quit",		ui_events.BUTTON_CLICKED,				self.OnButton_quit_clicked)
+	self:AddCallbackEx("btn_quit_to_mm",	ui_events.BUTTON_CLICKED,				self.OnButton_disconnect_clicked)
+	self:AddCallbackEx("btn_ret",			ui_events.BUTTON_CLICKED,				self.OnButton_return_game)
+	self:AddCallbackEx("btn_lastsave",	ui_events.BUTTON_CLICKED,				self.OnButton_last_save)
+	self:AddCallbackEx("btn_credits",		ui_events.BUTTON_CLICKED,				self.OnButton_credits_clicked)
 	-- message box																										
-	self:AddCallback("msg_box",     ui_events.MESSAGE_BOX_OK_CLICKED,		self.OnMsgOk,						self)
-	self:AddCallback("msg_box",     ui_events.MESSAGE_BOX_CANCEL_CLICKED,	self.OnMsgCancel,					self)
-	self:AddCallback("msg_box",     ui_events.MESSAGE_BOX_YES_CLICKED,		self.OnMsgYes,						self)
-	self:AddCallback("msg_box",     ui_events.MESSAGE_BOX_NO_CLICKED,		self.OnMsgNo,						self)
-	self:AddCallback("msg_box",			ui_events.MESSAGE_BOX_QUIT_GAME_CLICKED,self.OnMessageQuitGame,				self)
-	self:AddCallback("msg_box",			ui_events.MESSAGE_BOX_QUIT_WIN_CLICKED,	self.OnMessageQuitWin,				self)
+	self:AddCallbackEx("msg_box",     ui_events.MESSAGE_BOX_OK_CLICKED,		self.OnMsgOk)
+	self:AddCallbackEx("msg_box",     ui_events.MESSAGE_BOX_CANCEL_CLICKED,	self.OnMsgCancel)
+	self:AddCallbackEx("msg_box",     ui_events.MESSAGE_BOX_YES_CLICKED,		self.OnMsgYes)
+	self:AddCallbackEx("msg_box",     ui_events.MESSAGE_BOX_NO_CLICKED,		self.OnMsgNo)
+	self:AddCallbackEx("msg_box",			ui_events.MESSAGE_BOX_QUIT_GAME_CLICKED,self.OnMessageQuitGame)
+	self:AddCallbackEx("msg_box",			ui_events.MESSAGE_BOX_QUIT_WIN_CLICKED,	self.OnMessageQuitWin)
 end
 
 function main_menu:OnMsgOk()
@@ -93,7 +93,6 @@ function main_menu:OnMsgCancel()
 end
 
 function main_menu:OnMsgYes()
-	
 	if 	self.mbox_mode == 1 then
 		self:LoadLastSave()
 	end
@@ -108,9 +107,9 @@ end
 function main_menu:LoadLastSave()
 	ui_mm_opt_add.check_options()
 	
-	local					console = get_console()
-	console:execute			("main_menu off")
-	console:execute			("load_last_save")
+	local console = get_console()
+	console:execute ("main_menu off")
+	console:execute ("load_last_save")
 end
 
 function main_menu:OnButton_last_save()
@@ -158,6 +157,7 @@ end
 function main_menu:OnMessageQuitWin()
 	archievements.save_gametime()
 	ui_mm_opt_add.check_options()
+	new_intro.rewrite()
 	local console = get_console()
 	console:execute("quit")
 end
@@ -165,7 +165,7 @@ end
 function main_menu:OnButton_return_game()
 	ui_mm_opt_add.check_options()
 	local console = get_console()
-	console:execute("main_menu off")
+	self:ReturnToGame()
 	archievements.mm_opt()
 	ui_mm_opt_add.buy_quest_item()
 end
@@ -227,17 +227,6 @@ function main_menu:OnButton_save_clicked()
 	self:GetHolder():start_stop_menu(save_dlg, true)
 	self:GetHolder():start_stop_menu(self, true) --new
 	self:Show(false)
-	
---[[
-	if self.save_dlg == nil then
-		self.save_dlg = ui_save_dialog.save_dialog()
-		self.save_dlg.owner = self
-	end
-	
-	self:GetHolder():start_stop_menu(self.save_dlg, true)
-	self:GetHolder():start_stop_menu(self, true) --new
-	self:Show(false)
---]]
 end
 
 function main_menu:OnButton_options_clicked()
@@ -261,17 +250,6 @@ function main_menu:OnButton_load_clicked()
 	self:GetHolder():start_stop_menu(load_dlg, true)
 	self:GetHolder():start_stop_menu(self, true) --new
 	self:Show(false)
-	
---[[
-	if self.load_dlg ==nil then
-		self.load_dlg = ui_load_dialog.load_dialog()
-		self.load_dlg.owner = self
-	end
-	
-	self:GetHolder():start_stop_menu(self.load_dlg, true)
-	self:GetHolder():start_stop_menu(self, true) --new
-	self:Show(false)
-]]
 end
 
 function main_menu:OnButton_multiplayer_clicked()
@@ -284,17 +262,23 @@ function main_menu:OnButton_multiplayer_clicked()
 	self:GetHolder():start_stop_menu(self, true) --new
 	self:Show(false)
 	
---	self.mp_dlg:OnBtn_Refresh()
-	
 	local console			= get_console()
 	console:execute			("check_for_updates 0")
 	
 	self.mp_dlg:OnRadio_NetChanged()
 end
 
+function main_menu:ReturnToGame()
+	self:unregister_self()
+	if self.opt_dlg then self.opt_dlg:unregister_self() end
+	if self.cheat_dlg then self.cheat_dlg:unregister_self() end
+	if self.naxac_dlg then self.naxac_dlg:unregister_self() end
+	get_console():execute("main_menu off")
+end
+
 function main_menu:OnButton_save_level_clicked()
 	ui_mm_opt_add.check_options()
-	get_console():execute("main_menu off")
+	self:ReturnToGame()
     u3_utils.savegame_on_level()
 	archievements.mm_opt()
 end
@@ -323,7 +307,7 @@ function main_menu:OnKeyboard(dik, keyboard_action)  --virtual function
 		if dik == DIK_keys.DIK_ESCAPE then
 			if self.game_is_on then
 				ui_mm_opt_add.check_options()
-				get_console():execute("main_menu off")
+				self:ReturnToGame()
 				archievements.mm_opt()
 				ui_mm_opt_add.buy_quest_item()
 			end
@@ -333,18 +317,11 @@ function main_menu:OnKeyboard(dik, keyboard_action)  --virtual function
 				self:OnButton_save_level_clicked()
 			end
 		elseif dik == DIK_keys.DIK_F2 then
-			_G["naxac_test"] = nil
-			naxac_test.ggg()
-		--[[
-		elseif dik == DIK_keys.DIK_F5 then
-			if _G['naxac_check']==nil then
-				xr_s.register_callback("update", naxac_test.check1)
-				_G['naxac_check']=true
-			else
-				xr_s.unregister_callback("update", naxac_test.check1)
-				_G['naxac_check']=nil
-			end
-		]]
+		--	_G["naxac_test"] = nil
+		--	naxac_test.ggg()
+			self:GetHolder():start_stop_menu(ui_info_menu.CUIInfoMenu( self ), true)
+			self:GetHolder():start_stop_menu(self, true)
+			self:Show(false)
 		elseif dik == DIK_keys.DIK_F1 then
 			cheat_main.start_menu(self)
 		elseif dik == DIK_keys.DIK_L then
