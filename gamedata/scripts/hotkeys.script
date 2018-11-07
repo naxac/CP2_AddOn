@@ -79,10 +79,10 @@ function switch_grenade()
 	end
 end
 
-local slots = ui_inv_add.getSlots()
 function use_from_slot(n)
 	if not db.actor:alive() then return end
 
+	local slots = ui_inv_add.getSlots()
 	local s = slots[n]
 	if s then
 		local item = db.actor:object(s)
@@ -103,19 +103,18 @@ end
 -- Групповой перенос предметов в/из нычки/трупа
 local carbody_addons, used_box
 local reg_callbacks = {
-	on_item_take = "on_item_take",
-	on_item_drop = "on_item_drop"
+	item_take = "on_item_take",
+	item_drop = "on_item_drop"
 }
 
-function on_info(info_id)
-	if info_id == "ui_car_body" then
-		carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
-	elseif info_id == "ui_car_body_hide" then
-		xr_s.unregister_callback("on_info", this.on_info)
-		carbody_addons:Remove()
-		carbody_addons = nil
-		used_box = nil
-	end
+function car_body_open()
+	carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
+end
+
+function car_body_close()
+	carbody_addons:Remove()
+	carbody_addons = nil
+	used_box = nil
 end
 
 function on_use(obj, who)
@@ -123,7 +122,6 @@ function on_use(obj, who)
 		_G['recolor_items'] = true
 	end
 	used_box = obj
-	xr_s.register_callback("on_info", this.on_info)
 end
 
 function clear_used_box()
@@ -323,4 +321,10 @@ function on_key(dik, bind)
 	if dik_actions[dik] then
 		dik_actions[dik]()
 	end
+end
+
+function attach()
+	xr_s.register_callback("car_body_open", this.car_body_open)
+	xr_s.register_callback("car_body_close", this.car_body_close)
+	xr_s.register_callback("key_press", this.on_key)
 end

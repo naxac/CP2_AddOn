@@ -115,7 +115,7 @@ function subway_binder:check_timer()
 		if time_shift <= 5000 and self.txt_change == nil then
 			self.txt_change = true
 			self.timer_text:SetText( "Сохранение..." )
-			start_small_timer( math.random(4, 7), self.spawn_monsters, self, 2, 5, 2 )
+			start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 1, 3, 2 )
 		end
 	end
 end
@@ -131,14 +131,13 @@ function subway_binder:on_actor_inside()
 		return
 	end
 	if block_sms() then
-		block_sms( false )
 		return
 	end
 
 	if self.activated then
 		sms('Вы вошли в зону "пространственного тоннеля", используйте прибор для перемещения.')
 		if math.random() > 0.9 then
-			start_small_timer( math.random(4, 7), self.spawn_monsters, self, 2, 5, nil )
+			start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 1, 3, nil )
 		end
 	else
 		sms("Обнаружена новая аномалия. Используйте прибор для её сканирования и добавления в базу данных.")
@@ -146,7 +145,9 @@ function subway_binder:on_actor_inside()
 end
 
 function subway_binder:on_actor_outside()
-	active_zone = nil
+	if active_zone == self.object:id() then
+		active_zone = nil
+	end
 
 	local msg
 	if inventory.on_belt( "device_scaner" ) then
@@ -174,10 +175,10 @@ function subway_binder:start_scan_timer()
 	if time_shift <= 5000 then
 		self.txt_change = true
 		self.timer_text:SetText( "Сохранение..." )
-		start_small_timer( math.random(4, 7), self.spawn_monsters, self, 0, 3, 2 )
+		start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 0, 2, 2 )
 	else
 		self.timer_text:SetText( "Сканирование..." )
-		start_small_timer( math.random(3, 10), self.spawn_monsters, self, 1, 3, 1 )
+		start_small_timer( math.random(3000, 10000), self.spawn_monsters, self, 1, 3, 1 )
 	end
 end
 

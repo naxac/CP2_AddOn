@@ -169,47 +169,39 @@ local perchatki_propusk =
 	}
 
 function hit_by_art(obj)
-if _G["biznes_remove_special_item"]==true then return end
-local s =  art_hit[obj:section()]
-if s~=nil and level.main_input_receiver()==nil and db.first_update then
-	local propusk=1
+	if _G["biznes_remove_special_item"]==true then return end
 
-	local perchatki = db.actor:item_in_slot(0)
-	if perchatki then
-		propusk = perchatki_propusk[perchatki:section()] or 1
-	end
+	local s =  art_hit[obj:section()]
+	if s~=nil and level.main_input_receiver()==nil and db.first_update then
+		local propusk=1
 
-	local outf=db.actor:item_in_slot(6)
-	if outf then
-		propusk=propusk * ( scient[outf:section()] or 1)
-	end
+		local perchatki = db.actor:item_in_slot(0)
+		if perchatki then
+			propusk = perchatki_propusk[perchatki:section()] or 1
+		end
 
-	local h = hit()
-	h.draftsman = db.actor
-	h.direction = vector():set(0,0,0)
-	h.impulse = s["impulse"]
-	h.type = s["type"]
-	h.power = s["power"]
-	h.power = h.power*propusk
+		local outf=db.actor:item_in_slot(6)
+		if outf then
+			propusk=propusk * ( scient[outf:section()] or 1)
+		end
 
---	if h.power>0 and (not inventory.need_update) then
-	if h.power>0 then
-		local cameffs ={"hit_front","hit_back","hit_front_left","hit_back_left","hit_front_right","hit_back_right"}
-		level.add_cam_effector("camera_effects\\"..cameffs[math.random(#cameffs)]..".anm", 999, false, "")
-		db.actor:hit(h)
+		local h = hit()
+		h.draftsman = db.actor
+		h.direction = vector():set(0,0,0)
+		h.impulse = s["impulse"]
+		h.type = s["type"]
+		h.power = s["power"]
+		h.power = h.power*propusk
+
+		if h.power>0 then
+			local cameffs ={"hit_front","hit_back","hit_front_left","hit_back_left","hit_front_right","hit_back_right"}
+			level.add_cam_effector("camera_effects\\"..cameffs[math.random(#cameffs)]..".anm", 999, false, "")
+			db.actor:hit(h)
+		end
 	end
 end
-end
 
-function update(item)
---	переделано на новые каллбэки
---	local item=db.actor:item_in_slot(0)
---	if item and perchatki_propusk[item:section()]~=nil then
---		local outf=db.actor:item_in_slot(6)
---		if outf and scient[outf:section()]~=nil then
---			hidden_slots.drop_perchi(item)
---		end
---	end
+function on_slot(item)
 	local sect = item:section()
 	if perchatki_propusk[sect] then
 		local outf=db.actor:item_in_slot(6)
@@ -222,4 +214,14 @@ function update(item)
 			db.actor:move_to_ruck(knife)
 		end
 	end
+end
+--------------------------------------------------------------------
+function get_art_power( section )
+	local t = art_hit[ section ]
+	return t and t.power or 0
+end
+--------------------------------------------------------------------
+function attach()
+	xr_s.register_callback("item_to_slot", this.on_slot)
+	xr_s.register_callback("item_take", this.hit_by_art)
 end

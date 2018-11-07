@@ -11,10 +11,10 @@ local shift_show_descr = 700  -- через какое время после наведения курсора будет
 
 
 local reg_callbacks = {
-	on_item_focus = "OnItemFocus",
-	on_item_focus_lost = "OnItemFocusLost",
-	on_key_press = "OnKeyPress",
-	on_mouse_wheel = "OnMouseWheel",
+	cell_item_focus = "OnItemFocus",
+	cell_item_focus_lost = "OnItemFocusLost",
+	key_press = "OnKeyPress",
+	mouse_wheel = "OnMouseWheel",
 	update = "OnUpdate"
 }
 
@@ -299,8 +299,8 @@ function CUIDescriptionWnd:__init(st) super()
 	self.cost = self.xml:InitStatic("description:cost_wnd", self.frame)
 	self.weight = self.xml:InitStatic("description:weight_wnd", self.frame)
 	
-	local cond_frame = self.xml:InitFrame("description:frame_condition", self.frame)
-	self.condition = self.xml:InitStatic("description:condition", cond_frame)
+	self.cond_frame = self.xml:InitFrame("description:frame_condition", self.frame)
+	self.condition = self.xml:InitStatic("description:condition", self.cond_frame)
 	self.max_cond_w = self.condition:GetWidth()
 	
 	self.frame:Show(false)
@@ -516,26 +516,32 @@ function CUIDescriptionWnd:ShowDescription(item)
 	self.cost:SetText(string_format("Цена: %d руб.", item:cost()))
 	self.weight:SetText(string_format("Вес: %.2f кг.", wght))
 
-	self.condition:SetWidth(self.max_cond_w*cond)
-	local g = math.min( cond*510, 255 )
-	local r = math.min( (1-cond)*510, 255 )
-	self.condition:SetColor(GetARGB(255, r, g, 0))
-	self.condition:SetText(string_format("состояние: %.1f%%", cond*100))
+	local txt = is_cond_item( item )
+	if txt then
+		self.condition:SetWidth(self.max_cond_w*cond)
+		local g = math.min( cond*510, 255 )
+		local r = math.min( (1-cond)*510, 255 )
+		self.condition:SetColor(GetARGB(255, r, g, 0))
+		self.condition:SetText(string_format("%s: %.1f%%", get_string(txt), cond*100))
+		self.cond_frame:Show(true)
+	else
+		self.cond_frame:Show(false)
+	end
 
-	g = self.descr:GetHeight() + self.addH
-	if g < 678 then
-		self.frame:SetHeight(g + 90)
+	local hh = self.descr:GetHeight() + self.addH
+	if hh < 678 then
+		self.frame:SetHeight(hh + 90)
 		self.scroll_work = nil
 	else
 		self.frame:SetHeight(768)
 		self.scroll_work = true
 	end
 
-	r = self.owner:GetCursorX()
-	if r>=512 then r = r - self.frame:GetWidth()
-	else r = r + 40 end
+	local cr = self.owner:GetCursorX()
+	if cr>=512 then cr = cr - self.frame:GetWidth()
+	else cr = cr + 40 end
 
-	self.frame:SetWndPos(r, math.min(self.owner:GetCursorY(), 768-self.frame:GetHeight()))
+	self.frame:SetWndPos(cr, math.min(self.owner:GetCursorY(), 768-self.frame:GetHeight()))
 
 	self.frame:Show(true)
 end

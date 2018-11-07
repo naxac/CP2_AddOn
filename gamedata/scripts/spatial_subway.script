@@ -1,7 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 levels = {}
-local max_cnt = 5
-local min_cnt = 2
+
+local max_cnt = 7
+local min_cnt = 4
 local zone_radius = 2.5
 
 local tmp_pos, max_lv
@@ -68,70 +69,50 @@ function spawn_teleport()
 	return this.create_zone_subway(pos, new_lv, new_gv)
 end
 
-function use_scaner()
+function use_scaner(item)
 	if level.main_input_receiver() then
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
 
+	local cond = item:condition()
+	if cond < 0.02 then
+		bind_subway.sms( "Сканер полностью разряжен." )
+		return
+	end
+
 	local zone_id, activated = bind_subway.get_active_zone()
 	if activated == nil then
-		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(false), true)
+		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(false, cond), true)
 	elseif activated == true then
-		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(true), true)
+		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(true, cond), true)
 	elseif activated == false then
-		bind_subway.start_scan_timer(zone_id)
+		if cond > 0.4 then
+			bind_subway.start_scan_timer(zone_id)
+		else
+			bind_subway.sms( "Уровня заряда недостаточно для сканирования." )
+		end
 	end
 end
 ---------------------------------------------------------------------------------------
-function has_belt_art()
-	local item, item_cost, del_item
-	local min_cost = 1000000
-	local actor = db.actor
-	for i = 0, actor:belt_count()-1 do
-		item = actor:item_on_belt(i)
-		if item:is_artefact() then
-			item_cost = item:cost()
-			if item_cost < min_cost then	
-				del_item = item
-				min_cost = item_cost
-			end
-		end
-	end
-	return del_item
-end
-
-function remove_belt_art()
-	local item = has_belt_art()
-	if item then
-		news_manager.relocate_item(actor, "out", item:section())
-		alife():release(alife():object(item:id()), true)
-		return true
-	end
-	bind_subway.sms("Для перемещения необходимо поместить на пояс любой артефакт.")
-	return false
-end
-
 function go_to(lname, id)
 --	log("go_to: %s-%s", tostring(lname), tostring(id))
 	local point = levels[lname][id]
 		or abort("teleportator: not exist coordinates for level '%s', zone id [%s]", tostring(lname), tostring(id))
-	level.add_pp_effector("teleport.ppe", 2006, false)
-	start_small_timer( 300, function()
-		level.enable_input()
-		if lname == level.name() then
-			local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
-			snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)	
-			db.actor:set_actor_position(point.pos)
-		else
-			spatial_subway.create_level_changer(point.pos, point.lv, point.gv, lname)
-		end
-	end )
+
+	level.enable_input()
+	if lname == level.name() then
+		local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
+		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)	
+		db.actor:set_actor_position(point.pos)
+	else
+		spatial_subway.create_level_changer(point.pos, point.lv, point.gv, lname)
+	end
 end
 
 ---------------------------------------------------------------------------------------
-function rewrite_zone_subway( pos, new_lv, new_gv )
+function create_zone_subway( pos, new_lv, new_gv )
 	local se_obj = alife():create( "zone_subway", pos, new_lv, new_gv )
-	-- level.map_add_object_spot( se_obj.id, 'blue_location', sobj:name() )
+	level.map_add_object_spot_ser( se_obj.id, 'blue_location', se_obj:name() )
 	local data = {}
 	data.shapes = {
 		[ 1 ] = {
@@ -173,3 +154,4 @@ function create_level_changer( pos, lv, gv, lname )
 	naxac_netpk.modify( obj, data )
 	bind_lc.shift_send_sms()
 end
+

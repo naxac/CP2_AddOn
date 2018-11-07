@@ -2,28 +2,28 @@
 local wnd = nil
 local wndX = { wide = 96, normal = 19 }
 
-function on_info(info_id)
-	if info_id == "ui_trade" then
-		if not wnd then	
-			wnd = TradeWnd(level.get_trade_wnd())
-		end
-		trade_manager.start_trade()
-		_G['recolor_items'] = true
-		db.actor:invalidate_inventory()
-	elseif info_id == "ui_trade_hide" then
-		if wnd then
-			wnd:DetachWnd()
-			wnd = nil
-		end
-		trade_manager.stop_trade()
-		_G['recolor_items'] = nil
- 	end
+function trade_open()
+	if not wnd then	
+		wnd = TradeWnd(level.get_trade_wnd())
+	end
+	trade_manager.start_trade()
+	_G['recolor_items'] = true
+	db.actor:invalidate_inventory()
+end
+
+function trade_close()
+	if wnd then
+		wnd:DetachWnd()
+		wnd = nil
+	end
+	trade_manager.stop_trade()
+	_G['recolor_items'] = nil
 end
 
 ---------------------------------------------------------------------
 local reg_callbacks = {
-	on_item_take = "calc_and_change",
-	on_item_drop = "calc_and_change"
+	item_take = "calc_and_change",
+	item_drop = "calc_and_change"
 }
 class "TradeWnd" (CUIScriptWnd)
 
@@ -84,3 +84,7 @@ function TradeWnd:DetachWnd()
 	end
 end
 
+function attach()
+	xr_s.register_callback("trade_open", this.trade_open)
+	xr_s.register_callback("trade_close", this.trade_close)
+end

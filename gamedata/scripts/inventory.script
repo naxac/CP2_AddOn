@@ -2,84 +2,77 @@
 local belt = {}
 local belt_id = {}
 
-local satiety_arts = {}
-local weight_arts = {}
-local rad_arts = {}
-
 local wthr = nil
 
-function remove_from_belt(item)
+function remove_from_belt( item )
 	local id = item:id()
-	if belt_id[id] then
-		belt_id[id] = nil
-		
+	local t = belt_id[ id ]
+	if t then
 		local sect =  item:section()
-		table.sub(belt, sect)
+		table.sub( belt, sect )
 		
-		if sect == "af_idol_monolita" and wthr~=nil then
-			if amk.load_variable("blowout",0)==0 then
-				level.set_weather(wthr)
+		if sect == "af_idol_monolita" and wthr ~= nil then
+			if amk.load_variable( "blowout", 0 ) == 0 then
+				level.set_weather( wthr )
 			end
 			wthr = nil
 		elseif sect == "bioradar" or sect == "bioradar2" then
 			biodetector.switch_bioradar( false )
 		end
-		
-		local n = satiety_arts[id]
-		if n then
-			arc_radiation.change_arts_satiety(-n)
-			satiety_arts[id] = nil
+
+		if t.satiety then
+			arc_radiation.change_arts_satiety( -t.satiety )
 		end
 
-		n = rad_arts[id]
-		if n then
-			arc_radiation.change_inv_radiation(n)
-			rad_arts[id] = nil
+		if t.radiation then
+			arc_radiation.change_inv_radiation( t.radiation )
 		end
 
-		n = weight_arts[id]
-		if n then
-			xr_actor.change_actor_weight(-n)
-			weight_arts[id] = nil
+		if t.add_weight then
+			xr_actor.change_actor_weight( -t.add_weight )
 		end
+
+		belt_id[ id ] = nil
 	end
 end
 
-function add_on_belt(item)
+function add_on_belt( item )
 	local id = item:id()
-	if belt_id[id]==nil then
-		belt_id[id] = true
+	if belt_id[ id ]==nil then
+		local t = {}
+		belt_id[ id ] = t
 		
 		local sect = item:section()
-		table.add(belt, sect)
+		table.add( belt, sect )
+		t.section = sect
 		
 		if sect == "af_idol_monolita" then
-			if amk.load_variable("blowout",0)==0 then
+			if amk.load_variable( "blowout", 0 ) == 0 then
 				wthr = level.get_weather()
 				if wthr == "amk_for_blow" then wthr = nil end
-				level.set_weather("grey")
+				level.set_weather( "grey" )
 			end
 		elseif sect == "bioradar" or sect == "bioradar2" then
 			biodetector.switch_bioradar( true )
 		end
 		
 		if item:is_artefact() then
-			local n = sys_ini:r_float(sect, "satiety_restore_speed")
-			if n~=0 and satiety_arts[id]==nil then
-				satiety_arts[id] = n
-				arc_radiation.change_arts_satiety(n)
+			local n = sys_ini:r_float( sect, "satiety_restore_speed" )
+			if n~=0 then
+				t.satiety = n
+				arc_radiation.change_arts_satiety( n )
 			end
 			
-			n = sys_ini:r_float(sect, "radiation_restore_speed")
-			if n>0 and rad_arts[id]==nil then
-				rad_arts[id] = n
-				arc_radiation.change_inv_radiation(-n)
+			n = sys_ini:r_float( sect, "radiation_restore_speed" )
+			if n>0 then
+				t.radiation = n
+				arc_radiation.change_inv_radiation( -n )
 			end
 			
-			n = sys_ini:r_float_ex(sect, "additional_inventory_weight")
-			if n and weight_arts[id]==nil then
-				weight_arts[id] = n
-				xr_actor.change_actor_weight(n)
+			if sys_ini:line_exist( sect, "additional_inventory_weight" ) then
+				n = sys_ini:r_float( sect, "additional_inventory_weight" )
+				t.add_weight = n
+				xr_actor.change_actor_weight( n )
 			end
 		end
 	end
@@ -111,4 +104,10 @@ function get_free_belt_slot()
 			return
 		end
 	end
+end
+--------------------------------------------------------------------
+function  attach()
+	xr_s.register_callback( "item_to_belt", this.add_on_belt )
+	xr_s.register_callback( "item_to_ruck", this.remove_from_belt )
+	xr_s.register_callback( "item_drop", this.remove_from_belt )
 end

@@ -23,10 +23,9 @@ local repkits = {
 		end
 	end
 }
-local reg_callbacks = {
-	on_item_select = "on_item_select",
-	on_item_drop = "on_item_drop",
-	on_item_take = "on_item_take"
+local charged_devices = {
+	["device_scaner"] = true,
+	["teleportator"] = true
 }
 local info2stop = {
 	ui_inventory	= bit_or(1,4),	ui_inventory_hide	= bit_or(2,8),
@@ -34,19 +33,21 @@ local info2stop = {
 	ui_car_body		= 1, 			ui_car_body_hide	= 2,
 }
 
+function inventory_open()
+	if not wnd then	
+		wnd = InvWnd(level.main_input_receiver())
+	end
+end
+
+function inventory_close()
+	if wnd then
+		wnd:DetachWnd()
+		wnd = nil
+		amk.save_table("quick_slots", slot2section)
+	end
+end
+
 function on_info(info_id)
-	if info_id == "ui_inventory" then
-		if not wnd then	
-			wnd = InvWnd(level.main_input_receiver())
-		end
-	elseif info_id == "ui_inventory_hide" then
-		if wnd then
-			wnd:DetachWnd()
-			wnd = nil
-			amk.save_table("quick_slots", slot2section)
-		end
- 	end
-	
 	local b = info2stop[info_id]
 	if b then
 		if bit_and(b, 1)==1 then
@@ -65,6 +66,14 @@ end
 
 class "InvWnd" (CUIScriptWnd)
 
+local reg_callbacks = {
+--	cell_item_select = "on_item_select",
+	cell_item_clicked = "on_item_select",
+	item_drop = "on_item_drop",
+	item_take = "on_item_take",
+	drag_drop = "on_drag_drop"
+}
+
 function InvWnd:__init(owner) super()
 	self.owner = owner
 	self:Init(0, 0, 1024, 768)
@@ -72,7 +81,6 @@ function InvWnd:__init(owner) super()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.register_callback( k, self[v], {self = self} )
 	end
-	drag_drop_callback.add(self)
 end
 
 function InvWnd:__finalize() end
@@ -169,18 +177,14 @@ end
 
 function InvWnd:on_drag_drop(drag_item, drop_on_item)
 	local section = drag_item:section()
-	if drop_on_item ~= nil then
+	if drop_on_item then
 		if repkits[section] then
 			repkits[section](drag_item, drop_on_item)
+		elseif charged_devices[drop_on_item:section()] and drag_item:is_artefact() then
+			this.charge_device(drag_item, drop_on_item)
 		end
 	else
-		if self.wpn_slot and isMagazinedWeapon( drag_item ) then
-			local item_slot = drag_item:get_slot()
-			if slot~=1 and slot~=2 then return end
-			if item_slot ~= self.wpn_slot then
-				drag_item:set_slot( self.wpn_slot )
-			end
-		elseif edibles[section] and self.quick_slot ~= nil then
+		if self.quick_slot and edibles[section] then
 			-- Проверим, вдруг этот предмет уже есть в какой-то из ячеек
 			local n = section2slot[section]
 			if n then
@@ -199,6 +203,28 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 			slot2section[self.quick_slot] = section
 			self:DrawSlotIcon(self.quick_slot)
 		end
+	end
+
+	if self.wpn_slot and isMagazinedWeapon( drag_item ) then
+		local item_slot = drag_item:get_slot()
+		if item_slot ~= 1 and item_slot ~= 2 then return end
+		if self.wpn_slot == item_slot then return end
+
+		local forced_move = false
+		if db.actor:is_in_slot( drag_item ) then
+			db.actor:move_to_ruck( drag_item )
+			forced_move = true
+		end
+
+		local item_in_slot = db.actor:item_in_slot( self.wpn_slot )
+		if item_in_slot then
+			db.actor:move_to_ruck( item_in_slot )
+			forced_move = true
+		end
+
+		drag_item:set_slot( self.wpn_slot )
+		
+		if forced_move then db.actor:move_to_slot( drag_item ) end
 	end
 end
 
@@ -259,16 +285,6 @@ function InvWnd:on_item_select( item )
 		if sect:find( "exo_mil_exoskeleton_add" ) then
 			self:ShowSkatPanel( sect )
 		end
-	elseif isMagazinedWeapon( item ) then
-		local slot = item:get_slot()
-		if slot~=1 and slot~=2 then return end
-		if db.actor:item_in_slot( slot ) ~= nil then
-			slot = bit_xor( slot, 3 )
-			if db.actor:item_in_slot( slot ) == nil then
-				item:set_slot( slot )
-				return
-			end
-		end
 	end
 end
 
@@ -290,11 +306,30 @@ function slot_fix( id, item )
 end
 
 -- Кастомная заливка предметов в слотах, как в старых билдах
-function recolor_slot_item( item )
-	if not recolor_items then return end
-	if db.actor:is_in_slot( item ) or db.actor:is_on_belt( item ) then
-		local _st = CUIFrameWindow():GetTitleStatic()
-		if _st then _st:SetColor( GetARGB(255,150,255,150) ) end
+-- + шкала состояния на иконках оружия, брони, фонарика и ПНВ
+function on_create_cell_item( item )
+	local st = CUIFrameWindow():GetTitleStatic()
+	if not st then return end
+
+	if recolor_items and ( db.actor:is_in_slot( item ) or db.actor:is_on_belt( item ) ) then
+		st:SetColor( GetARGB(255,150,255,150) )
+	end
+	-- рисуем шкалу состояния
+	if is_cond_item( item ) then
+		local h = sys_ini:r_u32( item:section(), "inv_grid_height" ) *35
+		local w = 30 * kScreen
+		local w_cond = w * item:condition()
+		local b = CUIStatic()
+		b:SetAutoDelete( true )
+		b:Init( "ui_mg_progress_efficiency_full_1", 2, h-6, w, 4 )
+		b:SetStretchTexture( true)
+		st:AttachChild( b )
+		local s = CUIStatic()
+		s:SetAutoDelete( true )
+		s:Init( "ui_mg_progress_efficiency_full_1", 0, 0, w_cond, 4 )
+		s:SetStretchTexture( true)
+		s:SetColor( GetARGB(255,50,255,50) )
+		b:AttachChild( s )
 	end
 end
 ------------------------------------------------------------------------------------------
@@ -308,7 +343,83 @@ end
 ------------------------------------------------------------------------------------------
 function getSlots() return slot2section end
 ------------------------------------------------------------------------------------------
-function init()
+local mWnd = nil
+local tmrID = nil
+
+function InitMsgWnd()
+	mWnd = CUIFrameWindow()
+	mWnd:SetAutoDelete(true)
+	mWnd:Init("ui_icons_PDA_dialog_frame",0, 0, 250, 130)
+	mWnd.text = CUIStatic()
+	mWnd.text:Init(4, 4, 240, 100)
+	mWnd.text:SetAutoDelete(true)
+	mWnd.text:SetFont(GetFontLetterica18Russian())
+	mWnd.text:SetTextColor(255, 255, 230, 150)
+	mWnd.text:SetTextComplexMode(true)
+	mWnd:AttachChild(mWnd.text)
+
+	xr_s.register_callback("inventory_close", this.DelMsgWnd, nil, true)
+end
+function DelMsgWnd()
+	this.hide_inv_msg()
+	mWnd = nil
+end
+
+function show_inv_msg(text)
+	if mWnd == nil then InitMsgWnd() end
+
+	if tmrID then remove_small_timer(tmrID) end
+
+	mWnd.text:SetText( text )
+	mWnd.text:AdjustHeightToText()
+	mWnd:SetHeight( mWnd.text:GetHeight() + 10 )
+	get_hud():AddDialogToRender( mWnd )
+
+	local owner = level.main_input_receiver()
+	local cr = owner:GetCursorX()
+	if cr>=512 then cr = cr - mWnd:GetWidth()
+	else cr = cr + 40 end
+	mWnd:SetWndPos(cr, math.min(owner:GetCursorY(), 768-mWnd:GetHeight()))
+
+	tmrID = start_small_timer(3000, this.hide_inv_msg)
+	xr_s.register_callback("cell_item_focus_lost", this.hide_inv_msg, nil, true)
+	BlockUIDescr(true)
+end
+function hide_inv_msg()
+	if tmrID == nil then return end
+	remove_small_timer(tmrID)
+	tmrID = nil
+	get_hud():RemoveDialogToRender( mWnd )
+	BlockUIDescr(false)
+end
+------------------------------------------------------------------------------------------
+function charge_device( art, device )
+	local power = art_hit.get_art_power( art:section() )
+	if power == 0 then return end
+
+	local cond = device:condition()
+	if cond > 0.96 then
+		ui_inv_add.show_inv_msg("Прибор не требует зарядки")
+		return
+	end
+
+	local k = ( 3 - level.get_game_difficulty() ) / 10
+	local add_power = power + power*k
+	local new_cond = math.min( cond + add_power, 1 )
+	device:set_condition( new_cond )
+	naxac_netpk.modify( alife():object( device:id() ), { condition = new_cond }, net_packet.f_state )
+
+	local obj = alife():object( art:id() )
+	if obj then alife():release( obj, true ) end
+	zvuki.use_snd("art")
+
+	local rem = cond + add_power - 1
+	if rem > 0 then
+		alife():create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
+	end
+end
+------------------------------------------------------------------------------------------
+function on_net_spawn()
 	-- Заполняем таблицы
 	-- съедобное - несъедобное
 	local ini = ini_file("misc\\inv_add.ltx")
@@ -334,6 +445,15 @@ function init()
 		[3] = DIK_keys.DIK_F3,
 		[4] = DIK_keys.DIK_F4
 	}
+end
+
+function attach()
+	xr_s.register_callback("net_spawn", this.on_net_spawn, nil, true)
+	xr_s.register_callback("inventory_open", this.inventory_open)
+	xr_s.register_callback("inventory_close", this.inventory_close)
+	xr_s.register_callback("info", this.on_info)
+	xr_s.register_callback("item_drop", this.restore_slot)
+	xr_s.register_callback("cell_item_create", this.on_create_cell_item)
 end
 
 

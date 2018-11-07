@@ -269,42 +269,15 @@ function compass()
 end
 
 function update()
---	stco_forever()
-	local item = db.actor:active_item()
-	if item then
-		local section = item:section()
-		if section == "stco" then
-			if not device_active then
-				device_active = true
-				statics_on()
-			end 
-			compass()
-			local loc = level:name()
-			if crd_loc[loc] then
-				space_crd(loc)
-				time_crd()
-			else
-				lon_st:SetText("Нет сигнала СП! ")
-				lat_st:SetText("Время в автономном")
-				alt_st:SetText("режиме!     ")
-				time_crd("tz_off")
-			end
-		elseif string.find(section, "dictofon_") then
-			if dictofon_play then return end
-			chess.sms_record(section)
-			dictofon_play = true
-		end
-	elseif dictofon_play then
-		dictofon_play = false
-		chess.stop_dictofon()
-	elseif device_active then
-		device_active = false
-		statics_off()
-	end
-end
-
-function stco_forever()
-	if db.actor:object("stco") == nil then
-		alife():create("stco", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), 0)
+	compass()
+	local loc = level:name()
+	if crd_loc[loc] then
+		space_crd(loc)
+		time_crd()
+	else
+		lon_st:SetText("Нет сигнала СП! ")
+		lat_st:SetText("Время в автономном")
+		alt_st:SetText("режиме!     ")
+		time_crd("tz_off")
 	end
 end

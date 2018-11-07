@@ -163,6 +163,12 @@ function use_antirad(delta)
 	mod_rad_dose(delta*1000)
 end
 -----------------------------------------------------------------------------------
+function on_key_release(dik, bind)
+	if bind == key_bindings.kSCORES then
+		arc_ui_dosimeter.fade(true, -1)
+	end
+end
+-----------------------------------------------------------------------------------
 local upd_time_tele = nil
 function spawn_telepatic()
 	if (upd_time_tele or 0) < time_global() then
@@ -182,27 +188,10 @@ end
 -----------------------------------------------------------------------------------
 function init()
 	rad_dose = amk.load_variable("rad_dose", 0)
-	local n = key_bindings.kSCORES
-	xr_s.register_callback("on_key_release", function(dik, bind)
-		if bind == n then
-			arc_ui_dosimeter.fade(true, -1)
-		end
-	end)
---[[ фикс солнца на R2
-	local con = get_console()
-	local r = con:get_string("renderer")
-	if r == "renderer_r2" or r == "renderer_r2a" then
-		local cmds = {
-			"r2_sun_depth_far_bias -0.00002 -0.0001",
-			"r2_sun_depth_far_scale 0.9999",
-			"r2_sun_depth_near_bias 0.00001",
-			"r2_sun_depth_near_scale 1.",
-			"r2_sun_near 18.",
-			"r2_sun_near_border 1."
-		}
-		for i, s in ipairs(cmds) do
-			con:execute(s)
-		end
-	end
-]]
+end
+
+function attach()
+	xr_s.register_callback("net_spawn", this.init, nil, true)
+	xr_s.register_callback("key_release", this.on_key_release)
+	xr_s.register_callback("pre_save", this.save_rad_dose)
 end

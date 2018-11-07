@@ -163,14 +163,18 @@ local horror_time = {h = 22, m = 0}
 local horror_end_time = {h = 22, m = (horror_time.m + 7)}
 local game_reloaded = true -- во время ЧУ после перезагрузки игры спецэффекты будут продолжены
 
-function horortime()
-	if (meceniy_utils.hell == 0) or (not tabl_horror_by_level[level.name()]) then return end
+function horrortime(delta)
+	amk.oau_watchdog=19311
+	-- ЧУ апдейтим только в 21 и 22 часы
+	local timeh = level.get_time_hours()
+	if (timeh < 21) or (timeh > 22) then return end
+
+	if (not tabl_horror_by_level[level.name()]) then return end
 
 	-- При выбросе не запускаем, а то это лютый п@#дец
 	if is_blowout and is_blowout > time_global() then return end
 	if amk.load_variable("blowout",0)>0 then is_blowout = time_global() + 150000 return end
 
-	local timeh =level.get_time_hours()
 	local timem =level.get_time_minutes()
 	local panic_minute
 
@@ -442,4 +446,10 @@ function nagrad_30_hand()
 	sak.out_item_namber("mutant_zombie_hand",30)
 	sak.create_items_actor(zombi_arts[math.random(#zombi_arts)],1)
 	sak.create_items_actor(zombi_ammo[math.random(#zombi_ammo)],math.random(1,3))
+end
+--------------------------------------------------------------------------------------
+function attach()
+	if game_options.HorrorTime then
+		xr_s.register_callback( "update", this.horrortime, { timeout = 1000 } )
+	end
 end

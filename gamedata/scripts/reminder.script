@@ -7,6 +7,7 @@ local trader_names = {
 	["marsh_remont"] = "Василий"
 }
 local need_init = true
+local tmr
 
 function remind()
 	local storyline = remind_storyline()
@@ -19,13 +20,11 @@ end
 
 function start_remind()
 	if need_init then init() end
-	local tmr = start_small_timer(1000, this.remind)
-	xr_s.register_callback("on_key_release", this.check_key, tmr)
+	tmr = start_small_timer(1000, this.remind)
 end
 
-function check_key(dik, bind, tmr)
+function check_key(dik, bind)
 	if bind == key_bindings.kSCORES then
-		xr_s.unregister_callback("on_key_release", this.check_key)
 		remove_small_timer(tmr)
 		local hud = get_hud()
 		if hud:GetCustomStatic("cs_reminder") then
@@ -128,4 +127,6 @@ function init()
 			end
 		end
 	end
+
+	xr_s.register_callback( "key_release", this.check_key )
 end

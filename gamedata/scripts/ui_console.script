@@ -16,7 +16,7 @@ end
 	
 
 local cmd2func = {}
-	cmd2func['run'] = function (func_str, ...)
+	cmd2func['run_func'] = function (func_str, ...)
 		if func_str==nil or func_str=="" then
 			return false, "Incorrect parameters for command: run"
 		end
@@ -39,14 +39,7 @@ local cmd2func = {}
 		end
 
 		local p = {...}
-		for i, v in ipairs(p) do
-			if tonumber(v) then p[i] = tonumber(v)
-			elseif v == 'true' then p[i] = true
-			elseif v == 'false' then p[i] = false
-			end
-		end
-
-		local result = loadstring("return "..func)()(unpack(p))
+		local result = loadstring("return "..func.."(".. table.concat(p, ",") ..")")()
 		local t = type(result)
 		if t == "userdata" then
 			if result.name then

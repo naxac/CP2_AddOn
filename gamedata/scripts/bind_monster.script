@@ -552,32 +552,27 @@ function generic_object_binder:random_visual_zombie()
 end
 
 local out_object = nil
-local time_to_move = nil
 
 function start_transfer_all_desired(npc)
 	out_object = npc
-	time_to_move = time_global()+500
+	xr_s.register_callback( "update", this.transfer_all_desired, { timeout = 500 }, true )
 end
 
 function transfer_all_desired()
-	if time_to_move and time_to_move < time_global() then
-		if has_alife_info("ui_car_body") then
-			shiftCheckDropItem()
-			out_object:iterate_inventory(function(npc, item)
-				out_object:transfer_item(item, db.actor)
-			end, db.actor)
-		end
-		
-		out_object = nil
-		time_to_move = nil
+	if has_alife_info("ui_car_body") then
+		shiftCheckDropItem()
+		out_object:iterate_inventory(function(npc, item)
+			out_object:transfer_item(item, db.actor)
+		end, db.actor)
 	end
+	out_object = nil
 end
 
 function play_particle(obj,params) 
 	local id = obj:id()
 	if not particles[id] then 
 		particles[id]={} 
-end 
-             table.insert(particles[obj:id()],params) 
-end 
+	end
+	table.insert(particles[obj:id()],params) 
+end
 

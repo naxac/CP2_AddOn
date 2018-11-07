@@ -26,8 +26,9 @@ function pnv_off()
 end
 function switch_pnv()
 	if level.main_input_receiver() then return end
-	local pnv = db.actor:item_in_slot(11)
-	if pnv then
+
+	local nv = db.actor:item_in_slot(9)
+	if nv and nv:section() ~= "device_torch" then
 		local id = amk.load_variable("nv_on")
 		if id then
 			pnv_off()
@@ -35,9 +36,9 @@ function switch_pnv()
 			if has_alife_info("no_pnv") or has_alife_info("pnv_off") then return end
 			local snd = xr_sound.get_safe_sound_object([[weapons\nv_start]])
 			snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-			local effector = sys_ini:r_string(pnv:section(), "ppe")
+			local effector = sys_ini:r_string(nv:section(), "ppe")
 			level.add_pp_effector(effector..".ppe", 1034, true)
-			work_pnv = pnv:id()
+			work_pnv = nv:id()
 			amk.save_variable("nv_on", work_pnv)
 			bind_torch.switch_nv(work_pnv, 1)
 		end
@@ -56,4 +57,10 @@ function no_pnv()
 	if amk.load_variable("nv_on") then
 		pnv_off()
 	end
+end
+--------------------------------------------------------------------------
+function attach()
+	xr_s.register_callback("item_drop", this.checking_droped_obj)
+	xr_s.register_callback("item_to_ruck", this.checking_droped_obj)
+	xr_s.register_callback("net_spawn", this.load_pnv)
 end

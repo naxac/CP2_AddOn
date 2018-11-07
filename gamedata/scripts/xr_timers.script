@@ -36,6 +36,8 @@ function nTimers:save_timers()
 end
 
 function nTimers:check_timers()
+	amk.oau_watchdog = 1999
+
 	if self.need_sort then
 		self.need_sort = false
 		table.sort( self.timers, function(t1, t2)
@@ -154,17 +156,12 @@ function get_mgr()
 	return mgr
 end
 
-function init()
+function attach()
+	local m = get_mgr()
+	xr_s.register_callback( "net_spawn", m.load_timers, { self = m }, true)
+	xr_s.register_callback( "update", m.check_timers, { self = m } )
+	xr_s.register_callback( "pre_save", m.save_timers, { self = m } )
 	xr_timers_actions.timer_action( "~~ timers init ~~", "" ) -- init actions
-	get_mgr():load_timers()
-end
-
-function update( delta )
-	get_mgr():check_timers()
-end
-
-function save()
-	get_mgr():save_timers()
 end
 
 function start_real_timer(...)

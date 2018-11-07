@@ -1,9 +1,10 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 -------------------------------------------------------------------------
 -- Динамический биорадар с локатором, затуханием и универсальным худом --
 -------------------------------------------------------------------------
-local dynBio = game_options.DynBio                          -- вращающийся локатор
-local fading = dynBio and game_options.DynBioF    -- затухание
-local hardBio = fading and game_options.DynBioH  -- ухардкоренный биорадар
+local dynBio = ( game_options.DynBio > 0 )    -- вращающийсЯ локатор
+local fading = ( game_options.DynBio > 1 )    -- затухание
+local hardBio = ( game_options.DynBio > 2 )   -- ухардкоренный биорадар
 
 
 local need_update = false
@@ -306,11 +307,11 @@ function update(delta)
 		local dotName
 		local vect, obj
 		local sdir
-		if hardBio then
-			sdir = vector():set( 0,0,0 )
-		else
+	--	if hardBio then
+	--		sdir = vector():set( 0,0,0 )
+	--	else
 			sdir = device().cam_dir
-		end
+	--	end
 		
 		-- вращение локатора. угол от 0 до 2Пи
 		if dynBio then
@@ -428,3 +429,11 @@ function biodetectorRemove()
 	id2dots = {}
 	dots2id = {}
 end
+
+function biodetectorReload()
+	biodetectorRemove()
+	dynBio = ( game_options.DynBio > 0 )
+	fading = ( game_options.DynBio > 1 )
+	hardBio = ( game_options.DynBio > 2 )
+end
+

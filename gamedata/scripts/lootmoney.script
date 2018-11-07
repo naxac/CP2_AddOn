@@ -54,24 +54,18 @@ local favorites = {
 }
 
 local out_object = nil
-local time_to_move = nil
 
 function start_transfer_all_desired(npc)
 	out_object = npc
-	time_to_move = time_global()+500
+	xr_s.register_callback( "update", this.transfer_all_desired, { timeout = 500 }, true )
 end
 
 function transfer_all_desired()
-	if time_to_move and time_to_move < time_global() then
-		time_to_move = nil
-
-		if has_alife_info("ui_car_body") then
-			shiftCheckDropItem()
-			out_object:inventory_for_each(transfer_favorite)
-		end
-		
-		out_object = nil
+	if has_alife_info("ui_car_body") then
+		shiftCheckDropItem()
+		out_object:inventory_for_each(transfer_favorite)
 	end
+	out_object = nil
 end
 
 function transfer_favorite(item)

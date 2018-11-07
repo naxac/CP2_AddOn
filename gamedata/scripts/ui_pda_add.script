@@ -1,16 +1,15 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local wnd = nil
 
-function on_info(info_id)
-	if info_id == "ui_pda" then
-		if not wnd then	
-			wnd = PDAAdd(level.main_input_receiver())
-		end
-	elseif info_id == "ui_pda_hide" then
-		if wnd then
-			wnd:DetachWnd()
-			wnd = nil
-		end
+function pda_open()
+	if not wnd then	
+		wnd = PDAAdd(level.main_input_receiver())
+	end
+end
+function pda_close()
+	if wnd then
+		wnd:DetachWnd()
+		wnd = nil
 	end
 end
 
@@ -107,45 +106,8 @@ function PDAAdd:OnKeyboard(dik, action)
 	return true
 end
 -------------------------------------------------------------------------------------
--- Отключаем КПК на худе
-local bsod_hud = nil
-local f = nil
-function add_bsod()
-	if bsod_hud == nil then
-		bsod_hud = CUIStatic()
-		bsod_hud:SetAutoDelete(true)
-		bsod_hud:Init("ui\\ui_bsod",33,28,268,184)
-		bsod_hud:SetColor(GetARGB(250,200,200,200))
-		bsod_hud:SetOriginalRect(0,0,1024,576)
-		bsod_hud:SetStretchTexture(true)
-		get_hud():AddDialogToRender(bsod_hud)
-		f = true
-		xr_s.register_callback('net_destroy', ui_pda_add.remove_bsod)
-		xr_s.register_callback('update', ui_pda_add.on_update_bsod)
-	end
-end
-function remove_bsod()
-	if bsod_hud ~= nil then
-		xr_s.unregister_callback('net_destroy', ui_pda_add.remove_bsod)
-		xr_s.unregister_callback('update', ui_pda_add.on_update_bsod)
-		get_hud():RemoveDialogToRender(bsod_hud)
-		bsod_hud = nil
-		f = nil
-	end
+function attach()
+	xr_s.register_callback("pda_open", this.pda_open)
+	xr_s.register_callback("pda_close", this.pda_close)
 end
 
-function on_update_bsod()
-	if bind_stalker.scopeUsed
-		or level.main_input_receiver()
-	then
-		if f then
-			f = nil
-			bsod_hud:Show(false)
-		end
-	else
-		if not f then
-			f = true
-			bsod_hud:Show(true)
-		end
-	end
-end

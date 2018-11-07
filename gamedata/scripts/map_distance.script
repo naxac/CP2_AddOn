@@ -1,0 +1,46 @@
+local ini = ini_file( "game_maps_single.ltx" )
+local max_dist = 0
+
+function calculate_dist( start_level, start_pos, to_level, to_pos )
+	local pos1 = GetGlobalPos( start_level, start_pos )
+	local pos2 = GetGlobalPos( to_level, to_pos )
+
+	if not ( pos1 and pos2 ) then
+		return -1, max_dist
+	end
+
+	local dist = math.sqrt( math.abs( pos1.x - pos2.x )^2 + math.abs( pos1.y - pos2.y )^2 )
+	return dist, max_dist
+end
+
+function GetRect( level_name, line )
+	local t = {}
+	if ini:section_exist( level_name ) and ini:line_exist( level_name, line ) then
+		for n in string.gmatch( ini:r_string( level_name, line ), "[%d%-%.]+" ) do
+			t[ #t+1 ] = tonumber( n )
+		end
+		if #t ~= 4 then abort( "GetRect: incorrect rect string for level '%s'", level_name ) end
+	else
+		log( "%s: is underground level [%s], can not calculate distance!", script_name(), level_name )
+		return false
+	end
+	return Frect():set( unpack(t) )
+end
+
+function GetGlobalPos( level_name, pos )
+	local global_rect = GetRect( level_name, "global_rect" )
+	local bound_rect = GetRect( level_name, "bound_rect" )
+	local zoom = global_rect:width() / bound_rect:width()
+	local res = {}
+	res.x = ( pos.x - bound_rect.x1 ) * zoom + global_rect.x1
+	res.y = ( bound_rect:height() - ( pos.z - bound_rect.y1 ) ) * zoom + global_rect.y1
+	return res
+end
+
+function get_max_dist()
+	local rect = GetRect( "global_map", "bound_rect" )
+	return math.sqrt( rect.x2^2 + rect.y2^2 )
+end
+
+max_dist = get_max_dist()
+

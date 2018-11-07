@@ -3,59 +3,134 @@ local callbacks = {
 	net_spawn = {},
 	net_destroy = {},
 	update = {},
-	on_info = {},
-	on_item_take = {},
-	on_item_take_from_box = {},
-	on_item_drop = {},
-	on_item_use = {},
-	on_item_select = {},
-	on_item_focus = {},
-	on_item_focus_lost = {},
-	on_slot = {},
-	on_ruck = {},
-	on_key_press = {},
-	on_key_release = {},
-	on_mouse_wheel = {}
+	first_update = {},
+	pre_save = {},
+	info = {},
+	item_take = {},
+	item_take_from_box = {},
+	item_drop = {},
+	item_use = {},
+	item_to_slot = {},
+	item_to_ruck = {},
+	item_to_belt = {},
+	drag_drop = {},
+	cell_item_create = {},
+	cell_item_focus = {},
+	cell_item_focus_lost = {},
+	cell_item_select = {},
+	cell_item_clicked = {},
+	cell_item_db_clicked = {},
+	key_press = {},
+	key_release = {},
+	mouse_wheel = {},
+	inventory_open = {},
+	inventory_close = {},
+	car_body_open = {},
+	car_body_close = {},
+	pda_open = {},
+	pda_close = {},
+	trade_open = {},
+	trade_close = {}
 }
 local unreg_queue = {}
 local need_clear = false
-
-function register_callback(name, func, userobj)
+---------------------------------------------------------------------------------------------------------------------
+function register_callback( name, func, params, disposable )
 	local tbl = callbacks[name] or abort("xr_s.register_callback: unknown callback name: %s", name)
-	tbl[func] = {userobj = userobj}
+	local t = params or {}
+	t.disposable = disposable
+	tbl[func] = t
 end
 
 function unregister_callback(name, func, queue)
 	local tbl = callbacks[name] or abort("xr_s.unregister_callback: unknown callback name: %s", name)
 	if queue then
-		unreg_queue[func] = name
+		table.insert( unreg_queue, { f = func, n = name } )
 		need_clear = true
 	else
 		tbl[func] = nil
 	end
 end
-
+---------------------------------------------------------------------------------------------------------------------
 function on_event( name, ... )
 	for func, t in pairs( callbacks[ name ] ) do
+		local args = { ... }
 		if t.userobj then
-			local args = { ... }
-			args[ #args+1 ] = t.userobj
-			if t.userobj.self then
-				func( t.userobj.self, unpack( args ) )
+			table.insert( args, t.userobj )
+		end
+		if t.self then
+			table.insert( args, 1, t.self )
+		end
+
+		func( unpack( args ) )
+
+		if t.disposable then
+			table.insert( unreg_queue, { f = func, n = name } )
+			need_clear = true
+		end
+	end
+end
+---------------------------------------------------------------------------------------------------------------------
+local function update_timeout( d, t )
+	if t.timeout == nil then
+		return true
+	elseif t.updtime == nil then
+		t.updtime = t.timeout
+		return false
+	elseif t.updtime > 0 then
+		t.updtime = t.updtime - d
+		return false
+	else
+		t.updtime = t.timeout
+		return true
+	end
+end
+
+function on_update( delta )
+	for func, t in pairs( callbacks.update ) do
+		if update_timeout( delta, t ) then
+			if t.self then
+				func( t.self, delta, t.userobj )
 			else
-				func( unpack( args ) )
+				func( delta, t.userobj )
 			end
-		else
-			func( ... )
+
+			if t.disposable then
+				table.insert( unreg_queue, { f = func, n = "update" } )
+				need_clear = true
+			end
 		end
 	end
 
 	if need_clear then
-		for k, v in pairs( unreg_queue ) do
-			callbacks[ v ][ k ] = nil
+		for i, v in ipairs( unreg_queue ) do
+			callbacks[ v.n ][ v.f ] = nil
 		end
 		unreg_queue = {}
 		need_clear = false
+	end
+end
+---------------------------------------------------------------------------------------------------------------------
+local attach_modules = {
+	"arc_radiation",
+	"art_hit",
+	"autozoom",
+	"drag_drop_callback",
+	"hotkeys",
+	"inventory",
+	"nightvision",
+	"ui_inv_add",
+	"ui_pda_add",
+	"ui_trade_add",
+	"xr_timers"
+}
+function init()
+	for i, v in ipairs(attach_modules) do
+		if _G[ v ] then
+			_G[ v ].attach()
+		else
+			log( "! %s: Error module %s", script_name(), v )
+		end
 	end
 end
 

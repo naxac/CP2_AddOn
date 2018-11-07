@@ -4,7 +4,7 @@
 
 RvP()	-- init Lua extension
 
-_G.kScreen = (1024/768) / (device().width/device().height)
+_G.kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
 _G.isWideScreen = _G.kScreen <= 0.85
 
 game_options.load_game_options()
@@ -386,11 +386,11 @@ end
 CUIScriptWnd.unregister_self = function ( self )
 	local id = self.__CUIScriptWnd_id
 	if id == nil then
-		log("[%s]: CUIScriptWnd.unregister_self : __CUIScriptWnd_id not found", script_name() )
+		log("~ [%s]: CUIScriptWnd.unregister_self : __CUIScriptWnd_id not found", script_name() )
 	else
 		registered_windows[ id ] = nil
 	end
-	log("CUIScriptWnd.unregister_self: registered windows count [%d]", table.size(registered_windows) )
+--	log("CUIScriptWnd.unregister_self: registered windows count [%d]", table.size(registered_windows) )
 end
 CUIScriptWnd.InitEditBoxEx = function ( self, ui_name, stat, pos_x, pos_y, width, type )
 	self[ui_name] = new_edit_box.CUIEditBox_new( stat, pos_x, pos_y, width, type )

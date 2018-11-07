@@ -124,7 +124,7 @@ function torch_binder:init_torch()
 	end
 
 	self.object:set_condition(cond)
-	self.object:update_condition()
+	naxac_netpk.modify( self.se_torch, { condition = cond }, net_packet.f_state )
 
 	self.last_time = get_seconds()
 
@@ -160,7 +160,7 @@ function torch_binder:update(delta)
 --	log1(cond.." : "..self.next_cond.." : "..self.se_torch.worked_time)
 
 	self.object:set_condition(cond)
-	self.object:update_condition()
+	naxac_netpk.modify( self.se_torch, { condition = cond }, net_packet.f_state )
 
 	if self.section~="device_torch" then
 		if cond == 0 then
@@ -197,7 +197,7 @@ function torch_binder:charge()
 	self.se_torch.worked_time = 0
 	self.work_time = self.max_time
 	self.object:set_condition(1)
-	self.object:update_condition()
+	naxac_netpk.modify( self.se_torch, { condition = 1 }, net_packet.f_state )
 	self.last_time = get_seconds()
 
 	if self.section~="device_torch" then
@@ -252,7 +252,7 @@ function broke_torch()
 			and v.object:parent() and v.object:parent():id() == 0
 		then
 			v.object:set_condition(0)
-			v.object:update_condition()
+			naxac_netpk.modify( v.se_torch, { condition = 0 }, net_packet.f_state )
 			v.next_cond = -1
 			v.work_time = 0
 			v.se_torch.worked_time = v.max_time
@@ -266,9 +266,9 @@ function charge(acumm, torch)
 	if not devices[torch:id()] then return end
 
 	if has_alife_info("no_pnv") then
-		amk.send_tip("Невозможно заменить батарею: устройство неисправно.", "", nil, nil, "nano")
+		ui_inv_add.show_inv_msg("Невозможно заменить батарею: устройство неисправно")
 	elseif torch:condition() > good_charge then
-		amk.send_tip("Аккумулятор заряжен и не нуждается в замене.", "", nil, nil, "nano")
+		ui_inv_add.show_inv_msg("Аккумулятор заряжен и не нуждается в замене")
 	else
 		devices[torch:id()]:charge()
 		local se_obj = alife():object(acumm:id())

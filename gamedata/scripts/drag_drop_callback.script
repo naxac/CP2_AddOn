@@ -2,21 +2,20 @@
 local level_object = level.object_by_id
 local sim = alife()
 local reg_callbacks = {
-	on_info = "on_info",
-	on_key_press = "on_key_press",
-	on_key_release = "on_key_release",
-	on_item_focus_lost = "on_item_focus_lost",
-	on_item_focus = "on_item_focus"
+	key_press = "on_key_press",
+	key_release = "on_key_release",
+	cell_item_focus_lost = "on_item_focus_lost",
+	cell_item_focus = "on_item_focus"
 }
 local itemInFocus = nil
 local selItem = nil
-local inv_wnd = nil
+local first_click, second_click = nil, nil
+local click_timeout = 350
 
 function add(wnd)
 	for k, v in pairs(reg_callbacks) do
 		xr_s.register_callback( k, this[ v ] )
 	end
-	inv_wnd = wnd
 end
 
 function remove()
@@ -25,13 +24,11 @@ function remove()
 	end
 	itemInFocus = nil
 	selItem = nil
-	inv_wnd = nil
 end
 
-function on_info(info_id)
-	if info_id == "ui_inventory_hide" then
-		remove()
-	end
+function wait_db_click()
+	xr_s.on_event( "cell_item_clicked", level_object(first_click) )
+	first_click, second_click = nil, nil
 end
 
 function on_key_press(dik, bind)
@@ -39,6 +36,16 @@ function on_key_press(dik, bind)
 	
 	if itemInFocus then
 		selItem = itemInFocus
+		if sim:object(itemInFocus) then
+			if first_click and first_click == itemInFocus then
+				second_click = itemInFocus
+				xr_s.on_event( "cell_item_db_clicked", level_object(itemInFocus) )
+				xr_s.unregister_callback( "update", this.wait_db_click )
+			else
+				first_click = itemInFocus
+				xr_s.register_callback( "update", this.wait_db_click, { timeout = click_timeout }, true )
+			end
+		end
 	end
 end
 
@@ -50,11 +57,11 @@ function on_key_release(dik, bind)
 	then
 		local item1 = level_object(selItem)
 		if item1 then
-			local item2 = nil
+			local item2 = false
 			if itemInFocus and sim:object(itemInFocus) then
 				item2 = level_object(itemInFocus)
 			end
-			inv_wnd:on_drag_drop(item1, item2)
+			xr_s.on_event("drag_drop", item1, item2)
 		end
 	end
 
@@ -70,4 +77,10 @@ function on_item_focus_lost(item)
 		itemInFocus = nil
 	end
 end
+
+function attach()
+	xr_s.register_callback("inventory_open", this.add)
+	xr_s.register_callback("inventory_close", this.remove)
+end
+
 

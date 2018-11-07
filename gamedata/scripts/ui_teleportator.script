@@ -16,7 +16,7 @@ end
 class "teleportator_menu" (CUIScriptWnd)
 
 function teleportator_menu:__init() super()
-	amk.spawn_item_in_inv("teleportator")
+--	amk.spawn_item_in_inv("teleportator")
 	self.level_id = {}
 	
 	self:InitControls()
@@ -79,6 +79,18 @@ function teleportator_menu:InitControls()
 	ctrl = xml:InitList("main_dialog:list", self.dialog)
 	ctrl:ShowSelectedItem(true)
 	self:Register(ctrl, "list_window")
+
+	local obj = db.actor:object("teleportator")
+	local cond = obj and obj:condition()
+		or abort( "%s: InitControls: actor has not teleportator", script_name() )
+	local back = xml:InitStatic( "main_dialog:charge", self.dialog )
+	local st = xml:InitStatic( "main_dialog:charge:scale", back )
+	st:SetWidth( st:GetWidth() * cond )
+	st:SetColor( GetARGB( 255, 255, 50, 50 ) )
+	back:SetText( string.format( "%d%%", cond*100 ) )
+
+	self.message_box = CUIMessageBoxEx()
+	self:Register(self.message_box, "message_box")
 end
 
 function teleportator_menu:InitCallBacks()
@@ -110,8 +122,32 @@ function teleportator_menu:on_ok()
 	if index == -1 then return end
 
 	if self.level_id[index+1] then
-		self:on_quit()
-		spawn_level_changer.do_teleport("arhara_obman"..tostring(self.level_id[index+1]))
+		local section = "arhara_obman"..tostring(self.level_id[index+1])
+		local place = spawn_level_changer.get_place_by_teleport(section)
+		if not place then
+			log( "! %s: ERROR! Not found place for teleport section [%s]", script_name(), section )
+			return
+		end
+		
+		local dist, max_dist = map_distance.calculate_dist( level.name(), db.actor:position(),
+			place.lvl, vector():set( unpack( place.pos ) ) )
+		local need_charge = dist / max_dist
+		local obj = db.actor:object("teleportator")
+		local cond = obj and obj:condition()
+			or abort( "%s: on_ok: actor has not teleportator", script_name() )
+		if need_charge <= cond then
+			self:on_quit()
+
+			local new_cond = cond - need_charge
+			obj:set_condition( new_cond )
+			naxac_netpk.modify( alife():object( obj:id() ), { condition = new_cond }, net_packet.f_state )
+
+			spawn_level_changer.do_teleport(section, true)
+		else
+			self.message_box:Init("select_map")
+			self.message_box:SetText("Недостаточно заряда для перемещения: дозарядите телепортатор")
+			self:GetHolder():start_stop_menu(self.message_box, true)
+		end
 	end
 end
 
