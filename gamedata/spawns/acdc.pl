@@ -1077,6 +1077,30 @@ sub state_export {
 }
 
 #######################################################################
+package se_restrictor;
+use strict;
+use constant properties_info => (
+	{ name => 'activated', type => 'u8', default => 0 },
+);
+sub state_read {
+	cse_alife_space_restrictor::state_read(@_);
+	$_[1]->length() == 1 or die;
+	$_[1]->unpack_properties($_[0], properties_info);
+}
+sub state_write {
+	cse_alife_space_restrictor::state_write(@_);
+	$_[1]->pack_properties($_[0], properties_info);
+}
+sub state_import {
+	cse_alife_space_restrictor::state_import(@_);
+	$_[1]->import_properties($_[2], $_[0], properties_info);
+}
+sub state_export {
+	cse_alife_space_restrictor::state_export(@_);
+	$_[1]->export_properties(__PACKAGE__, $_[0], properties_info);
+}
+
+#######################################################################
 package se_anomaly_field;
 use strict;
 use constant properties_info => (
@@ -2019,6 +2043,8 @@ use constant section_to_class => {
 	space_restrictor			=> 'cse_alife_space_restrictor',
 	script_zone					=> 'cse_alife_space_restrictor',
 	touch_zone					=> 'cse_alife_space_restrictor',
+	
+	zone_subway                => 'se_restrictor',
 
 	level_changer				=> 'cse_alife_level_changer',
 
@@ -2693,28 +2719,6 @@ package levels;
 use strict;
 use constant levels_info => (
 	{ gvid0 => 10000, },
-	{ gvid0 => 9352,    name => 'l59_east_cordon' },
-	{ gvid0 => 9060,    name => 'l58_forgotten' },
-	{ gvid0 => 8397,    name => 'l57_outskirts' },
-	{ gvid0 => 8166,    name => 'l56_rostok_factory' },
-	{ gvid0 => 8118,    name => 'l55u_basement' },
-	{ gvid0 => 8051,    name => 'l54u_labx9' },
-	{ gvid0 => 7751,    name => 'l53_anomfields' },
-	{ gvid0 => 7385,    name => 'l52_swamp' },
-	{ gvid0 => 6638,    name => 'l51_lostvalley' },
-	{ gvid0 => 6465,    name => 'l50u_katakomb' },
-	{ gvid0 => 5983,    name => 'l48_promzone' },
-	{ gvid0 => 5751,    name => 'l49u_damned' },
-	{ gvid0 => 5668,    name => 'l47u_lab_x17' },
-	{ gvid0 => 5408,    name => 'l46_science_station' },
-	{ gvid0 => 5015,    name => 'l45_forest' },
-	{ gvid0 => 4887,    name => 'l44_perimetr' },
-	{ gvid0 => 4702,    name => 'l42_predbannik' },
-	{ gvid0 => 4379,    name => 'l41_darkscape_ogse' },
-	{ gvid0 => 4295,    name => 'l39u_lab_x14' },
-	{ gvid0 => 4247,    name => 'l37_kurchatov' },
-	{ gvid0 => 4203,    name => 'l38u_labx5' },
-	{ gvid0 => 3851,    name => 'l40_dshor' },
 	{ gvid0 => 3830,    name => 'labx8' },
 	{ gvid0 => 3771,    name => 'jupiter_underground' },
 	{ gvid0 => 3748,    name => 'pripyat' },
