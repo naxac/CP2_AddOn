@@ -3,45 +3,45 @@ function ggg()
 end
 
 function repair()
-	if has_alife_info( "naxac_test_repair5" ) then return end
+	if has_alife_info( "naxac_test_repair4" ) then return end
 
 	local sim = alife()
 	local t, obj
 
 	if not has_alife_info( "naxac_test_repair" ) then
+		-- перемещаем переход 'Лиманск - Мёртвый Город
 		obj = sim:story_object( 97114 )
 		if obj then
-		--	log1("- перемещаем переход 'Лиманск - Мёртвый Город'\n")
 			sim:teleport_object( "", vector():set(-52.046363, -10.754915, -184.263061), 4128, 2993, obj.id )
 		end
 
+		-- перемещаем переход 'Тёмная Долина - Армейские Склады
 		obj = sim:story_object( 9110 )
 		if obj then
-		--	log1("- перемещаем переход 'Тёмная Долина - Армейские Склады'\n")
 			sim:teleport_object( "", vector():set(-49.27893447876,-1.8120930194855,-24.721027374268),116037,1019, obj.id )
 		end
 
+		-- прячем переход 'Агро-Подземка' под землю
 		obj = sim:object( "exit_to_agr_underground_05" )
 		if obj then
-		--	log1("- прячем переход 'Агро-Подземка' под землю\n")
 			sim:teleport_object( "", obj.position:add(vector():set(0,-1,0)),
 				obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
 		end
 
-	--	log1("- ставим на все переходы постоянные метки\n")
+		-- ставим на все переходы постоянные метки
 		level_tasks.add_lchanger_location()
 
+		-- фикс двери на Затоне
 		obj = sim:object( "zat_a23_enter_door" )
 		if obj then
-		--	log1("- фикс двери на Затоне\n")
 			t = { custom_data = "[collide]\n".."ignore_static\n"..
 							    "[logic]\n".."cfg = scripts\\zaton\\zat_a23_enter_door.ltx" }
 			naxac_netpk.modify( obj, t, net_packet.f_state )
 		end
 
+		-- чиним бессмертный вертолёт на ЧАЭС
 		obj = sim:object( "aes_helicopter_0004" )
 		if obj then
-		--	log1("- чиним бессмертный вертолёт на ЧАЭС\n")
 			t = { custom_data = "[logic]\n"..
 								"cfg = scripts\\aes\\aes_helicopter_0004.ltx" }
 			naxac_netpk.modify( obj, t, net_packet.f_state )
@@ -50,13 +50,9 @@ function repair()
 		naxac_test.rewrite_restr_logic("aes_space_restrictor_timer",
 			"scripts\\aes\\aes_space_timer.ltx")
 
-		db.actor:give_info_portion( "naxac_test_repair" )
-	end
-
-	if not has_alife_info( "naxac_test_repair2" ) then
+		-- исправляем квест на записку Сыча в бункере Радара
 		obj = sim:object( "sysh_treasure_box" )
 		if obj then
-		--	log1("- исправляем квест на записку Сыча в бункере Радара\n")
 			sim:release( obj, true )
 			-- если задание уже получено, но записку из тайника ещё не забрали,
 			-- то заспавним новый тайник
@@ -65,6 +61,7 @@ function repair()
 			end
 		end
 
+		-- ставим метку на переход Дикая Территория - Бар
 		obj = sim:story_object( 18022 )
 		if obj == nil then
 			for i = 1, 65534 do
@@ -73,7 +70,6 @@ function repair()
 					if obj:name() == "exit_to_bar_01"
 						and sim:level_name(game_graph():vertex(obj.m_game_vertex_id):level_id()) == "l06_rostok"
 					then
-					--	log1("- ставим метку на переход Дикая Территория - Бар\n")
 						if level.map_has_object_spot( obj.id, "level_changer1" ) == 0 then
 							level.map_add_object_spot_ser( obj.id, "level_changer1", "Дикая Территория - Бар" )
 						end
@@ -83,19 +79,15 @@ function repair()
 			end
 		end
 
+		--	добавляем переходу 'Припять - ЧАЭС' вопрос о переходе (только после первого поещения ЧАЭС)
 		if has_alife_info( "aes_actor_road" ) then
-		--	log1("- добавляем переходу 'Припять - ЧАЭС' вопрос о переходе\n")	-- (только после первого поещения ЧАЭС)
 			obj = alife():object( "exit_to_stancia_01" )
 			if obj then
 				naxac_netpk.modify( obj, { silent_mode = 0 }, net_packet.f_state )
 			end
 		end
 
-		db.actor:give_info_portion( "naxac_test_repair2" )
-	end
-
-	if not has_alife_info( "naxac_test_repair3" ) then
-	--	log1("- переделываем поломку КПК на Кордоне\n")
+		-- переделываем поломку КПК на Кордоне
 		naxac_test.rewrite_restr_logic( "pda_slom_restrictor",
 			"scripts\\esc\\slom_pda_restr.ltx" )
 		naxac_test.rewrite_restr_logic( "bar_lestniza_pda_enabl_timer_restrictor",
@@ -108,26 +100,61 @@ function repair()
 			if obj then sim:release( obj, true ) end
 		end
 		db.actor:give_info_portion("naxac_test_repair3")
+
+		-- правим квест с тайником Призрака на Агропроме (чтобы тайника не было с начала игры)
+		obj = sim:object( "prizrak_treasure_box" )
+		if obj then
+			sim:release( obj, true )
+			if has_alife_info( "treasure_ecolog_start" ) and not has_alife_info( "treasure_ecolog_have" ) then
+				new_dialog.treasure_ecolog_spawn()
+			end
+		end
+
+		-- делаем Жорика (охранник в Баре на лестнице) разговорчивее
+		obj = sim:object( "bar_bar_guard_2" )
+		if obj then
+			t = {}
+			t.custom_data =	"[smart_terrains]\n".."none = true\n"..
+							"[logic]\n".."cfg = scripts\\jorik.ltx"
+			t.visual_name = "actors\\neytral\\stalker_bar_security"
+			naxac_netpk.modify( obj, t, net_packet.f_state + net_packet.f_convert )
+		end
+		db.actor:give_info_portion( "naxac_test_repair" )
 	end
 
-	obj = sim:object( "prizrak_treasure_box" )
-	if obj then
-		sim:release( obj, true )
-		if has_alife_info( "treasure_ecolog_start" ) and not has_alife_info( "treasure_ecolog_have" ) then
-			new_dialog.treasure_ecolog_spawn()
+	-- Правим косяк(((
+	local for_del = {
+		m_teleport_prip = true,
+		m_teleport_prip2 = true,
+		m_teleport_prip3 = true,
+		m_teleport_labirint1 = true,
+		m_teleport_labirint2 = true,
+		m_teleport_labirint3 = true,
+		m_teleport_warlab1 = true,
+		m_teleport_2_hosp_verh2 = true,
+		m_teleport_blok_vuhod_3otsek = true,
+		m_teleport_dok_prip_vuhod = true,
+		m_teleport_final_truba = true,
+		m_teleport_bolota_u_agru = true,
+		m_teleport_limansk_antena = true,
+		m_teleport_vnutri_norm_taynik = true,
+		m_teleport_izkanalii_dcity = true,
+		m_inventory_box39 = true
+	}
+	for i = 1, 65534 do
+		obj = sim:object( i )
+		if obj and for_del[ obj:section_name() ] then
+			sim:release( obj, true )
 		end
 	end
+	meceniy_work.main()
 
-	obj = sim:object( "bar_bar_guard_2" )
-	if obj then
-		t = {}
-		t.custom_data =	"[smart_terrains]\n".."none = true\n"..
-						"[logic]\n".."cfg = scripts\\jorik.ltx"
-		t.visual_name = "actors\\neytral\\stalker_bar_security"
-		naxac_netpk.modify( obj, t, net_packet.f_state + net_packet.f_convert )
-	end
-	
-	db.actor:give_info_portion( "naxac_test_repair5" )
+	db.actor:give_info_portion( "naxac_test_repair4" )
+
+	-- удалим на будущее
+	db.actor:disable_info_portion( "naxac_test_repair5" )
+	db.actor:disable_info_portion( "naxac_test_repair3" )
+	db.actor:disable_info_portion( "naxac_test_repair2" )
 end
 
 function after_credits()
