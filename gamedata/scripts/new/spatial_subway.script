@@ -1,0 +1,157 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+levels = {}
+
+local max_cnt = 7
+local min_cnt = 4
+local zone_radius = 2.5
+
+local tmp_pos, max_lv
+
+function init()
+	if not has_alife_info( "spatial_subway_start" ) then return end
+
+	local sim = alife()
+	local lname = level.name()
+	
+	local se_obj = sim:story_object(33333)
+	if se_obj then
+		sim:release(se_obj, true)
+	end
+	
+	local t = amk_anoms.get_locations()
+	for i, lvl in ipairs( t ) do
+		if levels[ lvl ] == nil then
+			levels[ lvl ] = false
+		end
+	end
+	
+	if levels[lname] ~= nil and not has_alife_info(lname.."_subway") then
+		db.actor:give_info_portion(lname.."_subway")
+
+		max_lv = amk_anoms.get_max_level_vertex()
+		tmp_pos = {}
+		
+		local cnt = math.random( min_cnt, max_cnt )
+		while cnt > 0 do
+			if spawn_teleport() then cnt = cnt - 1 end
+		end
+
+		max_lv, tmp_pos = nil, nil
+	end
+end
+
+function add_zone(se_obj)
+	local gv = se_obj.m_game_vertex_id
+	local ln = alife():level_name(game_graph():vertex(gv):level_id())
+	if not levels[ln] then levels[ln] = {} end
+	if levels[ln][se_obj.id] == nil then
+		levels[ln][se_obj.id] = {
+			pos = se_obj.position,
+			lv    = se_obj.m_level_vertex_id,
+			gv   = gv
+		}
+		-- log("add_zone %s", se_obj:name())
+	end
+end
+
+function spawn_teleport()
+	local new_lv = math.random(1, max_lv)
+	local pos = level.vertex_position(new_lv)
+	
+	if db.actor:position():distance_to(pos) < 10 then return false end
+	for _,p in ipairs(tmp_pos) do
+		if p:distance_to(pos) < 60 then return false end
+	end
+	table.insert(tmp_pos, pos)
+
+	local new_gv = amk_anoms.get_nearest_gv( pos )
+
+	return this.create_zone_subway(pos, new_lv, new_gv)
+end
+
+function use_scaner(item)
+	if level.main_input_receiver() then
+		level.start_stop_menu(level.main_input_receiver(), true)
+	end
+
+	local cond = item:condition()
+	if cond < 0.02 then
+		bind_subway.sms( "Сканер полностью разряжен." )
+		return
+	end
+
+	local zone_id, activated = bind_subway.get_active_zone()
+	if activated == nil then
+		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(false, cond), true)
+	elseif activated == true then
+		level.start_stop_menu(ui_spatial_scaner.UIPdaTeleport(true, cond), true)
+	elseif activated == false then
+		if cond > 0.4 then
+			bind_subway.start_scan_timer(zone_id)
+		else
+			bind_subway.sms( "Уровня заряда недостаточно для сканирования." )
+		end
+	end
+end
+---------------------------------------------------------------------------------------
+function go_to(lname, id)
+--	log("go_to: %s-%s", tostring(lname), tostring(id))
+	local point = levels[lname][id]
+		or abort("teleportator: not exist coordinates for level '%s', zone id [%s]", tostring(lname), tostring(id))
+
+	level.enable_input()
+	if lname == level.name() then
+		local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
+		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)	
+		db.actor:set_actor_position(point.pos)
+	else
+		spatial_subway.create_level_changer(point.pos, point.lv, point.gv, lname)
+	end
+end
+
+---------------------------------------------------------------------------------------
+function create_zone_subway( pos, new_lv, new_gv )
+	local se_obj = alife():create( "zone_subway", pos, new_lv, new_gv )
+--	level.map_add_object_spot_ser( se_obj.id, 'blue_location', se_obj:name() )
+	local data = {}
+	data.shapes = {
+		[ 1 ] = {
+			[ "shtype" ] = 0,
+			[ "center" ] = vector():set( 0, 0, 0 ),
+			[ "radius" ] = zone_radius
+		}
+	}
+	data.restrictor_type = 3  -- RestrictorTypeNone
+	netpk:modify( se_obj, data, net_packet.fState )
+	return se_obj
+end
+
+
+function create_level_changer( pos, lv, gv, lname )
+	local obj = alife():create( "level_changer", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id() )
+
+	local data = {}
+	data.story_id = 33333
+	data.shapes = {
+		[1] = {
+			["shtype"]         = 1,
+			["box_matrix"] = matrix():set(
+				vector():set(4, 0, 0),
+				vector():set(0, 4, 0),
+				vector():set(0, 0, 4),
+				vector():set(0, 0, 0)
+			)
+		}
+	}
+	data.restrictor_type = 3  -- RestrictorTypeNone
+	data.dest_game_vertex_id = gv
+	data.dest_level_vertex_id = lv
+	data.dest_position = pos
+	data.dest_level_name = lname
+	data.dest_graph_point = "start_actor_99"
+	data.silent_mode = 1
+
+	netpk:modify( obj, data, net_packet.fState )
+	bind_lc.shift_send_sms()
+end
+

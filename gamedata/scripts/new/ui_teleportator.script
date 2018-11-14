@@ -1,0 +1,158 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- телепортатор меню
+class "destination" (CUIListItemEx)
+
+function destination:__init() super()
+	self:SetWndRect(0,0,430,22)
+	
+	self.fn	= CUIStatic()
+	self.fn:SetAutoDelete(true)
+	self:AttachChild(self.fn)
+	self.fn:SetWndRect(0,0,200,22)
+	self.fn:SetFont(GetFontLetterica18Russian())
+	self.fn:SetTextColor(255,216,186,140)
+end
+
+class "teleportator_menu" (CUIScriptWnd)
+
+function teleportator_menu:__init() super()
+--	amk.spawn_item_in_inv("teleportator")
+	self.level_id = {}
+	
+	self:InitControls()
+	self:InitCallBacks()
+	self:FillList()
+	BlockUIDescr(true)
+end
+
+function teleportator_menu:__finalize() end
+
+function teleportator_menu:FillList()
+	local list_box = self:GetListWnd("list_window")
+	local obj_sect, _itm, place
+	
+	local tmp = {}
+	for	i = 1, 36 do	-- 36 территорий
+		obj_sect = "arhara_obman"..tostring(i)
+		if has_alife_info(obj_sect) then
+			place = spawn_level_changer.teleport_name(obj_sect)
+			table.insert(tmp, {
+				name = game.translate_string(place.autosave),
+				index = i
+			} )
+		end
+	end
+	table.sort(tmp, function (t1, t2)
+		local res = cheat_main.sort_by_name(t1.name, t2.name)
+		if res ~= nil then
+			return res
+		else
+			return t1.index < t2.index
+		end
+	end)
+
+	for	i, v in ipairs(tmp) do	
+		_itm = destination()
+		_itm.fn:SetTextST(v.name)
+		list_box:AddItem(_itm)
+		table.insert(self.level_id, v.index)
+	end
+end
+
+function teleportator_menu:InitControls()
+	self:Init(0,0,1024,768)
+	
+	-- файл-описатель наших элементов
+	local ctrl
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_teleportator.xml")
+
+	self.dialog	= xml:InitStatic("main_dialog:dialog", self)
+	xml:InitStatic("main_dialog:capt", self.dialog)
+	xml:InitStatic("main_dialog:msg1", self.dialog)
+--	xml:InitStatic("main_dialog:msg2", self.dialog)
+	
+	-- кнопки
+	self:Register(xml:Init3tButton("main_dialog:btn_ok", self.dialog),"btn_ok")
+	self:Register(xml:Init3tButton("main_dialog:btn_quit", self.dialog),"btn_quit")
+	xml:InitFrame("main_dialog:list_frame", self.dialog)
+	ctrl = xml:InitList("main_dialog:list", self.dialog)
+	ctrl:ShowSelectedItem(true)
+	self:Register(ctrl, "list_window")
+
+	local obj = db.actor:object("teleportator")
+	local cond = obj and obj:condition()
+		or abort( "%s: InitControls: actor has not teleportator", script_name() )
+	local back = xml:InitStatic( "main_dialog:charge", self.dialog )
+	local st = xml:InitStatic( "main_dialog:charge:scale", back )
+	st:SetWidth( st:GetWidth() * cond )
+	st:SetColor( GetARGB( 255, 255, 50, 50 ) )
+	back:SetText( string.format( "%d%%", cond*100 ) )
+
+	self.message_box = CUIMessageBoxEx()
+	self:Register(self.message_box, "message_box")
+end
+
+function teleportator_menu:InitCallBacks()
+	self:AddCallbackEx("btn_ok", ui_events.BUTTON_CLICKED, self.on_ok)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit)
+	self:AddCallbackEx("list_window", ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked)
+end
+
+function teleportator_menu:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:on_quit()
+		elseif dik == DIK_keys.DIK_RETURN then
+			self:on_ok()
+		end
+	end
+	return true
+end
+
+function teleportator_menu:OnListItemDbClicked()
+	self:on_ok()
+end
+
+function teleportator_menu:on_ok()
+	local list = self:GetListWnd("list_window")	
+	if list:GetSize()==0 then return end
+	local index = list:GetSelectedItem()
+	if index == -1 then return end
+
+	if self.level_id[index+1] then
+		local section = "arhara_obman"..tostring(self.level_id[index+1])
+		local place = spawn_level_changer.get_place_by_teleport(section)
+		if not place then
+			log( "! %s: ERROR! Not found place for teleport section [%s]", script_name(), section )
+			return
+		end
+		
+		local dist, max_dist = map_distance.calculate_dist( level.name(), db.actor:position(),
+			place.lvl, vector():set( unpack( place.pos ) ) )
+		local need_charge = dist / max_dist
+		local obj = db.actor:object("teleportator")
+		local cond = obj and obj:condition()
+			or abort( "%s: on_ok: actor has not teleportator", script_name() )
+		if need_charge <= cond then
+			self:on_quit()
+
+			local new_cond = cond - need_charge
+			obj:set_condition( new_cond )
+			netpk:modify( alife():object( obj:id() ), { condition = new_cond }, net_packet.fState )
+
+			spawn_level_changer.do_teleport(section, true)
+		else
+			self.message_box:Init("select_map")
+			self.message_box:SetText("Недостаточно заряда для перемещения: дозарядите телепортатор")
+			self:GetHolder():start_stop_menu(self.message_box, true)
+		end
+	end
+end
+
+function teleportator_menu:on_quit()
+	self:unregister_self()
+	self:GetHolder():start_stop_menu(self, true)
+	BlockUIDescr(false)
+end
