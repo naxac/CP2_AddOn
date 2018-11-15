@@ -21,8 +21,8 @@ local can_lock_visuals = {
 function restore(se_box, box_id)
 	if se_box and se_box:clsid() == clsid.inventory_box then
 		if zamok_box[box_id] == nil then
-			local data = naxac_netpk.get(se_box, net_packet.f_state)
-			local t = naxac_netpk.parse_custom_data(data.custom_data)
+			local data = netpk:get(se_box, net_packet.fState)
+			local t = netpk:parse_custom_data(data.custom_data)
 			if t["password"] then
 			--	log1("add protected box: "..se_box:name())
 				table.insert(amk_offline_alife.protected.ids, box_id)
@@ -102,8 +102,8 @@ function ui_codelock:__init(se_box, cl_box, mode) super()
 	self.check_code = false
 	self:InitControls()
 	if not self.install then
-		local data = naxac_netpk.get(se_box, net_packet.f_state)
-		local t = naxac_netpk.parse_custom_data(data.custom_data)
+		local data = netpk:get(se_box, net_packet.fState)
+		local t = netpk:parse_custom_data(data.custom_data)
 		self.code = (t['password'] and t['password']['code']) or "000000"
 	end
 end
@@ -174,7 +174,7 @@ function ui_codelock:on_ButtonOk()
 							"cfg = scripts\\code_inventory_box.ltx\n"..
 							"[password]\n"..
 							"code = "..str
-		naxac_netpk.modify(self.se_box, data, net_packet.f_state)
+		netpk:modify(self.se_box, data, net_packet.fState)
 		table.insert(amk_offline_alife.protected.ids, self.se_box.id)
 		--amk_offline_alife.update_tables(level.name())
 		amk.send_tip("", 'Заперли тайник на замок.', nil, 5, "nano")
@@ -187,7 +187,7 @@ function ui_codelock:on_ButtonOk()
 	else
 		if self.code == str then
 			self:GetHolder():start_stop_menu(self, true)
-			BlockUIDescr(false)
+			ShowInvDescr(true)
 			self.cl_box:set_nonscript_usable(true)
 			db.actor:open_inventory_box(self.cl_box)
 		else
@@ -272,7 +272,7 @@ function change_box_data(box)
 			data.custom_data = ""
 			inifilename = "scripts\\treasure_inventory_box.ltx"
 		end
-		naxac_netpk.modify(se_box, data, net_packet.f_state)
+		netpk:modify(se_box, data, net_packet.fState)
 		-- Перезагружаем логику
 		local st = db.storage[box_id]
 		st = {}

@@ -401,14 +401,13 @@ function give_letter(npc)
 		local s = tmp[math.random(#tmp)]
 		letters_tbl[s].done = true
 		local obj = amk.spawn_item_in_inv("letter", npc)
-		local t = naxac_netpk.get(obj, net_packet.f_state)
-		t.custom_data = s
-		naxac_netpk.set(obj, t)
+		local t = { custom_data = s }
+		netpk:modify(obj, t, net_packet.fState)
 	end
 end
 
 function give_letter_info(sobj)
-	local t = naxac_netpk.get(sobj, net_packet.f_state)
+	local t = netpk:get(sobj, net_packet.fState)
 	local s = t.custom_data
 	if letters_tbl[s] and not has_alife_info(s) then
 		db.actor:give_info_portion(s)

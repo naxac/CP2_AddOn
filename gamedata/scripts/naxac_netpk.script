@@ -40,79 +40,96 @@ local restrictor_type = {
 	RestrictorTypeIn          = 4,
 	RestrictorTypeOut         = 5
 }
+--------------------------------------------------------------------------------------------------
+class "n_netpk"
 
 local clsid2func = {}
 
-function get( obj, flags )
-	if obj == nil then return abort("naxac_netpk.get: obj is nil") end
+function n_netpk:__init()
+	self.state = false
+	self.update = false
+end
 
-	local class_str = clsid2func[obj:clsid()]
+function n_netpk:__finalize() end
+
+function n_netpk:get( obj, flags )
+	if obj == nil then return abort( "naxac_netpk.get: obj is nil" ) end
+
+	local class_str = clsid2func[ obj:clsid() ]
 		or abort("naxac_netpk.get: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
-	local func = this['read_'..class_str]
-		or abort("naxac_netpk.get: function not found for 'class_str' [%s]", class_str)
 
+	self.state = bit_and( ( flags or 0 ), net_packet.fState ) ~= 0
+	self.update = bit_and( ( flags or 0 ), net_packet.fUpdate ) ~= 0
+	if not self.state or self.update then
+		self.state = true
+		self.update = true
+	end
+
+--	log( "\n\n! read net_packet for object %s:", obj:name() )
+--	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
 	local ret = {}
 
 	ret.net_class_name = class_str
 
-	local stpk = net_packet()
-	stpk:w_begin( 0 )
-	obj:STATE_Write( stpk )
-	stpk:r_seek( 2 )
+	if self.state then
+	--	log( "# state part:" )
+		local stpk = net_packet()
+		stpk:w_begin( 0 )
+		obj:STATE_Write( stpk )
+		stpk:r_seek( 2 )
+		self[ "r_st_"..class_str ]( self, ret, stpk )
+		ret.tail = stpk:r_tail()
+	--	table.print( ret )
+	end
 	
-	local uppk = nil
-	if bit_and( ( flags or 0 ), net_packet.f_state ) == 0 then
+	if self.update then
+	--	log( "# update part:" )
 		ret.upd = {}
-		uppk = net_packet()
+		local uppk = net_packet()
 		uppk:w_begin( 0 )
 		obj:UPDATE_Write( uppk )
 		uppk:r_seek( 2 )
-	end
-
-	func(ret, stpk, uppk)
-
-	ret.tail = stpk:r_tail()
-	if uppk then
+		self[ "r_upd_"..class_str ]( self, ret.upd, uppk )
 		ret.upd.tail = uppk:r_tail()
+	--	table.print( ret.upd )
 	end
-	
+
 	return ret
 end
 
-function set(obj, data, flags)
-	if not (obj and data) then return abort("naxac_netpk.set: obj is nil") end
+function n_netpk:set( obj, data, flags )
+	if not (obj and data) then return abort( "naxac_netpk.set: obj is nil" ) end
 
 	local class_str = data.net_class_name
 		or clsid2func[obj:clsid()]
 		or abort("naxac_netpk.set: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
-	local func = this['write_'..class_str]
-		or abort("naxac_netpk.set: function not found for 'class_str' [%s]", class_str)
 
-	local stpk = net_packet()
-	stpk:w_begin( 0 )
+--	log( "\n\n! write net_packet for object %s:", obj:name() )
+--	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
+--	log( "# net_packet data:" )
+--	table.print( data )
 
-	local uppk = nil
-	if data.upd then
-		uppk = net_packet()
-		uppk:w_begin( 0 )
+	if self.state then
+		local stpk = net_packet()
+		stpk:w_begin( 0 )
+		self[ "w_st_"..class_str ]( self, data, stpk )
+		stpk:w_tail( data.tail )
+		stpk:r_seek( 2 )
+		obj:STATE_Read( stpk, stpk:w_tell() )
 	end
 
-	func(data, stpk, uppk)
-
-	stpk:w_tail( data.tail )
-
-	stpk:r_seek( 2 )
-	obj:STATE_Read( stpk, stpk:w_tell() )
-
-	if uppk then
+	if self.update then
+		local uppk = net_packet()
+		uppk:w_begin( 0 )
+		self[ "w_upd_"..class_str ]( self, data.upd, uppk )
 		uppk:w_tail( data.upd.tail )
 		uppk:r_seek( 2 )
 		obj:UPDATE_Read( uppk )
 	end
 
-	if bit_and( ( flags or 0 ), net_packet.f_convert ) == 0 then return end
+	if bit_and( ( flags or 0 ), net_packet.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -128,67 +145,69 @@ function set(obj, data, flags)
 	end
 end
 
-function modify( obj, data, flags )
+function n_netpk:modify( obj, data, flags )
 	if not ( obj and data ) then return abort("naxac_netpk.modify: obj is nil") end
 
 	local class_str = clsid2func[obj:clsid()]
 		or abort("naxac_netpk.modify: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
-	local func = this['read_'..class_str]
-		or abort("naxac_netpk.modify: read-function not found for 'class_str' [%s]", class_str)
-
 	local tmp = {}
-
 	local stpk = net_packet()
-	stpk:w_begin( 0 )
-	obj:STATE_Write( stpk )
-	stpk:r_seek( 2 )
-	
-	local uppk = nil
-	if bit_and( ( flags or 0 ), net_packet.f_state ) == 0 then
+	local uppk = net_packet()
+
+	self.state = bit_and( ( flags or 0 ), net_packet.fState ) ~= 0
+	self.update = bit_and( ( flags or 0 ), net_packet.fUpdate ) ~= 0
+	if not self.state or self.update then
+		self.state = true
+		self.update = true
+	end
+
+--	log( "\n\n! modify net_packet for object %s:", obj:name() )
+--	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
+	if self.state then
+	--	log( "# state part:" )
+		stpk:w_begin( 0 )
+		obj:STATE_Write( stpk )
+		stpk:r_seek( 2 )
+		self[ "r_st_"..class_str ]( self, tmp, stpk )
+		tmp.tail = stpk:r_tail()
+	--	table.print( tmp )
+	end
+
+	if self.update then
+	--	log( "# update part:" )
 		tmp.upd = {}
-		uppk = net_packet()
 		uppk:w_begin( 0 )
 		obj:UPDATE_Write( uppk )
 		uppk:r_seek( 2 )
-	end
-
-	func( tmp, stpk, uppk )
-
-	tmp.tail = stpk:r_tail()
-	if uppk then
+		self[ "r_upd_"..class_str ]( self, tmp.upd, uppk )
 		tmp.upd.tail = uppk:r_tail()
+	--	table.print( tmp.upd )
 	end
 
-	for k, v in pairs(data) do
-		if tmp[k] then tmp[k] = v end
+--	log( "~ modify:" )
+--	table.print( data )
+
+	table.copy( tmp, data )
+
+	if self.state then
+		stpk:w_begin( 0 )
+		self[ "w_st_"..class_str ]( self, tmp, stpk )
+		stpk:w_tail( tmp.tail )
+		stpk:r_seek( 2 )
+		obj:STATE_Read( stpk, stpk:w_tell() )
 	end
-	if data.upd and tmp.upd then
-		for k, v in pairs(data.upd) do
-			if tmp.upd[k] then tmp.upd[k] = v end
-		end
-	end
 
-	func = this['write_'..class_str]
-		or abort("naxac_netpk.modify: write-function not found for 'class_str' [%s]",class_str)
-
-	stpk:w_begin( 0 )
-	if uppk then uppk:w_begin( 0 ) end
-
-	func( tmp, stpk, uppk )
-
-	stpk:w_tail( tmp.tail )
-	stpk:r_seek( 2 )
-	obj:STATE_Read( stpk, stpk:w_tell() )
-
-	if uppk then
+	if self.update then
+		uppk:w_begin( 0 )
+		self[ "w_upd_"..class_str ]( self, tmp.upd, uppk )
 		uppk:w_tail( tmp.upd.tail )
 		uppk:r_seek( 2 )
 		obj:UPDATE_Read( uppk )
 	end
 
-	if bit_and( ( flags or 0 ), net_packet.f_convert ) == 0 then return end
+	if bit_and( ( flags or 0 ), net_packet.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -205,7 +224,7 @@ function modify( obj, data, flags )
 end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_object
-function read_cse_alife_object( ret, stpk )
+function n_netpk:r_st_cse_alife_object( ret, stpk )
 	ret.game_vertex_id  = stpk:r_u16()
 	ret.distance        = stpk:r_float()
 	ret.direct_control  = stpk:r_s32()
@@ -215,7 +234,7 @@ function read_cse_alife_object( ret, stpk )
 	ret.story_id        = stpk:r_s32()
 	ret.spawn_story_id  = stpk:r_s32()
 end
-function write_cse_alife_object( data, stpk )
+function n_netpk:w_st_cse_alife_object( data, stpk )
 	stpk:w_u16     ( data.game_vertex_id )
 	stpk:w_float   ( data.distance )
 	stpk:w_s32     ( data.direct_control )
@@ -225,36 +244,40 @@ function write_cse_alife_object( data, stpk )
 	stpk:w_s32     ( data.story_id)
 	stpk:w_s32     ( data.spawn_story_id )
 end
+----------------------------------------------------------------------------------------------------------
 -- cse_visual
-function read_cse_visual( ret, stpk )
+function n_netpk:r_st_cse_visual( ret, stpk )
 	ret.visual_name  = stpk:r_stringZ()
 	ret.visual_flags = stpk:r_u8()
 end
-function write_cse_visual( data, stpk )
+function n_netpk:w_st_cse_visual( data, stpk )
 	stpk:w_stringZ ( data.visual_name )
 	stpk:w_u8      ( data.visual_flags )
 end
+----------------------------------------------------------------------------------------------------------
 -- cse_motion
-function read_cse_motion( ret, stpk )
+function n_netpk:r_st_cse_motion( ret, stpk )
 	ret.motion_name = stpk:r_stringZ()
 end
-function write_cse_motion( data, stpk )
+function n_netpk:w_st_cse_motion( data, stpk )
 	stpk:w_stringZ ( data.motion_name )
 end
----------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_dynamic_object_visual
-function read_cse_alife_dynamic_object( ret, stpk, uppk )
-	read_cse_alife_object ( ret, stpk )
-	read_cse_visual       ( ret, stpk )
+function n_netpk:r_st_cse_alife_dynamic_object( ret, stpk )
+	self:r_st_cse_alife_object ( ret, stpk )
+	self:r_st_cse_visual       ( ret, stpk )
 end
-function write_cse_alife_dynamic_object( data, stpk, uppk )
-	write_cse_alife_object ( data, stpk )
-	write_cse_visual       ( data, stpk )
+function n_netpk:r_upd_cse_alife_dynamic_object( ret, uppk ) end
+function n_netpk:w_st_cse_alife_dynamic_object( data, stpk )
+	self:w_st_cse_alife_object ( data, stpk )
+	self:w_st_cse_visual       ( data, stpk )
 end
----------------------------------------------------------
+function n_netpk:w_upd_cse_alife_dynamic_object( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_creature_abstract
-function read_cse_alife_creature_abstract( ret, stpk, uppk )
-	read_cse_alife_dynamic_object( ret, stpk, uppk )
+function n_netpk:r_st_cse_alife_creature_abstract( ret, stpk )
+	self:r_st_cse_alife_dynamic_object( ret, stpk )
 	
 	ret.g_team                   = stpk:r_u8()
 	ret.g_squad                  = stpk:r_u8()
@@ -264,22 +287,20 @@ function read_cse_alife_creature_abstract( ret, stpk, uppk )
 	ret.dynamic_in_restrictions  = stpk:r_vu32u16()
 	ret.killer_id                = stpk:r_u16()
 	ret.game_death_time          = stpk:r_u64()
-	
-	if uppk then
-		local t          = ret.upd
-		t.health         = uppk:r_float()
-		t.timestamp      = uppk:r_s32()
-		t.creature_flags = uppk:r_u8()
-		t.position       = uppk:r_vec3()
-		t.o_model        = uppk:r_float()
-		t.o_torso        = uppk:r_vec3()
-		t.g_team         = uppk:r_u8()
-		t.g_squad        = uppk:r_u8()
-		t.g_group        = uppk:r_u8()
-	end
 end
-function write_cse_alife_creature_abstract( data, stpk, uppk )
-	write_cse_alife_dynamic_object( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_creature_abstract( ret, uppk )
+	ret.health         = uppk:r_float()
+	ret.timestamp      = uppk:r_s32()
+	ret.creature_flags = uppk:r_u8()
+	ret.position       = uppk:r_vec3()
+	ret.o_model        = uppk:r_float()
+	ret.o_torso        = uppk:r_vec3()
+	ret.g_team         = uppk:r_u8()
+	ret.g_squad        = uppk:r_u8()
+	ret.g_group        = uppk:r_u8()
+end
+function n_netpk:w_st_cse_alife_creature_abstract( data, stpk )
+	self:w_st_cse_alife_dynamic_object( data, stpk )
 
 	stpk:w_u8      ( data.g_team )
 	stpk:w_u8      ( data.g_squad )
@@ -289,55 +310,55 @@ function write_cse_alife_creature_abstract( data, stpk, uppk )
 	stpk:w_vu32u16 ( data.dynamic_in_restrictions )
 	stpk:w_u16     ( data.killer_id )
 	stpk:w_u64     ( data.game_death_time )
-
-	if uppk then
-		local t = data.upd
-		uppk:w_float ( t.health )
-		uppk:w_s32   ( t.timestamp )
-		uppk:w_u8    ( t.creature_flags )
-		uppk:w_vec3  ( t.position )
-		uppk:w_float ( t.o_model )
-		uppk:w_vec3  ( t.o_torso )
-		uppk:w_u8    ( t.g_team )
-		uppk:w_u8    ( t.g_squad )
-		uppk:w_u8    ( t.g_group )
-	end
 end
+function n_netpk:w_upd_cse_alife_creature_abstract( data, uppk )
+	uppk:w_float ( data.health )
+	uppk:w_s32   ( data.timestamp )
+	uppk:w_u8    ( data.creature_flags )
+	uppk:w_vec3  ( data.position )
+	uppk:w_float ( data.o_model )
+	uppk:w_vec3  ( data.o_torso )
+	uppk:w_u8    ( data.g_team )
+	uppk:w_u8    ( data.g_squad )
+	uppk:w_u8    ( data.g_group )
+end
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_monster_abstract
-function read_cse_alife_monster_abstract( ret, stpk, uppk )
-	read_cse_alife_creature_abstract( ret, stpk, uppk )
+function n_netpk:r_st_cse_alife_monster_abstract( ret, stpk )
+	self:r_st_cse_alife_creature_abstract( ret, stpk )
 	
 	ret.base_out_restrictors      = stpk:r_stringZ()
 	ret.base_in_restrictors       = stpk:r_stringZ()
 	ret.smart_terrain_id          = stpk:r_u16()
 	ret.smart_terrain_task_active = stpk:r_u8()
-	
-	if uppk then
-		local t = ret.upd
-		t.next_game_vertex_id     = uppk:r_u16()
-		t.prev_game_vertex_id     = uppk:r_u16()
-		t.distance_from_point     = uppk:r_s32()
-		t.distance_to_point       = uppk:r_s32()
-	end
 end
-function write_cse_alife_monster_abstract( data, stpk, uppk )
-	write_cse_alife_creature_abstract( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_monster_abstract( ret, uppk )
+	self:r_upd_cse_alife_creature_abstract( ret, uppk )
+
+	ret.next_game_vertex_id     = uppk:r_u16()
+	ret.prev_game_vertex_id     = uppk:r_u16()
+	ret.distance_from_point     = uppk:r_s32()
+	ret.distance_to_point       = uppk:r_s32()
+end
+function n_netpk:w_st_cse_alife_monster_abstract( data, stpk )
+	self:w_st_cse_alife_creature_abstract( data, stpk )
 	
 	stpk:w_stringZ ( data.base_out_restrictors )
 	stpk:w_stringZ ( data.base_in_restrictors )
 	stpk:w_u16     ( data.smart_terrain_id )
 	stpk:w_u8      ( data.smart_terrain_task_active )
-	
-	if uppk then
-		local t = data.upd
-		uppk:w_u16 ( t.next_game_vertex_id )
-		uppk:w_u16 ( t.prev_game_vertex_id )
-		uppk:w_s32 ( t.distance_from_point )
-		uppk:w_s32 ( t.distance_to_point )
-	end
 end
+function n_netpk:w_upd_cse_alife_monster_abstract( data, uppk )
+	self:w_upd_cse_alife_creature_abstract( data, uppk )
+	
+	uppk:w_u16 ( data.next_game_vertex_id )
+	uppk:w_u16 ( data.prev_game_vertex_id )
+	uppk:w_s32 ( data.distance_from_point )
+	uppk:w_s32 ( data.distance_to_point )
+end
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_trader_abstract
-function read_cse_alife_trader_abstract( ret, stpk )
+function n_netpk:r_st_cse_alife_trader_abstract( ret, stpk )
 	ret.money              = stpk:r_s32()
 	ret.specific_character = stpk:r_stringZ()
 	ret.trader_flags       = stpk:r_s32()
@@ -347,7 +368,7 @@ function read_cse_alife_trader_abstract( ret, stpk )
 	ret.reputation         = stpk:r_s32()
 	ret.character_name     = stpk:r_stringZ()
 end
-function write_cse_alife_trader_abstract( data, stpk )
+function n_netpk:w_st_cse_alife_trader_abstract( data, stpk )
 	stpk:w_s32     ( data.money )
 	stpk:w_stringZ ( data.specific_character )
 	stpk:w_s32     ( data.trader_flags )
@@ -357,8 +378,9 @@ function write_cse_alife_trader_abstract( data, stpk )
 	stpk:w_s32     ( data.reputation )
 	stpk:w_stringZ ( data.character_name )
 end
+----------------------------------------------------------------------------------------------------------
 -- cse_ph_skeleton
-function read_cse_ph_skeleton( ret, stpk, uppk )
+function n_netpk:r_st_cse_ph_skeleton( ret, stpk )
 	ret.skeleton_name  = stpk:r_stringZ()
 	ret.skeleton_flags = stpk:r_u8()
 	ret.source_id      = stpk:r_u16()
@@ -380,12 +402,11 @@ function read_cse_ph_skeleton( ret, stpk, uppk )
 			end
 		end
 	end
-
---	if uppk then
---		ret.upd.skeleton_flags = uppk:r_u8()
---	end
 end
-function write_cse_ph_skeleton( data, stpk, uppk )
+function n_netpk:r_upd_cse_ph_skeleton( ret, uppk )
+--	ret.skeleton_flags = uppk:r_u8()
+end
+function n_netpk:w_st_cse_ph_skeleton( data, stpk )
 	stpk:w_stringZ ( data.skeleton_name )
 	stpk:w_u8      ( data.skeleton_flags )
 	stpk:w_u16     ( data.source_id )
@@ -404,13 +425,13 @@ function write_cse_ph_skeleton( data, stpk, uppk )
 			end
 		end
 	end
-
---	if uppk then
---		uppk:w_u8 ( data.upd.skeleton_flags )
---	end
 end
+function n_netpk:w_upd_cse_ph_skeleton( data, stpk, uppk )
+--	uppk:w_u8 ( data.skeleton_flags )
+end
+----------------------------------------------------------------------------------------------------------
 -- cse_shape
-function read_cse_shape( ret, stpk )
+function n_netpk:r_st_cse_shape( ret, stpk )
 	local sh = {}
 	local shape_type
 	for i = 1, stpk:r_u8() do
@@ -428,7 +449,7 @@ function read_cse_shape( ret, stpk )
 	end
 	ret.shapes = sh
 end
-function write_cse_shape( data, stpk )
+function n_netpk:w_st_cse_shape( data, stpk )
 	local t = data.shapes
 	local n = #t
 	stpk:w_u8( n )
@@ -445,70 +466,66 @@ function write_cse_shape( data, stpk )
 end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_ph_skeleton_object
-function read_cse_alife_ph_skeleton_object( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
-	read_cse_ph_skeleton          ( ret, stpk, uppk )
+function n_netpk:r_st_cse_alife_ph_skeleton_object( ret, stpk, uppk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
+	self:r_st_cse_ph_skeleton          ( ret, stpk )
 end
-function write_cse_alife_ph_skeleton_object( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
-	write_cse_ph_skeleton          ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_ph_skeleton_object( ret, uppk ) end
+function n_netpk:w_st_cse_alife_ph_skeleton_object( data, stpk )
+	write_cse_alife_dynamic_object ( data, stpk )
+	write_cse_ph_skeleton          ( data, stpk )
+end
+function n_netpk:w_upd_cse_alife_ph_skeleton_object( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_creature_actor
+function n_netpk:r_st_cse_alife_creature_actor( ret, stpk )
+	self:r_st_cse_alife_creature_abstract ( ret, stpk )
+	self:r_st_cse_alife_trader_abstract   ( ret, stpk )
+	self:r_st_cse_ph_skeleton             ( ret, stpk )
+
+	ret.holder_id				= stpk:r_u16()
+end
+function n_netpk:r_upd_cse_alife_creature_actor( ret, uppk )
+	self:r_upd_cse_alife_creature_abstract ( ret, uppk )
+
+	ret.actor_state           = uppk:r_u16()
+	ret.actor_accel_header    = uppk:r_u16()
+	ret.actor_accel_data      = uppk:r_s32()
+	ret.actor_velocity_header = uppk:r_u16()
+	ret.actor_velocity_data   = uppk:r_s32()
+	ret.actor_radiation       = uppk:r_float()
+	ret.actor_weapon          = uppk:r_u8()
+	ret.num_items             = uppk:r_u16()
+end
+function n_netpk:w_st_cse_alife_creature_actor( data, stpk )
+	self:w_st_cse_alife_creature_abstract	( data, stpk )
+	self:w_st_cse_alife_trader_abstract		( data, stpk )
+	self:w_st_cse_ph_skeleton				( data, stpk )
+
+	stpk:w_u16	( data.holder_id )
+end
+function n_netpk:w_upd_cse_alife_creature_actor( data, uppk )
+	self:w_upd_cse_alife_creature_abstract	( data, uppk )
+	uppk:w_u16	( data.actor_state )
+	uppk:w_u16	( data.actor_accel_header )
+	uppk:w_s32	( data.actor_accel_data )
+	uppk:w_u16	( data.actor_velocity_header )
+	uppk:w_s32	( data.actor_velocity_data )
+	uppk:w_float( data.actor_radiation )
+	uppk:w_u8	( data.actor_weapon )
+	uppk:w_u16	( data.num_items )
 end
 ----------------------------------------------------------------------------------------------------------
-function read_cse_alife_creature_actor( ret, stpk, uppk )
-	read_cse_alife_creature_abstract ( ret, stpk, uppk )
-	read_cse_alife_trader_abstract   ( ret, stpk )
-	read_cse_ph_skeleton             ( ret, stpk, uppk )
-
-	-- cse_alife_creature_actor
-	ret.holder_id				= stpk:r_u16()
-
-	if uppk then
-		local t                 = ret.upd
-		t.actor_state           = uppk:r_u16()
-		t.actor_accel_header    = uppk:r_u16()
-		t.actor_accel_data      = uppk:r_s32()
-		t.actor_velocity_header = uppk:r_u16()
-		t.actor_velocity_data   = uppk:r_s32()
-		t.actor_radiation       = uppk:r_float()
-		t.actor_weapon          = uppk:r_u8()
-		t.num_items             = uppk:r_u16()
-	end
-end
-function write_cse_alife_creature_actor( data, stpk, uppk )
-	write_cse_alife_creature_abstract	( data, stpk, uppk )
-	write_cse_alife_trader_abstract		( data, stpk )
-	write_cse_ph_skeleton				( data, stpk, uppk )
-
-	-- cse_alife_creature_actor
-	stpk:w_u16	( data.holder_id )
-
-	if uppk then
-		local t = data.upd
-		uppk:w_u16	( t.actor_state )
-		uppk:w_u16	( t.actor_accel_header )
-		uppk:w_s32	( t.actor_accel_data )
-		uppk:w_u16	( t.actor_velocity_header )
-		uppk:w_s32	( t.actor_velocity_data )
-		uppk:w_float( t.actor_radiation )
-		uppk:w_u8	( t.actor_weapon )
-		uppk:w_u16	( t.num_items )
-	end
-end
-
-function read_se_stalker( ret, stpk, uppk )
-	read_cse_alife_trader_abstract  ( ret, stpk )
-	read_cse_alife_monster_abstract ( ret, stpk, uppk )
+-- se_stalker
+function n_netpk:r_st_se_stalker( ret, stpk )
+	self:r_st_cse_alife_trader_abstract  ( ret, stpk )
+	self:r_st_cse_alife_monster_abstract ( ret, stpk )
 
 	-- cse_alife_human_abstract
 	ret.predicate5  = stpk:r_vu32u8()
 	ret.predicate4  = stpk:r_vu32u8()
 
-	read_cse_ph_skeleton ( ret, stpk, uppk )
-
-	-- cse_alife_human_stalker
-	if uppk then
-		ret.upd.start_dialog = uppk:r_stringZ()
-	end
+	self:r_st_cse_ph_skeleton ( ret, stpk )
 
 	-- se_stalker
 	local a = stpk:r_u8()
@@ -518,20 +535,21 @@ function read_se_stalker( ret, stpk, uppk )
 	ret.death_dropped        = stpk:r_u8()
 	ret.resupply_time        = (stpk:r_eof() and 0) or stpk:r_s16()
 end
-function write_se_stalker( data, stpk, uppk )
-	write_cse_alife_trader_abstract  ( data, stpk )
-	write_cse_alife_monster_abstract ( data, stpk, uppk )
+function n_netpk:r_upd_se_stalker( ret, uppk )
+	self:r_upd_cse_alife_monster_abstract ( ret, uppk )
+
+	-- cse_alife_human_stalker
+	ret.start_dialog = uppk:r_stringZ()
+end
+function n_netpk:w_st_se_stalker( data, stpk )
+	self:w_st_cse_alife_trader_abstract  ( data, stpk )
+	self:w_st_cse_alife_monster_abstract ( data, stpk )
 
 	-- cse_alife_human_abstract
 	stpk:w_vu32u8 ( data.predicate5 )
 	stpk:w_vu32u8 ( data.predicate4 )
 
-	write_cse_ph_skeleton ( data, stpk, uppk )
-
-	-- cse_alife_human_stalker
-	if uppk then
-		uppk:w_stringZ ( data.upd.start_dialog )
-	end
+	self:w_st_cse_ph_skeleton ( data, stpk )
 
 	-- se_stalker
 	stpk:w_u8  ( data.job_online )
@@ -540,18 +558,17 @@ function write_se_stalker( data, stpk, uppk )
 	stpk:w_u8  ( data.death_dropped )
 	stpk:w_s16 ( data.resupply_time )
 end
+function n_netpk:w_upd_se_stalker( data, uppk )
+	self:w_upd_cse_alife_monster_abstract ( data, uppk )
 
-function get_character_name( se_npc )
-	local pk = net_packet()
-	local tmp = {}
-	se_npc:STATE_Write ( pk )
-	read_cse_alife_trader_abstract ( tmp, pk )
-	return tmp.character_name
+	-- cse_alife_human_stalker
+	uppk:w_stringZ ( data.start_dialog )
 end
-
-function read_se_monster( ret, stpk, uppk )
-	read_cse_alife_monster_abstract ( ret, stpk, uppk )
-	read_cse_ph_skeleton            ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- se_monster
+function n_netpk:r_st_se_monster( ret, stpk )
+	self:r_st_cse_alife_monster_abstract ( ret, stpk )
+	self:r_st_cse_ph_skeleton            ( ret, stpk )
 
 	-- cse_alife_monster_base
 	ret.spec_object_id = stpk:r_u16()
@@ -568,9 +585,12 @@ function read_se_monster( ret, stpk, uppk )
 	if n == 3 then ret.job_online_condlist = stpk:r_stringZ() end
 	ret.was_in_smart_terrain = stpk:r_u8()
 end
-function write_se_monster( data, stpk, uppk )
-	write_cse_alife_monster_abstract ( data, stpk, uppk )
-	write_cse_ph_skeleton            ( data, stpk, uppk )
+function n_netpk:r_upd_se_monster( ret, uppk )
+	self:r_upd_cse_alife_monster_abstract ( ret, uppk )
+end
+function n_netpk:w_st_se_monster( data, stpk )
+	self:w_st_cse_alife_monster_abstract ( data, stpk )
+	self:w_st_cse_ph_skeleton            ( data, stpk )
 
 	-- cse_alife_monster_base
 	stpk:w_u16 ( data.spec_object_id )
@@ -582,215 +602,229 @@ function write_se_monster( data, stpk, uppk )
 	if n == 3 then stpk:w_stringZ ( data.job_online_condlist ) end
 	stpk:w_u8 ( data.was_in_smart_terrain )
 end
-
-function read_se_trader( ret, stpk, uppk )
-	read_cse_alife_dynamic_object  ( ret, stpk, uppk )
-	read_cse_alife_trader_abstract ( ret, stpk )
+function n_netpk:w_upd_se_monster( data, uppk )
+	self:w_upd_cse_alife_monster_abstract ( data, uppk )
+end
+----------------------------------------------------------------------------------------------------------
+-- se_trader
+function n_netpk:r_st_se_trader( ret, stpk )
+	self:r_st_cse_alife_dynamic_object  ( ret, stpk )
+	self:r_st_cse_alife_trader_abstract ( ret, stpk )
 
 	-- se_trader
 	ret.resupply_time = ( stpk:r_eof() and 0 ) or stpk:r_s16()
 end
-function write_se_trader( data, stpk, uppk )
-	write_cse_alife_dynamic_object  ( data, stpk, uppk )
-	write_cse_alife_trader_abstract ( data, stpk )
+function n_netpk:r_upd_se_trader( ret, uppk ) end
+function n_netpk:w_st_se_trader( data, stpk )
+	self:w_st_cse_alife_dynamic_object  ( data, stpk )
+	self:w_st_cse_alife_trader_abstract ( data, stpk )
 
 	-- se_trader
 	stpk:w_s16 ( data.resupply_time )
 end
-
-function read_se_heli( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
-	read_cse_motion               ( ret, stpk )
-	read_cse_ph_skeleton          ( ret, stpk, uppk )
+function n_netpk:w_upd_se_trader( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_heli
+function n_netpk:r_st_se_heli( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
+	self:r_st_cse_motion               ( ret, stpk )
+	self:r_st_cse_ph_skeleton          ( ret, stpk )
 
 	-- cse_alife_helicopter
 	ret.startup_animation = stpk:r_stringZ()
 	ret.engine_sound      = stpk:r_stringZ()
 end
-function write_se_heli( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
-	write_cse_motion               ( data, stpk )
-	write_cse_ph_skeleton          ( data, stpk, uppk )
+function n_netpk:r_upd_se_heli( ret, uppk ) end
+function n_netpk:w_st_se_heli( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
+	self:w_st_cse_motion               ( data, stpk )
+	self:w_st_cse_ph_skeleton          ( data, stpk )
 
 	-- cse_alife_helicopter
 	stpk:w_stringZ ( data.startup_animation )
 	stpk:w_stringZ ( data.engine_sound )
 end
-
-function read_se_car( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
-	read_cse_ph_skeleton          ( ret, stpk, uppk )
+function n_netpk:w_upd_se_heli( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_car
+function n_netpk:r_st_se_car( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
+	self:r_st_cse_ph_skeleton          ( ret, stpk )
 
 	-- cse_alife_car
 	ret.health = stpk:r_float()
 end
-function write_se_car( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
-	write_cse_ph_skeleton          ( data, stpk, uppk )
+function n_netpk:r_upd_se_car( ret, uppk ) end
+function n_netpk:w_st_se_car( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
+	self:w_st_cse_ph_skeleton          ( data, stpk )
 
 	-- cse_alife_car
 	stpk:w_float ( data.health )
 end
-
-function read_cse_alife_inventory_item( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+function n_netpk:w_upd_se_car( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_inventory_item
+function n_netpk:r_st_cse_alife_inventory_item( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
 
 	-- cse_alife_item
 	ret.condition = stpk:r_float()
-
-	if uppk then
-		local t = ret.upd
-		local n = uppk:r_u8()
-		t.num_items = n
-		if n ~= 0 then
-			t.ph_position = uppk:r_vec3()
-			t.ph_rotation = uppk:r_qt_q8()
-			if bit_and(n, 64) == 64 then
-				t.ph_angular_vel = uppk:r_vec_q8()
-			end
-			if bit_and(n, 128) == 128 then
-				t.ph_linear_vel = uppk:r_vec_q8()
-			end
+end
+function n_netpk:r_upd_cse_alife_inventory_item( ret, uppk )
+	local n = uppk:r_u8()
+	ret.num_items = n
+	if n ~= 0 then
+		ret.ph_position = uppk:r_vec3()
+		ret.ph_rotation = uppk:r_qt_q8()
+		if bit_and(n, 64) == 64 then
+			ret.ph_angular_vel = uppk:r_vec_q8()
+		end
+		if bit_and(n, 128) == 128 then
+			ret.ph_linear_vel = uppk:r_vec_q8()
 		end
 	end
 end
-function write_cse_alife_inventory_item( data, stpk, uppk )
-	write_cse_alife_dynamic_object( data, stpk, uppk )
+function n_netpk:w_st_cse_alife_inventory_item( data, stpk )
+	self:w_st_cse_alife_dynamic_object( data, stpk )
 
 	-- cse_alife_item
 	stpk:w_float( data.condition )
-
-	if uppk then
-		local t = data.upd
-		local n = t.num_items
-		uppk:w_u8( n )
-		if n ~= 0 then
-			uppk:w_vec3  ( t.ph_position )
-			uppk:w_qt_q8 ( t.ph_rotation )
-			if bit_and(n, 64) == 64 then
-				uppk:w_vec_q8 ( t.ph_angular_vel )
-			end
-			if bit_and(n, 128) == 128 then
-				uppk:w_vec_q8 ( t.ph_linear_vel )
-			end
+end
+function n_netpk:w_upd_cse_alife_inventory_item( data, uppk )
+	local n = data.num_items
+	uppk:w_u8( n )
+	if n ~= 0 then
+		uppk:w_vec3  ( data.ph_position )
+		uppk:w_qt_q8 ( data.ph_rotation )
+		if bit_and(n, 64) == 64 then
+			uppk:w_vec_q8 ( data.ph_angular_vel )
+		end
+		if bit_and(n, 128) == 128 then
+			uppk:w_vec_q8 ( data.ph_linear_vel )
 		end
 	end
 end
-
-function read_cse_alife_item_pda( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_pda
+function n_netpk:r_st_cse_alife_item_pda( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
 
 	-- cse_alife_item_pda
 	ret.original_owner     = stpk:r_u16()
 	ret.specific_character = stpk:r_stringZ()
 	ret.info_portion       = stpk:r_stringZ()
 end
-function write_cse_alife_item_pda( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_item_pda( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
+end
+function n_netpk:w_st_cse_alife_item_pda( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
 
 	-- cse_alife_item_pda
 	stpk:w_u16     ( data.original_owner )
 	stpk:w_stringZ ( data.specific_character )
 	stpk:w_stringZ ( data.info_portion )
 end
-
-function read_se_item_torch( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
-
-	-- cse_alife_item_torch
-	if uppk then
-		ret.upd.torch_flags = uppk:r_u8()
-	end
+function n_netpk:w_upd_cse_alife_item_pda( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
+end
+----------------------------------------------------------------------------------------------------------
+-- se_item_torch
+function n_netpk:r_st_se_item_torch( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
 
 	-- se_item_torch
 	ret.worked_time = (stpk:r_eof() and 0) or stpk:r_s32()
 end
-function write_se_item_torch( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:r_upd_se_item_torch( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
 
 	-- cse_alife_item_torch
-	if uppk then
-		uppk:w_u8 ( data.upd.torch_flags )
-	end
+	ret.torch_flags = uppk:r_u8()
+end
+function n_netpk:w_st_se_item_torch( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
 
 	-- se_item_torch
 	stpk:w_s32 (data.worked_time)
 end
+function n_netpk:w_upd_se_item_torch( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
 
-function read_cse_alife_item_document( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
+	-- cse_alife_item_torch
+	uppk:w_u8 ( data.torch_flags )
+end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_document
+function n_netpk:r_st_cse_alife_item_document( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
 
 	-- cse_alife_item_document
 	ret.info_portion = stpk:r_stringZ()
 end
-function write_cse_alife_item_document( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_item_document( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
+end
+function n_netpk:w_st_cse_alife_item_document( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
 
 	-- cse_alife_item_document
 	stpk:w_stringZ ( data.info_portion )
 end
-
-function read_cse_alife_item_custom_outfit( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_item_document( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
+end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_custom_outfit
+function n_netpk:r_st_cse_alife_item_custom_outfit( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
+end
+function n_netpk:r_upd_cse_alife_item_custom_outfit( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
 
 	-- cse_alife_item_custom_outfit
-	if uppk then
-		ret.upd.condition = uppk:r_u8()
-	end
+	ret.condition = uppk:r_u8()
 end
-function write_cse_alife_item_custom_outfit( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:w_st_cse_alife_item_custom_outfit( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
+end
+function n_netpk:w_upd_cse_alife_item_custom_outfit( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
 
 	-- cse_alife_item_custom_outfit
-	if uppk then
-		uppk:w_u8 ( data.upd.condition )
-	end
+	uppk:w_u8 ( data.condition )
 end
-
-function read_cse_alife_item_ammo( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_ammo
+function n_netpk:r_st_cse_alife_item_ammo( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
 
 	-- cse_alife_item_ammo
 	ret.ammo_left         = stpk:r_u16()
-
-	if uppk then
-		ret.upd.ammo_left = uppk:r_u16()
-	end
 end
-function write_cse_alife_item_ammo( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_item_ammo( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
+
+	-- cse_alife_item_ammo
+	ret.ammo_left = uppk:r_u16()
+end
+function n_netpk:w_st_cse_alife_item_ammo( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
 
 	-- cse_alife_item_ammo
 	stpk:w_u16 ( data.ammo_left )
-
-	if uppk then
-		uppk:w_u16 ( data.upd.ammo_left )
-	end
 end
-	
-function get_ammo_size( obj )
-	local pk = net_packet()
-	cse_alife_item_ammo.STATE_Write( obj, pk )
-	pk:r_seek( pk:w_tell() - 2 )
-	return pk:r_u16()	-- ammo_left
-end
+function n_netpk:w_upd_cse_alife_item_ammo( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
 
-function get_ammo_type( obj )
-	local pk = net_packet()
-	cse_alife_item_weapon.STATE_Write( obj, pk )
-	pk:r_seek( pk:w_tell() - 1 )
-	return pk:r_u8()	-- ammo_type
+	-- cse_alife_item_ammo
+	uppk:w_u16 ( data.ammo_left )
 end
-
-function get_ammo_elapsed( obj )
-	local pk = net_packet()
-	cse_alife_item_weapon.STATE_Write( obj, pk )
-	pk:r_seek( pk:w_tell() - 5 )
-	return pk:r_u16()	-- ammo_elapsed
-end
-
-function read_cse_alife_item_weapon( ret, stpk, uppk )
-	read_cse_alife_inventory_item ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_weapon
+function n_netpk:r_st_cse_alife_item_weapon( ret, stpk )
+	self:r_st_cse_alife_inventory_item ( ret, stpk )
 
 	-- cse_alife_item_weapon
 	ret.ammo_current   = stpk:r_u16()
@@ -798,20 +832,21 @@ function read_cse_alife_item_weapon( ret, stpk, uppk )
 	ret.weapon_state   = stpk:r_u8()
 	ret.addon_flags    = stpk:r_u8()
 	ret.ammo_type      = stpk:r_u8()
-
-	if uppk then
-		local t        = ret.upd
-		t.condition    = uppk:r_u8()
-		t.weapon_flags = uppk:r_u8()
-		t.ammo_elapsed = uppk:r_u16()
-		t.addon_flags  = uppk:r_u8()
-		t.ammo_type    = uppk:r_u8()
-		t.weapon_state = uppk:r_u8()
-		t.weapon_zoom  = uppk:r_u8()
-	end
 end
-function write_cse_alife_item_weapon( data, stpk, uppk )
-	write_cse_alife_inventory_item ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_item_weapon( ret, uppk )
+	self:r_upd_cse_alife_inventory_item ( ret, uppk )
+
+	-- cse_alife_item_weapon
+	ret.condition    = uppk:r_u8()
+	ret.weapon_flags = uppk:r_u8()
+	ret.ammo_elapsed = uppk:r_u16()
+	ret.addon_flags  = uppk:r_u8()
+	ret.ammo_type    = uppk:r_u8()
+	ret.weapon_state = uppk:r_u8()
+	ret.weapon_zoom  = uppk:r_u8()
+end
+function n_netpk:w_st_cse_alife_item_weapon( data, stpk )
+	self:w_st_cse_alife_inventory_item ( data, stpk )
 
 	-- cse_alife_item_weapon
 	stpk:w_u16 ( data.ammo_current )
@@ -819,105 +854,122 @@ function write_cse_alife_item_weapon( data, stpk, uppk )
 	stpk:w_u8  ( data.weapon_state )
 	stpk:w_u8  ( data.addon_flags )
 	stpk:w_u8  ( data.ammo_type )
-
-	if uppk then
-		local t    = data.upd
-		uppk:w_u8  ( t.condition )
-		uppk:w_u8  ( t.weapon_flags )
-		uppk:w_u16 ( t.ammo_elapsed )
-		uppk:w_u8  ( t.addon_flags )
-		uppk:w_u8  ( t.ammo_type )
-		uppk:w_u8  ( t.weapon_state )
-		uppk:w_u8  ( t.weapon_zoom )
-	end
 end
+function n_netpk:w_upd_cse_alife_item_weapon( data, uppk )
+	self:w_upd_cse_alife_inventory_item ( data, uppk )
 
-function read_cse_alife_item_weapon_magazined( ret, stpk, uppk )
-	read_cse_alife_item_weapon ( ret, stpk, uppk )
+	-- cse_alife_item_weapon
+	uppk:w_u8  ( data.condition )
+	uppk:w_u8  ( data.weapon_flags )
+	uppk:w_u16 ( data.ammo_elapsed )
+	uppk:w_u8  ( data.addon_flags )
+	uppk:w_u8  ( data.ammo_type )
+	uppk:w_u8  ( data.weapon_state )
+	uppk:w_u8  ( data.weapon_zoom )
+end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_weapon_magazined
+function n_netpk:r_st_cse_alife_item_weapon_magazined( ret, stpk )
+	self:r_st_cse_alife_item_weapon ( ret, stpk )
+end
+function n_netpk:r_upd_cse_alife_item_weapon_magazined( ret, uppk )
+	self:r_upd_cse_alife_item_weapon ( ret, uppk )
 
 	-- cse_alife_item_weapon_magazined
-	if uppk then
-		ret.upd.current_fire_mode = uppk:r_u8()
-	end
+	ret.current_fire_mode = uppk:r_u8()
 end
-function write_cse_alife_item_weapon_magazined( data, stpk, uppk )
-	write_cse_alife_item_weapon ( data, stpk, uppk )
+function n_netpk:w_st_cse_alife_item_weapon_magazined( data, stpk )
+	self:w_st_cse_alife_item_weapon ( data, stpk )
+end
+function n_netpk:w_upd_cse_alife_item_weapon_magazined( data, uppk )
+	self:w_upd_cse_alife_item_weapon ( data, uppk )
 
 	-- cse_alife_item_weapon_magazined
-	if uppk then
-		uppk:w_u8 ( data.upd.current_fire_mode )
-	end
+	uppk:w_u8 ( data.current_fire_mode )
 end
-
-function read_cse_alife_item_weapon_shotgun( ret, stpk, uppk )
-	read_cse_alife_item_weapon_magazined ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_weapon_shotgun
+function n_netpk:r_st_cse_alife_item_weapon_shotgun( ret, stpk )
+	self:r_st_cse_alife_item_weapon_magazined ( ret, stpk )
+end
+function n_netpk:r_upd_cse_alife_item_weapon_shotgun( ret, uppk )
+	self:r_upd_cse_alife_item_weapon_magazined ( ret, uppk )
 
 	-- cse_alife_item_weapon_shotgun
-	if uppk then
-		ret.upd.ammo_ids = uppk:r_vu8u8()
-	end
+	ret.ammo_ids = uppk:r_vu8u8()
 end
-function write_cse_alife_item_weapon_shotgun( data, stpk, uppk )
-	write_cse_alife_item_weapon_magazined ( data, stpk, uppk )
+function n_netpk:w_st_cse_alife_item_weapon_shotgun( data, stpk )
+	self:w_st_cse_alife_item_weapon_magazined ( data, stpk )
+end
+function n_netpk:w_upd_cse_alife_item_weapon_shotgun( data, uppk )
+	self:w_upd_cse_alife_item_weapon_magazined ( data, uppk )
 
 	-- cse_alife_item_weapon_shotgun
-	if uppk then
-		uppk:w_vu8u8 ( data.upd.ammo_ids )
-	end
+	uppk:w_vu8u8 ( data.ammo_ids )
 end
-
-function read_cse_alife_item_weapon_magazined_w_gl( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_item_weapon_magazined_w_gl
+function n_netpk:r_st_cse_alife_item_weapon_magazined_w_gl( ret, stpk )
+	self:r_st_cse_alife_item_weapon_magazined ( ret, stpk )
+end
+function n_netpk:r_upd_cse_alife_item_weapon_magazined_w_gl( ret, uppk )
 	-- cse_alife_item_weapon_magazined_w_gl
-	if uppk then
-		ret.upd.grenade_mode = uppk:r_u8()
-	end
+	ret.grenade_mode = uppk:r_u8()
 
-	read_cse_alife_item_weapon_magazined ( ret, stpk, uppk )
+	self:r_upd_cse_alife_item_weapon_magazined ( ret, uppk )
 end
-function write_cse_alife_item_weapon_magazined_w_gl( data, stpk, uppk )
+function n_netpk:w_st_cse_alife_item_weapon_magazined_w_gl( data, stpk )
+	self:w_st_cse_alife_item_weapon_magazined ( data, stpk )
+end
+function n_netpk:w_upd_cse_alife_item_weapon_magazined_w_gl( data, uppk )
 	-- cse_alife_item_weapon_magazined_w_gl
-	if uppk then
-		uppk:w_u8 ( data.upd.grenade_mode )
-	end
+	uppk:w_u8 ( data.grenade_mode )
 
-	write_cse_alife_item_weapon_magazined ( data, stpk, uppk )
+	self:w_upd_cse_alife_item_weapon_magazined ( data, uppk )
 end
-
-function read_cse_alife_object_breakable( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_object_breakable
+function n_netpk:r_st_cse_alife_object_breakable( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
 	
 	-- cse_alife_object_breakable
 	ret.health = stpk:r_float()
 end
-function write_cse_alife_object_breakable( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_object_breakable( ret, uppk ) end
+function n_netpk:w_st_cse_alife_object_breakable( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
 	
 	-- cse_alife_object_breakable
 	stpk:w_float ( data.health )
 end
-
-function read_cse_alife_object_physic( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
-	read_cse_ph_skeleton          ( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_object_breakable( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_object_physic
+function n_netpk:r_st_cse_alife_object_physic( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
+	self:r_st_cse_ph_skeleton          ( ret, stpk )
 	
 	-- cse_alife_object_physic
 	ret.physic_type = stpk:r_s32()
 	ret.mass        = stpk:r_float()
 	ret.fixed_bones = stpk:r_stringZ()
 end
-function write_cse_alife_object_physic( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
-	write_cse_ph_skeleton          ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_object_physic( ret, uppk ) end
+function n_netpk:w_st_cse_alife_object_physic( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
+	self:w_st_cse_ph_skeleton          ( data, stpk )
 	
 	-- cse_alife_object_physic
 	stpk:w_s32     ( data.physic_type )
 	stpk:w_float   ( data.mass )
 	stpk:w_stringZ ( data.fixed_bones )
 end
-
-function read_cse_alife_object_hanging_lamp( ret, stpk, uppk )
-	read_cse_alife_dynamic_object ( ret, stpk, uppk )
-	read_cse_ph_skeleton          ( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_object_physic( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_object_hanging_lamp
+function n_netpk:r_st_cse_alife_object_hanging_lamp( ret, stpk )
+	self:r_st_cse_alife_dynamic_object ( ret, stpk )
+	self:r_st_cse_ph_skeleton          ( ret, stpk )
 	
 	-- cse_alife_object_hanging_lamp
 	ret.main_color          = stpk:r_s32()
@@ -939,9 +991,10 @@ function read_cse_alife_object_hanging_lamp( ret, stpk, uppk )
 	ret.glow_radius         = stpk:r_float()
 	ret.ambient_bone        = stpk:r_stringZ()
 end
-function write_cse_alife_object_hanging_lamp( data, stpk, uppk )
-	write_cse_alife_dynamic_object ( data, stpk, uppk )
-	write_cse_ph_skeleton          ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_object_hanging_lamp( ret, uppk ) end
+function n_netpk:w_st_cse_alife_object_hanging_lamp( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
+	self:w_st_cse_ph_skeleton          ( data, stpk )
 	
 	-- cse_alife_object_hanging_lamp
 	stpk:w_s32     ( data.main_color )
@@ -963,52 +1016,63 @@ function write_cse_alife_object_hanging_lamp( data, stpk, uppk )
 	stpk:w_float   ( data.glow_radius )
 	stpk:r_stringZ ( data.ambient_bone )
 end
-
-function read_cse_alife_object_climable( ret, stpk, uppk )
-	read_cse_alife_object ( ret, stpk )
-	read_cse_shape        ( ret, stpk )
+function n_netpk:w_upd_cse_alife_object_hanging_lamp( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_object_climable
+function n_netpk:r_st_cse_alife_object_climable( ret, stpk )
+	self:r_st_cse_alife_object ( ret, stpk )
+	self:r_st_cse_shape        ( ret, stpk )
 	
 	-- cse_alife_object_climable
 	ret.game_material     = stpk:r_stringZ()
 end
-function write_cse_alife_object_climable( data, stpk, uppk )
-	write_cse_alife_object ( data, stpk )
-	write_cse_shape        ( data, stpk )
+function n_netpk:r_upd_cse_alife_object_climable( ret, uppk ) end
+function n_netpk:w_st_cse_alife_object_climable( data, stpk )
+	self:w_st_cse_alife_object ( data, stpk )
+	self:w_st_cse_shape        ( data, stpk )
 	
 	-- cse_alife_object_climable
 	stpk:w_stringZ         ( data.game_material )
 end
-
-function read_cse_alife_space_restrictor( ret, stpk, uppk )
-	read_cse_alife_object ( ret, stpk )
-	read_cse_shape        ( ret, stpk )
+function n_netpk:w_upd_cse_alife_object_climable( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_space_restrictor
+function n_netpk:r_st_cse_alife_space_restrictor( ret, stpk )
+	self:r_st_cse_alife_object ( ret, stpk )
+	self:r_st_cse_shape        ( ret, stpk )
 	
 	-- cse_alife_space_restrictor
 	ret.restrictor_type   = stpk:r_u8()
 end
-function write_cse_alife_space_restrictor( data, stpk, uppk )
-	write_cse_alife_object ( data, stpk )
-	write_cse_shape        ( data, stpk )
+function n_netpk:r_upd_cse_alife_space_restrictor( ret, uppk ) end
+function n_netpk:w_st_cse_alife_space_restrictor( data, stpk )
+	self:w_st_cse_alife_object ( data, stpk )
+	self:w_st_cse_shape        ( data, stpk )
 	
 	-- cse_alife_space_restrictor
 	stpk:w_u8              ( data.restrictor_type )
 end
-
-function read_se_restrictor( ret, stpk, uppk )
-	read_cse_alife_space_restrictor( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_space_restrictor( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_restrictor
+function n_netpk:r_st_se_restrictor( ret, stpk )
+	self:r_st_cse_alife_space_restrictor( ret, stpk )
 
 	-- se_restrictor
 	ret.activated = stpk:r_bool()
 end
-function write_se_restrictor( data, stpk, uppk )
-	write_cse_alife_space_restrictor( data, stpk, uppk )
+function n_netpk:r_upd_se_restrictor( ret, uppk ) end
+function n_netpk:w_st_se_restrictor( data, stpk, uppk )
+	self:w_st_cse_alife_space_restrictor( data, stpk )
 
 	-- se_restrictor
 	stpk:w_bool( data.activated )
 end
-
-function read_cse_alife_level_changer( ret, stpk, uppk )
-	read_cse_alife_space_restrictor ( ret, stpk, uppk )
+function n_netpk:w_upd_se_restrictor( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_level_changer
+function n_netpk:r_st_cse_alife_level_changer( ret, stpk )
+	self:r_st_cse_alife_space_restrictor( ret, stpk )
 	
 	-- cse_alife_level_changer
 	ret.dest_game_vertex_id  = stpk:r_u16()
@@ -1019,8 +1083,9 @@ function read_cse_alife_level_changer( ret, stpk, uppk )
 	ret.dest_graph_point     = stpk:r_stringZ()
 	ret.silent_mode          = stpk:r_u8()
 end
-function write_cse_alife_level_changer( data, stpk, uppk )
-	write_cse_alife_space_restrictor ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_level_changer( ret, uppk ) end
+function n_netpk:w_st_cse_alife_level_changer( data, stpk )
+	self:w_st_cse_alife_space_restrictor( data, stpk )
 	
 	-- cse_alife_level_changer
 	stpk:w_u16     ( data.dest_game_vertex_id )
@@ -1031,9 +1096,11 @@ function write_cse_alife_level_changer( data, stpk, uppk )
 	stpk:w_stringZ ( data.dest_graph_point )
 	stpk:w_u8      ( data.silent_mode )
 end
-	
-function read_cse_alife_anomalous_zone( ret, stpk, uppk )
-	read_cse_alife_space_restrictor ( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_level_changer( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_anomalous_zone
+function n_netpk:r_st_cse_alife_anomalous_zone( ret, stpk )
+	self:r_st_cse_alife_space_restrictor( ret, stpk )
 	
 	-- cse_alife_custom_zone
 	ret.max_power        = stpk:r_float()
@@ -1047,8 +1114,9 @@ function read_cse_alife_anomalous_zone( ret, stpk, uppk )
 	ret.artefact_spawn_count       = stpk:r_u16()
 	ret.artefact_position_offset   = stpk:r_s32()
 end
-function write_cse_alife_anomalous_zone( data, stpk, uppk )
-	write_cse_alife_space_restrictor ( data, stpk, uppk )
+function n_netpk:r_upd_cse_alife_anomalous_zone( ret, uppk ) end
+function n_netpk:w_st_cse_alife_anomalous_zone( data, stpk )
+	self:w_st_cse_alife_space_restrictor( data, stpk )
 	
 	-- cse_alife_custom_zone
 	stpk:w_float ( data.max_power )
@@ -1062,9 +1130,11 @@ function write_cse_alife_anomalous_zone( data, stpk, uppk )
 	stpk:w_u16   ( data.artefact_spawn_count )
 	stpk:w_s32   ( data.artefact_position_offset )
 end
-
-function read_se_zone_anom( ret, stpk, uppk )
-	read_cse_alife_anomalous_zone ( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_anomalous_zone( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_zone_anom
+function n_netpk:r_st_se_zone_anom( ret, stpk )
+	self:r_st_cse_alife_anomalous_zone( ret, stpk )
 	
 	-- se_zone_anom
 	local n = stpk:r_u8()
@@ -1073,8 +1143,9 @@ function read_se_zone_anom( ret, stpk, uppk )
 		ret.last_spawn_time = stpk:r_CTime()
 	end
 end
-function write_se_zone_anom( data, stpk, uppk )
-	write_cse_alife_anomalous_zone ( data, stpk, uppk )
+function n_netpk:r_upd_se_zone_anom( ret, uppk ) end
+function n_netpk:w_st_se_zone_anom( data, stpk )
+	self:w_st_cse_alife_anomalous_zone ( data, stpk )
 
 	-- se_zone_anom
 	stpk:w_u8( data.last_spawn_time_present )
@@ -1082,26 +1153,31 @@ function write_se_zone_anom( data, stpk, uppk )
 		stpk:w_CTime ( data.last_spawn_time )
 	end
 end
-
-function read_cse_alife_zone_visual( ret, stpk, uppk )
-	read_cse_alife_anomalous_zone( ret, stpk, uppk )
-	read_cse_visual( ret, stpk )
+function n_netpk:w_upd_se_zone_anom( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- cse_alife_zone_visual
+function n_netpk:r_st_cse_alife_zone_visual( ret, stpk, uppk )
+	self:r_st_cse_alife_anomalous_zone( ret, stpk, uppk )
+	self:r_st_cse_visual( ret, stpk )
 
 	-- cse_alife_zone_visual
 	ret.idle_animation		= stpk:r_stringZ()
 	ret.attack_animation	= stpk:r_stringZ()
 end
-function write_cse_alife_zone_visual( data, stpk, uppk )
-	write_cse_alife_anomalous_zone( data, stpk, uppk )
-	write_cse_visual( data, stpk )
+function n_netpk:r_upd_cse_alife_zone_visual( ret, uppk ) end
+function n_netpk:w_st_cse_alife_zone_visual( data, stpk )
+	self:w_st_cse_alife_anomalous_zone( data, stpk )
+	self:w_st_cse_visual( data, stpk )
 
 	-- cse_alife_zone_visual
 	stpk:w_stringZ( data.idle_animation )
 	stpk:w_stringZ( data.attack_animation )
 end
-
-function read_se_zone_visual( ret, stpk, uppk )
-	read_cse_alife_zone_visual( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_zone_visual( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_zone_visual
+function n_netpk:r_st_se_zone_visual( ret, stpk )
+	self:r_st_cse_alife_zone_visual( ret, stpk )
 
 	-- se_zone_visual
 	local n = stpk:r_u8()
@@ -1110,8 +1186,9 @@ function read_se_zone_visual( ret, stpk, uppk )
 		ret.last_spawn_time = stpk:r_CTime()
 	end
 end
-function write_se_zone_visual( data, stpk, uppk )
-	write_cse_alife_zone_visual( data, stpk, uppk )
+function n_netpk:r_upd_se_zone_visual( ret, uppk ) end
+function n_netpk:w_st_se_zone_visual( data, stpk )
+	self:w_st_cse_alife_zone_visual( data, stpk )
 
 	-- se_zone_visual
 	stpk:w_u8( data.last_spawn_time_present )
@@ -1119,18 +1196,23 @@ function write_se_zone_visual( data, stpk, uppk )
 		stpk:w_CTime ( data.last_spawn_time )
 	end
 end
+function n_netpk:w_upd_se_zone_visual( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_torrid_zone
-function read_cse_alife_torrid_zone( ret, stpk, uppk )
-	read_cse_alife_anomalous_zone( ret, stpk, uppk )
-	read_cse_motion( ret, stpk )
+function n_netpk:r_st_cse_alife_torrid_zone( ret, stpk )
+	self:r_st_cse_alife_anomalous_zone( ret, stpk )
+	self:r_st_cse_motion( ret, stpk )
 end
-function write_cse_alife_torrid_zone( data, stpk, uppk )
-	write_cse_alife_anomalous_zone( data, stpk, uppk )
-	write_cse_motion( data, stpk )
+function n_netpk:r_upd_cse_alife_torrid_zone( ret, uppk ) end
+function n_netpk:w_st_cse_alife_torrid_zone( data, stpk )
+	self:w_st_cse_alife_anomalous_zone( data, stpk )
+	self:w_st_cse_motion( data, stpk )
 end
-
-function read_se_respawn( ret, stpk, uppk )
-	read_cse_alife_space_restrictor( ret, stpk, uppk )
+function n_netpk:w_upd_cse_alife_torrid_zone( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_respawn
+function n_netpk:r_st_se_respawn( ret, stpk )
+	self:r_st_cse_alife_space_restrictor( ret, stpk )
 	
 	-- se_respawn
 	local n = stpk:r_u8()
@@ -1144,8 +1226,9 @@ function read_se_respawn( ret, stpk, uppk )
 		ret.respawn_time = stpk:r_CTime( )
 	end
 end
-function write_se_respawn( data, stpk, uppk )
-	write_cse_alife_space_restrictor( data, stpk, uppk )
+function n_netpk:r_upd_se_respawn( ret, uppk ) end
+function n_netpk:w_st_se_respawn( data, stpk )
+	self:w_st_cse_alife_space_restrictor( data, stpk )
 	
 	-- se_respawn
 	local n = #data.spawned_obj
@@ -1157,9 +1240,11 @@ function write_se_respawn( data, stpk, uppk )
 		stpk:w_CTime( data.respawn_time )
 	end
 end
-
-function read_se_smart_terrain( ret, stpk, uppk )
-	read_cse_alife_space_restrictor( ret, stpk, uppk )
+function n_netpk:w_upd_se_respawn( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
+-- se_smart_terrain
+function n_netpk:r_st_se_smart_terrain( ret, stpk )
+	self:r_st_cse_alife_space_restrictor( ret, stpk )
 	
 	-- se_smart_terrain
 	ret.duration_end_present	= stpk:r_CTime()
@@ -1206,8 +1291,9 @@ function read_se_smart_terrain( ret, stpk, uppk )
 		ret.population_locked = stpk:r_bool()
 	end
 end
-function write_se_smart_terrain( data, stpk, uppk )
-	write_cse_alife_space_restrictor( data, stpk, uppk )
+function n_netpk:r_upd_se_smart_terrain( ret, uppk ) end
+function n_netpk:w_st_se_smart_terrain( data, stpk )
+	self:w_st_cse_alife_space_restrictor( data, stpk )
 	
 	-- se_smart_terrain
 	stpk:w_CTime( data.duration_end_present )
@@ -1244,9 +1330,10 @@ function write_se_smart_terrain( data, stpk, uppk )
 		stpk:w_bool ( data.population_locked )
 	end
 end
+function n_netpk:w_upd_se_smart_terrain( data, uppk ) end
 ----------------------------------------------------------------------------------------------
 -- Парсим custom_data в таблицу
-function parse_custom_data(str)
+function n_netpk:parse_custom_data(str)
 	local ret = {}
 	local s,v
 	local now_sect = ""
@@ -1268,7 +1355,7 @@ function parse_custom_data(str)
 	return ret
 end
 -- Генерируем из таблицы строку для custom_data
-function gen_custom_data(tbl)
+function n_netpk:gen_custom_data(tbl)
 	local ret = ""
 	for k,v in pairs(tbl) do
 		ret = ret.."["..k.."]\n"
@@ -1453,7 +1540,7 @@ function get_all_shapes_data( cobj )
 	local data = {}
 	
 	data.sobj = alife():object(cobj:id())
-	local row_data = naxac_netpk.get( data.sobj, net_packet.f_state )
+	local row_data = netpk:get( data.sobj, net_packet.f_state )
 	local shapes_row_data = row_data.shapes
 	
 	local xform_orig = get_xform( cobj )
@@ -1547,6 +1634,8 @@ end
 ------------ OGSE - -------------------------------------------------------------------------
 
 function init()
+	local pk = n_netpk()
+
 	local clsid2type = {
 		actor				= 'cse_alife_creature_actor',
 
@@ -1564,6 +1653,7 @@ function init()
 		gigant_s			= 'se_monster',
 		poltergeist_s		= 'se_monster',
 		pseudodog_s			= 'se_monster',
+		psy_dog_phantom_s	= 'se_monster',
 		psy_dog_s			= 'se_monster',
 		snork_s				= 'se_monster',
 		tushkano_s			= 'se_monster',
@@ -1679,18 +1769,20 @@ function init()
 		smart_terrain		= 'se_smart_terrain'
 	}
 	for cls_id, cls in pairs(clsid2type) do
-		if clsid[cls_id] and this["read_"..cls] and this["write_"..cls] then
+		if clsid[cls_id] and pk["r_st_"..cls] and pk["w_st_"..cls]
+			and pk["r_upd_"..cls] and pk["w_upd_"..cls]
+		then
 			clsid2func[ clsid[cls_id] ] = cls
 		--	log("%s = %s", cls_id, tostring(clsid[cls_id]))
 		else
-			abort("naxac_netpk.init: clsid [%s:%s:%s] can't added, read:%s, write:%s",
-				cls_id, tostring(clsid[cls_id]), cls,
-				type(this["read_"..cls]),
-				type(this["write_"..cls]) )
+			abort("naxac_netpk.init: clsid [%s:%s:%s] can't added, read:[%s :: %s], write:[%s :: %s]",
+				cls_id, tostring( clsid[cls_id] ), cls,
+				type( pk["r_st_"..cls] ), type( pk["r_upd_"..cls] ),
+				type( pk["w_st_"..cls] ), type( pk["w_upd_"..cls] ) )
 		end
 	end
 	
-	return true
+	return pk
 end
 
 function get_str_clsid(cls)
@@ -1712,4 +1804,33 @@ function set_flag(obj_flags, flag_name, mode)
 		log("! naxac_netpk.set_flag: Unknown flag name '%s'", tostring(flag_name))
 	end
 	return obj_flags
+end
+
+function get_ammo_size( obj )
+	local pk = net_packet()
+	cse_alife_item_ammo.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 2 )
+	return pk:r_u16()	-- ammo_left
+end
+
+function get_ammo_type( obj )
+	local pk = net_packet()
+	cse_alife_item_weapon.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 1 )
+	return pk:r_u8()	-- ammo_type
+end
+
+function get_ammo_elapsed( obj )
+	local pk = net_packet()
+	cse_alife_item_weapon.STATE_Write( obj, pk )
+	pk:r_seek( pk:w_tell() - 5 )
+	return pk:r_u16()	-- ammo_elapsed
+end
+
+function get_character_name( se_npc )
+	local pk = net_packet()
+	local tmp = {}
+	se_npc:STATE_Write ( pk )
+	netpk:r_st_cse_alife_trader_abstract ( tmp, pk )
+	return tmp.character_name
 end
