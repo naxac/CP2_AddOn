@@ -1,0 +1,76 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local type2box = {
+	yes_no_info		= "message_box_buy_spawn",
+	yes_no_alarm	= "message_box_change_level",
+	yes_no_red		= "message_box_delete_file_name",
+	ok_info			= "msg_box_no_new_patch",
+	ok_alarm		= "message_box_invalid_saved_game",
+	ok_red			= "message_box_invalid_host"
+}
+
+class "UIMessageBoxEx" ( CUIScriptWnd )
+
+function UIMessageBoxEx:__init( type, text, func_yes, func_no )
+	super()
+
+	self:Init( 0, 0, 1024, 768 )
+
+	self.box_name = type2box[type or "ok_info" ] or abort( "ui_messagebox_new.UIMessageBoxEx: type is nil" )
+	self.text = text
+	
+	self.message_box = CUIMessageBoxEx()
+	self:Register( self.message_box, "message_box" )
+
+	if string.find( type, "^ok_" ) then
+		self.OnMsgYes = function( wnd, func )
+			if func then func() end
+			wnd:OnQuit()
+		end
+		self.OnMsgNo = self.OnQuit
+		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_OK_CLICKED, self.OnMsgYes, func_yes )
+	else
+		self.OnMsgYes = function( wnd, func )
+			func()
+			wnd:OnQuit()
+		end
+		self.OnMsgNo = function( wnd, func )
+			if func then func() end
+			wnd:OnQuit()
+		end
+		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes, func_yes )
+		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_NO_CLICKED, self.OnMsgNo, func_no )
+	end
+
+	self.dlg = self
+	level.start_stop_menu( self, true )
+	start_small_timer( 300, self.ShowMessageBox, self )
+end
+
+function UIMessageBoxEx:__finalize() end
+
+function UIMessageBoxEx:ShowMessageBox()
+	self.message_box:Init( self.box_name )
+	self.message_box:SetText( self.text )
+	self:GetHolder():start_stop_menu( self.message_box, true )
+end
+
+function UIMessageBoxEx:OnQuit()
+	self:unregister_self()
+	self:GetHolder():start_stop_menu( self, true )
+	self.dlg = nil
+end
+
+function UIMessageBoxEx:OnKeyboard( dik, keyboard_action )
+	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
+	
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:OnMsgNo()
+		elseif dik == DIK_keys.DIK_RETURN then
+			self:OnMsgYes()
+		end
+	end
+
+	return true
+end
+

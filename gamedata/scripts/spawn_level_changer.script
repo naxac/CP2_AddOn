@@ -430,7 +430,7 @@ function do_teleport(obj_sect, no_art)
 	if telepot_allowed(obj_sect) then
 		-- телепортируем
 		if ( teleports[obj_sect].pay or teleports[obj_sect].art ) and not no_art then
-			level.start_stop_menu( CUITeleportMsg(obj_sect), true )
+			this.show_teleport_msg(obj_sect)
 		else
 			teleport_start(obj_sect)
 		end
@@ -625,20 +625,7 @@ function get_place_by_teleport(section)
 	return places[f]
 end
 ------------------------------------------------------------------------------------------
-class "CUITeleportMsg" ( CUIScriptWnd )
-
-function CUITeleportMsg:__init( teleport )
-	super()
-
-	self.teleport = teleport
-
-	self:Init( 0, 0, 1024, 768 )
-
-	self.message_box = CUIMessageBoxEx()
-	self:Register( self.message_box, "message_box" )
-	self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes )
-	self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_NO_CLICKED, self.OnMsgNo )
-
+function show_teleport_msg( teleport )
 	local msg = "При телепортации будут потеряны артефакты: "
 	local f = false
 	if pay_art then
@@ -653,40 +640,9 @@ function CUITeleportMsg:__init( teleport )
 	end
 	msg = msg..".\\nПродолжить?"
 
-	start_small_timer( 500, self.ShowMessage, self, msg )
+	local func_yes = function() this.teleport_start( teleport ) end
+	local func_no = function() this.teleport_fail( teleport ) end
+
+	ui_messagebox_new.UIMessageBoxEx( "yes_no_alarm", msg, func_yes, func_no )
 end
 
-function CUITeleportMsg:ShowMessage( msg )
-	self.message_box:Init( "msg_box_no_new_patch" )
-	self.message_box:SetText( msg )
-	self:GetHolder():start_stop_menu( self.message_box, true )
-end
-
-function CUITeleportMsg:OnMsgYes()
-	teleport_start( self.teleport )
-	self:OnQuit()
-end
-
-function CUITeleportMsg:OnMsgNo()
-	teleport_fail( self.teleport )
-	self:OnQuit()
-end
-
-function CUITeleportMsg:OnQuit()
-	self:unregister_self()
-	self:GetHolder():start_stop_menu( self, true )
-end
-
-function CUITeleportMsg:OnKeyboard( dik, keyboard_action )
-	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
-	
-	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-		if dik == DIK_keys.DIK_ESCAPE then
-			self:OnMsgNo()
-		elseif dik == DIK_keys.DIK_RETURN then
-			self:OnMsgYes()
-		end
-	end
-
-	return true
-end
