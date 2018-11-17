@@ -1,7 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+
 class "CUIAutohideMsg" ( CUIScriptWnd )
 
-function CUIAutohideMsg:__init()
+function CUIAutohideMsg:__init( text, delay )
 	super()
 
 	local xml = CScriptXmlInit()
@@ -9,34 +10,32 @@ function CUIAutohideMsg:__init()
 
 	xml:InitWindow( "main", 0, self )
 	self.msg = xml:InitStatic( "main:msg", self )
+	self.msg:SetTextST( text )
+
+	self.dlg = self
+
+	level.start_stop_menu( self, true)
+	self.timer = start_small_timer( delay or 4000, this.remove_wnd, self )
 end
-function CUIAutohideMsg:__finalize()
-	log( "wnd del ok" )
-end
+function CUIAutohideMsg:__finalize() end
 function CUIAutohideMsg:OnKeyboard( dik, key_act )
 	CUIScriptWnd.OnKeyboard( self, dik, key_act )
 
 	if key_act == ui_events.WINDOW_KEY_PRESSED and dik == DIK_keys.DIK_ESCAPE then
-		self:GetHolder():start_stop_menu( self, true )
+		self:Hide()
 	end
 	return true
 end
+function CUIAutohideMsg:Hide()
+	remove_small_timer( self.timer )
+	self:GetHolder():start_stop_menu( self, true )
+	self.dlg = nil
+	BlockUIDescr( false )
+end
 -------------------------------------------------------------------------------------------------------
-local dlg = nil
-local timer = nil
-
-function remove_wnd()
+function remove_wnd( dlg )
 	if dlg and dlg:IsShown() then
-		level.start_stop_menu( dlg, true )
+		dlg:Hide()
 	end
 end
 
-function show_wnd( text, time )
-	if dlg == nil then
-		dlg = CUIAutohideMsg()
-	end
-	dlg.msg:SetTextST( text )
-	level.start_stop_menu( dlg, true)
-	remove_small_timer( timer )
-	timer = start_small_timer( time or 4000, this.remove_wnd )
-end
