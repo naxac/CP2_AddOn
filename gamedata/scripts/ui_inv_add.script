@@ -343,54 +343,8 @@ end
 ------------------------------------------------------------------------------------------
 function getSlots() return slot2section end
 ------------------------------------------------------------------------------------------
-local mWnd = nil
-local tmrID = nil
-
-function InitMsgWnd()
-	mWnd = CUIFrameWindow()
-	mWnd:SetAutoDelete(true)
-	mWnd:Init("ui_icons_PDA_dialog_frame",0, 0, 250, 130)
-	mWnd.text = CUIStatic()
-	mWnd.text:Init(4, 4, 240, 100)
-	mWnd.text:SetAutoDelete(true)
-	mWnd.text:SetFont(GetFontLetterica18Russian())
-	mWnd.text:SetTextColor(255, 255, 230, 150)
-	mWnd.text:SetTextComplexMode(true)
-	mWnd:AttachChild(mWnd.text)
-
-	xr_s.register_callback("inventory_close", this.DelMsgWnd, nil, true)
-end
-function DelMsgWnd()
-	this.hide_inv_msg()
-	mWnd = nil
-end
-
-function show_inv_msg(text)
-	if mWnd == nil then InitMsgWnd() end
-
-	if tmrID then remove_small_timer(tmrID) end
-
-	mWnd.text:SetText( text )
-	mWnd.text:AdjustHeightToText()
-	mWnd:SetHeight( mWnd.text:GetHeight() + 10 )
-	get_hud():AddDialogToRender( mWnd )
-
-	local owner = level.main_input_receiver()
-	local cr = owner:GetCursorX()
-	if cr>=512 then cr = cr - mWnd:GetWidth()
-	else cr = cr + 40 end
-	mWnd:SetWndPos(cr, math.min(owner:GetCursorY(), 768-mWnd:GetHeight()))
-
-	tmrID = start_small_timer(3000, this.hide_inv_msg)
-	xr_s.register_callback("cell_item_focus_lost", this.hide_inv_msg, nil, true)
-	BlockUIDescr(true)
-end
-function hide_inv_msg()
-	if tmrID == nil then return end
-	remove_small_timer(tmrID)
-	tmrID = nil
-	get_hud():RemoveDialogToRender( mWnd )
-	BlockUIDescr(false)
+function show_inv_msg( text )
+	start_small_timer(200, ShowAutohideMsg, text )
 end
 ------------------------------------------------------------------------------------------
 function charge_device( art, device )

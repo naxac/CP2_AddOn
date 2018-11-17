@@ -1,0 +1,42 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "CUIAutohideMsg" ( CUIScriptWnd )
+
+function CUIAutohideMsg:__init()
+	super()
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile( "ui_autohide_msg.xml" )
+
+	xml:InitWindow( "main", 0, self )
+	self.msg = xml:InitStatic( "main:msg", self )
+end
+function CUIAutohideMsg:__finalize()
+	log( "wnd del ok" )
+end
+function CUIAutohideMsg:OnKeyboard( dik, key_act )
+	CUIScriptWnd.OnKeyboard( self, dik, key_act )
+
+	if key_act == ui_events.WINDOW_KEY_PRESSED and dik == DIK_keys.DIK_ESCAPE then
+		self:GetHolder():start_stop_menu( self, true )
+	end
+	return true
+end
+-------------------------------------------------------------------------------------------------------
+local dlg = nil
+local timer = nil
+
+function remove_wnd()
+	if dlg and dlg:IsShown() then
+		level.start_stop_menu( dlg, true )
+	end
+end
+
+function show_wnd( text, time )
+	if dlg == nil then
+		dlg = CUIAutohideMsg()
+	end
+	dlg.msg:SetTextST( text )
+	level.start_stop_menu( dlg, true)
+	remove_small_timer( timer )
+	timer = start_small_timer( time or 4000, this.remove_wnd )
+end
