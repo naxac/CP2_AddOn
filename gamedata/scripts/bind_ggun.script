@@ -694,75 +694,21 @@ end
 -- Не со всеми аномалиями работает 100% корректно, давно приватизировал с АМК форума...
 function an_spawn(anom_name,plosh,position,level_vertex_id,game_vertex_id,powers_a,time_dangeros)
 local con = get_console()
-local obj = alife():create(anom_name,position,level_vertex_id,game_vertex_id)
-local pac = net_packet()
-obj:STATE_Write(pac)
-local game_vertex_id = pac:r_u16()
-local distance = pac:r_float()
-local direction = pac:r_u32()
-local level_vertex_id = pac:r_u32()
-local object_flags = pac:r_s32()
-local custom_data = pac:r_stringZ()
-local story_id = pac:r_s32()
-local spawn_story_id = pac:r_s32()
-local shape_count = pac:r_u8()
-for i=1,shape_count do
-local shape_type = pac:r_u8()
-if shape_type == 0 then
-local center = pac:r_vec3()
-local plosh = pac:r_float()
-else
-local box = pac:r_matrix()
-end
-end
-local restrikror_type = pac:r_u8()
-local powers = pac:r_float()
-local owner_id = pac:r_s32()
-local on_off_mode_enabled_time = pac:r_u32()
-local on_off_mode_disabled_time = pac:r_u32()
-local on_off_mode_shift_time = pac:r_u32()
-local offline_interactive_radius = pac:r_float()
-local artefact_spawn_places_count = pac:r_u16()
-local artefact_position_offset = pac:r_s32()
-local last_spawn_time_present = pac:r_u8()
-if pac:r_elapsed()~= 0 then 
---   abort("left=%d",pac:r_elapsed())
-end
-pac:w_begin(game_vertex_id)
-pac:w_float(distance)
-pac:w_u32(direction)
-pac:w_u32(level_vertex_id)
-pac:w_u32(object_flags)
-pac:w_stringZ(custom_data)
-pac:w_s32(story_id)
-pac:w_s32(spawn_story_id)
-pac:w_u8(1)
-pac:w_u8(0)
-local sphere_center = vector()
-sphere_center:set(0,0,0)
-pac:w_vec3(sphere_center)
-pac:w_float(plosh)
-pac:w_u8(restrikror_type)
-if powers_a ~= nil then 
-powers = powers_a 
-end
-pac:w_float(powers)
-if time_dangeros == nil then 
-owner_id = bit_not(0) 
-else 
-owner_id = time_dangeros 
-end
-pac:w_u32(owner_id)
-pac:w_u32(on_off_mode_enabled_time)
-pac:w_u32(on_off_mode_disabled_time)
-pac:w_u32(on_off_mode_shift_time)
-pac:w_float(offline_interactive_radius)
-pac:w_u16(artefact_spawn_places_count)
-pac:w_u32(artefact_position_offset)
-pac:w_u8(last_spawn_time_present)
-pac:r_seek(0)
-obj:STATE_Read(pac,pac:w_tell())
-return obj
+	local obj = alife():create(anom_name,position,level_vertex_id,game_vertex_id)
+	local t = {}
+	t.shapes = {
+		[1] = {
+			shtype = 0,
+			center = vector():set( 0, 0, 0 ),
+			radius = plosh
+		}
+	}
+	t.max_power = powers_a
+	t.owner_id = time_dangeros or bit_not( 0 )
+
+	netpk:modify( obj, t, net_packet.fState )
+
+	return obj
 end
 
 function parse_data(str)

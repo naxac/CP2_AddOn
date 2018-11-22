@@ -243,14 +243,29 @@ function have_a_flamethrower()
 end
 
 function metka_na_npc()
-local obj = alife():create("gar_stalker_flame_quest23",vector():set(24.86,0.40,209.75),198510,359)
-local params=amk.read_stalker_params(obj)
-params.custom="[logic]\nactive=walker\n[walker]\npath_walk = garb_tambovski_path\npath_look = garb_tambovski_look\non_info= {+find_815} nil\ncombat_ignore_cond=always"
-params.sid=481516
-amk.write_stalker_params(params,obj)
-amk.add_spot_on_map(obj.id,'green_location','Лёха Тамбовский')
+	local obj = alife():create("gar_stalker_flame_quest23",vector():set(24.86,0.40,209.75),198510,359)
+	local params = {
+		custom_data = "[logic]\n"..
+		              "active = walker\n"..
+					  "[walker]\n"..
+					  "path_walk = garb_tambovski_path\n"..
+					  "path_look = garb_tambovski_look\n"..
+					  "on_info= {+find_815} nil %=flamethrower.tambovski_free%\n"..
+					  "combat_ignore_cond = always\n"..
+					  "[smart_terrains]\n"..
+					  "none = true",
+		story_id = 481516
+	}
+	netpk:modify( obj, params, net_packet.fState )
+	amk.add_spot_on_map(obj.id,'green_location','Лёха Тамбовский')
 end
 
+function tambovski_free(actor, npc)
+	local obj = alife():object( npc:id() )
+	if obj then
+		netpk:modify( obj, { custom_data = "" }, net_packet.fState )
+	end
+end
 
 
 function start_work(first_speaker, second_speaker)

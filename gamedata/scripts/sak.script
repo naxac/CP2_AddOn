@@ -219,7 +219,7 @@ function show_lc_info(obj)
 		return
 	end
 	
-	local data = sak.get_lc_data(obj)
+	local data = netpk:get(obj, net_packet.fState)
 	local dest_lvl = game.translate_string(string.lower(data.dest_level_name))
 	local prev_lvl = game.translate_string(alife():level_name(game_graph():vertex(data.game_vertex_id):level_id()))
 	info_received(prev_lvl..' >> '..dest_lvl)
@@ -430,34 +430,28 @@ end
 --alife():create("rad_document7",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
 --end
 function add_two_corpses()
-	local obj=amk.spawn_item("yan_ecolog_respawn_2",vector():set(187.84,5.18,-360.68),938,386349)
-	if IAmAStalker[obj:clsid()] then
-		local tbl = amk.read_stalker_params(obj)
-		tbl.sid = 48800
-		tbl.health = 0
-		tbl.updhealth = 0
-		amk.write_stalker_params(tbl, obj)					
-	end	
+	local obj = amk.spawn_item("yan_ecolog_respawn_2",vector():set(187.84,5.18,-360.68),938,386349)
+	local tbl = {}
+	tbl.story_id = 48800
+	tbl.health = 0
+	tbl.upd = { health = 0 }
+	netpk:modify( obj,tbl )					
+
 	alife():create("scaintist_docs",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
-	local obj=amk.spawn_item("yan_ecolog_respawn_2",vector():set(187.66,5.03,-375.97),938,386327)
-	if IAmAStalker[obj:clsid()] then
-		local tbl = amk.read_stalker_params(obj)
-		tbl.sid = 48801
-		tbl.health = 0
-		tbl.updhealth = 0
-		amk.write_stalker_params(tbl, obj)					
-	end	
+
+	obj=amk.spawn_item("yan_ecolog_respawn_2",vector():set(187.66,5.03,-375.97),938,386327)
+	tbl.story_id = 48801
+	netpk:modify( obj,tbl )
+
 	amk.spawn_item("inventory_sakbox_05",vector():set(176.83,8.37,-375.96),938,377568)
 end
 function add_scaintist_body()
 	local obj=amk.spawn_item("yan_ecolog_respawn_2",vector():set(-46.53,-2.2,-98.36),2258,53082)
-	if IAmAStalker[obj:clsid()] then
-		local tbl = amk.read_stalker_params(obj)
-		tbl.sid = 48802
-		tbl.health = 0
-		tbl.updhealth = 0
-		amk.write_stalker_params(tbl, obj)					
-	end	
+	local tbl = {}
+	tbl.story_id = 48802
+	tbl.health = 0
+	tbl.upd = { health = 0 }
+	netpk:modify( obj,tbl )
 	alife():create("scaintist_pda",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
 end
 function add_agroprom_box()
@@ -807,46 +801,6 @@ function all_questmen_alive()
 	return true
 end
 
---[=[ старый код
-local nepis={9501,4,5,6,7,9,22,32,92,104,107,115,302,370,400,406,505,506,507,516,702,707,728,734}
-local nepis_id={9110,3288,3000,2963,2968,2981,3041,3021,3132,3855,3958,3876,4593,4625,5464,5467,6636,6635,6637,6643,7623,7627,7628,7629}
-local nepis_logic={4,5,6,7,9,22,32,92,104,107} --шустрый, лис,волк,толик,петруха,фанат,кузнецов, проводник,юрик, бес
-function new_sak_logic()
-		--[[--local npis=nepis_logic[3]
-		local obj=alife():story_object(npis)
-		local tbl = amk.read_stalker_params(obj)
-		dbglog("Entered: "..tbl.custom)
-		tbl.custom="[smart_terrains]\nsak_lager = true"
-		dbglog("Entered: "..obj:name().." sid-"..obj.m_story_id) --id~11017
-		dbglog("Entered: "..tbl.custom)
-		amk.write_stalker_params(tbl, obj)	
-			--local tb2 = amk.read_stalker_params(obj)
-			--dbglog("Entered: "..tb2.custom)--]]
-end
-function deadman_to_life(art)
-	for a=1,#nepis,1 do 
-		local npis=nepis[a]
-		local npis_id=nepis_id[a]
-		local obj=alife():story_object(npis)
-		if  obj and IAmAStalker[obj:clsid()] and not obj:alive() then
-			local name=obj:name()
-			local posobj=obj.position
-			local actorpos=db.actor:position()
-			if (posobj:distance_to(actorpos) < 2) then 
-			amk_mod.af_flash(art)
-			set_npc_health(obj,npis_id)
-			end
-		end
-	end
-end
-function set_npc_health(obj,nps_id)
-	alife():release(obj)
-	--local obj = alife():story_object(sid)  
-	--if not obj then 
-		alife():create(nps_id)
-	--end				
-end
-]=]
 
 function af_zone_off(af)
  local anom=amk_anoms.get_nearest_anomaly(db.actor)
@@ -861,125 +815,63 @@ local obj=db.actor:object(item)
 	  obj:set_condition(val)
 	end
 end
-function get_lc_data(obj)
-	local packet = net_packet()
-	obj:STATE_Write(packet)
-	local t={}
-	t.game_vertex_id = packet:r_u16()
-	t.distance = packet:r_float()
-	t.direct_control = packet:r_s32()
-	t.level_vertex_id = packet:r_s32()
-	t.object_flags = packet:r_s32()
-	t.custom_data = packet:r_stringZ()
-	t.story_id = packet:r_s32()
-	t.spawn_story_id = packet:r_s32()
-	local shape_count = packet:r_u8()
-	t.shapes={}
-	for i=1,shape_count do
-	local shape_type = packet:r_u8()
-	t.shapes[i]={}
-	t.shapes[i].shtype=shape_type
-	if shape_type == 0 then
-	t.shapes[i].center = packet:r_vec3()
-	t.shapes[i].radius = packet:r_float()
-	else
-	t.shapes[i].v1 = packet:r_vec3()
-	t.shapes[i].v2 = packet:r_vec3()
-	t.shapes[i].v3 = packet:r_vec3()
-	t.shapes[i].offset = packet:r_vec3()
-	end
-	end
-	t.restrictor_type = packet:r_u8()
-	t.dest_game_vertex_id = packet:r_u16()
-	t.dest_level_vertex_id = packet:r_s32()
-	t.dest_position = packet:r_vec3()
-	t.dest_direction = packet:r_vec3()
-	t.dest_level_name = packet:r_stringZ()
-	t.dest_graph_point = packet:r_stringZ()
-	t.silent_mode = packet:r_u8()
-	if packet:r_elapsed() ~= 0 then
-		abort("left=%d", packet:r_elapsed())
-	end
-	return t
-end
 
-function set_lc_data(t,obj)
-	local packet = net_packet()
-	obj:STATE_Write(packet)
-	packet:w_begin(t.game_vertex_id)
-	packet:w_float(t.distance)
-	packet:w_s32(t.direct_control)
-	packet:w_s32(t.level_vertex_id)
-	packet:w_s32(t.object_flags)
-	packet:w_stringZ(t.custom_data)
-	packet:w_s32(t.story_id)
-	packet:w_s32(t.spawn_story_id)
-	packet:w_u8(#t.shapes)
-	for i=1,#t.shapes do
-	packet:w_u8(t.shapes[i].shtype)
-	if t.shapes[i].shtype == 0 then
-	packet:w_vec3(t.shapes[i].center)
-	packet:w_float(t.shapes[i].radius)
-	else
-	packet:w_vec3(t.shapes[i].v1)
-	packet:w_vec3(t.shapes[i].v2)
-	packet:w_vec3(t.shapes[i].v3)
-	packet:w_vec3(t.shapes[i].offset)
-	end
-	end
-	packet:w_u8(t.restrictor_type)
-	packet:w_u16(t.dest_game_vertex_id)
-	packet:w_s32(t.dest_level_vertex_id)
-	packet:w_vec3(t.dest_position)
-	packet:w_vec3(t.dest_direction)
-	packet:w_stringZ(t.dest_level_name)
-	packet:w_stringZ(t.dest_graph_point)
-	packet:w_u8(t.silent_mode)
-	packet:r_seek(0)
-	obj:STATE_Read(packet, packet:w_tell())
-end
-local points_kordon={
-    {position={x=-244.69,y=-14.27,z=-16.33},gv=67,lv=12579}, 
-    {position={x=107.54,y=-7.14,z=1.09},gv=119,lv=408816}, 
-	{position={x=71.48,y=1.92,z=158.79},gv=96,lv=362726}, 
-	{position={x=33.69,y=5.02,z=407.89},gv=246,lv=565356}, 
-    {position={x=220.57,y=7.62,z=100.55},gv=152,lv=511605} 
+local points = {
+	kordon = {
+		lname = "l01_escape",
+		p = {
+			{position={x=-244.69,y=-14.27,z=-16.33},gv=67,lv=12579}, 
+			{position={x=107.54,y=-7.14,z=1.09},gv=119,lv=408816}, 
+			{position={x=71.48,y=1.92,z=158.79},gv=96,lv=362726}, 
+			{position={x=33.69,y=5.02,z=407.89},gv=246,lv=565356}, 
+			{position={x=220.57,y=7.62,z=100.55},gv=152,lv=511605} 
+		}
+	},
+	yantar = {
+		lname = "l08_yantar",
+		p = {
+			{position={x=165.06,y=-8.19,z=-103.95},gv=1442,lv=131181}, 
+			{position={x=92.58,y=0.02,z=-39.23},gv=1515,lv=87813},
+			{position={x=34.48,y=0.04,z=18.19},gv=1445,lv=56341},
+			{position={x=24.61,y=0.02,z=-62.60},gv=1505,lv=51069}, 
+			{position={x=-60.17,y=-10.21,z=-202.66},gv=1447,lv=17529}
+		}
+	},
+	pripat = {
+		lname = "l11_pripyat",
+		p = {
+			{position={x=49.78,y=-3.6,z=120.99},gv=2166,lv=161768}, 
+			{position={x=191.20,y=-2.0,z=219.52},gv=2219,lv=260280}, 
+			{position={x=164.51,y=-3.89,z=80.83},gv=2145,lv=250751}, 
+			{position={x=-97.65,y=-2.4,z=71.81},gv=2140,lv=18233}, 
+			{position={x=116.64,y=-0.61,z=216.98},gv=2163,lv=226288}
+		}
+	},
+	military = {
+		lname = "l07_military",
+		p = {
+			{position={x=81.65,y=-12.57,z=60.67},gv=1558,lv=379105}, 
+			{position={x=-35.96,y=-21.29,z=375.80},gv=1821,lv=272475}, 
+			{position={x=-264.86,y=-22.6,z=275.85},gv=1797,lv=72698},
+			{position={x=-340.59,y=-13.62,z=388.84},gv=1847,lv=12469}
+		}
+	},
+	stancia = {
+		lname = "l12_stancia",
+		p = {
+			{position={x=374.82,y=0,z=33.345},gv=2384,lv=161393}
+		}
+	}
 }
-local points_yantar={
-    {position={x=165.06,y=-8.19,z=-103.95},gv=1442,lv=131181}, 
-    {position={x=92.58,y=0.02,z=-39.23},gv=1515,lv=87813},
-	{position={x=34.48,y=0.04,z=18.19},gv=1445,lv=56341},
-	{position={x=24.61,y=0.02,z=-62.60},gv=1505,lv=51069}, 
-    {position={x=-60.17,y=-10.21,z=-202.66},gv=1447,lv=17529} 
+
+local out_points = {
+	kordon_sak	= { position = { x = -210,   y = -20.53, z = -145.78 }, gv = 61,   lv = 43273  },
+	kordon		= { position = { x = 301.11, y = 13.31,  z = 276.43  }, gv = 246,  lv = 565356 },
+	yantar		= { position = { x = -60.78, y = -13.02, z = -253.92 }, gv = 1454, lv = 17204  },
+	pripat		= { position = { x = 52.17,  y = -3.5,   z = 120.94  }, gv = 2166, lv = 164012 },
+	military	= { position = { x = -94.71, y = -20.55, z = 229.54  }, gv = 1734, lv=220072   },
+	sarcofag	= { position = { x = 23.58,  y = 56,     z = 25.68   }, gv = 2417, lv=5160     }
 }
-local points_pripat={
-    {position={x=49.78,y=-3.6,z=120.99},gv=2166,lv=161768}, 
-    {position={x=191.20,y=-2.0,z=219.52},gv=2219,lv=260280}, 
-	{position={x=164.51,y=-3.89,z=80.83},gv=2145,lv=250751}, 
-	{position={x=-97.65,y=-2.4,z=71.81},gv=2140,lv=18233}, 
-    {position={x=116.64,y=-0.61,z=216.98},gv=2163,lv=226288} 
-}
-local points_military={
-    {position={x=81.65,y=-12.57,z=60.67},gv=1558,lv=379105}, 
-    {position={x=-35.96,y=-21.29,z=375.80},gv=1821,lv=272475}, 
-	{position={x=-264.86,y=-22.6,z=275.85},gv=1797,lv=72698},
-    {position={x=-340.59,y=-13.62,z=388.84},gv=1847,lv=12469}
-}
-local points_stancia={
-    {position={x=374.82,y=0,z=33.345},gv=2384,lv=161393} 
-}
-local out_points_kordon_sak={
-    {position={x=-210,y=-20.53,z=-145.78},gv=61,lv=43273}}
-local out_points_kordon={
-    {position={x=301.11,y=13.31,z=276.43},gv=246,lv=565356}}
-local out_points_yantar={
-    {position={x=-60.78,y=-13.02,z=-253.92},gv=1454,lv=17204}}
-local out_points_pripat={
-    {position={x=52.17,y=-3.5,z=120.94},gv=2166,lv=164012}}
-local out_points_military={
-    {position={x=-94.71,y=-20.55,z=229.54},gv=1734,lv=220072}}
-local out_points_sarcofag={
-    {position={x=23.58,y=56,z=25.68},gv=2417,lv=5160}}	
 function get_kordon_military() get_teleport("kordon","military",1,9121) end
 function get_kordon_yantar() get_teleport("kordon","yantar",1,9121) end
 function get_kordon_pripyat() get_teleport("kordon","pripat",1,9121) end
@@ -1005,42 +897,33 @@ function get_yantar_militaryr() get_teleport("yantar","military",0,9124) end
 function get_yantar_kordonr() get_teleport("yantar","kordon",0,9124) end
 function get_yantar_pripyatr() get_teleport("yantar","pripat",0,9124) end
 function get_sarcofag_stancia() get_teleport("sarcofag","stancia",1,9125) end
-function get_teleport(pos_out,pos_in,made,sidlc) local obj1, name_level, obj_tport local a, b
-if     pos_out == "kordon"	then	a = out_points_kordon[1]
-elseif pos_out == "pripat" 	then 	a = out_points_pripat[1]
-elseif pos_out == "military" then 	a = out_points_military[1]
-elseif pos_out == "yantar" 	then 	a = out_points_yantar[1]
-elseif pos_out == "sarcofag" then 	a = out_points_sarcofag[1]
+
+function get_teleport(pos_out,pos_in,made,sidlc)
+	local a = out_points[ pos_out ]
+
+	local tmp = points[ pos_in ]
+	local name_level = tmp.lname
+	local b = ( made == 0 and  table.random( tmp.p ) ) or tmp.p[ 1 ]
+
+	local obj1 = alife():create("level_changer",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
+	local obj_tp = alife():create("zone_teleport",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
+	local obj_tport = obj_tp.id
+	amk.save_variable("sak_teleport", obj_tport)  
+	if obj1 then
+		local obj2 = alife():story_object(9120)
+		local t = netpk:get(obj2, net_packet.fState)
+		t.story_id = sidlc
+		t.dest_level_name = name_level
+		t.dest_position = vector():set(b.position.x,b.position.y,b.position.z)
+		t.dest_game_vertex_id = b.gv
+		t.dest_level_vertex_id = b.lv
+		t.silent_mode = 1
+		netpk:set(obj1, t)
+	end
+
+	info_teleport()
 end
-if made==0 then 
-if     pos_in == "kordon"	then	name_level="l01_escape" 
-b = points_kordon[math_random(#points_kordon)]
-elseif pos_in == "pripat" 	then 	name_level="l11_pripyat" 
-b = points_pripat[math_random(#points_pripat)]
-elseif pos_in == "military" then 	name_level="l07_military" 
-b = points_military[math_random(#points_military)]
-elseif pos_in == "yantar" 	then 	name_level="l08_yantar" 
-b = points_yantar[math_random(#points_yantar)] end
-elseif made==1 then
-if     pos_in == "kordon"	then	name_level="l01_escape" b = points_kordon[1]
-elseif pos_in == "pripat" 	then 	name_level="l11_pripyat" b = points_pripat[1]
-elseif pos_in == "military" then 	name_level="l07_military" b = points_military[1]
-elseif pos_in == "yantar" 	then 	name_level="l08_yantar" b = points_yantar[1]
-elseif pos_in == "stancia" 	then 	name_level="l12_stancia" b = points_stancia[1]  end end
-obj1=alife():create("level_changer",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
-obj_tp=amk.spawn_item("zone_teleport",vector():set(a.position.x,a.position.y,a.position.z), a.gv, a.lv)
-obj_tport=obj_tp.id
-amk.save_variable("sak_teleport", obj_tport)  
-if obj1 then local obj2 = alife():story_object(9120) local t = get_lc_data(obj2)
-t.story_id = sidlc
-t.dest_level_name = name_level
-t.dest_position = vector():set(b.position.x,b.position.y,b.position.z)
-t.dest_game_vertex_id = b.gv
-t.dest_level_vertex_id = b.lv
-t.silent_mode = 1
-set_lc_data(t,obj1) end 
-info_teleport()
-end
+
 function out_teleport()
 local sid={9121,9122,9123,9124,9125}
 local lev={"l01_escape","l11_pripyat","l07_military","l08_yantar","l12u_sarcofag"}
@@ -1076,206 +959,20 @@ function show_time(f)
     end
 end
 -- часы----------------OFF---------------------------
-function readvu32u8(packet)
-  local v={}
-  local len=packet:r_s32()
-  for i=1,len,1 do
-    table.insert(v,packet:r_u8())
-  end return v end
-function readvu8u8(packet)
-  local v={}
-  local len=8
-  for i=1,len,1 do
-    table.insert(v,packet:r_u8())
-  end return v end
-function readvu32u16(packet)
-  local v={}
-  local len=packet:r_s32()
-  for i=1,len,1 do
-    table.insert(v,packet:r_u16())
-  end return v end
-function writevu32u8(pk,v)
-  local len=#v
-  pk:w_s32(len)
-  for i=1,len,1 do
-    pk:w_u8(v[i])
-  end
-end
-function writevu8u8(pk,v)
-  local len=8
-  for i=1,len,1 do
-    pk:w_u8(v[i])
-  end
-end
-function writevu32u16(pk,v)
-  local len=#v
-  pk:w_s32(len)
-  for i=1,len,1 do
-    pk:w_u16(v[i])
-  end
-end
-function parse_skeleton_packet(ret,stpk,updpk)
-  ret.skeleton=stpk:r_stringZ()
-  ret.skeleton_flags=stpk:r_u8()
-  ret.source_id=stpk:r_u16()
-  return ret end
-function fill_skeleton_packet(ret,stpk,updpk)
-  stpk:w_stringZ(ret.skeleton)
-  stpk:w_u8(ret.skeleton_flags)
-  stpk:w_u16(ret.source_id)
-end
-function parse_visual_packet(ret,stpk,updpk)
-  ret.visual=stpk:r_stringZ()
-  ret.vsu8u1=stpk:r_u8()
-  return ret end
-function fill_visual_packet(ret,stpk,updpk)
-  stpk:w_stringZ(ret.visual)
-  stpk:w_u8(ret.vsu8u1)
-end
-function parse_object_physic_packet(ret,stpk,updpk)
-	ret.physic_type=stpk:r_s32()
-	ret.mass=stpk:r_float()
-	ret.fixed_bones=stpk:r_stringZ()
-  return ret end
-function fill_object_physic_packet(ret,stpk,updpk)
-	stpk:w_s32(ret.physic_type)
-	stpk:w_float(ret.mass)
-	stpk:w_stringZ(ret.fixed_bones)
-end
-function parse_shape_packet(t,stpk,uppk)
-	local shape_count = stpk:r_u8()
-	t.shapes={}
-	for i=1,shape_count do
-		local shape_type = stpk:r_u8()
-		t.shapes[i]={}
-		t.shapes[i].shtype=shape_type
-		if shape_type == 0 then
-			t.shapes[i].center = stpk:r_vec3()
-			t.shapes[i].radius = stpk:r_float()
-		else
-			t.shapes[i].v1 = stpk:r_vec3()
-			t.shapes[i].v2 = stpk:r_vec3()
-			t.shapes[i].v3 = stpk:r_vec3()
-			t.shapes[i].offset = stpk:r_vec3()
-		end
-	end
-end
-function fill_shape_packet(t,stpk,updpk)
-	stpk:w_u8(#t.shapes)
-	for i=1,#t.shapes do
-		stpk:w_u8(t.shapes[i].shtype)
-		if t.shapes[i].shtype == 0 then
-			stpk:w_vec3(t.shapes[i].center)
-			stpk:w_float(t.shapes[i].radius)
-		else
-			stpk:w_vec3(t.shapes[i].v1)
-			stpk:w_vec3(t.shapes[i].v2)
-			stpk:w_vec3(t.shapes[i].v3)
-			stpk:w_vec3(t.shapes[i].offset)
-		end
-	end
-end
-function parse_object_packet(ret,stpk,updpk)
-  ret.gvid=stpk:r_u16()
-  ret.obf32u1=stpk:r_float()
-  ret.obs32u2=stpk:r_s32()
-  ret.lvid=stpk:r_s32()
-  ret.oflags=stpk:r_s32()
-  ret.custom=stpk:r_stringZ()
-  ret.sid=stpk:r_s32()
-  ret.obs32u3=stpk:r_s32()
-  return ret
-end
-function fill_object_packet(ret,stpk,updpk)
-  stpk:w_u16(ret.gvid)
-  stpk:w_float(ret.obf32u1)
-  stpk:w_s32(ret.obs32u2)
-  stpk:w_s32(ret.lvid)
-  stpk:w_s32(ret.oflags)
-  stpk:w_stringZ(ret.custom)
-  stpk:w_s32(ret.sid)
-  stpk:w_s32(ret.obs32u3)
-end
-function get_restrictor_data(sobj)
-  local stpk=net_packet()
-  local uppk=net_packet()
-  sobj:STATE_Write(stpk)
-  sobj:UPDATE_Write(uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
-  stpk:r_seek(0)
-  uppk:r_seek(0)
-  local t={}
-	parse_object_packet(t,stpk,uppk,size)
-	parse_shape_packet(t,stpk,uppk,size)
-	t.restrictor_type = stpk:r_u8()
-  return t end
-function set_restrictor_data(t,sobj)
-  local stpk=net_packet()
-  local uppk=net_packet()
-  fill_object_packet(t,stpk,uppk)
-  fill_shape_packet(t,stpk,uppk)
-	stpk:w_u8(t.restrictor_type)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
-  stpk:r_seek(0)
-  uppk:r_seek(0)
-  sobj:STATE_Read(stpk,size)
-  sobj:UPDATE_Read(uppk)
-end
-function get_destroyable_data(sobj)
-  local stpk=net_packet()
-  local uppk=net_packet()
-  sobj:STATE_Write(stpk)
-  sobj:UPDATE_Write(uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
-  stpk:r_seek(0)
-  uppk:r_seek(0)
-  local t={}
-  parse_object_packet(t,stpk,uppk,size)
-  parse_visual_packet(t,stpk,uppk,size)
-  parse_skeleton_packet(t,stpk,uppk,size)
-  parse_object_physic_packet(t,stpk,uppk,size)
-  return t end
-function set_destroyable_data(t,sobj)
-  local stpk=net_packet()
-  local uppk=net_packet()
-	fill_object_packet(t,stpk,uppk)
-	fill_visual_packet(t,stpk,uppk)
-	fill_skeleton_packet(t,stpk,uppk)
-	fill_object_physic_packet(t,stpk,uppk)
-  local size=stpk:w_tell()
-  local size1=uppk:w_tell()
-  stpk:r_seek(0)
-  uppk:r_seek(0)
-  sobj:STATE_Read(stpk,size)
-  sobj:UPDATE_Read(uppk)
-end
 function switch_timer_stancia()
---	for a=2000,2100,1 do
---		local obj=alife():object(a)
---		if (obj and obj.name and obj:name() == "aes_space_restrictor_timer") then
 	local obj=alife():object("aes_space_restrictor_timer")
 	if obj then
-		local params=get_restrictor_data(obj)
-		--dbglog("Entered: "..obj:name().." id-"..a.." sid-"..obj.m_story_id) --id~2031
-		params.custom="[logic]\ncfg = scripts\\aes\\aes_space_timer.ltx"
-		set_restrictor_data(params,obj)
---		end
+		local params = {}
+		params.custom_data = "[logic]\ncfg = scripts\\aes\\aes_space_timer.ltx"
+		netpk:modify(obj, params, net_packet.fState)
 	end
 end
 function switch_mil_matugalnik()
-	for a=10500,11500,1 do
-		local obj=alife():object(a)
-		if (obj and obj.name and obj:name() == "mil_physic_destroyable_object_0046") then
-		local params=get_destroyable_data(obj)
-		--dbglog("Entered: "..params.custom)
-		--dbglog("Entered: "..obj:name().." id-"..a.." sid-"..obj.m_story_id) --id~11017
-		params.custom="[logic]\ncfg = scripts\\mil\\matugalnik.ltx"
-		--dbglog("Entered: "..params.custom)
-		set_destroyable_data(params,obj)
-		end
+	local obj=sim:object("mil_physic_destroyable_object_0046")
+	if obj then
+		local params = {}
+		params.custom_data="[logic]\ncfg = scripts\\mil\\matugalnik.ltx"
+		netpk:modify(obj, params, net_packet.fState)
 	end
 end
 function add_3repair_item_outfit()

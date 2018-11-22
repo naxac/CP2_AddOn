@@ -500,11 +500,8 @@ function get_npc_name(obj)
 			if (ob and ob.character_name) then
 				m_s_name = ob:character_name()
 			else
-				if (amk and amk.read_stalker_params and IsNpcStalker(obj)) then
-					local tbl = amk.read_stalker_params(obj)
-					if(tbl and tbl.charname) then
-						m_s_name = tbl.charname
-					end
+				if IsNpcStalker(obj) then
+					m_s_name = naxac_netpk.get_character_name(obj)
 				end
 			end
 		end
@@ -2042,8 +2039,8 @@ function do_seen_monster()
 									end
 								end
 								if IAmAMonster[obj:clsid()] then
-									local tbl = amk.read_monster_params(obj)
-									local cd = amk.parse_custom_data(tbl.custom)
+									local tbl = netpk:get(obj)
+									local cd = netpk:parse_custom_data(tbl.custom_data)
 									if not cd.smart_terrains then cd.smart_terrains={} end
 									cd.smart_terrains.none = "true"
 									-- Микроквест
@@ -2068,8 +2065,8 @@ function do_seen_monster()
 										cd.microquest.reward_from = s_from
 										if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", text) end
 									end
-									tbl.custom = amk.gen_custom_data(cd)
-									amk.write_monster_params(tbl, obj)
+									tbl.custom_data = netpk:gen_custom_data(cd)
+									netpk:set(obj, tbl)
 								end
 								b_ok = true
 							end
@@ -2660,11 +2657,11 @@ function on_miniquest_reward(trader)
 		elseif(trader.story_id) then
 			story_id = trader:story_id()
 		end
-		if (story_id == 3) then
-			local obj = sim:story_object(3)
+		if (story_id == 3) or (story_id == 500) then
+			local obj = sim:story_object(story_id)
 			if (obj) then
-				local t = amk.get_trader_data(obj)
-				local cd = amk.parse_custom_data(t.custom)
+				local t = netpk:get(obj, net_packet.fState)
+				local cd = netpk:parse_custom_data(t.custom_data)
 				if (cd.microquest and cd.microquest.reward_money and cd.microquest.reward_items) then
 					money = tonumber(cd.microquest.reward_money)
 					items = cd.microquest.reward_items
@@ -2676,48 +2673,13 @@ function on_miniquest_reward(trader)
 					for k,v in pairs(spawn) do
 						sak.create_items_actor(k,v)
 					end
-				--	for k, v in pairs(tbl) do
-				--		local section = v
-				--		if (section) then
-				--			dialogs.relocate_item_section(trader, section, "in")
-				--		end
-				--	end
 					cd.microquest = {}
 					cd.microquest.reward_money = 0
 					cd.microquest.reward_items = ""
-					t.custom = amk.gen_custom_data(cd)
-					amk.set_trader_data(t, obj)
+					t.custom_data = netpk:gen_custom_data(cd)
+					netpk:set(obj, t)
 				end
-			end
-		elseif (story_id == 500) then
-			local obj = sim:story_object(500)
-			if (obj) then
-				local t = amk.read_stalker_params(obj)
-				local cd = amk.parse_custom_data(t.custom)
-				if (cd.microquest and cd.microquest.reward_money and cd.microquest.reward_items) then
-					money = tonumber(cd.microquest.reward_money)
-					items = cd.microquest.reward_items
-				end
-				if (money and items and money > 0 and items ~= "") then
-					dialogs.relocate_money(trader, money, "in")
-					local tbl = string.explode(items, ",", true)
-					local spawn = get_spawn_t(tbl)
-					for k,v in pairs(spawn) do
-						sak.create_items_actor(k,v)
-					end
-				--	for k, v in pairs(tbl) do
-				--		local section = v
-				--		if (section) then
-				--			dialogs.relocate_item_section(trader, section, "in")
-				--		end
-				--	end
-					cd.microquest = {}
-					cd.microquest.reward_money = 0
-					cd.microquest.reward_items = ""
-					t.custom = amk.gen_custom_data(cd)
-					amk.write_stalker_params(t, obj, true)
-				end
-			end		
+			end	
 		else
 			if story_id == nil then story_id = -1 end
 			trace("on_miniquest_reward - strange story_id="..story_id)

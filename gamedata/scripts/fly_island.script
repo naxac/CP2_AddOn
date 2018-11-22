@@ -514,15 +514,15 @@ end
 -- скриптовый спавн острова
 function create_fly_island(pos,lv,gv)
 	local obj = alife():create("fly_island",pos,lv,gv)
-	local params = amk.get_destroyable_data(obj)
-	params.oflags = -198		-- 0xffffff3a object_flags
-	params.vsu8u1 = 1			-- 0x1 visual_flags
-	params.skeleton = "idle"
+	local params = {}
+	params.object_flags = -198		-- 0xffffff3a object_flags
+	params.visual_flags = 1			-- 0x1 visual_flags
+	params.skeleton_name = "idle"
 	params.skeleton_flags = 1
 	params.physic_type = 3		-- 0x3
 	params.mass = 100
 	params.fixed_bones = "link"
-	amk.set_destroyable_data(params,obj)
+	netpk:modify(obj, params, net_packet.fState)
 	alife():create("zone_fly_island",pos,lv,gv)
 	return obj
 end
@@ -914,9 +914,9 @@ end
 -- собственно спавн снайперов с присвоением кастомдаты
 function create_sniper_2chaes(section,pos,lv,gv,num,look)
 	local obj = alife():create(section,pos,lv,gv)
-	local params = amk.read_stalker_params(obj)
-	params.oflags = -5	-- 0xfffffffb
-	params.custom = 
+	local params = {}
+	params.object_flags = -5	-- 0xfffffffb
+	params.custom_data = 
 		"[smart_terrains]\n"..
 		"none = true\n"..
 
@@ -941,16 +941,16 @@ function create_sniper_2chaes(section,pos,lv,gv,num,look)
 
 		"[death]\n"..
 		"on_info = %=fly_island.sniper_2chaes_death%\n"
-	amk.write_stalker_params(params,obj)
+	netpk:modify(obj, params, net_packet.fState)
 end
 
 -- спавн команды —негир€
 function create_snegir_2chaes_team(section,pos,lv,gv,custom_data)
 	local obj = alife():create(section,pos,lv,gv)
-	local params = amk.read_stalker_params(obj)
-	params.oflags = -5	-- 0xfffffffb
-	params.custom = "[logic]\ncfg = "..custom_data
-	amk.write_stalker_params(params,obj)
+	local params = {}
+	params.object_flags = -5	-- 0xfffffffb
+	params.custom_data = "[logic]\ncfg = "..custom_data
+	netpk:modify(obj, params, net_packet.fState)
 end
 
 -- убираем пысовские рестрикторы на „јЁ—2, чтобы не вылетало по пут€м, они уже по игре больше не нужны

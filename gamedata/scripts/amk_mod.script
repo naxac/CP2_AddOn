@@ -2656,91 +2656,22 @@ function spawn_military_btr()
 end
 
 function spawn_military_tech_pack(obj, spawn_item, spawn_item_logic)	
-	local packet = net_packet()
-	obj:STATE_Write(packet)
+	local t = {}
 
-	-- свойства cse_alife_object
-	local game_vertex_id = packet:r_u16()
-	local cse_alife_object__unk1_f32 = packet:r_float()
-	local cse_alife_object__unk2_s32 = packet:r_s32()
-	local level_vertex_id = packet:r_s32()
-	local object_flags = packet:r_s32()
-	local custom_data = packet:r_stringZ()
-	local story_id = packet:r_s32()
-	local cse_alife_object__unk3_s32 = packet:r_s32()
-
-	-- свойства cse_visual
-	local model_visual = packet:r_stringZ()
-	local cse_visual__unk1_u8 = packet:r_u8()
-	local motion_name
-	if spawn_item == "helicopter" then
-		-- свойства cse_motion
-		motion_name = packet:r_stringZ()
-	end
-
-	-- свойства cse_ph_skeleton
-	local skeleton_name = packet:r_stringZ()
-	local cse_ph_skeleton__unk1_u8 = packet:r_u8()
-	local cse_ph_skeleton__unk2_u16 = packet:r_u16()
-	local health 
-	local cse_alife_helicopter__unk1_sz 
-	local engine_sound 
-		
-	if spawn_item == "helicopter" then
-		-- свойства cse_alife_helicopter
-		cse_alife_helicopter__unk1_sz = packet:r_stringZ()
-		engine_sound = packet:r_stringZ()
-	elseif	spawn_item == "vehicle_btr" then
-		health = packet:r_float()
-	end
-	
-	-- теперь заполняем нужнvе параметрv
-	-- свойства cse_alife_object
-	packet:w_begin(game_vertex_id)
-	packet:w_float(cse_alife_object__unk1_f32)
-	packet:w_s32(cse_alife_object__unk2_s32)
-	packet:w_s32(level_vertex_id)
-	object_flags = bit_not(5)	-- ~5 = 0xfffffffa
-	packet:w_s32(object_flags)
-	
-	packet:w_stringZ("[logic]\ncfg = "..spawn_item_logic)
---[=[	if spawn_item == "helicopter" then
-		packet:w_stringZ("[logic]\ncfg = "..spawn_item_logic)
-	elseif	spawn_item == "vehicle_btr" then
-		packet:w_stringZ("[logic]\ncfg = "..spawn_item_logic)
-	end
-]=]
-	packet:w_s32(-1)
-	packet:w_s32(cse_alife_object__unk3_s32)
-
-	-- свойства cse_visual
-	packet:w_stringZ(model_visual)
-	packet:w_u8(cse_visual__unk1_u8)
-	
-	if spawn_item == "helicopter" then
-		packet:w_stringZ(motion_name)		
-	end 
-	
-	-- свойства cse_ph_skeleton
-	skeleton_name = "idle"
-	packet:w_stringZ(skeleton_name)
-	packet:w_u8(cse_ph_skeleton__unk1_u8)
-	packet:w_u16(cse_ph_skeleton__unk2_u16)
+	t.object_flags = bit_not(5)
+	t.custom_data = "[logic]\ncfg = "..spawn_item_logic
+	t.story_id = -1
+	t.skeleton_name = "idle"
 
 	if spawn_item == "helicopter" then
-		-- свойства cse_alife_helicopter
-		cse_alife_helicopter__unk1_sz = "idle"
-		engine_sound = "alexmx\\helicopter"
-		packet:w_stringZ(cse_alife_helicopter__unk1_sz)
-		packet:w_stringZ(engine_sound)
+		t.startup_animation = "idle"
+		t.engine_sound = "alexmx\\helicopter"
 	elseif  spawn_item == "vehicle_btr" then
-		health = 1
-		packet:w_float(health)
-	end	
-	-- считvваем скорректированнvе параметрv
-	packet:r_seek(0)
-	obj:STATE_Read(packet, packet:w_tell())
-	
+		t.health = 1
+	end
+
+	netpk:modify( obj, t, net_packet.fState )
+
 	return obj
 end
 
@@ -2794,17 +2725,13 @@ function respawned(obj,respawner)
 		local sini = respawner:spawn_ini()
 		if sini:line_exist ("respawn", "creature_binded_logic") == true then
 			local cfg_name = utils.cfg_get_string(sini, "respawn", "creature_binded_logic", false, false, false, "")
-			local t = amk.read_monster_params(obj)
-			t.custom = "[logic]\ncfg = scripts\\amk\\"..cfg_name..".ltx"
-			amk.write_monster_params(t, obj)
+			netpk:modify( obj, { custom_data = "[logic]\ncfg = scripts\\amk\\"..cfg_name..".ltx" }, net_packet.fState )
 		end
 	elseif obj and IAmAStalker[obj:clsid()] then
 		local sini = respawner:spawn_ini()
 		if sini:line_exist ("respawn", "creature_binded_logic") == true then
 			local cfg_name = utils.cfg_get_string(sini, "respawn", "creature_binded_logic", false, false, false, "")
-			local t = amk.read_stalker_params(obj)
-			t.custom = "[logic]\ncfg = scripts\\amk\\"..cfg_name..".ltx"
-			amk.write_stalker_params(t, obj)
+			netpk:modify( obj, { custom_data = "[logic]\ncfg = scripts\\amk\\"..cfg_name..".ltx" }, net_packet.fState )
 		end
 	end	
 end
@@ -2853,7 +2780,6 @@ function spawn_unspawned_respawners()
 				local xyzlg = string.explode(t.xyzlg, ",", true)
 				local pos = vector():set(tonumber(xyzlg[1]),tonumber(xyzlg[2]),tonumber(xyzlg[3]))
 				local respawner = amk.spawn_item("respawn",pos,tonumber(xyzlg[5]),tonumber(xyzlg[4]))
-				local tbl = amk.get_spawner_data(respawner)
 				t.xyzlg = nil
 				t.amk_name = v
 
@@ -2863,9 +2789,8 @@ function spawn_unspawned_respawners()
 					end
 				end
 
-				tbl.custom = amk.gen_custom_data({respawn=t})
-				--amk.mylog(tbl.custom)
-				amk.set_spawner_data(tbl, respawner)
+				local tbl = { custom_data = netpk:gen_custom_data({respawn=t}) }
+				netpk:modify(respawner, tbl, net_packet.fState)
 				se_respawn.reinit_spawner_params(respawner:name())
 				--amk.add_spot_on_map(respawner.id,"red_location", v)
 				--amk.mylog("spawned respawn "..respawner.id)
@@ -2914,27 +2839,6 @@ function check_armor(section)
 	end
 end
 
---[[
-function dezombify(id,v)
-	local npc=level.object_by_id(id)
-	if npc then
-		if npc:alive()==false then
-			return true
-		end
-		local sobj=alife():object(id)
-		if sobj then
-			npc:set_character_community(v.comm,0,0)
-			npc:set_goodwill(v.gw,db.actor)
-			local orgtbl=amk.read_stalker_params(sobj)
-			orgtbl.profile=string.gsub(orgtbl.profile,"(.*)_zombi","%1")
-			-- amk.mylog("dezombified "..npc:name().." profile "..orgtbl.profile)
-			amk.write_stalker_params(orgtbl,sobj)
-			return true
-		end    
-	end
-	return false
-end
-]]
 
 btrs_friends={}
 

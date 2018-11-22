@@ -223,6 +223,23 @@ function n_netpk:modify( obj, data, flags )
 	end
 end
 ----------------------------------------------------------------------------------------------------------
+function n_netpk:create_restrictor( position, level_vertex, game_vertex, logic, radius, story_id )
+	local se_obj = alife():create( "space_restrictor", position, level_vertex, game_vertex )
+
+	local data = {}
+	data.shapes = {
+		[1] = {
+			shtype = 0,
+			center = vector():set( 0, 0, 0 ),
+			radius = radius or 2.0
+		}
+	}
+	data.custom_data = logic
+	data.story_id = story_id
+
+	self:modify( se_obj, data, net_packet.fState )
+end
+----------------------------------------------------------------------------------------------------------
 -- cse_alife_object
 function n_netpk:r_st_cse_alife_object( ret, stpk )
 	ret.game_vertex_id  = stpk:r_u16()

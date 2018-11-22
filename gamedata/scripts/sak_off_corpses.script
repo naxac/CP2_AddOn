@@ -386,8 +386,8 @@ function clear_outfits(npc)
 	local money = 0
 	local npc_id = npc.id
 
-	local tbl = amk.read_stalker_params(npc)
-	local vis = string.explode(tbl.visual,"\\")
+	local tbl = netpk:get(npc, net_packet.fState)
+	local vis = string.explode(tbl.visual_name,"\\")
 	vis = vis[#vis]
 	local npc_lvl = xrs_armor.get_npc_visual_level(vis)
 --	log1("# clear_outfits: npc ["..npc:name().."]")
@@ -419,8 +419,8 @@ function clear_outfits(npc)
 
 	if (money > 0) then
 	--	log1("- money: "..money)
-		tbl.money = (tbl.money or 0) + money
-		amk.write_stalker_params(tbl, npc, true)
+		tbl.money = tbl.money + money
+		netpk:set(npc, tbl, net_packet.fConvert)
 	end
 end
 

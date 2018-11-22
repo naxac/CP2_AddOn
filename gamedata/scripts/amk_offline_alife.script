@@ -1369,16 +1369,8 @@ end
 
 function set_npc_health(obj, health)
 	if (obj and health >=0 and health <=2) then
-		if (IAmAMonster[obj:clsid()]) then
-			local tbl = amk.read_monster_params(obj)
-			tbl.health = health
-			tbl.updhealth = health
-			amk.write_monster_params(tbl, obj)
-		elseif (IAmAStalker[obj:clsid()]) then
-			local tbl = amk.read_stalker_params(obj)
-			tbl.health = health
-			tbl.updhealth = health
-			amk.write_stalker_params(tbl, obj)
+		if IAmAMonster[obj:clsid()] or IAmAStalker[obj:clsid()] then
+			netpk:modify( obj, { health = health, upd = { health = health } } )
 		end
 		if health == 0 then
 			on_death(obj.id)
@@ -1734,11 +1726,9 @@ function process_trade(npc)
 				end				
 			end
 			if (money > 0) then
-				local tbl = amk.read_stalker_params(npc)
-				local old_money = tbl.money
-				if (old_money == nil) then old_money = 0 end
-				tbl.money = old_money + money
-				amk.write_stalker_params(tbl, npc)
+				local tbl = netpk:get( npc, net_packet.fState )
+				tbl.money = tbl.money + money
+				netpk:set( npc, tbl )
 			--	log("- give money %d \n", money)
 			end
 		end

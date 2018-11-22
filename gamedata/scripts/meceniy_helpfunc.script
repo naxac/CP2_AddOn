@@ -123,14 +123,15 @@ return db.actor:disable_info_portion(info)
 end
 --חאהאול חזמנמגüו ֽֿׁף
 function set_npc_health(obj, health)
-if (obj and health <=2) then
-if IAmAStalker[obj:clsid()] then
-local tbl = amk.read_stalker_params(obj)
-tbl.health = health
-tbl.updhealth = health
-amk.write_stalker_params(tbl, obj)
-end
-end
+	if (obj and health <=2) then
+		if IAmAStalker[obj:clsid()] then
+			local tbl = {
+				health = health,
+				upd = { health = health }
+			}
+			netpk:modify( obj,tbl,net_packet.fState )
+		end
+	end
 end
 --ַמלבט עף כאיפ
 function zombie()

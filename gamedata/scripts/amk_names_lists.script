@@ -1839,16 +1839,8 @@ end
 function add_name( sobj )
 	local comm = sobj:community()
 	if forbidden_community[comm] then return end
-	local pk = net_packet()
-	sobj:STATE_Write ( pk )
-	pk:r_s32()		-- money
-	pk:r_stringZ()	-- specific_character
-	pk:r_s32()		-- trader_flags
-	pk:r_stringZ()	-- character_profile
-	pk:r_s32()		-- community_index
-	pk:r_s32()		-- rank
-	pk:r_s32()		-- reputation
-	local name = pk:r_stringZ()	-- character_name
+
+	local name = naxac_netpk.get_character_name( sobj )
 	if name and name:find("%s") then	-- уникальные имена в основном без пробелов
 		if real_names[comm] == nil then real_names[comm] = {} end
 	--	log("# amk_names_lists.add_name: %s (%s)", name, comm)

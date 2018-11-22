@@ -2230,7 +2230,7 @@ end
 function get_npc_current_visual_level(id)
 --get_console():execute("load ~~~ get_npc_current_visual_level old")
 	local se_obj = alife():object(id)
-	local t = amk.read_stalker_params(se_obj)
+	local t = netpk:get(se_obj,net_packet.fState)
 	if t then
 		local vis = t.visual
 		if vis then
@@ -2265,9 +2265,6 @@ function look_for_armor(sobj,vis)
 	if vis then
 		if sobj:health()<0.3 then return false end
 		netpk:modify( sobj, { visual_name = vis }, net_packet.fState + net_packet.fConvert )
-		-- local t = amk.read_stalker_params(sobj)
-		-- t.visual = vis
-		-- amk.write_stalker_params(t,sobj,true)
 		return true
 	end
 	return false
@@ -2612,10 +2609,10 @@ function redress()
 	for i, v in ipairs(redress_nps) do 
 		obj = sim:story_object(v.story_id)
 		if obj then
-			params = amk.read_stalker_params(obj)
-			if params.visual ~= v.visual then
-				params.visual = v.visual
-				amk.write_stalker_params(params,obj)
+			params = netpk:get(obj,net_packet.fState)
+			if params.visual_name ~= v.visual then
+				params.visual_name = v.visual
+				netpk:set(obj,params)
 			end
 		end
 	end
