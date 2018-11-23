@@ -1088,7 +1088,7 @@ end
 
 -- установка object_flags непися при скриптовом спавне
 function set_stalker_oflags(obj,oflags)
-	netpk:modify( obj, { object_flags = oflags }, net_packet.fState )
+	netpk:modify( obj, { object_flags = oflags }, netpk.fState )
 end
 
 -- поиск онлайнового объекта скриптового спавна по секции
@@ -1161,40 +1161,43 @@ end
 
 -- Спавн типичного рестриктора на вход. func = вызываемая при входе функция.
 function create_restrictor(pos,lv,gv,radius,func)
-	local se_obj = alife():create("space_restrictor",pos,lv,gv)
-	local custom = "[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = nil %="..func.."%"
-	spawn_restrictor.rewrite_restrictor(se_obj, custom, radius)
-	return se_obj
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = nil %="..func.."%",
+		radius
+	)
 end
 
 -- Спавн типичного рестриктора на выход. func = вызываемая при выходе функция.
 function create_restrictor_out(pos,lv,gv,radius,func)
-	local se_obj = alife():create("space_restrictor",pos,lv,gv)
-	local custom = "[logic]\nactive = sr_idle\n[sr_idle]\non_actor_outside = nil %="..func.."%"
-	spawn_restrictor.rewrite_restrictor(se_obj, custom, radius)
-	return se_obj
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_outside = nil %="..func.."%",
+		radius
+	)
 end
 
 -- Спавн типичного рестриктора на вход со сработкой в определенное время.
 function create_restrictor_timer(pos,lv,gv,radius,timer,func)
-	local se_obj = alife():create("space_restrictor",pos,lv,gv)
-	local custom = "[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer("..timer..")} nil %="..func.."%"
-	spawn_restrictor.rewrite_restrictor(se_obj, custom, radius)
-	return se_obj
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer("..timer..")} nil %="..func.."%",
+		radius
+	)
 end
 
 -- Спавн типичного рестриктора на вход со сработкой в определенное время для сюжета оп Теням.
 function create_restrictor_timer_pftp(pos,lv,gv,radius,timer,func)
-	local se_obj = alife():create("space_restrictor",pos,lv,gv)
-	local custom = "[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer_pftp("..timer..")} nil %="..func.."%"
-	spawn_restrictor.rewrite_restrictor(se_obj, custom, radius)
-	return se_obj
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer_pftp("..timer..")} nil %="..func.."%",
+		radius
+	)
 end
 
 -- Спавн зоны на основе рестриктора. При входе в зону выдается поршень info, при выходе - снимается. Работать начинает при входе ГГ в зону
 -- off - поршень, при выдаче которого зона отключается.
 function create_zone(pos,lv,gv,radius,info,off)
-	local se_obj = alife():create("space_restrictor",pos,lv,gv)
 	local custom = 
 	"[logic]\n"..
 	"active = sr_idle@in\n"..
@@ -1206,8 +1209,8 @@ function create_zone(pos,lv,gv,radius,info,off)
 	"[sr_idle@out]\n"..
 	"on_actor_outside = sr_idle@in %-"..info.."%\n"..
 	"on_info = {+"..off.."} nil %-"..info.."%\n"
-	spawn_restrictor.rewrite_restrictor(se_obj, custom, radius)
-	return se_obj
+
+	return netpk:create_restrictor( pos, lv, gv, custom, radius )
 end
 
 -- Убираем ПЫСсовские рестрикторы на территории, чтобы не вылетало по путям. На входе список рестрикторов

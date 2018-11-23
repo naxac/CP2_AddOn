@@ -141,6 +141,33 @@ check_item_tbl['wpn_crossbow_m1'] = function (item, box)
 		arhara_dialog.rewrite_rasstrel_restrictor()
 	end
 end
+check_item_tbl['grenade_rgd5_new'] = function (item, box)
+	if level.main_input_receiver() then
+		level.start_stop_menu(level.main_input_receiver(), true)
+	end
+
+	amk_particle.amk_particle({
+		particle="explosions\\explosion_fuelcan",
+		pos=db.actor:position(),
+		sound=[[weapons\t_rgd5_explosion]]
+	})
+
+	local h = hit()
+	h.draftsman = db.actor
+	h.direction = vector():set(0,0,0)
+	h:bone("bip01_spine")
+	h.type = hit.explosion
+	h.power = 1.8
+	h.impulse = 500
+	db.actor:hit(h)
+
+	level.add_pp_effector("amk_shoot.ppe", 2011, false)
+	level.add_pp_effector( "agr_u_fade.ppe", 8120804, false ) -- чтоб красивее было
+
+	amk.start_timer("run", 1, "braad_test.mina_band3()")
+	alife():release(snp.object_by_section_offline("prov_ruk"))
+	braad_test.kalmyak_tele2()
+end
 
 
 

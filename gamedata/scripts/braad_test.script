@@ -317,135 +317,20 @@ end
 -- правка вылета и неубирани€ худа при вз€тии рюкзака калмыка - перенесено в калбек на подъем
 function mina_band(obj)
 end
-function mina_band2(obj)
-	if obj:section()=="grenade_rgd5_new" then
-		if level.main_input_receiver() then
-			level.start_stop_menu(level.main_input_receiver(), true)
-		end
-
-		amk_particle.amk_particle({
-			particle="explosions\\explosion_fuelcan",
-			pos=db.actor:position(),
-			sound=[[weapons\t_rgd5_explosion]]
-		})
-
-		local h = hit()
-		h.draftsman = db.actor
-		h.direction = vector():set(0,0,0)
-		h:bone("bip01_spine")
-		h.type = hit.explosion
-		h.power = 1.8
-		h.impulse = 500
-		db.actor:hit(h)
-
-		level.add_pp_effector("amk_shoot.ppe", 2011, false)
-		level.add_pp_effector( "agr_u_fade.ppe", 8120804, false ) -- чтоб красивее было
-
-		amk.start_timer("run", 1, "braad_test.mina_band3()")
-		alife():release(snp.object_by_section_offline("prov_ruk"))
-		braad_test.kalmyak_tele2()
-	end
-end
 function mina_band3()
 	alife():release(alife():object(db.actor:object("grenade_rgd5_new"):id()))
 end
 
-----------
--- чтение формы из нет-пакета
-----------
-function r_shape(packet)
-	local s
-	local st = {}
-	st.count = packet:r_u8()
-	st.shapes = {}
-	for i=1, st.count do
-		s = {}
-		s.type = packet:r_u8()
-		if s.type == 0 then
-			s.center = packet:r_vec3()
-			s.radius = packet:r_float()
-		else
-			s.axis_x = packet:r_vec3()
-			s.axis_y = packet:r_vec3()
-			s.axis_z = packet:r_vec3()
-			s.offset = packet:r_vec3()
-		end
-		st.shapes[i] = s
-	end
-	return st
-end
-
-----------
--- запись формы в нет-пакет
-----------
-function w_shape(packet, st)
-	local s
-	packet:w_u8(st.count)
-	for i=1, st.count do
-		s = st.shapes[i]
-		packet:w_u8(s.type)
-		if s.type == 0 then
-			packet:w_vec3(s.center)
-			packet:w_float(s.radius)
-		else
-			packet:w_vec3(s.axis_x)
-			packet:w_vec3(s.axis_y)
-			packet:w_vec3(s.axis_z)
-			packet:w_vec3(s.offset)
-		end
-	end
-end
-
-----------
--- перепаковка нет-пакета созданного скриптом рестрикта
-----------
-function rewrite_restrictor(se_obj, custom, radius)
-	local packet = net_packet()
-	se_obj:STATE_Write(packet)
-	local game_vertex_id	= packet:r_u16()
-	local distance		= packet:r_float()
-	local direct_control	= packet:r_s32()
-	local level_vertex_id	= packet:r_s32()
-	local object_flags		= packet:r_s32()
-	local custom_data		= packet:r_stringZ()
-	local story_id		= packet:r_s32()
-	local spawn_story_id	= packet:r_s32()
-	local shape		= r_shape(packet)
-	local restrictor_type	= packet:r_u8()
-
-	custom_data = custom
-	shape = {}
-	shape.count = 1
-	shape.shapes = {}
-	shape.shapes[1] = {}
-	shape.shapes[1].type = 0
-	shape.shapes[1].center = vector():set(0,0,0)
-	shape.shapes[1].radius = radius
-
-	packet:w_u16(game_vertex_id)
-	packet:w_float(distance)
-	packet:w_s32(direct_control)
-	packet:w_s32(level_vertex_id)
-	packet:w_s32(object_flags)
-	packet:w_stringZ(custom_data)
-	packet:w_s32(story_id)
-	packet:w_s32(spawn_story_id)
-	w_shape(packet, shape)
-	packet:w_u8(restrictor_type)
-	se_obj:STATE_Read(packet, packet:w_tell() - packet:r_tell())
-end
 
 -- правка вылета и неубирани€ худа при вз€тии рюкзака калмыка - перенесено в калбек на подъем
 function kalmyak_tele( actor, npc)
 end
 function kalmyak_tele2()
---   db.actor:give_info_portion("teleport_started")
    level.add_pp_effector ("blink.ppe", 234, false)       
    level.add_pp_effector("teleport.ppe", 2006, false) 
    db.actor:set_actor_position(patrol("kalmyak_tele_walk"):point(0))
    local dir = patrol("kalmyak_tele_look"):point(0):sub(patrol("kalmyak_tele_look"):point(0))
    db.actor:set_actor_direction(-dir:getH())
---   db.actor:give_info_portion("teleport_finished")
    db.actor:give_info_portion("kalmyak_vstreca_start")
 end
 ------------------------------ Ќ≈ »—ѕќЋ№«”≈“—я!
@@ -565,11 +450,13 @@ function spawn_red_mozg()
 end
 
 function set_red_contr()
--- правка по потере мозга при сейв/лоаде.
-local se_obj = alife():create("space_restrictor",vector():set(-175.13674926,1.3927493095,423.02426147),54657,3361)
-local custom = "[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = nil %=braad_test.spawn_red_contr%"
-spawn_restrictor.rewrite_restrictor(se_obj, custom, 50)
-
+	-- правка по потере мозга при сейв/лоаде
+	netpk:create_restrictor(
+		vector():set(-175.13674926,1.3927493095,423.02426147),54657,3361,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = nil %=braad_test.spawn_red_contr%",
+		50.0
+	)
+	
 	local obj = alife():object("marsh_controller") 
 	if obj then
 		amk.add_spot_on_map(obj.id,"crlc_big","ѕредположительное местонахождение контролера")
@@ -674,7 +561,7 @@ function reregistr_kashei()
 			custom_data = "[logic]\ncfg = scripts\\new\\nebo\\kashei_new.ltx",
 			story_id = 14100
 		}
-		netpk:modify( obj, params, net_packet.fState )
+		netpk:modify( obj, params, netpk.fState )
 	end
 end
 
@@ -1053,7 +940,7 @@ function logig_scromnyi()
 			custom_data = "[logic]\ncfg = scripts\\new\\nebo\\scromnyi_new.ltx",
 			story_id = 14102
 		}
-		netpk:modify( obj, params, net_packet.fState )
+		netpk:modify( obj, params, netpk.fState )
 	end	  
 end
 
@@ -1559,9 +1446,11 @@ function remove_tunel()
 end
 
 function spawn_ag_restr()
-local se_obj = alife():create("space_restrictor",vector():set(-163.7038269043,0.33191874623299,-299.45358276367),73168,447)
-local custom = "[logic]\ncfg = scripts\\new\\nebo\\ag_restr.ltx"
-rewrite_restrictor(se_obj, custom, 60.0)
+	netpk:create_restrictor(
+		vector():set(-163.7038269043,0.33191874623299,-299.45358276367),73168,447,
+		"[logic]\ncfg = scripts\\new\\nebo\\ag_restr.ltx",
+		60.0
+	)
 end
 
 --function spawn_blizn_krug_dead() 

@@ -46,8 +46,13 @@ class "n_netpk"
 local clsid2func = {}
 
 function n_netpk:__init()
-	self.state = false
-	self.update = false
+	-- flags
+	self.fState   = 1
+	self.fUpdate  = 2
+	self.fConvert = 4
+	
+	self.state    = false
+	self.update   = false
 end
 
 function n_netpk:__finalize() end
@@ -59,8 +64,8 @@ function n_netpk:get( obj, flags )
 		or abort("n_netpk:get: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
-	self.state = bit_and( ( flags or 0 ), net_packet.fState ) ~= 0
-	self.update = bit_and( ( flags or 0 ), net_packet.fUpdate ) ~= 0
+	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
+	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
 	if not self.state or self.update then
 		self.state = true
 		self.update = true
@@ -129,7 +134,7 @@ function n_netpk:set( obj, data, flags )
 		obj:UPDATE_Read( uppk )
 	end
 
-	if bit_and( ( flags or 0 ), net_packet.fConvert ) == 0 then return end
+	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -156,8 +161,8 @@ function n_netpk:modify( obj, data, flags )
 	local stpk = net_packet()
 	local uppk = net_packet()
 
-	self.state = bit_and( ( flags or 0 ), net_packet.fState ) ~= 0
-	self.update = bit_and( ( flags or 0 ), net_packet.fUpdate ) ~= 0
+	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
+	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
 	if not self.state or self.update then
 		self.state = true
 		self.update = true
@@ -207,7 +212,7 @@ function n_netpk:modify( obj, data, flags )
 		obj:UPDATE_Read( uppk )
 	end
 
-	if bit_and( ( flags or 0 ), net_packet.fConvert ) == 0 then return end
+	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
@@ -237,7 +242,9 @@ function n_netpk:create_restrictor( position, level_vertex, game_vertex, logic, 
 	data.custom_data = logic
 	data.story_id = story_id
 
-	self:modify( se_obj, data, net_packet.fState )
+	self:modify( se_obj, data, self.fState )
+
+	return se_obj
 end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_object
@@ -489,8 +496,8 @@ function n_netpk:r_st_cse_alife_ph_skeleton_object( ret, stpk, uppk )
 end
 function n_netpk:r_upd_cse_alife_ph_skeleton_object( ret, uppk ) end
 function n_netpk:w_st_cse_alife_ph_skeleton_object( data, stpk )
-	write_cse_alife_dynamic_object ( data, stpk )
-	write_cse_ph_skeleton          ( data, stpk )
+	self:w_st_cse_alife_dynamic_object ( data, stpk )
+	self:w_st_cse_ph_skeleton          ( data, stpk )
 end
 function n_netpk:w_upd_cse_alife_ph_skeleton_object( data, uppk ) end
 ----------------------------------------------------------------------------------------------------------
@@ -523,6 +530,7 @@ function n_netpk:w_st_cse_alife_creature_actor( data, stpk )
 end
 function n_netpk:w_upd_cse_alife_creature_actor( data, uppk )
 	self:w_upd_cse_alife_creature_abstract	( data, uppk )
+
 	uppk:w_u16	( data.actor_state )
 	uppk:w_u16	( data.actor_accel_header )
 	uppk:w_s32	( data.actor_accel_data )
@@ -1557,7 +1565,7 @@ function get_all_shapes_data( cobj )
 	local data = {}
 	
 	data.sobj = alife():object(cobj:id())
-	local row_data = netpk:get( data.sobj, net_packet.f_state )
+	local row_data = netpk:get( data.sobj, netpk.f_state )
 	local shapes_row_data = row_data.shapes
 	
 	local xform_orig = get_xform( cobj )

@@ -21,7 +21,7 @@ local can_lock_visuals = {
 function restore(se_box, box_id)
 	if se_box and se_box:clsid() == clsid.inventory_box then
 		if zamok_box[box_id] == nil then
-			local data = netpk:get(se_box, net_packet.fState)
+			local data = netpk:get(se_box, netpk.fState)
 			local t = netpk:parse_custom_data(data.custom_data)
 			if t["password"] then
 			--	log1("add protected box: "..se_box:name())
@@ -102,7 +102,7 @@ function ui_codelock:__init(se_box, cl_box, mode) super()
 	self.check_code = false
 	self:InitControls()
 	if not self.install then
-		local data = netpk:get(se_box, net_packet.fState)
+		local data = netpk:get(se_box, netpk.fState)
 		local t = netpk:parse_custom_data(data.custom_data)
 		self.code = (t['password'] and t['password']['code']) or "000000"
 	end
@@ -174,7 +174,7 @@ function ui_codelock:on_ButtonOk()
 							"cfg = scripts\\code_inventory_box.ltx\n"..
 							"[password]\n"..
 							"code = "..str
-		netpk:modify(self.se_box, data, net_packet.fState)
+		netpk:modify(self.se_box, data, netpk.fState)
 		table.insert(amk_offline_alife.protected.ids, self.se_box.id)
 		--amk_offline_alife.update_tables(level.name())
 		amk.send_tip("", 'Заперли тайник на замок.', nil, 5, "nano")
@@ -272,7 +272,7 @@ function change_box_data(box)
 			data.custom_data = ""
 			inifilename = "scripts\\treasure_inventory_box.ltx"
 		end
-		netpk:modify(se_box, data, net_packet.fState)
+		netpk:modify(se_box, data, netpk.fState)
 		-- Перезагружаем логику
 		local st = db.storage[box_id]
 		st = {}
