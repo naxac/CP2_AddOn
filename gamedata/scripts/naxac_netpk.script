@@ -157,10 +157,6 @@ function n_netpk:modify( obj, data, flags )
 		or abort("n_netpk:modify: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
-	local tmp = {}
-	local stpk = net_packet()
-	local uppk = net_packet()
-
 	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
 	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
 	if not self.state or self.update then
@@ -170,7 +166,14 @@ function n_netpk:modify( obj, data, flags )
 
 --	log( "\n\n! modify net_packet for object %s:", obj:name() )
 --	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
+--	log( "~ modify:" )
+--	table.print( data )
+
+	local tmp
+
 	if self.state then
+		local stpk = net_packet()
+		tmp = {}
 	--	log( "# state part:" )
 		stpk:w_begin( 0 )
 		obj:STATE_Write( stpk )
@@ -178,25 +181,11 @@ function n_netpk:modify( obj, data, flags )
 		self[ "r_st_"..class_str ]( self, tmp, stpk )
 		tmp.tail = stpk:r_tail()
 	--	table.print( tmp )
-	end
 
-	if self.update then
-	--	log( "# update part:" )
-		tmp.upd = {}
-		uppk:w_begin( 0 )
-		obj:UPDATE_Write( uppk )
-		uppk:r_seek( 2 )
-		self[ "r_upd_"..class_str ]( self, tmp.upd, uppk )
-		tmp.upd.tail = uppk:r_tail()
-	--	table.print( tmp.upd )
-	end
+		for k, v in pairs( data ) do
+			tmp[ k ] = v
+		end
 
---	log( "~ modify:" )
---	table.print( data )
-
-	table.copy( tmp, data )
-
-	if self.state then
 		stpk:w_begin( 0 )
 		self[ "w_st_"..class_str ]( self, tmp, stpk )
 		stpk:w_tail( tmp.tail )
@@ -205,9 +194,23 @@ function n_netpk:modify( obj, data, flags )
 	end
 
 	if self.update then
+		local uppk = net_packet()
+	--	log( "# update part:" )
+		tmp = {}
 		uppk:w_begin( 0 )
-		self[ "w_upd_"..class_str ]( self, tmp.upd, uppk )
-		uppk:w_tail( tmp.upd.tail )
+		obj:UPDATE_Write( uppk )
+		uppk:r_seek( 2 )
+		self[ "r_upd_"..class_str ]( self, tmp, uppk )
+		tmp.tail = uppk:r_tail()
+	--	table.print( tmp )
+
+		for k, v in pairs( data.upd or {} ) do
+			tmp[ k ] = v
+		end
+
+		uppk:w_begin( 0 )
+		self[ "w_upd_"..class_str ]( self, tmp, uppk )
+		uppk:w_tail( tmp.tail )
 		uppk:r_seek( 2 )
 		obj:UPDATE_Read( uppk )
 	end
