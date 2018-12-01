@@ -56,6 +56,8 @@ function update(tg)
 	for id,t in pairs(ctmp) do
 		local npc,sect = level.object_by_id(t[1]),t[3]
 		if npc then
+			local active_item = npc:active_item()
+			local active_item_id = active_item and active_item:id()
 			local wpn = level.object_by_id(id)
 			if wpn then
 				if wpn:section() == sect then
@@ -72,9 +74,15 @@ function update(tg)
 					if st and st.wm then
 						st.wm.period = tg+200
 					end
+					if active_item_id == t[4] then
+						npc:drop_item( active_item )
+					end
 					table.insert(remt,t[4])
 					if t[5] then
 						for i,aid in ipairs(t[5]) do
+							if active_item_id == aid then
+								npc:drop_item( active_item )
+							end
 							printf("transfer[%s%s]:remove addon [%s]",sect,id,aid)
 							table.insert(remt,aid)
 						end
@@ -84,6 +92,9 @@ function update(tg)
 				end
 				rem[id] = true
 			elseif t[2] < tg then
+				if active_item_id == id then
+					npc:drop_item( active_item )
+				end
 				printw("transfer[%s%s]:timeout",sect,id)
 				table.insert(remt,id)
 				rem[id] = true
@@ -116,7 +127,7 @@ function update(tg)
 		for i,t in ipairs(cont) do
 			local cwpn = sim:create(t.sec,t.pos,t.lvid,t.gvid)
 			if cwpn then
-				netpk:set(cwpn,t.data)
+				netpk:set(cwpn,t.data,netpk.fState + netpk.fUpdate)
 				ctmp[cwpn.id] = {t.npc,tg+8000,t.sec,t.pid,t.at}
 			--	printf("convert [%s]->[%s] flags [%s]",t.pid,cwpn.id,t.data.addon_flags)
 			end
@@ -127,10 +138,18 @@ end
 
 function actor_save()
 	local sim = alife()
+	local npc, obj, aitem
 	for id,t in pairs(ctmp) do
-		local obj = sim:object(id)
+		obj = sim:object(id)
 		if obj then
-			sim:release(obj)
+			npc = level.object_by_id(t[1])
+			if npc then
+				aitem = npc:active_item()
+				if aitem:id() == id then
+					npc:drop_item( aitem )
+				end
+			end
+			sim:release(obj, true)
 		end		
 	end
 	ctmp = {}
@@ -140,11 +159,16 @@ end
 function npc_switch_offline(npc)
 	local sim = alife()
 	local npc_id = npc:id()
+	local aitem = npc:active_item()
+	local aid = aitem and aitem:id()
 	for id,t in pairs(ctmp) do
 		if t[1] == npc_id then
 			local obj = sim:object(id)
 			if obj then
-				sim:release(obj)
+				if aid == id then
+					npc:drop_item( aitem )
+				end
+				sim:release(obj, true)
 			end
 			ctmp[id] = nil
 		end
@@ -359,7 +383,7 @@ function convert_weapon(npc,id,flags,at)
 	local wpn = sim:object(id)
 	if wpn then
 		local sect = wpn:section_name()
-		local data = netpk:get(wpn)
+		local data = netpk:get(wpn, netpk.fState + netpk.fUpdate)
 		if data.addon_flags ~= flags then
 			local pos = level.vertex_position(npc:level_vertex_id())
 			pos.x = pos.x+1

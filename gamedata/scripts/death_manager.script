@@ -273,28 +273,36 @@ function drop_manager:create_release_item()
 	local cond_add = 5*(3-level.get_game_difficulty())
 	
 	local ini = self.npc:spawn_ini()
+	local totally_broken_weapon = ini and ini:section_exist("totally_broken_weapon")
+
+	local active_item_id = self.npc:active_item() and self.npc:active_item():id()
 	
     --' Запускаем итератор на удаление предметов
-	local se_item, sect
+	local se_item, sect, item_id
     self.npc:iterate_inventory(function (nepis, item)
-		se_item = sim:object(item:id())
+		item_id = item:id()
+		se_item = sim:object(item_id)
 		if se_item == nil then return end
 		sect = item:section()
 		if always_offs_items[sect] or _G.ammo_sections[sect] then
-			sim:release(se_item, true)
+			if item_id ~= active_item_id then
+				sim:release(se_item, true)
+			end
 		elseif always_offs_items_prob[sect] and math_random() > always_offs_items_prob[sect] then
-			sim:release(se_item, true)
+			if item_id ~= active_item_id then
+				sim:release(se_item, true)
+			end
 		elseif isMagazinedWeapon(item) and unique_wpn[sect]==nil then
 		--	Оставляем немного патронов в магазине
 			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
 			item:set_ammo_elapsed(n)
-			if ini and ini:section_exist("totally_broken_weapon") then
+			if totally_broken_weapon then
 				item:set_condition(0.01)
 			else
 				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
 			end
 		elseif sect == "wpn_knife" and nepis:active_slot() ~= 0 then
-			table.insert(rx_ai.ids_to_remove,item:id())
+			table.insert( rx_ai.ids_to_remove,item_id )
 		end
 	end
 	, self.npc)
