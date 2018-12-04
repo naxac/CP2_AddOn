@@ -66,7 +66,7 @@ function n_netpk:get( obj, flags )
 
 	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
 	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
-	if not self.state or self.update then
+	if not ( self.state or self.update ) then
 		self.state = true
 		self.update = true
 	end
@@ -157,21 +157,21 @@ function n_netpk:modify( obj, data, flags )
 		or abort("n_netpk:modify: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
-	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
-	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
-	if not self.state or self.update then
-		self.state = true
-		self.update = true
+	local state = bit_and( ( flags or 0 ), self.fState ) ~= 0
+	local update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
+	if not ( state or update ) then
+		state = true
+		update = true
 	end
 
 --	log( "\n\n! modify net_packet for object %s:", obj:name() )
---	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
+--	log( "state = %s, update = %s", tostring( state ), tostring( update ) )
 --	log( "~ modify:" )
 --	table.print( data )
 
 	local tmp
 
-	if self.state then
+	if state then
 		local stpk = net_packet()
 		tmp = {}
 	--	log( "# state part:" )
@@ -193,7 +193,7 @@ function n_netpk:modify( obj, data, flags )
 		obj:STATE_Read( stpk, stpk:w_tell() )
 	end
 
-	if self.update then
+	if update then
 		local uppk = net_packet()
 	--	log( "# update part:" )
 		tmp = {}
