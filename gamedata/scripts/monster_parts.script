@@ -23,6 +23,7 @@ local knives = {
 }
 local timer_start = false
 local parts = {}
+local dont_take_timer = 0
 
 function on_part_take(obj)
 	local b = sys_ini:r_bool_ex(obj:section(), "monster_part", false)
@@ -56,7 +57,9 @@ function on_part_take(obj)
 		end
 	else
 		db.actor:transfer_item(obj, monster)
-		amk.send_tip("Для отрезания трофеев нужен нож.",nil,nil,5,"nano")
+		if dont_take_timer > time_global() then return end
+		dont_take_timer = time_global() + 500
+		ShowAutohideMsg( "Для отрезания трофеев нужен нож.", 2500 )
 	end
 end
 
