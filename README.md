@@ -1,5 +1,5 @@
 # CP2_AddOn
-Gameplay AddOn for modification "Cumulative Pack 2" on the game "S.T.A.L.K.E.R.: Shadow of Chernobyl"
+Геймплейное дополнение для модификации "Объединённый Пак - 2" на игру "S.T.A.L.K.E.R.: Тень Чернобыля".
 
 Платформа: ТЧ 1.0006 + мод ОП-2 (патч 9, фикс 2)
 
