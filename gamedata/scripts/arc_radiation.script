@@ -18,7 +18,7 @@ local anom_rad = 0
 local inv_arts_radiation = 0
 local arts_satiety = 0
 
-local game_ms = 1100 / level.main_time_factor
+local game_ms = 1000 / level.main_time_factor
 
 function change_arts_satiety(delta)
 	arts_satiety = arts_satiety + delta
@@ -28,42 +28,38 @@ function change_inv_radiation(delta)
 	inv_arts_radiation = inv_arts_radiation + delta
 end
 -----------------------------------------------------------------------------------
-local updFlag, dlt1, dlt2 = 0, 0, 0
-local wait_time = 0
+local arts_upd_time = 100
+local update_time = 0
 
 function on_actor_update(delta)
-	dlt1 = dlt1 + delta
-	dlt2 = dlt2 + delta
-	if updFlag == 1 then
-		updFlag = 2
-		local f = dlt1/game_ms
+	if update_time < arts_upd_time then
+		update_time = update_time + delta
+	else
+		arc_inventory.on_actor_update(update_time)
+
+		local f = arts_upd_time/game_ms       -- update_time/game_ms
 		
 		if arts_satiety~=0 then
 			db.actor.satiety = arts_satiety*f
 		end
 		
+		local add_rad = 0
 		if inv_arts_radiation~=0 and not cars_radiation_fix.actor_inside_car() then
-			db.actor.radiation = inv_arts_radiation*f
+			add_rad = inv_arts_radiation*f
 		end
-		
-		dlt1 = 0
-	elseif updFlag == 0 then
-		updFlag = 1
-		
-		arc_inventory.on_actor_update(delta)
 		
 		local r = db.actor.radiation
 		local d = r - 0.05
 		mod_rad_dose(d*4000)
-		db.actor.radiation = -d
-	
+		db.actor.radiation = - d + add_rad
+
 		if d>0.000001 then
 			local rp = arc_inventory.cur_rad_protection
-			if arc_inventory.crp_changed or (rp==0 and d>0.005) then
-				anom_rad = d / (1-rp)
+			if arc_inventory.crp_changed or ( rp==0 and d>0.005 ) then
+				anom_rad = d / ( 1 - rp )
 				last_anom_hit_time = 0
 			else
-				table.insert(art_hits, 1, {time_since_hit = 0, hit_power = d})
+				table.insert( art_hits, 1, { time_since_hit = 0, hit_power = d } )
 			end
 		end
 		
@@ -71,14 +67,14 @@ function on_actor_update(delta)
 			anom_rad = 0
 			last_anom_hit_time = 0
 		else
-			last_anom_hit_time = last_anom_hit_time + dlt2
+			last_anom_hit_time = last_anom_hit_time + update_time
 		end
 		
 		local i = 1
 		local hits_time, hits_summ = 0, 0
 		
 		while art_hits[i] do
-			local t = art_hits[i].time_since_hit + dlt2
+			local t = art_hits[i].time_since_hit + update_time
 			
 			if t > 200 then
 				table.remove(art_hits, i)
@@ -91,17 +87,11 @@ function on_actor_update(delta)
 		end
 		
 		arts_rad = (hits_time > 0) and ( hits_summ * 200 / hits_time ) or 0
-		
-		dlt2 = 0
-	else
-		wait_time = wait_time + delta
-		if wait_time > 150 then
-			updFlag = 0
-			wait_time = 0
-		end
+
+		arc_ui_dosimeter.update(update_time)
+
+		update_time = 0
 	end
-	
-	arc_ui_dosimeter.update(delta)
 end
 
 function save_rad_dose()
