@@ -114,21 +114,26 @@ function CUIInfoMenu:InitControls()
 	self:Register( btn, "button_disable" )
 	btn = xml:Init3tButton( "btn_quit", self )
 	self:Register( btn, "button_quit" )
+
+	self.message_box = CUIMessageBoxEx()
+	self:Register( self.message_box, "message_box" )
 end
 
 function CUIInfoMenu:InitCallBacks()
-	self:AddCallbackEx( "list_files", ui_events.LIST_ITEM_CLICKED, self.OnListFilesClicked )
-	self:AddCallbackEx( "list_info", ui_events.LIST_ITEM_CLICKED, self.OnListInfoClicked )
-	self:AddCallbackEx( "button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuitClicked )
+	self:AddCallbackEx( "list_files",    ui_events.LIST_ITEM_CLICKED,        self.OnListFilesClicked     )
+	self:AddCallbackEx( "list_info",     ui_events.LIST_ITEM_CLICKED,        self.OnListInfoClicked      )
+	self:AddCallbackEx( "button_quit",   ui_events.BUTTON_CLICKED,           self.OnButtonQuitClicked    )
 
 	if not ( db.actor and db.actor:alive() ) then return end
 
-	self:AddCallbackEx( "list_disable", ui_events.LIST_ITEM_CLICKED, self.OnListDisableClicked )
-	self:AddCallbackEx( "list_action", ui_events.LIST_ITEM_CLICKED, self.OnListActionClicked )
-	self:AddCallbackEx( "list_task", ui_events.LIST_ITEM_CLICKED, self.OnListTaskClicked )
-	self:AddCallbackEx( "list_article", ui_events.LIST_ITEM_CLICKED, self.OnListArticleClicked )
-	self:AddCallbackEx( "button_give", ui_events.BUTTON_CLICKED, self.OnButtonGiveClicked )
-	self:AddCallbackEx( "button_disable", ui_events.BUTTON_CLICKED, self.OnButtonDisableClicked )
+	self:AddCallbackEx( "list_disable",   ui_events.LIST_ITEM_CLICKED,       self.OnListDisableClicked   )
+	self:AddCallbackEx( "list_action",    ui_events.LIST_ITEM_CLICKED,       self.OnListActionClicked    )
+	self:AddCallbackEx( "list_task",      ui_events.LIST_ITEM_CLICKED,       self.OnListTaskClicked      )
+	self:AddCallbackEx( "list_article",   ui_events.LIST_ITEM_CLICKED,       self.OnListArticleClicked   )
+	self:AddCallbackEx( "button_give",    ui_events.BUTTON_CLICKED,          self.OnButtonGiveClicked    )
+	self:AddCallbackEx( "button_disable", ui_events.BUTTON_CLICKED,          self.OnButtonDisableClicked )
+	self:AddCallbackEx( "message_box",    ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes               )
+	self:AddCallbackEx( "message_box",    ui_events.MESSAGE_BOX_NO_CLICKED,  self.OnMsgNo                )
 end
 
 function CUIInfoMenu:FillFiles()
@@ -245,7 +250,34 @@ end
 
 function CUIInfoMenu:OnListDisableClicked()
 end
+
 function CUIInfoMenu:OnListActionClicked()
+	if self.list_action:GetSize() == 0 then return end
+
+	local item_id = self.list_action:GetSelectedItem()
+	if item_id == nil or item_id == -1 then return end
+
+	self.list_action:SetFocusedItem( item_id )
+	local item = self.list_action:GetItem( item_id )
+
+	if item == nil then return end
+
+	self.func = item.st:GetText()
+	
+	self.message_box:Init( "message_box_change_level" )
+	self.message_box:SetText( "Будет выполнена Lua-функция "..self.func..".\\nПродолжить?" )
+	self:GetHolder():start_stop_menu( self.message_box, true )
+end
+
+function CUIInfoMenu:OnMsgYes()
+	if self.func then
+		loadstring( self.func.."()" )()
+		self.func = nil
+	end
+end
+
+function CUIInfoMenu:OnMsgNo()
+	self.func = nil
 end
 
 function CUIInfoMenu:OnListTaskClicked()
