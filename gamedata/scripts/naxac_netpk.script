@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
--- ГЊГ®Г¤ГіГ«Гј Г¤Г«Гї Г°Г ГЎГ®ГІГ» Г± net_paket'Г Г¬ГЁ Г®ГЎГєГҐГЄГІГ®Гў, "Г§Г ГІГ®Г·ГҐГ­" ГЇГ®Г¤ Г±Г®Г«ГїГ­ГЄГі
+-- Модуль для работы с net_paket'ами объектов, "заточен" под солянку
 
 local torch_flags = {
 	Active            = 1,
@@ -64,20 +64,22 @@ function n_netpk:get( obj, flags )
 		or abort("n_netpk:get: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
-	self.state = bit_and( ( flags or 0 ), self.fState ) ~= 0
-	self.update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
-	if not ( self.state or self.update ) then
-		self.state = true
-		self.update = true
+	local ret = {}
+
+	local state = bit_and( ( flags or 0 ), self.fState ) ~= 0
+	local update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
+	if not ( state or update ) then
+		state = true
+		update = true
 	end
 
 --	log( "\n\n! read net_packet for object %s:", obj:name() )
---	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
-	local ret = {}
+--	log( "state = %s, update = %s", tostring( state ), tostring( update ) )
 
 	ret.net_class_name = class_str
+	ret.net_flags = { state = state, update = update }
 
-	if self.state then
+	if state then
 	--	log( "# state part:" )
 		local stpk = net_packet()
 		stpk:w_begin( 0 )
@@ -88,7 +90,7 @@ function n_netpk:get( obj, flags )
 	--	table.print( ret )
 	end
 	
-	if self.update then
+	if update then
 	--	log( "# update part:" )
 		ret.upd = {}
 		local uppk = net_packet()
@@ -111,12 +113,25 @@ function n_netpk:set( obj, data, flags )
 		or abort("n_netpk:set: clsid [%d] not found for object [%s] in 'clsid2func'",
 			obj:clsid(), obj:name())
 
+	local state, update
+	if data.net_flags then
+		state = data.net_flags.state
+		update = data.net_flags.update
+	else
+		state = bit_and( ( flags or 0 ), self.fState ) ~= 0
+		update = bit_and( ( flags or 0 ), self.fUpdate ) ~= 0
+		if not ( state or update ) then
+			state = true
+			update = true
+		end
+	end
+	
 --	log( "\n\n! write net_packet for object %s:", obj:name() )
---	log( "state = %s, update = %s", tostring( self.state ), tostring( self.update ) )
+--	log( "state = %s, update = %s", tostring( state ), tostring( update ) )
 --	log( "# net_packet data:" )
 --	table.print( data )
 
-	if self.state then
+	if state then
 		local stpk = net_packet()
 		stpk:w_begin( 0 )
 		self[ "w_st_"..class_str ]( self, data, stpk )
@@ -125,7 +140,7 @@ function n_netpk:set( obj, data, flags )
 		obj:STATE_Read( stpk, stpk:w_tell() )
 	end
 
-	if self.update then
+	if update then
 		local uppk = net_packet()
 		uppk:w_begin( 0 )
 		self[ "w_upd_"..class_str ]( self, data.upd, uppk )
@@ -136,7 +151,7 @@ function n_netpk:set( obj, data, flags )
 
 	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
-	-- ГҐГ±Г«ГЁ Г­ГіГ¦Г­Г® ГЇГ®Г¬ГҐГ±ГІГЁГІГј Г®ГЎГєГҐГЄГІ Г­ГҐГ­Г Г¤Г®Г«ГЈГ® Гў Г®ГґГґГ«Г Г©Г­ Г¤Г«Гї ГўГ±ГІГіГЇГ«ГҐГ­ГЁГї Гў Г±ГЁГ«Гі ГЁГ§Г¬ГҐГ­ГҐГ­ГЁГ©
+	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
 	if sim then
 		local i = obj.id
@@ -217,7 +232,7 @@ function n_netpk:modify( obj, data, flags )
 
 	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
-	-- ГҐГ±Г«ГЁ Г­ГіГ¦Г­Г® ГЇГ®Г¬ГҐГ±ГІГЁГІГј Г®ГЎГєГҐГЄГІ Г­ГҐГ­Г Г¤Г®Г«ГЈГ® Гў Г®ГґГґГ«Г Г©Г­ Г¤Г«Гї ГўГ±ГІГіГЇГ«ГҐГ­ГЁГї Гў Г±ГЁГ«Гі ГЁГ§Г¬ГҐГ­ГҐГ­ГЁГ©
+	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
 	local sim = alife()
 	if sim then
 		local i = obj.id
@@ -1360,7 +1375,7 @@ function n_netpk:w_st_se_smart_terrain( data, stpk )
 end
 function n_netpk:w_upd_se_smart_terrain( data, uppk ) end
 ----------------------------------------------------------------------------------------------
--- ГЏГ Г°Г±ГЁГ¬ custom_data Гў ГІГ ГЎГ«ГЁГ¶Гі
+-- Парсим custom_data в таблицу
 function n_netpk:parse_custom_data(str)
 	local ret = {}
 	local s,v
@@ -1382,7 +1397,7 @@ function n_netpk:parse_custom_data(str)
 	end
 	return ret
 end
--- ГѓГҐГ­ГҐГ°ГЁГ°ГіГҐГ¬ ГЁГ§ ГІГ ГЎГ«ГЁГ¶Г» Г±ГІГ°Г®ГЄГі Г¤Г«Гї custom_data
+-- Генерируем из таблицы строку для custom_data
 function n_netpk:gen_custom_data(tbl)
 	local ret = ""
 	for k,v in pairs(tbl) do
@@ -1439,9 +1454,9 @@ function transform_tiny_(m, res, v)
 	return res
 end
 ----------------------------------------------------------------------------------------------------
--- ГўГ»Г¤ГҐГ«ГҐГ­ГЁГҐ ГЁГ§ Г¬Г ГІГ°ГЁГ¶Г» ГіГЈГ«Г®Гў ГЇГ®ГўГ®Г°Г®ГІГ  Гў ГЇГ®Г±Г«ГҐГ¤Г®ГўГ ГІГҐГ«ГјГ­Г®Г±ГІГЁ x,z,y
--- ГЇГ®Г¤Г°Г Г§ГіГ¬ГҐГўГ ГҐГІГ±Гї, Г·ГІГ® Г¬Г ГІГ°ГЁГ¶Г  ГїГўГ«ГїГҐГІГ±Гї ГЇГ°Г ГўГЁГ«ГјГ­Г®Г© Г¬Г ГІГ°ГЁГ¶ГҐГ© ГЇГ®ГўГ®Г°Г®ГІГ 
--- ГґГіГ­ГЄГ¶ГЁГї Г±Г®Г¤Г°Г Г­Г  ГЁГ§ ГЎГЁГЎГ«ГЁГ®ГІГҐГЄГЁ Wild Magic 5
+-- выделение из матрицы углов поворота в последовательности x,z,y
+-- подразумевается, что матрица является правильной матрицей поворота
+-- функция содрана из библиотеки Wild Magic 5
 function extract_euler_xzy(m)
 	if m.i.y < 1 then
 		if m.i.y > -1 then
@@ -1485,14 +1500,14 @@ function build_plane(arg1, arg2, arg3)
 	local d13 = vector():sub(arg3, arg1)
 	local d12 = vector():sub(arg2, arg1)
 	local plane = {}
-	plane.n = vector():crossproduct(d13, d12):normalize() -- Г­Г®Г°Г¬Г Г«Гј ГЄ ГЇГ«Г®Г±ГЄГ®Г±ГІГЁ
-	plane.d = - arg1:dotproduct(plane.n) -- ГІГ®Г·ГЄГ  Г­Г  ГЇГ«Г®Г±ГЄГ®Г±ГІГЁ, ГЄГ®ГІГ®Г°Г Гї Г®Г¤Г­Г®ГўГ°ГҐГ¬ГҐГ­Г­Г® Г­Г ГµГ®Г¤ГЁГІГ±Гї
-	-- Г­Г  Г­Г®Г°Г¬Г Г«ГЁ ГЄ ГЅГІГ®Г© ГЇГ«Г®Г±ГЄГ®Г±ГІГЁ, ГўГ»ГµГ®Г¤ГїГ№ГҐГ© ГЁГ§ Г­Г Г·Г Г«Г  ГЄГ®Г®Г°Г¤ГЁГ­Г ГІ (ГЎГ«ГЁГ¦Г Г©ГёГ Гї ГЄ Г­Г Г·Г Г«Гі ГЄГ®Г®Г°Г¤ГЁГ­Г ГІ 
-	-- ГІГ®Г·ГЄГ  ГЇГ«Г®Г±ГЄГ®Г±ГІГЁ)
+	plane.n = vector():crossproduct(d13, d12):normalize() -- нормаль к плоскости
+	plane.d = - arg1:dotproduct(plane.n) -- точка на плоскости, которая одновременно находится
+	-- на нормали к этой плоскости, выходящей из начала координат (ближайшая к началу координат 
+	-- точка плоскости)
 	return plane
 end
 
--- ГЇГ®Г«ГіГ·ГҐГ­ГЁГҐ world-ГІГ°Г Г­Г±ГґГ®Г°Г¬Г Г¶ГЁГЁ Г®ГЎГєГҐГЄГІГ 
+-- получение world-трансформации объекта
 function get_xform(cobj)
 	local xform = matrix()
 	if type(cobj.get_go_float) == "function" then
@@ -1637,7 +1652,7 @@ function distance_from_shape_boundary(pos, shape, point)
 	elseif shape.t == 1 then
 		local dist = math.huge
 		for _,plane in ipairs(shape.planes) do
-			-- ГЇГ«Г®Г±ГЄГ®Г±ГІГј Г§Г Г¤Г Г­Г  Г­Г®Г°Г¬Г Г«ГјГѕ ГЁ Г°Г Г±ГІГ®ГїГ­ГЁГҐГ¬
+			-- плоскость задана нормалью и растоянием
 			local a = plane.n:dotproduct(point) + plane.d
 			if a < dist then
 				dist = a
