@@ -318,7 +318,8 @@ function on_create_cell_item( item )
 	if is_cond_item( item ) then
 		local h = sys_ini:r_u32( item:section(), "inv_grid_height" ) *35
 		local w = 30 * kScreen
-		local w_cond = w * item:condition()
+		local cond = item:condition()
+		local w_cond = w * cond
 		local b = CUIStatic()
 		b:SetAutoDelete( true )
 		b:Init( "ui_mg_progress_efficiency_full_1", 2, h-6, w, 4 )
@@ -327,8 +328,10 @@ function on_create_cell_item( item )
 		local s = CUIStatic()
 		s:SetAutoDelete( true )
 		s:Init( "ui_mg_progress_efficiency_full_1", 0, 0, w_cond, 4 )
-		s:SetStretchTexture( true)
-		s:SetColor( GetARGB(255,50,255,50) )
+		s:SetStretchTexture( true )
+		local g = math.min( cond*510, 255 )
+		local r = math.min( (1-cond)*510, 255 )
+		s:SetColor( GetARGB( 255, r, g, 50 ) )
 		b:AttachChild( s )
 	end
 end
