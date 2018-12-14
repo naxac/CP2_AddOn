@@ -123,7 +123,7 @@ local smart_filters = {
 local rel_enemy,rel_friend
 
 local look_radius=50			-- Радиус "обзора"
-local look_radius_box = 10		-- Радиус поиска нычек
+local look_radius_box = 30		-- Радиус поиска нычек
 
 local search_intensivity = 60	--интенсивность поиска (количество отрабатываемых неписей)
 
@@ -1857,7 +1857,11 @@ function box_is_protected(v)
 		-- проверяем по ID объекта
 		chk = v.id
 		for k, o in pairs(protected.ids) do
-			if o == chk then return true end
+			if o == chk then
+				local p = zamok.reliability_code_check( chk ) + 1 /( level.get_game_difficulty()*10 + 5 )
+				if math_random() > p then return false
+				else return true end
+			end
 		end
 
 		-- проверяем по story ID объекта

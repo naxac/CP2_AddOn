@@ -20,33 +20,38 @@ local can_lock_visuals = {
 
 function restore(se_box, box_id)
 	if se_box and se_box:clsid() == clsid.inventory_box then
-		if zamok_box[box_id] == nil then
+		local t = zamok_box[box_id]
+		if t == nil then
+			t = {}
+			zamok_box[box_id] = t
 			local data = netpk:get(se_box, netpk.fState)
-			local t = netpk:parse_custom_data(data.custom_data)
-			if t["password"] then
+			local tt = netpk:parse_custom_data(data.custom_data)
+			if tt["password"] then
 			--	log1("add protected box: "..se_box:name())
+				t.code = tt["password"]["code"]
 				table.insert(amk_offline_alife.protected.ids, box_id)
 			end
-			zamok_box[box_id] = 1
+			t.count = 1
 		else
-			zamok_box[box_id] = zamok_box[box_id] + 1
+			t.count = t.count + 1
 		end
 	end
 end
 
 function remove(box, item)
 	local box_id = box:id()
-	local n = zamok_box[box_id]
-	if n==nil then return end
-	if n>1 then
-		zamok_box[box_id] = n - 1
+	local t = zamok_box[box_id]
+	if t == nil then return end
+
+	if t.count > 1 then
+		 t.count =  t.count - 1
 	else	-- проверим, стоит ли ящик под защитой
 		for i, v in pairs(amk_offline_alife.protected.ids) do
 			if v == box_id then
 				this.change_box_data(box)
 				table.remove(amk_offline_alife.protected.ids, i)
 				--amk_offline_alife.update_tables(level.name())
-				ShowAutohideMsg( "С тайника убрали замок.", 3000 )
+				ShowAutohideMsg( "С тайника убрали замок.", 2000 )
 				break
 			end
 		end
@@ -60,52 +65,65 @@ function add(item)
 	local pid = sitem.parent_id
 	local se_box = alife():object(pid) -- получаем серверный объект хозяина
 	if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
-		if zamok_box[pid]==nil then		-- если в тайнике ещё нет замков
-			zamok_box[pid] = 1
-			-- Покажем меню
-			local box = level.object_by_id(pid)
+		local t = zamok_box[pid]
+		if t == nil then		-- если в тайнике ещё нет замков
+			t = {}
+			zamok_box[pid] = t
+			t.count = 1
+			t.code = ""
+
+			local box = level.object_by_id( pid )
+			if box == nil then return end
+
 			if game_options.LockBoxOnly then
-				local visual = string.explode(box:get_visual_name(), "\\")
+				local visual = string.explode( box:get_visual_name(), "\\" )
 				visual = visual[#visual]
-			--	log1("# "..box:name().." : "..visual)
-				if can_lock_visuals[visual] then
-					this.codelock(pid, 1)
-				else
-					this.codelock(pid, 2)
+				if can_lock_visuals[visual] == nil then
+					BlockUIDescr(true)
+					local msg = "На этот тайник невозможно установить замок."
+					local func = function()
+						BlockUIDescr(false)
+					end
+					ui_messagebox_new.UIMessageBoxEx( "ok_alarm", msg, func )
+					return
 				end
-			else
-				this.codelock(pid, 1)
 			end
+
+			BlockUIDescr(true)
+			local msg = "Установить замок на этот тайник?"
+			local func = function()
+				this.codelock( box, 1 )
+				BlockUIDescr(false)
+			end
+			ui_messagebox_new.UIMessageBoxEx( "yes_no_info", msg, func )
 		else	-- иначе - ничего не делаем
-			zamok_box[pid] = zamok_box[pid]+1
+			t.count = t.count + 1
 		end
 	end
 end
 
+
 class "codelock"
 
-function codelock:__init( box_id, mode )
+function codelock:__init( box, mode )
 	BlockUIDescr(true)
 	self.cls = self
 
-	if mode == 2 then
-		local msg = "На этот тайник невозможно установить замок."
-		local func = function()
-			self.cls = nil
-			BlockUIDescr(false)
-		end
-		ui_messagebox_new.UIMessageBoxEx( "ok_alarm", msg, func )
-		return
-	end
-
-	self.box_id = box_id
-	self.install = (mode == 1)
+	self.object = box
+	self.install = ( mode == 1 )
 
 	if not self.install then
-		local se_box = alife():object( box_id )
-		local data = netpk:get(se_box, netpk.fState)
-		local t = netpk:parse_custom_data(data.custom_data)
-		self.code = (t['password'] and t['password']['code']) or "111"
+		self.code = ""
+		local i = box:id()
+		local t = zamok_box[ i ]
+		if t and t.code then
+			self.code = t.code
+		else
+			local ini = self.object:spawn_ini()
+			if ini and ini:section_exist( "password" ) then
+				self.code = ini:r_string( "password", "code" )
+			end
+		end
 	end
 
 	level.start_stop_menu( ui_numpad.numpad( self ), true )
@@ -114,8 +132,7 @@ end
 function codelock:Quit()
 	if self.install == false then 
 		hotkeys.clear_used_box()
-		local box = level.object_by_id( self.box_id )
-		box:set_nonscript_usable(true)
+		self.object:set_nonscript_usable(true)
 	end
 	self.cls = nil
 	BlockUIDescr(false)
@@ -127,36 +144,44 @@ function codelock:OnNumberReceive( text, mode )
 		self:Quit()
 		return
 	end
-	
+
+	local box_id = self.object:id()
 	if self.install then
-		local se_box = alife():object( self.box_id )
+		local t = zamok_box[ box_id ]
+		if t then t.code = text end
+
+		local se_box = alife():object( box_id )
 		local data = {}
 		data.custom_data =	"[logic]\n"..
 							"cfg = scripts\\code_inventory_box.ltx\n"..
 							"[password]\n"..
 							"code = "..text
 		netpk:modify( se_box, data, netpk.fState )
-		table.insert( amk_offline_alife.protected.ids, self.box_id )
+
+		table.insert( amk_offline_alife.protected.ids, box_id )
 		--amk_offline_alife.update_tables(level.name())
-		ShowAutohideMsg( "Заперли тайник на замок.", 3000 )
+		ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
+
 		-- Перезагружаем логику
-		local st = db.storage[ self.box_id ]
+		local st = db.storage[ box_id ]
 		st = {}
-		local box = level.object_by_id( self.box_id )
-		xr_logic.initialize_obj(box, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
-		
+		xr_logic.initialize_obj(self.object, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
+
 		self:Quit()
 	else
 		if self.code == text then
-			local box = level.object_by_id( self.box_id )
-			box:set_nonscript_usable(true)
+			self.object:set_nonscript_usable( true )
 			self.cls = nil
-			BlockUIDescr(false)
-			start_small_timer( 500, function() db.actor:open_inventory_box(box) end )
+			BlockUIDescr( false )
+			start_small_timer( 500, this.actor_open_box, self.object )
 		else
 			self:Quit()
 		end
 	end
+end
+
+function actor_open_box( box )
+	db.actor:open_inventory_box( box )
 end
 
 
@@ -166,7 +191,7 @@ function show_codelock(actor, box)
 	if se_box then
 	--	log1("show_codelock for se_box: "..se_box:name())
 		box:set_nonscript_usable( false )
-		this.codelock( box:id(), 0 )
+		this.codelock( box, 0 )
 	end
 end
 
@@ -217,3 +242,76 @@ function change_box_data(box)
 	end
 end
 
+function reliability_code_check( box_id )
+	local t = zamok_box[ box_id ]
+	if not t then return 0 end
+
+	local n = #t.code
+	if n == 0 then return 0 end
+
+	for j = 0, 9, 1 do
+		local s, i = string.gsub( t.code, tostring(j), "" )
+		if i == n then return 0
+		elseif i/n >= 0.8 then n = n - 1 end
+	end
+
+	return math.min( n^2 / 49, 1 )
+end
+
+-------------------------------------------------------------------------------
+function get_all_codes()
+	local sim = alife()
+	local t = {}
+	for id, v in pairs( zamok_box ) do
+		if v.code and #v.code > 0 then
+			local obj = sim:object( id )
+			local lname = sim:level_name( game_graph():vertex( obj.m_game_vertex_id ):level_id() )
+			t[id] = { code = v.code, level = lname }
+		end
+	end
+	return t
+end
+
+function has_active_codes()
+	local codes = this.get_all_codes()
+	return table.size( codes ) > 0
+end
+
+function has_pay_medkits()
+	return amk_utils.inventory_search( "medkit_scientic", 10 )
+		and amk_utils.inventory_search( "soporific", 5 )
+end
+function out_pay_medkits()
+	sak.out_iten_namber( "medkit_scientic", 10 )
+	sak.out_iten_namber( "soporific", 5 )
+end
+
+function init_code_dialog( dlg )
+	dlg:AddPhrase( "codelock_dialog_0", "0", "", -10000 )
+	dlg:AddPhrase( "codelock_dialog_1", "1", "0", -10000 )
+
+	local phr = dlg:AddPhrase( "codelock_dialog_2", "2", "1", -10000 )
+	local phrase_script = phr:GetPhraseScript()
+	phrase_script:AddPrecondition( "zamok.has_pay_medkits" )
+	phrase_script:AddAction( "zamok.out_pay_medkits" )
+
+	dlg:AddPhrase( "codelock_dialog_3", "3", "1", -10000 )
+	dlg:AddPhrase( "codelock_dialog_4", "4", "2", -10000 )
+
+	local codes = this.get_all_codes()
+	local text = ""
+	local sobj
+	local sim = alife()
+	local phrase_num = 5
+	for id, t in pairs( codes ) do
+		sobj = sim:object( id )
+		if sobj then
+			text = news_main.get_point_description( t.level, sobj.position )
+			dlg:AddPhrase( text, tostring( phrase_num ), "21", -10000 )
+			text = "Тааак, погоди, вижу там какой-то тайничок, точно... Ага... Цифры, цифры, цифры... Так, записывай скорее, и больше не забывай.\\n"..t.code.."\\nУф, что-то аж голова разболелась..."
+			dlg:AddPhrase( text, tostring( phrase_num+1 ), tostring( phrase_num ), -10000 )
+			dlg:AddPhrase( "codelock_dialog_1000", "1000", tostring( phrase_num + 1 ), -10000 )
+			phrase_num = phrase_num + 2
+		end
+	end
+end
