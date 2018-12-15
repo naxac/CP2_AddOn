@@ -244,7 +244,7 @@ end
 
 function reliability_code_check( box_id )
 	local t = zamok_box[ box_id ]
-	if not t then return 0 end
+	if not (t and t.code) then return 0 end
 
 	local n = #t.code
 	if n == 0 then return 0 end
@@ -255,7 +255,7 @@ function reliability_code_check( box_id )
 		elseif i/n >= 0.8 then n = n - 1 end
 	end
 
-	return math.min( n^2 / 49, 1 )
+	return math.min( ( n^2 / 55 ) - 0.02, 1.00 )
 end
 
 -------------------------------------------------------------------------------
@@ -282,8 +282,8 @@ function has_pay_medkits()
 		and amk_utils.inventory_search( "soporific", 5 )
 end
 function out_pay_medkits()
-	sak.out_iten_namber( "medkit_scientic", 10 )
-	sak.out_iten_namber( "soporific", 5 )
+	sak.out_item_namber( "medkit_scientic", 10 )
+	sak.out_item_namber( "soporific", 5 )
 end
 
 function init_code_dialog( dlg )
@@ -294,8 +294,8 @@ function init_code_dialog( dlg )
 	local phrase_script = phr:GetPhraseScript()
 	phrase_script:AddPrecondition( "zamok.has_pay_medkits" )
 	phrase_script:AddAction( "zamok.out_pay_medkits" )
-
 	dlg:AddPhrase( "codelock_dialog_3", "3", "1", -10000 )
+
 	dlg:AddPhrase( "codelock_dialog_4", "4", "2", -10000 )
 
 	local codes = this.get_all_codes()
@@ -307,7 +307,7 @@ function init_code_dialog( dlg )
 		sobj = sim:object( id )
 		if sobj then
 			text = news_main.get_point_description( t.level, sobj.position )
-			dlg:AddPhrase( text, tostring( phrase_num ), "21", -10000 )
+			dlg:AddPhrase( text, tostring( phrase_num ), "4", -10000 )
 			text = "Тааак, погоди, вижу там какой-то тайничок, точно... Ага... Цифры, цифры, цифры... Так, записывай скорее, и больше не забывай.\\n"..t.code.."\\nУф, что-то аж голова разболелась..."
 			dlg:AddPhrase( text, tostring( phrase_num+1 ), tostring( phrase_num ), -10000 )
 			dlg:AddPhrase( "codelock_dialog_1000", "1000", tostring( phrase_num + 1 ), -10000 )
