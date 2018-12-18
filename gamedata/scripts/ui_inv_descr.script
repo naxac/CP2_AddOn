@@ -30,12 +30,7 @@ local forbidden_wpns = {
 	['wpn_gravigun'] = true,	-- гравицапа
 	['wpn_soulcube'] = true		-- душекуб
 }
--- Пушки с ночными прицелами
-local nv_scopes_wpn = {
-	['wpn_crossbow'] = true,
-	['wpn_svd_m3'] = true,
-	['wpn_b94_sil'] = true
-}
+
 -- съедобное
 local is_eatable = {
 	[clsid.obj_antirad]	= true,
@@ -181,7 +176,7 @@ function GetWeaponParams(section)
 	text = "ёмкость магазина: "..string_format("%d", n)
 	table_insert( ret, {"ammo_mag_size", text} )
 
-	if nv_scopes_wpn[section] then
+	if sys_ini:r_bool_ex( section, "scope_nv", false ) then
 		table_insert( ret, {"nv_scope", "прицел ночного видения"} )
 	end
 	if sys_ini:r_clsid(section, "class") == clsid.wpn_binocular_s then
@@ -581,8 +576,3 @@ function CUIDescriptionWnd:OnKeyPress(dik, bind)
 	end
 end
 
-------------------------------------------------------------------------------
-
-function is_nv_scope_wpn(section)
-	return nv_scopes_wpn[section] ~= nil
-end
