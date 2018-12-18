@@ -1,21 +1,23 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+local zamok_code = game_options.ZamokUICode
+local only_box = game_options.LockBoxOnly
 
 local zamok_box = {}
 local can_lock_visuals = {
-	["equipment_box_01_case"] = true,
-	["equipment_box_02_case"] = true,
-	["equipment_box_03_case"] = true,
-	["equipment_electric_box_01_case"] = true,
-	["equipment_electric_box_02_case"] = true,
-	["equipment_hatch_01_case"] = true,
-	["equipment_hatch_02_case"] = true,
-	["equipment_instrument_case_01_case"] = true,
-	["equipment_seif_01_case"] = true,
-	["equipment_seif_02_case"] = true,
-	["equipment_seif_03_case"] = true,
-	["equipment_zaz968_case"] = true,
-	["expl_dinamit"] = true,
-	["seif_01"] = true
+	[ "equipment_box_01_case" ]             = true,
+	[ "equipment_box_02_case" ]             = true,
+	[ "equipment_box_03_case" ]             = true,
+	[ "equipment_electric_box_01_case" ]    = true,
+	[ "equipment_electric_box_02_case" ]    = true,
+	[ "equipment_hatch_01_case" ]           = true,
+	[ "equipment_hatch_02_case" ]           = true,
+	[ "equipment_instrument_case_01_case" ] = true,
+	[ "equipment_seif_01_case" ]            = true,
+	[ "equipment_seif_02_case" ]            = true,
+	[ "equipment_seif_03_case" ]            = true,
+	[ "equipment_zaz968_case" ]             = true,
+	[ "expl_dinamit" ]                      = true,
+	[ "seif_01" ]                           = true
 }
 
 function restore(se_box, box_id)
@@ -24,11 +26,15 @@ function restore(se_box, box_id)
 		if t == nil then
 			t = {}
 			zamok_box[box_id] = t
-			local data = netpk:get(se_box, netpk.fState)
-			local tt = netpk:parse_custom_data(data.custom_data)
-			if tt["password"] then
-			--	log1("add protected box: "..se_box:name())
-				t.code = tt["password"]["code"]
+			if zamok_code then
+				local data = netpk:get(se_box, netpk.fState)
+				local tt = netpk:parse_custom_data(data.custom_data)
+				if tt[ "password" ] then
+				--	log1("add protected box: "..se_box:name())
+					t.code = tt[ "password" ][ "code" ]
+					table.insert(amk_offline_alife.protected.ids, box_id)
+				end
+			else
 				table.insert(amk_offline_alife.protected.ids, box_id)
 			end
 			t.count = 1
@@ -38,64 +44,67 @@ function restore(se_box, box_id)
 	end
 end
 
-function remove(box, item)
+function remove( box, item )
 	local box_id = box:id()
-	local t = zamok_box[box_id]
+	local t = zamok_box[ box_id ]
 	if t == nil then return end
 
 	if t.count > 1 then
 		 t.count =  t.count - 1
 	else	-- проверим, стоит ли ящик под защитой
-		for i, v in pairs(amk_offline_alife.protected.ids) do
+		for i, v in pairs( amk_offline_alife.protected.ids ) do
 			if v == box_id then
-				this.change_box_data(box)
-				table.remove(amk_offline_alife.protected.ids, i)
-				--amk_offline_alife.update_tables(level.name())
+				if zamok_code then
+					this.change_box_data( box )
+				end
+				table.remove( amk_offline_alife.protected.ids, i )
+				--amk_offline_alife.update_tables( level.name() )
 				ShowAutohideMsg( "С тайника убрали замок.", 2000 )
 				break
 			end
 		end
-		zamok_box[box_id] = nil
+		zamok_box[ box_id ] = nil
 	end
 end
 
-function add(item)
-	local sitem = alife():object(item:id()) -- получаем серверный объект
+function add( item )
+	local sitem = alife():object( item:id() ) -- получаем серверный объект
 	if sitem == nil then return end		-- если удалили замок, то ничего не делаем
 	local pid = sitem.parent_id
-	local se_box = alife():object(pid) -- получаем серверный объект хозяина
+	local se_box = alife():object( pid ) -- получаем серверный объект хозяина
 	if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
-		local t = zamok_box[pid]
+		local t = zamok_box[ pid ]
 		if t == nil then		-- если в тайнике ещё нет замков
-			t = {}
-			zamok_box[pid] = t
-			t.count = 1
-			t.code = ""
-
 			local box = level.object_by_id( pid )
 			if box == nil then return end
 
-			if game_options.LockBoxOnly then
+			zamok_box[ pid ] = { count = 1 }
+			if only_box then
 				local visual = string.explode( box:get_visual_name(), "\\" )
-				visual = visual[#visual]
-				if can_lock_visuals[visual] == nil then
-					BlockUIDescr(true)
-					local msg = "На этот тайник невозможно установить замок."
-					local func = function()
-						BlockUIDescr(false)
-					end
-					ui_messagebox_new.UIMessageBoxEx( "ok_alarm", msg, func )
+				visual = visual[ #visual ]
+				if can_lock_visuals[ visual ] == nil then
+					BlockUIDescr( true )
+					ui_messagebox_new.UIMessageBoxEx(
+						"ok_alarm", "На этот тайник невозможно установить замок.",
+						function() BlockUIDescr( false ) end
+					)
 					return
 				end
 			end
 
-			BlockUIDescr(true)
-			local msg = "Установить замок на этот тайник?"
-			local func = function()
-				this.codelock( box, 1 )
-				BlockUIDescr(false)
+			if not zamok_code then
+				table.insert( amk_offline_alife.protected.ids, box_id )
+				--amk_offline_alife.update_tables(level.name())
+				ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
+				return
 			end
-			ui_messagebox_new.UIMessageBoxEx( "yes_no_info", msg, func )
+
+			BlockUIDescr( true )
+			ui_messagebox_new.UIMessageBoxEx(
+				"yes_no_info", "Установить замок на этот тайник?",
+				function() this.codelock( box, 1 ) end,
+				function() BlockUIDescr( false ) end
+			)
 		else	-- иначе - ничего не делаем
 			t.count = t.count + 1
 		end
@@ -106,7 +115,6 @@ end
 class "codelock"
 
 function codelock:__init( box, mode )
-	BlockUIDescr(true)
 	self.cls = self
 
 	self.object = box
@@ -132,7 +140,7 @@ end
 function codelock:Quit()
 	if self.install == false then 
 		hotkeys.clear_used_box()
-		self.object:set_nonscript_usable(true)
+		self.object:set_nonscript_usable( true )
 	end
 	self.cls = nil
 	BlockUIDescr(false)
@@ -165,7 +173,7 @@ function codelock:OnNumberReceive( text, mode )
 		-- Перезагружаем логику
 		local st = db.storage[ box_id ]
 		st = {}
-		xr_logic.initialize_obj(self.object, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
+		xr_logic.initialize_obj( self.object, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx" )
 
 		self:Quit()
 	else
@@ -173,7 +181,7 @@ function codelock:OnNumberReceive( text, mode )
 			self.object:set_nonscript_usable( true )
 			self.cls = nil
 			BlockUIDescr( false )
-			start_small_timer( 500, this.actor_open_box, self.object )
+			start_small_timer( 300, this.actor_open_box, self.object )
 		else
 			self:Quit()
 		end
@@ -243,6 +251,8 @@ function change_box_data(box)
 end
 
 function reliability_code_check( box_id )
+	if not zamok_code then return 1.00 end
+
 	local t = zamok_box[ box_id ]
 	if not (t and t.code) then return 0 end
 
