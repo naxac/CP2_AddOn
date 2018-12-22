@@ -1,9 +1,30 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
+	local obj = alife():create( "m_inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
+	local code = ""
+	for i = 1,10 do
+		code = code..tostring( math.random( 0, 9 ) )
+	end
+	local t = {}
+	t.visual_name = "physics\\equipment_cache\\equipment_seif_01_case"
+	t.custom_data = "[logic]\n"..
+					"active = ph_idle@tr_codelock\n"..
+					"[ph_idle@tr_codelock]\n"..
+					"nonscript_usable = true\n"..
+					"tips = st_search_treasure\n"..
+					"on_use = %=zamok.show_codelock%\n"..
+					"[password]\n"..
+					"code = "..code
+	netpk:modify( obj, t, netpk.fState )
+	obj = alife():object( obj.id )
+	obj:use_ai_locations( false )
+	log( code )
 end
 
--- Всё перенесено в all.spawn
 function repair()
+	if has_alife_info( "naxac_test_repair" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair" )
+	alife():create( "subway_scaner_doc", pos, lv, gv )
 end
 
 function after_credits()
