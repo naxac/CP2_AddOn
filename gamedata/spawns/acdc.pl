@@ -2206,6 +2206,8 @@ use constant section_to_class => {
 	amk_ballon						=> 'cse_alife_item',
 	volna_barrel					=> 'cse_alife_item',
 
+	subway_scaner_doc				=> 'cse_alife_item',
+
 	novice_outfit					=> 'cse_alife_item_custom_outfit',
 	outfit_novice_m1				=> 'cse_alife_item_custom_outfit',
 	bandit_outfit					=> 'cse_alife_item_custom_outfit',

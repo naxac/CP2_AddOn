@@ -1,30 +1,23 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
-	local obj = alife():create( "m_inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
-	local code = ""
-	for i = 1,10 do
-		code = code..tostring( math.random( 0, 9 ) )
-	end
-	local t = {}
-	t.visual_name = "physics\\equipment_cache\\equipment_seif_01_case"
-	t.custom_data = "[logic]\n"..
-					"active = ph_idle@tr_codelock\n"..
-					"[ph_idle@tr_codelock]\n"..
-					"nonscript_usable = true\n"..
-					"tips = st_search_treasure\n"..
-					"on_use = %=zamok.show_codelock%\n"..
-					"[password]\n"..
-					"code = "..code
-	netpk:modify( obj, t, netpk.fState )
-	obj = alife():object( obj.id )
-	obj:use_ai_locations( false )
-	log( code )
+	local res = zamok.has_active_codes()
+	log( tostring( res ) )
 end
 
 function repair()
-	if has_alife_info( "naxac_test_repair" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair" )
-	alife():create( "subway_scaner_doc", pos, lv, gv )
+	if has_alife_info( "naxac_test_repair1" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair1" )
+
+	local sim = alife()
+	if sim:object( "subway_scaner_doc_0001" ) == nil then
+		sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+	end
+
+	for i = 2, 4, 1 do
+		if has_alife_info( "naxac_test_repair"..i ) then
+			db.actor:disable_info_portion( "naxac_test_repair"..i )
+		end
+	end
 end
 
 function after_credits()
@@ -82,6 +75,44 @@ function treasure_sysh_spawn()
 		4256, 2777, items, "treasure", hint)
 end
 
+function treasure_ss_1()
+	local items = {
+		['subway_scaner_doc2'] = 1
+	}
+	naxac_test.create_treasure( vector():set( -394.92098999023,0.49698415398598,52.124488830566 ), 146089, 3664, items )
+end
+function treasure_ss_2()
+	local sim = alife()
+	local obj = sim:create( "inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
+	local code = ""
+	for i = 1,10 do
+		code = code..tostring( math.random( 0, 9 ) )
+	end
+	local t = {}
+	t.visual_name = "physics\\equipment_cache\\equipment_seif_01_case"
+	t.custom_data = "[logic]\n"..
+					"cfg = scripts\\code_inventory_box.ltx\n"..
+					"[password]\n"..
+					"code = "..code
+	netpk:modify( obj, t, netpk.fState )
+	obj = sim:object( obj.id )
+	obj:use_ai_locations( false )
+
+	sim:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+	sim:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+end
+function ss_teleports()
+	local sim = alife()
+	sim:create( "ss_tele_1", vector():set(-427.43768310547,35.865772247314,-323.46566772461),137286,3664)
+	sim:create( "ss_tele_2", vector():set(-418.9528503418,0.43205073475838,17.969646453857),146089,3664)
+	sim:create( "ss_tele_3", vector():set(-394.98583984375,0.49851682782173,56.047332763672),146089,3664)
+end
+function del_ss_teleports()
+	bind_mteleport.del_teleport( "ss_tele_1" )
+	bind_mteleport.del_teleport( "ss_tele_2" )
+	bind_mteleport.del_teleport( "ss_tele_3" )
+end
+
 function lc_question_add()
 	-- Припять - ЧАЭС
 	local obj = alife():object("exit_to_stancia_01")
@@ -136,9 +167,12 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 	t.custom_data  = "[logic]\n".."cfg = scripts\\new_inventory_box.ltx"
 	t.object_flags = bit_and( t.object_flags, bit_not(197) )
 	netpk:set( ruck, t )
+	ruck = sim:object( id )
+	ruck:use_ai_locations( false )
 
 	if mapspot then
 		level.map_add_object_spot_ser( id, mapspot, (hint or "Тайник") )
 	end
+	return ruck
 end
 
