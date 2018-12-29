@@ -269,13 +269,22 @@ function reliability_code_check( box_id )
 end
 
 -------------------------------------------------------------------------------
-function has_active_codes()
+function get_all_codes()
+	local sim = alife()
+	local t = {}
 	for id, v in pairs( zamok_box ) do
 		if v.code and #v.code > 0 then
-			return true
+			local obj = sim:object( id )
+			local lname = sim:level_name( game_graph():vertex( obj.m_game_vertex_id ):level_id() )
+			t[id] = { code = v.code, level = lname }
 		end
 	end
-	return false
+	return t
+end
+
+function has_active_codes()
+	local codes = this.get_all_codes()
+	return table.size( codes ) > 0
 end
 
 function has_pay_medkits()
@@ -287,43 +296,32 @@ function out_pay_medkits()
 	sak.out_item_namber( "soporific", 5 )
 end
 
-local phrase_id = 10
-local function gen_phrase_id_str()
-	phrase_id = phrase_id + 1
-	return tostring( phrase_id )
-end
-
 function init_code_dialog( dlg )
 	dlg:AddPhrase( "codelock_dialog_0", "0", "", -10000 )
-
 	dlg:AddPhrase( "codelock_dialog_1", "1", "0", -10000 )
 
 	local phr = dlg:AddPhrase( "codelock_dialog_2", "2", "1", -10000 )
 	local phrase_script = phr:GetPhraseScript()
+	phrase_script:AddPrecondition( "zamok.has_pay_medkits" )
 	phrase_script:AddAction( "zamok.out_pay_medkits" )
+	dlg:AddPhrase( "codelock_dialog_3", "3", "1", -10000 )
 
-	dlg:AddPhrase( "codelock_dialog_3", "3", "2", -10000 )
+	dlg:AddPhrase( "codelock_dialog_4", "4", "2", -10000 )
 
+	local codes = this.get_all_codes()
 	local text = ""
-	local sobj, lname
+	local sobj
 	local sim = alife()
-	local p1, p2, p3
-	for id, v in pairs( zamok_box ) do
-		if v.code and #v.code > 0 then
-			sobj = sim:object( id )
-			if sobj then
-				lname = sim:level_name( game_graph():vertex( sobj.m_game_vertex_id ):level_id() )
-				text = news_main.get_point_description( lname, sobj.position )
-				p1 = gen_phrase_id_str()
-				dlg:AddPhrase( text, p1, "3", -10000 )
-
-				text = "Тааак, погоди, вижу там какой-то тайничок, точно... Ага... Цифры, цифры, цифры... Так, записывай скорее, и больше не забывай.\\n"..v.code.."\\nУф, что-то аж голова разболелась..."
-				p2 = gen_phrase_id_str()
-				dlg:AddPhrase( text, p2, p1, -10000 )
-
-				p3 = gen_phrase_id_str()
-				dlg:AddPhrase( "codelock_dialog_1000", p3, p2, -10000 )
-			end
+	local phrase_num = 5
+	for id, t in pairs( codes ) do
+		sobj = sim:object( id )
+		if sobj then
+			text = news_main.get_point_description( t.level, sobj.position )
+			dlg:AddPhrase( text, tostring( phrase_num ), "4", -10000 )
+			text = "Тааак, погоди, вижу там какой-то тайничок, точно... Ага... Цифры, цифры, цифры... Так, записывай скорее, и больше не забывай.\\n"..t.code.."\\nУф, что-то аж голова разболелась..."
+			dlg:AddPhrase( text, tostring( phrase_num+1 ), tostring( phrase_num ), -10000 )
+			dlg:AddPhrase( "codelock_dialog_1000", "1000", tostring( phrase_num + 1 ), -10000 )
+			phrase_num = phrase_num + 2
 		end
 	end
 end
