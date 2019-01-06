@@ -20,8 +20,8 @@ local tabl_weapons={}
 
 -- временные таблицы
 local all_objects = {}
-local objects_by_parent = {}
-local parent_by_obj = {}
+local parent2objects = {}
+local object2parent = {}
 
 function scan()
 	local table_insert = table.insert
@@ -35,9 +35,9 @@ function scan()
 			all_objects[i] = sobj
 			p_id = sobj.parent_id
 			if p_id and p_id~=65535 then
-				if objects_by_parent[p_id] == nil then objects_by_parent[p_id] = {} end
-				table_insert(objects_by_parent[p_id], i)
-				parent_by_obj[i] = p_id
+				if parent2objects[p_id] == nil then parent2objects[p_id] = {} end
+				table_insert(parent2objects[p_id], i)
+				object2parent[i] = p_id
 			end
 		end
 	end
@@ -88,7 +88,7 @@ function off_corpses()
 			released = false
 
 			-- нет хозяина
-			if parent_by_obj[i]==nil then
+			if object2parent[i]==nil then
 				-- сталкер
 				if IAmAStalker[obj_clsid] then
 					if level_changing and obj_level~=actor_level then
@@ -208,7 +208,7 @@ function off_corpses()
 
 				-- Замки
 				if obj_sect == "zamok" then
-					local ii = parent_by_obj[i]
+					local ii = object2parent[i]
 					zamok.restore(all_objects[ii], ii)
 
 				-- Броники
@@ -237,10 +237,10 @@ function off_corpses()
 				amk_offline_alife.add_fresh_meat(obj)
 				babah.collectBombs(obj)
 			else
-				rel[#rel+1] = i
+				table.insert( rel, i )
 			end
 		else
-			rel[#rel+1] = i
+			table.insert( rel, i )
 		end
 	end -- for
 	
@@ -326,8 +326,8 @@ function off_corpses()
 
 	-- удаляем ненужное
 	all_objects = nil
-	objects_by_parent = nil
-	parent_by_obj = nil
+	parent2objects = nil
+	object2parent = nil
 end 
 
 function get_dist_to_trup(wpn)
@@ -351,7 +351,7 @@ function get_dist_to_trup_9510(wpn)
 end
 
 function item_found(corps_id)
-	local t = objects_by_parent[corps_id]
+	local t = parent2objects[corps_id]
 	if t then
 		for i=1,#t do
 			if item_keep(all_objects[t[i]]) then
