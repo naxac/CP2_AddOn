@@ -11,17 +11,25 @@
 class "main_menu" (CUIScriptWnd)
 
 function main_menu:__init() super()
-	if level.present() and _G.press_any_key_on_start then
+	local loaded = level.present()
+
+	if loaded and _G.press_any_key_on_start then
 		_G.press_any_key_on_start = false
 		autopause.on_mm_init(self)
-	else
-		self.game_is_on = level.present()
-			and ( (db.actor and db.actor:alive())	-- sinlge
-			or IsGameTypeSingle() == false )		-- multyplayer
-		self.mbox_mode = 0
-		self:InitControls()
-		self:InitCallBacks()
+		return
 	end
+
+	if ( not loaded ) and string.find( command_line(), "-load_last_save", 1, true ) then
+		get_console():execute ("load_last_save")
+		return
+	end
+
+	self.game_is_on = loaded
+		and ( (db.actor and db.actor:alive())	-- sinlge
+		or IsGameTypeSingle() == false )		-- multyplayer
+	self.mbox_mode = 0
+	self:InitControls()
+	self:InitCallBacks()
 end
 
 function main_menu:__finalize() end
@@ -52,6 +60,25 @@ function main_menu:Show(f)
 	self.shniaga:SetVisibleMagnifier(f)
 end
 
+function main_menu:Update()
+	CUIScriptWnd.Update( self )
+
+	if self.load_last_save then
+		if self.timer == nil then
+			self.timer = profile_timer()
+			self.timer:start()
+		else
+			self.timer:stop()
+			if self.timer:time() >= 10000 then
+				self.timer = nil
+				self.load_last_save = nil
+				get_console():execute ("load_last_save")
+			else
+				self.timer:start()
+			end
+		end
+	end
+end
 
 function main_menu:InitCallBacks()
 	-- new game
