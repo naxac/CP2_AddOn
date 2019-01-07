@@ -12,8 +12,8 @@ function remove_dist()
 	if not dist_wnd then return end
 
 	get_hud():RemoveDialogToRender( dist_wnd )
-	xr_s.unregister_callback( "update", check_dist )
-	xr_s.unregister_callback( "net_destroy", remove_dist )
+	xr_s.unsubscribe( "update", check_dist )
+	xr_s.unsubscribe( "net_destroy", remove_dist )
 end
 
 function remove_nv()
@@ -21,7 +21,7 @@ function remove_nv()
 		nv_on = false
 		level.remove_pp_effector( 1035 )
 		get_console():execute ( "r2_mblur 0." )
-		xr_s.unregister_callback( "net_destroy", remove_nv )
+		xr_s.unsubscribe( "net_destroy", remove_nv )
 	end
 end
 
@@ -32,14 +32,14 @@ function on_scope_used( section )
 		dist_wnd:SetFont( GetFontLetterica25() )
 		dist_wnd:SetTextColor( 255, 25, 120, 25 )
 		get_hud():AddDialogToRender( dist_wnd )
-		xr_s.register_callback( "update", check_dist )
-		xr_s.register_callback( "net_destroy", remove_dist )
+		xr_s.subscribe( "update", check_dist )
+		xr_s.subscribe( "net_destroy", remove_dist )
 	end
 	if sys_ini:r_bool_ex( section, "scope_nv", false ) and ( not xr_conditions.is_day() ) then
 		level.add_pp_effector( "bast.ppe", 1035, true )
 		get_console():execute ( "r2_mblur 0.6" )
 		nv_on = true
-		xr_s.register_callback( "net_destroy", remove_nv )
+		xr_s.subscribe( "net_destroy", remove_nv )
 	end
 end
 

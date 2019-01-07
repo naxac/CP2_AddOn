@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local callbacks = {
+local signals = {
 	net_spawn = {},
 	net_destroy = {},
 	update = {},
@@ -35,25 +35,23 @@ local callbacks = {
 local unreg_queue = {}
 local need_clear = false
 ---------------------------------------------------------------------------------------------------------------------
-function register_callback( name, func, params, disposable )
-	local tbl = callbacks[name] or abort("xr_s.register_callback: unknown callback name: %s", name)
-	local t = params or {}
-	t.disposable = disposable
-	tbl[func] = t
+function subscribe( name, func, params )
+	local tbl = signals[ name ] or abort( "xr_s.subscribe: unknown signal name: %s", name )
+	tbl[ func ] = params or {}
 end
 
-function unregister_callback(name, func, queue)
-	local tbl = callbacks[name] or abort("xr_s.unregister_callback: unknown callback name: %s", name)
+function unsubscribe( name, func, queue )
+	local tbl = signals[ name ] or abort( "xr_s.unsubscribe: unknown signal name: %s", name )
 	if queue then
 		table.insert( unreg_queue, { f = func, n = name } )
 		need_clear = true
 	else
-		tbl[func] = nil
+		tbl[ func ] = nil
 	end
 end
 ---------------------------------------------------------------------------------------------------------------------
 function on_event( name, ... )
-	for func, t in pairs( callbacks[ name ] ) do
+	for func, t in pairs( signals[ name ] ) do
 		local args = { ... }
 		if t.userobj then
 			table.insert( args, t.userobj )
@@ -64,7 +62,7 @@ function on_event( name, ... )
 
 		func( unpack( args ) )
 
-		if t.disposable then
+		if t.once then
 			table.insert( unreg_queue, { f = func, n = name } )
 			need_clear = true
 		end
@@ -87,7 +85,7 @@ local function update_timeout( d, t )
 end
 
 function on_update( delta )
-	for func, t in pairs( callbacks.update ) do
+	for func, t in pairs( signals.update ) do
 		if update_timeout( delta, t ) then
 			if t.self then
 				func( t.self, delta, t.userobj )
@@ -95,7 +93,7 @@ function on_update( delta )
 				func( delta, t.userobj )
 			end
 
-			if t.disposable then
+			if t.once then
 				table.insert( unreg_queue, { f = func, n = "update" } )
 				need_clear = true
 			end
@@ -104,7 +102,7 @@ function on_update( delta )
 
 	if need_clear then
 		for i, v in ipairs( unreg_queue ) do
-			callbacks[ v.n ][ v.f ] = nil
+			signals[ v.n ][ v.f ] = nil
 		end
 		unreg_queue = {}
 		need_clear = false

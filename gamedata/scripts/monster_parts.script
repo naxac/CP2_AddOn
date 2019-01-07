@@ -47,7 +47,7 @@ function on_part_take(obj)
 				parent = monster:id(),
 				pos = db.actor:position()
 			}
-			xr_s.register_callback( "update", monster_parts.check_move, { userobj = t } )
+			xr_s.subscribe( "update", monster_parts.check_move, { userobj = t } )
 
 			level.start_stop_menu(level.main_input_receiver(), true)
 
@@ -73,7 +73,7 @@ function actor_has_knife()
 end
 
 function on_monster_use(victim, who)
-	xr_s.register_callback("item_take", monster_parts.on_part_take)
+	xr_s.subscribe("item_take", monster_parts.on_part_take)
 	monster = victim
 end
 
@@ -81,7 +81,7 @@ local tmr = nil
 function on_monster_stop_use()
 	remove_small_timer(tmr)
 	tmr = start_small_timer(200, function()
-		xr_s.unregister_callback("item_take", monster_parts.on_part_take, true)
+		xr_s.unsubscribe("item_take", monster_parts.on_part_take, true)
 	end)
 	monster = nil
 end
@@ -109,7 +109,7 @@ function check_move(delta, p)
 			end
 			parts = {}
 			
-			xr_s.unregister_callback("update", monster_parts.check_move, true)
+			xr_s.unsubscribe("update", monster_parts.check_move, true)
 			timer_start = false
 		end
 	else
@@ -118,7 +118,7 @@ function check_move(delta, p)
 		timer_start = false
 		send_trophy()
 		parts = {}
-		xr_s.unregister_callback("update", monster_parts.check_move, true)
+		xr_s.unsubscribe("update", monster_parts.check_move, true)
 	end
 end
 

@@ -62,7 +62,7 @@ local cmd2func = {}
 		if point==nil then
 			return false, "Incorrect parameter for command: jump_to_level"
 		end
-		xr_s.register_callback("update", ui_console.update_close)
+		xr_s.subscribe("update", ui_console.update_close)
 		level.disable_input()
 		start_small_timer(3000,
 			function() spawn_level_changer.jumpTo(point) end
@@ -333,7 +333,7 @@ function UIConsole:OnKeyboard(dik, keyboard_action)
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		if  dik == DIK_keys.DIK_ESCAPE or dik == DIK_keys.DIK_F10 then
 			if self.moved == nil then
-				xr_s.register_callback("update", ui_console.update_close)
+				xr_s.subscribe("update", ui_console.update_close)
 				self.moved = true
 			end
 		elseif dik == DIK_keys.DIK_RETURN then
@@ -356,7 +356,7 @@ end
 function update_close()
 	console.bposy = console.bposy + 15
 	if console.bposy>=768 then
-		xr_s.unregister_callback("update", ui_console.update_close)
+		xr_s.unsubscribe("update", ui_console.update_close)
 		console:OnQuit()
 		return
 	end
@@ -366,7 +366,7 @@ end
 function update_show()
 	console.bposy = console.bposy - 15
 	if console.bposy<=380 then
-		xr_s.unregister_callback("update", ui_console.update_show)
+		xr_s.unsubscribe("update", ui_console.update_show)
 		console.moved = nil
 		return
 	end
@@ -384,5 +384,5 @@ function show_console()
 	end
 	console = ui_console.UIConsole()
 	level.start_stop_menu(console, true)
-	xr_s.register_callback("update", ui_console.update_show)
+	xr_s.subscribe("update", ui_console.update_show)
 end

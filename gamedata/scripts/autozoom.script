@@ -22,7 +22,7 @@ function on_key_press(dik, bind)
 			
 			level.send_event_key_press(free_key)
 			level.send_event_key_hold(free_key)
-			xr_s.register_callback("key_release", autozoom.on_key_release)
+			xr_s.subscribe("key_release", autozoom.on_key_release)
 			return
 		end
 		
@@ -40,7 +40,7 @@ end
 function on_key_release(dik, bind)
 	if dik == zoom_key then
 		level.send_event_key_release(free_key)
-		xr_s.unregister_callback("key_release", autozoom.on_key_release)
+		xr_s.unsubscribe("key_release", autozoom.on_key_release)
 	end
 end
 
@@ -57,8 +57,8 @@ function attach()
 		local k = hotkeys.dik2key(free_key)
 		if not k:find("MOUSE") then k = "k"..k end
 		get_console():execute("bind wpn_zoom "..string.lower(k))
-		xr_s.register_callback("key_press", on_key_press)
-		xr_s.register_callback("net_destroy", restore_bind)
+		xr_s.subscribe("key_press", on_key_press)
+		xr_s.subscribe("net_destroy", restore_bind)
 	end
 end
 
@@ -66,8 +66,8 @@ function change_opt()
 	if game_options.AutoZoom then
 		if zoom_key==nil then init() end
 	elseif zoom_key then
-		xr_s.unregister_callback("key_press", on_key_press)
-		xr_s.unregister_callback("net_destroy", restore_bind)
+		xr_s.unsubscribe("key_press", on_key_press)
+		xr_s.unsubscribe("net_destroy", restore_bind)
 		restore_bind()
 	end
 end

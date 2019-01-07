@@ -8,7 +8,7 @@ local outfits = {
 	["exo_mil_exoskeleton_addrs"]	= { "health", "bleeding", "radiation", "psy", "power" }
 }
 	
-local data = {
+local system_data = {
 	["health"] = {
 		info = "skat_health_on",
 		check = function()
@@ -24,7 +24,7 @@ local data = {
 		check = function()
 			return actor:get_bleeding() <= 0.5
 		end,
-		drugs ={ "bandage" },
+		drugs ={ "bandage", "suvorotka" },
 		sms_warning = "У вас сильное кровотечение. Если у вас есть медпрепараты, то Система Жизненной Поддержки произведёт лечение.",
 		sms_ok = "Обнаружены медпрепараты. Произвожу применение.",
 		sms_fail = "Медпрепараты не обнаружены."
@@ -34,7 +34,7 @@ local data = {
 		check = function()
 			return arc_radiation.get_rad_dose() < arc_radiation.get_critical_dose()
 		end,
-		drugs = { "antirad", "medkit_scientic" },
+		drugs = { "antirad", "medkit_scientic", "suvorotka" },
 		sms_warning = "Полученная доза радиации близка к критической. Если у Вас есть антирадиационные препараты, то Система Жизненной Поддержки выведет радиацию из организма.",
 		sms_ok = "Обнаружены антирадиационные препараты. Система Жизненой Поддержки производит применение.",
 		sms_fail = "Антирадиационные препараты не обнаруженны."
@@ -84,7 +84,7 @@ function on_actor_update()
 	--\\
 
 	for i, v in ipairs( outfits[ sect ] ) do
-		system_outfit( data[ v ] )
+		system_outfit( system_data[ v ] )
 	end
 end
 
@@ -176,12 +176,12 @@ function system_outfit( t )
 				shiftCheckDropItem()
 				actor:eat( actor:object( v ) )
 				t.need_treat = nil
-				xr_s.register_callback( "update", function( delta, tt )
+				xr_s.subscribe( "update", function( delta, tt )
 					if not tt.check() then
 						tt.f_end = nil
 					end
 				end,
-				{ timeout = 600, userobj = t }, true )
+				{ timeout = 600, userobj = t, once = true } )
 				break
 			end
 		end
@@ -193,13 +193,13 @@ function system_outfit( t )
 						tt.need_treat = nil
 					end
 				end
-				xr_s.register_callback( "item_take", t.check_take_drugs, { userobj = t } )
+				xr_s.subscribe( "item_take", t.check_take_drugs, { userobj = t } )
 				t.reg = true
 			end
 			do_heal( false, t.sms_fail )
 		else
 			if t.reg then
-				xr_s.unregister_callback( "item_take", t.check_take_drugs )
+				xr_s.unsubscribe( "item_take", t.check_take_drugs )
 				t.check_take_drugs = nil
 				t.reg = nil
 			end

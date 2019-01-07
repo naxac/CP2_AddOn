@@ -115,7 +115,7 @@ function teleport:on_ButtonFly_clicked()
 	last_pos = nil
 	if registered==false then
 		registered = true
-		xr_s.register_callback("update", naxac_teleport.update)
+		xr_s.subscribe("update", naxac_teleport.update)
 	end
 	get_console():execute("demo_record 1")
 	self:OnQuit()
@@ -123,7 +123,7 @@ end
 
 function teleport:on_ButtonTeleport_clicked()
 	if registered == true then 
-		xr_s.unregister_callback("update", naxac_teleport.update)
+		xr_s.unsubscribe("update", naxac_teleport.update)
 		registered = false
 	end
 	local x = text_to_number(self.edit_x:GetText())
@@ -162,7 +162,7 @@ function update(delta)
 	local pos = device().cam_pos
 --	log1('update teleport')
 	if last_pos and pos:distance_to(last_pos)>4 then
-		xr_s.unregister_callback("update", naxac_teleport.update)
+		xr_s.unsubscribe("update", naxac_teleport.update)
 		registered = false
 		
 		local wnd = naxac_teleport.teleport(get_hud())

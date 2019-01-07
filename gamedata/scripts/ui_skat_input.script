@@ -50,7 +50,7 @@ function UISkatInputPanel:__init( st, section )
 	self.sect = section
 	
 	for k, v in pairs( reg_callbacks ) do
-		xr_s.register_callback( k, this[v] )
+		xr_s.subscribe( k, this[v] )
 	end
 	
 	self:Init(0, 0, 1024, 768)
@@ -69,10 +69,9 @@ function UISkatInputPanel:__init( st, section )
 	self.frame:AttachChild( btn )
 	self:Register( btn, "btn_quit" )
 	self:AddCallbackEx( "btn_quit", ui_events.BUTTON_CLICKED, self.Hide )
-	
-	local t = params[section]
+
 	local step, n = 25, 0
-	for k, v in pairs(t) do
+	for k, v in pairs( params[section] ) do
 		local b = CUICheckButton()
 		self["check_"..k] = b
 		b:SetAutoDelete(true)
@@ -106,6 +105,7 @@ function UISkatInputPanel:CheckWnd(section)
 end
 
 function UISkatInputPanel:ShowWnd()
+	if self.frame:IsShown() then return end
 	local owner = level.main_input_receiver()
 	self.frame:SetWndPos(
 		math.min( owner:GetCursorX(), 1024-self.frame:GetWidth() ),
@@ -120,7 +120,7 @@ end
 
 function UISkatInputPanel:Remove()
 	for k, v in pairs( reg_callbacks ) do
-		xr_s.unregister_callback( k, this[v] )
+		xr_s.unsubscribe( k, this[v] )
 	end
 	self:unregister_self()
 	_wnd = nil

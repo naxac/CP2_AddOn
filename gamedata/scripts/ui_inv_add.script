@@ -79,7 +79,7 @@ function InvWnd:__init(owner) super()
 	self:Init(0, 0, 1024, 768)
 	self:InitControls()
 	for k,v in pairs(reg_callbacks) do
-		xr_s.register_callback( k, self[v], {self = self} )
+		xr_s.subscribe( k, self[v], {self = self} )
 	end
 end
 
@@ -243,7 +243,7 @@ end
 
 function InvWnd:DetachWnd()
 	for k,v in pairs(reg_callbacks) do
-		xr_s.unregister_callback(k, self[v])
+		xr_s.unsubscribe(k, self[v])
 	end
 	self:unregister_self()
 	self.DescrWnd:Remove()
@@ -409,12 +409,12 @@ function on_net_spawn()
 end
 
 function attach()
-	xr_s.register_callback("net_spawn", this.on_net_spawn, nil, true)
-	xr_s.register_callback("inventory_open", this.inventory_open)
-	xr_s.register_callback("inventory_close", this.inventory_close)
-	xr_s.register_callback("info", this.on_info)
-	xr_s.register_callback("item_drop", this.restore_slot)
-	xr_s.register_callback("cell_item_create", this.on_create_cell_item)
+	xr_s.subscribe("net_spawn", this.on_net_spawn, { once = true} )
+	xr_s.subscribe("inventory_open", this.inventory_open)
+	xr_s.subscribe("inventory_close", this.inventory_close)
+	xr_s.subscribe("info", this.on_info)
+	xr_s.subscribe("item_drop", this.restore_slot)
+	xr_s.subscribe("cell_item_create", this.on_create_cell_item)
 end
 
 
