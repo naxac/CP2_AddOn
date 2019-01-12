@@ -1,7 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
-	local str = news_main.get_point_description( level.name(), db.actor:position() )
-	log( str )
+	log( db.actor:character_name() )
 end
 
 function repair()
@@ -175,4 +174,38 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 	end
 	return ruck
 end
+-----------------------------------------------------------------------------------------------
+-- Изменение имени ГГ
+local new_name = nil
+function hero_rename_start( actor, npc )
+	new_name = "Стрелок"
+	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )
+end
+function hero_rename( pk )
+	if not new_name then return end
+
+	local pos = pk:w_tell()
+	local t = {}
+	pk:r_seek(0)
+	table.insert( t, pk:r_u16() )
+	for i = 1,37 do
+		table.insert( t, pk:r_u8() )
+	end
+	local n = pk:r_stringZ()
+	table.insert( t, new_name )
+	while not pk:r_eof() do
+		table.insert( t, pk:r_u8() )
+	end
+
+	pk:w_begin(t[1])
+	for i = 2, #t, 1 do
+		if type( t[i] ) == "string" then
+			pk:w_stringZ( t[i] )
+		else
+			pk:w_u8( t[i] )
+		end
+	end
+	pk:r_seek(pos)
+end
+
 
