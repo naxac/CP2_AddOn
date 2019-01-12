@@ -1,20 +1,21 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
-	log( db.actor:character_name() )
 end
 
 function repair()
-	if has_alife_info( "naxac_test_repair1" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair1" )
+	if has_alife_info( "naxac_test_repair2" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair2" )
 
-	local sim = alife()
-	if sim:object( "subway_scaner_doc_0001" ) == nil then
-		sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+	if has_alife_info( "cit_fail_first_task" ) then
+		this.hero_rename_start()
 	end
 
-	for i = 2, 4, 1 do
-		if has_alife_info( "naxac_test_repair"..i ) then
-			db.actor:disable_info_portion( "naxac_test_repair"..i )
+	if not has_alife_info( "naxac_test_repair1" ) then
+		db.actor:give_info_portion( "naxac_test_repair1" )
+
+		local sim = alife()
+		if sim:object( "subway_scaner_doc_0001" ) == nil then
+			sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
 		end
 	end
 end
@@ -177,35 +178,37 @@ end
 -----------------------------------------------------------------------------------------------
 -- Изменение имени ГГ
 local new_name = nil
-function hero_rename_start( actor, npc )
+function hero_rename_start()
 	new_name = "Стрелок"
-	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )
+	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
 end
 function hero_rename( pk )
 	if not new_name then return end
-
-	local pos = pk:w_tell()
+	-- запишем новое имя в клиентский объект актёра, смещение [39]
 	local t = {}
 	pk:r_seek(0)
-	table.insert( t, pk:r_u16() )
+	table.insert( t, pk:r_u16() )		-- 2 байта
 	for i = 1,37 do
-		table.insert( t, pk:r_u8() )
+		table.insert( t, pk:r_u8() )	-- + ещё 37 раз по 1
 	end
-	local n = pk:r_stringZ()
-	table.insert( t, new_name )
-	while not pk:r_eof() do
+	local n = pk:r_stringZ()			-- читаем имя
+--	log( "old name of hero: [%s]", n )
+	table.insert( t, new_name )			-- сохраняем вместо старого новое
+	while not pk:r_eof() do				-- вычитываем остаток пакета побайтово
 		table.insert( t, pk:r_u8() )
 	end
 
-	pk:w_begin(t[1])
+	pk:w_begin(t[1])					-- теперь записываем всё обратно
 	for i = 2, #t, 1 do
-		if type( t[i] ) == "string" then
-			pk:w_stringZ( t[i] )
+		n = t[i]
+		if type( n ) == "string" then
+			pk:w_stringZ( n )
 		else
-			pk:w_u8( t[i] )
+			pk:w_u8( n )
 		end
 	end
-	pk:r_seek(pos)
+
+	log( "- New name of hero successfully saved" )
 end
 
 
