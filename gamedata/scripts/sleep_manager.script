@@ -7,10 +7,11 @@ local sleep_time = 0
 local isSleepActive = false
 local set_sleep_time = 0
 local get_seconds = amk.game_seconds
+local main_time_factor = nil
 
 local function check_sleep_time()
 	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
-		level.set_time_factor(level.main_time_factor)
+		level.set_time_factor(main_time_factor)
 		return true
 	end
 	return false
@@ -35,6 +36,7 @@ function starter(scale)
 
 	set_sleep_time = get_seconds() + scale*3600
 
+	main_time_factor = level.get_time_factor()
 	level.set_time_factor(15000)
 	level.add_call(check_sleep_time, restore_time_factor)
 end
