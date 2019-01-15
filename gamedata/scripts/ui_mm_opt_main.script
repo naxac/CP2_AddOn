@@ -49,11 +49,6 @@ function options_dialog:InitControls()
 	self.dlg_gameplay:Show(false)
 	self.dialog:AttachChild(self.dlg_gameplay)
 	
-	self.dlg_gameplay_add = ui_mm_opt_new.opt_gameplay_add()
-	self.dlg_gameplay_add:InitControls(55,74, xml, self)
-	self.dlg_gameplay_add:Show(false)
-	self.dialog:AttachChild(self.dlg_gameplay_add)
-	
 	self.dlg_controls = ui_mm_opt_controls.opt_controls()
 	self.dlg_controls:InitControls(55,74, xml, self)
 	self.dlg_controls:Show(false)
@@ -144,18 +139,12 @@ function options_dialog:InitCallBacks()
 
 	self:AddCallbackEx("btn_cancel_download",	ui_events.BUTTON_CLICKED,	self.OnBtn_CancelDownload)
 
-	self:AddCallbackEx("list_difficulty",		ui_events.LIST_ITEM_SELECT,	self.OnDifficultyChanged)
+	self:AddCallbackEx("list_difficulty",		ui_events.BUTTON_CLICKED,	self.OnDifficultyChanged)
 end
 
 function options_dialog:OnBtnCheckUpdates()
 	local console			= get_console()
 	console:execute			("check_for_updates 1")
-end
-
-function options_dialog:OnBtnSwitchGameplay()
-	local s = self.dlg_gameplay:IsShown()
-	self.dlg_gameplay:Show(not s)
-	self.dlg_gameplay_add:Show(s)
 end
 
 function options_dialog:OnBtnDefault()
@@ -242,7 +231,6 @@ function options_dialog:OnTabChange()
 	self.dlg_gameplay:Show	(i == 2)
 	self.dlg_controls:Show	(i == 3)
 	self.dlg_video_adv:Show	(false)
-	self.dlg_gameplay_add:Show (false)
 end
 
 function options_dialog:OnBtnAdvGraphic()
@@ -263,8 +251,6 @@ function options_dialog:OnKeyboard(dik, keyboard_action)
 			if self.dlg_video_adv:IsShown() then
 				self.dlg_video_adv:Show	(false)
 				self.dlg_video:Show		(true)
-			elseif self.dlg_gameplay_add:IsShown() then
-				self:OnBtnSwitchGameplay()
 			else
 				self:GetHolder():start_stop_menu	(self.owner, true) --new(show main window)
 				self:GetHolder():start_stop_menu	(self,true)
@@ -361,7 +347,7 @@ end
 
 -- отключение на мастере распознавания НПС и дистанции
 function options_dialog:OnDifficultyChanged()
-	if self.list_difficulty:CurrentID() == game_difficulty.master then
+	if self.list_difficulty:GetText() == "реализм" then
 		self.check_tips:SetCheck(false)
 		self.check_tips:Enable(false)
 		self.check_dist:SetCheck(false)

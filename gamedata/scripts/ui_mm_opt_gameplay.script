@@ -14,40 +14,126 @@ function opt_gameplay:InitControls(x, y, xml, handler)
 	self:SetAutoDelete(true)
 	
 	self.bk = xml:InitFrame("frame_gameplay", self)
-	
-	xml:InitStatic("tab_gameplay:cap_difficulty",		self)
-	
-	handler.dynamic_bioradar 		= xml:InitTab("tab_gameplay:radio_bioradar", 				self)
-	handler.autosave_enable 		= xml:InitCheck("tab_gameplay:check_autosave", 				self)
-	handler.pause_on_load 			= xml:InitCheck("tab_gameplay:check_autopause", 			self)
-	handler.animations	 			= xml:InitCheck("tab_gameplay:check_animations", 			self)
-	handler.autograb_body 			= xml:InitCheck("tab_gameplay:check_autograb", 				self)
-	handler.new_sms					= xml:InitCheck("tab_gameplay:check_sms", 					self)
-	xml:InitStatic("tab_gameplay:cap_buy",			self)
-	xml:InitStatic("tab_gameplay:texture_buy",		self)
-	handler.buy 					= xml:InitEditBox("tab_gameplay:edit_buy", 					self)
-	xml:InitStatic("tab_gameplay:cap_del",			self)
-	xml:InitStatic("tab_gameplay:texture_del",		self)
-	handler.del 					= xml:InitEditBox("tab_gameplay:edit_del", 					self)
-	
-	handler.horrortime				= xml:InitCheck("tab_gameplay:check_horrortime",			self)
-	handler.fast_respawn 			= xml:InitCheck("tab_gameplay:check_fast_respawn", 			self)
-	handler.transparent_treasure	= xml:InitCheck("tab_gameplay:check_transparent_treasure",	self)
-	
---	xml:InitCheck("tab_gameplay:check_tips",			self)
-	handler.check_tips = xml:InitCheck("tab_gameplay:check_tips",			self)
-	xml:InitCheck("tab_gameplay:check_crosshair",		self)
-	xml:InitCheck("tab_gameplay:check_dyn_crosshair", 	self)
-	xml:InitCheck("tab_gameplay:check_show_weapon", 	self)
---	xml:InitCheck("tab_gameplay:check_dist", 			self)
-	handler.check_dist = xml:InitCheck("tab_gameplay:check_dist", 			self)
-	handler.autochange_difficulty = xml:InitCheck("tab_gameplay:check_autochange_difficulty",	self)
---	xml:InitComboBox("tab_gameplay:list_difficulty",	self)
-	handler.list_difficulty = xml:InitComboBox("tab_gameplay:list_difficulty",	self)
+	self.scroll_v = xml:InitScrollView("tab_gameplay:scroll_v", self)
+
+	local _st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)							-- Имя игрока
+	xml:InitStatic("tab_gameplay:cap_user_name", _st)
+	handler:InitEditBoxEx("userName", _st, 180, 4, 250)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Уровень сложности
+	xml:InitStatic("tab_gameplay:cap_difficulty", _st)
+	handler.list_difficulty = xml:InitSpinText("tab_gameplay:list_difficulty", _st)
 	handler:Register(handler.list_difficulty, "list_difficulty")
 
-	local btn = xml:Init3tButton	("tab_gameplay:btn_switch", self)
-	btn:SetText("Дополнительные")
-	handler:Register		(btn, "btn_switch1")
-	handler:AddCallbackEx("btn_switch1", ui_events.BUTTON_CLICKED, handler.OnBtnSwitchGameplay)
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Автосмена уровня сложности
+	handler.autochange_difficulty = xml:InitCheck("tab_gameplay:check_autochange_difficulty", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Распознавание НПС
+	handler.check_tips = xml:InitCheck("tab_gameplay:check_tips",			_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Дистанция до цели
+	handler.check_dist = xml:InitCheck("tab_gameplay:check_dist", 			_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Биорадар
+	xml:InitLabel("tab_gameplay:cap_bioradar", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)
+	_st:SetHeight( 90 )
+	handler.dynamic_bioradar = xml:InitTab("tab_gameplay:radio_bioradar", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Сохранение
+	xml:InitLabel("tab_gameplay:cap_save", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Автосохранение
+	handler.autosave_enable = xml:InitCheck("tab_gameplay:check_autosave", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Копирование сохранений в резерв
+	handler.save_rename = xml:InitCheck("tab_gameplay:check_save_rename", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Пауза после загрузки
+	handler.pause_on_load = xml:InitCheck("tab_gameplay:check_autopause", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Усложнения
+	xml:InitLabel("tab_gameplay:cap_hardcore", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Час ужаса
+	handler.horrortime = xml:InitCheck("tab_gameplay:check_horrortime", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Частый респавн
+	handler.fast_respawn = xml:InitCheck("tab_gameplay:check_fast_respawn", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Невидимые тайники
+	handler.transparent_treasure = xml:InitCheck("tab_gameplay:check_transparent_treasure",	_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- GUI для ввода кода для замков на тайники
+	handler.zamok_ui = xml:InitCheck("tab_gameplay:check_zamok_ui", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Не все тайники закрываются на замок
+	handler.zamok_lock = xml:InitCheck("tab_gameplay:check_zamok_lock", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Настройки HUD
+	xml:InitLabel("tab_gameplay:cap_hud", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Показывать прицел
+	xml:InitCheck("tab_gameplay:check_crosshair",		_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Динамический прицел
+	xml:InitCheck("tab_gameplay:check_dyn_crosshair", 	_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Показывать оружие
+	xml:InitCheck("tab_gameplay:check_show_weapon", 	_st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Динамический худ
+	_st:SetHeight( 70 )
+	handler.amk_hud = xml:InitTab("tab_gameplay:radio_amk_hud", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Прочее
+	xml:InitLabel("tab_gameplay:cap_other", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Тайники
+	_st:SetHeight( 70 )
+	handler.amk_treasures = xml:InitTab("tab_gameplay:radio_amk_treasure", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Реальные деньги с НПС
+	handler.real_money = xml:InitCheck("tab_gameplay:check_real_money", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Расширенные анимации
+	handler.animations = xml:InitCheck("tab_gameplay:check_animations", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Неатмосферные СМС
+	handler.new_sms = xml:InitCheck("tab_gameplay:check_sms", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Радио "Чернобыльский Апрель"
+	handler.new_radio = xml:InitCheck("tab_gameplay:check_new_radio", _st)
+	-- Если файлы не закинули - отключаем опцию
+	if getFS():exist("$game_sounds$", "radio\\music_1.ogg")==nil then
+		handler.new_radio:SetCheck(false)
+		handler.new_radio:Enable(false)
+	end
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Рандомная награда за ЦЗ
+	handler.rnd_reward = xml:InitCheck("tab_gameplay:check_rnd_reward", _st)
+	handler.rnd_reward:Enable( false )
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Облегчения
+	xml:InitLabel("tab_gameplay:cap_cheat", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Автообыск трупов
+	handler.autograb_body = xml:InitCheck("tab_gameplay:check_autograb", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Купить квестовый предмет
+	xml:InitStatic("tab_gameplay:cap_buy", _st)
+	xml:InitStatic("tab_gameplay:texture_buy", _st)
+	handler.buy = xml:InitEditBox("tab_gameplay:edit_buy", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Удалить глючные объекты
+	xml:InitStatic("tab_gameplay:cap_del", _st)
+	xml:InitStatic("tab_gameplay:texture_del", _st)
+	handler.del = xml:InitEditBox("tab_gameplay:edit_del", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Чит-меню
+	handler.n_spawner = xml:InitCheck("tab_gameplay:check_spawner", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Скриптовая консоль
+	handler.n_console = xml:InitCheck("tab_gameplay:check_console", _st)
 end
