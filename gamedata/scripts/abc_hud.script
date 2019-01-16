@@ -1,14 +1,12 @@
 --'*******************************************************************************
 --'   **   **   -- Dynamic HUD Gift from ATT, Arharа and Kolmogor --   **   **  
 --'*******************************************************************************
--- Назначается в опциях:
-local suithud_enable = game_options.DynHud > 0	-- худ костюма
-local blurs_enable = game_options.DynHud == 2	-- эффект запотевания
--- чтобы отключить эффект, поставьте вместо единицы ноль:
-local blood_enable = 1							-- эффект ранения
-local bleed_enable = 1							-- эффект плохого самочувствия
-local zoom_enable = 1							-- эффект прицеливания
-local otladka = 0								-- вывод в лог
+local suithud_enable = game_options.DynHud		-- худ костюма
+local blurs_enable = game_options.DynHudBlurs	-- эффект запотевания
+local zoom_enable = game_options.DynHudZoom		-- эффект прицеливания
+
+local blood_enable = game_options.DynHudBlood	-- эффект ранения
+local bleed_enable = game_options.DynHudBleed	-- эффект плохого самочувствия
 --------------------------------------------------------------------------------
 local suitHudName_wotType = {
 	["bandit_gaz_outfit_"]				= "hud_gaz",
@@ -194,7 +192,7 @@ local bloodtimeb = 0
 local isbleeding = nil
 local countblood = 0
 function blood(delta)
-	if blood_enable==0 or db.actor:alive()==false then return end
+	if not ( blood_enable and db.actor:alive() ) then return end
 	
 	bloodtime = bloodtime + delta
 	if bloodtime > 1500 then
@@ -229,7 +227,7 @@ end
 
 local isactcondset = false
 function bleedcondition()
-	if bleed_enable == 0 then return end
+	if not bleed_enable then return end
 	local actor = db.actor
 	if actor.health < 0.31 and isactcondset ~= true then
 		level.add_pp_effector ("alcohol.ppe", 2012, true)
@@ -346,7 +344,7 @@ local precf = 0
 local zbias = Frect():set(0,0,1027,768)
 local zenc
 function zoom_hud(delta)
-	if zoom_enable==0 then return end
+	if not zoom_enable then return end
 	local hud = get_hud():GetCustomStatic(mycurrent_suithud)
 	if hud then
 		local cf = precf
@@ -389,3 +387,11 @@ function zoom_hud(delta)
 	end
 end
 
+function on_save_options()
+	suithud_enable = game_options.DynHud
+	blurs_enable = game_options.DynHudBlurs
+	zoom_enable = game_options.DynHudZoom
+	blood_enable = game_options.DynHudBlood
+	bleed_enable = game_options.DynHudBleed
+	this.remove_dynhud()
+end

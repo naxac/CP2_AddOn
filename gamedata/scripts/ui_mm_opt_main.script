@@ -140,6 +140,7 @@ function options_dialog:InitCallBacks()
 	self:AddCallbackEx("btn_cancel_download",	ui_events.BUTTON_CLICKED,	self.OnBtn_CancelDownload)
 
 	self:AddCallbackEx("list_difficulty",		ui_events.BUTTON_CLICKED,	self.OnDifficultyChanged)
+	self:AddCallbackEx("amk_hud",				ui_events.BUTTON_CLICKED,	self.OnAMKHudChanged)
 end
 
 function options_dialog:OnBtnCheckUpdates()
@@ -280,8 +281,12 @@ function options_dialog:GameSetupMenuLoad()
 	self.horrortime:SetCheck(game_options.HorrorTime)
 	-- ¿Ã -ÓÔˆËË
 	self.amk_treasures:SetNewActiveTab(game_options.AmkTrs)
-	self.amk_hud:SetNewActiveTab(game_options.DynHud)
 	self.amk_music:SetCheck(game_options.DynMusic)
+
+	self.amk_hud:SetCheck(game_options.DynHud)
+	self:OnAMKHudChanged()
+	self.hud_blood:SetCheck(game_options.DynHudBlood)
+	self.hud_bleed:SetCheck(game_options.DynHudBleed)
 	
 	self.userName:SetText(user_name())
 	self.save_rename:SetCheck(game_options.SaveRen)
@@ -315,8 +320,13 @@ function options_dialog:GameSetupMenuSave()
 	game_options.HorrorTime = self.horrortime:GetCheck()
 	-- ¿Ã -ÓÔˆËË
 	game_options.AmkTrs = self.amk_treasures:GetActiveIndex()
-	game_options.DynHud = self.amk_hud:GetActiveIndex()
 	game_options.DynMusic = self.amk_music:GetCheck()
+
+	game_options.DynHud = self.amk_hud:GetCheck()
+	game_options.DynHudBlurs = self.hud_blurs:GetCheck()
+	game_options.DynHudZoom = self.hud_zoom:GetCheck()
+	game_options.DynHudBlood = self.hud_blood:GetCheck()
+	game_options.DynHudBleed = self.hud_bleed:GetCheck()
 	
 	user_name(self.userName:GetText())
 
@@ -338,7 +348,7 @@ function options_dialog:GameSetupMenuSave()
 	if db.actor and db.actor:alive() then
 		autozoom.change_opt()
 		biodetector.biodetectorReload()
-		abc_hud.remove_dynhud()
+		abc_hud.on_save_options()
 	end
 	
 	game_options.save_game_options()
@@ -356,4 +366,19 @@ function options_dialog:OnDifficultyChanged()
 		self.check_tips:Enable(true)
 		self.check_dist:Enable(true)
 	end
+end
+
+function options_dialog:OnAMKHudChanged()
+	if self.amk_hud:GetCheck() == false then
+		self.hud_blurs:SetCheck(false)
+		self.hud_blurs:Enable(false)
+		self.hud_zoom:SetCheck(false)
+		self.hud_zoom:Enable(false)
+	else
+		self.hud_blurs:Enable(true)
+		self.hud_blurs:SetCheck(game_options.DynHudBlurs)
+		self.hud_zoom:Enable(true)
+		self.hud_zoom:SetCheck(game_options.DynHudZoom)
+	end
+		
 end
