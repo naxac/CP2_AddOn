@@ -7146,6 +7146,7 @@ C++ class CUIStatic : CUIWindow {
     function SetWndSize(number, number);
     function SetTextAlign(number);
     function IsAutoDelete();
+	function SetVTextAlign(number)
 };
 
 C++ class CUITabButton : CUIButton {
