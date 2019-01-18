@@ -18,7 +18,7 @@ function opt_gameplay:InitControls(x, y, xml, handler)
 
 	local _st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)							-- Имя игрока
 	xml:InitStatic("tab_gameplay:cap_user_name", _st)
-	handler:InitEditBoxEx("userName", _st, 180, 4, 250)
+	handler:InitEditBoxEx("userName", _st, 180, 4, 250, "pda")
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Уровень сложности
 	xml:InitStatic("tab_gameplay:cap_difficulty", _st)
@@ -29,17 +29,10 @@ function opt_gameplay:InitControls(x, y, xml, handler)
 	handler.autochange_difficulty = xml:InitCheck("tab_gameplay:check_autochange_difficulty", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Распознавание НПС
-	handler.check_tips = xml:InitCheck("tab_gameplay:check_tips",			_st)
+	handler.check_tips = xml:InitCheck("tab_gameplay:check_tips", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Дистанция до цели
-	handler.check_dist = xml:InitCheck("tab_gameplay:check_dist", 			_st)
-
-	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Биорадар
-	xml:InitLabel("tab_gameplay:cap_bioradar", _st)
-
-	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)
-	_st:SetHeight( 90 )
-	handler.dynamic_bioradar = xml:InitTab("tab_gameplay:radio_bioradar", _st)
+	handler.check_dist = xml:InitCheck("tab_gameplay:check_dist", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Сохранение
 	xml:InitLabel("tab_gameplay:cap_save", _st)
@@ -68,33 +61,78 @@ function opt_gameplay:InitControls(x, y, xml, handler)
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Не все тайники закрываются на замок
 	handler.zamok_lock = xml:InitCheck("tab_gameplay:check_zamok_lock", _st)
 
-	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Настройки HUD
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Настройки HUD и эффектов
 	xml:InitLabel("tab_gameplay:cap_hud", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Показывать прицел
-	xml:InitCheck("tab_gameplay:check_crosshair",		_st)
+	xml:InitCheck("tab_gameplay:check_crosshair", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Динамический прицел
-	xml:InitCheck("tab_gameplay:check_dyn_crosshair", 	_st)
+	xml:InitCheck("tab_gameplay:check_dyn_crosshair", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Показывать оружие
-	xml:InitCheck("tab_gameplay:check_show_weapon", 	_st)
+	xml:InitCheck("tab_gameplay:check_show_weapon", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Эффект ранения
-	handler.hud_blood = xml:InitCheck("tab_gameplay:check_hud_blood", 	_st)
+	handler.hud_blood = xml:InitCheck("tab_gameplay:check_hud_blood", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Эффект плохого самочувствия
-	handler.hud_bleed = xml:InitCheck("tab_gameplay:check_hud_bleed", 	_st)
+	handler.hud_bleed = xml:InitCheck("tab_gameplay:check_hud_bleed", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Эффект критического ранения
+	handler.gg_kick = xml:InitCheck("tab_gameplay:check_gg_kick", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Динамический худ
 	handler.amk_hud = xml:InitCheck("tab_gameplay:check_amk_hud", _st)
 	handler:Register(handler.amk_hud, "amk_hud")
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Эффект запотевания
-	handler.hud_blurs = xml:InitCheck("tab_gameplay:check_hud_blurs", 	_st)
+	handler.hud_blurs = xml:InitCheck("tab_gameplay:check_hud_blurs", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Эффект прицеливания
-	handler.hud_zoom = xml:InitCheck("tab_gameplay:check_hud_zoom", 	_st)
+	handler.hud_zoom = xml:InitCheck("tab_gameplay:check_hud_zoom", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Биорадар
+	xml:InitLabel("tab_gameplay:cap_bioradar", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)
+	_st:SetHeight( 90 )
+	handler.dynamic_bioradar = xml:InitTab("tab_gameplay:radio_bioradar", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Выброс
+	xml:InitLabel("tab_gameplay:cap_blowout", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Включение/отключение выброса в игре
+	handler.blow_enable = xml:InitCheck("tab_gameplay:check_blowout", _st)
+	handler:Register(handler.blow_enable, "blow_enable")
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Превращение мёртвых сталкеров в зомби после выброса
+	handler.zombie_team = xml:InitCheck("tab_gameplay:check_zombie_team", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Базовое время до следуещего выброса в игровых минутах
+	xml:InitStatic("tab_gameplay:cap_blow_time", _st)
+	handler.blow_time_basis = ui_spin_new.CUISpinNew( _st, 380, 5, 45, { step=30, min=60 } )
+--	handler.blow_time_basis = xml:InitSpinNum("tab_gameplay:spin_blow_time", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Рандом времени между выбросами (игровые минуты)
+	xml:InitStatic("tab_gameplay:cap_blow_time_shift", _st)
+	handler.blow_time_shift = ui_spin_new.CUISpinNew( _st, 380, 5, 45, { step=30, min=30 } )
+--	handler.blow_time_shift = xml:InitSpinNum("tab_gameplay:spin_blow_time_shift", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Базовое время фазы выброса (игровые минуты)
+	xml:InitStatic("tab_gameplay:cap_blow_phase", _st)
+	handler.blow_phase = ui_spin_new.CUISpinNew( _st, 380, 5, 45, { min=5, max=15 } )
+--	handler.blow_phase = xml:InitSpinNum("tab_gameplay:spin_blow_phase", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Рандом времени фазы выброса (игровые минуты)
+	xml:InitStatic("tab_gameplay:cap_blow_phase_shift", _st)
+	handler.blow_phase_shift = ui_spin_new.CUISpinNew( _st, 380, 5, 45, { min=0, max=5 } )
+--	handler.blow_phase_shift = xml:InitSpinNum("tab_gameplay:spin_blow_phase_shift", _st)
+
+	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Максимальное время фазы выброса (игровые минуты)
+	xml:InitStatic("tab_gameplay:cap_blow_phase_max", _st)
+	handler.blow_phase_max = ui_spin_new.CUISpinNew( _st, 380, 5, 45, { min=5, max=15 } )
+--	handler.blow_phase_max = xml:InitSpinNum("tab_gameplay:spin_blow_phase_max", _st)
 
 	_st = xml:InitStatic("tab_gameplay:templ_item", self.scroll_v)									-- Прочее
 	xml:InitLabel("tab_gameplay:cap_other", _st)

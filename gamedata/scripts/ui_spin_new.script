@@ -1,0 +1,139 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+class "CUISpinNew" ( CUIScriptWnd )
+
+function CUISpinNew:__init( handler, x, y, width, p )
+	super()
+
+	self.value = 0
+	self.max_value = p.max or math.huge
+	self.min_value = p.min or -math.huge
+
+	self.step = p.step or 1
+
+	width = math.max( width, 45 )
+	self:Init( x, y, width, 21 )
+	self:SetAutoDelete( true )
+
+	self.frame = CUIFrameLineWnd()
+	self.frame:Init( "ui_spiner", x, y, width, 21, true )
+	self.frame:SetAutoDelete( true )
+	handler:AttachChild( self.frame )
+
+	self.btn_up = CUI3tButton()
+	self.btn_up:Init( "ui_spiner_button_t", width-12, -1, 11, 11 )
+	self.btn_up:SetAutoDelete( true )
+	self.frame:AttachChild( self.btn_up )
+	self:Register( self.btn_up, "btn_up" )
+	self:AddCallbackEx( "btn_up", ui_events.BUTTON_CLICKED, self.ChangeValue, 1 )
+--	self:AddCallbackEx( "btn_up", ui_events.BUTTON_DOWN, self.ChangeValue, 1 )
+
+	self.btn_down = CUI3tButton()
+	self.btn_down:Init( "ui_spiner_button_b", width-12, 10, 11, 11 )
+	self.btn_down:SetAutoDelete( true )
+	self.frame:AttachChild( self.btn_down )
+	self:Register( self.btn_down, "btn_down" )
+	self:AddCallbackEx( "btn_down", ui_events.BUTTON_CLICKED, self.ChangeValue, -1 )
+--	self:AddCallbackEx( "btn_down", ui_events.BUTTON_DOWN, self.ChangeValue, -1 )
+
+	self.edit = CUIStatic()
+	self.edit:Init( 0, 0, width-14, 21 )
+	self.edit:SetAutoDelete( true )
+	self.edit:SetText( tostring( self.value ) )
+	self.edit:SetTextAlign( CGameFont.alRight )
+	self.edit:SetVTextAlign( CGameFont.alVCenter )
+	self.frame:AttachChild( self.edit )
+end
+
+function CUISpinNew:__finalize()
+end
+
+function CUISpinNew:SetValue( n )
+	self.value = n
+	self.edit:SetText( tostring( self.value ) )
+end
+
+function CUISpinNew:GetValue()
+	return self.value
+end
+
+function CUISpinNew:SetTextColor( a, r, g, b )
+	self.edit:SetTextColor( a, r, g, b )
+end
+
+function CUISpinNew:Enable( b )
+	self.btn_up:Enable( b )
+	self.btn_down:Enable( b )
+end
+
+function CUISpinNew:ChangeValue( n )
+	self.value = self.value + n*self.step
+	if n < 0 then
+		if self.value <= self.min_value then
+			self.btn_down:Enable( false )
+			self.value = self.min_value
+		elseif not self.btn_up:IsEnabled() then
+			self.btn_up:Enable( true )
+		end
+	elseif n > 0 then
+		if self.value >= self.max_value then
+			self.btn_up:Enable( false )
+			self.value = self.max_value
+		elseif not self.btn_down:IsEnabled() then
+			self.btn_down:Enable( true )
+		end
+	end
+	
+	self.edit:SetText( tostring( self.value ) )
+--	self.change = n
+end
+--[[
+-- don't work
+function CUISpinNew:Update()
+	CUIScriptWnd.Update( self )
+
+	if not self.change then return end
+
+	if self.timer == nil then
+		self.timer = profile_timer()
+		self.timer:start()
+		self.last_time = 0
+		self.upd_time = 700000
+		self.upd_cnt = 0
+	else
+		self.timer:stop()
+		local tm = self.timer:time()
+		if tm - self.last_time > self.upd_time then
+			self.last_time = tm
+			self.upd_cnt = self.upd_cnt + 1
+			if self.upd_cnt == 3 then
+				self.upd_time = 400000
+			elseif self.upd_cnt == 5 then
+				self.upd_time = 200000
+			elseif self.upd_cnt == 10 then
+				self.upd_time = 100000
+				self.change = self.change * 5
+			elseif self.upd_cnt == 20 then
+				self.upd_time = 10000
+			end
+			self:ChangeValue( self.change )
+		end
+		self.timer:start()
+	end
+end
+
+function CUISpinNew:OnKeyboard( dik, keyboard_action )
+	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
+
+	if keyboard_action == ui_events.WINDOW_KEY_RELEASED
+		and dik == DIK_keys.DIK_LMOUSE
+		and self.change ~= nil
+	then
+		self.change = nil
+		self.timer:stop()
+		self.timer = nil
+	end
+
+	returntrue
+end
+]]
