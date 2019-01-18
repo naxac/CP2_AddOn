@@ -254,6 +254,8 @@ function actor_binder:take_item_from_box(box, item)
 	
 	-- подъем рюкзаков
 	if box:is_inv_box_empty() then
+		treasure_manager.take_item_from_box(box, box:story_id())
+
 		s = box:section()
 		if transparent_treasure.IsTaken(s) and s ~= "m_inventory_box" then 
 			level.start_stop_menu(level.main_input_receiver(), true)
@@ -269,13 +271,6 @@ function actor_binder:take_item_from_box(box, item)
 	  
 		archievements.acv_count_event("acv_sled", 300, "Следопыт")
 	end
-
-	s = box:story_id()
-	if s == nil then
-		return
-	end
-
-	treasure_manager.take_item_from_box(box, s)
 
 	--AMK UTILS--
 	amk.on_item_take_from_box(box,item)
@@ -449,6 +444,9 @@ function actor_binder:update(delta)
 			abort("Этим сохранением пользоваться нельзя. Удалите его.")
 		end
 		amk.save_variable("no_save", true)
+		if not game_options.LoadPause then
+			autopause.start_timer_no_save()
+		end
 		
 		self.bCheckStart = nil
 		db.first_update = true
