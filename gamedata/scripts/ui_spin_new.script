@@ -2,39 +2,38 @@
 
 class "CUISpinNew" ( CUIScriptWnd )
 
-function CUISpinNew:__init( handler, x, y, width, p )
+function CUISpinNew:__init( st, x, y, width, p )
 	super()
 
 	self.value = 0
 	self.max_value = p.max or math.huge
 	self.min_value = p.min or -math.huge
 
-	self.step = p.step or 1
-
 	width = math.max( width, 45 )
 	self:Init( x, y, width, 21 )
 	self:SetAutoDelete( true )
+	st:AttachChild( self )
 
 	self.frame = CUIFrameLineWnd()
-	self.frame:Init( "ui_spiner", x, y, width, 21, true )
+	self.frame:Init( "ui_spiner", 0, 0, width, 21, true )
 	self.frame:SetAutoDelete( true )
-	handler:AttachChild( self.frame )
+	self:AttachChild( self.frame )
 
 	self.btn_up = CUI3tButton()
 	self.btn_up:Init( "ui_spiner_button_t", width-12, -1, 11, 11 )
 	self.btn_up:SetAutoDelete( true )
 	self.frame:AttachChild( self.btn_up )
 	self:Register( self.btn_up, "btn_up" )
-	self:AddCallbackEx( "btn_up", ui_events.BUTTON_CLICKED, self.ChangeValue, 1 )
---	self:AddCallbackEx( "btn_up", ui_events.BUTTON_DOWN, self.ChangeValue, 1 )
+	self:AddCallbackEx( "btn_up", ui_events.BUTTON_CLICKED, self.StopUpdate )
+	self:AddCallbackEx( "btn_up", ui_events.BUTTON_DOWN, self.ChangeValue, 1 )
 
 	self.btn_down = CUI3tButton()
 	self.btn_down:Init( "ui_spiner_button_b", width-12, 10, 11, 11 )
 	self.btn_down:SetAutoDelete( true )
 	self.frame:AttachChild( self.btn_down )
 	self:Register( self.btn_down, "btn_down" )
-	self:AddCallbackEx( "btn_down", ui_events.BUTTON_CLICKED, self.ChangeValue, -1 )
---	self:AddCallbackEx( "btn_down", ui_events.BUTTON_DOWN, self.ChangeValue, -1 )
+	self:AddCallbackEx( "btn_down", ui_events.BUTTON_CLICKED, self.StopUpdate )
+	self:AddCallbackEx( "btn_down", ui_events.BUTTON_DOWN, self.ChangeValue, -1 )
 
 	self.edit = CUIStatic()
 	self.edit:Init( 0, 0, width-14, 21 )
@@ -43,6 +42,8 @@ function CUISpinNew:__init( handler, x, y, width, p )
 	self.edit:SetTextAlign( CGameFont.alRight )
 	self.edit:SetVTextAlign( CGameFont.alVCenter )
 	self.frame:AttachChild( self.edit )
+
+	self:Show( true )
 end
 
 function CUISpinNew:__finalize()
@@ -67,11 +68,14 @@ function CUISpinNew:Enable( b )
 end
 
 function CUISpinNew:ChangeValue( n )
-	self.value = self.value + n*self.step
+	self.value = self.value + n
+	self.change = n
+
 	if n < 0 then
 		if self.value <= self.min_value then
 			self.btn_down:Enable( false )
 			self.value = self.min_value
+			self:StopUpdate()
 		elseif not self.btn_up:IsEnabled() then
 			self.btn_up:Enable( true )
 		end
@@ -79,15 +83,15 @@ function CUISpinNew:ChangeValue( n )
 		if self.value >= self.max_value then
 			self.btn_up:Enable( false )
 			self.value = self.max_value
+			self:StopUpdate()
 		elseif not self.btn_down:IsEnabled() then
 			self.btn_down:Enable( true )
 		end
 	end
-	
+
 	self.edit:SetText( tostring( self.value ) )
---	self.change = n
 end
---[[
+
 -- don't work
 function CUISpinNew:Update()
 	CUIScriptWnd.Update( self )
@@ -118,22 +122,17 @@ function CUISpinNew:Update()
 			end
 			self:ChangeValue( self.change )
 		end
-		self.timer:start()
+		if self.timer then
+			self.timer:start()
+		end
 	end
 end
 
-function CUISpinNew:OnKeyboard( dik, keyboard_action )
-	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
-
-	if keyboard_action == ui_events.WINDOW_KEY_RELEASED
-		and dik == DIK_keys.DIK_LMOUSE
-		and self.change ~= nil
-	then
-		self.change = nil
+function CUISpinNew:StopUpdate()
+	self.change = nil
+	if self.timer then
 		self.timer:stop()
 		self.timer = nil
 	end
-
-	return true
 end
-]]
+
