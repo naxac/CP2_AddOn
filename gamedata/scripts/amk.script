@@ -615,6 +615,7 @@ function on_item_drop(obj)
 end
 
 local prev_health=0
+local gg_kick = game_options.GGKick
 
 --колбэк на апдейт ГГ (удобно для проверки условий, так как вызывается постоянно, нельзя перегружать, а то будут лаги)
 function on_actor_update(delta)
@@ -669,8 +670,8 @@ function on_actor_update(delta)
 					cameffs ={"shell_shock","hit_front","hit_right","hit_back","hit_left","hit_front_left","hit_back_left","hit_front_right","hit_back_right"}
 					sounds = {"pain_2","pain_3","pain_5","pain_6","pain_7","pain_8"}
 				end
-				level.add_cam_effector("camera_effects\\"..cameffs[math_random(#cameffs)]..".anm", 999, false, "")
-				local snd_obj = xr_sound.get_safe_sound_object("actor\\"..sounds[math_random(#sounds)])
+				level.add_cam_effector( "camera_effects\\"..table.random(cameffs)..".anm", 999, false, "" )
+				local snd_obj = xr_sound.get_safe_sound_object( "actor\\"..table.random(sounds) )
 				snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)
 				if math_random()<(prev_health-h)/2.5 then
 					local active_item = actor:active_item()
@@ -843,8 +844,6 @@ function on_game_load()
 	amk_mod.check_spawn()
 	amk_mod.first_run()
 
---	user area 
-	if sys_ini:r_float("gg_kick","enabled")>0.0 then gg_kick=true else gg_kick=false end
 	amk_mod.test_sleep_pp( amk.load_variable("gg_need_sleep", 0) )
 
 	if has_alife_info("val_actor_has_borov_key") and not has_alife_info("val_borov_dead") then

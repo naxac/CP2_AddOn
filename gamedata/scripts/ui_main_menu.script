@@ -60,26 +60,6 @@ function main_menu:Show(f)
 	self.shniaga:SetVisibleMagnifier(f)
 end
 
-function main_menu:Update()
-	CUIScriptWnd.Update( self )
-
-	if self.load_last_save then
-		if self.timer == nil then
-			self.timer = profile_timer()
-			self.timer:start()
-		else
-			self.timer:stop()
-			if self.timer:time() >= 10000 then
-				self.timer = nil
-				self.load_last_save = nil
-				get_console():execute ("load_last_save")
-			else
-				self.timer:start()
-			end
-		end
-	end
-end
-
 function main_menu:InitCallBacks()
 	-- new game
 	self:AddCallbackEx("btn_novice",		ui_events.BUTTON_CLICKED,				self.OnButton_new_novice_game)
@@ -191,7 +171,6 @@ end
 
 function main_menu:OnButton_return_game()
 	ui_mm_opt_add.check_options()
-	local console = get_console()
 	self:ReturnToGame()
 	archievements.mm_opt()
 	ui_mm_opt_add.buy_quest_item()
@@ -266,7 +245,6 @@ function main_menu:OnButton_options_clicked()
 	self:GetHolder():start_stop_menu(self.opt_dlg, true)
 	self:GetHolder():start_stop_menu(self, true) --new
 	self:Show(false)
-	amk_mod.hud_update=true
 end
 
 function main_menu:OnButton_load_clicked()
@@ -297,8 +275,14 @@ end
 
 function main_menu:ReturnToGame()
 	self:unregister_self()
-	if self.opt_dlg then self.opt_dlg:unregister_self() end
-	if self.cheat_dlg then self.cheat_dlg:unregister_self() end
+	if self.opt_dlg then
+		self.opt_dlg:unregister_self()
+		self.opt_dlg = nil
+	end
+	if self.cheat_dlg then
+		self.cheat_dlg:unregister_self()
+		self.cheat_dlg = nil
+	end
 	get_console():execute("main_menu off")
 end
 

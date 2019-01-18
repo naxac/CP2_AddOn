@@ -2089,7 +2089,7 @@ end
 function blowout_scary_sounds()
 	local blow=amk.load_variable("blowout",-1)
 	if blow>0 and blow<4 then
-		local snd_obj = xr_sound.get_safe_sound_object(amk_hideouts.blowout_sounds[math_random(#amk_hideouts.blowout_sounds)])
+		local snd_obj = xr_sound.get_safe_sound_object( table.random(amk_hideouts.blowout_sounds) )
 		local a=vector()
 		a.x=math_random(0,10)
 		a.y=math_random(0,10)
@@ -2129,7 +2129,7 @@ function blowout_psy_sound(action)
 end
 
 function Run_Blowout_pp()
-if blowout_options.run_blowout_pp == 1 then
+	if game_options.RunBlowoutPP then
 		local bt=blowout_type()
 		if bt==2 then start_blow_timer() return end
 		sleep_manager.stopper()
@@ -2150,8 +2150,8 @@ if blowout_options.run_blowout_pp == 1 then
 end
 
 function start_blow_timer()
-local basis = blowout_options.blow_time_basis
-local shift = blowout_options.blow_time_shift
+local basis = game_options.BlowTimeBasis
+local shift = game_options.BlowTimeShift
 --local resuls = basis + (math_random()*shift) - (shift/2)
 local resuls = basis+math_random(-shift, shift)
 amk.g_start_timer("blow_shift", 0, 0, resuls)
@@ -2173,11 +2173,11 @@ function Blowout_pp(phase)
 ---------------------------------------------------
 
 	amk.mylog("blowout "..phase)
-local basis = blowout_options.blow_phase_basis
-local shift = blowout_options.blow_phase_shift
-local max = blowout_options.blow_phase_max
+local basis = game_options.BlowPhaseBasis
+local shift = game_options.BlowPhaseShift
+local max = game_options.BlowPhaseMax
 local resuls = basis + (math_random()*shift) - (shift/2)
-if resuls < 1 then resuls = 1 elseif resuls > max then resuls = max end
+resuls = math.clamp( resuls, 1, max )
 local blow = amk.load_variable("blowout", 0)
 local bt=blowout_type()
 if blow > 0 and blow < 4 and bt == 2 then amk.g_start_timer("blowout", 0, 0, 3, 4) end
@@ -2239,7 +2239,7 @@ amk.g_start_timer("blowout", 0, 0, resuls, 4)
 		end
 		amk.del_variable("blowout")
 		xr_s.unsubscribe("update", amk_mod.on_blowout_hit_actor)
-        if blowout_options.zombie_team == 1 then
+        if game_options.ZombieTeam then
             tag_spb.zombie_team()
         end 
 		if db.actor.blowout_outside then
