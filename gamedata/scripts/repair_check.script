@@ -45,8 +45,7 @@ function repair_repkit(repkit, item)
 			return
 		end
 	elseif repkit_sect == "repair_item_weapon" then
-		local slot = item:get_slot()
-		if slot > 2 then return end		-- 0, 1, 2
+		if item:get_slot() > 2 then return end		-- 0, 1, 2
 		if item:section() == "wpn_kolbasa" then
 			ui_inv_add.show_inv_msg("Это же колбаса - её нельзя починить :)")
 			return
@@ -91,33 +90,33 @@ end
 function is_item(slt)
 	return db.actor:item_in_slot(slt)
 end
-function is_item1()	return is_item(1) end
-function is_item2()	return is_item(2) end
-function is_item6()	return is_item(6) end
+function is_item1()	return is_item( inventory_slots.PISTOL ) end
+function is_item2()	return is_item( inventory_slots.RIFLE ) end
+function is_item6()	return is_item( inventory_slots.OUTFIT ) end
 
 -- слишком убитый предмет?
 function too_bad_item(slt)
 	return db.actor:item_in_slot(slt):condition() < min_cond_item
 end
-function too_bad_item1() return too_bad_item(1) end
-function too_bad_item2() return too_bad_item(2) end
-function too_bad_item6() return too_bad_item(6) end
+function too_bad_item1() return too_bad_item( inventory_slots.PISTOL ) end
+function too_bad_item2() return too_bad_item( inventory_slots.RIFLE ) end
+function too_bad_item6() return too_bad_item( inventory_slots.OUTFIT ) end
 
 -- полностью исправный предмет?
 function ok(slt)
 	return db.actor:item_in_slot(slt):condition() > cond_ok
 end
-function ok1() return ok(1) end
-function ok2() return ok(2) end
-function ok6() return ok(6) end
+function ok1() return ok( inventory_slots.PISTOL ) end
+function ok2() return ok( inventory_slots.RIFLE ) end
+function ok6() return ok( inventory_slots.OUTFIT ) end
 
 -- нужен ли ремонт?
 function need(slt)
 	return not too_bad_item(slt) and not ok(slt)
 end
-function need1() return need(1) end
-function need2() return need(2) end
-function need6() return need(6) end
+function need1() return need( inventory_slots.PISTOL ) end
+function need2() return need( inventory_slots.RIFLE ) end
+function need6() return need( inventory_slots.OUTFIT ) end
 
 -- что нужно для ремонта?
 function talk_parts(slt)
@@ -146,9 +145,9 @@ function talk_parts(slt)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	db.actor:give_talk_message(text, task_texture, task_rect, "simple_answer_item")
 end
-function talk_parts1() return talk_parts(1) end
-function talk_parts2() return talk_parts(2) end
-function talk_parts6() return talk_parts(6) end
+function talk_parts1() return talk_parts( inventory_slots.PISTOL ) end
+function talk_parts2() return talk_parts( inventory_slots.RIFLE ) end
+function talk_parts6() return talk_parts( inventory_slots.OUTFIT ) end
 
 -- список предметов для ремонта
 function parts_list()
@@ -179,8 +178,8 @@ end
 
 -- все ли есть для ремонта?
 function kalibr_count(actor, itm)
-	if  (not db.actor:item_in_slot(1) or itm:id() ~= db.actor:item_in_slot(1):id()) and 
-		(not db.actor:item_in_slot(2) or itm:id() ~= db.actor:item_in_slot(2):id()) and
+	if  (not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
+		(not db.actor:item_in_slot( inventory_slots.RIFLE ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.RIFLE ):id()) and
 		itm:condition() and itm:condition() > min_cond_parts and
 		kalibr_ok(itm)
 	then
@@ -218,8 +217,8 @@ function not_have_all() return not have_all() end
 -- Ремонт предмета ремонтником. Все данные к этому моменту уже проверены и заполнены
 function kalibr_remove(actor, itm)
 	if have < count and
-		(not db.actor:item_in_slot(1) or itm:id() ~= db.actor:item_in_slot(1):id()) and 
-		(not db.actor:item_in_slot(2) or itm:id() ~= db.actor:item_in_slot(2):id()) and
+		(not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
+		(not db.actor:item_in_slot( inventory_slots.RIFLE ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.RIFLE ):id()) and
 		itm:condition() and itm:condition() > min_cond_parts and
 		kalibr_ok(itm)
 	then
@@ -395,8 +394,8 @@ function trader_upgrade_precond(actor, trader)
 		return false 
 	end
 
-	local item_in_slot_1 = db.actor:item_in_slot(1)
-	local item_in_slot_2 = db.actor:item_in_slot(2)
+	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
 	if (item_in_slot_1 ~= nil) then 
 		return true
 	elseif (item_in_slot_2 ~= nil) then 
@@ -476,7 +475,7 @@ function is_upgrade_ves(wpn)
 end
 
 function is_upgrade_1st_stvol_kalibr(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot(1)
+	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_flag =  is_upgrade_kalibr(item_in_slot_1:section())
@@ -490,7 +489,7 @@ function is_upgrade_1st_stvol_kalibr(actor, trader)
 end
 
 function is_upgrade_1st_stvol_otdaca(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot(1)
+	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_flag =  is_upgrade_otdaca(item_in_slot_1:section())
@@ -504,7 +503,7 @@ function is_upgrade_1st_stvol_otdaca(actor, trader)
 end
 
 function is_upgrade_1st_stvol_ves(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot(1)
+	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_1 =  is_upgrade_ves(item_in_slot_1:section())
@@ -529,7 +528,7 @@ end
 
 
 function is_upgrade_2st_stvol_kalibr(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot(2)
+	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_kalibr(item_in_slot_2:section())
@@ -543,7 +542,7 @@ function is_upgrade_2st_stvol_kalibr(actor, trader)
 end
 
 function is_upgrade_2st_stvol_otdaca(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot(2)
+	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_otdaca(item_in_slot_2:section())
@@ -556,7 +555,7 @@ function is_upgrade_2st_stvol_otdaca(actor, trader)
 	return false
 end
 function is_upgrade_2st_stvol_ves(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot(2)
+	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_ves(item_in_slot_2:section())
@@ -588,8 +587,8 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 	local str_text_2 = nil
 
 	if db.actor ~= nil then 
-		local item_in_slot_1 = db.actor:item_in_slot(1)
-		local item_in_slot_2 = db.actor:item_in_slot(2)
+		local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+		local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
 		local money = db.actor:money()
 
 		if item_in_slot_1 ~= nil then
@@ -698,7 +697,7 @@ end
 -- а есть ли бабло на апгрейд
 
 function trader_check_money_upgr_s1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
 
 	if (item_in_slot ~= nil) then 
 		local item_upgr_cost1 = math.floor(item_in_slot:cost())
@@ -711,7 +710,7 @@ function trader_check_money_upgr_s1(actor, trader)
 end
 
 function trader_check_money_upgr_s2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
 
 	if (item_in_slot ~= nil) then 
 		local item_upgr_cost2 = math.floor(item_in_slot:cost())
@@ -727,7 +726,7 @@ end
 -- забираем бабло, стартуем таймер апгрейда
 
 function trader_upgrade_weapon_s1_kalibr(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -738,7 +737,7 @@ function trader_upgrade_weapon_s1_kalibr(actor, trader)
 
 		if wep_1 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(1)
+			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_1))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -746,7 +745,7 @@ function trader_upgrade_weapon_s1_kalibr(actor, trader)
 end
 
 function trader_upgrade_weapon_s1_otdaca(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -757,7 +756,7 @@ function trader_upgrade_weapon_s1_otdaca(actor, trader)
 
 		if wep_2 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(1)
+			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_2))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -765,7 +764,7 @@ function trader_upgrade_weapon_s1_otdaca(actor, trader)
 end
 
 function trader_upgrade_weapon_s1_ves(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -776,7 +775,7 @@ function trader_upgrade_weapon_s1_ves(actor, trader)
 
 		if wep_3 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(1)
+			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_3))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -786,7 +785,7 @@ end
 
 
 function trader_upgrade_weapon_s2_kalibr(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -797,7 +796,7 @@ function trader_upgrade_weapon_s2_kalibr(actor, trader)
 
 		if wep_1 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(2)
+			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_1))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -805,7 +804,7 @@ function trader_upgrade_weapon_s2_kalibr(actor, trader)
 end
 
 function trader_upgrade_weapon_s2_otdaca(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -816,7 +815,7 @@ function trader_upgrade_weapon_s2_otdaca(actor, trader)
 
 		if wep_2 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(2)
+			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_2))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -824,7 +823,7 @@ function trader_upgrade_weapon_s2_otdaca(actor, trader)
 end
 
 function trader_upgrade_weapon_s2_ves(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -835,7 +834,7 @@ function trader_upgrade_weapon_s2_ves(actor, trader)
 
 		if wep_3 ~= nil then
 			dialogs.relocate_money(trader, item_repair_cost, "out")
-			remove_repairitem_to_upgrade(2)
+			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_3))
 			amk.g_start_timer(var,0,tt,0)
 		end
@@ -876,9 +875,9 @@ function trader_repair_precond(actor, trader)
 --	get_console():execute(rem_name)
 	get_vars(var)
 	if stcode>=1 and wpnsec~=nil then return false end
-	local item_in_slot_1 = db.actor:item_in_slot(1)
-	local item_in_slot_2 = db.actor:item_in_slot(2)
-	local item_in_slot_6 = db.actor:item_in_slot(6)
+	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_6 = db.actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot_1 ~= nil and 0.96 > item_in_slot_1:condition() + 0.01 then return true
 	elseif item_in_slot_2 ~= nil and 0.96 > item_in_slot_2:condition() + 0.01 then return true
 	elseif item_in_slot_6 ~= nil and 0.96 > item_in_slot_6:condition() + 0.01 then return true
@@ -890,7 +889,7 @@ end
 
 function trader_check_money_s1(actor, trader)
 	rem_ubit_stvol_1  = 0
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
 
 	local is_upgr = 0
 	if (item_in_slot ~= nil) then 
@@ -928,7 +927,7 @@ end
 function trader_check_money_s2(actor, trader)
 	rem_ubit_stvol_2  = 0
 	
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
 
 	local is_upgr = 0
 	if (item_in_slot ~= nil) then 
@@ -964,7 +963,7 @@ function trader_check_money_s2(actor, trader)
 end
 
 function trader_check_money_s6(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(6)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then 
 		armor_profit_margin = repairmasterlist[trader:name()][3]
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
@@ -978,7 +977,7 @@ end
 -- забираем бабло, стартуем таймер ремонта. время ремонтов правим под себя
 
 function trader_repiar_weapon_s1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local wpn = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1016,7 +1015,7 @@ function trader_repiar_weapon_s1(actor, trader)
 			rem_ubit_stvol_1  = 1
 		end
 		is_perv = 1
-		remove_repairitem(1)
+		remove_repairitem( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..wpn))
 		-- amk.g_start_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
 		amk.g_start_timer(var,0,tt,0)
@@ -1024,7 +1023,7 @@ function trader_repiar_weapon_s1(actor, trader)
 end
 
 function trader_repiar_weapon_s2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local wpn = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1062,7 +1061,7 @@ function trader_repiar_weapon_s2(actor, trader)
 			rem_ubit_stvol_2  = 1
 		end
 		is_vtor = 1
-		remove_repairitem(2)
+		remove_repairitem( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..wpn))
 		-- amk.g_start_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
 		amk.g_start_timer(var,0,tt,0)
@@ -1070,7 +1069,7 @@ function trader_repiar_weapon_s2(actor, trader)
 end
 
 function trader_repiar_armor_s6(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(6)
+	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then
 		local arm = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1086,7 +1085,7 @@ function trader_repiar_armor_s6(actor, trader)
 		elseif item_repair_cost >  80000 then tt = 24.0
 		end
 
-		remove_repair_bronik_item(6)
+		remove_repair_bronik_item( inventory_slots.OUTFIT )
 
 		amk.save_variable(var,("1"..arm))
 		amk.g_start_timer(var,0,tt,0)
@@ -1623,9 +1622,9 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 	local item_name_and_price1
 	local item_name_and_price2
 	if db.actor ~= nil then 
-		local item_in_slot_1 = db.actor:item_in_slot(1)
-		local item_in_slot_2 = db.actor:item_in_slot(2)
-		local item_in_slot_6 = db.actor:item_in_slot(6)
+		local item_in_slot_1 = db.actor:item_in_slot(inventory_slots.PISTOL)
+		local item_in_slot_2 = db.actor:item_in_slot(inventory_slots.RIFLE)
+		local item_in_slot_6 = db.actor:item_in_slot(inventory_slots.OUTFIT)
 		local iznos
 		local is_upgr = 0
 		local money = db.actor:money()
@@ -1755,7 +1754,7 @@ end
 -- проверяем, не забиты ли стволы в хлам
 
 function check_damaged1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
 	if item_in_slot ~= nil then
 		if (rem_name ~= "hnd_weap_04") and (0.11 > item_in_slot:condition() + 0.01) then return true end
 	end
@@ -1763,7 +1762,7 @@ function check_damaged1(actor, trader)
 end
 
 function check_damaged2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
 	if item_in_slot ~= nil then
 		if (rem_name ~= "hnd_weap_04") and (0.11 > item_in_slot:condition() + 0.01) then return true end
 	end
@@ -1773,7 +1772,7 @@ end
 -- чинить хлам безполезно, дам тебе за него пирожок и иди с ТНБ
 
 function pay_damaged1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(1)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
 	if item_in_slot ~= nil then
 		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
 		news_manager.relocate_item(db.actor, "out", item_in_slot:section())
@@ -1784,7 +1783,7 @@ function pay_damaged1(actor, trader)
 end
 
 function pay_damaged2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(2)
+	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
 	if item_in_slot ~= nil then
 		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
 		news_manager.relocate_item(db.actor, "out", item_in_slot:section())

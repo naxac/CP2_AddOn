@@ -226,7 +226,7 @@ function restore_sun()
 
 --[[ Tид ++ после смерти в его собственной броне
 	local npc_SP = db.actor
-	local outfit = npc_SP:item_in_slot(6)
+	local outfit = npc_SP:item_in_slot( inventory_slots.OUTFIT )
 	if outfit ~= nil then
 		local outfit_name = outfit:section()
 		local outfit_cond = outfit:condition()
@@ -2342,7 +2342,7 @@ function outfit_hideout()
 		["voshod_outfit"] = true,
 		["exo_knight_outfit"] = true
 	}
-	return db.actor:item_in_slot(6) and outfits[db.actor:item_in_slot(6):section()]
+	return db.actor:item_in_slot( inventory_slots.OUTFIT ) and outfits[db.actor:item_in_slot( inventory_slots.OUTFIT ):section()]
 end
 
 function check_npc_in_hideout(npc,hide)
@@ -2813,7 +2813,7 @@ end
 --'*******************************************************************************
 
 function repair_armor(val)
-	local armor = db.actor:item_in_slot(6)
+	local armor = db.actor:item_in_slot( inventory_slots.OUTFIT )
 	if armor then
 		armor:set_condition(val)
 		amk_utils.inventory_force_update(armor:section())
@@ -2831,8 +2831,9 @@ local exo_wpns = {
 function check_armor(section)
 	if string_find(section, "exo")==nil then
 		local wpn
-		for i = 1, 2 do
-			wpn = db.actor:item_in_slot(i)
+		local chck_slots = { inventory_slots.PISTOL, inventory_slots.RIFLE }
+		for i, v in ipairs( chck_slots  do
+			wpn = db.actor:item_in_slot(v)
 			if wpn and exo_wpns[wpn:section()] then
 				db.actor:move_to_ruck(wpn)
 				news_manager.send_tip(db.actor, "wpn-m_134-no_exo_message", nil, "nano", 5000)

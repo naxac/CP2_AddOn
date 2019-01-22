@@ -239,9 +239,9 @@ function action_kill_wounded:execute()
 			local actit = npc:active_item()
 			wpn = rx_utils.item_is_fa(actit) and actit or npc:best_weapon()
 		elseif self.type == 2 then
-			wpn = npc:item_in_slot(1) or npc:best_weapon()
+			wpn = npc:item_in_slot(inventory_slots.PISTOL) or npc:best_weapon()
 		elseif self.type == 1 then
-			wpn = npc:item_in_slot(0) or npc:best_weapon()
+			wpn = npc:item_in_slot(inventory_slots.KNIFE) or npc:best_weapon()
 		end
 		if wpn then
 			npc:set_item(object.aim1,wpn)
@@ -343,16 +343,16 @@ function choose_type(npc,pr_type)
 	local act_wpn = npc:active_item()
 	if not pr_wpn then
 		return 0
-	elseif pr_type == 1 and npc:item_in_slot(0) or rx_utils.item_is_knife(pr_wpn) or act_wpn and rx_utils.item_is_knife(act_wpn) then
+	elseif pr_type == 1 and npc:item_in_slot(inventory_slots.KNIFE) or rx_utils.item_is_knife(pr_wpn) or act_wpn and rx_utils.item_is_knife(act_wpn) then
 		return 1
 	elseif pr_type == 0 then
 		return 0
-	elseif pr_type == 2 and npc:item_in_slot(1) and not rx_utils.item_is_blaster(npc:item_in_slot(1)) then
+	elseif pr_type == 2 and npc:item_in_slot(inventory_slots.PISTOL) and not rx_utils.item_is_blaster(npc:item_in_slot(inventory_slots.PISTOL)) then
 		return 2
 	elseif rx_utils.item_is_blaster(pr_wpn) then
-		return ( npc:item_in_slot(1)
-			and (not rx_utils.item_is_blaster(npc:item_in_slot(1))) and 2 )
-			or (npc:item_in_slot(0) and 1) or 0
+		return ( npc:item_in_slot(inventory_slots.PISTOL)
+			and (not rx_utils.item_is_blaster(npc:item_in_slot(inventory_slots.PISTOL))) and 2 )
+			or (npc:item_in_slot(inventory_slots.KNIFE) and 1) or 0
 	end
 	return 3
 end

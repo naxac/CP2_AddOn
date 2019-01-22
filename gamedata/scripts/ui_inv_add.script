@@ -120,12 +120,13 @@ function InvWnd:InitControls()
 	end
 
 	local st, name
-	for i=1,2 do
-		name = "wpn_slot_"..i
+	local slts = { inventory_slots.PISTOL, inventory_slots.RIFLE }
+	for i, j in ipairs( slts ) do
+		name = "wpn_slot_"..j
 		st = xml:InitStatic(name, self.stat)
 		self:Register(st, name)
-		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.wpn_slot_focus, i)
-		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.wpn_slot_focus_lost, i)
+		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.wpn_slot_focus, j)
+		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.wpn_slot_focus_lost, j)
 	end
 
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
@@ -207,7 +208,7 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 
 	if self.wpn_slot and isMagazinedWeapon( drag_item ) then
 		local item_slot = drag_item:get_slot()
-		if item_slot ~= 1 and item_slot ~= 2 then return end
+		if item_slot ~= inventory_slots.PISTOL and item_slot ~= inventory_slots.RIFLE then return end
 		if self.wpn_slot == item_slot then return end
 
 		local forced_move = false
@@ -301,7 +302,7 @@ end
 
 function slot_fix( id, item )
 	local slot = item:get_slot()
-	item:set_slot( bit_xor( slot, 3 ) )
+	item:set_slot( inventory_slots.PISTOL + inventory_slots.RIFLE - slot )
 	db.actor:move_to_slot( item )
 end
 

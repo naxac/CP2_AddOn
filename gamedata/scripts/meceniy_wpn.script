@@ -7,9 +7,17 @@ local last_charge = full_charge
 
 local t_upd = 0
 local t_upd_delta = 1000
+local chck_slots = { inventory_slots.RIFLE, inventory_slots.PISTOL }
 function on_actor_update()
-	local wpn = db.actor:item_in_slot(2)
-	if (not wpn) or (not string.find(wpn:section(),"wpn_m_134")) then
+	local wpn
+	local f = false
+	for i, v in ipairs( chck_slots ) do
+		wpn = db.actor:item_in_slot( v )
+		if wpn and string.find(wpn:section(),"wpn_m_134") then
+			f = true
+		end
+	end
+	if not f then
 		last_time = nil -- если не сделать, то при взятии в руки минигана время использования аккумулятора будет считаться с момента его прошлого использования
 		return
 	end

@@ -114,7 +114,7 @@ local function get_target(npc,be,st)
 		return false
 	end
 	local courage = st.eva.courage
-	local knife_active = npc:active_slot() == 0
+	local knife_active = npc:active_slot() == inventory_slots.KNIFE
 	if knife_active then
 		courage = courage+15
 	end
@@ -160,7 +160,7 @@ local function get_target(npc,be,st)
 		local npc_wpn,be_wpn = npc:active_item(),be:active_item()
 		if dist > 4 and ( courage > 70
 			or not (be_wpn and rx_utils.item_is_fa(be_wpn) and npc_wpn
-			and npc:active_slot() ~= 0 and npc_wpn:get_ammo_in_magazine() ~= 0
+			and npc:active_slot() ~= inventory_slots.KNIFE and npc_wpn:get_ammo_in_magazine() ~= 0
 			and be_wpn:get_ammo_in_magazine() ~= 0) )
 		then
 			st.target = be_id
@@ -194,7 +194,7 @@ function evaluator_knife_attack:evaluate()
 		return false
 	end
 	local npc = self.object
-	if not npc:item_in_slot(0) then
+	if not npc:item_in_slot(inventory_slots.KNIFE) then
 		remove_target(npc:id(),self.st,spawn_knife(npc) and 3000 or 30000)
 		return false
 	end
@@ -282,7 +282,7 @@ function action_knife_attack:initialize()
 	npc:set_sight(look.path_dir,nil,0)
 	npc:movement_enabled(true)
 	targets[self.st.target] = npc:id()
-	local knife = npc:item_in_slot(0)
+	local knife = npc:item_in_slot(inventory_slots.KNIFE)
 	npc:set_item(object.aim1,knife)
 	self.knp = get_knife_params(knife)
 	self.fire_dist = math.max(2.6,self.knp.fire_dist)
@@ -346,7 +346,7 @@ function action_knife_attack:execute()
 		remove_target(npc_id,st,10000)
 		return
 	end
-	local acti = npc:active_item() and npc:active_slot() == 0
+	local acti = npc:active_item() and npc:active_slot() == inventory_slots.KNIFE
 	if acti and dist < self.attack_dist+(npc:path_completed() and 0.3 or 0) and npc:see(target) then
 		self:attack(target)
 		npc:set_movement_type(move.stand)
@@ -496,7 +496,7 @@ end
 function spawn_knife(npc)
 	if knife_sets.spawn_chance > 0 and not rx_ai.get_var(npc,"kn_spawn") then
 		rx_ai.save_var(npc,"kn_spawn",true)
-		local knife = npc:item_in_slot(0)
+		local knife = npc:item_in_slot(inventory_slots.KNIFE)
 		if (not knife) and math.random() < knife_sets.spawn_chance then
 			local money = math.max(0,npc:money()-300)
 			npc:give_money(-npc:money()+money)

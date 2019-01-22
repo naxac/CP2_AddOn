@@ -251,7 +251,7 @@ end
 
 -- Проверка, что лучшее оружие персонажа - пистолет
 function best_pistol(actor, npc)
-	local pistol = npc:item_in_slot(1)
+	local pistol = npc:item_in_slot( inventory_slots.PISTOL )
 	if pistol ~= nil then
 		return true
 	else
@@ -639,7 +639,7 @@ function hit_by_actor_eagle(actor, npc)
 		local weapon = actor:active_item()
 		if weapon and weapon:section() == "wpn_eagle_m2" then
 			local slot = weapon:get_slot()
-			if actor:item_in_slot(bit_xor(slot, 3)) == nil then
+			if actor:item_in_slot( inventory_slots.PISTOL + inventory_slots.RIFLE - slot ) == nil then
 				return true
 			end
 		end
@@ -678,7 +678,7 @@ function killed_by_actor_eagle(actor, npc)
 		local weapon = actor:active_item()
 		if weapon and weapon:section() == "wpn_eagle_m2" then
 			local slot = weapon:get_slot()
-			if actor:item_in_slot(bit_xor(slot, 3)) == nil then
+			if actor:item_in_slot( inventory_slots.PISTOL + inventory_slots.RIFLE - slot ) == nil then
 				return true
 			end
 		end
@@ -1612,7 +1612,9 @@ end
 
 -- для сюжета по Теням
 function in_timer_pftp(actor, npc, p)
-	return in_timer(actor, npc, p) and db.actor:item_in_slot(1) and db.actor:item_in_slot(1):section() == "snp_pftp"
+	return in_timer(actor, npc, p)
+		and db.actor:item_in_slot( inventory_slots.PISTOL )
+		and db.actor:item_in_slot( inventory_slots.PISTOL ):section() == "snp_pftp"
 end
 
 -- для парада Монолита проверка того что дистанция до обьекта <= заданной
