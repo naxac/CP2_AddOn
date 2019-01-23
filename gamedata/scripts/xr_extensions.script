@@ -403,13 +403,22 @@ CUIScriptWnd.unregister_self = function ( self )
 end
 CUIScriptWnd.register_child_to_unreg = function( self, child )
 	if child.__CUIScriptWnd_id == nil then return end
+
+	if self.__CUIScriptWnd_id == nil then
+		self.__CUIScriptWnd_id = wnd_id
+		wnd_id = wnd_id + 1
+		registered_windows[ self.__CUIScriptWnd_id ] = {}
+		registered_windows[ self.__CUIScriptWnd_id ].w = self
+	--	log("CUIScriptWnd.register_child_to_unreg: parent window has no __CUIScriptWnd_id - Register" )
+	end
+
 	if self.__reg_childs == nil then
 		self.__reg_childs = {}
 	end
 	table.insert( self.__reg_childs, child.__CUIScriptWnd_id )
 end
 CUIScriptWnd.InitEditBoxEx = function ( self, stat, pos_x, pos_y, width, type )
-	local w = new_edit_box.CUIEditBox_new( stat, pos_x, pos_y, width, type )
+	local w = ui_edit_box_ru.CUIEditBox_new( stat, pos_x, pos_y, width, type )
 	self:register_child_to_unreg( w )
 	return w
 end
