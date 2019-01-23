@@ -1,0 +1,129 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--[[-------------------------------------------------------------------------------------------
+File			: ui_edit_box_ru.script
+Description		: Поддержка кириллицы в CUIEditBox
+Created			: 27.09.2015
+Author			: naxac
+--]]-------------------------------------------------------------------------------------------
+class "CUIEditBox_new" (CUIScriptWnd)
+
+local box_textures = {
+	def		= "ui_linetext_e",
+	pda		= "ui_icons_PDA_dialog_string"
+	}
+
+function CUIEditBox_new:__init(stat, x, y, width, type) super()
+	set_input_language(0)
+	self.last_text = ""
+	self.mode = true	-- 'true' - russian, 'false' - english
+	
+	local texture = box_textures["def"]
+	if type and box_textures[type] then
+		texture = box_textures[type]
+	end
+	width = math.max((width or 0), 150)
+	
+	self.st = CUIStatic()
+	self.st:Init(x, y, width, 25)
+	self.st:SetAutoDelete(true)
+	stat:AttachChild(self.st)
+	
+	self.edit_box = CUIEditBox()
+	self.edit_box:SetAutoDelete(true)
+    self.edit_box:Init(0,1,width-64,22)
+	self.edit_box:InitTexture(texture)
+	self.edit_box:SetFont(GetFontLetterica18Russian())
+    self.st:AttachChild(self.edit_box)
+	self:Register(self.edit_box, "ebox")
+	self:AddCallbackEx("ebox", ui_events.EDIT_TEXT_CHANGED, self.on_ChangeText)
+	
+	local btn_delText = CUIButton()
+	btn_delText:Init("ui_hud_button_voting_01_e",width-63,0,25,25)
+	btn_delText:SetStretchTexture(true)
+	btn_delText:SetAutoDelete(true)
+	btn_delText:SetText("X")
+	self.st:AttachChild(btn_delText)
+	self:Register(btn_delText, "button_clear")
+	self:AddCallbackEx("button_clear", ui_events.BUTTON_CLICKED, self.ClearBox)
+	
+	self.btn_lang = CUI3tButton()
+	self.btn_lang:Init(width-37,0,37,25)
+	self.btn_lang:SetAutoDelete(true)
+	self.btn_lang:InitTexture("ui_hud_button_voting_01")
+	self.btn_lang:SetText("РУС")
+	self.btn_lang:SetTextAlign(CGameFont.alCenter)
+	self.btn_lang:SetTextY(1)
+	self.btn_lang:SetTextColor(255,216,186,140)
+	self.st:AttachChild(self.btn_lang)
+	self:Register(self.btn_lang, "button_lang")
+	self:AddCallbackEx("button_lang", ui_events.BUTTON_CLICKED, self.on_ChangeLanguage)
+end
+
+function CUIEditBox_new:on_ChangeLanguage()
+	self.mode = not self.mode
+	self.btn_lang:SetText(self.mode==true and "РУС" or "ENG")
+end
+
+function CUIEditBox_new:SetInputLanguage( n, forcibly )	-- 1 - rus, 0 - eng
+	self.mode = ( n == 1 )
+	self.btn_lang:SetText(self.mode==true and "РУС" or "ENG")
+	if forcibly then self.btn_lang:Enable( false ) end
+end
+
+function CUIEditBox_new:on_ChangeText()
+	local text = self.edit_box:GetText()
+	local len_l = #self.last_text
+	local len_t = #text
+	if self.mode and len_l<len_t then
+		local s, l = "", ""
+		local f = false
+		for i=1,len_t do
+			l = text:sub(i,i)
+			if f==false and (len_l<i or l~=self.last_text:sub(i,i)) then
+				f = true
+				l = translit(l)
+			end
+			s = s..l
+		end
+		self.last_text = s
+		self.edit_box:SetText(s)
+	else
+		self.last_text = text
+	end
+end
+
+function CUIEditBox_new:ClearBox()
+	self.last_text = ""
+	self.edit_box:SetText("")
+end
+
+function CUIEditBox_new:SetText(str)
+	self.last_text = tostring(str) or ""
+	self.edit_box:SetText(self.last_text)
+end
+
+function CUIEditBox_new:GetText()
+	return self.edit_box:GetText()
+end
+
+function CUIEditBox_new:SetTextColor(A,R,G,B)
+	self.edit_box:SetTextColor(GetARGB(A,R,G,B))
+end
+
+local kAlt = { [DIK_keys.DIK_LMENU] = true, [DIK_keys.DIK_RMENU] = true }
+local kShift = { [DIK_keys.DIK_LSHIFT] = true, [DIK_keys.DIK_RSHIFT] = true }
+function CUIEditBox_new:OnKeyboard(dik, keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if kAlt[dik] then self.alt_pressed = true
+		elseif kShift[dik] then self.shift_pressed = true end
+		
+		if (self.shift_pressed and kAlt[dik]) or (self.alt_pressed and kShift[dik]) then
+			self:on_ChangeLanguage()
+		elseif self.shift_pressed and dik == DIK_keys.DIK_DELETE then
+			self:ClearBox()
+		end
+	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
+		if kAlt[dik] then self.alt_pressed = nil
+		elseif kShift[dik] then self.shift_pressed = nil end
+	end
+end
