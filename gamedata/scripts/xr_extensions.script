@@ -436,11 +436,15 @@ level.vertex_id_by_pos = function ( position )
 	db.actor:set_vector_global_arg_1( position )
 	return level.vertex_id()
 end
-level.main_time_factor = sys_ini:r_u32( "alife", "time_factor" )
+level.__time_factor = sys_ini:r_u32( "alife", "time_factor" )
 level.set_time_factor_old = level.set_time_factor
 level.set_time_factor = function( factor )
-	level.main_time_factor = factor
+	level.__time_factor = factor
 	level.set_time_factor_old( factor )
+end
+level.get_time_factor_old = level.get_time_factor
+level.get_time_factor = function()
+	return level.__time_factor or level.get_time_factor_old()
 end
 
 -- namespace 'relation_registry'
