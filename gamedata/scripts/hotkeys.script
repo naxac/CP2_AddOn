@@ -1,26 +1,31 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
 local get_wnd = level.main_input_receiver
+local binds_actions = {}
+local dik_actions = {}
 
 local keys = {
-	[1] = 'ESCAPE', [2] = '1', [3] = '2', [4] = '3', [5] = '4', [6] = '5', [7] = '6', [8] = '7',
-	[9] = '8', [10] = '9', [11] = '0', [12] = 'MINUS', [13] = 'EQUALS', [14] = 'BACK', [15] = 'TAB', [16] = 'Q',
-	[17] = 'W', [18] = 'E', [19] = 'R', [20] = 'T', [21] = 'Y', [22] = 'U', [23] = 'I', [24] = 'O', [25] = 'P',
-	[26] = 'LBRACKET', [27] = 'RBRACKET', [28] = 'RETURN', [29] = 'LCONTROL', [30] = 'A', [31] = 'S', [32] = 'D',
-	[33] = 'F', [34] = 'G', [35] = 'H', [36] = 'J', [37] = 'K', [38] = 'L', [39] = 'SEMICOLON', [40] = 'APOSTROPHE',
-	[41] = 'GRAVE', [42] = 'LSHIFT', [43] = 'BACKSLASH', [44] = 'Z', [45] = 'X', [46] = 'C', [47] = 'V', [48] = 'B',
-	[49] = 'N', [50] = 'M', [51] = 'COMMA', [52] = 'PERIOD', [53] = 'SLASH', [54] = 'RSHIFT', [55] = 'MULTIPLY',
-	[56] = 'LMENU', [57] = 'SPACE', [58] = 'CAPITAL', [59] = 'F1', [60] = 'F2', [61] = 'F3', [62] = 'F4', [63] = 'F5',
-	[64] = 'F6', [65] = 'F7', [66] = 'F8', [67] = 'F9', [68] = 'F10', [69] = 'NUMLOCK', [70] = 'SCROLL', [71] = 'NUMPAD7',
-	[72] = 'NUMPAD8', [73] = 'NUMPAD9', [74] = 'SUBTRACT', [75] = 'NUMPAD4', [76] = 'NUMPAD5', [77] = 'NUMPAD6',
-	[78] = 'ADD', [79] = 'NUMPAD1', [80] = 'NUMPAD2', [81] = 'NUMPAD3', [82] = 'NUMPAD0', [83] = 'DECIMAL', [87] = 'F11',
-	[88] = 'F12', [100] = 'F13', [101] = 'F14', [102] = 'F15', [112] = 'KANA', [121] = 'CONVERT', [123] = 'NOCONVERT',
-	[125] = 'YEN', [141] = 'NUMPADEQUALS', [144] = 'CIRCUMFLEX', [145] = 'AT', [146] = 'COLON', [147] = 'UNDERLINE',
-	[148] = 'KANJI', [149] = 'STOP', [150] = 'AX', [151] = 'UNLABELED', [156] = 'NUMPADENTER', [157] = 'RCONTROL',
-	[179] = 'NUMPADCOMMA', [181] = 'DIVIDE', [183] = 'SYSRQ', [184] = 'RMENU', [197] = 'PAUSE', [199] = 'HOME',
-	[200] = 'UP', [201] = 'PRIOR', [203] = 'LEFT', [205] = 'RIGHT', [207] = 'END', [208] = 'DOWN', [209] = 'NEXT',
-	[210] = 'INSERT', [211] = 'DELETE', [219] = 'LWIN', [220] = 'RWIN', [221] = 'APPS', [337] = 'MOUSE1', [338] = 'MOUSE2'
-	}
+	[1]		= 'ESCAPE',	[21]	= 'Y',			[41]	= 'GRAVE',		[61]	= 'F3',			[81]	= 'NUMPAD3',		[151]	= 'UNLABELED',		[221] = 'APPS',
+	[2]		= '1',		[22]	= 'U',			[42]	= 'LSHIFT',		[62]	= 'F4',			[82]	= 'NUMPAD0',		[156]	= 'NUMPADENTER',	[337] = 'MOUSE1',
+	[3]		= '2',		[23]	= 'I',			[43]	= 'BACKSLASH',	[63]	= 'F5',			[83]	= 'DECIMAL',		[157]	= 'RCONTROL',		[338] = 'MOUSE2',
+	[4]		= '3',		[24]	= 'O',			[44]	= 'Z',			[64]	= 'F6',			[87]	= 'F11',			[179]	= 'NUMPADCOMMA',	
+	[5]		= '4',		[25]	= 'P',			[45]	= 'X',			[65]	= 'F7',			[88]	= 'F12',			[181]	= 'DIVIDE',			
+	[6]		= '5',		[26]	= 'LBRACKET',	[46]	= 'C',			[66]	= 'F8',			[100]	= 'F13',			[183]	= 'SYSRQ',			
+	[7]		= '6',		[27]	= 'RBRACKET',	[47]	= 'V',			[67]	= 'F9',			[101]	= 'F14',			[184]	= 'RMENU',	
+	[8]		= '7',		[28]	= 'RETURN',		[48]	= 'B',			[68]	= 'F10',		[102]	= 'F15',			[197]	= 'PAUSE',	
+	[9]		= '8',		[29]	= 'LCONTROL',	[49]	= 'N',			[69]	= 'NUMLOCK',	[112]	= 'KANA',			[199]	= 'HOME',
+	[10]	= '9',		[30]	= 'A',			[50]	= 'M',			[70]	= 'SCROLL',		[121]	= 'CONVERT',		[200]	= 'UP',
+	[11]	= '0',		[31]	= 'S',			[51]	= 'COMMA',		[71]	= 'NUMPAD7',	[123]	= 'NOCONVERT',		[201]	= 'PRIOR',
+	[12]	= 'MINUS',	[32]	= 'D',			[52]	= 'PERIOD',		[72]	= 'NUMPAD8',	[125]	= 'YEN',			[203]	= 'LEFT',
+	[13]	= 'EQUALS',	[33]	= 'F',			[53]	= 'SLASH',		[73]	= 'NUMPAD9',	[141]	= 'NUMPADEQUALS',	[205]	= 'RIGHT',
+	[14]	= 'BACK',	[34]	= 'G',			[54]	= 'RSHIFT',		[74]	= 'SUBTRACT',	[144]	= 'CIRCUMFLEX',		[207]	= 'END',
+	[15]	= 'TAB',	[35]	= 'H',			[55]	= 'MULTIPLY',	[75]	= 'NUMPAD4',	[145]	= 'AT',				[208]	= 'DOWN',
+	[16]	= 'Q',		[36]	= 'J',			[56]	= 'LMENU',		[76]	= 'NUMPAD5',	[146]	= 'COLON',			[209]	= 'NEXT',
+	[17]	= 'W',		[37]	= 'K',			[57]	= 'SPACE',		[77]	= 'NUMPAD6',	[147]	= 'UNDERLINE',		[210]	= 'INSERT',
+	[18]	= 'E',		[38]	= 'L',			[58]	= 'CAPITAL',	[78]	= 'ADD',		[148]	= 'KANJI',			[211]	= 'DELETE',
+	[19]	= 'R',		[39]	= 'SEMICOLON',	[59]	= 'F1',			[79]	= 'NUMPAD1',	[149]	= 'STOP',			[219]	= 'LWIN',
+	[20]	= 'T',		[40]	= 'APOSTROPHE',	[60]	= 'F2',			[80]	= 'NUMPAD2',	[150]	= 'AX',				[220]	= 'RWIN'
+}
 
 function bind2key(bind)
 	return keys[bind_to_dik(bind)]
@@ -266,11 +271,35 @@ function steel_arms()
 		start_small_timer(200, function() kostya_dialog.remove_wpn(wpn:id()) end)
 	end
 end
-
+-- runner/returner
+function run_or_return()
+	if not db.actor:alive() then return end
+	if ShiftPressed() then
+		this.set_input_key()
+	elseif inventory.on_belt("runner_tele") then
+		fly.runner()
+	else
+		fly.returner()
+	end
+end
+function set_input_key()
+	if get_wnd() then level.start_stop_menu( get_wnd(), true ) end
+	local msg = "Будет произведена настройка клавиши возвращателя/ускорителя.\\nДля продолжения нажмите \"Да\", а затем назначаемую клавишу.\\nДля отмены нажмите \"Нет\"."
+	local func_yes = function()
+		xr_s.subscribe( "key_press", this.wait_key, { once = true } )
+	end
+	ui_messagebox_new.UIMessageBox( "yes_no_alarm", msg, func_yes )
+end
+function wait_key( dik, bind )
+	dik_actions[game_options.RunnerKey] = nil
+	dik_actions[dik] = hotkeys.run_or_return
+	game_options.RunnerKey = dik
+	game_options.save_game_options()
+	local dik_name = this.dik2key( dik )
+	local msg = "На управление возвращателем/ускорителем назначена клавиша "..dik_name..".\\nДля изменения клавиши нажмите Shift + "..dik_name.."."
+	ui_messagebox_new.UIMessageBox( "ok_info", msg )
+end
 ------------------------------
-local binds_actions = {}
-local dik_actions = {}
-
 binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_NEXT] = hotkeys.switch_grenade
@@ -280,6 +309,8 @@ binds_actions[key_bindings.kNIGHT_VISION] = function()
 end
 binds_actions[key_bindings.kUSE_BANDAGE] = function() use_from_slot(2) end
 binds_actions[key_bindings.kUSE_MEDKIT] = function() use_from_slot(1) end
+binds_actions[key_bindings.kEXT_1] = function() use_from_slot(3) end
+binds_actions[key_bindings.kCAM_4] = function() use_from_slot(4) end
 binds_actions[key_bindings.kQUICK_SAVE] = function()
 	u3_utils.on_quicksave()
 end
@@ -292,14 +323,6 @@ binds_actions[key_bindings.kSCORES] = function()
 	reminder.start_remind()
 	arc_ui_dosimeter.show()
 end
-binds_actions[key_bindings.kCAM_4] = function()
-	if not db.actor:alive() then return end
-	if inventory.on_belt("runner_tele") then
-		fly.runner()
-	else
-		fly.returner()
-	end
-end
 binds_actions[key_bindings.kTORCH] = function()
 	if not db.actor:alive() then return end
 	if db.actor:item_in_slot( inventory_slots.TORCH ) then
@@ -308,8 +331,7 @@ binds_actions[key_bindings.kTORCH] = function()
 	end
 end
 
-dik_actions[DIK_keys.DIK_F3] = function() use_from_slot(3) end
-dik_actions[DIK_keys.DIK_F4] = function() use_from_slot(4) end
+dik_actions[game_options.RunnerKey] = hotkeys.run_or_return
 dik_actions[DIK_keys.DIK_F10] = function() ui_console.show_console() end
 
 function on_key(dik, bind)
