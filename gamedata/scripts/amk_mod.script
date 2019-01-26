@@ -183,23 +183,24 @@ function check_spawn()
 		db.actor:set_actor_position(vector():set(-44.38, 0.43, -541.47))
 	end
 
---	if weather_types[lname]==0 then
---		w=amk.load_variable("dynweather",nil) or level.get_weather() 
---	else
---		w=level.get_weather() 
---	end
-	if amk.load_variable("blowout",0)>0 then
-	--	amk.save_variable("weather",level.get_weather())
+	if weather_types[lname]==0 then
+		w=amk.load_variable("dynweather",nil) or level.get_weather() 
+	else
+		w=level.get_weather() 
+	end
+	local blow = amk.load_variable("blowout",0)
+	if blow>0 then
+		amk.save_variable("weather",level.get_weather())
 		xr_s.subscribe("update", amk_mod.on_blowout_hit_actor)
 	end
---	level.set_weather("amk_for_blow",true)
+	level.set_weather("amk_for_blow",true)
 	game.start_tutorial("restore_sun")
 
-	if amk.load_variable("blowout",0)>0 and amk.load_variable("blowout",0)<4 then
+	if blow>0 and blow<4 then
 		local bt=blowout_type()
 		level.add_cam_effector("camera_effects\\earthquake.anm", 2002, true, "")
 		if bt<1 then
-			level.set_weather("amk_for_blow",true)
+		--	level.set_weather("amk_for_blow",true)
 			level.add_pp_effector("vibros.ppe", 2001, true)
 			blowout_psy_sound("start")
 		end
@@ -217,7 +218,7 @@ end
 function restore_sun()
 	amk.save_variable("level_on_save", level.name())
 	if amk.load_variable("blowout",0) == 0 then
-	--	level.set_weather(w,true)
+		level.set_weather(w,true)
 	end
 	if amk.load_variable("blow_started", 0) == 0 then
 		start_blow_timer()
