@@ -166,10 +166,15 @@ end
 
 --спавним объекты на карту
 --для спавна неписей смотрим config\creatures\spawn_sections.ltx - там написаны имена секций для разных типов неписей
-function spawn_item(spawn_item, pos, gv,lv)
-  if gv==nil then gv=db.actor:game_vertex_id() end
-  if lv==nil then lv=db.actor:level_vertex_id() end
-  return alife():create(spawn_item, pos, lv, gv)
+function spawn_item(spawn_item, pos, gv, lv, no_ai )
+	if gv==nil then gv=db.actor:game_vertex_id() end
+	if lv==nil then lv=db.actor:level_vertex_id() end
+	local obj = alife():create(spawn_item, pos, lv, gv)
+	if no_ai then
+		obj = alife():object( obj.id )
+		obj:use_ai_locations( false )
+	end
+	return obj
 end
 
 --для спавна патронов используем spawn_ammo_in_inv
