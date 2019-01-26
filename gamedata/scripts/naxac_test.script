@@ -1,5 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
+	local obj = level.get_target_obj()
+	if obj then log( obj:name() ) end
 end
 
 function repair()
@@ -7,8 +9,15 @@ function repair()
 	db.actor:give_info_portion( "naxac_test_repair3" )
 
 	if not xr_timers.has_timer_par( "run", "hotkeys.set_input_key()" ) then
-		xr_timers.start_real_timer( "run", 60, "hotkeys.set_input_key()" )
+		xr_timers.start_real_timer( "run", 30, "hotkeys.set_input_key()" )
 	end
+
+	local sim = alife()
+	local obj = sim:object( "podlovim_chiterov_restrictor" )
+	if obj then sim:release( obj, true ) end
+	obj = sim:object( "podlovim_chiterov1_restrictor" )
+	if obj then sim:release( obj, true ) end
+	naxac_test.rewrite_restr_logic("hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx")
 
 	if not has_alife_info( "naxac_test_repair2" ) then
 		db.actor:give_info_portion( "naxac_test_repair2" )
