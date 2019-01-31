@@ -166,13 +166,15 @@ local perchatki_propusk =
 -- Akill end
     ["seva_scient_outfit"]                          = 0.0,
     ["exo_scientist_outfit"]                        = 0.0   
-	}
+}
+
+local cant_hit = true
 
 function hit_by_art(obj)
-	if _G["biznes_remove_special_item"]==true then return end
+	if _G["biznes_remove_special_item"] or cant_hit then return end
 
 	local s =  art_hit[obj:section()]
-	if s~=nil and level.main_input_receiver()==nil and db.first_update then
+	if s~=nil and level.main_input_receiver()==nil then
 		local propusk=1
 
 		local perchatki = db.actor:item_in_slot( inventory_slots.KNIFE )
@@ -215,6 +217,10 @@ function on_slot(item)
 		end
 	end
 end
+
+function first_update()
+	cant_hit = false
+end
 --------------------------------------------------------------------
 function get_art_power( section )
 	local t = art_hit[ section ]
@@ -224,4 +230,5 @@ end
 function attach()
 	xr_s.subscribe("item_to_slot", this.on_slot)
 	xr_s.subscribe("item_take", this.hit_by_art)
+	xr_s.subscribe("first_update", this.first_update, { once = true } )
 end
