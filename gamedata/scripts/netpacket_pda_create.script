@@ -5,15 +5,18 @@ function create_pda()
 	if ps["hnp"] == nil then
 		--создание ПДА для нетпакета при новой игре
 		local np_obj = alife():create("netpacket_pda", vector():set(0,0,0), 0, 0, 0)
-		ps["hnp"] = np_obj.id
-		log("# netpacket_pda: Cоздан ПДА для нетпакета с id [%d]", np_obj.id)
-		xr_statistic.load_ids(nil, true)
 		netpacket_pda_id = np_obj.id
+		ps["hnp"] = netpacket_pda_id
+		log("# netpacket_pda: Cоздан ПДА для нетпакета с id [%d]", netpacket_pda_id)
+		xr_statistic.load_ids(nil, true)
 	else
 		netpacket_pda_id = ps["hnp"]
 	end
 --	if netpacket_pda_id == 0 then
 --		log("~ Не найден netpacket_pda: пишем на актера")
 --	end
+	if db.storage[netpacket_pda_id] == nil then
+		db.storage[netpacket_pda_id] = { pstor = {} }
+	end
 	return netpacket_pda_id
 end
