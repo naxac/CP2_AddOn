@@ -283,7 +283,6 @@ function run_or_return()
 	end
 end
 function set_input_key()
-	if get_wnd() then level.start_stop_menu( get_wnd(), true ) end
 	local msg = "Будет произведена настройка клавиши возвращателя/ускорителя.\\nДля продолжения нажмите \"Да\", а затем назначаемую клавишу.\\nДля отмены нажмите \"Нет\"."
 	local func_yes = function()
 		xr_s.subscribe( "key_press", this.wait_key, { once = true } )
@@ -291,6 +290,14 @@ function set_input_key()
 	ui_messagebox_new.UIMessageBox( "yes_no_alarm", msg, func_yes )
 end
 function wait_key( dik, bind )
+	if bind ~= key_bindings.DUMMY then
+		local msg = "Эта клавиша уже занята, выберите другую!"
+		local func = function()
+			xr_s.subscribe( "key_press", this.wait_key, { once = true } )
+		end
+		ui_messagebox_new.UIMessageBox( "ok_red", msg, func )
+		return
+	end
 	dik_actions[game_options.RunnerKey] = nil
 	dik_actions[dik] = hotkeys.run_or_return
 	game_options.RunnerKey = dik

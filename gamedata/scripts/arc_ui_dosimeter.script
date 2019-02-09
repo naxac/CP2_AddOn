@@ -6,6 +6,7 @@ local _MAX_ARROW_POS = 1.08
 local _MIN_ARROW_POS = -0.1
 
 local alpha = 0
+local monitor_y = 720
 
 local is_fading = false
 local fade_delay, fade_total_time, fade_time_left
@@ -107,7 +108,7 @@ function init_dosimeter()
 	m:SetAutoDelete(true)
 	m:SetStretchTexture(true)
 	m:InitTexture("arc\\serafim_monitor")
-	m:Init(827,720,256,64)
+	m:Init(827,monitor_y,256,64)
 	m:SetTextX(isWideScreen and 16 or 0)
 	m:SetTextY(10)
 	m:SetTextColor(128,255,200,200)
@@ -132,6 +133,14 @@ function init_dosimeter()
 	dosimeter.arrow = a
 	
 	return true
+end
+
+function set_dosimeter_pos( v )
+	if monitor_y == v then return end
+	monitor_y = v
+	if dosimeter and dosimeter.monitor then
+		dosimeter.monitor:SetWndPos(827,monitor_y)
+	end
 end
 
 function reload()

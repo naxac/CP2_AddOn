@@ -1,0 +1,182 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local hud_name = game_options.CurrentHUD
+
+local t_clock = {}
+local t_psy = {}
+
+local p_width = 0
+local saved_width = -1
+local new_width, cs_psy, cs_psy_back
+local hud = nil
+
+function update_psy_scale( f )
+	cs_psy_back = hud:GetCustomStatic( "hud_psy_back" )
+	cs_psy = hud:GetCustomStatic( "hud_psy_level" )
+
+	if not f then
+		if cs_psy_back then
+			hud:RemoveCustomStatic( "hud_psy_back" )
+			cs_psy_back = nil
+		end
+		if cs_psy then
+			hud:RemoveCustomStatic( "hud_psy_level" )
+			cs_psy = nil
+		end
+		return
+	end
+
+	if cs_psy_back == nil then
+		cs_psy_back = hud:AddCustomStatic( "hud_psy_back", true )
+		SetRect( cs_psy_back:wnd(), t_psy.back )
+		cs_psy_back:wnd():Show(true)
+	end
+	if cs_psy == nil then
+		cs_psy = hud:AddCustomStatic( "hud_psy_level", true )
+		SetRect( cs_psy:wnd(), t_psy.scale )
+		cs_psy:wnd():Show(true)
+		p_width = t_psy.scale[3]
+	end
+
+	new_width = db.actor.psy_health * p_width
+	if saved_width ~= new_width then
+		cs_psy:wnd():SetWidth( new_width )
+		saved_width = new_width
+	end
+end
+
+function show_time( f )
+    local cs = hud:GetCustomStatic( "hud_show_time" )
+	if f then
+		if cs == nil then
+			cs = hud:AddCustomStatic( "hud_show_time", true )
+			SetRect( cs:wnd(), t_clock.pos )
+			cs:wnd():SetTextColor( unpack( t_clock.color ) )
+		end
+		cs:wnd():SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
+	else
+		if cs then
+			hud:RemoveCustomStatic( "hud_show_time" )
+		end
+    end
+end
+
+function update( delta )
+	local bShow = not bind_stalker.scopeUsed
+
+	if t_psy.enabled then
+		update_psy_scale( bShow )
+	end
+
+	if t_clock.enabled then
+		show_time( bShow )
+	end
+end
+
+function SetRect( wnd, t )
+	wnd:SetWndPos( t[1], t[2] )
+	wnd:SetHeight( t[4] )
+	wnd:SetWidth( t[3] )
+--	wnd:SetWndSize( t[3], t[4] )
+end
+
+function reload()
+	if t_psy.enabled then
+		update_psy_scale( false )
+	end
+	if t_clock.enabled then
+		show_time( false )
+	end
+end
+
+function table2number( t )
+	for i = 1, #t do
+		t[i] = tonumber( t[i] )
+	end
+end
+
+function init()
+	if hud == nil then
+		hud = get_hud()
+	end
+
+	local ini = ini_file( "misc\\ui_huds.ltx" )
+	hud_name = game_options.CurrentHUD
+	if not ini:section_exist( hud_name ) then
+		abort( "[%s]: current hud [%s] has no settings in 'ui_huds.ltx'", script_name(), hud_name )
+		return
+	end
+
+	local v = ini:r_float( hud_name, "dosimeter_y" )
+	arc_ui_dosimeter.set_dosimeter_pos( v )
+
+	local i = ini:r_u32( hud_name, "add_indicators" )
+
+	t_clock = {}
+	t_clock.enabled = bit_and( i, 1 ) ~= 0
+	if t_clock.enabled then
+		v = ini:r_string( hud_name, "clock_pos" )
+		t_clock.pos = string.explode( v, ",", true )
+		table2number( t_clock.pos )
+		v = ini:r_string( hud_name, "clock_color" )
+		t_clock.color = string.explode( v, ",", true )
+		table2number( t_clock.color )
+	end
+
+	t_psy = {}
+	t_psy.enabled = bit_and( i, 2 ) ~= 0
+	if t_psy.enabled then
+		v = ini:r_string( hud_name, "psy_back_pos" )
+		t_psy.back = string.explode( v, ",", true )
+		table2number( t_psy.back )
+		v = ini:r_string( hud_name, "psy_pos" )
+		t_psy.scale = string.explode( v, ",", true )
+		table2number( t_psy.scale )
+	end
+end
+
+local files_list = {
+	"config\\ui\\maingame.xml",
+	"config\\ui\\maingame_16.xml",
+	"config\\ui\\messages_window.xml",
+	"config\\ui\\motion_icon.xml",
+	"config\\ui\\motion_icon_16.xml",
+	"config\\ui\\ui_hud.xml",
+	"config\\ui\\zone_map.xml",
+	"config\\ui\\zone_map_16.xml",
+	"textures\\ui\\ui_hud.dds"
+}
+function on_change_hud()
+	local new_hud_name = game_options.CurrentHUD
+	if hud_name ~= new_hud_name then
+		log( "copy start for %s", new_hud_name )
+		local fs = getFS()
+		local f1, f2
+		for i, v in ipairs( files_list ) do
+			fs:file_delete( "$game_data$", v )
+			f1 = fs:update_path( "$game_huds$", new_hud_name.."\\"..v )
+			f2 = fs:update_path( "$game_data$", v )
+			fs:file_copy( f1, f2 )
+			log( "copy files %s -> %s", f1, f2 )
+		end
+		hud_name = new_hud_name
+		return true
+	end
+	return false
+end
+
+function get_all_huds()
+	local ini = ini_file( "misc\\ui_huds.ltx" )
+	local ret = {}
+	local res, id, val
+	for i = 0, ini:line_count( "huds" ) - 1 do
+		res, id, val = ini:r_line( "huds", i, "", "" )
+		table.insert( ret, trim(id) )
+	end
+	return ret
+end
+
+function attach()
+	xr_s.subscribe( "first_update", this.init, { once = true } )
+	xr_s.subscribe( "update", this.update )
+end
+
