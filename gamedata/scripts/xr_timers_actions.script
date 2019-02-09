@@ -16,6 +16,16 @@ func_by_string["pda_alarm"] = function ( params )
 end
 
 func_by_string["set_runner_key"] = function ( params )
+	if game_options.RunnerKey ~= -1 then return end
+	if level.main_input_receiver()
+		or level.has_indicators() == false
+		or has_alife_info( "paused_on_load" )
+		or game.has_active_tutorial()
+		or device():is_paused()
+	then
+		xr_timers.start_real_timer( "set_runner_key", 5 )
+		return
+	end
 	hotkeys.set_input_key()
 end
 func_by_string["send_tip"] = function ( params )
