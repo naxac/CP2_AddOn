@@ -42,6 +42,7 @@ BlowPhaseMax	= 5		-- максимальное время фазы выброса в игровых минутах
 
 AmkTrs		= 2		-- тайники
 FullAnim	= true	-- расширенные анимации
+GarbagecollectorStat = false	-- сообщения от уборщика
 LoadPause	= true	-- пауза после загрузки
 NewSms		= false	-- "неатмосферные" СМС
 NewRadio	= false  -- вместо Сказочника - радио "Чернобыльский Апрель"
@@ -90,11 +91,20 @@ end
 
 -- Вызывается из игровых опций при нажатии кнопки "Применить"
 function save_game_options()
-	local file = io.open(getFS():update_path("$app_data_root$", "game.options"), "w")
-	for k,v in pairs(_G[script_name()]) do
-		if type(v)~='function' then
-			file:write(k, "=", tostring(v), "\n")
+	-- Отсортируем по алфавиту для удобства
+	local tmp = {}
+	for k,v in pairs( _G[ script_name() ] ) do
+		if type( v ) ~= 'function' then
+			table.insert( tmp, { k, v } )
 		end
 	end
-	file:close(file)
+	table.sort( tmp, function( t1, t2 )
+		return cheat_main.sort_by_section( t1[1], t2[1] )
+	end )
+
+	local file = io.open( getFS():update_path( "$app_data_root$", "game.options" ), "w" )
+	for i,v in ipairs( tmp ) do
+		file:write( v[1], " = ", tostring( v[2] ), "\n" )
+	end
+	file:close( file )
 end

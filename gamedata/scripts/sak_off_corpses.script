@@ -23,6 +23,8 @@ local all_objects = {}
 local parent2objects = {}
 local object2parent = {}
 
+local statistic = {}
+
 function scan()
 	local table_insert = table.insert
 	local sim = alife()
@@ -113,7 +115,10 @@ function off_corpses()
 						end
 					end
 					if obj:alive() then
+						table.add( statistic, "alive_npc" )
 						strn_fix(obj)
+					else
+						table.add( statistic, "dead_npc" )
 					end
 
 				-- монстр
@@ -125,7 +130,12 @@ function off_corpses()
 							released = true
 						end
 					end
-					if obj:alive() then strn_fix(obj) end
+					if obj:alive() then
+						strn_fix(obj)
+						table.add( statistic, "alive_monsters" )
+					else
+						table.add( statistic, "dead_monsters" )
+					end
 
 				-- удалем аномалии
 				elseif amk_anoms.is_anomaly(obj_clsid) then
@@ -170,11 +180,13 @@ function off_corpses()
 							--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
 							sim:release(obj, true)
 							released = true
+							table.add( statistic, "remove_weapons" )
 						elseif obj.position:distance_to(actorpos) > dist_to_weapons then 
 							table.insert(tabl_weapons, obj)
 							released = true
 						end
 					end
+					table.add( statistic, "total_weapons" )
 
 				elseif obj_clsid == clsid.inventory_box then
 					-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
@@ -264,59 +276,53 @@ function off_corpses()
 		end
 
 		--зачистка мёртвых монстров
-		if table.getn(tabl_monsters_dead) > summ_dead_monsters then
-		--	table.sort(tabl_monsters_dead,max_comp)
-			if table.getn(tabl_monsters_dead) > summ_dead_monsters then
-				local b = table.getn(tabl_monsters_dead)
-				local n = b
-				while b > summ_dead_monsters and n > 0 do
-					local corps = tabl_monsters_dead[n]
-					if item_found(corps.id) == false then --если нету "запчастей" - удаляем
-						sim:release(corps,true)
-						table.remove(tabl_monsters_dead,n)
-						b=b-1
-					end
-					n=n-1
+		local b = table.getn(tabl_monsters_dead)
+		if b > summ_dead_monsters then
+			local n = b
+			while b > summ_dead_monsters and n > 0 do
+				local corps = tabl_monsters_dead[n]
+				if item_found(corps.id) == false then --если нету "запчастей" - удаляем
+					sim:release(corps,true)
+					table.remove(tabl_monsters_dead,n)
+					table.add( statistic, "remove_monsters" )
+					b=b-1
 				end
+				n=n-1
 			end
 		end
 
 	--	tmr:get("release monsters")
 
 		--зачистка мёртвых человеков
-		if table.getn(tabl_corpses) > summ_corpses then
-		--	table.sort(tabl_corpses,max_comp)
-			if table.getn(tabl_corpses) > summ_corpses then
-				local b = table.getn(tabl_corpses)
-				local n = b
-				while b > summ_corpses and n > 0 do
-					local corps = tabl_corpses[n]
-					if item_found(corps.id) == false  then
-						sim:release(corps,true)
-						table.remove(tabl_corpses,n)
-						b=b-1
-					end
-					n=n-1
+		b = table.getn(tabl_corpses)
+		if b > summ_corpses then
+			local n = b
+			while b > summ_corpses and n > 0 do
+				local corps = tabl_corpses[n]
+				if item_found(corps.id) == false  then
+					sim:release(corps,true)
+					table.remove(tabl_corpses,n)
+					table.add( statistic, "remove_npc" )
+					b=b-1
 				end
+				n=n-1
 			end
 		end
 
 	--	tmr:get("release stalkers")
 
 		--зачистка оружия
-		if table.getn(tabl_weapons) > summ_weapons then
-		--	table.sort(tabl_weapons,max_comp)
-			local twa = table.getn(tabl_weapons)
-			while twa > summ_weapons do
-				local wpn = tabl_weapons[twa]
-				local wpn_name = wpn:name()
-				if (get_dist_to_trup_9510(wpn) == true and get_dist_to_trup(wpn) == true) then
-					local weapon = tabl_weapons[twa]
-					sim:release(weapon,true)
-					table.remove(tabl_weapons,twa)
-				end
-				twa=twa-1
+		b = table.getn(tabl_weapons)
+		while b > summ_weapons do
+			local wpn = tabl_weapons[b]
+			local wpn_name = wpn:name()
+			if (get_dist_to_trup_9510(wpn) == true and get_dist_to_trup(wpn) == true) then
+				local weapon = tabl_weapons[b]
+				sim:release(weapon,true)
+				table.remove(tabl_weapons,b)
+				table.add( statistic, "remove_weapons" )
 			end
+			b=b-1
 		end
 
 		db.actor:disable_info_portion("level_changing")
@@ -324,10 +330,15 @@ function off_corpses()
 
 --	tmr:get("release weapons", true)
 
+	if game_options.GarbagecollectorStat then
+		this.show_statistic()
+	end
+
 	-- удаляем ненужное
 	all_objects = nil
 	parent2objects = nil
 	object2parent = nil
+	statistic = nil
 end 
 
 function get_dist_to_trup(wpn)
@@ -429,3 +440,20 @@ function maxOutfit(i1,i2) -- возвращает true если i1 меньше i2 (самые ценные в к
 	local cost2 = sys_ini:r_float(i2:section_name(), "cost")
 	return cost1 < cost2
 end
+
+function show_statistic()
+	local msg = "Прошёлся по локациям, и вот чего нашёл:\\n"
+	msg = msg.."живых сталкеров: %c[green]"..( statistic.alive_npc or 0 ).." %c[default]шт.\\n"
+	msg = msg.."мертвых сталкеров: %c[green]"..( statistic.dead_npc or 0 ).." %c[default]шт.\\n"
+	msg = msg.."живых зверушек: %c[green]"..( statistic.alive_monsters or 0 ).." %c[default]шт.\\n"
+	msg = msg.."мёртвых зверушек: %c[green]"..( statistic.dead_monsters or 0 ).." %c[default]шт.\\n"
+	msg = msg.."безхозного оружия: %c[green]"..( statistic.total_weapons or 0 ).." %c[default]шт.\\n"
+
+	msg = msg.."Навёл порядок. Было удалено:\\n"
+	msg = msg.."мертвых сталкеров: %c[green]"..( statistic.remove_npc or 0 ).." %c[default]шт.\\n"
+	msg = msg.."мёртвых зверушек: %c[green]"..( statistic.remove_monsters or 0 ).." %c[default]шт.\\n"
+	msg = msg.."безхозного оружия: %c[green]"..( statistic.remove_weapons or 0 ).." %c[default]шт.\\n"
+
+	amk.send_tip( msg, "Уборщик", 5, 10, "nano" )
+end
+
