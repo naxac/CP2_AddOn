@@ -1,5 +1,19 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
+local calls = {
+	"trader1a",
+	"trader1b",
+	"trader3b",
+	"trader_tutorial_pda_on_1",
+	"trader_tutorial_pda_on_2",
+	"trader_tutorial_pda_on_3",
+	"trader_tutorial_pda_on_4",
+	"trader_tutorial_rejection_1",
+	"trader_tutorial_rejection_2",
+	"trader_tutorial_rejection_3",
+	"trader_tutorial_rejection_4",
+}
+
 function on_mm_init(mm)
 	db.actor:give_info_portion("paused_on_load")
 	level.hide_indicators()
@@ -11,10 +25,8 @@ function on_mm_init(mm)
 	mm.sv = level.get_snd_volume()
 	local con = get_console()
 	mm.sound_volume_eff = con:get_float("snd_volume_eff")
-	con:execute("snd_volume_eff 0")
 	mm.sound_volume_music = con:get_float("snd_volume_music")
 	con:execute("snd_volume_music 0")
-	level.set_snd_volume(0)
 
 	-- картинка загружаемой территории
 	mm.level_intro = CUIStatic()
@@ -24,9 +36,23 @@ function on_mm_init(mm)
 		mm.level_intro:SetStretchTexture(true)
 	end
 	mm:AttachChild(mm.level_intro)
+
+	if game_options.PauseTraderCall then
+		mm.time_to_call = 0
+		mm.call = 0
+		mm.prev_call = 0
+		mm.stop_call = 15*1000*1000 -- зовем игрока 15 секунд
+		mm.tmr = profile_timer() -- создаем таймер
+		mm.tmr:start() -- запускаем его
+		mm.last_time = 0 -- инициализируем время последнего апдейта
+	else
+		con:execute("snd_volume_eff 0")
+		level.set_snd_volume(0)
+	end
 end
 
 function mm_on_kbd(mm)
+	if mm.call_sound then mm.call_sound:stop() end
 	level.show_indicators()
 	level.set_snd_volume(mm.sv)
 	local console = get_console()
@@ -36,6 +62,27 @@ function mm_on_kbd(mm)
 	db.actor:disable_info_portion("paused_on_load")
 
 	this.start_timer_no_save()
+end
+
+function on_mm_update(mm)
+	if mm.tmr then
+		mm.tmr:stop()
+		
+		-- зовем игрока
+		if ( not mm.call_sound ) or ( not mm.call_sound:playing() and mm.time_to_call < mm.tmr:time() and mm.time_to_call < mm.stop_call ) then
+			repeat
+				mm.call = table.random( calls )
+			until mm.call ~= mm.prev_call
+			mm.call_sound = xr_sound.get_safe_sound_object( "characters_voice\\scenario\\trader\\"..mm.call )
+			mm.call_interval = math.random(4,6)
+			mm.call_sound:play( db.actor, mm.call_interval, sound_object.s2d )
+			mm.time_to_call = mm.tmr:time() + ( mm.call_sound:length() + mm.call_interval * 1000 ) * 1000
+			mm.prev_call = mm.call
+		end
+		
+		mm.tmr:start()
+	end
+	get_console():hide()
 end
 
 function on_upd()
