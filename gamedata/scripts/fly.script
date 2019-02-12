@@ -211,17 +211,15 @@ function do_returner()
 end
 
 function returner_allowed()
-	if not returner_pos then 
-		news_manager.send_tip(db.actor, "st_returner_no_position", nil, "nano", 5000)
-		return false
-	end
-
 	if game_options.RunnerForever then return true end
 
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
 		news_manager.send_tip(db.actor, "st_returner_near_enemy", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
+		return false
+	elseif not returner_pos then 
+		news_manager.send_tip(db.actor, "st_returner_no_position", nil, "nano", 5000)
 		return false
 	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then 
 		news_manager.send_tip(db.actor, "st_returner_so_far", nil, "nano", 5000)
