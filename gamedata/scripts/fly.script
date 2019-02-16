@@ -14,14 +14,14 @@ function start(obj)
 	-- временный запрет полета - возвращаем предмет
 	if has_alife_info("no_gravigun") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
 		amk.spawn_item_in_inv("anom_egg", db.actor)
-		news_manager.send_tip(db.actor, "st_volazar_cant_fly", nil, nil, 15000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Что-то не получается взлететь. Попробуй в другой раз.", nil, nil, 15000) 
 		return
 	end
 
 	if db.actor:item_in_slot( inventory_slots.OUTFIT ) or db.actor:active_item() then
 		-- одета броня или не убран ствол
 		amk.spawn_item_in_inv("anom_egg", db.actor)
-		news_manager.send_tip(db.actor, "st_volazar_cant_fly_items", nil, nil, 10000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Стрелок, чтобы взлететь, ты должен снять броню и убрать оружие.", nil, nil, 10000) 
 		return
 	end
 	
@@ -66,7 +66,7 @@ end
 
 function wrong_fly()
 	if not has_alife_info("vol_info_temp") and not has_alife_info("sidor_delo_done") then
-		news_manager.send_tip(db.actor, "st_volazar_wrong_fly", nil, nil, 20000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Стрелок, зря ты это сделал. Нормально можно летать только с помощью тех яиц, которые тебе дам я. Все остальные яйца крайне ядовиты, и сейчас ты умрёшь.", nil, nil, 20000) 
 		amk.start_timer("zonedocs_gg_kill",13.0,0)
 		level.add_cam_effector("camera_effects\\radar_stop.anm", 2507, false, "")
 	end
@@ -103,17 +103,17 @@ function run_allowed()
 	if game_options.RunnerForever then return true end
 
 	if db.actor:get_inventory_weight() > 350 and not sended then
-		news_manager.send_tip(db.actor, "st_runner_big_weight", nil, "nano", 15000)
+		news_manager.send_tip(db.actor, "Большой вес! Возможен сбой.", nil, "nano", 15000)
 		sended = true
 	else
 		sended = false
 	end
 
 	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip(db.actor, "st_runner_near_enemy", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
 		return false
 	elseif has_alife_info("snp_proper7014_done") and not has_alife_info("snp_video_arhiv_done") then
-		news_manager.send_tip(db.actor, "st_runner_cant_run", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Телепортация невозможна по техническим причинам.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
@@ -131,7 +131,7 @@ end
 -- наличие опасности в зависимости от уровня сложности
 function actor_is_in_danger()
 	local difficulty = level.get_game_difficulty()
-	local danger_text = game.translate_string("st_runner_danger")
+	local danger_text = "Телепортация при наличии вражеской угрозы невозможна по техническим причинам. Для восстановления функциональности устраните угрозу."
 
 	if difficulty < 2 then
 		return false
@@ -174,10 +174,11 @@ function returner_set_pos()
 	fly.stop()
 
 	returner_pos = db.actor:position()
-	news_manager.send_tip(db.actor, "st_returner_position_save", nil, "nano")
+	news_manager.send_tip(db.actor, "Позиция сохранена.", nil, "nano")
 end
 
 function returner_clear_pos()
+	if game_options.RunnerForever then return end
 	returner_pos = nil
 end
 
@@ -185,12 +186,12 @@ function set_pos_allowed()
 	if game_options.RunnerForever then return true end
 
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
-		news_manager.send_tip(db.actor, "st_returner_near_enemy", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif returner_temp_pos:distance_to(db.actor:position()) > 0.005 then 
-		news_manager.send_tip(db.actor, "st_returner_error_set_position", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Ошибка установки позиции. При задании позиции нельзя перемещаться.", nil, "nano", 5000)
 		return false
 	end
 	return true
@@ -211,23 +212,25 @@ function do_returner()
 end
 
 function returner_allowed()
-	if not returner_pos then 
-		news_manager.send_tip(db.actor, "st_returner_no_position", nil, "nano", 5000)
+	if not returner_pos then
+		local key = hotkeys.dik2key( game_options.RunnerKey )
+		news_manager.send_tip(db.actor, "Не задана позиция возвращения. Для установки позиции нажмите дважды клавишу "..key..".", nil, "nano", 5000)
 		return false
 	end
 
 	if game_options.RunnerForever then return true end
 
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
-		news_manager.send_tip(db.actor, "st_returner_near_enemy", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
-	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then 
-		news_manager.send_tip(db.actor, "st_returner_so_far", nil, "nano", 5000)
+	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then
+		local key = hotkeys.dik2key( game_options.RunnerKey )
+		news_manager.send_tip(db.actor, "Возвращение невозможно из-за слишком большого расстояния. Для смены позиции нажмите дважды клавишу "..key..".", nil, "nano", 5000)
 		return false
 	elseif returner_pos:distance_to(db.actor:position()) < 0.6 then 
-		news_manager.send_tip(db.actor, "st_returner_small_distance", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Слишком малое расстояние между текущей и заданной позицией. Для выполнения возвращения нужно отойти подальше.", nil, "nano", 5000)
 		return false
 	end
 	return true
