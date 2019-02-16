@@ -43,11 +43,10 @@ function teleportator_menu:FillList()
 		end
 	end
 	table.sort(tmp, function (t1, t2)
-		local res = cheat_main.sort_by_name(t1.name, t2.name)
-		if res ~= nil then
-			return res
-		else
+		if t1.name == t2.name then
 			return t1.index < t2.index
+		else
+			return t1.name < t2.name
 		end
 	end)
 
@@ -138,11 +137,11 @@ function teleportator_menu:on_ok()
 		if need_charge <= cond then
 			self:on_quit()
 
-			local new_cond = cond - need_charge
-			obj:set_condition( new_cond )
-			netpk:modify( alife():object( obj:id() ), { condition = new_cond }, netpk.fState )
-
-			spawn_level_changer.do_teleport(section, true)
+			if spawn_level_changer.do_teleport(section, true) then
+				local new_cond = cond - need_charge
+				obj:set_condition( new_cond )
+				netpk:modify( alife():object( obj:id() ), { condition = new_cond }, netpk.fState )
+			end
 		else
 			self.message_box:Init("select_map")
 			self.message_box:SetText("Недостаточно заряда для перемещения: дозарядите телепортатор")
