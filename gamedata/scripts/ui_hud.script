@@ -6,40 +6,40 @@ local t_psy = {}
 
 local p_width = 0
 local saved_width = -1
-local new_width, cs_psy, cs_psy_back
+local new_width, cs_rad, cs_rad_back
 local hud = nil
 
 function update_psy_scale( f )
-	cs_psy_back = hud:GetCustomStatic( "hud_psy_back" )
-	cs_psy = hud:GetCustomStatic( "hud_psy_level" )
+	cs_rad_back = hud:GetCustomStatic( "hud_rad_back" )
+	cs_rad = hud:GetCustomStatic( "hud_rad_level" )
 
 	if not f then
-		if cs_psy_back then
-			hud:RemoveCustomStatic( "hud_psy_back" )
-			cs_psy_back = nil
+		if cs_rad_back then
+			hud:RemoveCustomStatic( "hud_rad_back" )
+			cs_rad_back = nil
 		end
-		if cs_psy then
-			hud:RemoveCustomStatic( "hud_psy_level" )
-			cs_psy = nil
+		if cs_rad then
+			hud:RemoveCustomStatic( "hud_rad_level" )
+			cs_rad = nil
 		end
 		return
 	end
 
-	if cs_psy_back == nil then
-		cs_psy_back = hud:AddCustomStatic( "hud_psy_back", true )
-		SetRect( cs_psy_back:wnd(), t_psy.back )
-		cs_psy_back:wnd():Show(true)
+	if cs_rad_back == nil then
+		cs_rad_back = hud:AddCustomStatic( "hud_rad_back", true )
+		SetRect( cs_rad_back:wnd(), t_psy.back )
+		cs_rad_back:wnd():Show(true)
 	end
-	if cs_psy == nil then
-		cs_psy = hud:AddCustomStatic( "hud_psy_level", true )
-		SetRect( cs_psy:wnd(), t_psy.scale )
-		cs_psy:wnd():Show(true)
+	if cs_rad == nil then
+		cs_rad = hud:AddCustomStatic( "hud_rad_level", true )
+		SetRect( cs_rad:wnd(), t_psy.scale )
+		cs_rad:wnd():Show(true)
 		p_width = t_psy.scale[3]
 	end
 
-	new_width = db.actor.psy_health * p_width
+	new_width = p_width * arc_radiation.get_rad_dose() / arc_radiation.get_deadly_dose()
 	if saved_width ~= new_width then
-		cs_psy:wnd():SetWidth( new_width )
+		cs_rad:wnd():SetWidth( new_width )
 		saved_width = new_width
 	end
 end
