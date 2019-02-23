@@ -2,7 +2,7 @@
 local hud_name = game_options.CurrentHUD
 
 local t_clock = {}
-local t_psy = {}
+local t_rad = {}
 
 local p_width = 0
 local saved_width = -1
@@ -27,14 +27,15 @@ function update_psy_scale( f )
 
 	if cs_rad_back == nil then
 		cs_rad_back = hud:AddCustomStatic( "hud_rad_back", true )
-		SetRect( cs_rad_back:wnd(), t_psy.back )
+		SetRect( cs_rad_back:wnd(), t_rad.back )
 		cs_rad_back:wnd():Show(true)
 	end
 	if cs_rad == nil then
 		cs_rad = hud:AddCustomStatic( "hud_rad_level", true )
-		SetRect( cs_rad:wnd(), t_psy.scale )
+		SetRect( cs_rad:wnd(), t_rad.scale )
 		cs_rad:wnd():Show(true)
-		p_width = t_psy.scale[3]
+		cs_rad:wnd():SetWidth( 0 )
+		p_width = t_rad.scale[3]
 	end
 
 	new_width = p_width * arc_radiation.get_rad_dose() / arc_radiation.get_deadly_dose()
@@ -63,7 +64,8 @@ end
 function update( delta )
 	local bShow = not bind_stalker.scopeUsed
 
-	if t_psy.enabled then
+	if t_rad.enabled then
+		bShow = bShow and arc_inventory.IsRadDetected()
 		update_psy_scale( bShow )
 	end
 
@@ -80,7 +82,7 @@ function SetRect( wnd, t )
 end
 
 function reload()
-	if t_psy.enabled then
+	if t_rad.enabled then
 		update_psy_scale( false )
 	end
 	if t_clock.enabled then
@@ -122,15 +124,15 @@ function init()
 		table2number( t_clock.color )
 	end
 
-	t_psy = {}
-	t_psy.enabled = bit_and( i, 2 ) ~= 0
-	if t_psy.enabled then
+	t_rad = {}
+	t_rad.enabled = bit_and( i, 2 ) ~= 0
+	if t_rad.enabled then
 		v = ini:r_string( hud_name, "psy_back_pos" )
-		t_psy.back = string.explode( v, ",", true )
-		table2number( t_psy.back )
+		t_rad.back = string.explode( v, ",", true )
+		table2number( t_rad.back )
 		v = ini:r_string( hud_name, "psy_pos" )
-		t_psy.scale = string.explode( v, ",", true )
-		table2number( t_psy.scale )
+		t_rad.scale = string.explode( v, ",", true )
+		table2number( t_rad.scale )
 	end
 end
 
