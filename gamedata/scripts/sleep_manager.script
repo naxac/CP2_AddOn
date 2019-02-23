@@ -2,25 +2,14 @@
 -- -----------------------------
 --  DreamMod v0.2 by Ab@dDon ---
 -- -----------------------------
-local dream_time = 0
 local sleep_time = 0
 local isSleepActive = false
-local set_sleep_time = 0
-local get_seconds = amk.game_seconds
-local main_time_factor = nil
-
-local function check_sleep_time()
-	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
-		level.set_time_factor(main_time_factor)
-		return true
-	end
-	return false
-end
-local function restore_time_factor()
-	set_sleep_time = 0
-end
 
 function main(scale)		-- in hours
+	if isSleepActive then
+		return
+	end
+
 	isSleepActive = true
 	db.actor:stop_talk()
 	bind_stalker.hide_weapon("sleep")
@@ -29,16 +18,9 @@ function main(scale)		-- in hours
 end
 
 function starter(scale)
-	dream_time = scale
 	sleep_time = amk.game_minutes()
-
 	game.start_tutorial("time_scaling")
-
-	set_sleep_time = get_seconds() + scale*3600
-
-	main_time_factor = level.get_time_factor()
-	level.set_time_factor(15000)
-	level.add_call(check_sleep_time, restore_time_factor)
+	level.change_game_time( 0, scale, 0 )
 end
 
 function dreamer()
@@ -54,12 +36,8 @@ function stopper()
 		return
 	end
 
-	isSleepActive = false
-	level.remove_call(check_sleep_time, restore_time_factor)
-	level.set_time_factor(main_time_factor)
-
 	if db.actor:alive() then
-		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "")
+		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "sleep_manager.sleep_end")
 		level.add_pp_effector("yantar_underground_psi.ppe", 2007, false)
 		level.add_pp_effector("total_recall.ppe", 2008, false)
 		bind_stalker.restore_weapon("sleep")
@@ -72,10 +50,15 @@ function stopper()
 		amk_mod.reduce_need_sleep(slept)
 
 		archievements.acv_count_event("acv_slp", 2160, "Засоня", slept)
+	else
+		level.enable_input()
 	end
-	level.enable_input()
 end
 
+function sleep_end()
+	level.enable_input()
+	isSleepActive = false
+end
 
 function is_sleep_active()
 	return isSleepActive

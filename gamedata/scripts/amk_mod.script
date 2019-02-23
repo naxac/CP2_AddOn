@@ -9,7 +9,6 @@ copyright © AMK TEAM 2007-2008
 --]]
 
 local math_random = math.random
-local math_floor = math.floor
 local math_pi = math.pi
 local math_sin = math.sin
 local math_cos = math.cos
@@ -17,12 +16,9 @@ local math_ceil = math.ceil
 local string_find = string.find
 local string_sub = string.sub
 
-local nrg,med,cnt,w
+local w
 in_hide=false
 local sound_obj_right,sound_obj_left,snd_volume,snd_obj_eq
-local sync_done=false
-local dynlasthour
-zombied={}
 
 local weather_types={
 	l01_escape=1,
@@ -320,32 +316,49 @@ function test_for_need_sleep()
 	amk.g_start_timer("gg_need_sleep",0,0,6)
 end
 
-function test_sleep_pp(val)
-	local tmp = val/10	-- в часах дл€ нагл€дности
+function sleep_force()
+--	local need_sleep = amk.load_variable("gg_need_sleep",0)/10
+	local need_sleep_nrg = amk.load_variable("gg_need_sleep_nrg",0)
+	db.actor.satiety = 0.4
+	sleep_manager.main( 5 + need_sleep_nrg )
+end
 
-	if tmp>36 then		-- не спали 36 часов - вырубаемс€ на п€ть часоов + врем€, "зан€тое" энергетиками
-		sleep_manager.main(5+amk.load_variable("gg_need_sleep_nrg",0))
+function test_sleep_pp(val)
+	local need_sleep = val/10	-- в часах дл€ нагл€дности
+
+	if need_sleep>36 then		-- не спали 36 часов - вырубаемс€ на п€ть часоов + врем€, "зан€тое" энергетиками
+		if sleep_manager.is_sleep_active() then return end
+		level.add_cam_effector("camera_effects\\fusker.anm", 999, false, "amk_mod.sleep_force")
 		return
 	end
 
-	local f = level.has_pp_effector(999)
-	if tmp>30 and f==0 then		-- не спали 30 часов - начинаетс€ муть в глазах
+	local has_effector = level.has_pp_effector(999)
+	if need_sleep>30 and has_effector==0 then		-- не спали 30 часов - начинаетс€ муть в глазах
 		level.add_pp_effector("yantar_underground_psi.ppe", 999, true)
 		level.set_pp_effector_factor(999, 5.0)  
-	elseif tmp<=30 and f~=0 then
+	elseif need_sleep<=30 and has_effector~=0 then
 		level.remove_pp_effector(999)
 	end
 end
 
+local energy_drink_power = sys_ini:r_float( "energy_drink", "eat_power" )
+
 function test_for_need_sleep_nrg()
-	local n=amk.load_variable("gg_need_sleep_nrg",0)
-	if n<3 then
-		amk.save_variable("gg_need_sleep_nrg",n+1)
-		local v = amk.load_variable("gg_need_sleep",0) - 30 + n*10
-		amk.save_variable("gg_need_sleep", v) 
+	local n = amk.load_variable("gg_need_sleep_nrg", 0)
+	amk.save_variable("gg_need_sleep_nrg", n+1)
+	if n < 3 then
+		local v = amk.load_variable("gg_need_sleep", 0) - 30 + n*10
+		amk.save_variable("gg_need_sleep", math.max(v, 0)) 
 		test_sleep_pp(v)
 	else
-		amk.send_tip("„то-то уже не особо помогает энергетик, надо бы отдохнуть...",db.actor:character_name(),5,8,"str")
+		local p = db.actor.power
+		start_small_timer( 400, function()
+			db.actor.power = p - 1 + energy_drink_power/(n - 1)
+		end )
+		if n == 4 then
+			amk.send_tip("„то-то энергетик уже не помогает нихрена, надо бы отдохнуть...",db.actor:character_name(),5,8,"str")
+			sended_easy_energy = true
+		end
 	end
 	amk.remove_timer("block_sleep_menu")
 	amk.g_start_timer("block_sleep_menu",0,1,0)
@@ -2938,13 +2951,10 @@ function zomby_blow(obj)
 			h.type = hit.chemical_burn
 			db.actor:hit(h)
 		end
-		start_small_timer( 500, function( id )
-			local se_obj = alife():object( id )
-			if se_obj then
-				alife():release( se_obj, true )
-			end
-		end,
-		obj:id() )
+		local se_obj = alife():object( obj:id() )
+		if se_obj then
+			alife():release( se_obj, true )
+		end
 	end
 end
 
