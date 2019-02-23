@@ -95,6 +95,7 @@ function update(delta)
 	end
 end
 
+local hud_wnd = nil
 local mycurrent_suithud
 local suit_condition
 local last_outfit
@@ -102,71 +103,69 @@ local wotsuittype = "nil"
 local suitfirstrun = true
 
 function check_hud()
-	if suithud_enable==false
-		or db.actor:alive()==false
-	then
-		remove_dynhud()
+	if suithud_enable==false or db.actor:alive()==false then
+		removeDynHud()
 		return
-	end
-	
-	local csuithud = db.actor:get_current_outfit()
-	local suithudtype = nil
-	if csuithud ~= nil then
-		wotsuittype = get_hud_type(csuithud:section())
-		if wotsuittype=="nil" then
-			remove_dynhud()
-			return
-		end
-		
-		local cond = csuithud:condition()
-		if cond > 0.87 then suit_condition = "blue"
-		elseif cond > 0.69 then suit_condition = "green"
-		elseif cond > 0.60 then suit_condition = "yellow"
-		elseif cond > 0.40 then suit_condition = "red"
-		elseif cond > 0.25 then suit_condition = "red2"
-		else suit_condition = "red3" end
-		
-		suithudtype = wotsuittype.."_"..suit_condition
-	else
-		remove_dynhud()
-		return
-	end
-	
-	if suithudtype ~= mycurrent_suithud then
+	elseif hud_wnd == nil then
 		local hud = get_hud()
-		if mycurrent_suithud then
-			hud:RemoveCustomStatic(mycurrent_suithud)
-		end
-		hud:AddCustomStatic(suithudtype)
-		
+		hud_wnd = hud:AddCustomStatic("dynamic_hud", true):wnd()
 		biodetector.biodetectorRemove() --  alen-fantom
 		ui_hud.reload()
 		arc_ui_dosimeter.reload()
 		this.reload_inviz(hud)
-		
-		local oid = csuithud:id()
-		if last_outfit==oid then
-			if suitfirstrun == false
-				and suit_condition ~= "green" and suit_condition ~= "blue"
-			then
-				local snd_obj = sound_object("material\\glass\\glass_fall0"..
-					tostring(math.random(1,4)).."hl")
-				snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 9.0)
-			elseif suitfirstrun == true then
-				suitfirstrun = false
-			end
-		end
-		last_outfit = oid
-		mycurrent_suithud = suithudtype
+		xr_s.subscribe( "net_destroy", this.removeDynHud )
 	end
+	
+	local csuithud = db.actor:get_current_outfit()
+	if csuithud == nil then
+		hud_wnd:InitTexture("abc\\hud_empty")
+		mycurrent_suithud = nil
+		suitfirstrun = true
+		return
+	end
+
+	wotsuittype = get_hud_type(csuithud:section())
+	if wotsuittype=="nil" then
+		hud_wnd:InitTexture("abc\\hud_empty")
+		mycurrent_suithud = nil
+		suitfirstrun = true
+		return
+	end
+
+	local cond = csuithud:condition()
+	if cond > 0.87 then suit_condition = "1"
+	elseif cond > 0.69 then suit_condition = "2"
+	elseif cond > 0.60 then suit_condition = "3"
+	elseif cond > 0.40 then suit_condition = "4"
+	elseif cond > 0.25 then suit_condition = "5"
+	else suit_condition = "6" end
+	local suithudtype = wotsuittype..suit_condition
+	
+	if suithudtype == mycurrent_suithud then return end
+
+	hud_wnd:InitTexture("abc\\"..suithudtype)
+	
+	local oid = csuithud:id()
+	if last_outfit==oid then
+		if suitfirstrun == false
+			and suit_condition ~= "2" and suit_condition ~= "1"
+		then
+			local snd_obj = sound_object("material\\glass\\glass_fall0"..
+				tostring(math.random(1,4)).."hl")
+			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 9.0)
+		elseif suitfirstrun == true then
+			suitfirstrun = false
+		end
+	end
+	last_outfit = oid
+
+	mycurrent_suithud = suithudtype
 end
 
-function remove_dynhud()
-	if mycurrent_suithud ~= nil then
-		local hud = get_hud()
-		if hud:GetCustomStatic(mycurrent_suithud) ~= nil then
-			hud:RemoveCustomStatic(mycurrent_suithud)
-		end
+function removeDynHud()
+	if hud_wnd ~= nil then
+		hud_wnd = nil
+		get_hud():RemoveCustomStatic("dynamic_hud")
 		mycurrent_suithud = nil
 		suitfirstrun = true
 	end
@@ -243,7 +242,7 @@ end
 function init_blurs()
 	if not blurs_enable then return end
 	if mycurrent_suithud ~= nil
-		and suit_condition~="red3"	-- много дырок, стекло не запотевает
+		and suit_condition~="6"	-- много дырок, стекло не запотевает
 		and wotsuittype~="hud_sci"	-- вентиляция в научных костюмах
 	then
 		local zoom=67.5/device().fov
@@ -393,5 +392,4 @@ function on_save_options()
 	zoom_enable = game_options.DynHudZoom
 	blood_enable = game_options.DynHudBlood
 	bleed_enable = game_options.DynHudBleed
-	this.remove_dynhud()
 end
