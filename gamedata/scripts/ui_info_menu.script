@@ -39,12 +39,16 @@ end
 
 class "CUIInfoMenu" (CUIScriptWnd)
 
-function CUIInfoMenu:__init( owner )
+function CUIInfoMenu:__init()
 	super()
-	
-	self.owner = owner
 
-	self.info_portions, self.files, self.info_count = collect_info_portions.main()
+	self.is_actor_alive = db.actor and db.actor:alive()
+	
+	collect_info_portions.main()
+	self.info_portions = cheat_base.list_info.info_portions
+	self.files = cheat_base.list_info.files
+	self.info_count = cheat_base.list_info.info_count
+
 	self.last_search = {}
 
 	self:InitControls()
@@ -104,14 +108,16 @@ function CUIInfoMenu:InitControls()
 --	self.list_action:ShowSelectedItem( true )
 	self:Register( self.list_action, "list_action" )
 
-	self.search = self:InitEditBoxEx( self, 20, 20, 350, "pda" )
+	self.search = xml:InitEditBox( "edit_search", self )
 	self.search:SetText( "Поиск инфо-поршенов" )
-	self.search:SetInputLanguage( 0, true )
+	set_input_language(0)
 
 	local btn = xml:Init3tButton( "btn_give_info", self )
 	self:Register( btn, "button_give" )
+	btn:Enable( self.is_actor_alive )
 	btn = xml:Init3tButton( "btn_disable_info", self )
 	self:Register( btn, "button_disable" )
+	btn:Enable( self.is_actor_alive )
 	btn = xml:Init3tButton( "btn_quit", self )
 	self:Register( btn, "button_quit" )
 
@@ -271,7 +277,8 @@ end
 
 function CUIInfoMenu:OnMsgYes()
 	if self.func then
-		loadstring( self.func.."()" )()
+		local res, err = pcall( loadstring( self.func.."()" ) )
+		log( res and "- Successfully!" or "! Error: "..err )
 		self.func = nil
 	end
 end
@@ -325,6 +332,7 @@ end
 function CUIInfoMenu:SearchInfo()
 	local text = self.search:GetText()
 	if text == "" then return end
+
 	local br, file_index, info_index
 	local tmp = {}
 	for i, v in ipairs( self.files ) do
@@ -352,27 +360,32 @@ function CUIInfoMenu:SearchInfo()
 	local item_id = file_index - 1
 	local itm = self.list_files:GetItem( item_id )
 	if itm == nil then return end
-	self.list_files:SetFocusedItem( item_id )
 	self.list_files:ScrollToPos( item_id )
 	local file_name = itm.st:GetText()
-	self.selected_file = file_name
-	self:FillInfo( file_name )
+	if self.selected_file ~= file_name then
+		self.list_files:SetFocusedItem( item_id )
+		self.selected_file = file_name
+		self:FillInfo( file_name )
+	end
 
 	item_id = info_index - 1
 	itm = self.list_info:GetItem( item_id )
 	if itm == nil then return end
-	self.list_info:SetFocusedItem( item_id )
 	self.list_info:ScrollToPos( item_id )
-	self.selected_info = itm.st:GetText()
-	self.info_index = item_id
+	local info = itm.st:GetText()
+	if self.selected_info ~= info then
+		self.selected_info = info
+		self.list_info:SetFocusedItem( item_id )
+		self.info_index = item_id
 
-	self.list_disable:RemoveAll()
-	self.list_task:RemoveAll()
-	self.list_article:RemoveAll()
-	self.list_action:RemoveAll()
-	self.task_descr:SetText( "" )
-	for k, v in pairs( tmp ) do
-		self:FillTagList( k, v )
+		self.list_disable:RemoveAll()
+		self.list_task:RemoveAll()
+		self.list_article:RemoveAll()
+		self.list_action:RemoveAll()
+		self.task_descr:SetText( "" )
+		for k, v in pairs( tmp ) do
+			self:FillTagList( k, v )
+		end
 	end
 end
 
@@ -401,11 +414,7 @@ function CUIInfoMenu:OnButtonDisableClicked()
 end
 
 function CUIInfoMenu:OnButtonQuitClicked()
-	if self.owner then
-		self:GetHolder():start_stop_menu( self.owner, true )
-		self.owner:Show( true )
-	end
-	self:unregister_self()
+	self:GetHolder():start_stop_menu( self.owner.spawn_menu, true )
 	self:GetHolder():start_stop_menu( self, true )
 end
 

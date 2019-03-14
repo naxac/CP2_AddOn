@@ -37,7 +37,7 @@ function ui_cheat_general:InitControls(x, y, handler)
 	local con = get_console()
 	
 	self.show_spawn =		function( wnd )
-								cheat_main.show_spawn_menu( wnd )
+								ui_cheat_soc.start_menu( wnd )
 							end
 	self.show_teleport =	function( wnd )
 								naxac_teleport.start_menu( wnd )
@@ -163,72 +163,6 @@ function ui_cheat_general:InitControls(x, y, handler)
 	handler:Register(btn, "btn_unlim_ammo")
 	handler:AddCallbackEx("btn_unlim_ammo", ui_events.BUTTON_CLICKED, self.on_UnlimAmmo)
 	btn:SetCheck(con:get_bool("g_unlimitedammo"))
-end
-
-function show_spawn_menu(self)
-	if cheat_list == nil then
-		cheat_list = {}
-		local sections = collect_sections.main()
-		for k, v in pairs( sections ) do
-			local t = {}
-			cheat_list[ k ] = t
-			for i, s in ipairs( v ) do
-				table.insert( t, { s, game.translate_string( get_inv_name( s ) ) } )
-			end
-			table.sort( t, sort_main )
-		end
-	end
-
-	local spawn_menu = ui_cheat_soc.cheat_menu()
-	spawn_menu.owner = self
-	
-	self:GetHolder():start_stop_menu(spawn_menu, true)
-	self:GetHolder():start_stop_menu(self, true)
-	self:Show(false)
-end
-
--- Сортируем предметы по алфавиту: чтоб было проще искать нужное
-function sort_main(s1,s2)
-	local sname = sort_by_name(s1[2], s2[2])
-	if sname ~= nil then return sname end
-	return sort_by_section(s1[1], s2[1])
-end
-
-function sort_by_name(n1, n2)
-	n1 = string.lower1(n1)
-	n2 = string.lower1(n2)
-	local cnt = math.min(#n1, #n2)
-	local l1, l2
-	for a=1,cnt do
-		l1 = n1:sub(a,a):byte()
-		l2 = n2:sub(a,a):byte()
-		if l1~=l2 then return l1<l2 end
-	end
-	return nil
-end
-	
-function sort_by_section(s1, s2)
-	local cnt = math.min(#s1, #s2)
-	local l1, l2
-	for a=1,cnt do
-		l1 = s1:sub(a,a):byte()
-		l2 = s2:sub(a,a):byte()
-		if l1~=l2 then return l1<l2 end
-	end
-	return #s1<#s2
-end
-
-function give_mob_icon(section)
-	local t = {}
-	local texture = sys_ini:r_string_ex(section, "icon", "ui_npc_monster_mutant_boar")
-	
-	local tex_info = GetTextureInfo(texture, texture)
-	local rect = tex_info:get_rect()
-	t.x = rect.x1
-	t.y = rect.y1
-	t.w = rect.x2 - rect.x1
-	t.h = rect.y2 - rect.y1
-	return t, tex_info:get_file_name()
 end
 
 function show_restrictors()

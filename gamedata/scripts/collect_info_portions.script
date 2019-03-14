@@ -1,143 +1,57 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -----------------------------------------------------------------------------------------
--- File                  : collect_info_portions.script
--- Description    : Чтение инфопорций из конфигов
--- Created          : 28.09.2018
--- Last update   : 08.10.2018
--- Author            : naxac
+-- File			: collect_info_portions.script
+-- Description	: Чтение инфопорций из конфигов
+-- Created		: 28.09.2018
+-- Last update	: 03.03.2019 /адаптация к ОП-2.1/
+-- Author		: naxac
 -----------------------------------------------------------------------------------------
 
-local info_portions = nil
-local files = nil
-local info_count = 0
-
-function main( need_sort, rewrite )
---	log( "%s: start", script_name() )
-	if info_portions then
-		return info_portions, files, info_count
-	else
-		info_portions = {}
-		files = {}
-	end
-
-	local fs = getFS()
-	local ex = fs:exist( "$game_config$", "info_portions.ltx" )
-	if ex == nil or rewrite then
-		local ff = fs:update_path( "$game_config$", "info_portions.ltx" )
-		if ex == nil then
-			local f1 = fs:update_path( "$fs_root$", "fsgame.ltx" )
-			fs:file_copy( f1, ff )
-		end
-
+function main( rewrite )
+	if _G.cheat_base == nil
+		or _G.cheat_base.list_info == nil
+		or rewrite
+	then
+		local info_portions = {}
+		local files = {}
+		if _G.cheat_base == nil then _G.cheat_base = {} end
+		_G.cheat_base.list_info = {}
+		_G.cheat_base.list_info.info_portions = info_portions
+		_G.cheat_base.list_info.files = files
 
 		local str = system_ini():r_string( "info_portions", "files" )
 		for s in string.gmatch( str, "[%w_]+" ) do
 			table.insert( files, s )
 		end
-		-- table.print( files )
+
+		local fs = getFS()
 		local p
 		for i, f  in ipairs( files ) do
 			p = "gameplay\\"..f..".xml"
 			ex = fs:exist( "$game_config$", p )
 			if not ex then
 				info_portions[ f ] = "File not exist"
-	--			log( "! %s: Error! File not found: [%s]", script_name(), p )
+				log( "! %s: Error! File not found: [%s]", script_name(), p )
 			elseif ex.modif == 0 then
 				info_portions[ f ] = "File don't unpack"
-	--			log( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
+				log( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
 			else
 				local file = fs:r_open( "$game_config$", p )
 				info_portions[ f ] = {}
-	--			log( "parse file %s", p )
+				log( "parse file %s", p )
 				parse_file( file:r_stringZ(), info_portions[ f ] )
 			end
 		end
 
-
-		local file = io.open( ff, "w" )
-		if file then
-			file:write( "; Список файлов\n" )
-			file:write( "[files]\n" )
-			for i, v in ipairs( files ) do
-				file:write( v, "\n" )
-			end
-			file:write( "\n\n" )
-
-			file:write( "; Инфопоршни по файлам\n" )
-			local tmp = {}
-			for f, t in pairs( info_portions ) do
-				file:write( "[", f, "]\n" )
-				if type( t ) == "table" then
-					for i, v in ipairs( t ) do
-						file:write(  v.info, "\n" )
-						if table.size( v ) > 1 then
-							table.insert( tmp, table.copy( {}, v ) )
-						end
-					end
-				else
-					file:write( "empty = ", string.gsub( t, "%s", "_" ), "\n" )
-				end
-				file:write( "\n\n" )
-			end
-
-			file:write( "; Секции для инфопоршней с тэгами\n" )
-			for i, v in ipairs( tmp ) do
-				file:write( "[", v.info, "]\n" )
-				for k, t in pairs( v ) do
-					if k ~= "info" then
-						file:write( k, " = ", table.concat( t, "," ), "\n" )
-					end
-				end
-				file:write( "\n" )
-			end
-			file:close( file )
-		end
-	else
-		local ini = ini_file( "info_portions.ltx" )
-		local res, id, val
-		for i = 0, ini:line_count( "files" ) - 1 do
-			res, id, val = ini:r_line( "files", i, "", "" )
-			table.insert( files, id )
-		end
-
-		for i, s in ipairs( files ) do
-			if ini:section_exist( s ) then
-				if ini:line_exist( s, "empty" ) then
-					info_portions[ s ] = string.gsub( ini:r_string( s, "empty" ), "_", " " )
-				else
-					local t = {}
-					info_portions[ s ] = t
-					for j = 0, ini:line_count( s ) - 1 do
-						res, id, val = ini:r_line( s, j, "", "" )
-						local tt = {}
-						tt.info = id
-						if ini:section_exist( id ) then
-							for ii = 0, ini:line_count( id ) - 1 do
-								local r, tg, vals = ini:r_line( id, ii, "", "" )
-								tt[ tg ] = string.explode( vals, "," )
-							end
-						end
-						table.insert( t, tt )
-					end
-				end
+		local info_count = 0
+		for k, v in pairs( info_portions ) do
+			if type( v ) == "table" then
+				info_count = info_count + #v
 			end
 		end
+		_G.cheat_base.list_info.info_count = info_count
+		table.print( _G.cheat_base.list_info )
 	end
-
-	info_count = 0
-	for k, v in pairs( info_portions ) do
-		if type( v ) == "table" then
-			if need_sort then
-				table.sort( v, sort_info )
-			end
-			info_count = info_count + #v
-		end
-	end
---	log( "info_portions count: %d", n )
-
---	table.print( info_portions )
---	log( "%s: complete", script_name() )
-	return info_portions, files, info_count
 end
 
 function parse_file( str, tbl )
@@ -164,19 +78,4 @@ function parse_file( str, tbl )
 		end
 		table.insert( tbl, t )
 	end
-end
-
--- сортируем поршни по алфавиту
-function sort_info( t1, t2 )
-	local s1, s2 = t1.info, t2.info
-	local n = math.min( #s1, #s2 )
-	local b1, b2
-	for a = 1, n do
-		b1 = s1:sub( a, a ):byte()
-		b2 = s2:sub( a, a ):byte()
-		if b1 ~= b2 then
-			return b1 < b2
-		end
-	end
-	return #s1 < #s2
 end
