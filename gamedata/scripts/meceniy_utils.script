@@ -1,18 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --\\*Модуль Настройки Мода..Меченый(Стрелок)..
 
---Функция для чтения из конфига
-function ini(section,parametr) return sys_ini:r_s32(section, parametr) end
-
---Настройки мода
-zombie = 1 			--\\*Зомбирование ГГ (1 - вкл , 0 - выкл)
---invisible = 1 		--\\*невидимость в Костюме (1 - вкл , 0 - выкл)
-teleporter_use = 1 	--\\*Использование Умного Ручного Телепорта (1 - вкл , 0 - выкл)
-hell = 1 			--\\*Время Ужаса (1 - вкл , 0 - выкл)
-hell_spawn = 1 		--\\*Спавн Монстров На уровне во время ужаса (1 - вкл , 0 - выкл)
-din_rad = 0			--\\*Динамическая Радиация (1 - вкл , 0 - выкл)
-effector_spawn = 1	--\\*Спавн "Электоро кровососов" при получении инфопоршня о наличие квестового предмета(1 - вкл , 0 - выкл)
-
 local tup = 0
 
 function on_actor_update_callback()
@@ -20,38 +8,26 @@ function on_actor_update_callback()
 	meceniy_outfit.on_actor_update()
 	amk.oau_watchdog=19313
 	meceniy_wpn.on_actor_update()
+	amk.oau_watchdog=19314
+	meceniy_work.mainw()
 end
 
 --функция для чтения  версии мода(от Artos'a)
-function read_mod_ver(opt)
-local s1,s2,s4,s5 = "","","",""
-local sini = ini_file("narod_opt.ltx")
-local id, value = "", "", result
-local section = "mod_ver"
-	
-if sini and sini:section_exist(section) then
-for i=0, sini:line_count(section)-1 do
-result, id, value = sini:r_line(section, i, "", "")
-if     id == "type" then
-s1 = value
-elseif id == "title" then
-s2 = value
-elseif id == "build" then
-s4 = value
-elseif id == "fix" then
-s5 = value
-end
-end
-end
-	
-if opt == "txt" then
--- нормальное отображение версии мода. Символы подчеркивания заменяются на пробелы
--- if s5 ~= "" then s5 = "+"..s5 end
--- return s1.." \""..s2.."\""..""..s4..s5..""
-return string.gsub( s1..s2..s4..s5, "_", " " )
-end
-	
-return s1,s2,s4,s5
+function read_mod_ver()
+	local s = ""
+	s = s..game.translate_string( "mod_ver_type" )
+	s = s.." ( "..game.translate_string( "mod_ver_patch" )
+	s = s..", "..game.translate_string( "mod_ver_fix" ).." )"
+	s = s.." .. + .. "..game.translate_string( "mod_ver_addon" )
+	-- надоело постоянно править narod_opt.ltx, пусть дата сама читается
+	local path = getFS():update_path( "$fs_root$", "gamedata.dbh" )
+	local attr = lfs.attributes( path )
+	if attr then
+	--	table.print(attr)
+		local t_date = os.date( "*t", attr.modification )
+		s = s..string.format( " / %02d.%02d.%04d /", t_date.day, t_date.month, t_date.year )
+	end
+	return s
 end
 
 function delete_some_somth(section, count)
