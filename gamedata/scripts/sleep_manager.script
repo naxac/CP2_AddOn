@@ -15,9 +15,17 @@ function main(scale)		-- in hours
 	bind_stalker.hide_weapon("sleep")
 	level.disable_input()
 	sleep_manager.starter (scale)
+
+	local w = level.main_input_receiver()
+	if w then level.start_stop_menu( w, true ) end
 end
 
 function starter(scale)
+	-- проверка на выброс, чтобы проснуться при его начале
+	local timer_blow = xr_timers.get_timer( "blow_shift" )
+	if timer_blow.time_shift <= scale * 3600000 then
+		scale = ( timer_blow.time_shift - math.min(3000*level.get_time_factor(), timer_blow.time_shift) ) / 3600000
+	end
 	sleep_time = amk.game_minutes()
 	game.start_tutorial("time_scaling")
 	level.change_game_time( 0, scale, 0 )
@@ -35,9 +43,10 @@ function stopper()
 	if not isSleepActive then
 		return
 	end
+	isSleepActive = false
 
 	if db.actor:alive() then
-		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "sleep_manager.sleep_end")
+		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "level.enable_input")
 		level.add_pp_effector("yantar_underground_psi.ppe", 2007, false)
 		level.add_pp_effector("total_recall.ppe", 2008, false)
 		bind_stalker.restore_weapon("sleep")
@@ -53,11 +62,6 @@ function stopper()
 	else
 		level.enable_input()
 	end
-end
-
-function sleep_end()
-	level.enable_input()
-	isSleepActive = false
 end
 
 function is_sleep_active()
