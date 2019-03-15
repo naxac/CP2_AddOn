@@ -36,50 +36,43 @@ local community_last = ""
 local zombied_community_last = "zombied_community_last"
 
 function mainw()
-	if meceniy_utils.zombie == 0 then return end
-mybrains()
+	mybrains()
 	zombie()
 end
 
 function zombie()
 	if zombien then
-level.add_pp_effector("snd_shock.ppe", 20080401, false)
-level.add_pp_effector("psychic.ppe", 20081017, false)
-level.add_pp_effector("psy_antenna.ppe", 20081018, false)
-level.add_pp_effector("psi.ppe", 20081019, false)
-level.add_pp_effector("alcohol.ppe", 20081020, false)
-else
-level.remove_pp_effector(20080401)
-level.remove_pp_effector(20081017)
-level.remove_pp_effector(20081018)
-level.remove_pp_effector(20081019)
-level.remove_pp_effector(20081020)
-end
+		level.add_pp_effector("snd_shock.ppe", 20080401, false)
+		level.add_pp_effector("psychic.ppe", 20081017, false)
+		level.add_pp_effector("psy_antenna.ppe", 20081018, false)
+		level.add_pp_effector("psi.ppe", 20081019, false)
+		level.add_pp_effector("alcohol.ppe", 20081020, false)
+	else
+		level.remove_pp_effector(20080401)
+		level.remove_pp_effector(20081017)
+		level.remove_pp_effector(20081018)
+		level.remove_pp_effector(20081019)
+		level.remove_pp_effector(20081020)
+	end
 end
 
 function mybrains()
-	if not zombien and db.actor.psy_health <= 0.4 then
+	if (not zombien) and db.actor.psy_health <= 0.4 then
 		community_last = db.actor:character_community()
 		--db.actor:give_info_portion(zombied_community_last..community_last)
 		amk.save_variable(zombied_community_last, community_last)
 		db.actor:give_info_portion(info_zombien)
-db.actor:set_character_community("zombied", 0, 0)
+		db.actor:set_character_community("zombied", 0, 0)
 		zombien = true
 		return
-end
+	end
 	if db.actor.psy_health > 0.9 and zombien then
 		--db.actor:disable_info_portion(zombied_community_last..community_last)
 		amk.del_variable(zombied_community_last)
 		db.actor:disable_info_portion(info_zombien)
 		zombien = false
 		db.actor:set_character_community(community_last, 0, 0)
-end
-end
-
-function on_item_use(obj)
-if obj:section() == "antizombie" then
-db.actor.psy_health=1.0
-end
+	end
 end
 -- конец зомбирования
 
@@ -194,7 +187,7 @@ function set_range(bHide)
 			and npc:alive()
 		then
 			if bHide then
-				npc:set_range(2)
+				npc:set_range(1)
 			else
 				npc:set_range(sys_ini:r_float(npc:section(), "eye_range"))
 			end
@@ -227,24 +220,9 @@ function give_meceniy_outfit()
 end
 
 function prepare_for_work()
-	if meceniy_utils.zombie == 0 then return end
-	
-	--загружаем список группировок
-	local iniFileName = "creatures\\game_relations.ltx"
-	local sini = ini_file(iniFileName)
-	if sini then
-		--db.communities = amk.parse_ini_section_to_array(sini, "communities_sympathy")
-		db.communities = amk.parse_ini_section_to_array_new(iniFileName, "communities_sympathy")
-end
-
 	zombien = db.actor:has_info(info_zombien)
 	if zombien then
 		-- кем же был ГГ до зомбирования ?
-		community_last = amk.load_variable(zombied_community_last, "")
-		
-		if community_last == "" then --нонсенс - ругаемся!
-			log("Ошибка в работе зомбирования - не найдена предыдущая группировка ГГ! Присвоена: stalker.")
-			community_last = "stalker"
-		end
-end
+		community_last = amk.load_variable(zombied_community_last, "actor")
+	end
 end
