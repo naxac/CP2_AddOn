@@ -629,7 +629,10 @@ function CTreasure:treasure_empty(box, box_story_id)
 		return
 	end
 
-	self.treasure_info[k].active = false
+	if self.treasure_info[k].active then
+		self.treasure_info[k].active = false
+		actor_stats.add_points("treasures", level.name(), 1, 1)
+	end
 	
 	-- если тайник не именной, то переведен его в онлайн для следующей выдачи
 	if self.treasure_info[k].named == false then
@@ -637,7 +640,6 @@ function CTreasure:treasure_empty(box, box_story_id)
 	end
 	
 	level.map_remove_object_spot(box:id(), "treasure")
-	actor_stats.add_points("treasures", level.name(), 1, 1)
 end
 --' Сохранение
 function CTreasure:save(p)
