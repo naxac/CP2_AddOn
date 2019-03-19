@@ -54,36 +54,30 @@ local conditions = {
 	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v') *100
 }
 -- параметры костюмов и артов
-local conditions_params = {
+local conditions_params_af = {
 	{ prop = "health_restore_speed",	text = "Здоровье:",		tex = "health"		},
 	{ prop = "bleeding_restore_speed",	text = "Кровотечение:",	tex = "bleeding"	},
 	{ prop = "satiety_restore_speed",	text = "Сытость:",		tex = "satiety"		},
 	{ prop = "power_restore_speed",		text = "Выносливость:",	tex = "power"		},
 	{ prop = "radiation_restore_speed",	text = "Радиация:",		tex = "radiation_2"	}
 }
--- иммунитеы артефактов из hit_absorbation_sect
-local af_params = {
+local conditions_params_outfit = {
+	{ prop = "health_restore_speed",	text = "Здоровье:",		tex = "health"		},
+	{ prop = "bleeding_restore_speed",	text = "Кровотечение:",	tex = "bleeding"	},
+	{ prop = "satiety_restore_speed",	text = "Сытость:",		tex = "satiety"		},
+	{ prop = "power_restore_speed",		text = "Выносливость:",	tex = "power"		}
+}
+-- Типы хитов и соответствующие им текстуры и названия
+local hit_types = {
 	{ prop = "burn_immunity",			text = "Ожог:",			tex = "burn"		},
 	{ prop = "shock_immunity",			text = "Электрошок:",	tex = "shock"		},
 	{ prop = "strike_immunity",			text = "Удар:",			tex = "strike"		},
 	{ prop = "wound_immunity",			text = "Разрыв:",		tex = "wound"		},
-	{ prop = "radiation_immunity",		text = "Радиация:",		tex = "radiation_1"	},
+	{ prop = "radiation_immunity",		text = "Радиация:",		tex = "radiation"	},
 	{ prop = "telepatic_immunity",		text = "Телепатия:",	tex = "telepatic"	},
 	{ prop = "chemical_burn_immunity",	text = "Хим. ожог:",	tex = "chemical"	},
 	{ prop = "explosion_immunity",		text = "Взрыв:",		tex = "explosion"	},
 	{ prop = "fire_wound_immunity",		text = "Пулестойкость:",tex = "fire_wound"	}
-}
--- защиты котюмов
-local outfit_params = {
-	{ prop = "burn_protection",			text = "Ожог:",			tex = "burn"		},
-	{ prop = "shock_protection",		text = "Электрошок:",	tex = "shock"		},
-	{ prop = "strike_protection",		text = "Удар:",			tex = "strike"		},
-	{ prop = "wound_protection",		text = "Разрыв:",		tex = "wound"		},
-	{ prop = "radiation_protection",	text = "Радиация:",		tex = "radiation_1"	},
-	{ prop = "telepatic_protection",	text = "Телепатия:",	tex = "telepatic"	},
-	{ prop = "chemical_burn_protection",text = "Хим. ожог:",	tex = "chemical"	},
-	{ prop = "explosion_protection",	text = "Взрыв:",		tex = "explosion"	},
-	{ prop = "fire_wound_protection",	text = "Пулестойкость:",tex = "fire_wound"	}
 }
 -- Параметры еды
 local eatable_params = {
@@ -96,68 +90,91 @@ local eatable_params = {
 	{ prop = "eat_radiation",			text = "Радиация:",		tex = "radiation_2"	},
 	{ prop = "eat_radiation_arc",		text = "Радиация:",		tex = "radiation_2"	}
 }
-local function GetConditions(section, condition)
-	if not condition then condition = 1 end
+-- Получаем параметры артефактов
+function GetAfParams(section)
 	local ret = {}
-	local val, txt = 0, ""
-	for i,t in ipairs(conditions_params) do
-		val = sys_ini:r_float_ex(section, t.prop, 0)
+	local val, txt, unit = 0, "", ""
+
+	for i,t in ipairs(conditions_params_af) do
+		val = sys_ini:r_float(section, t.prop, 0)
 		if val~=0 then
-			val = condition* val*100/conditions[t.prop]
+			val = val*100/conditions[t.prop]
 			txt = t.text.." "
 			if t.prop == "bleeding_restore_speed" then
 				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
 				val = -val
+				unit = "%"
 			elseif t.prop == "radiation_restore_speed" then
 				txt = txt..(val>0 and "%c[red]+" or "%c[green]")
+				unit = "Ки"
 			else
 				txt = txt..(val>0 and "%c[green]+" or "%c[red]")
+				unit = "%"
 			end
-			txt = txt..string_format("%d",val)
+			txt = txt..string_format("%d",val)..unit
 			table_insert( ret, {t.tex, txt} )
 		end
 	end
-	return ret
-end
--- Получаем параметры артефактов
-function GetAfParams(section)
-	local ret = GetConditions(section)
-	local val, txt = 0, ""
+
 	local hit_absorbation_sect = sys_ini:r_string(section, "hit_absorbation_sect")
-	for i,t in ipairs(af_params) do
-		val = sys_ini:r_float(hit_absorbation_sect, t.prop)
+	for i,t in ipairs(hit_types) do
+		val = sys_ini:r_float(hit_absorbation_sect, t.prop.."_immunity")
 		if val~=1 then
 			val = 100-val*100
 			txt = t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
 			table_insert( ret, {t.tex, txt} )
 		end
 	end
-	val = sys_ini:r_float_ex(section, "additional_inventory_weight", 0)
-	if val~=0 then
-		txt = "Переносимый вес: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." кг"
-		table_insert( ret, {"additional_weight", txt} )
+
+	if sys_ini:line_exist(section, "additional_inventory_weight") then
+		val = sys_ini:r_float(section, "additional_inventory_weight")
+		if val~=0 then
+			txt = "Переносимый вес: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." кг"
+			table_insert( ret, {"additional_weight", txt} )
+		end
 	end
 	return ret
 end
 
 -- Получаем параметры костмов
 function GetOutfitParams(section, condition)
-	local ret = GetConditions(section, condition)
+	local ret = {}
 	local val, txt = 0, ""
-	for i,t in ipairs(outfit_params) do
-		val = sys_ini:r_float(section, t.prop)
+	for i,t in ipairs(hit_types) do
+		val = sys_ini:r_float(section, t.prop.."_protection")
 		if val~=0 then
 			val = val*100*condition
 			txt = t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
 			table_insert( ret, {t.tex, txt} )
 		end
 	end
-	val = sys_ini:r_float_ex(section, "additional_inventory_weight", 0)
-	if val>0 then
-		val = val * condition
-		txt = "Грузоподъёмность: %c[green]+"..string_format("%.1f",val).." кг"
-		table_insert( ret, {"additional_weight", txt} )
+
+	if sys_ini:line_exist(section, "additional_inventory_weight") then
+		val = sys_ini:r_float_ex(section, "additional_inventory_weight", 0)
+		if val>0 then
+			val = val * condition
+			txt = "Грузоподъёмность: %c[green]+"..string_format("%.1f",val).." кг"
+			table_insert( ret, {"additional_weight", txt} )
+		end
 	end
+	if sys_ini:line_exist(section, "power_loss") then
+		val = sys_ini:r_float(section, "power_loss")
+		if val ~= 0 then
+			txt = "Усталость: %c[red]+"..string_format("%d%%",val*100)
+			table_insert( ret, {"power_loss", txt} )
+		end
+	end
+
+	for i, t in ipairs(conditions_params_outfit) do
+		if sys_ini:line_exist(section, t.prop) then
+			val = sys_ini:r_float(section, t.prop)
+			if val ~= 0 then
+				txt = t.text.." "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%d%%",val*1000)
+				table_insert( ret, {"power", txt} )
+			end
+		end
+	end
+
 	return ret
 end
 -- Получаем описание оружия
@@ -497,6 +514,10 @@ function CUIDescriptionWnd:ShowDescription(item)
 		if not forbidden_wpns[sect] then
 			self:ShowWeaponParams(sect)
 		end
+	-- knife
+	elseif item:is_knife() then
+		local d = sys_ini:r_float(sect, 'fire_distance')
+		self:ShowProps( { {"fire_distance_knife", "дистанция удара: "..string_format("%.2f м.", d)} } )
 	-- scope
 	elseif item:is_scope() then
 		local zf = sys_ini:r_float(sect, 'scope_zoom_factor')
