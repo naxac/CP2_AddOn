@@ -71,7 +71,8 @@ local reg_callbacks = {
 	cell_item_clicked = "on_item_select",
 	item_drop = "on_item_drop",
 	item_take = "on_item_take",
-	drag_drop = "on_drag_drop"
+	drag_drop = "on_drag_drop",
+	update = "on_update"
 }
 
 function InvWnd:__init(owner) super()
@@ -128,6 +129,19 @@ function InvWnd:InitControls()
 		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.wpn_slot_focus, j)
 		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.wpn_slot_focus_lost, j)
 	end
+
+	self.rad_level = xml:InitStatic("rad_level", self.stat)
+	self.radX = self.rad_level:GetHPos()
+	self.radY = self.rad_level:GetVPos()
+	self.rad_max_height = self.rad_level:GetHeight()
+	if arc_inventory.IsRadDetected() then
+		local h = self.rad_max_height * arc_radiation.get_rad_dose() / arc_radiation.get_deadly_dose()
+		self.rad_level:SetHeight( h )
+		self.rad_level:SetWndPos( self.radX, self.radY + self.rad_max_height - h )
+	else
+		self.rad_level:SetHeight( 0 )
+	end
+	self.rad_upd_time = 0
 
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
 end
@@ -289,6 +303,21 @@ function InvWnd:on_item_select( item )
 	end
 end
 
+function InvWnd:on_update( delta )
+	self.rad_upd_time = self.rad_upd_time + delta
+	if self.rad_upd_time > 1000 then
+		self.rad_upd_time = 0
+		if arc_inventory.IsRadDetected() then
+			local h = self.rad_max_height * arc_radiation.get_rad_dose() / arc_radiation.get_deadly_dose()
+			self.rad_level:SetHeight( h )
+			self.rad_level:SetWndPos( self.radX, self.radY + self.rad_max_height - h )
+		else
+			self.rad_level:SetHeight( 0 )
+		end
+	end
+end
+--------------------------------------------------------------------------------------------------
+
 -- Чтобы не было глюков при продаже неписям
 function restore_slot( item )
 	if isMagazinedWeapon( item ) and alife():object( item:id() ) then
@@ -342,6 +371,8 @@ function on_options_change()
 	start_small_timer(300, function()
 		slotsKeys[1] = bind_to_dik(key_bindings.kUSE_MEDKIT)
 		slotsKeys[2] = bind_to_dik(key_bindings.kUSE_BANDAGE)
+		slotsKeys[3] = bind_to_dik(key_bindings.kEXT_1)
+		slotsKeys[4] = bind_to_dik(key_bindings.kCAM_4)
 	end)
 end
 ------------------------------------------------------------------------------------------
@@ -404,8 +435,8 @@ function on_net_spawn()
 	slotsKeys = {
 		[1] = bind_to_dik(key_bindings.kUSE_MEDKIT),
 		[2] = bind_to_dik(key_bindings.kUSE_BANDAGE),
-		[3] = DIK_keys.DIK_F3,
-		[4] = DIK_keys.DIK_F4
+		[3] = bind_to_dik(key_bindings.kEXT_1),
+		[4] = bind_to_dik(key_bindings.kCAM_4)
 	}
 end
 
