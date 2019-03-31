@@ -1,0 +1,99 @@
+local check_tbl = {}
+check_tbl["money_loot"] = function(item)
+	amk.spawn_item_in_inv("money_loot")
+	if not has_alife_info("barman_exchange_money") then
+		db.actor:give_info_portion("barman_exchange_money")
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]МЕЧЕНЫЙ:\\n%c[255,255,128,128]Бармен, привет. Тебе случайно деньги наличными не нужны?", 5, nil, 20000)
+		xr_timers.start_real_timer("run", 12, "arhara_dialog.barman_answer()")
+	end
+end
+check_tbl["device_scaner"] = function(item)
+	spatial_subway.use_scaner(item)
+end
+check_tbl["vodka"] = function(item)
+	amk_alcohol.drink_vodka_chunk()
+end
+check_tbl["anom_egg"] = function(item)
+	fly.start(item)
+end
+check_tbl["treasure_item"] = function(item)
+	news_main.create_treasurebox()
+end
+check_tbl["energy_drink"] = function(item)
+	amk_mod.test_for_need_sleep_nrg()
+end
+check_tbl["matras"] = function(item)
+	amk_mod.test_for_need_sleep_matras()
+end
+check_tbl["doc_1"] = function(item)
+	meceniy_outfit.doc_use()
+end
+check_tbl["doc_8"] = function(item)
+	meceniy_outfit.doc_use_2()
+end
+check_tbl["doc_10"] = function(item)
+	meceniy_outfit.doc_use_3()
+end
+check_tbl["sweetness"] = function(item)
+	archievements.acv_count_event("acv_mars", 20, "Марсианин")
+end
+check_tbl["suvorotka"] = function(item)
+	archievements.acv_count_event("acv_nar", 20, "Наркоман")
+end
+check_tbl["conserva"] = function(item)
+	archievements.acv_count_event("acv_kons", 40, "Консерватор")
+end
+check_tbl["kolbasa"] = function(item)
+	archievements.acv_count_event("acv_klb", 40, "Колбасник")
+end
+check_tbl["bread"] = function(item)
+	archievements.acv_count_event("acv_bul", 40, "Булочник")
+end
+check_tbl["amk_transmutator"] = function(item)
+	amkii_transmutator.amkEnableDevice()
+end
+check_tbl['hand_teleporter'] = function(item)
+	meceniy_intellectual.hand_teleporter_use()
+end
+check_tbl['snotvornoe_tele'] = function(item)
+	kostya_dialog.peshera_start()
+end
+check_tbl['shaxter_tele'] = function(item)
+	kostya_dialog.peshera_end()
+end
+check_tbl['teleportator'] = function(item)
+	level.start_stop_menu(ui_teleportator.teleportator_menu(), true)
+end
+check_tbl['repair_item_outfit'] = function(item)
+	amk.spawn_item_in_inv('repair_item_outfit')
+end
+check_tbl['repair_item_weapon'] = function(item)
+	amk.spawn_item_in_inv('repair_item_weapon')
+end
+
+function check(item)
+	local sect = item:section()
+
+	if string.find(sect,"^fake_wpn_") then
+		monnoroch.fake_weapon_effect(sect, item:condition())
+	elseif string.find(sect,"^repair_item_") == nil then
+		zvuki.use_snd(sect)
+	end
+
+	if check_tbl[sect] then
+		check_tbl[sect](item)
+	end
+
+	if sys_ini:line_exist(sect, "eat_radiation_arc") then
+		arc_radiation.use_antirad(sys_ini:r_float(sect, "eat_radiation_arc"))
+	end
+	if sys_ini:line_exist(sect, "eat_sleep") then
+		amk_mod.test_for_need_sleep_med(sys_ini:r_float(sect, "eat_sleep"))
+	end
+	if sys_ini:line_exist(sect, "eat_psy_health") then
+		db.actor.psy_health = sys_ini:r_float(sect, "eat_psy_health")
+	end
+
+	archievements.on_use_item(sect)
+	spawn_level_changer.checking_droped_obj(sect)
+end
