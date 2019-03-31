@@ -479,13 +479,14 @@ function update_gps_stalker(box, boxId, is_new_metka)
 	end
 end
 
-function correct_name(inv_name)
-	if inv_name then
+function get_name(section)
+	local inv_name = game.translate_string( artefact_hunter.get_art_name(section, true) )
+	if inv_name~= "" then
 		if string_find(inv_name, "Патроны") == 1 then
 			return trim(string_gsub(inv_name, "Патроны", "П:"))
 		elseif string_find(inv_name, "Комбинезон") == 1 then
 			return trim(string_gsub(inv_name, "Комбинезон", "Комб"))
-		elseif string_find(inv_name, "Противорадиационные препараты") == 1 or string_find(inv_name, "Антирадиационные препараты") == 1 then
+		elseif string_find(inv_name, "Противорадиационные") == 1 or string_find(inv_name, "Антирадиационные") == 1 then
 			return "Антирад"
 		elseif string_find(inv_name, "Радость туриста") then
 			return "Консерва"
@@ -494,15 +495,13 @@ function correct_name(inv_name)
 		elseif string_find(inv_name, "Энергетический") == 1 or string_find(inv_name, "Энергетик") == 1 then
 			return "Энергетик"
 		end
-	else
-		return ""
 	end
 	
 	return inv_name
 end
 
 function get_color(secName)
-	if not secName or string.len(secName) == 0 then
+	if (not secName) or string.len(secName) == 0 then
 		return "%c[default]"
 	end
 	
@@ -512,7 +511,7 @@ function get_color(secName)
 		return "%c[254,243,122,11]" -- оранжевый
 	elseif string_find(lsecName, "ammo_") == 1 or string_find(lsecName, "grenade_") == 1 then -- нашли патроны
 		return "%c[254,129,129,11]" -- хаки
-	elseif string_find(lsecName, "af_") == 1 then -- нашли артефакт
+	elseif bind_det_arts.is_detected_art(lsecName) then -- нашли артефакт
 		return "%c[207,255,085,085]" -- красный
 	elseif string_find(lsecName, "mutant_") or string_find(lsecName, "part_") or string_find(lsecName, "_cocoon") then -- нашли часть монстра или эмбрион
 		return "%c[50,1,150,1]" -- зеленый
@@ -562,21 +561,16 @@ function update_gps_habar(boxId)
 			local sim = alife()
 			
 			for i, v in pairs(items_in_box[boxId]) do
---				if table.getn(itemsbox) > 51 then
---					break
---				end
-				
 				locObj = sim:object(v.id)
 				if locObj and locObj:section_name() then
 					secName = locObj:section_name()
-					--invName = correct_name(game.translate_string(sys_ini:r_string(secName, "inv_name")))
-					invName = correct_name(game.translate_string(getIniValueString(secName, "inv_name","",nil)))
+					invName = get_name(secName)
 					
 					is_yes = false
 					-- mylog("itemsbox = " .. table.getn(itemsbox))
 					for k, kk in pairs(itemsbox) do
 						-- mylog("k = " .. k)
-						if kk.sn == secName then
+						if kk.inv == invName then
 							kk.cnt = kk.cnt + 1
 							is_yes = true
 							break
@@ -759,14 +753,14 @@ function update_gps_state()
 end
 
 function show_dlg_dots_npc(obj)
-	if not obj or not is_set_label_on_npc then
+	if (not obj) or (not is_set_label_on_npc) then
 		return
 	end
 
 	-- это не маячок или маячок, но лежит на улице или у ГГ в инвентаре, заканчиваем
 	local secName = obj:section()
 	local boxId = get_inventory_box_id(obj)
-	if not boxId or boxId == 0 or boxId == 65535 or not secName or secName ~= "amk_metka" then
+	if not boxId or boxId == 0 or boxId == 65535 or (not secName) or secName ~= "amk_metka" then
 		return
 	end
 	

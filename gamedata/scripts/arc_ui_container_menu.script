@@ -66,11 +66,15 @@ function arc_container_menu:DrawArtButton(art_index, button_number, multi)
 	
 	b = btns[button_number]
 	if ((not b) or (not multi)) and (art_index>0) then
-		rd = arc_arts.get_art_inv_rad(art_index)
-		if rd == 0 then
-			rd = arc_arts.get_art_belt_rad(art_index)
+		if artefact_hunter.is_known_art( arc_arts.get_art_section(art_index) ) then
+			rd = arc_arts.get_art_inv_rad(art_index)
+			if rd == 0 then
+				rd = arc_arts.get_art_belt_rad(art_index)
+			end
+			t = (rd>0 and "+" or "")..string.format("%d", 10000*rd)
+		else
+			rd, t = 0, "0"
 		end
-		t = (rd>0 and "+" or "")..string.format("%d", 10000*rd)
 		tx, ty = arc_arts.get_art_texture(art_index)
 		tx, ty = 50*tx, 50*ty
 	end
@@ -84,7 +88,7 @@ function arc_container_menu:DrawArtButton(art_index, button_number, multi)
 		b:InitTexture("ui\\ui_icon_equipment")
 		b:SetOriginalRect(tx,ty,50,50)
 		
-		if t and t~="0" then
+		if rd and rd ~= 0 then
 			b:SetText(t)
 			if rd>0 then b:SetTextColor(255,238,153,26)
 			else b:SetTextColor(255,0,255,0) end
@@ -120,7 +124,7 @@ function arc_container_menu:DrawArtButton(art_index, button_number, multi)
 	elseif not multi then -- if updating take_buttons
 		if art_index>0 then
 			b:SetOriginalRect(tx,ty,50,50)
-			if t and t~="0" then
+			if rd and rd ~= 0 then
 				b:SetText(t)
 				if rd>0 then b:SetTextColor(255,238,153,26)
 				else b:SetTextColor(255,0,255,0) end

@@ -277,7 +277,7 @@ function CRandomTask:read_info_reward_section(tbl)
 		if phrase_id == nil then break end
 		-- amk.mylog("phrase_"..phr.." is "..phrase_id)
 		phr = phr + 1
-		tbl.reward_info_dialog[#tbl.reward_info_dialog+1] = phrase_id
+		table.insert(tbl.reward_info_dialog, phrase_id)
 	end
 	return true
 end
@@ -414,7 +414,7 @@ function CRandomTask:active_parent_task(actor, npc)
 end
 --' Есть ли игрока завершенные задания (которые осталось только сдать)
 function CRandomTask:have_completed_job(actor, npc)
-  print_table(self.active_task_by_type)
+--  print_table(self.active_task_by_type)
   local parent = self:get_parent(npc)
   for k,v in pairs(self.active_task_by_type) do
 --    printf("have_completed_job: %s", tostring(v))
@@ -480,6 +480,8 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
     objective:set_map_hint(task_desc.text)
     objective:set_map_location("find_item_location")
     objective:set_object_id(task_desc.selected_target)
+  elseif task_desc.type == "artefact" then	-- выдадим описание артефакта, иначе неизвестно, что надо искать
+  	artefact_hunter.add_art_info(task_desc.target)
   end
   objective:add_complete_func("task_manager.task_complete")
   task:add_objective(objective)
@@ -542,7 +544,7 @@ function CRandomTask:task_complete(p1, p2)
 
   local sel_task = self.task_info[self.active_task_by_type[p1]]
   if sel_task == nil then
-    log("!!!")
+    log("!!!CRandomTask:task_complete failed: current task is nil")
     table.print(self.active_task_by_type)
     log("!!!")
     table.print(self.task_info)
@@ -1034,18 +1036,10 @@ end
 --' Создается диалог актера, в котором будут приниматься задания
 function CRandomTask:init_reward_dialog(dlg, parent)
 	local phr = dlg:AddPhrase("tm_reward_job","0","",-10000)
-  local phrase_script = phr:GetPhraseScript()
+	local phrase_script
 --  amk.mylog("Creating reward dialog")
-
---  phr = dlg:AddPhrase("tm_"..parent.."_job_complete", "1", "0", -10000)
---  phrase_script = phr:GetPhraseScript()
---  phrase_script:AddAction("task_manager.action_task_reward")
---  phrase_script:AddPrecondition("task_manager.precondition_have_completed_job")
       
-  phr = dlg:AddPhrase("tm_"..parent.."_job_ask", "2", "0", -10000)
-  phrase_script = phr:GetPhraseScript()
---  phrase_script:AddPrecondition("task_manager.precondition_dont_have_completed_job")
-
+	phr = dlg:AddPhrase("tm_"..parent.."_job_ask", "2", "0", -10000)
   
   -- Список возможных квестов трейдера.
   for k,v in pairs(self.task_id_by_parent[parent]) do
@@ -1072,11 +1066,9 @@ function CRandomTask:init_reward_dialog(dlg, parent)
     if self.task_info[v].reward_info then
       local phrcnt=#self.task_info[v].reward_info_dialog
       if phrcnt==0 then
-        -- phrase_script:AddGiveInfo(self.task_info[v].reward_info_portion)
         for i=1,#self.task_info[v].reward_info_portion do
 			phrase_script:AddGiveInfo(self.task_info[v].reward_info_portion[i])
         end
-	--	phrase_script:AddAction("amk_dialogs.info_received")
       else
       -- Добавляем фразу. на случай наличия инфопорции. Иначе вылетит.
         phr = dlg:AddPhrase("...",self:gen_phrase_id(),tostring(self.task_info[v].completed_phrase_id),-10000)
@@ -1096,12 +1088,10 @@ function CRandomTask:init_reward_dialog(dlg, parent)
           if first then
             first=false
             phrase_script = phr:GetPhraseScript()
-            -- phrase_script:AddGiveInfo(self.task_info[v].reward_info_portion)
             for i=1,#self.task_info[v].reward_info_portion do
 				phrase_script:AddGiveInfo(self.task_info[v].reward_info_portion[i])
 				phrase_script:AddDontHasInfo(self.task_info[v].reward_info_portion[i])        
             end
-		--	phrase_script:AddAction("amk_dialogs.info_received")
           end
         end
       end
@@ -1443,11 +1433,11 @@ function amk_remove_target_id_from_kill_targets(id)
 end
 
 function amk_kill_targets()
-  return amk.load_table("kill_targets")  
+	return amk.load_table("kill_targets")  
 end
 
 function make_task_failed(task_id)
-  get_random_task():make_task_failed(task_id)  
+	get_random_task():make_task_failed(task_id)  
 end
 
 function show_reward(actor,npc,p1,p2)
@@ -1500,12 +1490,12 @@ function format_reward_text(reward_list)
 
 	local reward_text = ""
 	local n
-	for i,v in pairs(reward_list) do
+	for k, v in pairs(reward_list) do
 		n = v>1 and " x"..tostring(v) or ""
-		reward_text = reward_text .. get_string(news_manager.get_inv_name(i)) .. n .. ", "
+		reward_text = reward_text .. get_string( artefact_hunter.get_art_name(k, true) ) .. n .. ", "
 	end
 
-	return string_sub (reward_text, 1, -3)
+	return string_sub(reward_text, 1, -3)
 end
 
 function create_reward(t)
@@ -1518,7 +1508,7 @@ function create_reward(t)
 		for i=1,v do
 			sim:create(k, vector(), 0, 0, 0)
 		end
-		txt = news_text..get_string( get_inv_name(k) )..( v>1 and "%c[255,160,160,160] x"..tostring(v) or "" )
+		txt = news_text..get_string( artefact_hunter.get_art_name(k) )..( v>1 and "%c[255,160,160,160] x"..tostring(v) or "" )
 		if a:is_talking() then
 			a:give_talk_message(txt, task_texture, task_rect, "iconed_answer_item")
 		end

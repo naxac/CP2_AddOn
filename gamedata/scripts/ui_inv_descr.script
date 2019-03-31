@@ -1,3 +1,4 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 local get_string = game.translate_string
 local level_object = level.object_by_id
 local string_format = string.format
@@ -44,6 +45,22 @@ local rad_items = {
 	["lekar_kalmyak"] = 80,
 	["mushroom"] = 10,
 	["case_nebo"] = 30
+}
+-- Заряжаемое
+local charged_items = {
+	[ "wpn_m134" ] = "ui_st_charge",
+	[ "wpn_m_134" ] = "ui_st_charge",
+	[ "wpn_m_134_baty" ] = "ui_st_charge",
+	[ "device_torch" ] = "ui_st_charge",
+	[ "nv_bad" ] = "ui_st_charge",
+	[ "nv_god" ] = "ui_st_charge",
+	[ "nv_bast" ] = "ui_st_charge",
+	[ "device_scaner" ] = "ui_st_charge",
+	[ "teleportator" ] = "ui_st_charge",
+	[ "nanobot_pow" ] = "ui_st_volume",
+	[ "nanobot_med" ] = "ui_st_volume",
+	[ "nanobot_rad" ] = "ui_st_volume",
+	[ "nanobot_psi" ] = "ui_st_volume"
 }
 -- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
 local conditions = {
@@ -203,6 +220,11 @@ function GetWeaponParams(section)
 		table_insert( ret, {"ves", "снижен вес"} )
 	end
 
+	if sys_ini:line_exist(section, "full_charge_time") then
+		local tm = sys_ini:r_float(section, "full_charge_time") / 60
+		table_insert( ret, {"time", "время работы от аккумулятора: "..string.format("%d мин.", tm)} )
+	end
+
 	return ret
 end
 -- Получаем список артефактов из конейнера и неэкранированную радиацию
@@ -227,10 +249,16 @@ function GetContainerParams(obj)
 			end
 		end
 		if table.size(t) > 0 then
+			local art_name
 			for k,v in pairs(t) do
+				if artefact_hunter.is_known_art(k) then
+					art_name = get_inv_name(k)
+				else
+					art_name = "unknown_art"
+				end
 				table_insert(list, {
 					GetIconParams(k),
-					get_string(get_inv_name(k))..(v>1 and " x"..v or "")
+					get_string(art_name)..(v>1 and " x"..v or "")
 				})
 			end
 			if r > 0 then
@@ -448,22 +476,29 @@ function CUIDescriptionWnd:ShowDescription(item)
 	
 	local sect = item:section()
 	local cond = item:condition()
-	
-	if game_options.DEBUG then
-		self.inv_name:SetText( get_string( get_inv_name(sect) )..
-			"\\n%c[160,160,160,160]"..sect )
-	else
-		self.inv_name:SetTextST(get_inv_name(sect))
-	end
-	
+
+	local inv_name = get_inv_name(sect)
+
 	self.addH = 0
+
 	local s = get_string(sys_ini:r_string(sect, "description"))
 	local wght = item:get_weight()
+
 	-- artefacts
 	if item:is_artefact() then
-		-- and has_alife_info( sect.."_info" ) then
-		local p = GetAfParams(sect)
-		if #p > 0 then self:ShowProps(p) end
+		if artefact_hunter.is_known_art(sect) then
+			local p = GetAfParams(sect)
+			if #p > 0 then self:ShowProps(p) end
+		else
+			inv_name = "unknown_art"
+			s = "Неизвестное аномальное образование."
+			if arc_inventory.IsRadDetected() then
+				local rd = sys_ini:r_float(sect, "radiation_restore_speed") * 100 / conditions.radiation_restore_speed
+				if rd > 0 then
+					s = s.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри. Надо быть осторожней."
+				end
+			end
+		end
 	-- outfits
 	elseif item:is_outfit() then
 		local p = GetOutfitParams(sect, cond)
@@ -471,7 +506,9 @@ function CUIDescriptionWnd:ShowDescription(item)
 	-- artefact containers
 	elseif string_find(sect, "^arc_art_box_") then
 		local list, add_weight, _rad = GetContainerParams(item)
-		if _rad then self:ShowProps(_rad) end
+		if _rad and arc_inventory.IsRadDetected() then
+			self:ShowProps(_rad)
+		end
 		if #list>0 then
 			s = s.."\\n \\n%c[UI_orange]Содержимое:"
 			self.arts_list = table.copy( {}, list )
@@ -483,6 +520,22 @@ function CUIDescriptionWnd:ShowDescription(item)
 		local p = { {"radiation_2", "Радиация: %c[red]+"..string_format("%d",rad_items[sect])} }
 		self:ShowProps(p)
 	end
+
+	if charged_items[sect] then
+		if item:is_weapon() then
+			local tm = alife():object( item:id() ).worked_time
+			local full_tm = sys_ini:r_float(sect, "full_charge_time") * 1000
+			local vol = (full_tm - tm)/full_tm
+			self:ShowCharge(sect, vol)
+		else
+			self:ShowCharge(sect, cond)
+		end
+	end
+
+	if game_options.DEBUG then
+		inv_name = get_string(inv_name).."\\n%c[160,160,160,160]"..sect
+	end
+	self.inv_name:SetTextST(inv_name)
 
 	self.descr:SetText(s)
 	self.descr:AdjustHeightToText()
@@ -521,16 +574,19 @@ function CUIDescriptionWnd:ShowDescription(item)
 		self:ShowProps( { {"explosion", string_format("опасный радиус: %.1f м.", (fr+br)/2)} } )
 	end
 
-	self.cost:SetText(string_format("Цена: %d руб.", item:cost()))
+	if inv_name == "unknown_art" then
+		self.cost:SetText("")
+	else
+		self.cost:SetText(string_format("Цена: %d руб.", item:cost()))
+	end
 	self.weight:SetText(string_format("Вес: %.2f кг.", wght))
 
-	local txt = is_cond_item( item )
-	if txt then
+	if item:is_outfit() or item:is_weapon() then
 		self.condition:SetWidth(self.max_cond_w*cond)
 		local g = math.min( cond*510, 255 )
 		local r = math.min( (1-cond)*510, 255 )
 		self.condition:SetColor(GetARGB(255, r, g, 0))
-		self.condition:SetText(string_format("%s: %.1f%%", get_string(txt), cond*100))
+		self.condition:SetText(string_format("%s: %.1f%%", get_string("ui_st_condition"), cond*100))
 		self.cond_frame:Show(true)
 	else
 		self.cond_frame:Show(false)
@@ -552,6 +608,31 @@ function CUIDescriptionWnd:ShowDescription(item)
 	self.frame:SetWndPos(cr, math.min(self.owner:GetCursorY(), 768-self.frame:GetHeight()))
 
 	self.frame:Show(true)
+end
+
+function CUIDescriptionWnd:ShowCharge(section, condition)
+	local st = self.xml:InitStatic("props", self.scroll_v)
+	st:SetHeight(24)
+
+	st.icon = self.xml:InitStatic("props:prop_texture", st)
+	st.icon:InitTexture("ui_inv_icon_charge")
+
+	st.scale_b = CUIStatic()
+	st:AttachChild(st.scale_b)
+	st.scale_b:Init( "ui_mg_progress_efficiency_full_1", 22, 16, 150, 3 )
+	st.scale_b:SetStretchTexture(true)
+	st.scale_b:SetColor( GetARGB(255, 210, 210, 255) )
+
+	st.scale = CUIStatic()
+	st:AttachChild(st.scale)
+	st.scale:Init( "ui_mg_progress_efficiency_full_1", 22, 16, 150*condition, 3 )
+	st.scale:SetStretchTexture(true)
+	st.scale:SetColor( GetARGB(255, 20, 40, 255) )
+	st.scale:SetText( get_string( charged_items[section] )..": "..string.format("%d%%", condition*100) )
+	st.scale:SetTextY(-18)
+--	st.scale:SetFont( GetFontSmall() )
+
+	self.addH = self.addH + 25
 end
 
 function CUIDescriptionWnd:Remove()

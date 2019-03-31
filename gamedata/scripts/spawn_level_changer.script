@@ -453,7 +453,7 @@ function telepot_allowed(obj_sect)
 		return false
 	elseif teleports[obj_sect].art and not (db.actor:object(teleports[obj_sect].art)) then  	
 		-- если арт не нужен или его нет у ГГ
-		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(get_inv_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
+		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(this.get_art_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
 		return false
 	elseif teleports[obj_sect].pay and not has_remove_art(teleports[obj_sect].art) then
 		news_manager.send_tip(db.actor, "Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 10000)
@@ -627,6 +627,13 @@ function get_place_by_teleport(section)
 	return places[f]
 end
 ------------------------------------------------------------------------------------------
+function get_art_name(art)
+	if artefact_hunter.is_known_art(art) then
+		return get_inv_name(art)
+	else
+		return "unknown_art"
+	end
+end
 function show_teleport_msg( teleport )
 	local msg = "При телепортации будут потеряны артефакты: "
 	local f = false
@@ -634,11 +641,11 @@ function show_teleport_msg( teleport )
 		local obj = alife():object( pay_art )
 		if obj then
 			f = true
-			msg = msg..game.translate_string( get_inv_name( obj:section_name() ) )
+			msg = msg..game.translate_string( get_art_name( obj:section_name() ) )
 		end
 	end
 	if teleports[teleport].art then
-		msg = msg..( f and ", " or "" )..game.translate_string( get_inv_name( teleports[teleport].art ) )
+		msg = msg..( f and ", " or "" )..game.translate_string( get_art_name( teleports[teleport].art ) )
 	end
 	msg = msg..".\\nПродолжить?"
 

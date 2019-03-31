@@ -32,6 +32,7 @@ local signals = {
 	trade_open = {},
 	trade_close = {}
 }
+local always_once = { net_spawn = true, first_update = true }
 local unreg_queue = {}
 local need_clear = false
 ---------------------------------------------------------------------------------------------------------------------
@@ -62,7 +63,7 @@ function on_event( name, ... )
 
 		func( unpack( args ) )
 
-		if t.once then
+		if t.once or always_once[ name ] then
 			table.insert( unreg_queue, { f = func, n = name } )
 			need_clear = true
 		end
@@ -111,7 +112,7 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 local attach_modules = {
 	"arc_radiation",
-	"art_hit",
+	"artefact_hunter",
 	"autozoom",
 	"drag_drop_callback",
 	"hotkeys",

@@ -20,6 +20,8 @@ local repkits = {
 	["acumm"] = function (repkit, item)
 		if item:is_torch() then
 			bind_torch.charge(repkit, item)
+		elseif item:is_weapon() then
+			bind_minigun.charge(repkit, item)
 		end
 	end
 }
@@ -336,7 +338,7 @@ function slot_fix( id, item )
 end
 
 -- Кастомная заливка предметов в слотах, как в старых билдах
--- + шкала состояния на иконках оружия, брони, фонарика и ПНВ
+-- + шкала состояния на иконках оружия и брони
 function on_create_cell_item( item )
 	local st = CUIFrameWindow():GetTitleStatic()
 	if not st then return end
@@ -345,7 +347,7 @@ function on_create_cell_item( item )
 		st:SetColor( GetARGB(255,150,255,150) )
 	end
 	-- рисуем шкалу состояния
-	if is_cond_item( item ) then
+	if item:is_outfit() or item:is_weapon() then
 		local h = sys_ini:r_u32( item:section(), "inv_grid_height" ) *35
 		local w = 30 * kScreen
 		local cond = item:condition()
@@ -387,7 +389,7 @@ function show_inv_msg( text )
 end
 ------------------------------------------------------------------------------------------
 function charge_device( art, device )
-	local power = art_hit.get_art_power( art:section() )
+	local power = artefact_hunter.get_art_power( art:section() )
 	if power == 0 then return end
 
 	local cond = device:condition()
