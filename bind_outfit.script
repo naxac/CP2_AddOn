@@ -1,0 +1,51 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local function set_params(item, condition)
+	local sect = item:section()
+	local val = sys_ini:r_float_ex(sect, "additional_inventory_weight", 0)
+	if val > 0 then
+		item:set_go_float(nil, val * condition, 500)
+	end
+	val = sys_ini:r_float_ex(sect, "additional_inventory_weight2", 0)
+	if val > 0 then
+		item:set_go_float(nil, val * condition, 504)
+	end
+end
+
+---------------------------------------------------------------------------------------
+class "outfit_binder" (object_binder)
+
+function outfit_binder:__init(obj)
+	super (obj)
+	self.upd_time = 0
+end
+
+function outfit_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then return false end
+
+	local cond = self.object:condition()
+	if cond < 0.99 then
+		set_params(self.object, cond)
+	end
+	self.last_cond = cond
+
+	return true
+end
+
+function outfit_binder:update(delta)
+	object_binder.update(self, delta)
+
+	if self.upd_time < time_global() then
+		self.upd_time = time_global() + 1500
+
+		local cond = self.object:condition()
+		if self.last_cond > cond + 0.01 or self.last_cond < cond - 0.01 then
+			self.last_cond = cond
+			set_params(self.object, cond)
+		end
+	end
+end
+------------------------------------------------------------------------------
+function init(obj)
+	local new_binder = outfit_binder(obj)
+	obj:bind_object(new_binder)
+end

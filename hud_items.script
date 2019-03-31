@@ -1,0 +1,49 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local work_item, work_field = nil, nil
+
+local item2func = {
+	["stco"] = {
+		check	= function( s ) return s == "stco" end,
+		on		= function() stco.statics_on() end,
+		update	= function() stco.update() end,
+		off		= function() stco.statics_off() end
+	},
+	["dictofon"] = {
+		check	= function( s ) return string.find( s, "dictofon_" ) end,
+		on		= function( s ) chess.sms_record( s ) end,
+		off		= function() chess.stop_dictofon() end
+	},
+	["doc_view"] = {
+		check	= function( s ) return sys_ini:line_exist( s, "doc_view" ) end,
+		on		= function( s ) doc_viewer.doc_view_on( s ) end,
+		off		= function() doc_viewer.doc_view_off() end
+	}
+}
+	
+function update()
+	local item = db.actor:active_item()
+	if item ~= nil and not item:is_weapon() then
+		local section = item:section()
+		if section == work_item then
+			return
+		end
+		work_item = section
+		for k, v in pairs( item2func ) do
+			if v.check( section ) then
+				v.on( section )
+				if v.update then
+					xr_s.subscribe( "update", v.update )
+				end
+				work_field = k
+				break
+			end
+		end
+	elseif work_field then
+		item2func[ work_field ].off()
+		if item2func[ work_field ].update then
+			xr_s.unsubscribe( "update", item2func[ work_field ].update )
+		end
+		work_field = nil
+		work_item = nil
+	end
+end

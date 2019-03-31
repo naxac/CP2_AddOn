@@ -1,0 +1,73 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local is_zoom = false
+local free_key = DIK_keys.DIK_INSERT	-- любая ненужная в игре клавиша, на которую будет забинден зум
+local zoom_key = nil
+
+function check_act_weapon()
+	local wpn = db.actor:active_item()
+	return wpn and isMagazinedWeapon(wpn)
+end
+
+function on_key_press(dik, bind)
+	if dik == zoom_key then
+		if level.main_input_receiver()~=nil then return end
+		-- если предмет без прицела или открыли инвентарь
+		-- имитируем обычную работу клавиши
+		if ( not check_act_weapon() ) then
+			if is_zoom then		-- отключаем режим прицеливания
+				level.send_event_key_release(free_key)
+				is_zoom = false
+				return
+			end
+			
+			level.send_event_key_press(free_key)
+			level.send_event_key_hold(free_key)
+			xr_s.subscribe("key_release", autozoom.on_key_release)
+			return
+		end
+		
+		if is_zoom==false then
+			level.send_event_key_press(free_key)
+			level.send_event_key_hold(free_key)
+			is_zoom = true
+		else
+			level.send_event_key_release(free_key)
+			is_zoom = false
+		end
+	end
+end
+
+function on_key_release(dik, bind)
+	if dik == zoom_key then
+		level.send_event_key_release(free_key)
+		xr_s.unsubscribe("key_release", autozoom.on_key_release)
+	end
+end
+
+function restore_bind()
+	local k = hotkeys.dik2key(zoom_key)
+	if not k:find("MOUSE") then k = "k"..k end
+	get_console():execute("bind wpn_zoom "..string.lower(k))
+	zoom_key = nil
+end
+
+function attach()
+	if game_options.AutoZoom then
+		zoom_key = bind_to_dik(key_bindings.kWPN_ZOOM)
+		local k = hotkeys.dik2key(free_key)
+		if not k:find("MOUSE") then k = "k"..k end
+		get_console():execute("bind wpn_zoom "..string.lower(k))
+		xr_s.subscribe("key_press", on_key_press)
+		xr_s.subscribe("net_destroy", restore_bind)
+	end
+end
+
+function change_opt()
+	if game_options.AutoZoom then
+		if zoom_key==nil then init() end
+	elseif zoom_key then
+		xr_s.unsubscribe("key_press", on_key_press)
+		xr_s.unsubscribe("net_destroy", restore_bind)
+		restore_bind()
+	end
+end
