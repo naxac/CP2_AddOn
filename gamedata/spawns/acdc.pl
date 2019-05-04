@@ -2183,7 +2183,6 @@ use constant section_to_class => {
 	energy_drink					=> 'cse_alife_item',
 	antirad							=> 'cse_alife_item',
 	bandage							=> 'cse_alife_item',
-	medkit							=> 'cse_alife_item',
 	medkit_army						=> 'cse_alife_item',
 	medkit_scientic					=> 'cse_alife_item',
 	guitar_a						=> 'cse_alife_item',
@@ -2207,6 +2206,7 @@ use constant section_to_class => {
 	volna_barrel					=> 'cse_alife_item',
 
 	subway_scaner_doc				=> 'cse_alife_item',
+	kukla_1							=> 'cse_alife_item',
 
 	novice_outfit					=> 'cse_alife_item_custom_outfit',
 	outfit_novice_m1				=> 'cse_alife_item_custom_outfit',

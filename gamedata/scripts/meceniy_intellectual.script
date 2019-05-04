@@ -158,19 +158,26 @@ function hand_teleporter_use()
 end
 
 function jumpTo(random_level)
-	local actor = db.actor:position()
+	local actor_pos = db.actor:position()
 	local actor_lvid = db.actor:level_vertex_id()
 	local actor_gvid = db.actor:game_vertex_id()
 	local level_name = tabl_levels[random_level]
 	local level_data = tabl_changers_by_level[level_name]
 
-	spawn_level_changer.create_level_changer(9799, actor, actor_lvid , actor_gvid,
+	netpk:create_level_changer(
+		9799,
+		actor_pos,
+		actor_lvid,
+		actor_gvid,
+		vector():set( unpack(level_data.p_dest_pos) ),
 		level_data.p_dest_lv, 
 		level_data.p_dest_gv,
-		vector():set(level_data.p_dest_pos[1],level_data.p_dest_pos[2],level_data.p_dest_pos[3]),
-		vector():set(level_data.p_dest_dir[1], level_data.p_dest_dir[2], level_data.p_dest_dir[3]),
+		vector():set( unpack(level_data.p_dest_dir) ),
 		level_name,
-		level_data.p_silent)
+		level_data.p_silent == 1,
+		20
+	)
+	bind_lc.shift_send_sms()
 end
 
 function soobj()

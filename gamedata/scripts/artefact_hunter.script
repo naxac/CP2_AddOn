@@ -180,25 +180,25 @@ local perchatki_propusk = {
 
 -- секции научных броников
 local scient = {
-	["merc_scientific_outfit"]						= 0.5,	-- Научный костюм наёмников и его модификации
-	["scientific_outfit"]							= 0.5,	-- Научный костюм НЕЙТРАЛЬНОГО СТАЛКЕРА и его модификации
-	["dolg_scientific_outfit"]						= 0.3,	-- Научный костюм ДОЛГА и его модификации
-	["freedom_scientific_outfit"]					= 0.2,	-- Научный костюм Свободы и его модификации
-	["monolit_scientific_outfit"]					= 0.2,	-- Научный костюм Монолита и его модификации
-	["nebo_scientific_outfit"]						= 0.0,	--НАУЧНЫЙ КОСТЮМ ЧИСТОГО НЕБА и его модификации
-	["protection_outfit"]							= 0.0,	-- Комбинезон ССП-99М "Вега" и его модификации
-	["ecolog_outfit"]								= 0.0,	-- ОБЫЧНЫЙ КОСТЮМ УЧЕННОГО и его модификации
-    ["nano_outfit"]                                 = 0.0,
-    ["nano_suit"]                                 	= 0.0,
-    ["exo_knight_outfit"]                           = 0.0,
-    ["exo_doktor_outfit"]                           = 0.0,
+	["merc_scientific_outfit"]		= 0.5,	-- Научный костюм наёмников и его модификации
+	["scientific_outfit"]			= 0.5,	-- Научный костюм НЕЙТРАЛЬНОГО СТАЛКЕРА и его модификации
+	["dolg_scientific_outfit"]		= 0.3,	-- Научный костюм ДОЛГА и его модификации
+	["freedom_scientific_outfit"]	= 0.2,	-- Научный костюм Свободы и его модификации
+	["monolit_scientific_outfit"]	= 0.2,	-- Научный костюм Монолита и его модификации
+	["nebo_scientific_outfit"]		= 0.0,	--НАУЧНЫЙ КОСТЮМ ЧИСТОГО НЕБА и его модификации
+	["protection_outfit"]			= 0.0,	-- Комбинезон ССП-99М "Вега" и его модификации
+	["ecolog_outfit"]				= 0.0,	-- ОБЫЧНЫЙ КОСТЮМ УЧЕННОГО и его модификации
+    ["nano_outfit"]					= 0.0,
+    ["nano_suit"]					= 0.0,
+    ["exo_knight_outfit"]			= 0.0,
+    ["exo_doktor_outfit"]			= 0.0,
 -- Akill begin
-    ["gagarin_outfit"]								= 0.0,	-- Бронекостюм Гагарин
-	["gagarin_outfit_m1"]							= 0.0,	-- Мод. Гагарин
-	["voshod_outfit"]								= 0.0,	-- Бронекостюм Восход
+    ["gagarin_outfit"]				= 0.0,	-- Бронекостюм Гагарин
+	["gagarin_outfit_m1"]			= 0.0,	-- Мод. Гагарин
+	["voshod_outfit"]				= 0.0,	-- Бронекостюм Восход
 -- Akill end
-    ["seva_scient_outfit"]                          = 0.0,
-    ["exo_scientist_outfit"]                        = 0.0   
+    ["seva_scient_outfit"]			= 0.0,
+    ["exo_scientist_outfit"]		= 0.0   
 }
 
 local id2art = {}
@@ -268,7 +268,7 @@ end
 function on_slot(item)
 	local sect = item:section()
 	if perchatki_propusk[sect] then
-		local outf=db.actor:item_in_slot( inventory_slots.OUTFIT )
+		local outf = db.actor:item_in_slot( inventory_slots.OUTFIT )
 		if outf and scient[outf:section()]~=nil then
 			db.actor:move_to_ruck(item)
 		end
@@ -388,12 +388,12 @@ function first_run()
 end
 -----------------------------------------------------------------------------------------------
 local trader2level = {
-	["sidor"] = 7,
-	["barman"] = 7,
-	["sakharov"] = 7,
-	["scryaga"] = 5,
-	["sak"] = 6,
-	["doctor"] = 7
+	["sidor"]		= { lvl = 7, pay = 0.20 },
+	["barman"]		= { lvl = 7, pay = 0.15 },
+	["sakharov"]	= { lvl = 7, pay = 0.10 },
+	["scryaga"]		= { lvl = 5, pay = 0.22 },
+	["sak"]			= { lvl = 6, pay = 0.12 },
+	["doctor"]		= { lvl = 7, pay = 0.07 }
 }
 
 local phr_it = {
@@ -426,23 +426,45 @@ local phr_it = {
 
 function init_known_art_dialog( dlg, trader )
 	local p = "known_art_"..trader
+	local actor_name = db.actor:character_name()
 
 	local phr = dlg:AddPhrase( p.."_0", "0", "", -10000 )
 	local phrase_script
 
 	phr = dlg:AddPhrase( p.."_1", "1", "0", -10000 )
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddHasInfo("art_hunter_about_pay_info")
+
+	local pay = trader2level[trader].pay
+	phr = dlg:AddPhrase( "Тут такое дело, "..actor_name..". Любая информация денег стоит, согласен? Много не возьму, "..
+		string.format("%d", pay*100).."% от стоимости артефакта, по которому нужна информация. Согласен?", "11", "0", -10000 )
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddDontHasInfo("art_hunter_about_pay_info")
+
+	phr = dlg:AddPhrase( "known_art_pay_12", "12", "11", -10000 )
+
+	phr = dlg:AddPhrase( "known_art_pay_13", "13", "12", -10000 )
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddGiveInfo("art_hunter_about_pay_info")
+
+	phr = dlg:AddPhrase( "known_art_pay_111", "111", "11", -10000 )
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddAction("dialogs.break_dialog")
 
 	local text = ""
-	local actor_name = db.actor:character_name()
 	local translate = game.translate_string
-	local lvl = trader2level[trader]
+	local lvl = trader2level[trader].lvl
 	local f = false
+	local phr_id
 	for i, sect in ipairs(id2art) do
 		local tt = table.random(phr_it)
-		phr = dlg:AddPhrase( tt.ask, tostring( 1000+i ), "1", -10000 )
+		phr_id = tostring( 1000+i )
+		phr = dlg:AddPhrase( tt.ask, phr_id, "1", -10000 )
 		phrase_script = phr:GetPhraseScript()
-		phrase_script:AddPrecondition("artefact_hunter.is_unknown_art")
+		phrase_script:AddPrecondition("artefact_hunter.precondition_unknown_art")
 		phrase_script:AddAction("artefact_hunter.show_art_icon")
+
+		phr = dlg:AddPhrase( "", phr_id, "13", 0 )
 
 		if lvl >= artefacts[sect].lvl then
 			text = string.format( tt.know, translate( sys_ini:r_string( sect, "inv_name" ) ), actor_name )
@@ -451,7 +473,7 @@ function init_known_art_dialog( dlg, trader )
 			text = string.format( tt.dont_know, actor_name )
 			f = false
 		end
-		phr = dlg:AddPhrase( text, tostring(2000+i), tostring(1000+i), -10000 )
+		phr = dlg:AddPhrase( text, tostring(2000+i), phr_id, -10000 )
 		if f then
 			phrase_script = phr:GetPhraseScript()
 			phrase_script:AddAction("artefact_hunter.trader_add_art_info")
@@ -459,6 +481,7 @@ function init_known_art_dialog( dlg, trader )
 	end
 
 	phr = dlg:AddPhrase( p.."_2", "2", "1", -10000 )
+	phr = dlg:AddPhrase( "",      "2", "13", 0 )
 end
 
 function show_art_icon(first_speaker, second_speaker, dialog_id, phrase_id)
@@ -466,7 +489,7 @@ function show_art_icon(first_speaker, second_speaker, dialog_id, phrase_id)
 	local icon = GetIconParams(art)
 	db.actor:give_talk_message("", "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
 end
-function is_unknown_art(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
+function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
 	local art = id2art[ tonumber(phrase_id) - 1000 ]
 	local obj = db.actor:object( art )
 	if not obj then
@@ -478,12 +501,21 @@ function is_unknown_art(first_speaker, second_speaker, dialog_id, prev_phrase_id
 		end
 	end
 
-	return obj ~= nil
-		and artefacts[art].known == false
+	if obj then
+		return artefacts[art].known == false
+			and db.actor:money() >= obj:cost()*trader2level[ string.match(dialog_id, "^[^_]+") ].pay
+	end
+
+	return false
 end
 
 function trader_add_art_info(first_speaker, second_speaker, dialog_id, phrase_id)
 	local art = id2art[ tonumber(phrase_id) - 2000 ]
+
+	local cost = sys_ini:r_float(art, "cost")
+	local pay = cost * trader2level[ string.match(dialog_id, "^[^_]+") ].pay
+	dialogs.relocate_money(first_speaker, pay, "out")
+
 	this.add_art_info(art)
 end
 	

@@ -3,9 +3,7 @@ local get_seconds = amk.game_seconds
 
 local devices = {}
 
-local need_init = true
-
-local good_charge = 0.87
+local bad_charge_level = 0.03
 
 -- battery charge level = {settings}
 local torch_settings = {
@@ -64,24 +62,21 @@ local torch_settings = {
 		spot_angle = 0
 	}
 }
-local torch_cond = nil
-local upd_step = 30			-- update interval in game seconds
-
-local function init_settings()
-	need_init = false
-	torch_cond = {}
-	for k,v in pairs(torch_settings) do
-		table.insert(torch_cond, k)
-	end
-	table.sort(torch_cond, function(i1, i2) return i1<i2 end)
+local torch_cond = {}
+for k in pairs(torch_settings) do
+	table.insert(torch_cond, k)
 end
+table.sort(torch_cond, function(i1, i2) return i1<i2 end)
+
+local upd_step = 5			-- update interval in seconds
+upd_step = upd_step * level.get_time_factor()
 
 
 class "torch_binder" (object_binder)
 
 function torch_binder:__init(obj)
 	super (obj)
-	self.work_time = 0
+	self.time_left = 0
 	self.next_cond = 0
 	self.mode = false
 	self.last_time = 0
@@ -89,22 +84,18 @@ function torch_binder:__init(obj)
 end
 
 function torch_binder:init_torch()
-	if need_init then init_settings() end
-
 	self.section = self.object:section()
 	if self.section == "device_torch" then
 		self.object:set_callback(callback.on_switch_torch, self.on_switch_torch, self)
 		self.mode = self.object:is_torch_enabled()
 	end
 
-	self.max_time = sys_ini:r_u32(self.section, "work_time") *60
+	self.full_charge_time = sys_ini:r_u32(self.section, "working_time") *60
 
---	log1("torch_binder:init_torch: "..self.object:name())
 	self.se_torch = alife():object(self.object:id())
---	log1("worked_time = "..self.se_torch.worked_time)
-	self.work_time = self.max_time - self.se_torch.worked_time
+	self.time_left = self.full_charge_time - self.se_torch.worked_time
 
-	local cond = self.work_time/self.max_time
+	local cond = self.time_left/self.full_charge_time
 	if self.section == "device_torch" then
 		for i, v in ipairs(torch_cond) do
 			if cond <= v then
@@ -123,12 +114,7 @@ function torch_binder:init_torch()
 		end
 	end
 
-	self.object:set_condition(cond)
-	netpk:modify( self.se_torch, { condition = cond }, netpk.fState )
-
 	self.last_time = get_seconds()
-
---	log1("init_torch, work_time = "..self.work_time)
 end
 
 function torch_binder:update(delta)
@@ -153,15 +139,10 @@ function torch_binder:update(delta)
 
 	if self.next_cond < 0 then return end
 
-	self.work_time = math.max(self.work_time - _shift, 0)
-	local cond = self.work_time/self.max_time
-	self.se_torch.worked_time = self.max_time - self.work_time
+	self.time_left = math.max(self.time_left - _shift, 0)
+	self.se_torch.worked_time = self.full_charge_time - self.time_left
 
---	log1(cond.." : "..self.next_cond.." : "..self.se_torch.worked_time)
-
-	self.object:set_condition(cond)
-	netpk:modify( self.se_torch, { condition = cond }, netpk.fState )
-
+	local cond = self.time_left/self.full_charge_time
 	if self.section~="device_torch" then
 		if cond == 0 then
 			self.next_cond = -1
@@ -193,11 +174,35 @@ function torch_binder:on_switch_torch(mode)
 	if self.mode then self.last_time = get_seconds() end
 end
 
-function torch_binder:charge()
-	self.se_torch.worked_time = 0
-	self.work_time = self.max_time
-	self.object:set_condition(1)
-	netpk:modify( self.se_torch, { condition = 1 }, netpk.fState )
+function torch_binder:get_charge_level()
+	return self.time_left/self.full_charge_time
+end
+
+function torch_binder:charge(new_charge)
+	if has_alife_info("no_pnv") then
+		ui_inv_add.show_inv_msg("Невозможно заменить батарею: устройство неисправно")
+		return false
+	elseif new_charge <= bad_charge_level then
+		ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой")
+		return false
+	elseif math.abs(self:get_charge_level() - new_charge) < 0.02 then
+		return false
+	end
+
+	local old_charge = self:get_charge_level()
+	if old_charge > 0 then
+		local accum_sect = sys_ini:r_string(self.section, "energy_source")
+		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		netpk:modify(accum, {condition = old_charge}, netpk.fState)
+		level.client_spawn_manager():add(accum.id, -1,
+			function(condition, id, obj)
+				obj:set_condition(condition)
+			end,
+		old_charge)
+	end
+
+	self.time_left = self.full_charge_time * new_charge
+	self.se_torch.worked_time = self.full_charge_time - self.time_left
 	self.last_time = get_seconds()
 
 	if self.section~="device_torch" then
@@ -206,9 +211,23 @@ function torch_binder:charge()
 		end
 		self.next_cond = 0
 	else
-		self.next_cond = torch_cond[#torch_cond-1]
-		self:set_settings(1)
+		for i, v in ipairs(torch_cond) do
+			if new_charge <= v then
+				self.next_cond = torch_cond[i-1] or -1
+				self:set_settings(v)
+				break
+			end
+		end
 	end
+
+	return true
+end
+
+function torch_binder:discharge()
+	self.next_cond = -1
+	self.time_left = 0
+	self.se_torch.worked_time = self.full_charge_time
+	self:set_settings(0)
 end
 
 function torch_binder:set_settings(condition)
@@ -217,7 +236,7 @@ function torch_binder:set_settings(condition)
 		abort("torch_binder: condition [%s] not found in 'torch_settings'", tostring(condition))
 		return
 	end
---	log1("torch_binder:set_settings ["..tostring(condition).."]")
+
 	local torch = self.object
 	torch:set_torch_range(t.range)
 	torch:set_torch_color( fcolor():set(unpack(t.color)) )
@@ -226,7 +245,6 @@ function torch_binder:set_settings(condition)
 	torch:set_torch_glow_radius(t.glow_radius)
 	torch:set_torch_spot_angle(t.spot_angle)
 	torch:set_torch_color_animator(t.color_animator)
---	log1("OK")
 end
 ------------------------------------------------------------------------------
 function init(obj)
@@ -251,28 +269,53 @@ function broke_torch()
 		if v.section == "device_torch"
 			and v.object:parent() and v.object:parent():id() == 0
 		then
-			v.object:set_condition(0)
-			netpk:modify( v.se_torch, { condition = 0 }, netpk.fState )
-			v.next_cond = -1
-			v.work_time = 0
-			v.se_torch.worked_time = v.max_time
-			v:set_settings(0)
+			v:discharge()
 			break
 		end
 	end
 end
 
 function charge(acumm, torch)
-	if not devices[torch:id()] then return end
+	local binder = devices[torch:id()]
+	if not binder then return end
 
-	if has_alife_info("no_pnv") then
-		ui_inv_add.show_inv_msg("Невозможно заменить батарею: устройство неисправно")
-	elseif torch:condition() > good_charge then
-		ui_inv_add.show_inv_msg("Аккумулятор заряжен и не нуждается в замене")
-	else
-		devices[torch:id()]:charge()
+	if binder:charge() then
 		local se_obj = alife():object(acumm:id())
 		if se_obj then alife():release(se_obj, true) end
 		zvuki.use_snd("acumm")
 	end
 end
+
+-----------------------------------------------------------------------------------------------------------
+function on_item_from_slot(item)
+	if current_torch_id ~= item:id() then return end
+	current_torch_id = 0
+	if ShiftPressed() then
+		local binder = item:binded_object()
+		if binder then
+			local cond = binder:get_charge_level()
+			if cond > 0 then
+				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
+				local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+				netpk:modify(accum, {condition = cond}, netpk.fState)
+				level.client_spawn_manager():add(accum.id, -1,
+					function(condition, id, obj)
+						obj:set_condition(condition)
+					end,
+				cond)
+				binder:discharge()
+			end
+		end
+	end
+end
+function on_item_to_slot(item)
+	if not item:is_torch() then return end
+	current_torch_id = item:id()
+end
+
+function attach()
+	xr_s.subscribe("item_to_ruck", this.on_item_from_slot)
+	xr_s.subscribe("item_drop", this.on_item_from_slot)
+	xr_s.subscribe("item_to_slot", this.on_item_to_slot)
+end
+

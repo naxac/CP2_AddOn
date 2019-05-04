@@ -210,23 +210,28 @@ end
 --' Рестрикторы
 class "se_restrictor" (cse_alife_space_restrictor)
 function se_restrictor:__init (section) super (section)
-	self.activated = false
 end
 function se_restrictor:keep_saved_data_anyway()
 	return true
 end
-function se_restrictor:STATE_Write (packet)
-	cse_alife_space_restrictor.STATE_Write (self, packet)
-	if self:clsid() == clsid.zone_subway then
-		packet:w_bool( self.activated )
-	end
+
+class "se_subway_zone" (cse_alife_space_restrictor)
+function se_subway_zone:__init (section) super (section)
+	self.activated = false
 end
-function se_restrictor:STATE_Read (packet, size)
+function se_subway_zone:keep_saved_data_anyway()
+	return true
+end
+function se_subway_zone:STATE_Write (packet)
+	cse_alife_space_restrictor.STATE_Write (self, packet)
+
+	packet:w_bool(self.activated)
+end
+function se_subway_zone:STATE_Read (packet, size)
 	cse_alife_space_restrictor.STATE_Read (self, packet, size)
-	if self:clsid() == clsid.zone_subway then
-		self.activated = packet:r_bool()
-		if self.activated then
-			spatial_subway.add_zone(self)
-		end
+
+	self.activated = packet:r_bool()
+	if self.activated then
+		spatial_subway.add_zone(self)
 	end
 end

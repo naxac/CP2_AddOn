@@ -9,7 +9,7 @@ local saved_width = -1
 local new_width, cs_rad, cs_rad_back
 local hud = nil
 
-function update_psy_scale( f )
+function update_rad_scale( f )
 	cs_rad_back = hud:GetCustomStatic( "hud_rad_back" )
 	cs_rad = hud:GetCustomStatic( "hud_rad_level" )
 
@@ -64,13 +64,13 @@ end
 function update( delta )
 	local bShow = not bind_stalker.scopeUsed
 
-	if t_rad.enabled then
-		bShow = bShow and arc_inventory.IsRadDetected()
-		update_psy_scale( bShow )
-	end
-
 	if t_clock.enabled then
 		show_time( bShow )
+	end
+
+	if t_rad.enabled then
+		bShow = bShow and arc_inventory.IsRadDetected()
+		update_rad_scale( bShow )
 	end
 end
 
@@ -82,7 +82,7 @@ end
 
 function reload()
 	if t_rad.enabled then
-		update_psy_scale( false )
+		update_rad_scale( false )
 	end
 	if t_clock.enabled then
 		show_time( false )
@@ -135,26 +135,17 @@ function init()
 	end
 end
 
-local files_list = {
-	"config\\ui\\maingame.xml",
-	"config\\ui\\maingame_16.xml",
-	"config\\ui\\messages_window.xml",
-	"config\\ui\\messages_window_16.xml",
-	"config\\ui\\motion_icon.xml",
-	"config\\ui\\motion_icon_16.xml",
-	"config\\ui\\ui_hud.xml",
-	"config\\ui\\zone_map.xml",
-	"config\\ui\\zone_map_16.xml",
-	"textures\\ui\\ui_hud.dds"
-}
 function on_change_hud()
 	local new_hud_name = game_options.CurrentHUD
 	if hud_name ~= new_hud_name then
+		local ini = ini_file( "misc\\ui_huds.ltx" )
 		local fs = getFS()
 		local f1, f2
-		for i, v in ipairs( files_list ) do
-			f1 = fs:update_path( "$game_huds$", new_hud_name.."\\"..v )
-			f2 = fs:update_path( "$game_data$", v )
+		local res, id, val
+		for i = 0, ini:line_count("files")-1 do
+			res, id, val = ini:r_line("files", i, "", "")
+			f1 = fs:update_path( "$game_huds$", new_hud_name.."\\"..id )
+			f2 = fs:update_path( "$game_data$", id )
 			fs:file_copy( f1, f2 )
 		end
 		hud_name = new_hud_name

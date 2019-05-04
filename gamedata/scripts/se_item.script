@@ -2,6 +2,7 @@
 local registred_items = {}
 class "se_outfit" (cse_alife_item_custom_outfit)
 function se_outfit:__init (section) super (section)
+	self.worked_time = 0
 end
 function se_outfit:on_register()
 	cse_alife_item_custom_outfit.on_register( self )
@@ -15,6 +16,19 @@ function se_outfit:on_unregister()
 	--' Отрегистрация в таскменеджере
 	task_manager.get_random_task():unregister_target(self)
 end
+function se_outfit:STATE_Write (packet)
+	cse_alife_item_custom_outfit.STATE_Write( self, packet )
+
+	packet:w_s32(self.worked_time)
+end
+function se_outfit:STATE_Read (packet, size)
+	cse_alife_item_custom_outfit.STATE_Read( self, packet, size )
+
+	if not packet:r_eof() then
+		self.worked_time = packet:r_s32()
+	end
+end
+
 
 class "se_weapon" (cse_alife_item_weapon)
 function se_weapon:__init (section) super (section)
@@ -51,11 +65,7 @@ end
 
 class "se_weapon_magazined" (cse_alife_item_weapon_magazined)
 function se_weapon_magazined:__init (section) super (section)
-	if sys_ini:line_exist(section, "full_charge_time") then
-		self.worked_time = sys_ini:r_float( section, "full_charge_time" ) * 1000
-	else
-		self.worked_time = 0
-	end
+	self.worked_time = 0
 end
 function se_weapon_magazined:on_register()
 	cse_alife_item_weapon_magazined.on_register( self )

@@ -246,7 +246,16 @@ function n_netpk:modify( obj, data, flags )
 	end
 end
 ----------------------------------------------------------------------------------------------------------
-function n_netpk:create_restrictor( position, level_vertex, game_vertex, logic, radius, story_id )
+function n_netpk:create_restrictor(
+	position,		-- вектор, координаты точки, в которой будет располагаться центр рестриктора
+	level_vertex,	-- level_vertext_id  - идентифицируют уровень, на котором будет создан level_changer
+	game_vertex,	-- game_vertext_id
+
+	logic,			-- custom_data рестриктора
+	radius,			-- радиус сферы шейпа (2 по умолчанию)
+	story_id		-- STORY_ID, если нужно
+)
+
 	local se_obj = alife():create( "space_restrictor", position, level_vertex, game_vertex )
 
 	local data = {}
@@ -263,6 +272,67 @@ function n_netpk:create_restrictor( position, level_vertex, game_vertex, logic, 
 	self:modify( se_obj, data, self.fState )
 
 	return se_obj
+end
+----------------------------------------------------------------------------------------------------------
+function n_netpk:create_level_changer(
+	story_id,	-- STORY_ID нового level_changer
+	position,	-- вектор, координаты точки, в которой будет располагаться центр нового level_changer
+	lvertex_id,	-- level_vertext_id
+	gvertex_id,	-- game_vertext_id
+
+	dest_pos,	-- координаты точки, в которой на новом уровне окажется игрок
+	dest_lv,	-- level_vertex_id   - идентифицируют уровень, на который level_changer будет перебрасывать игрока 
+	dest_gv,	-- game_vertex_id
+	dest_dir,	-- направление взгляда игрока (необязательный параетр)
+	dest_level,	-- название уровня, например "L11_Pripyat"
+
+	silent,		-- следует задать true, чтобы подавить вопрос о смене уровня (автоматический переход)
+	box_sz,		-- сторона куба шейпа (4 по умолчанию)
+	spot,		-- таблица с параметрами метки. hint - надпись, type - тип. Если не задана, то метку не ставим.
+	report		-- true - выдавать сообщение о переходе
+)
+	local se_obj = alife():create( "level_changer", position, lvertex_id, gvertex_id )
+
+	if box_sz == nil then box_sz = 4 end
+
+	local data = {}
+	data.object_flags	= bit_not(193)
+	data.story_id		= story_id
+	data.shapes			= {
+		[1] = {
+			shtype = 1,
+			box_matrix = matrix():set(
+				vector():set(box_sz,0,0),
+				vector():set(0,box_sz,0),
+				vector():set(0,0,box_sz),
+				vector():set(0,0,0)
+			)
+		}
+	}
+	data.restrictor_type		= 3
+	data.dest_game_vertex_id	= dest_gv
+	data.dest_level_vertex_id	= dest_lv
+	data.dest_position			= dest_pos
+	data.dest_direction			= dest_dir or vector():set(0,0,0)
+	data.dest_level_name		= dest_level
+	data.dest_graph_point		= "start_actor_99"
+	data.silent_mode			= silent and 1 or 0
+
+	self:modify( se_obj, data, self.fState )
+
+	if spot then
+		level.map_add_object_spot_ser(se_obj.id, "level_changer"..spot.type, spot.hint)
+	end
+
+	if report then
+		local dest_lvl = game.translate_string(string.lower(dest_level))
+		local prev_lvl = game.translate_string(alife():level_name(game_graph():vertex(gvertex_id):level_id()))
+		local news_text = "%c[gray2]Новый путь!\\n%c[white]"..prev_lvl.." >> "..dest_lvl
+		db.actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 10000)
+		if db.actor:is_talking() then
+			db.actor:give_talk_message(news_text, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), "iconed_answer_item")
+		end
+	end
 end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_object
@@ -1105,21 +1175,21 @@ function n_netpk:w_st_cse_alife_space_restrictor( data, stpk )
 end
 function n_netpk:w_upd_cse_alife_space_restrictor( data, uppk ) end
 ----------------------------------------------------------------------------------------------------------
--- se_restrictor
-function n_netpk:r_st_se_restrictor( ret, stpk )
+-- se_subway_zone
+function n_netpk:r_st_se_subway_zone( ret, stpk )
 	self:r_st_cse_alife_space_restrictor( ret, stpk )
 
-	-- se_restrictor
+	-- se_subway_zone
 	ret.activated = stpk:r_bool()
 end
-function n_netpk:r_upd_se_restrictor( ret, uppk ) end
-function n_netpk:w_st_se_restrictor( data, stpk, uppk )
+function n_netpk:r_upd_se_subway_zone( ret, uppk ) end
+function n_netpk:w_st_se_subway_zone( data, stpk, uppk )
 	self:w_st_cse_alife_space_restrictor( data, stpk )
 
-	-- se_restrictor
+	-- se_subway_zone
 	stpk:w_bool( data.activated )
 end
-function n_netpk:w_upd_se_restrictor( data, uppk ) end
+function n_netpk:w_upd_se_subway_zone( data, uppk ) end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_level_changer
 function n_netpk:r_st_cse_alife_level_changer( ret, stpk )
@@ -1792,7 +1862,7 @@ function init()
 
 		script_restr		= 'cse_alife_space_restrictor',
 
-		zone_subway			= 'se_restrictor',
+		zone_subway			= 'se_subway_zone',
 
 		level_changer		= 'cse_alife_level_changer',
 

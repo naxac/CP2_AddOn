@@ -354,47 +354,6 @@ local teleports = {
 }
 local pay_art = nil
 
-function create_level_changer(
-	p_story_id,	-- STORY_ID нового level_changer (понадобится нам позже)
-	p_position,	-- вектор, координаты точки, в которой будет располагаться центр нового level_changer
-	p_lvertex_id,	-- level_vertext_id  - идентифицируют уровень, на котором будет создан level_changer
-	p_gvertex_id,	-- game_vertext_id   	
- 
-	p_dest_lv,	-- level_vertex_id   - идентифицируют уровень, на который level_changer будет перебрасывать игрока 
-	p_dest_gv,	-- game_vertex_id
-	p_dest_pos,	-- координаты точки, в которой на новом уровне окажется игрок
-	p_dest_dir,	-- направрение взгляда игрока
-	p_dest_level,	-- название уровня, например "L11_Pripyat"
-	p_silent	-- следует задать 1, чтобы подавить вопрос о смене уровня (автоматический переход)
-)
-	local obj = alife():create("level_changer", p_position, p_lvertex_id, p_gvertex_id)
-
-	local data			= {}
-	data.object_flags	= bit_not(193)
-	data.story_id		= p_story_id
-	data.shapes			= {
-		{	shtype = 1,
-			box_matrix = matrix():set(
-				vector():set(50,0,0),
-				vector():set(0,50,0),
-				vector():set(0,0,50),
-				vector():set(0,0,0)
-			)
-		}
-	}
-	data.restrictor_type		= 3
-	data.dest_game_vertex_id	= p_dest_gv
-	data.dest_level_vertex_id	= p_dest_lv
-	data.dest_position			= p_dest_pos
-	data.dest_direction			= p_dest_dir
-	data.dest_level_name		= p_dest_level
-	data.dest_graph_point		= "start_actor_02"
-	data.silent_mode			= p_silent
-
-	netpk:modify( obj, data, netpk.fState )
-	bind_lc.shift_send_sms()
-end
-
 function jumpTo(where)
 	if not db.actor:alive() then return end
 
@@ -410,8 +369,20 @@ function jumpTo(where)
 			snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)	
 			actor:set_actor_position( vector():set(unpack(place.pos)) )
 		else
-			create_level_changer(9799, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(),
-				place.lv, place.gv, vector():set(unpack(place.pos)), view, place.lvl, 1)
+			netpk:create_level_changer(
+				9799,
+				actor:position(),
+				actor:level_vertex_id(),
+				actor:game_vertex_id(),
+				vector():set(unpack(place.pos)),
+				place.lv,
+				place.gv,
+				view,
+				place.lvl,
+				true,
+				50
+			)
+			bind_lc.shift_send_sms()
 		end
 	end )
 end
@@ -453,7 +424,7 @@ function telepot_allowed(obj_sect)
 		return false
 	elseif teleports[obj_sect].art and not (db.actor:object(teleports[obj_sect].art)) then  	
 		-- если арт не нужен или его нет у ГГ
-		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(this.get_art_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
+		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(artefact_hunter.get_art_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
 		return false
 	elseif teleports[obj_sect].pay and not has_remove_art(teleports[obj_sect].art) then
 		news_manager.send_tip(db.actor, "Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 10000)
@@ -627,13 +598,6 @@ function get_place_by_teleport(section)
 	return places[f]
 end
 ------------------------------------------------------------------------------------------
-function get_art_name(art)
-	if artefact_hunter.is_known_art(art) then
-		return get_inv_name(art)
-	else
-		return "unknown_art"
-	end
-end
 function show_teleport_msg( teleport )
 	local msg = "При телепортации будут потеряны артефакты: "
 	local f = false
@@ -641,11 +605,11 @@ function show_teleport_msg( teleport )
 		local obj = alife():object( pay_art )
 		if obj then
 			f = true
-			msg = msg..game.translate_string( get_art_name( obj:section_name() ) )
+			msg = msg..game.translate_string( artefact_hunter.get_art_name( obj:section_name() ) )
 		end
 	end
 	if teleports[teleport].art then
-		msg = msg..( f and ", " or "" )..game.translate_string( get_art_name( teleports[teleport].art ) )
+		msg = msg..( f and ", " or "" )..game.translate_string( artefact_hunter.get_art_name( teleports[teleport].art ) )
 	end
 	msg = msg..".\\nПродолжить?"
 

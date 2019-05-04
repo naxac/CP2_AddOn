@@ -240,6 +240,50 @@ game_object.is_wounded = function ( obj )
 	return obj:is_stalker() and obj:alive() and obj:wounded()
 end
 -- CInventoryItem
+local inventory_item_flags = {		-- EIIFlags
+	drop				= 1,		-- Fdrop
+	can_take			= 2,		-- FCanTake
+	can_trade			= 4,		-- FCanTrade
+	belt				= 8,		-- Fbelt
+	ruck				= 16,		-- Fruck
+	default_to_ruck		= 32,		-- FRuckDefault
+	use_condition		= 64,		-- FUsingCondition
+	sprint_allowed		= 128,		-- FAllowSprint
+	useful_for_npc		= 256,		-- Fuseful_for_NPC
+--	FInInterpolation	= 512,		-- FInInterpolation
+--	FInInterpolate		= 1024,		-- FInInterpolate
+	quest_item			= 2048		-- FIsQuestItem
+}
+game_object.set_item_flag = function ( obj, flag_name, mode )
+	local fl = inventory_item_flags[flag_name]
+	if not fl then
+		abort("set_item_flag for [%s]: unknown flag name: %s", obj:name(), tostring(flag_name))
+		return false
+	end
+
+	local flags = obj:get_inventory_item_int( nil, 132 )
+	local new_flags
+	if mode == true then
+		new_flags = bit_or(flags, fl)
+	else
+		new_flags = bit_and(flags, bit_not(fl))
+	end
+
+	if new_flags == flags then return false end
+
+	obj:set_inventory_item_int( 132, new_flags )
+	return true
+end
+game_object.get_item_flag = function ( obj, flag_name )
+	local fl = inventory_item_flags[flag_name]
+	if not fl then
+		abort("get_item_flag for [%s]: unknown flag name: %s", obj:name(), tostring(flag_name))
+		return false
+	end
+
+	local flags = obj:get_inventory_item_int( nil, 132 )
+	return bit_and(flags, fl) ~= 0
+end
 game_object.get_slot = function ( obj )
 	return obj:get_inventory_item_int( nil, 156 )
 end

@@ -1,0 +1,105 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local get_seconds = amk.game_seconds
+local upd_step = 5
+upd_step = upd_step * level.get_time_factor()
+
+local bad_charge_level = 0
+
+class "det_binder" (object_binder)
+
+function det_binder:__init(obj)
+	super(obj)
+
+	self.time_left = 0
+	self.last_time = 0
+end
+
+function det_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then
+		return false
+	end
+	
+	self.full_charge_time = sys_ini:r_u32(self.object:section(), "working_time") *60
+	self.condition = self.object:condition()
+	self.time_left = self.full_charge_time * self.condition
+	self.last_time = get_seconds()
+	
+	return true
+end
+
+function det_binder:update(delta)
+	object_binder.update(self, delta)
+
+	if not db.actor:is_on_belt(self.object) then
+		return
+	end
+
+	if self.condition == 0 then
+		db.actor:move_to_ruck(self.object)
+		return
+	end
+
+	local t = get_seconds()
+	local _shift = t - self.last_time
+	if _shift < upd_step then return end
+
+	self.time_left = math.max(self.time_left - _shift, 0)
+	self.last_time = t
+
+	self.condition = self.time_left/self.full_charge_time
+	self.object:set_condition(self.condition)
+end
+
+function det_binder:net_destroy()
+	object_binder.net_destroy(self)
+
+	self:save_condition()
+end
+
+function det_binder:save(packet)
+	object_binder.save(self, packet)
+
+	self:save_condition()
+end
+
+function det_binder:save_condition()
+	local se_obj = alife():object(self.object:id())
+	if se_obj then
+		netpk:modify(se_obj, {condition = self.condition}, netpk.fState)
+	end
+end
+
+function det_binder:get_charge_level()
+	return self.condition
+end
+
+function det_binder:charge(new_charge)
+	if new_charge <= bad_charge_level then
+		ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой")
+		return false
+	elseif math.abs(self:get_charge_level() - new_charge) < 0.02 then
+		return false
+	end
+
+	local old_charge = self:get_charge_level()
+	if old_charge > 0 then
+		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
+		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		netpk:modify(accum, {condition = old_charge}, netpk.fState)
+		level.client_spawn_manager():add(accum.id, -1,
+			function(condition, id, obj)
+				obj:set_condition(condition)
+			end,
+		old_charge)
+	end
+
+	self.time_left = self.full_charge_time * new_charge
+	self.last_time = get_seconds()
+	self.condition = new_charge
+	self.object:set_condition(new_charge)
+end
+------------------------------------------------------------------------------
+function init(obj)
+	if obj:section()=="det_suit" then return end
+    obj:bind_object( det_binder(obj) )
+end

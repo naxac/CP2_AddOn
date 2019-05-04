@@ -79,7 +79,7 @@ local del_corpse = {
 local tbl_hit = {}
 
 function on_hit(obj, bone_index, amount)
-	if amount <= 0 then return false end
+--	if amount <= 0 then return false end
 
 	local sect = obj:section()
 	if del_corpse[sect] then return false end
@@ -108,10 +108,10 @@ function on_hit(obj, bone_index, amount)
 			for ii, vv in ipairs (v) do
 				if vv == bone_index then
 					th.del[i] = true
-					if game_options.DEBUG then
-						log("del part from [%s:%d] , bone_index = %d", sect, id, bone_index)
+				--	if game_options.DEBUG then
+						log("~ [%s] del part from [%s:%d] , bone_index = %d", script_name(), sect, id, bone_index)
 					--	amk.send_tip("","Монстру оторвало "..game.translate_string(get_inv_name(t.part))..".")
-					end
+				--	end
 					res = true
 					break
 				end
@@ -142,17 +142,20 @@ function on_death(obj)
 		local n = t.cnt - table.size(t.del)
 		-- удаляем движковую запчасть
 		this.remove_item(obj:object(t.part))
+		local prob = game_options.RareMonsterParts and sys_ini:r_float(obj:section(), "Spawn_Inventory_Item_Probability") or 1
 		if n > 0 then
 			for i = 1, n do
-				amk.spawn_item_in_inv(t.part, obj)
+				if (math.random() <= prob) then
+					amk.spawn_item_in_inv(t.part, obj)
+				end
 			end
 		end
 		tbl_hit[id] = nil
 	end
 end
 
-function remove_item(obj)
-	if obj==nil then return end
-	local sobj = alife():object(obj:id())
+function remove_item(item)
+	if item==nil then return end
+	local sobj = alife():object(item:id())
 	if sobj then alife():release(sobj, true) end
 end

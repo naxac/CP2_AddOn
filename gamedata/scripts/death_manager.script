@@ -301,8 +301,12 @@ function drop_manager:create_release_item()
 			else
 				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
 			end
-		elseif sect == "wpn_knife" and nepis:active_slot() ~= inventory_slots.KNIFE then
-			table.insert( rx_ai.ids_to_remove,item_id )
+		elseif sect == "wpn_knife" then
+			if nepis:active_slot() ~= inventory_slots.KNIFE then
+				table.insert( rx_ai.ids_to_remove,item_id )
+			else
+				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
+			end
 		end
 	end
 	, self.npc)
@@ -346,14 +350,14 @@ function drop_manager:create_release_item()
 		if sect then
 			se_item = create_items(self.npc, sect, 1, data.probability_outfit * 10)
 			if se_item then
-				amk.start_timer("outfit_cond",1,{se_item.id, math_random(cond.min, cond.max)+cond_add})
+				amk.start_timer("outfit_cond",1,{se_item.id, cond.min, cond.max})
 			end
 		end
 	end
 
-	sect = names_info[npc_name]
-	if sect and db.actor:dont_has_info(sect) then
-		db.actor:give_info_portion(sect)
+	local info = names_info[npc_name]
+	if info and db.actor:dont_has_info(info) then
+		db.actor:give_info_portion(info)
 	end
 end
 

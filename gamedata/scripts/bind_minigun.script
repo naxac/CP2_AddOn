@@ -1,19 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-function init(obj)
-	obj:bind_object( minigun_binder(obj) )
-end
----------------------------------------------------------------------------------------------
--- Порядок загрузки:
--- reload
--- reinit
--- load
--- net_spawn
----------------------------------------------------------------------------------------------
-local binders = {}
+
+local bad_charge_level = 0.05
 
 class "minigun_binder" (object_binder)
 function minigun_binder:__init(obj) super(obj)
-	self.charge = 0
 	self.fire = false
 end 
 
@@ -22,16 +12,13 @@ function minigun_binder:reinit()
 
 	self.id = self.object:id()
 	self.se_wpn = alife():object(self.id)
-	self.full_charge_time = sys_ini:r_float( self.object:section(), "full_charge_time" ) * 1000
+	self.full_charge_time = sys_ini:r_float( self.object:section(), "working_time" ) * 60000
 	self.worked_time = self.se_wpn.worked_time
-	binders[self.id] = self
 end
 
 function minigun_binder:net_destroy()
-	object_binder.net_destroy(self)
-
 	self.fire = false
-	binders[self.id] = nil
+	object_binder.net_destroy(self)
 end
 
 function minigun_binder:update(delta)
@@ -45,6 +32,7 @@ function minigun_binder:update(delta)
 			xr_s.subscribe( "key_release", self.on_key_release, {self = self} )
 		end
 		if self.worked_time >= self.full_charge_time then
+			db.actor:activate_slot(-1)
 			db.actor:move_to_ruck(self.object)
 			amk.send_tip("Для использования "..game.translate_string( get_inv_name(self.object:section()) ).." необходимо поменять аккумулятор!", nil, nil, 5, "nano")
 			return
@@ -75,25 +63,37 @@ function minigun_binder:on_key_release(dik, bind)
 	self.fire = false
 end
 
-function minigun_binder:on_change_accum()
-	if self.worked_time/self.full_charge_time < 0.9 then
-		ui_inv_add.show_inv_msg("Аккумулятор не требует замены")
+function minigun_binder:get_charge_level()
+	return (self.full_charge_time - self.worked_time)/self.full_charge_time
+end
+
+function minigun_binder:charge(new_charge)
+	if new_charge <= bad_charge_level then
+		ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой")
+		return false
+	elseif math.abs(self:get_charge_level() - new_charge) < 0.02 then
 		return false
 	end
-	self.worked_time = 0
+
+	local old_charge = self:get_charge_level()
+	if old_charge > 0 then
+		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
+		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		netpk:modify(accum, {condition = old_charge}, netpk.fState)
+		level.client_spawn_manager():add(accum.id, -1,
+			function(condition, id, obj)
+				obj:set_condition(condition)
+			end,
+		old_charge)
+	end
+
+	self.worked_time = self.full_charge_time - self.full_charge_time * new_charge
 	self.se_wpn.worked_time = self.worked_time
 	return true
 end
-------------------------------------------------------------------------------------------------------
-
-function charge(accum, item)
-	local binder = binders[item:id()]
-	if binder then
-		if binder:on_change_accum() then
-			local se_obj = alife():object( accum:id() )
-			if se_obj then alife():release(se_obj, true) end
-			zvuki.use_snd("acumm")
-		end
-	end
+---------------------------------------------------------------------------------------------
+function init(obj)
+	obj:bind_object( minigun_binder(obj) )
 end
+
 

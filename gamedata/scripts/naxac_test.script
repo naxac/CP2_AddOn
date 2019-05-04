@@ -1,17 +1,40 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function ggg()
+	-- local obj = db.actor:object("exo_bandit_outfit")
+	-- if obj then
+		-- obj:set_item_flag("quest_item", true)
+	-- end
 end
 
 function repair()
-	if has_alife_info( "naxac_test_repair3" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair3" )
+	if has_alife_info( "naxac_test_repair4" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair4" )
 
 	local sim = alife()
-	local obj = sim:object( "podlovim_chiterov_restrictor" )
-	if obj then sim:release( obj, true ) end
-	obj = sim:object( "podlovim_chiterov1_restrictor" )
-	if obj then sim:release( obj, true ) end
-	start_small_timer( 2000, naxac_test.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
+	local obj = sim:object("radar_kukla")
+	if obj then
+		sim:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+		sim:release(obj, true)
+	end
+
+	obj = snp.object_by_section_offline("good_psy_helmet1")
+	if obj then
+		if obj.parent_id == 65535 then
+			sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+		else
+			sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+		end
+		sim:release(obj, true)
+	end
+
+	if not has_alife_info( "naxac_test_repair3" ) then
+		db.actor:give_info_portion( "naxac_test_repair3" )
+		obj = sim:object( "podlovim_chiterov_restrictor" )
+		if obj then sim:release( obj, true ) end
+		obj = sim:object( "podlovim_chiterov1_restrictor" )
+		if obj then sim:release( obj, true ) end
+		start_small_timer( 2000, naxac_test.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
+	end
 
 	if not has_alife_info( "naxac_test_repair2" ) then
 		db.actor:give_info_portion( "naxac_test_repair2" )
@@ -24,7 +47,6 @@ function repair()
 	if not has_alife_info( "naxac_test_repair1" ) then
 		db.actor:give_info_portion( "naxac_test_repair1" )
 
-		local sim = alife()
 		if sim:object( "subway_scaner_doc_0001" ) == nil then
 			sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
 		end

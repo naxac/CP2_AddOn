@@ -16,19 +16,9 @@ local repkits = {
 		if item:is_weapon() then
 			repair_check.repair_repkit(repkit, item)
 		end
-	end,
-	["acumm"] = function (repkit, item)
-		if item:is_torch() then
-			bind_torch.charge(repkit, item)
-		elseif item:is_weapon() then
-			bind_minigun.charge(repkit, item)
-		end
 	end
 }
-local charged_devices = {
-	["device_scaner"] = true,
-	["teleportator"] = true
-}
+
 local info2stop = {
 	ui_inventory	= bit_or(1,4),	ui_inventory_hide	= bit_or(2,8),
 	ui_pda			= bit_or(1,4),	ui_pda_hide			= bit_or(2,8),
@@ -197,8 +187,25 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 	if drop_on_item then
 		if repkits[section] then
 			repkits[section](drag_item, drop_on_item)
-		elseif charged_devices[drop_on_item:section()] and drag_item:is_artefact() then
-			this.charge_device(drag_item, drop_on_item)
+		end
+
+		local sec = drop_on_item:section()
+		if sys_ini:r_bool_ex(sec, "volatile", false) == true then
+			local energy_src = sys_ini:r_string_ex(sec, "energy_source")
+			if energy_src == "artefact" then
+				if drag_item:is_artefact() then
+					this.charge_device(drag_item, drop_on_item)
+				end
+			elseif energy_src == section then
+				local binder = drop_on_item:binded_object()
+				if binder then
+					if binder:charge( drag_item:condition() ) then
+						local se_obj = alife():object( drag_item:id() )
+						if se_obj then alife():release(se_obj, true) end
+						zvuki.use_snd(section)
+					end
+				end
+			end
 		end
 	else
 		if self.quick_slot and edibles[section] then
@@ -443,7 +450,7 @@ function on_net_spawn()
 end
 
 function attach()
-	xr_s.subscribe("net_spawn", this.on_net_spawn, { once = true} )
+	xr_s.subscribe("net_spawn", this.on_net_spawn)
 	xr_s.subscribe("inventory_open", this.inventory_open)
 	xr_s.subscribe("inventory_close", this.inventory_close)
 	xr_s.subscribe("info", this.on_info)
