@@ -349,15 +349,14 @@ function zoom_hud(delta)
 	end
 	cf = math.clamp(cf, 0, 1)
 	if cf ~= precf then
-		local wpn = db.actor:active_item()
-		if wpn then
-			if wpn:clsid() == clsid.wpn_binocular_s then
-				if wpn:section():find("wpn_binoc") then
+		if actor_active_item then
+			if actor_active_item:clsid() == clsid.wpn_binocular_s then
+				if actor_active_item:section():find("wpn_binoc") then
 					zbias:set(-100*cf,-100*cf,1027+100*cf,768+100*cf)
 				else
 					zbias:set(-350*cf,-175*cf,1027,768+175*cf)
 				end
-			elseif rx_utils.addon_attached(wpn,"sc") then
+			elseif rx_utils.addon_attached(actor_active_item,"sc") then
 				zbias:set(-350*cf,-175*cf,1027,768+175*cf)
 			else
 				zbias:set(-200*cf,-100*cf,1027,768+100*cf)
@@ -372,7 +371,7 @@ function zoom_hud(delta)
 	pre_fov = fov
 end
 
-function on_save_options()
+function on_options_change()
 	suithud_enable = game_options.DynHud
 	blurs_enable = game_options.DynHudBlurs
 	zoom_enable = game_options.DynHudZoom

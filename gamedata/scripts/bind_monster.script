@@ -4,7 +4,7 @@
 local particles={}
 
 function bind(obj)      
-   printf("_bp: monster.bind: name='%s', id='%d'", obj:name(), obj:id())
+--   printf("_bp: monster.bind: name='%s', id='%d'", obj:name(), obj:id())
 
    -- Для спауна
    --xr_spawner.spawn_client(obj) 
@@ -19,12 +19,18 @@ class "generic_object_binder" (object_binder)
 function generic_object_binder:__init(obj) super(obj) 
 	self.loaded = false 
 	self.first_update = false
-	self.chtime = 0 
 	self.last_update = 0 
 	self.particles = {} 
 --	Обработчик мутантов
-	if string.find(obj:section(),"bloodsucker_effector") then
-		self.MonsterEffector = meceniy_mutants_manager.MonsterEffector(obj)
+	if obj:alive()
+		and obj:clsid() == clsid.bloodsucker_s
+		and string.find(obj:section(), "suck")
+	then
+		if string.find(obj:section(),"bloodsucker_effector") then
+			self.MonsterEffector = meceniy_mutants_manager.MonsterEffector(obj)
+		else
+			self.MonsterEffector = monster_effects.ef_bloodsucker(obj)
+		end
 	end
 end 
 
@@ -105,14 +111,8 @@ function generic_object_binder:update(delta)
 	if self.object:alive() then 
 		if not has_alife_info("volna_goodwill") then -- в Волне все эффекты отключаем 
 			--/#+# 'засос кровососа боксёра' --------------------------------------------------
-			if cls == clsid.bloodsucker_s then
-			--	monster_effects.ef_bloodsucker(self)		-- отключено до лучших времён
-				if self.MonsterEffector then
-					if self.chtime<_time then 
-						self.chtime=_time+2000 
-						self.MonsterEffector:update(self.object)
-					end
-				end
+			if cls == clsid.bloodsucker_s and self.MonsterEffector then
+				self.MonsterEffector:update(_time)
 			-- Удар контролёра руками из Зова Припяти (Автор: demover123)
 			elseif cls == clsid.controller_s then
 				monster_effects.ef_controller(self)
@@ -280,7 +280,6 @@ function generic_object_binder:death_callback(victim, who)
 
 	--AMK UTILS--
 	amk.on_death(victim, who)
-	amk_utils.monster_death(victim, who)
 	--AMK UTILS-- 
 	smart_mob_parts.on_death(self.object)
 end 

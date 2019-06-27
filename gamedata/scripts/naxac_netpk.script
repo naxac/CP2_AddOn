@@ -3,14 +3,14 @@
 -- Модуль для работы с net_paket'ами объектов, "заточен" под солянку
 
 local torch_flags = {
-	Active            = 1,
-	NightVisionActive = 2,
-	Attached          = 4
+	Active				= 1,
+	NightVisionActive	= 2,
+	Attached			= 4
 }
 local addon_flags = {
-	scope    = 1,
-	launcher = 2,
-	silencer = 4
+	scope				= 1,
+	grenade_launcher	= 2,
+	silencer			= 4
 }
 local trader_flags = {
 	Dummy        = 0,
@@ -907,6 +907,28 @@ function n_netpk:w_upd_cse_alife_item_custom_outfit( data, uppk )
 
 	-- cse_alife_item_custom_outfit
 	uppk:w_u8 ( data.condition )
+end
+----------------------------------------------------------------------------------------------------------
+-- se_outfit
+function n_netpk:r_st_se_outfit( ret, stpk )
+	self:r_st_cse_alife_item_custom_outfit ( ret, stpk )
+
+	-- se_outfit
+	if not stpk:r_eof() then
+		ret.worked_time = stpk:r_s32()
+	end
+end
+function n_netpk:r_upd_se_outfit( ret, uppk )
+	self:r_upd_cse_alife_item_custom_outfit ( ret, uppk )
+end
+function n_netpk:w_st_se_outfit( data, stpk )
+	self:w_st_cse_alife_item_custom_outfit ( data, stpk )
+
+	-- se_outfit
+	stpk:w_s32 (data.worked_time)
+end
+function n_netpk:w_upd_se_outfit( data, uppk )
+	self:w_upd_cse_alife_item_custom_outfit ( data, uppk )
 end
 ----------------------------------------------------------------------------------------------------------
 -- cse_alife_item_ammo
@@ -1816,7 +1838,8 @@ function init()
 		equ_military		= 'cse_alife_item_custom_outfit',
 		equ_scientific		= 'cse_alife_item_custom_outfit',
 		equ_stalker			= 'cse_alife_item_custom_outfit',
-		equ_stalker_s		= 'cse_alife_item_custom_outfit',
+
+		equ_stalker_s		= 'se_outfit',
 
 		wpn_ammo			= 'cse_alife_item_ammo',
 		wpn_ammo_m209		= 'cse_alife_item_ammo',

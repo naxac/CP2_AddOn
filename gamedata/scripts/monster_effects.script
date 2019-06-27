@@ -8,7 +8,7 @@ local time_cat_next_attack = 5000
 local time_boar_next_attack = 400
 local time_zombi_radiation = 700
 
-local sucker_attack_delay = 3000
+local sucker_attack_delay = 4000
 local sucker_attack_interval = 18000
 
 local cat_kulon_timer = 2000 -- Akill квест на ловлю котов, время через какое кот пойман
@@ -72,82 +72,110 @@ function ef_insect_stop(sect)
 end
 	
 -- Поцелуй кровососа (Авторы: Artos, Charsi, Shadows)
-local Release, oTarget = nil, nil
-local NextAttack, RestoreTimer = 0, 0
-local function bloodsucker_vampire_timer()
-    return time_global() > RestoreTimer
-end
-local function bloodsucker_actor_release()
-	Release = true
-	if oTarget:id() == 0 then
-		bind_stalker.restore_weapon("bloodsucker")
-		level.enable_input()
-		level.show_indicators()
-		level.remove_pp_effector(1975)
-		level.remove_cam_effector(1978)
-	end
-	local snd = xr_sound.get_safe_sound_object("monsters\\bloodsucker\\vampire_hit")
-	snd:play_no_feedback(oTarget, sound_object.s2d, 0, vector(), 1.0)
-end
-function ef_bloodsucker(binder)
-	local monster = binder.object
-	if string.find(monster:section(), "suck")==nil then return end
+class "ef_bloodsucker"
 
-	local iTime = time_global()
-	if ((binder.timer_anim or 0) < iTime) or (NextAttack < iTime) then
-		binder.timer_anim = iTime + 2000
-		if oTarget == nil then
-			oTarget = monster:get_enemy()
+function ef_bloodsucker:__init(obj)
+	self.object = obj
+	self.timer_anim = 0
+	self.NextAttack = 0
+	self.RestoreTimer = 0
+	self.oTarget = nil
+	self.captured = nil
+	self.Release = false
+end
+
+function ef_bloodsucker:update(iTime)
+	if self.timer_anim < iTime or self.NextAttack < iTime then
+		self.timer_anim = iTime + 2000
+
+		if self.oTarget == nil then
+			self.oTarget = self.object:get_enemy()
 		end
-		if oTarget and IAmAStalker[oTarget:clsid()] and monster:see(oTarget) then
-			local iDist = monster:position():distance_to(oTarget:position())
+
+		if self.oTarget and IAmAStalker[self.oTarget:clsid()] and self.object:see(self.oTarget) then
+			local iDist = self.object:position():distance_to(self.oTarget:position())
 			if iDist <= 3 then
-				if NextAttack < iTime then	-- and monster.health < 0.5 then
-					if binder.captured then
-						NextAttack = iTime + sucker_attack_interval
-						RestoreTimer = iTime + sucker_attack_delay
-						if oTarget:id() == 0 then
+				if self.NextAttack < iTime then	-- and self.object.health < 0.5 then
+					if self.captured == nil then
+					--	xr_logic.mob_capture(self.object, true)
+						self.NextAttack = self.NextAttack + 500
+						self.captured = true
+					elseif self.captured == true then
+						self.NextAttack = iTime + sucker_attack_interval
+						self.RestoreTimer = iTime + sucker_attack_delay
+						if self.oTarget:id() == 0 then
 							bind_stalker.hide_weapon("bloodsucker")
 							level.disable_input() 
-							level.hide_indicators()
+						--	level.hide_indicators()
 							level.add_pp_effector("escape.ppe",1975,true)
 							level.add_cam_effector("camera_effects\\drunk.anm",1978,false,"")
-							set_actor_dir(monster)
+							set_actor_dir(self.object)
 						end
-						level.add_call(bloodsucker_vampire_timer,bloodsucker_actor_release)
+						xr_s.subscribe("update", self.bloodsucker_vampire_timer,
+							{ self = self, timeout = sucker_attack_delay, once = true }
+						)
 						local oSnd = sound_object("monsters\\bloodsucker\\vampire_sucking")
 						if not (oSnd and oSnd:playing()) then
-							oSnd:play_no_feedback(oTarget, sound_object.s2d, 0, vector(), 1.0)
+							oSnd:play_no_feedback(self.oTarget, sound_object.s2d, 0, vector(), 1.0)
 						end
-						monster:play_cycle("vampire_0")	-- залипает анимация
-						binder.captured = nil
-					else
-						xr_logic.mob_capture(monster, true)
-						NextAttack = NextAttack + 500
-						binder.captured = true
+						self.object:clear_animations()
+						self.object:play_cycle("vampire_0")
+						self.captured = false
 					end
 				end
 			end
 		end
-	elseif Release then
-		Release = nil
-		xr_logic.mob_release(monster)
+	elseif self.Release then
+		self.Release = false
+		self.captured = nil
+	--	xr_logic.mob_release(self.object)
+		self.object:clear_animations()
 		local h = hit()
 		h.power = 0.01
 		h.direction = vector():set(0, 0, 0)
 		h.impulse = 1
-		h.draftsman = monster
+		h.draftsman = self.object
 		h.type = hit.wound
-		monster:hit(h)
-		if oTarget:id()==0 then
-			set_actor_dir(monster)
+		self.object:hit(h)
+		if self.oTarget:id()==0 then
+			set_actor_dir(self.object)
 		end
-		oTarget = nil
+		self.oTarget = nil
 	end
-	if RestoreTimer > iTime and oTarget then
-		oTarget.health = -0.003
-		monster.health = 0.008
+	if self.RestoreTimer > iTime and self.oTarget then
+		self.oTarget.health = -0.003
+		self.object.health = 0.008
 	end
+end
+
+function ef_bloodsucker:on_death()
+	if self.RestoreTimer > time_global() and self.oTarget:id() == 0 then
+		self.RestoreTimer = 0
+		xr_s.unsubscribe("update", self.bloodsucker_vampire_timer)
+
+	--	xr_logic.mob_release(self.object)
+		self.captured = nil
+		self.oTarget = nil
+		bind_stalker.restore_weapon("bloodsucker")
+		level.enable_input()
+	--	level.show_indicators()
+		level.remove_pp_effector(1975)
+		level.remove_cam_effector(1978)
+	end
+end
+
+function ef_bloodsucker:bloodsucker_vampire_timer(delta)
+    if self.oTarget:id() == 0 then
+		self.RestoreTimer = 0
+		self.Release = true
+		bind_stalker.restore_weapon("bloodsucker")
+		level.enable_input()
+	--	level.show_indicators()
+		level.remove_pp_effector(1975)
+		level.remove_cam_effector(1978)
+	end
+	local snd = xr_sound.get_safe_sound_object("monsters\\bloodsucker\\vampire_hit")
+	snd:play_no_feedback(self.oTarget, sound_object.s2d, 0, vector(), 1.0)
 end
 
 function set_actor_dir(mob)
@@ -237,10 +265,9 @@ function ef_pseudodog(binder)
 				h.impulse = 0.0
 				a:hit(h)
 				snd:play_at_pos(a,a:position())
-				local aitem=a:active_item()
-				if aitem and math.random()<level.get_game_difficulty()/40 and (a:active_slot()==inventory_slots.PISTOL or a:active_slot()==inventory_slots.RIFLE) then
+				if actor_active_item and math.random()<level.get_game_difficulty()/40 and (a:active_slot()==inventory_slots.PISTOL or a:active_slot()==inventory_slots.RIFLE) then
 					if not inventory.on_belt("af_idol_monolita") or math.random() < 0.5 then
-						a:drop_item(aitem)
+						a:drop_item(actor_active_item)
 						archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
 					end
 				end
@@ -390,12 +417,11 @@ function ef_burer(binder)
 				if math.random()<diff/10 then
 					a.power = -1.0
 				end
-				local aitem=a:active_item()
-				if aitem and math.random()<diff/20
+				if actor_active_item and math.random()<diff/20
 					and (a:active_slot()==inventory_slots.PISTOL or a:active_slot()==inventory_slots.RIFLE)
 				then
 					if not inventory.on_belt("af_idol_monolita") or math.random() < 0.5 then
-						a:drop_item(aitem)
+						a:drop_item(actor_active_item)
 						archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
 					end
 				end
@@ -426,10 +452,9 @@ function ef_dog(binder)
 				h.direction = m:direction() 
 				db.actor:hit(h) 
 				if math.random()<0.02 then
-					local active_item = db.actor:active_item() 
-					if active_item and active_item:section()~= "bolt" then
+					if actor_active_item and actor_active_item:section()~= "bolt" then
 						if (not inventory.on_belt("af_idol_monolita")) or math.random() < 0.5 then
-							db.actor:drop_item(active_item)
+							db.actor:drop_item(actor_active_item)
 							archievements.acv_count_event("acv_drop", 10, "Маша-растеряша")
 						end
 					end
@@ -444,7 +469,6 @@ function stop_effects(binder, who)
 	local mob = binder.object
 	local cls = mob:clsid()
 	if cls == clsid.bloodsucker_s then
-		RestoreTimer = 0
 		if binder.MonsterEffector then
 			binder.MonsterEffector:on_death(mob, who)
 		end

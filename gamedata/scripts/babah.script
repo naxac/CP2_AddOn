@@ -3,17 +3,17 @@ local math_random = math.random
 
 -- функция для запуска таймера при ондропе
 function timeBombOut(id, sect)
-	amk.start_timer("babah_drop_timeBomb", 0.2, {id = id, sect = sect})
+	xr_timers.start_real_timer("babah_drop_timeBomb", 0.2, {id = id, sect = sect})
 end
 
 -- функция для запуска таймера при ондропе
 function mineOut(id, sect)
-	amk.start_timer("babah_drop_mine", 0.2, {id = id, sect = sect})
+	xr_timers.start_real_timer("babah_drop_mine", 0.2, {id = id, sect = sect})
 end
 
 -- функция для запуска таймера при ондропе
 function detonatorOut(id, sect)
-	amk.start_timer("babah_drop_detonator", 0.2, {id = id, sect = sect})
+	xr_timers.start_real_timer("babah_drop_detonator", 0.2, {id = id, sect = sect})
 end
 
 local bombs = {
@@ -196,7 +196,7 @@ function useDetonator(sect)
 	end
 	if detonators["sect"][sect]["delay"] then
 		-- запускаем таймер отсрочки активации детонатора
-		amk.start_timer("babah_activateDetonator", detonators["sect"][sect]["delay"], sect)
+		xr_timers.start_real_timer("babah_activateDetonator", detonators["sect"][sect]["delay"], sect)
 	else
 		explodeBombsByDetonator(sect)
 	end
@@ -310,12 +310,12 @@ function dropMine(tbl)
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
 	-- запускаем таймер активации мины
-	amk.start_timer("babah_activateMine", mines["sect"][tbl.sect]["delay"], tbl)
+	xr_timers.start_real_timer("babah_activateMine", mines["sect"][tbl.sect]["delay"], tbl)
 end
 
 function dropTimeBomb(tbl)
 	--get_console():execute("load ~~~ function dropTimeBomb(tbl)")
-	--amk.start_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
+	--xr_timers.start_real_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
 	-- превращаем инвентарную бомбу в обычную
 	if level.main_input_receiver() then
 		level.start_stop_menu(level.main_input_receiver(), true)
@@ -344,7 +344,7 @@ end
 
 function relocateTimeBomb(tbl)
 	--get_console():execute("load ~~~ function relocateTimeBomb(tbl)")
-	--amk.start_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
+	--xr_timers.start_real_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
 	-- превращаем обычную бомбу в инвентарную
 	if transferredBombs[tbl.id] then
 		transferredBombs[tbl.id] = nil
@@ -375,7 +375,7 @@ function relocateTimeBomb(tbl)
 				if parent:clsid() == clsid.inventory_box then
 					-- ящики совсем охренели
 					--amk.send_tip("ящики совсем охренели")
-					amk.start_timer("babah_timeBomb_transfer", 0.2, new_se_obj.id)
+					xr_timers.start_real_timer("babah_timeBomb_transfer", 0.2, new_se_obj.id)
 				end
 			--	inventory.on_inventory_info("ui_inventory_hide")
 			--	inventory.on_inventory_info("ui_inventory")
@@ -452,7 +452,7 @@ function useTimeBomb(tbl)
 			return
 		end
 		se_obj = alife():create(newSect, pos, lv, gv, actor:id())
-		amk.start_timer("babah_timeBomb_activated", delay, se_obj.id)
+		xr_timers.start_real_timer("babah_timeBomb_activated", delay, se_obj.id)
 		messg("Таймер запущен! Нужно срочно выложить взрывчатку и отойти на безопасное расстояние.", "Взрывчатка")
 	end
 end
@@ -485,7 +485,7 @@ function explosiveExplode(id)
 						end
 						sim:release(se_obj, true)
 						se_obj = sim:create(sect, pos, lv, gv, parent:id())
-						amk.start_timer("babah_explode_moved_timeBomb", 0.2, se_obj.id)
+						xr_timers.start_real_timer("babah_explode_moved_timeBomb", 0.2, se_obj.id)
 						--amk.send_tip("Взрывчатка перемещена "..type(se_obj.id).." "..tostring(se_obj.id))
 					end
 				end
@@ -716,16 +716,16 @@ function explode_r(ob)
 				end
 			end
 			if #itemsTransferBack > 0 then
-				amk.start_timer("babah_transfer_items", 0.1, {invId = obj:id(), explId = id, itemsTransferBack = itemsTransferBack})
+				xr_timers.start_real_timer("babah_transfer_items", 0.1, {invId = obj:id(), explId = id, itemsTransferBack = itemsTransferBack})
 			else
 				hitExplosive(ob)
 				local levelName = sim:level_name(ggraph:vertex(obj:game_vertex_id()):level_id())
-				amk.start_timer("babah_explode_biside_explosives", 0.5, {id = id, sect = sect, x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
+				xr_timers.start_real_timer("babah_explode_biside_explosives", 0.5, {id = id, sect = sect, x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
 			end
 		else
 			hitExplosive(ob)
 			local levelName = sim:level_name(ggraph:vertex(obj:game_vertex_id()):level_id())
-			amk.start_timer("babah_explode_biside_explosives", 0.5, {id = id, sect = sect, x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
+			xr_timers.start_real_timer("babah_explode_biside_explosives", 0.5, {id = id, sect = sect, x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
 		end
 	else
 		amk.send_tip("Взрывчатка не взорвана. Она не найдена.", nil, 2)
@@ -769,7 +769,7 @@ function itemsTransferBackToInventory(tbl)
 			hitExplosive(explosive)
 		end
 		local levelName = sim:level_name(game_graph():vertex(inventory:game_vertex_id()):level_id())
-		amk.start_timer("babah_explode_biside_explosives", 0.5, {id = explosive:id(), sect = explosive:section(), x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
+		xr_timers.start_real_timer("babah_explode_biside_explosives", 0.5, {id = explosive:id(), sect = explosive:section(), x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
 	else
 		get_console():execute("load ~~~ function itemsTransferBackToInventory(tbl) - inventory == nil: id "..tostring(tbl.invId))
 	end

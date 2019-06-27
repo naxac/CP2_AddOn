@@ -539,74 +539,6 @@ function cheat_menu:AddItemToList(tbl)
 	self.list:AddItem( list_item(itm_name, tbl[1]) )
 end
 ---------------------------------------------------------------------------------------------------
-local is_eatable = {
-	[clsid.obj_antirad]	= true,
-	[clsid.obj_bandage]	= true,
-	[clsid.obj_bottle]	= true,
-	[clsid.obj_food]	= true,
-	[clsid.obj_medkit]	= true
-}
-local is_artefact = {
-	[clsid.art_bast_artefact]	= true,
-	[clsid.art_black_drops]		= true,
-	[clsid.art_dummy]			= true,
-	[clsid.art_electric_ball]	= true,
-	[clsid.art_faded_ball]		= true,
-	[clsid.art_galantine]		= true,
-	[clsid.art_gravi]			= true,
-	[clsid.art_gravi_black]		= true,
-	[clsid.art_mercury_ball]	= true,
-	[clsid.art_needles]			= true,
-	[clsid.art_rusty_hair]		= true,
-	[clsid.art_thorn]			= true,
-	[clsid.art_zuda]			= true,
-	[clsid.artefact]			= true,
-	[clsid.artefact_s]			= true
-}
-local is_magazined_weapon = {
-	[clsid.wpn_fort]		= true,
-	[clsid.wpn_hpsa]		= true,
-	[clsid.wpn_hpsa_s]		= true,
-	[clsid.wpn_pm]			= true,
-	[clsid.wpn_pm_s]		= true,
-	[clsid.wpn_usp45]		= true,	
-	[clsid.wpn_usp45_s]		= true,	
-	[clsid.wpn_walther]		= true,
-	[clsid.wpn_walther_s]	= true,
-	[clsid.wpn_ak74_s]		= true,
-	[clsid.wpn_binocular_s]	= true,
-	[clsid.wpn_bm16_s]		= true,
-	[clsid.wpn_groza_s]		= true,
-	[clsid.wpn_lr300_s]		= true,
-	[clsid.wpn_rg6_s]		= true,
-	[clsid.wpn_rpg7_s]		= true,
-	[clsid.wpn_shotgun_s]	= true,
-	[clsid.wpn_svd_s]		= true,
-	[clsid.wpn_svu_s]		= true,
-	[clsid.wpn_val_s]		= true,
-	[clsid.wpn_vintorez_s]	= true
-}
-local is_outfit = {
-	[clsid.equ_exo]			= true,
-	[clsid.equ_military]	= true,
-	[clsid.equ_scientific]	= true,
-	[clsid.equ_stalker_s]	= true,
-	[clsid.equ_stalker]		= true
-}
-local is_grenade={
-	[clsid.wpn_grenade_f1]		= true,
-	[clsid.wpn_grenade_fake]	= true,
-	[clsid.wpn_grenade_rgd5]	= true,
-	[clsid.wpn_grenade_rpg7]	= true
-}
-local is_knife={
-	[clsid.wpn_knife]	=true,
-	[clsid.wpn_knife_s]	=true
-}
-local is_scope = {
-	[clsid.wpn_scope_s]	= true,
-	[clsid.wpn_scope]	= true
-}
 -- ѕараметры актЄра, по которым считаютс€ некоторые параметры артефактов или костюмов
 local conditions = {
 	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'bleeding_v'),
@@ -698,40 +630,17 @@ function GetOutfitParams(section)
 		end
 	end
 
+	if sys_ini:line_exist(section, "power_loss") then
+		val = sys_ini:r_float(section, "power_loss")
+		if val ~= 1 then
+			val = val*100 - 100
+			txt = txt.."%c[white]Х ”сталость: "..(val>0 and "%c[red]+" or "%c[green]")..string.format("%d",val).."%\\n"
+		end
+	end
 	if sys_ini:line_exist(section, "additional_inventory_weight") then
 		val = sys_ini:r_float(section, "additional_inventory_weight")
 		if val ~= 0 then
 			txt = txt.."%c[white]Х √рузоподъЄмность: %c[green]+"..string.format("%.1f",val).." кг\\n"
-		end
-	end
-	if sys_ini:line_exist(section, "power_loss") then
-		val = sys_ini:r_float(section, "power_loss")
-		if val ~= 0 then
-			txt = txt.."%c[white]Х ”сталость: %c[red]+"..string.format("%d",val*100).."%\\n"
-		end
-	end
-	if sys_ini:line_exist(section, "power_restore_speed") then
-		val = sys_ini:r_float(section, "power_restore_speed")
-		if val ~= 0 then
-			txt = txt.."%c[white]Х ¬ыносливость: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%d",val*1000).."%\\n"
-		end
-	end
-	if sys_ini:line_exist(section, "health_restore_speed") then
-		val = sys_ini:r_float(section, "health_restore_speed")
-		if val ~= 0 then
-			txt = txt.."%c[white]Х «доровье: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%d",val*1000).."%\\n"
-		end
-	end
-	if sys_ini:line_exist(section, "bleeding_restore_speed") then
-		val = sys_ini:r_float(section, "bleeding_restore_speed")
-		if val ~= 0 then
-			txt = txt.."%c[white]Х  ровотечение: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%d",val*1000).."%\\n"
-		end
-	end
-	if sys_ini:line_exist(section, "satiety_restore_speed") then
-		val = sys_ini:r_float(section, "satiety_restore_speed")
-		if val ~= 0 then
-			txt = txt.."%c[white]Х —ытость: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%d",val*1000).."%\\n"
 		end
 	end
 
@@ -857,23 +766,23 @@ function cheat_menu:GetExtDescr( section )
 	local mode = true
 	local cls = sys_ini:r_clsid( section, "class" )
 
-	if is_eatable[cls] then
+	if isEatable(nil, cls) then
 		txt = GetEatableParams(section)
-	elseif is_artefact[cls] then
+	elseif isArtefact(nil, cls) then
 		txt = GetAfParams(section)
 		mode = false
-	elseif is_magazined_weapon[cls] then
+	elseif clsid_magazined_weapon[cls] then
 		txt = GetWeaponParams(section)
-	elseif is_outfit[cls] then
+	elseif isOutfit(nil, cls) then
 		txt = GetOutfitParams(section)
-	elseif is_grenade[cls] then
+	elseif isGrenade(nil, cls) then
 		local fr = sys_ini:r_float(section, 'frags_r')
 		local br =  sys_ini:r_float(section, 'blast_r')
 		txt = string.format( "Х опасный радиус: %.1f м.", (fr+br)/2 ).."\\n"
-	elseif is_knife[cls] then
+	elseif isKnife(nil, cls) then
 		local d = sys_ini:r_float(section, 'fire_distance')
 		txt = string.format( "Х дистанци€ удара: %.2f м.", d ).."\\n"
-	elseif is_scope[cls] then
+	elseif isScope(nil, cls) then
 		local zf = sys_ini:r_float(section, 'scope_zoom_factor')
 		local zoom = 67.5/(zf*0.75)
 		txt = "Х увеличение: x"..string.format("%.1f", zoom).."\\n"

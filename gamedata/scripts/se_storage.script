@@ -1,0 +1,124 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local storage = {}
+
+class "se_stor" (cse_alife_dynamic_object)
+
+function se_stor:__init (section) super (section)
+	self.stor = {}
+end
+function se_stor:on_register()
+	cse_alife_dynamic_object.on_register(self)
+
+	self:can_switch_online(false)
+	self:can_switch_offline(true)
+end
+function se_stor:can_switch_online()
+	return false
+end
+function se_stor:can_switch_offline()
+	return true
+end
+function se_stor:STATE_Write (packet)
+	cse_alife_dynamic_object.STATE_Write( self, packet )
+--	log("se_stor:STATE_Write [%s]:%s", self.id, packet:w_tell())
+	xr_logic.save_pstor_table(packet, self.stor, self)
+
+	if storage[self.id] == nil then
+		storage[self.id] = self.stor
+	end
+--	log("- TOTAL %s", packet:w_tell())
+end
+function se_stor:STATE_Read (packet, size)
+	cse_alife_dynamic_object.STATE_Read( self, packet, size )
+--	log("se_stor:STATE_Read [%s]:%s", self.id, packet:r_tell())
+	xr_logic.load_pstor_table(packet, self.stor, self)
+
+	if storage[self.id] == nil then
+		storage[self.id] = self.stor
+	end
+--	log("- TOTAL %s", packet:r_tell())
+end
+
+function save_variable(id, varname, value)
+	local tbl = storage[id]
+	if not tbl then
+		tbl = {}
+		storage[id] = tbl
+	end
+
+	local sz_stor = get_tbl_size(tbl)
+	local sz_var = get_var_size(value) + #varname + 1
+	if sz_var + sz_stor >= 1024*8 then
+		return false
+	end
+	
+	tbl[varname] = value
+	return true
+end
+
+function load_variable(id, varname, def_value)
+	local tbl = storage[id]
+	if not tbl then
+		log("! %s, load_variable: storage with id [%s] not found!", script_name(), id)
+		return def_value
+	end
+
+	return tbl[varname] or def_value
+end
+
+function del_variable(id, varname)
+	local tbl = storage[id]
+	if not tbl then
+		log("! %s, del_variable: storage with id [%s] not found!", script_name(), id)
+		return nil
+	end
+
+	tbl[varname] = nil
+	return true
+end
+
+function get_storage(id)
+	local tbl = storage[id]
+	if not tbl then
+		local obj = alife():object(id)
+		if obj ~= nil then
+			tbl = obj.stor or {}
+			storage[id] = tbl
+		else
+			abort("se_storage, get_storage: storage object with id[%s] not found!", id)
+			return nil
+		end
+	end
+
+	return tbl
+end
+
+function del_storage(id)
+	storage[id] = nil
+	local sobj = alife():object(id)
+	if sobj then
+		alife():release(sobj, true)
+	end
+end
+
+function get_tbl_size(tbl)
+	local sz = 0
+	for k, v in pairs(tbl) do
+		sz = sz + get_var_size(v) + 1
+		sz = sz + #tostring(k) + 1
+	end
+	return sz + 1
+end
+
+function get_var_size(var)
+	local t = type(var)
+	if t == "number" then
+		return 4
+	elseif t == "boolean" then
+		return 1
+	elseif t == "string" then
+		return #var + 1
+	elseif t == "table" then
+		return get_tbl_size(var)
+	end
+end

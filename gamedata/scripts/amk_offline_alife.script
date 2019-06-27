@@ -11,13 +11,6 @@ local math_abs = math.abs
 local math_ceil = math.ceil
 local string_find = string.find
 
-local is_ammo = {
-	[clsid.wpn_ammo] = true,
-	[clsid.wpn_ammo_m209] = true,
-	[clsid.wpn_ammo_og7b] = true,
-	[clsid.wpn_ammo_vog25] = true
-}
-	
 off_npcs={}
 items={}
 local no_sell_table = {}
@@ -122,8 +115,8 @@ local smart_filters = {
 
 local rel_enemy,rel_friend
 
-local look_radius=50			-- Радиус "обзора"
-local look_radius_box = 30		-- Радиус поиска нычек
+local look_radius = 60			-- Радиус "обзора"
+local look_radius_box = 50		-- Радиус поиска нычек
 
 local search_intensivity = 60	--интенсивность поиска (количество отрабатываемых неписей)
 
@@ -180,13 +173,14 @@ function add_fresh_meat(obj)
 		and ( not protected_items.is_no_offline_alife_npc(obj) )
 	then
 		local map=alife():level_name(game_graph():vertex(obj.m_game_vertex_id):level_id())
+		local cls = obj:clsid()
 		if not off_npcs[map] then off_npcs[map]={monsters={},stalkers={},weapons={},artefacts={},inv_boxes={}} end
-		if IAmAMonster[obj:clsid()] and obj.alive and obj:alive() and obj.health and obj:health()>0 and obj.m_story_id == 4294967296 then
+		if IAmAMonster[cls] and obj.alive and obj:alive() and obj.health and obj:health()>0 and obj.m_story_id == 4294967296 then
 				local flags = get_flags(obj.id)
 				if bit_and(flags, 1) ~= 1 then --Уберем тех, у кого on_hit есть.
 					table.insert(off_npcs[map].monsters, {id = obj.id, name = obj:name()})
 				end
-		elseif obj:clsid()==clsid.script_stalker and obj.alive and obj:alive() and obj.health and obj:health()>0 and obj.m_story_id == 4294967296 then
+		elseif cls==clsid.script_stalker and obj.alive and obj:alive() and obj.health and obj:health()>0 and obj.m_story_id == 4294967296 then
 				local flags = get_flags(obj.id)
 				if bit_and(flags, 1) ~= 1 then --Уберем тех, у кого on_hit есть.
 					if obj:community()~="zombied" then
@@ -195,13 +189,13 @@ function add_fresh_meat(obj)
 						table.insert(off_npcs[map].monsters, {id = obj.id, name = obj:name()})
 					end
 				end
-		elseif IAmAWeapon[obj:clsid()] then
+		elseif IAmAWeapon[cls] then
 			if obj.m_story_id == 4294967296 then
 				if obj.parent_id then
 						local p_obj = alife():object(obj.parent_id)
 					if p_obj then
 							if p_obj.m_game_vertex_id and game_graph():valid_vertex_id(p_obj.m_game_vertex_id) then
-								if p_obj:clsid() == clsid.inventory_box then
+								if p_cls == clsid.inventory_box then
 									-- НПС "не видят" этого
 									map = ""
 								else
@@ -225,7 +219,7 @@ function add_fresh_meat(obj)
 				local p_obj = alife():object(obj.parent_id)
 				if p_obj then
 					if p_obj.m_game_vertex_id and game_graph():valid_vertex_id(p_obj.m_game_vertex_id) then
-						if p_obj:clsid() == clsid.inventory_box then
+						if p_cls == clsid.inventory_box then
 							-- НПС "не видят" этого
 							map = ""
 						else
@@ -239,12 +233,12 @@ function add_fresh_meat(obj)
 				end
 			end
 			if map ~= "" then table.insert(off_npcs[map].artefacts, {id = obj.id, name = obj:name()}) end
-		elseif obj:clsid() == clsid.inventory_box and not box_is_protected(obj) then
+		elseif cls == clsid.inventory_box and not box_is_protected(obj) then
 			table.insert(off_npcs[map].inv_boxes, {id = obj.id, name = obj:name()})
 		end
 			
 		if obj.parent_id and obj.m_story_id == 4294967296
-			and not (IAmAMonster[obj:clsid()] or IAmAStalker[obj:clsid()])
+			and not (IAmAMonster[cls] or IAmAStalker[cls])
 		then
 			local zz = alife():object(obj.parent_id)
 			if zz then
@@ -314,72 +308,88 @@ end
 --генерируем оффлайн события
 function offline_alife()
 	
-	local lname = maps[math_random(#maps)]
+	local lname = table.random(maps)
 --	update_tables(lname)
-	-- amk.mylog("Offline_alife - "..lname)
-	local st = 0
+--	log("# Offline_alife -> %s", lname)
 	amk.oau_reason="cn offline_alife chp1"
-	if off_npcs[lname] then st = #off_npcs[lname].stalkers end
-	if st>0 then
+
+	local st = 0
+	local npcs = off_npcs[lname]
+	if npcs then st = #npcs.stalkers end
+	if st == 0 then return end
+
+--	log("stalkers found [%s]", st)
 	amk.oau_reason="cn offline_alife chp2"
-		for search = 1,search_intensivity do
-	amk.oau_reason="cn offline_alife chp3"
-			local rnd = math_random(st)
-	amk.oau_reason="cn offline_alife chp4"
-			if off_npcs[lname].stalkers[rnd] then 
-	amk.oau_reason="cn offline_alife chp5"
-				local victim = alife():object(off_npcs[lname].stalkers[rnd].id)
-	amk.oau_reason="cn offline_alife chp6"
-				if victim and not victim.online and victim.health and victim.can_switch_online and victim:health()>0 and victim:can_switch_online() and victim:name() == off_npcs[lname].stalkers[rnd].name then
-	amk.oau_reason="cn offline_alife chp7 "..tostring(victim and victim:name())
-					local vdata = collect_info(victim,lname)
-	amk.oau_reason="cn offline_alife chp8 "..tostring(victim and victim:name())
-					if #vdata.enemies>0 then
+	local idxs = {}
+	for i = 1, st do
+		table.insert(idxs, i)
+	end
+	local rnd, idx = 0, 0
+	for search = 1, math.min(st, search_intensivity) do
+		amk.oau_reason="cn offline_alife chp3"
+		idx = math_random(#idxs)
+		rnd = idxs[idx]
+		table.remove(idxs, idx)
+		amk.oau_reason="cn offline_alife chp4"
+		if npcs.stalkers[rnd] then 
+			amk.oau_reason="cn offline_alife chp5"
+			local victim = alife():object(npcs.stalkers[rnd].id)
+			amk.oau_reason="cn offline_alife chp6"
+			local victim_name = victim and victim:name()
+			if victim and (not victim.online) and victim.health and victim.can_switch_online
+				and victim:health()>0 and victim:can_switch_online()
+				and victim_name == npcs.stalkers[rnd].name
+			then
+			--	log("- process offline_alife for [%s]", victim_name)
+				amk.oau_reason="cn offline_alife chp7 "..victim_name
+				local vdata = collect_info(victim,lname)
+				amk.oau_reason="cn offline_alife chp8 "..victim_name
+			--	table.print(vdata)
+				if #vdata.enemies>0 then
 					--есть вражина - воюем нах!
-	amk.oau_reason="cn offline_alife chp9 "..tostring(victim and victim:name())
-						on_enemies_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.monsters>0 then
+					amk.oau_reason="cn offline_alife chp9 "..victim_name
+					on_enemies_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.monsters>0 then
 					--есть монстрятина - видели, слышали, убили, сдохли...
-	amk.oau_reason="cn offline_alife chp10 "..tostring(victim and victim:name())
-						on_monsters_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.corpses.stalkers>0 then
+					amk.oau_reason="cn offline_alife chp10 "..victim_name
+					on_monsters_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.corpses.stalkers>0 then
 					--есть труп сталкера
-	amk.oau_reason="cn offline_alife chp11 "..tostring(victim and victim:name())
-						on_npc_corpses_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.corpses.monsters>0 then
+					amk.oau_reason="cn offline_alife chp11 "..victim_name
+					on_npc_corpses_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.corpses.monsters>0 then
 					--есть труп монстра
-	amk.oau_reason="cn offline_alife chp12 "..tostring(victim and victim:name())
-						on_monster_corpses_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.weapons.seen>0 then
+					amk.oau_reason="cn offline_alife chp12 "..victim_name
+					on_monster_corpses_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.weapons.seen>0 then
 					--есть бесхозное оружие
-	amk.oau_reason="cn offline_alife chp13 "..tostring(victim and victim:name())
-						on_weapons_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.artefacts>0 then
+					amk.oau_reason="cn offline_alife chp13 "..victim_name
+					on_weapons_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.artefacts>0 then
 					--есть арты
-	amk.oau_reason="cn offline_alife chp14 "..tostring(victim and victim:name())
-						on_artifacts_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif #vdata.inv_boxes>0 then
+					amk.oau_reason="cn offline_alife chp14 "..victim_name
+					on_artifacts_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif #vdata.inv_boxes>0 then
 					--есть контейнеры. Надо обыскать.
-	amk.oau_reason="cn offline_alife chp18 "..tostring(victim and victim:name())
-						on_inv_boxes_found(victim, vdata)
-						break	--прерываем цикл - событие отработано
-					elseif items[victim.id] and #items[victim.id] > 0 then
+					amk.oau_reason="cn offline_alife chp18 "..victim_name
+					on_inv_boxes_found(victim, vdata)
+					break	--прерываем цикл - событие отработано
+				elseif items[victim.id] and #items[victim.id] > 0 then
 					--попробуем продать всякого
-	amk.oau_reason="cn offline_alife chp15 "..tostring(victim and victim:name())
-						-- amk.mylog("Offline: lets trade")
-	amk.oau_reason="cn offline_alife chp17 "..tostring(victim and victim:name())
-						process_trade(victim)
-						-- amk.mylog("Offline: trade done")
-						break
-					else
-						--amk.mylog("__")
-					end
+					amk.oau_reason="cn offline_alife chp15 "..victim_name
+					-- amk.mylog("Offline: lets trade")
+					amk.oau_reason="cn offline_alife chp17 "..victim_name
+					process_trade(victim)
+					-- amk.mylog("Offline: trade done")
+					break
+				else
+					--amk.mylog("__")
 				end
 			end
 		end
@@ -1239,7 +1249,9 @@ function on_inv_boxes_found(victim, vdata)
 									end											
 								end			
 							end
-						end					
+						end
+					else
+						new_treasure.offline_npc_found_box(victim, v_obj)
 					end
 				end
 			end
@@ -1249,6 +1261,15 @@ function on_inv_boxes_found(victim, vdata)
 		end
 	end
 	process_trade(victim)
+end
+
+function pick_fake_item(npc, sect)
+	local new = alife():create(sect, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
+	if new and new.parent_id then
+		if not items[new.parent_id] then items[new.parent_id] = {} end
+		table.insert(items[new.parent_id], {id = new.id, name = new:name()})
+	end
+	return new
 end
 
 function pick_item(npc, obj)
@@ -1509,7 +1530,7 @@ function process_trade(npc)
 					else
 						table.insert(weapons, {obj = v, ammo = nil})
 					end
-				elseif is_ammo[cls] then
+				elseif isAmmo(nil, cls) then
 					if ammoss[sect] == nil then 
 						ammoss[sect] = 1
 					else
@@ -1751,19 +1772,19 @@ function get_monster_params(obj)
 		else
   amk.oau_reason="get_monster_params chp4"
 			-- local speed 	= utils.cfg_get_number(sys_ini, obj:section_name(), "MaxSpeed", obj, false, 5)
-			local speed 	= getIniValueFloat(sect, "MaxSpeed", 5, nil)
+			local speed 	= sys_ini:r_float_ex(sect, "MaxSpeed", 5)
   amk.oau_reason="get_monster_params chp5"
 			-- local dist 	= utils.cfg_get_number(sys_ini, obj:section_name(), "MaxAttackDist", obj, false, 3)
-			local dist 		= getIniValueFloat(sect, "MaxAttackDist", 3, nil)
+			local dist 		= sys_ini:r_float_ex(sect, "MaxAttackDist", 3)
   amk.oau_reason="get_monster_params chp6"
 			-- local imm_sect = utils.cfg_get_string(sys_ini, obj:section_name(), "immunities_sect", obj, false, "", "")
-			local imm_sect 	= getIniValueString(sect, "immunities_sect", "", nil)
+			local imm_sect 	= sys_ini:r_string_ex(sect, "immunities_sect", "")
   amk.oau_reason="get_monster_params chp7"
 			-- local immunity 	= utils.cfg_get_number(sys_ini, imm_sect, "fire_wound_immunity", obj, false, 1)
-			local immunity 	= getIniValueFloat(imm_sect, "fire_wound_immunity", 1, nil)
+			local immunity 	= sys_ini:r_float_ex(imm_sect, "fire_wound_immunity", 1)
   amk.oau_reason="get_monster_params chp8"
 			-- local att_sect 	= utils.cfg_get_string(sys_ini, obj:section_name(), "attack_params", obj, false, "", "")
-			local att_sect 	= getIniValueString(sect, "attack_params", "", nil)
+			local att_sect 	= sys_ini:r_string_ex(sect, "attack_params", "")
   amk.oau_reason="get_monster_params chp9"
 			local attack	= 0
   amk.oau_reason="get_monster_params chp10 "..tostring(att_sect)
@@ -1774,7 +1795,7 @@ function get_monster_params(obj)
   amk.oau_reason="get_monster_params chp12"
 				for a=0, sys_ini:line_count(att_sect)-1 do
   amk.oau_reason="get_monster_params chp13"
-					result, id, value = getIniLine(att_sect,a,"","",nil)
+					result, id, value = sys_ini:r_line(att_sect,a,"","")
   amk.oau_reason="get_monster_params chp14"
 					if id~=nil and trim(id)~="" and trim(id)~=nil and value~=nil then
   amk.oau_reason="get_monster_params chp15"
@@ -1922,15 +1943,22 @@ function get_flags(npc_id)
 	return flags
 end
 
-function is_valuable(item)
+function is_valuable(item, section)
+	if not (item or section) then return false end
+
 	local result = false
-	if item and not (IAmAMonster[item:clsid()] or IAmAStalker[item:clsid()]) and not protected_items.actor_items_keep(item:section_name()) then
+
+	local sect = section or item:section_name()
+	local cls = section and sys_ini:r_clsid(section, "class") or item:clsid()
+
+	if (not (IAmAMonster[cls] or IAmAStalker[cls])) and (not protected_items.actor_items_keep(sect)) then
 		-- Уники не подбираем (пока?)
-		if always_keep_item[item:section_name()] or no_sell_table[item:section_name()] == true then
+		if always_keep_item[sect] or no_sell_table[sect] == true then
 			return false
 		end
-		local cost = get_item_cost(item)
-		if IAmAWeapon[item:clsid()] and cost >= 1000 then
+
+		local cost = sys_ini:r_float_ex(sect, "cost")
+		if IAmAWeapon[cls] and cost >= 1000 then
 			result = true
 		elseif cost >= 800 then
 			result = true

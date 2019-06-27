@@ -62,7 +62,7 @@ function repair_repkit(repkit, item)
 	local se_obj = alife():object( repkit:id() )
 	if se_obj then alife():release(se_obj, true) end
 	zvuki.use_snd(repkit_sect)
-	amk_utils.inventory_force_update( item:section() )
+	inventory.force_update( item:section() )
 end
 ------------- Функции для диалога ---------------
 
@@ -194,7 +194,7 @@ function have_all()
 	
 	-- предметы
 	for i=1,#parts do
-		if not new_dialog.item_much(parts[i], count) then
+		if not inventory.search(parts[i], count) then
 			return false
 		end
 	end
@@ -231,7 +231,7 @@ function npc_repair(first_speaker, second_speaker)
 	-- отбираем все, что нужно
 	dialogs.relocate_money(second_speaker, pay, "out")
 	for i=1,#parts do
-		sak.out_item_namber(parts[i], count)
+		inventory.out_items(parts[i], count)
 	end
 
 	-- отбираем стволы и ремонтируем
@@ -239,7 +239,7 @@ function npc_repair(first_speaker, second_speaker)
 		have = 0
 		db.actor:iterate_inventory(kalibr_remove,db.actor)
 		item:set_condition(1)
-		amk_utils.inventory_force_update(item:section())
+		inventory.force_update(item:section())
 	else
 		amk_mod.repair_armor(1)
 	end
@@ -739,7 +739,7 @@ function trader_upgrade_weapon_s1_kalibr(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_1))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -758,7 +758,7 @@ function trader_upgrade_weapon_s1_otdaca(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_2))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -777,7 +777,7 @@ function trader_upgrade_weapon_s1_ves(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 			amk.save_variable(var,("1"..wep_3))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -798,7 +798,7 @@ function trader_upgrade_weapon_s2_kalibr(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_1))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -817,7 +817,7 @@ function trader_upgrade_weapon_s2_otdaca(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_2))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -836,7 +836,7 @@ function trader_upgrade_weapon_s2_ves(actor, trader)
 			dialogs.relocate_money(trader, item_repair_cost, "out")
 			remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 			amk.save_variable(var,("1"..wep_3))
-			amk.g_start_timer(var,0,tt,0)
+			xr_timers.start_game_timer(var,0,tt,0)
 		end
 	end
 end
@@ -1017,8 +1017,8 @@ function trader_repiar_weapon_s1(actor, trader)
 		is_perv = 1
 		remove_repairitem( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..wpn))
-		-- amk.g_start_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
-		amk.g_start_timer(var,0,tt,0)
+		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
+		xr_timers.start_game_timer(var,0,tt,0)
 	end
 end
 
@@ -1063,8 +1063,8 @@ function trader_repiar_weapon_s2(actor, trader)
 		is_vtor = 1
 		remove_repairitem( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..wpn))
-		-- amk.g_start_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
-		amk.g_start_timer(var,0,tt,0)
+		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
+		xr_timers.start_game_timer(var,0,tt,0)
 	end
 end
 
@@ -1088,7 +1088,7 @@ function trader_repiar_armor_s6(actor, trader)
 		remove_repair_bronik_item( inventory_slots.OUTFIT )
 
 		amk.save_variable(var,("1"..arm))
-		amk.g_start_timer(var,0,tt,0)
+		xr_timers.start_game_timer(var,0,tt,0)
 
 --		amk_mod.repair_armor(1)
 		dialogs.relocate_money(trader, item_repair_cost, "out")
@@ -1488,7 +1488,7 @@ function release_addons(sobj,wpn,obj)
 		addon = sys_ini:r_u32_ex(wpn,"grenade_launcher_status",0)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"grenade_launcher_name",nil)
-			if addon ~= nil and bit_and(t.addon_flags, addon_flags.launcher) ~= 0 then
+			if addon ~= nil and bit_and(t.addon_flags, addon_flags.grenade_launcher) ~= 0 then
 				alife():create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
 			end
 		end
@@ -1524,7 +1524,7 @@ function give_weapon_to_player(trader, actor)
 	if wpnsec ~= nil then
 		amk.del_variable(var)
 		local wpn_c = alife():create(wpnsec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
-	--	amk.start_timer("unload_rep_weapon",1,wpn_c.id)
+	--	xr_timers.start_real_timer("unload_rep_weapon",1,wpn_c.id)
 		level.client_spawn_manager():add(wpn_c.id, 0, repair_check.weapon_unload)
 		news_manager.relocate_item(db.actor, "in", wpnsec)
 	end

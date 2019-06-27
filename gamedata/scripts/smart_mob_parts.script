@@ -1,18 +1,20 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- порядок в массиве имеет знкачение: не переставлять строки местами!
+-- порядок в массиве имеет значение
 local monsters = {
-	{ sect = "sucker",		bones = { {14} }, part = "mutant_krovosos_jaw" },
+	{ sect = "sucker",		bones = { {14} }, part = "mutant_krovosos_jaw", part_rnd = "mutant_krovosos_red_jaw", rnd = 0.018 },
+	{ sect = "krovosos",	bones = { {14} }, part = "mutant_krovosos_jaw" },
 	
 	{ sect = "boar",		bones = { {39,41}, {34,36}, {3,5}, {8,10} }, part = "mutant_boar_leg" },
 	{ sect = "fire_flesh",	bones = { {39,41}, {34,36}, {3,5}, {8,10} }, part = "mutant_boar_leg" },
 	
 	{ sect = "flesh",		bones = { {14} }, part = "mutant_flesh_eye" },
 	
-	{ sect = "burer",		bones = { {18,19,24}, {31,32,37} }, part = "mutant_burer_hand" },
+	{ sect = "burer",		bones = { {18,19,24}, {31,32,37} }, part = "mutant_burer_hand", part_rnd = "mutant_burer_red_hand", rnd = 0.015 },
 	
-	{ sect = "controller",	bones = { {24,25}, {40,41} }, part = "mutant_hand_kontroler" },
+	{ sect = "controller",	bones = { {24,25}, {40,41} }, part = "mutant_hand_kontroler", part_rnd = "mozg", rnd = 0.012 },
+	{ sect = "kontrik_red_mozg", bones = { {14} }, part = "red_mozg" },
 	{ sect = "kontrik",		bones = { {24,25}, {40,41} }, part = "mutant_hand_kontroler" },
-	{ sect = "psyonik",		bones = { {24,25}, {40,41} }, part = "mutant_hand_kontroler" },
+	{ sect = "psyonik",		bones = { {24,25}, {40,41} }, part = "mutant_hand_kontroler", part_rnd = "red_mozg", rnd = 0.007 },
 	
 	{ sect = "pseudodog",	bones = { {32} }, part = "mutant_psevdodog_tail" },
 	{ sect = "psy_dog",		bones = { {32} }, part = "mutant_psevdodog_tail" },
@@ -68,6 +70,7 @@ local monsters = {
 	
 	{ sect = "rotan",		bones = { {0} }, part = "mutant_rotan_heart" }
 }
+
 local del_corpse = {
 	ohota_polter1 = true,
 	ohota_polter3 = true,
@@ -75,8 +78,25 @@ local del_corpse = {
 	m_poltergeist_normal_flame = true,
 	m_poltergeist_strong_flame = true
 }
+
+local unique_names = {
+	["marsh_controller"]	= "red_mozg",
+	["rad_red_burer1"]		= "mutant_burer_red_hand",
+	["rad_red_krovosos1"]	= "mutant_krovosos_red_jaw",
+	["mil_red_burer1"]		= "mutant_burer_red_hand",
+	["mil_red_krovosos1"]	= "mutant_krovosos_red_jaw",
+	["agr_red_burer1"]		= "mutant_burer_red_hand",
+	["agr_red_krovosos1"]	= "mutant_krovosos_red_jaw",
+	["val_red_burer1"]		= "mutant_burer_red_hand",
+	["val_red_krovosos1"]	= "mutant_krovosos_red_jaw"
+}
+	
 	
 local tbl_hit = {}
+
+local rnd_hit_prob = 0.03
+
+local is_debug = true
 
 function on_hit(obj, bone_index, amount)
 --	if amount <= 0 then return false end
@@ -90,68 +110,118 @@ function on_hit(obj, bone_index, amount)
 		for i, t in ipairs(monsters) do
 			if string.find(sect,t.sect) then
 				th = {}
-				th.del = {}
+				th.hits = {}
 				th.part = t.part
+				if t.part_rnd and t.rnd > math.random() then
+					unique_names[obj:name()] = t.part_rnd
+				end
 				th.bones = t.bones
-				th.cnt = #t.bones
+				for i = 1, #th.bones do
+					th.hits[i] = 0
+				end
 				tbl_hit[id] = th
 				break
 			end
 		end
-		if th == nil then return false end
+		if th == nil then
+			tbl_hit[id] = false 
+			return false
+		end
+	elseif th == false then
+		return false
 	end
 
-
-	local res = false
+	local checked = false
 	for i, v in ipairs(th.bones) do
-		if th.del[i]==nil then		-- если эту часть уже отстрелили, то не считаем
-			for ii, vv in ipairs (v) do
-				if vv == bone_index then
-					th.del[i] = true
-				--	if game_options.DEBUG then
-						log("~ [%s] del part from [%s:%d] , bone_index = %d", script_name(), sect, id, bone_index)
-					--	amk.send_tip("","Монстру оторвало "..game.translate_string(get_inv_name(t.part))..".")
-				--	end
-					res = true
-					break
+		for ii, vv in ipairs (v) do
+			if vv == bone_index then
+				th.hits[i] = th.hits[i] + amount
+				if is_debug then
+					log("# [%s] hit on part of [%s:%d] , bone_index = %d, amount = %s, total: %s",
+						script_name(), sect, id, bone_index, amount, th.hits[i])
 				end
+				checked = true
+				break
 			end
-			if res then break end
+		end
+		if checked then break end
+	end
+
+	if checked == false
+		and amount > 0
+		and math.random() < rnd_hit_prob
+	then
+		local i = math.random(#th.hits)
+		th.hits[i] = th.hits[i] + amount/7
+		if is_debug then
+			log("# [%s]  random hit on part of [%s:%d] , bone_index = %d, amount = %s, total: %s",
+				script_name(), sect, id, bone_index, amount, th.hits[i])
 		end
 	end
-	return res
+
+	return checked
 end
 
 function on_death(obj)
-	
 	local id = obj:id()
-	
 	if alife():object(id) == nil then return end
-	
+
 	if del_corpse[obj:section()] then		-- удаляем тушку
 		alife():release( alife():object(id), true )
 		return
 	end
 
 	if tbl_hit[id] == nil then		-- убили с одного попадания, сымитируем хит
-		on_hit(obj, math.random(0,51), 1)
+		on_hit(obj, math.random(0,51), math.random())
 	end
 
-	local t = tbl_hit[id]
-	if t ~= nil then		-- подранили, посчитаем, сколько частей осталось
-		local n = t.cnt - table.size(t.del)
-		-- удаляем движковую запчасть
-		this.remove_item(obj:object(t.part))
-		local prob = game_options.RareMonsterParts and sys_ini:r_float(obj:section(), "Spawn_Inventory_Item_Probability") or 1
-		if n > 0 then
-			for i = 1, n do
-				if (math.random() <= prob) then
-					amk.spawn_item_in_inv(t.part, obj)
-				end
+	local th = tbl_hit[id]
+	if not th then return end
+
+	local part = obj:object(th.part)
+	local spawn_part = th.part
+	local spawn_unique = false
+
+	local obj_name = obj:name()
+	if unique_names[obj_name] then
+		spawn_part = unique_names[obj_name]
+		spawn_unique = true
+		if is_debug then
+			log("# [%s]: spawn unique monster part '%s' -> '%s'", script_name(), spawn_part, obj_name)
+		end
+		--db.actor:give_info_portion(obj_name.."_dead")	-- эти инфо нигде, кроме спавна красных запчастей, не нужны - отключим
+	end
+
+	if game_options.RareMonsterParts or spawn_unique then
+		if part or spawn_unique then
+			local cond = 0
+			for i, j in pairs(th.hits) do
+				cond = cond + j
+			end
+			cond = math.clamp(1-cond, 0.01, 1)
+			if spawn_unique then
+				this.remove_item(part)
+				this.spawn_part_in_inv(obj, spawn_part, cond)
+			else
+				local se_obj = alife():object(part:id())
+				netpk:modify(se_obj, {condition = cond}, netpk.fState)
+				part:set_condition(cond)
 			end
 		end
-		tbl_hit[id] = nil
+	else		-- убираем движковую, спавним свои запчасти
+		local parts_cond = {}
+		for i, j in pairs(th.hits) do
+			if j < 1 then	-- if total quantity of hit more than 1 part will not be created
+				table.insert(parts_cond, 1 - j)
+			end
+		end
+		this.remove_item(part)
+		for i, cond in ipairs(parts_cond) do
+			this.spawn_part_in_inv(obj, spawn_part, cond)
+		end
 	end
+
+	tbl_hit[id] = nil
 end
 
 function remove_item(item)
@@ -159,3 +229,20 @@ function remove_item(item)
 	local sobj = alife():object(item:id())
 	if sobj then alife():release(sobj, true) end
 end
+
+local function fix_spawn_item_in_inv(tbl, id, item)
+    tbl.npc:transfer_item(item, tbl.npc)
+	item:set_condition(tbl.cond)
+end
+
+function spawn_part_in_inv(npc, part, condition)
+	local item = alife():create(part, 
+		npc:position(),
+		npc:level_vertex_id(),  
+		npc:game_vertex_id(),
+		npc:id())
+
+	netpk:modify(item, {condition = condition}, netpk.fState)
+	level.client_spawn_manager():add(item.id, -1, fix_spawn_item_in_inv, {npc = npc, cond = condition})
+end
+

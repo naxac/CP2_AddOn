@@ -189,10 +189,12 @@ function off_corpses()
 					table.add( statistic, "total_weapons" )
 
 				elseif obj_clsid == clsid.inventory_box then
-					-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
 					if transparent_treasure.IsTaken(obj_sect) then
-						if obj_level==actor_level then
-							if obj_sect ~= "m_inventory_box" then
+						if obj_sect == "m_inventory_box" then
+							new_treasure.add_fake_box(obj)
+						else
+							-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
+							if obj_level==actor_level then
 								if obj_sect == "a_inventory_box41" then
 									xr_sound.get_safe_sound_object([[zwuk\pluton]]):play_at_pos(db.actor, obj.position, 0, sound_object.s3d+sound_object.looped)
 								end
@@ -220,13 +222,15 @@ function off_corpses()
 
 				-- Замки
 				if obj_sect == "zamok" then
-					local ii = object2parent[i]
-					zamok.restore(all_objects[ii], ii)
+					local box_id = object2parent[i]
+					local se_box = all_objects[box_id]
+					if se_box and se_box:clsid() == clsid.inventory_box then
+						zamok.restore(se_box, box_id, nil)
+					end
 
 				-- Броники
 				elseif level_changing
-					and ( obj_clsid == clsid.equ_stalker_s
-					or obj_clsid == clsid.equ_stalker )
+					and isOutfit(nil, obj_clsid)
 					and obj_sect~="meceniy_outfit_new" 
 					and not string.find(obj_sect, "exo_mil_exoskeleton")
 				then
@@ -246,13 +250,16 @@ function off_corpses()
 		if not released then
 			-- Удаление лишних гранат
 			if not xrs_grenade.release_grenade(obj) then
-				amk_offline_alife.add_fresh_meat(obj)
 				babah.collectBombs(obj)
 			else
 				table.insert( rel, i )
 			end
 		else
 			table.insert( rel, i )
+		end
+
+		if sim:object(i) then
+			amk_offline_alife.add_fresh_meat(obj)
 		end
 	end -- for
 	
@@ -276,7 +283,7 @@ function off_corpses()
 		end
 
 		--зачистка мёртвых монстров
-		local b = table.getn(tabl_monsters_dead)
+		local b = #tabl_monsters_dead
 		if b > summ_dead_monsters then
 			local n = b
 			while b > summ_dead_monsters and n > 0 do
@@ -294,7 +301,7 @@ function off_corpses()
 	--	tmr:get("release monsters")
 
 		--зачистка мёртвых человеков
-		b = table.getn(tabl_corpses)
+		b = #tabl_corpses
 		if b > summ_corpses then
 			local n = b
 			while b > summ_corpses and n > 0 do
@@ -312,7 +319,7 @@ function off_corpses()
 	--	tmr:get("release stalkers")
 
 		--зачистка оружия
-		b = table.getn(tabl_weapons)
+		b = #tabl_weapons
 		while b > summ_weapons do
 			local wpn = tabl_weapons[b]
 			local wpn_name = wpn:name()
@@ -339,11 +346,17 @@ function off_corpses()
 	parent2objects = nil
 	object2parent = nil
 	statistic = nil
+	tabl_corpses = nil
+	tabl_corpses_9510 = nil
+	tabl_weapons = nil
+	tabl_monsters_dead = nil
+	tabl_outfits_all = nil
+	tabl_stalkers = nil
 end 
 
 function get_dist_to_trup(wpn)
 	local poswpn = wpn.position
-	for i=1,table.getn(tabl_corpses),1 do
+	for i = 1, #tabl_corpses do
 		if (poswpn:distance_to(tabl_corpses[i].position) < dist_from_weapons_to_trup) then 
 			return false
 		end
@@ -353,7 +366,7 @@ end
 
 function get_dist_to_trup_9510(wpn)
 	local poswpn = wpn.position
-	for i=1,table.getn(tabl_corpses_9510),1 do
+	for i = 1, #tabl_corpses_9510 do
 		if (poswpn:distance_to(tabl_corpses_9510[i].position) < dist_from_weapons_to_trup) then
 			return false
 		end

@@ -644,13 +644,15 @@ function help_wounded(npc)
 
 	xr_sound.set_sound_play( npc, "help_thanx" )
 
-	amk.start_timer( "healing_enemies", math_random(20,30),
+	xr_timers.start_real_timer( "healing_enemies", math_random(20,30),
 		{npc:id(), npc:character_community()} )
 	npc:set_character_community( "stalker", 0, 0 )
 	npc:set_relation( game_object.friend, db.actor )
 	npc:enable_memory_object( db.actor, false )
 	local sobj = alife():object( npc:id() )
-	if sobj then sobj:brain():can_choose_alife_tasks( false ) end
+	if sobj then
+		sobj:brain():can_choose_alife_tasks( false )
+	end
 end
 
 -- dsh +
@@ -678,10 +680,21 @@ function custom_change( id )
 
 		local npc = level.object_by_id( id )
 		if npc then
+			reset_npc_logic( npc )
 			xr_gulag.resetJob( npc )
 		end
 		smart_terrain.unregister_npc( sobj )
+		sobj.smart_terrain_conditions = nil
 		sobj:brain():can_choose_alife_tasks( true )
 		sobj:brain():update()
 	end
+end
+
+function reset_npc_logic( obj )
+	local npc_id = obj:id()
+	local st = db.storage[ npc_id ]
+	st.overrides      = nil
+	xr_logic.reset_generic_schemes_on_scheme_switch( obj, "nil", "nil" )
+	st.active_section = nil
+	st.active_scheme  = nil		
 end

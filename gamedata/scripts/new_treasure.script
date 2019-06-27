@@ -1,0 +1,260 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local fake_boxes = {}
+
+function open_new_treasure(actor, box)
+	box:set_nonscript_usable( false )
+
+	if level.main_input_receiver() then return end
+
+	if ShiftPressed() then
+		this.take_all_from_box(box)
+	else
+		level.start_stop_menu( ui_treasure.UICarBodyNew(box), true )
+	end
+end
+
+local items_to_save = nil
+function save_box_items(box, items)
+--	log("save_box_items: %s", table.size(items))
+	items_to_save = {}
+	local show_spot = false
+	for i, v in ipairs(items) do
+		table.insert(items_to_save, v:get_table())
+		if v:section() == "amk_metka" then
+			show_spot = true
+		end
+	end
+
+	local boxId = box:id()
+	fake_boxes[boxId] = {}
+
+	if #items_to_save == 0 then
+		items_to_save = nil
+		return
+	end
+
+	gps_habar.update_gps_spot_on_fake(show_spot, boxId, items_to_save)
+
+	local se_box = alife():object(boxId)
+	local data = netpk:get(se_box, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+	local zc = 0
+	cd.storage = {}
+	while true do
+		local size = 110	-- start packet size
+		local obj = alife():create("script_storage", vector(), 0, 0)
+		local stor = se_storage.get_storage(obj.id)
+		cd.storage[obj.id] = "<nil>"
+		for i = #items_to_save, 1, -1 do
+			local t = items_to_save[i]
+			local sz = size + se_storage.get_tbl_size(t) + string.len(tostring(i)) + 2
+			if sz + 1 >= 8192 then -- max size of packet: 8 KB
+				break
+			end
+			size = sz
+			if t.s == "zamok" then
+				zc = zc  + 1
+			end
+			table.insert(stor, t)
+			table.remove(items_to_save)
+		end
+		table.insert(fake_boxes[boxId], obj.id)
+	--	log("[%s]: packet size = %s", obj:name(), size + 1)
+	--	table.print(stor)
+		if #items_to_save == 0 then
+			items_to_save = nil
+			break
+		end
+	end
+
+	if zc > 0 then
+		cd.zamok = { count = zc }
+	else
+		cd.zamok = nil
+	end
+
+	data.custom_data = netpk:gen_custom_data(cd)
+	netpk:set(se_box, data)
+--	table.print(cd)
+end
+
+function load_box_items(box)
+	local se_box = alife():object( box:id() )
+	local data = netpk:get(se_box, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+
+	if not cd.storage then return {} end
+
+	local items = {}
+	for id in pairs(cd.storage) do
+		local stor = se_storage.get_storage(tonumber(id))
+		if stor then
+			for i, v in ipairs(stor) do
+				table.insert( items, fake_inventory_item.fake_item(v) )
+			end
+		end
+		se_storage.del_storage(tonumber(id))
+	end
+
+	cd.storage = nil
+	data.custom_data = netpk:gen_custom_data(cd)
+	netpk:set(se_box, data)
+
+	return items
+end
+
+-- 'inv_grid_width' or 'inv_grid_height' is 0
+local no_show_sections = {
+	["arc_ballast"] = true,
+	["ammo_soul"] = true,
+	["bleeding_heal"] = true,
+	["detector_suit"] = true,
+	["ballast"] = true,
+	["yad"] = true,
+	["netpacket_pda"] = true,
+	["wpn_ballast"] = true,
+	["separator"] = true,
+	["af_invul"] = true
+}
+function get_actor_items()
+	local items = {}
+	db.actor:iterate_inventory( function(actor, item)
+		if actor:is_in_slot(item) then
+			local slot = item:get_slot()
+			if slot == inventory_slots.BOLT
+				or slot == inventory_slots.PDA
+				or slot == inventory_slots.DETECTOR
+			then
+				return
+			end
+		end
+		if item:get_item_flag("quest_item") == true then
+			return
+		end
+		if no_show_sections[item:section()] then
+			return
+		end
+		table.insert(items, item)
+	end,
+	db.actor)
+	return items
+end
+----------------------------------------------------------------------------------
+local function spawn_callback(params, id, obj)
+	if params.condition then
+		obj:set_condition(params.condition)
+	end
+	if params.ammo then
+		obj:set_ammo_elapsed(params.ammo)
+	end
+	if params.return_to_actor then
+		db.actor:transfer_item(obj, db.actor)
+	end
+end
+
+function take_all_from_box(box)
+	local sim = alife()
+	local se_box = sim:object( box:id() )
+	local data = netpk:get(se_box, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+
+	local ids = cd.storage  or {}
+
+	local sobj
+	for id in pairs(ids) do
+		local stor = se_storage.get_storage(tonumber(id))
+		if stor then
+			for i, t in ipairs(stor) do
+				local ret = (t.af and t.af~=0)
+				if ret then
+					local spawn_pos = db.actor:position():add(vector():set(2, 2, 2))
+					sobj = sim:create(t.s, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+				elseif t.al then
+					sobj = sim:create_ammo(t.s, vector():set(0,0,0), 0, 0, 0, t.al)
+				else
+					sobj = sim:create(t.s, vector():set(0,0,0), 0, 0, 0)
+				end
+
+				local data = {}
+				data.custom_data = t.cd or ""
+				data.condition = t.c or 1
+				data.worked_time = t.wt or 0
+				data.ammo_elapsed = t.ae
+				data.ammo_type = t.at
+				data.addon_flags = t.af or 0
+				data.ammo_left = t.al
+				if t.ai then
+					data.upd = {}
+					data.upd.ammo_ids = t.ai
+				end
+				netpk:modify(sobj, data)
+
+				level.client_spawn_manager():add( sobj.id, -1, spawn_callback,
+					{ condition = t.c, ammo = t.ae, return_to_actor = ret } )
+			end
+		end
+		se_storage.del_storage(tonumber(id))
+	end
+
+	fake_boxes[se_box.id] = nil
+	sim:release(se_box, true)
+	sim:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
+	_G['recolor_items'] = nil
+end
+
+function is_fake_box(box_id)
+	return fake_boxes[box_id] ~= nil
+end
+
+function add_fake_box(se_box)
+	local data = netpk:get(se_box, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+
+	if cd.storage then
+		local t = {}
+		fake_boxes[se_box.id] = t
+		for id in pairs(cd.storage) do
+			table.insert(t, tonumber(id))
+		end
+	end
+
+	if cd.zamok then
+		zamok.restore( se_box, se_box.id, tonumber(cd.zamok.count) )
+	end
+end
+
+function offline_npc_found_box(npc, se_box)
+	local tbl = fake_boxes[se_box.id]
+	if tbl == nil or #tbl == 0 then
+		return
+	end
+
+	local tmp_items = {}
+	local robbed = false
+	local sect
+	for i, id in ipairs(tbl) do
+		local stor = se_storage.get_storage(id)
+		if stor then
+			for i = #stor, 1, -1 do
+				sect = stor[i]['s']
+				if amk_offline_alife.is_valuable(nil, sect) then
+					robbed = true
+					amk_offline_alife.pick_fake_item(npc, sect)
+					table.remove(stor, i)
+				else
+					table.insert(tmp_items, stor[i])
+				end
+			end
+		end
+	end
+
+	if gps_habar.has_label(se_box.id) and robbed then
+		gps_habar.update_gps_spot_on_fake(true, se_box.id, tmp_items)
+		local lvname = "Зоны Отчуждения"
+		if game_graph():valid_vertex_id(se_box.m_game_vertex_id) then
+			lvname = game.translate_string(alife():level_name(game_graph():vertex(se_box.m_game_vertex_id):level_id()))
+		end
+		amk.send_tip("%c[255,255,128,128]На территории " .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
+	end
+end
+

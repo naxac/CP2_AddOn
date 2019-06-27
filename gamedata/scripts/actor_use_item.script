@@ -2,6 +2,9 @@ local check_tbl = {}
 check_tbl["money_loot"] = function(item)
 	amk.spawn_item_in_inv("money_loot")
 	if not has_alife_info("barman_exchange_money") then
+		if not has_alife_info("agroprom_military_case_done") then
+			return
+		end
 		db.actor:give_info_portion("barman_exchange_money")
 		news_manager.send_tip(db.actor, "%c[255,160,160,160]МЕЧЕНЫЙ:\\n%c[255,255,128,128]Бармен, привет. Тебе случайно деньги наличными не нужны?", 5, nil, 20000)
 		xr_timers.start_real_timer("run", 12, "arhara_dialog.barman_answer()")
@@ -64,12 +67,6 @@ end
 check_tbl['teleportator'] = function(item)
 	level.start_stop_menu(ui_teleportator.teleportator_menu(), true)
 end
-check_tbl['repair_item_outfit'] = function(item)
-	amk.spawn_item_in_inv('repair_item_outfit')
-end
-check_tbl['repair_item_weapon'] = function(item)
-	amk.spawn_item_in_inv('repair_item_weapon')
-end
 
 function check(item)
 	local sect = item:section()
@@ -91,6 +88,11 @@ function check(item)
 	if sys_ini:line_exist(sect, "eat_psy_health") then
 		db.actor.psy_health = sys_ini:r_float(sect, "eat_psy_health")
 	end
+--	if sys_ini:line_exist(sect, "use_sound") then
+--		zvuki.use_snd( sys_ini:r_string(sect, "use_sound") )
+--	end
+
+	zvuki.use_snd(sect)
 
 	archievements.on_use_item(sect)
 	spawn_level_changer.checking_droped_obj(sect)

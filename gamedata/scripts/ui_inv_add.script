@@ -2,7 +2,13 @@
 local edibles = {}		-- всЄ съедобное, что можно положить в €чейку (секци€ = true), заполн€етс€ из конфига 'misc\inv_add.ltx'
 local slot2section = {}	-- то, что находитс€ в €чейках (слот = секци€), храним в псторе
 local section2slot = {}	-- то, что находитс€ в €чейках (секци€ = слот)
-local slotsKeys = {}	-- клавиши использовани€ предметов (слот = код клавиши)
+local slot2key = {}		-- клавиши использовани€ предметов (слот = код клавиши)
+local slot2bind = {
+	[1] = key_bindings.kUSE_MEDKIT,
+	[2] = key_bindings.kUSE_BANDAGE,
+	[3] = key_bindings.kEXT_1,
+	[4] = key_bindings.kCAM_4
+}
 
 local wnd = nil
 
@@ -23,6 +29,7 @@ local info2stop = {
 	ui_inventory	= bit_or(1,4),	ui_inventory_hide	= bit_or(2,8),
 	ui_pda			= bit_or(1,4),	ui_pda_hide			= bit_or(2,8),
 	ui_car_body		= 1, 			ui_car_body_hide	= 2,
+	ui_car_body_new	= 1, 			ui_car_body_new_hide	= 2
 }
 
 function inventory_open()
@@ -59,7 +66,6 @@ end
 class "InvWnd" (CUIScriptWnd)
 
 local reg_callbacks = {
---	cell_item_select = "on_item_select",
 	cell_item_clicked = "on_item_select",
 	item_drop = "on_item_drop",
 	item_take = "on_item_take",
@@ -74,6 +80,9 @@ function InvWnd:__init(owner) super()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.subscribe( k, self[v], {self = self} )
 	end
+
+	self.use_dik = bind_to_dik(key_bindings.kUSE)
+	get_console():execute("unbind use")
 end
 
 function InvWnd:__finalize() end
@@ -100,7 +109,7 @@ function InvWnd:InitControls()
 		s.icn:SetStretchTexture(true)
 		
 		s.key = xml:InitStatic("slot_key", s)
-		s.key:SetText(hotkeys.dik2key(slotsKeys[i]) or "")
+		s.key:SetText(hotkeys.dik2key(slot2key[i]) or "")
 		s.key:SetFont(GetFontSmall())
 		
 		local name = "qslot_"..i
@@ -166,7 +175,7 @@ function InvWnd:qslot_dbclick(i)
 	local sect = slot2section[i]
 	local obj = db.actor:object(sect)
 	if obj then
-		if amk_utils.inventory_search(sect, 2) == false then
+		if inventory.search(sect, 2) == false then
 			self.DescrWnd:OnItemFocusLost(obj)
 		end
 		db.actor:eat(obj)
@@ -202,6 +211,7 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 					if binder:charge( drag_item:condition() ) then
 						local se_obj = alife():object( drag_item:id() )
 						if se_obj then alife():release(se_obj, true) end
+						arc_ballast.change_ballast( sys_ini:r_float(section, "inv_weight") )
 						zvuki.use_snd(section)
 					end
 				end
@@ -269,10 +279,15 @@ function InvWnd:DetachWnd()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unsubscribe(k, self[v])
 	end
-	self:unregister_self()
 	self.DescrWnd:Remove()
+	self.DescrWnd = nil
+	self:ClearCallbacks()
 	if self.skat_panel then self.skat_panel:Remove() end
 	self.owner:DetachChild(self.stat)
+
+	local key = hotkeys.dik2key( self.use_dik )
+	if not key:find("MOUSE") then key = "k"..key end
+	get_console():execute( "bind use "..string.lower(key) )
 end
 
 function InvWnd:ShowSkatPanel(section)
@@ -290,14 +305,14 @@ end
 function InvWnd:on_item_take(item)
 	local sect = item:section()
 	-- получили первый предмет из €чейки при открытом инвентаре
-	if section2slot[sect] and amk_utils.inventory_search(sect, 2)==false then
+	if section2slot[sect] and inventory.search(sect, 2)==false then
 		self.slots[section2slot[sect]].icn:SetColor(GetARGB(255, 255, 255, 255))
 	end
 end
 function InvWnd:on_item_drop(item)
 	local sect = item:section()
 	-- использовали последний предмет из €чейки при открытом инвентаре
-	if section2slot[sect] and amk_utils.inventory_search(sect)==false then
+	if section2slot[sect] and inventory.search(sect)==false then
 		self.slots[section2slot[sect]].icn:SetColor(GetARGB(70, 200, 200, 200))
 	end
 end
@@ -354,14 +369,17 @@ function on_create_cell_item( item )
 		st:SetColor( GetARGB(255,150,255,150) )
 	end
 	-- рисуем шкалу состо€ни€
-	if item:is_outfit() or item:is_weapon() then
-		local h = sys_ini:r_u32( item:section(), "inv_grid_height" ) *35
-		local w = 30 * kScreen
+	local section = item:section()
+	if sys_ini:r_bool_ex(section, "show_condition", false) == true then
+		local x = 2
+		local y = 35 * sys_ini:r_u32(section, "inv_grid_height") - 6
+		local w = 30*kScreen
+		local h = 4
 		local cond = item:condition()
 		local w_cond = w * cond
 		local b = CUIStatic()
 		b:SetAutoDelete( true )
-		b:Init( "ui_mg_progress_efficiency_full_1", 2, h-6, w, 4 )
+		b:Init( "ui_mg_progress_efficiency_full_1", x, y, w, h )
 		b:SetStretchTexture( true)
 		st:AttachChild( b )
 		local s = CUIStatic()
@@ -378,14 +396,14 @@ end
 -- from ui_mm_opt_main
 function on_options_change()
 	start_small_timer(300, function()
-		slotsKeys[1] = bind_to_dik(key_bindings.kUSE_MEDKIT)
-		slotsKeys[2] = bind_to_dik(key_bindings.kUSE_BANDAGE)
-		slotsKeys[3] = bind_to_dik(key_bindings.kEXT_1)
-		slotsKeys[4] = bind_to_dik(key_bindings.kCAM_4)
+		for i, v in ipairs(slot2bind) do
+			slot2key[i] = bind_to_dik(v)
+		end
 	end)
 end
 ------------------------------------------------------------------------------------------
-function getSlots() return slot2section end
+function getSlots()	return slot2section	end
+function getSlotKey(slot) return slot2key[slot] end
 ------------------------------------------------------------------------------------------
 function show_inv_msg( text )
 	if wnd then
@@ -441,12 +459,9 @@ function on_net_spawn()
 		if s~="" then section2slot[s] = i end
 	end
 	-- клавиши
-	slotsKeys = {
-		[1] = bind_to_dik(key_bindings.kUSE_MEDKIT),
-		[2] = bind_to_dik(key_bindings.kUSE_BANDAGE),
-		[3] = bind_to_dik(key_bindings.kEXT_1),
-		[4] = bind_to_dik(key_bindings.kCAM_4)
-	}
+	for i, v in ipairs(slot2bind) do
+		slot2key[i] = bind_to_dik(v)
+	end
 end
 
 function attach()

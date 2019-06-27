@@ -90,7 +90,7 @@ local eatable_params = {
 class "CUIDescriptionWnd" (CUIScriptWnd)
 
 function CUIDescriptionWnd:__init(st) super()
-	self.owner = level.main_input_receiver() or abort('CUIDescriptionWnd: owner == nil!')
+	self.owner = level.main_input_receiver() or st
 
 	self.scrollPos = 0
 	self.k_icon = cell_size*kScreen/50
@@ -115,13 +115,16 @@ function CUIDescriptionWnd:__init(st) super()
 	self.descr = self.xml:InitStatic("description:descr_list", nil)
 	
 	self.cost = self.xml:InitStatic("description:cost_wnd", self.frame)
-	self.weight = self.xml:InitStatic("description:weight_wnd", self.frame)
+	self.weight_static = self.xml:InitStatic("description:weight_wnd", self.frame)
 	
 	self.cond_frame = self.xml:InitFrame("description:frame_condition", self.frame)
 	self.cond_scale = self.xml:InitStatic("description:condition", self.cond_frame)
 	self.max_cond_w = self.cond_scale:GetWidth()
 	
 	self.frame:Show(false)
+end
+
+function CUIDescriptionWnd:__finalize()
 end
 
 function CUIDescriptionWnd:HideDescription()
@@ -186,12 +189,12 @@ function CUIDescriptionWnd:ShowDescription(item)
 
 	self.addH = 0
 
+	local description = get_string(sys_ini:r_string(self.section, "description"))
+	self.weight = item:get_weight()
+
 	if sys_ini:r_bool_ex(self.section, "volatile", false) == true then
 		self:ShowVolatileItemParams()
 	end
-
-	local description = get_string(sys_ini:r_string(self.section, "description"))
-	local wght = item:get_weight()
 
 	-- artefacts
 	if item:is_artefact() then
@@ -209,17 +212,13 @@ function CUIDescriptionWnd:ShowDescription(item)
 		end
 	-- artefact containers
 	elseif string_find(self.section, "^arc_art_box_") then
-		local add_weight, _rad = self:GetContainerParams()
-		if _rad and arc_inventory.IsRadDetected() then
-			self:ShowProps(_rad)
-		end
+		self:GetContainerParams()
 		if #self.arts_list > 0 then
 			description = description.."\\n \\n%c[UI_orange]Содержимое:"
 		else
 			self.arts_list = nil
 			description = description.."\\n \\n%c[UI_orange]Контейнер пуст"
 		end
-		wght = wght + add_weight
 	elseif rad_items[self.section] then
 		local p = { {"radiation_2", "Радиация: %c[red]+"..string_format("%d",rad_items[self.section])} }
 		self:ShowProps(p)
@@ -244,7 +243,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 		end
 		self.arts_list = nil
 	-- food
-	elseif is_eatable[item:clsid()] then
+	elseif isEatable(item)then
 		self:ShowEatableParams()
 	-- weapon
 	elseif isMagazinedWeapon(item) then
@@ -277,9 +276,9 @@ function CUIDescriptionWnd:ShowDescription(item)
 	else
 		self.cost:SetText(string_format("Цена: %d руб.", item:cost()))
 	end
-	self.weight:SetText(string_format("Вес: %.2f кг.", wght))
+	self.weight_static:SetText(string_format("Вес: %.2f кг.", self.weight))
 
-	if item:is_outfit() or item:is_weapon() then
+	if sys_ini:r_bool_ex(self.section, "show_condition", false) == true then
 		self.cond_scale:SetWidth(self.max_cond_w*self.condition)
 		local g = math.min( self.condition*510, 255 )
 		local r = math.min( (1-self.condition)*510, 255 )
@@ -339,19 +338,27 @@ function CUIDescriptionWnd:ShowEatableParams()
 end
 -- Показываем список артефактов из конейнера и неэкранированную радиацию
 function CUIDescriptionWnd:GetContainerParams()
-	local arts = arc_containers.get_container_arts(self.item:id())
+	local arts
+	local fake = self.item.is_fake
+	if fake then
+		arts = self.item:get_container_arts()
+	else
+		arts = arc_containers.get_container_arts(self.item:id())
+	end
 	self.arts_list = {}
 	if arts then
 		local p = sys_ini:r_float_ex(self.section, "rad_protection", nil)
 		local slots = sys_ini:r_u32(self.section, "container_slots")
 		local t = {}
-		local w, r, s = 0, 0, ""
+		local r, s = 0, ""
 		for i = 1, slots do
 			s = arts[i]
 			if s and s ~= "_" then
 				if t[s] == nil then t[s] = 1
 				else t[s] = t[s] + 1 end
-				w = w + sys_ini:r_float(s, "inv_weight")
+				if not fake then
+					self.weight = self.weight + sys_ini:r_float(s, "inv_weight")
+				end
 				if p then
 					r = r + math.max(sys_ini:r_float(s, "radiation_restore_speed") - p, 0)
 				end
@@ -371,15 +378,13 @@ function CUIDescriptionWnd:GetContainerParams()
 				})
 			end
 			if r > 0 then
-				r = r*100/conditions.radiation_restore_speed
-				s = { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} }
-			else
-				s = nil
+				if arc_inventory.IsRadDetected() then
+					r = r*100/conditions.radiation_restore_speed
+					self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
+				end
 			end
-			return w, s
 		end
 	end
-	return 0, nil
 end
 -- Показываем описание оружия
 function CUIDescriptionWnd:ShowWeaponParams()
@@ -622,6 +627,9 @@ function CUIDescriptionWnd:ShowVolatileItemParams()
 
 	local accum = sys_ini:r_string_ex(self.section, "energy_source")
 	if accum then
+		if charge > 0 then
+			self.weight = self.weight + sys_ini:r_float(accum, "inv_weight")
+		end
 		self:ShowPropFromIni( GetIconParams(accum), string.format("Источник питания: %s", get_string( get_inv_name(accum) )) )
 	end
 end
@@ -647,8 +655,12 @@ end
 
 function CUIDescriptionWnd:OnUpdate( delta )
 	if self.shift_tmr and self.shift_tmr < time_global() then
-		if self.itemInFocus and alife():object( self.itemInFocus ) then
-			self:ShowDescription( level_object(self.itemInFocus) )
+		if self.itemInFocus and ( self.itemInFocus > 65535 or alife():object( self.itemInFocus ) ) then
+			if self.itemInFocus > 65535 then
+				self:ShowDescription( fake_inventory_item.get_item(self.itemInFocus) )
+			else
+				self:ShowDescription( level_object(self.itemInFocus) )
+			end
 		end
 		self.shift_tmr = nil
 	end

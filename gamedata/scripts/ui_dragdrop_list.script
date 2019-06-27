@@ -1,0 +1,313 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local cond_similar = 2
+local function cond_interval(cond)
+	local cnt = 100/cond_similar
+	local m = 1/cnt
+	for i = 1, cnt do
+		if cond <= i*m then
+			return i
+		end
+	end
+	return cnt
+end
+
+local function GetAddonFlags(wpn)
+	if wpn.is_fake then
+		return wpn.addon_flags
+	else
+		local data = netpk:get( alife():object(wpn:id()) )
+		return data.addon_flags
+	end
+end
+
+local function get_item_name(item, group_similar)
+	local name = ""
+	local af, sl = nil, nil
+	if group_similar then
+		name = item:section()..tostring( cond_interval(item:condition()) )
+	else
+		name = item:name()
+	end
+
+	if item:is_weapon() then
+		af = GetAddonFlags(item)
+		name = name.."__af"..tostring(af)
+	end
+
+	if (not item.is_fake) 
+		and ( db.actor:is_in_slot(item)
+		or db.actor:is_on_belt(item) )
+	then
+		name = name.."__slot"
+		sl = true
+	end
+
+	return name, af, sl
+end
+
+local function create_xml(scroll_width, scroll_height, list_width, list_height)
+	local xml_name = string.format("ui_dragdrop_list_%sx%s.xml", scroll_width, scroll_height)
+	local fs = getFS()
+	if fs:exist("$game_config$", "ui\\"..xml_name) == nil then
+		local src_path = fs:update_path("$fs_root$", "fsgame.ltx")
+		local path = fs:update_path("$game_config$", "ui\\"..xml_name)
+		fs:file_copy(src_path, path)
+
+		local file = io.open(path, "w")
+		file:write('<?xml version="1.0" encoding="windows-1251" ?>\n')
+		file:write('<main>\n')
+		file:write('	<scroll_v x="0" y="0" width="'..scroll_width..'" height="'..scroll_height..'"\n')
+		file:write('		always_show_scroll="0"/>\n')
+		file:write('	<list x="0" y="0" width="'..list_width..'" height="'..list_height..'" />\n')
+		file:write('</main>\n')
+		file:close(file)
+	end
+	return xml_name
+end
+----------------------------------------------------------------------------------------------
+
+class "UIDragDropList" (CUIScriptWnd)
+
+function UIDragDropList:__init(width, height, cell_width, cell_height, rows_num, cols_num, group_similar)
+	super()
+
+	self:Init(0, 0, width, height)
+
+	local xml_name = create_xml(width, height, cell_width*cols_num, cell_height*rows_num)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile(xml_name)
+
+	self.scroll_v = xml:InitScrollView("scroll_v", self)
+	self.list = xml:InitStatic("list", nil)
+
+	self.containers = {}
+	self.cell_width = cell_width
+	self.cell_height = cell_height
+	self.rows_num = rows_num
+	self.rows_num_cfg = rows_num
+	self.cols_num = cols_num
+	self.group_similar = group_similar
+
+	self.place2cell = {}
+	self.name2item = {}
+
+	self:FillContainers()
+
+	self.scroll_v:AddWindow(self.list, true)
+	self.list:SetAutoDelete(false)
+end
+
+function UIDragDropList:__finalize()
+end
+
+function UIDragDropList:FillContainers()
+	self.containers = {}
+	for row = 0, self.rows_num-1 do
+		for col = 0, self.cols_num-1 do
+			self:AddContainer(row, col)
+		end
+	end
+end
+
+function UIDragDropList:AddContainer(row, col)
+	local cell = CUIStatic()
+	cell:SetAutoDelete(true)
+	cell:Init(self.cell_width*col, self.cell_height*row, self.cell_width, self.cell_height)
+	cell:InitTexture("ui\\ui_grid")
+	cell:SetOriginalRect(0,0,64,64)
+	cell:SetStretchTexture(true)
+	self.list:AttachChild(cell)
+	cell.row = row
+	cell.col = col
+	cell.free = true
+
+	table.insert(self.containers, cell)
+
+	if self.place2cell[row] == nil then
+		self.place2cell[row] = {}
+	end
+	self.place2cell[row][col] = #self.containers
+end
+
+function UIDragDropList:GetItem(item_name)
+	return self.name2item[item_name]
+end
+
+function UIDragDropList:GetItemsBySection(section)
+	local names = {}
+	for nm, itm in pairs(self.name2item) do
+		if itm.section == section then
+			table.insert(names, itm.name)
+		end
+	end
+	return names
+end
+
+function UIDragDropList:RemoveItem(item)
+	local itm = self.name2item[ (get_item_name(item, self.group_similar)) ]
+	if itm then
+		itm:RemoveItemById(item:id())
+		if itm:GetTopItem() == nil then
+			self.scroll_v:RemoveWindow(self.list)
+		--	self.scroll_v:Clear()
+			itm:Destroy()
+			self.list:DetachChild(itm)
+			self.name2item[itm.name] = nil
+			self:FreeCells(itm.start_cell, itm.icon.width, itm.icon.height)
+			self:RemoveExcessRows()
+			self.scroll_v:AddWindow(self.list, true)
+			self.list:SetAutoDelete(false)
+		end
+	end
+end
+
+function UIDragDropList:AddItem(item)
+	local itm = self:CheckSimilarItems(item)
+	if itm then
+		itm:AddItem(item)
+		return nil
+	else
+		itm = ui_cell_item.UICellItem(item)
+		itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
+		local idx = self:GetFreePlace(itm.icon.width, itm.icon.height)
+			or abort("UIDragDropList:AddItem: no free cell for item!")
+		local cell = self.containers[idx]
+		
+		itm:Init(
+			cell.col*self.cell_width,
+			cell.row*self.cell_height,
+			itm.icon.width*self.cell_width,
+			itm.icon.height*self.cell_height
+		)
+		self.list:AttachChild(itm)
+		itm.start_cell = idx
+		itm.cell_width = self.cell_width
+		itm.cell_height = self.cell_height
+		itm:RecolorAndScale()
+		self.name2item[itm.name] = itm
+		self:TakeCells(cell.col, cell.row, cell.col+itm.icon.width-1, cell.row+itm.icon.height-1)
+		return itm
+	end
+end
+
+function UIDragDropList:CheckSimilarItems(item)
+	if self.group_similar == false then
+		return nil
+	end
+
+	return self.name2item[ (get_item_name(item, self.group_similar)) ] or nil
+end
+
+function UIDragDropList:GetFreePlace(width, height)
+	local idx = 0
+	local cell
+	while true do
+		idx = idx + 1
+		cell = self.containers[idx]
+		if not cell then
+			self.scroll_v:RemoveWindow(self.list)
+		--	self.scroll_v:Clear()
+			self:AddRow()
+			self.list:SetHeight(self.rows_num*self.cell_height)
+			self.scroll_v:AddWindow(self.list, true)
+			self.list:SetAutoDelete(false)
+		--	cell = self.containers[idx]
+			return self:GetFreePlace(width, height)
+		end
+
+		if cell.free
+			and self.cols_num - cell.col >= width
+			and self.rows_num - cell.row >= height
+		then
+			local check = true
+			for j = cell.col, cell.col + width - 1 do
+				for i = cell.row, cell.row + height - 1 do
+					if self.containers[ self.place2cell[i][j] ].free == false then
+						check = false
+						break
+					end
+				end
+				if check == false then
+					break
+				end
+			end
+			if check then
+				return idx
+			end
+		end
+	end
+end
+
+function UIDragDropList:AddRow()
+	for i = 0, self.cols_num - 1 do
+		self:AddContainer(self.rows_num, i)
+	end
+	self.rows_num = self.rows_num + 1
+end
+
+function UIDragDropList:RemoveRow()
+	if self.rows_num_cfg == self.rows_num then return end
+
+	self.rows_num = self.rows_num - 1
+	local idx
+	for i = self.cols_num - 1, 0, -1 do
+		idx = self.place2cell[self.rows_num][i]
+		self.list:DetachChild( self.containers[idx] )
+		table.remove(self.containers)
+	end
+	self.place2cell[self.rows_num] = nil
+end
+
+function UIDragDropList:RemoveExcessRows()
+	if self.rows_num_cfg == self.rows_num then return end
+
+	local row_to_remove = nil
+	for i = self.rows_num-1, 0, -1 do
+		for j = self.cols_num-1, 0, -1 do
+			if self.containers[ self.place2cell[i][j] ].free == false then
+				row_to_remove = i+1
+				break
+			end
+		end
+		if row_to_remove then
+			break
+		end
+	end
+
+	if row_to_remove and row_to_remove < self.rows_num then
+		for i = 1, self.rows_num-row_to_remove do
+			self:RemoveRow()
+		end
+		self.list:SetHeight(self.rows_num*self.cell_height)
+	end
+end
+
+function UIDragDropList:TakeCells(start_col, start_row, end_col, end_row)
+	for i = start_row, end_row do
+		for j = start_col, end_col do
+			self.containers[ self.place2cell[i][j] ].free = false
+		end
+	end
+end
+
+function UIDragDropList:FreeCells(idx, width, height)
+	local cell = self.containers[idx]
+	for i = cell.row, cell.row+height-1 do
+		for j = cell.col, cell.col+width-1 do
+			self.containers[ self.place2cell[i][j] ].free = true
+		end
+	end
+end
+
+function UIDragDropList:Destroy()
+	for i = 1, #self.containers do
+		self.containers[i] = nil
+	end
+	for nm, it in pairs(self.name2item) do
+		it:Destroy()
+		self.name2item[nm] = nil
+	end
+	self.list = nil
+end
+

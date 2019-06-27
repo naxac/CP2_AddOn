@@ -33,12 +33,17 @@ function on_part_take(obj)
 	end
 	if not ( monster and b ) then return end
 
-	if actor_has_knife() then
+	local knife = actor_has_knife()
+	if knife then
+		local gd = level.get_game_difficulty()
+
+		local d = sys_ini:r_float(knife:section(), "condition_shot_dec")
+		hotkeys.knife_deterioration(knife, gd*d)
+
 		snd = xr_sound.get_safe_sound_object("zwuk\\inv_mutant_loot_"..math.random(1,9))
 		snd:play_at_pos(db.actor, vector(), 0, sound_object.s2d)
 		archievements.acv_count_event("acv_gvdr", 1000, "∆иводЄр")
 
-		local gd = level.get_game_difficulty()
 		if gd > game_difficulty.novice then
 			bind_stalker.hide_weapon("monter_parts")
 
@@ -64,12 +69,11 @@ function on_part_take(obj)
 end
 
 function actor_has_knife()
-	for i, section in ipairs(knives) do
-		if db.actor:object(section) or db.actor:object("fake_"..section) then
-			return true
-		end
+	local item = db.actor:item_in_slot(inventory_slots.KNIFE)
+	if item and table.find(knives, item:section()) then
+		return item
 	end
-	return false
+	return nil
 end
 
 function on_monster_use(victim, who)

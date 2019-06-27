@@ -8064,19 +8064,19 @@ namespace  {
     int bit_xor(int, int);
     CConsole* get_console();
     CGameFont* GetFontGraffiti50Russian();
-    function app_ready();
+    bool app_ready();
     char GetTextureName(char);
     int bit_or(int, int);
     CGameFont* GetFontDI();
     CGameFont* GetFontLetterica16Russian();
     void log(char);
-    function system_ini();
+    ini_file* system_ini();
     function show_condition(ini_file*, string);
     function cast_planner_to_action(action_planner*);
     CGameFont* GetFontLetterica25();
     CGameFont* GetFontMedium();
     function cast_action_to_planner(action_base*);
-    function bit_not(number);
+    int bit_not(number);
     function flush();
     function editor();
     CGameFont* GetFontGraffiti22Russian();
@@ -8087,11 +8087,11 @@ namespace  {
     function GetFontGraffiti19Russian();
     function ef_storage();
     function xrRender_test_r2_hw();
-    function user_name();
-    function GetARGB(number, number, number, number);
+    char user_name();
+    int GetARGB(number, number, number, number);
     int script_server_object_version();
 	bool IsGameTypeSingle();
-    int bind_to_dik( int <key_bindings*> );
+    int <DIK_keys*> bind_to_dik( int <key_bindings*> );
 
     namespace game {
         function translate_string(string);

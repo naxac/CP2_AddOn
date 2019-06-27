@@ -12,7 +12,7 @@ local tmr
 function remind()
 	local storyline = remind_storyline()
 	local random_task = task_manager.get_random_task():remind()
-	if not storyline and not random_task then
+	if (not storyline) and (not random_task) then
 		send_info("%c[255,127,255,255]Нет активных заданий, по которым возможны напоминания\\n")
 	end
 	treasure_manager.get_treasure_manager():remind()
@@ -20,15 +20,24 @@ end
 
 function start_remind()
 	if need_init then init() end
+
+	if game_options.HudTIme then
+		local cs_os_time = get_hud():AddCustomStatic("cs_os_time", true)
+		cs_os_time:wnd():SetText( os.date("%H:%M") )
+	end
+
 	tmr = start_small_timer(1000, this.remind)
 end
 
-function check_key(dik, bind)
+function on_key_release(dik, bind)
 	if bind == key_bindings.kSCORES then
 		remove_small_timer(tmr)
 		local hud = get_hud()
 		if hud:GetCustomStatic("cs_reminder") then
 			hud:RemoveCustomStatic("cs_reminder")
+		end
+		if hud:GetCustomStatic("cs_os_time") then
+			hud:RemoveCustomStatic("cs_os_time")
 		end
 	end
 end
@@ -128,5 +137,5 @@ function init()
 		end
 	end
 
-	xr_s.subscribe( "key_release", this.check_key )
+	xr_s.subscribe( "key_release", this.on_key_release )
 end

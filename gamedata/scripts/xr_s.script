@@ -30,7 +30,11 @@ local signals = {
 	pda_open = {},
 	pda_close = {},
 	trade_open = {},
-	trade_close = {}
+	trade_close = {},
+	talk_open = {},
+	talk_close = {},
+	car_body_new_open = {},
+	car_body_new_close = {}
 }
 local always_once = { net_spawn = true, first_update = true }
 local unreg_queue = {}
@@ -39,6 +43,9 @@ local need_clear = false
 function subscribe( name, func, params )
 	local tbl = signals[ name ] or abort( "xr_s.subscribe: unknown signal name: %s", name )
 	tbl[ func ] = params or {}
+	if always_once[ name ] then
+		tbl[ func ].once = true
+	end
 end
 
 function unsubscribe( name, func, queue )
@@ -63,7 +70,7 @@ function on_event( name, ... )
 
 		func( unpack( args ) )
 
-		if t.once or always_once[ name ] then
+		if t.once then
 			table.insert( unreg_queue, { f = func, n = name } )
 			need_clear = true
 		end
@@ -118,10 +125,11 @@ local attach_modules = {
 	"bind_torch",
 	"drag_drop_callback",
 	"hotkeys",
-	"inventory",
+--	"inventory",
 	"meceniy_in_hell",
 	"nightvision",
 	"ui_hud",
+	"ui_hud_slots",
 	"ui_inv_add",
 	"ui_pda_add",
 	"ui_trade_add",

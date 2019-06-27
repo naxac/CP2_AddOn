@@ -167,7 +167,7 @@ end
 check_tbl['snp_note1'] = function ( obj )
 	if not has_alife_info("snp_find_name1_have") then 
 		local se_obj = alife():create("kotobegemot_bar",vector():set(115.00399780273,-5.3044028282166,14.159286499023),33614,1239)
-		snp.set_stalker_story_id(se_obj,19901)
+		set_story_id(se_obj,19901)
 		db.actor:give_info_portion("snp_find_name1_have")
 	end
 end
@@ -197,7 +197,7 @@ check_tbl['snp_pda5'] = function ( obj )
 			netpk:modify( se_obj,{ visual_name = "monsters\\bibliotekar\\bibliotekar_black" },netpk.fState )
 		end
 		local sobj = alife():create("bibliofrend_talk_black_zaton",vector():set(124.68988037109,-7.3328924179077,177.81799316406),1180494,3686)
-		snp.set_stalker_story_id(sobj,19927)
+		set_story_id(sobj,19927)
 		db.actor:give_info_portion("snpt_pp1_have2")
 	end
 end
@@ -225,7 +225,7 @@ check_tbl['snp_pda8'] = function ( obj )
 		timeout = timeout+10
 		news_manager.send_tip(db.actor, "%c[255,160,160,160]БРОДЯГА:\\n%c[255,255,128,128]Получил! Спасибо за помощь, Стрелок. Жду тебя на Скадовске.", timeout, nil, 20000)
 		local se_obj = alife():create("brodaga_zaton",vector():set(122.5481262207,-7.3221473693848,185.99839782715),1176929,3686)
-		snp.set_stalker_story_id(se_obj,19914)
+		set_story_id(se_obj,19914)
 		db.actor:give_info_portion("snpt_mg2_have2")
 	end
 end
@@ -327,7 +327,7 @@ check_tbl['wpn_m4_m1'] = function ( obj )
 	if has_alife_info("snp_bioradar_parts5") and not has_alife_info("snpt_2chaes1_done") then 
 		db.actor:give_info_portion("snpt_2chaes1_done")
 		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Здравствуй, Брат Стрелок! Раз ты получил это сообщение - значит, меня нет в живых. Сильно ранили меня тогда на Кордоне, неохота было подыхать на Скадовске медленной, мучительной смертью... Воин должен погибнуть в бою. От твоей пули умереть - честь для меня, ты - достойный Воин. В Лиманске есть тайник у меня, до него не просто добраться. Во дворе, где фонтан, за забором есть двухэтажное здание, в этом здании на втором этаже тайник. Он твой.\\nПрошу тебя: Анне ничего не говори. Или скажи, что я ушёл куда-нибудь. Да, и после того, как найдёшь мой тайник в Лиманске, загляни к Обители Зла, я оставил у него ещё кое-что для тебя.\\nПрощай, Брат Стрелок!...".."\n", 6, nil, 45000)
-		amk.start_timer("run", 55, "snp.fenrir_gone()")
+		xr_timers.start_real_timer("run", 55, "snp.fenrir_gone()")
 	end
 end
 check_tbl['wpn_ognemet'] = function ( obj )
@@ -395,7 +395,7 @@ check_tbl['mushroom'] = function (item)
 	if not ( amk.has_timer_par("mushroom", id)
 		or amk.has_timer_par("del_m", id) )
 	then
-		amk.g_start_timer("mushroom", 0, math.random(5,7), math.random(5,55), id)
+		xr_timers.start_game_timer("mushroom", 0, math.random(5,7), math.random(5,55), id)
 	end
 end
 check_tbl['case_nebo'] = function (item)
@@ -403,7 +403,7 @@ check_tbl['case_nebo'] = function (item)
 	xr_s.subscribe("update", arc_radiation.spawn_telepatic)
 end
 check_tbl["vodka"] = function(item)
-	if (not has_alife_info("acv_vodka")) and amk_utils.inventory_search("vodka", 300) then
+	if (not has_alife_info("acv_vodka")) and inventory.search("vodka", 300) then
 		db.actor:give_info_portion("acv_vodka")
 		archievements.send_archievement("Закодированный")
 	end
@@ -1241,7 +1241,7 @@ check_tbl['vzn_mladen'] = function(obj)
 end
 
 check_tbl['af_buliz'] = function(obj)
-	if (not has_alife_info("acv_buliz")) and amk_utils.inventory_search_af("af_buliz", 40) then
+	if (not has_alife_info("acv_buliz")) and inventory.search_af("af_buliz", 40) then
 		db.actor:give_info_portion("acv_buliz")
 		archievements.send_archievement("Каменщик")
 	end
@@ -1325,6 +1325,12 @@ check_tbl["ktdt_pda3"] = function (item)
 		if se_obj then alife():release(se_obj, true) end
 	end
 end
+
+
+check_tbl["amk_metka"] = function (item)
+	gps_habar.on_item_take()
+end
+
 check_tbl["nv_bad"] = function (item)
 	bind_torch.force_init_nv(item:id())
 end
@@ -1354,7 +1360,11 @@ function check(item)
 	if check_tbl[sect] then
 		check_tbl[sect](item)
 	end
-	
+
+	if db.volatiles[item:id()] then
+		arc_ballast.check_volatile_item(item, 1)
+	end
+
 	if level.map_has_object_spot(item:id(), "red_location") then
 		level.map_remove_object_spot(item:id(), "red_location")
 	end

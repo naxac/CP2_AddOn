@@ -4,6 +4,20 @@
 -- -----------------------------
 local sleep_time = 0
 local isSleepActive = false
+local set_sleep_time = 0
+local get_seconds = amk.game_seconds
+local time_factor = nil
+
+local function check_sleep_time()
+	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
+		level.set_time_factor(time_factor)
+		return true
+	end
+	return false
+end
+local function restore_time_factor()
+	set_sleep_time = 0
+end
 
 function main(scale)		-- in hours
 	if isSleepActive then
@@ -18,14 +32,15 @@ function main(scale)		-- in hours
 end
 
 function starter(scale)
-	-- проверка на выброс, чтобы проснуться при его начале
-	local timer_blow = xr_timers.get_timer( "blow_shift" )
-	if timer_blow.time_shift <= scale * 3600000 then
-		scale = ( timer_blow.time_shift - math.min(3000*level.get_time_factor(), timer_blow.time_shift) ) / 3600000
-	end
 	sleep_time = amk.game_minutes()
+
 	game.start_tutorial("time_scaling")
-	level.change_game_time( 0, scale, 0 )
+
+	set_sleep_time = get_seconds() + scale*3600
+
+	time_factor = level.get_time_factor()
+	level.set_time_factor(10000)
+	level.add_call(check_sleep_time, restore_time_factor)
 end
 
 function dreamer()
@@ -42,6 +57,9 @@ function stopper()
 	end
 	isSleepActive = false
 
+	level.remove_call(check_sleep_time, restore_time_factor)
+	level.set_time_factor(time_factor)
+
 	if db.actor:alive() then
 		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "level.enable_input")
 		level.add_pp_effector("yantar_underground_psi.ppe", 2007, false)
@@ -52,7 +70,7 @@ function stopper()
 	    level.add_cam_effector("camera_effects\\hit_back_left.anm", 26, false, "")
 		
 		local slept = (amk.game_minutes() - sleep_time)/60	-- in hours
-	--	log1("sleep_manager.stopper: slept = "..slept..", dream_time = "..dream_time)
+	--	log1("sleep_manager.stopper: slept = "..slept)
 		amk_mod.reduce_need_sleep(slept)
 
 		archievements.acv_count_event("acv_slp", 2160, "Засоня", slept)

@@ -31,13 +31,19 @@ function item_binder:net_spawn(obj)
 	end
 	if self.can_take_condlist then
 		local res = xr_logic.pick_section_from_condlist(db.actor, self.object, self.can_take_condlist)
-		self.object:set_item_flag("can_take", res~=nil)
+		start_small_timer(1000, self.set_can_take, self, res~=nil)
 	end
 
 	return true
 end
 
+function item_binder:set_can_take(flag)
+	if flag == false and self.object:parent() ~= nil then
+		self.object:parent():drop_item(self.object)
+	end
+	self.object:set_item_flag("can_take", flag)
+end
 ---------------------------------------------------------------------------------
 function bind(item)
 	item:bind_object( item_binder(item) )
-end 
+end

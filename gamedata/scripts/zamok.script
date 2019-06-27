@@ -20,28 +20,31 @@ local can_lock_visuals = {
 	[ "seif_01" ]                           = true
 }
 
-function restore(se_box, box_id)
-	if se_box and se_box:clsid() == clsid.inventory_box then
-		local t = zamok_box[box_id]
-		if t == nil then
-			t = {}
-			zamok_box[box_id] = t
-			if zamok_code then
-				local data = netpk:get(se_box, netpk.fState)
-				local tt = netpk:parse_custom_data(data.custom_data)
-				if tt[ "password" ] then
-				--	log1("add protected box: "..se_box:name())
-					t.code = tt[ "password" ][ "code" ]
-					table.insert(amk_offline_alife.protected.ids, box_id)
-				end
-			else
+function restore(se_box, box_id, zamok_count)
+	local t = zamok_box[box_id]
+	if t == nil then
+		t = {}
+		zamok_box[box_id] = t
+		if zamok_code then
+			local data = netpk:get(se_box, netpk.fState)
+			local tt = netpk:parse_custom_data(data.custom_data)
+			if tt[ "password" ] then
+			--	log1("add protected box: "..se_box:name())
+				t.code = tt[ "password" ][ "code" ]
 				table.insert(amk_offline_alife.protected.ids, box_id)
 			end
-			t.count = 1
 		else
-			t.count = t.count + 1
+			table.insert(amk_offline_alife.protected.ids, box_id)
 		end
+		t.count = zamok_count or 1
+	else
+		t.count = t.count + (zamok_count or 1)
 	end
+end
+
+function on_options_change()
+	zamok_code = game_options.ZamokUICode
+	only_box = game_options.LockBoxOnly
 end
 
 function remove( box, item )
@@ -73,43 +76,56 @@ function add( item )
 	local pid = sitem.parent_id
 	local se_box = alife():object( pid ) -- получаем серверный объект хозяина
 	if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
-		local t = zamok_box[ pid ]
-		if t == nil then		-- если в тайнике ещё нет замков
-			local box = level.object_by_id( pid )
-			if box == nil then return end
-
-			zamok_box[ pid ] = { count = 1 }
-			if only_box then
-				local visual = string.explode( box:get_visual_name(), "\\" )
-				visual = visual[ #visual ]
-				if can_lock_visuals[ visual ] == nil then
-					BlockUIDescr( true )
-					ui_messagebox_new.UIMessageBox(
-						"ok_alarm", "На этот тайник невозможно установить замок.",
-						function() BlockUIDescr( false ) end
-					)
-					return
-				end
-			end
-
-			if not zamok_code then
-				table.insert( amk_offline_alife.protected.ids, box_id )
-				--amk_offline_alife.update_tables(level.name())
-				ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
-				return
-			end
-
-			BlockUIDescr( true )
-			ui_messagebox_new.UIMessageBox(
-				"yes_no_info", "Установить замок на этот тайник?",
-				function() this.codelock( box, 1 ) end,
-				function() BlockUIDescr( false ) end
-			)
-		else	-- иначе - ничего не делаем
-			t.count = t.count + 1
-		end
+		check_box( nil, pid )
 	end
 end
+
+function check_box( box, box_id )
+	local t = zamok_box[ box_id ]
+	if t == nil then		-- если в тайнике ещё нет замков
+		local obj = box or level.object_by_id( box_id )
+		if obj == nil then return end
+	
+		zamok_box[ box_id ] = { count = 1 }
+		if only_box then
+			local visual = string.explode( obj:get_visual_name(), "\\" )
+			visual = visual[ #visual ]
+			if can_lock_visuals[ visual ] == nil then
+				BlockUIDescr( true )
+				ui_messagebox_new.UIMessageBox(
+					"ok_alarm", "На этот тайник невозможно установить замок.",
+					function() BlockUIDescr( false ) end
+				)
+				return
+			end
+		end
+	
+		if not zamok_code then
+			table.insert( amk_offline_alife.protected.ids, box_id )
+			--amk_offline_alife.update_tables(level.name())
+			ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
+			return
+		end
+	
+		BlockUIDescr( true )
+		ui_messagebox_new.UIMessageBox(
+			"yes_no_info", "Установить замок на этот тайник?",
+			function() this.codelock( obj, 1 ) end,
+			function() BlockUIDescr( false ) end
+		)
+	else	-- иначе - ничего не делаем
+		t.count = t.count + 1
+	end
+end
+
+function add_in_fake_box(box)
+	local box_id = box:id()
+	local se_box = alife():object( box_id )
+	if se_box and se_box:clsid() == clsid.inventory_box then
+		check_box(box, box_id)
+	end
+end
+
 
 
 class "codelock"
@@ -122,16 +138,14 @@ function codelock:__init( box, mode )
 
 	if not self.install then
 		self.code = ""
-		local i = box:id()
-		local t = zamok_box[ i ]
-		if t and t.code then
-			self.code = t.code
-		else
-			local ini = self.object:spawn_ini()
-			if ini and ini:section_exist( "password" ) then
-				self.code = ini:r_string( "password", "code" )
-			end
+		local se_box = alife():object( box:id() )
+		local data = netpk:get( se_box, netpk.fStat )
+		local cd = netpk:parse_custom_data( data.custom_data )
+		if cd.password and cd.password.code then
+			self.code = cd.password.code
 		end
+
+		self.is_fake_box = ( cd.storage ~= nil )
 	end
 
 	level.start_stop_menu( ui_numpad.numpad( self ), true )
@@ -159,12 +173,12 @@ function codelock:OnNumberReceive( text, mode )
 		if t then t.code = text end
 
 		local se_box = alife():object( box_id )
-		local data = {}
-		data.custom_data =	"[logic]\n"..
-							"cfg = scripts\\code_inventory_box.ltx\n"..
-							"[password]\n"..
-							"code = "..text
-		netpk:modify( se_box, data, netpk.fState )
+		local data = netpk:get(se_box, netpk.fState)
+		local cd = netpk:parse_custom_data(data.custom_data)
+		cd.logic = { cfg = "scripts\\code_inventory_box.ltx" }
+		cd.password = { code = text }
+		data.custom_data = netpk:gen_custom_data(cd)
+		netpk:set( se_box, data, netpk.fState )
 
 		table.insert( amk_offline_alife.protected.ids, box_id )
 		--amk_offline_alife.update_tables(level.name())
@@ -181,15 +195,19 @@ function codelock:OnNumberReceive( text, mode )
 			self.object:set_nonscript_usable( true )
 			self.cls = nil
 			BlockUIDescr( false )
-			start_small_timer( 300, this.actor_open_box, self.object )
+			start_small_timer( 300, this.actor_open_box, self.object, self.is_fake_box )
 		else
 			self:Quit()
 		end
 	end
 end
 
-function actor_open_box( box )
-	db.actor:open_inventory_box( box )
+function actor_open_box( box, is_fake )
+	if is_fake then
+		level.start_stop_menu( ui_treasure.UICarBodyNew( box ), true )
+	else
+		db.actor:open_inventory_box( box )
+	end
 end
 
 
@@ -234,15 +252,23 @@ function change_box_data(box)
 	if se_box then
 	--	log1("box found: "..se_box:name())
 		local inifilename = nil
-		local data = {}
+		local data = netpk:get(se_box, netpk.fState)
+		local cd = netpk:parse_custom_data(data.custom_data)
 		if se_box:section_name() == "m_inventory_box" then	-- самопальный тайник
-			data.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
-			inifilename = "scripts\\new_inventory_box.ltx"
+			local path = ""
+			if ui_treasure.get_active_box() == se_box.id then
+				path = "scripts\\new_inventory_box_1.ltx"
+			else 
+				path = "scripts\\new_inventory_box.ltx"
+			end
+			cd.logic = { cfg = path }
+			inifilename = path
 		else		-- какой-то другой
-			data.custom_data = ""
+			cd = {}
 			inifilename = "scripts\\treasure_inventory_box.ltx"
 		end
-		netpk:modify(se_box, data, netpk.fState)
+		data.custom_data = netpk:gen_custom_data(cd)
+		netpk:set(se_box, data, netpk.fState)
 		-- Перезагружаем логику
 		local st = db.storage[box_id]
 		st = {}
@@ -279,12 +305,12 @@ function has_active_codes()
 end
 
 function has_pay_medkits()
-	return amk_utils.inventory_search( "medkit_scientic", 10 )
-		and amk_utils.inventory_search( "soporific", 5 )
+	return inventory.search( "medkit_scientic", 10 )
+		and inventory.search( "soporific", 5 )
 end
 function out_pay_medkits()
-	sak.out_item_namber( "medkit_scientic", 10 )
-	sak.out_item_namber( "soporific", 5 )
+	inventory.out_items( "medkit_scientic", 10 )
+	inventory.out_items( "soporific", 5 )
 end
 
 local phrase_id = 10

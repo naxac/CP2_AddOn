@@ -120,10 +120,10 @@ function first_run()
 
 	-- фикс пропадания таймеров (гг не хочет спать)
 	if not amk.has_timer("gg_need_sleep") then
-		amk.g_start_timer("gg_need_sleep",0,0,6)
+		xr_timers.start_game_timer("gg_need_sleep",0,0,6)
 	end
 	if not amk.has_timer("show_news") then
-		amk.g_start_timer("show_news",0,0,10)
+		xr_timers.start_game_timer("show_news",0,0,10)
 	end
 end
 --'*******************************************************************************
@@ -266,7 +266,7 @@ function show_news()
 			end
 		end
 	end
-	amk.g_start_timer("show_news",0,0,math_random(50,70))
+	xr_timers.start_game_timer("show_news",0,0,math_random(50,70))
 end
 
 
@@ -277,14 +277,16 @@ end
 --' gg_need_sleep_nrg	- одна единица == 1 час ("занятый" энергетиками у сна)
 local k_sleep = 2.5		-- один час сна даёт два с половиной часа бодрствования
 function reduce_need_sleep(time)	-- in hours
---	log("# reduce_need_sleep: "..time)
+	time = time*k_sleep
+--	log("# reduce_need_sleep: %f", time)
 	local tmp = amk.load_variable("gg_need_sleep_nrg",0)
+--	log("gg_need_sleep_nrg: %f", tmp)
 	amk.save_variable("gg_need_sleep_nrg", math.max(tmp - time, 0))
 	time = time - tmp
---	log("gg_need_sleep_nrg: time = %f", time)
+--	log("time left: %f", time)
 
-	tmp=amk.load_variable("gg_need_sleep",0)
-	tmp = tmp - time*k_sleep*10
+	tmp = amk.load_variable("gg_need_sleep", 0)
+	tmp = tmp - time * 10
 	if tmp<0 then tmp=0 end
 	amk.save_variable("gg_need_sleep",tmp)
 	test_sleep_pp(tmp)
@@ -299,7 +301,7 @@ function test_for_need_sleep()
 		test_sleep_pp(v)
 	--	log("test_for_need_sleep: %f", v)
 	end
-	amk.g_start_timer("gg_need_sleep",0,0,6)
+	xr_timers.start_game_timer("gg_need_sleep",0,0,6)
 end
 
 function sleep_force()
@@ -343,11 +345,10 @@ function test_for_need_sleep_nrg()
 		end )
 		if n == 4 then
 			amk.send_tip("Что-то энергетик уже не помогает нихрена, надо бы отдохнуть...",db.actor:character_name(),5,8,"str")
-			sended_easy_energy = true
 		end
 	end
 	amk.remove_timer("block_sleep_menu")
-	amk.g_start_timer("block_sleep_menu",0,1,0)
+	xr_timers.start_game_timer("block_sleep_menu",0,1,0)
 end
 
 function test_for_need_sleep_med(v)
@@ -424,7 +425,7 @@ function check_radar_off()
 				level.add_pp_effector("fire_hit.ppe", 1523, true)
 				level.set_pp_effector_factor(1523, 0.5)
 				amk.save_variable("radar_fix",1)
-				amk.start_timer("radar_fix",5)
+				xr_timers.start_real_timer("radar_fix",5)
 			end
 		end
 	end
@@ -470,7 +471,7 @@ function check_for_item_drop(obj)
 		tbl.obj_id	= obj:id()
 		tbl.lv		= lv
 		tbl.gv		= gv
-		amk.start_timer("timer_drop_obj_transform", 0.2, tbl)
+		xr_timers.start_real_timer("timer_drop_obj_transform", 0.2, tbl)
 	end
 end
 
@@ -511,6 +512,7 @@ local afs={
 ["af_cristall_flower"] = true,
 ["af_cry_1"] = true,
 ["af_cry_2"] = true,
+["af_cry_3"] = true,
 ["af_dik_1"] = true,
 ["af_dik_2"] = true,
 ["af_dik_3"] = true,
@@ -650,7 +652,7 @@ function check_for_af_drop(obj)
 			tbl.anom_radius	= anom_radius
 			tbl.lv			= lv
 			tbl.gv			= gv
-			amk.start_timer("timer_drop_obj_varka", 0.2, tbl)
+			xr_timers.start_real_timer("timer_drop_obj_varka", 0.2, tbl)
 
 			-- перенесено в amk.script
 			--check_af_transform(obj, obj_sect, obj_pos, anom_id, anom_sect, anom_pos, anom_radius, lv, gv)
@@ -2104,7 +2106,7 @@ function blowout_scary_sounds()
 		a.y=math_random(0,10)
 		a.z=math_random(0,10)
 		snd_obj:play_at_pos(db.actor, db.actor:position():add(a))
-		amk.start_timer("blowout_ss",math_random(10,30),0)
+		xr_timers.start_real_timer("blowout_ss",math_random(10,30),0)
 	end
 end
 
@@ -2151,8 +2153,8 @@ function Run_Blowout_pp()
 			local snd_obj = xr_sound.get_safe_sound_object([[ambient\organic_moan1]])
 			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 		end
-		amk.start_timer( "blowout_ss" ,math_random( 5, 15 ), 0 )
-		amk.start_timer( "blowout", 11, 0 )
+		xr_timers.start_real_timer( "blowout_ss" ,math_random( 5, 15 ), 0 )
+		xr_timers.start_real_timer( "blowout", 11, 0 )
 		blowout_modif_arts()
 	end
 	start_blow_timer()
@@ -2163,7 +2165,7 @@ local basis = game_options.BlowTimeBasis
 local shift = game_options.BlowTimeShift
 --local resuls = basis + (math_random()*shift) - (shift/2)
 local resuls = basis+math_random(-shift, shift)
-amk.g_start_timer("blow_shift", 0, 0, resuls)
+xr_timers.start_game_timer("blow_shift", 0, 0, resuls)
 if (news_main and news_main.next_blow) then news_main.next_blow(resuls) end
 end
 
@@ -2189,7 +2191,7 @@ local resuls = basis + (math_random()*shift) - (shift/2)
 resuls = math.clamp( resuls, 1, max )
 local blow = amk.load_variable("blowout", 0)
 local bt=blowout_type()
-if blow > 0 and blow < 4 and bt == 2 then amk.g_start_timer("blowout", 0, 0, 3, 4) end
+if blow > 0 and blow < 4 and bt == 2 then xr_timers.start_game_timer("blowout", 0, 0, 3, 4) end
 	if phase==0 then
 		db.actor.blowout_outside = true
 		amk_anoms.pre_blow_off()
@@ -2197,7 +2199,7 @@ if blow > 0 and blow < 4 and bt == 2 then amk.g_start_timer("blowout", 0, 0, 3, 
 			level.set_weather("pre_blow",true)
 			level.set_weather_fx("amk_surge_day")
 		end 
-amk.g_start_timer("blowout", 0, 0, resuls, 1)
+xr_timers.start_game_timer("blowout", 0, 0, resuls, 1)
 		elseif phase==1 then
 		local snd_obj = xr_sound.get_safe_sound_object([[ambient\earthquake]])
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
@@ -2209,10 +2211,10 @@ amk.g_start_timer("blowout", 0, 0, resuls, 1)
 			level.add_pp_effector("vibros.ppe", 2001, true)
 		end
 		in_hide=false
-amk.g_start_timer("blowout", 0, 0, resuls, 2)
+xr_timers.start_game_timer("blowout", 0, 0, resuls, 2)
 		amk.save_variable("blowout",2)	
 	elseif phase==2 then
-		amk.g_start_timer("blowout",0,0,3,3)
+		xr_timers.start_game_timer("blowout",0,0,3,3)
 	elseif phase==3 then
 		amk_anoms.after_blow_on()
 		sak.off_testobj()
@@ -2230,7 +2232,7 @@ amk.g_start_timer("blowout", 0, 0, resuls, 2)
 				cr:hit(h)
 			end
 		end
-amk.g_start_timer("blowout", 0, 0, resuls, 4)
+xr_timers.start_game_timer("blowout", 0, 0, resuls, 4)
 	elseif phase==4 then
 		amk.save_variable("blowout",4)
 		level.remove_cam_effector(2002)
@@ -2239,7 +2241,7 @@ amk.g_start_timer("blowout", 0, 0, resuls, 4)
 			level.add_pp_effector("monolith_off.ppe", 2003, false)
 		end
 		blowout_psy_sound("stop")
-		amk.start_timer("blowout",5,5)
+		xr_timers.start_real_timer("blowout",5,5)
 	elseif phase==5 then
 		level.set_weather(amk.load_variable("weather","default1"))
 		if bt<1 then
@@ -2256,7 +2258,7 @@ amk.g_start_timer("blowout", 0, 0, resuls, 4)
 			db.actor.blowout_outside = nil
 		end
 		amk.save_variable( "BLT", amk.load_variable( "BLT", 0 ) + 1 )
-   		amk.start_timer("autosave_data", 10, "Выброс") -- autosave
+   		xr_timers.start_real_timer("autosave_data", 10, "Выброс") -- autosave
 	end
 end
 
@@ -2825,7 +2827,7 @@ function repair_armor(val)
 	local armor = db.actor:item_in_slot( inventory_slots.OUTFIT )
 	if armor then
 		armor:set_condition(val)
-		amk_utils.inventory_force_update(armor:section())
+		inventory.force_update(armor:section())
 	end
 end
 
@@ -2975,23 +2977,23 @@ function repair_weapon (arr)
 		if item_in_slot == nil then
 			amk.send_tip(game.translate_string("rep_no_weapon_in_slot"),nil,nil,5)
 			rem = amk.spawn_item_in_inv("repbox_s"..slot)
-			amk.start_timer("repbox_cond",0.1, {rem.id, repbox_health} )
+			xr_timers.start_real_timer("repbox_cond",0.1, {rem.id, repbox_health} )
 		else
 			if item_in_slot:condition()>0.95 then
 				amk.send_tip(game.translate_string("rep_not_need"),nil,nil,5)
 				rem = amk.spawn_item_in_inv("repbox_s"..slot)
-				amk.start_timer("repbox_cond",0.1, {rem.id, repbox_health} )
+				xr_timers.start_real_timer("repbox_cond",0.1, {rem.id, repbox_health} )
 			else 
 				if item_in_slot:condition()>=0.7 then
 					item_in_slot:set_condition(item_in_slot:condition() + repair_coef)
 					if repbox_health>0.3 then
 						rem = amk.spawn_item_in_inv("repbox_s"..slot)
-						amk.start_timer("repbox_cond",0.1, {rem.id, repbox_health-0.2} )
+						xr_timers.start_real_timer("repbox_cond",0.1, {rem.id, repbox_health-0.2} )
 					end
 				else
 					amk.send_tip(game.translate_string("rep_need_big"),nil,nil,5)
 					rem = amk.spawn_item_in_inv("repbox_s"..slot)
-					amk.start_timer("repbox_cond",0.1, {rem.id, repbox_health} )
+					xr_timers.start_real_timer("repbox_cond",0.1, {rem.id, repbox_health} )
 				end
 			end
 		end

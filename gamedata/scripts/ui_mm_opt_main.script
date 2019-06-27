@@ -71,8 +71,9 @@ function options_dialog:InitControls()
 	
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
-	
-	self.b_r2_restart_shown		= false
+
+	self.need_restart_game	= false
+	self.b_r2_restart		= false
 end
 
 function options_dialog:UpdateControls()
@@ -179,8 +180,8 @@ function options_dialog:OnR2changed()
 
 	self:UpdateDependControls()
 	
-	if false==self.b_r2_restart_shown then
-		self.b_r2_restart_shown			 = true
+	if false==self.b_r2_restart then
+		self.b_r2_restart			 = true
 	--	self.message_box:Init			("message_box_restart_game")
 	--	self:GetHolder():start_stop_menu(self.message_box,true)
 	end
@@ -215,13 +216,13 @@ function options_dialog:OnBtnAccept()
 	console:execute("cfg_save user.ltx")
 	if db.actor then ui_inv_add.on_options_change() end
 	
-	if self.b_r2_restart_shown == true
+	if self.b_r2_restart == true
 		or self.need_restart_game == true
 	then
 		self.message_box:Init("message_box_restart_game")
 		self:GetHolder():start_stop_menu(self.message_box,true)
 		self.need_restart_game = false
-		self.b_r2_restart_shown = false
+		self.b_r2_restart = false
 	else
 		self:Quit()
 	end
@@ -308,6 +309,8 @@ function options_dialog:GameSetupMenuLoad()
 	self.pause_on_load:SetCheck(game_options.LoadPause)
 	self.sidor_call:SetCheck(game_options.PauseTraderCall)
 	self.animations:SetCheck(game_options.FullAnim)
+	self.autofoto:SetCheck(game_options.FotoCheat)
+	self.fotofocus:SetCheck(game_options.FotoFocus)
 	self.autograb_body:SetCheck(game_options.AutoGrab)
 	self.new_sms:SetCheck(game_options.NewSms)
 	self.garbagecollector_sms:SetCheck(game_options.GarbagecollectorStat)
@@ -325,6 +328,8 @@ function options_dialog:GameSetupMenuLoad()
 	self.hud_bleed:SetCheck(game_options.DynHudBleed)
 	self.gg_kick:SetCheck(game_options.GGKick)
 	self.hud_rad:SetCheck(game_options.HudRad)
+	self.hud_slots:SetValue(game_options.QuickSlotsOnHUD)
+	self.hud_time:SetCheck(game_options.HudTIme)
 
 	self.blow_enable:SetCheck(game_options.RunBlowoutPP)
 	self.zombie_team:SetCheck(game_options.ZombieTeam)
@@ -347,6 +352,7 @@ function options_dialog:GameSetupMenuLoad()
 	self.real_money:SetCheck(game_options.RealMoney)
 --	self.rnd_reward:SetCheck(game_options.RndReward)
 	self.runner_frvr:SetCheck(game_options.RunnerForever)
+	self.smart_treasures:SetCheck(game_options.NewTreasures)
 
 	self.n_spawner:SetCheck(game_options.Spawner)
 	self.n_console:SetCheck(game_options.Console)
@@ -366,6 +372,8 @@ function options_dialog:GameSetupMenuSave()
 	game_options.LoadPause = self.pause_on_load:GetCheck()
 	game_options.PauseTraderCall = self.sidor_call:GetCheck()
 	game_options.FullAnim = self.animations:GetCheck()
+	game_options.FotoCheat = self.autofoto:GetCheck()
+	game_options.FotoFocus = self.fotofocus:GetCheck()
 	game_options.AutoGrab = self.autograb_body:GetCheck()
 	game_options.NewSms = self.new_sms:GetCheck()
 	game_options.GarbagecollectorStat = self.garbagecollector_sms:GetCheck()
@@ -384,6 +392,8 @@ function options_dialog:GameSetupMenuSave()
 	game_options.DynHudBleed = self.hud_bleed:GetCheck()
 	game_options.GGKick = self.gg_kick:GetCheck()
 	game_options.HudRad = self.hud_rad:GetCheck()
+	game_options.QuickSlotsOnHUD = self.hud_slots:GetValueIndex()
+	game_options.HudTIme = self.hud_time:GetCheck()
 
 	game_options.RunBlowoutPP = self.blow_enable:GetCheck()
 	game_options.ZombieTeam = self.zombie_team:GetCheck()
@@ -395,9 +405,6 @@ function options_dialog:GameSetupMenuSave()
 	game_options.BlowPhaseMax = self.blow_phase_max:GetValue()
 
 	user_name( self.userName:GetText() )
-	if level.present() then
-		level.set_time_factor( self.time_factor:GetValue() )
-	end
 
 	game_options.SaveRen = self.save_rename:GetCheck()
 	game_options.Console = self.n_console:GetCheck()
@@ -410,17 +417,31 @@ function options_dialog:GameSetupMenuSave()
 --	game_options.RndReward = self.rnd_reward:GetCheck()
 	game_options.NewRadio = self.new_radio:GetCheck()
 	game_options.RunnerForever = self.runner_frvr:GetCheck()
+	game_options.NewTreasures = self.smart_treasures:GetCheck()
 
 	ui_mm_opt_add.SetUserText(self.prev_buy, self.buy:GetText(), "buy")
 	ui_mm_opt_add.SetUserText(self.prev_del, self.del:GetText(), "del")
-	
-	transparent_treasure.scan() -- прозрачные рюкзаки
-	
+
+	if level.present() then
+		level.set_time_factor( self.time_factor:GetValue() )
+	end
+
 	if db.actor and db.actor:alive() then
-		autozoom.change_opt()
-		biodetector.biodetectorReload()
-		abc_hud.on_save_options()
-		arc_ui_dosimeter.reload()
+		local modules_for_update = {
+			"abc_hud",
+			"arc_ui_dosimeter",
+			"autozoom",
+			"bind_fot",
+			"biodetector",
+			"transparent_treasure",
+			"ui_hud_slots",
+			"zamok"
+		}
+		for i, v in ipairs(modules_for_update) do
+			if _G[v] then
+				_G[v].on_options_change()
+			end
+		end
 	end
 	
 	game_options.save_game_options()
@@ -505,6 +526,7 @@ function options_dialog:OnBtnShowHud()
 		w.picture:SetAutoDelete( true )
 		w.picture:Init( 3, 3, 464, 324 )
 		w.picture:SetStretchTexture( true )
+		w.picture:SetFont( GetFontLetterica18Russian() )
 		w.frame:AttachChild( w.picture )
 		self:Register( w.picture, "btn_hide_hud_screen" )
 		self:AddCallbackEx( "btn_hide_hud_screen", ui_events.BUTTON_CLICKED, self.OnBtnHideHudScreen )
@@ -517,6 +539,8 @@ function options_dialog:OnBtnShowHud()
 	else
 		w.picture:InitTexture( "ui\\ui_noise" )
 		w.picture:SetText( "NO SCREENSHOT" )
+		w.picture:SetTextAlign( CGameFont.alCenter )
+		w.picture:SetVTextAlign( CGameFont.alVCenter )
 	end
 	w:Show( true )
 	self.dlg_gameplay:Show( false )

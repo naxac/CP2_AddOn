@@ -1,0 +1,229 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local saved_fields = {
+	["__section"]    = { name = "s",  def = nil },
+	["__condition"]  = { name = "c",  def = 1   },
+	["weight"]       = { name = "w",  def = nil },
+	["custom_data"]  = { name = "cd", def = ""  },
+	["charge_level"] = { name = "cl", def = nil },
+	["ammo_left"]    = { name = "al", def = nil },
+	["ammo_elapsed"] = { name = "ae", def = nil },
+	["ammo_type"]    = { name = "at", def = nil },
+	["addon_flags"]  = { name = "af", def = 0   },
+	["ammo_ids"]     = { name = "ai", def = nil },
+	["worked_time"]  = { name = "wt", def = 0   }
+}
+	
+local fake_items = {}
+function get_item(id)
+	return fake_items[id]
+		or log("! %s.get_item: item with id[%s] not found!", script_name(), id)
+end
+
+local iid = 65535
+local function gen_item_id()
+	iid = iid + 1
+	return iid
+end
+
+class "fake_item"
+
+function fake_item:__init(obj)
+	local t = type(obj)
+	if t == "table" then
+		self:set_table(obj)
+	elseif t == "userdata" then
+		self:set_obj(obj)
+	else
+		abort("%s: unknown sourse type [%s]", script_name(), t)
+	end
+	
+	self.__clsid = sys_ini:r_clsid(self.__section, "class")
+	self.__id = gen_item_id()
+	self.is_fake = true
+	
+	if sys_ini:line_exist(self.__section, "script_binding") then
+		self.binder = fake_binder(self)
+	end
+
+	fake_items[self.__id] = self
+end
+
+function fake_item:set_table(tbl)
+	for field, t in pairs(saved_fields) do
+		self[field] = tbl[t.name] or t.def
+	end
+	self.__cost = sys_ini:r_float(self.__section, "cost")
+end
+
+function fake_item:get_table()
+	local ret = {}
+	for field, t in pairs(saved_fields) do
+		if self[field] then
+			if t.def == nil or t.def ~= self[field] then
+				ret[t.name] = self[field]
+			end
+		end
+	end
+	return ret
+end
+
+function fake_item:set_obj(obj)
+	self.__section = obj:section()
+	self.__condition = obj:condition()
+	self.weight = obj:get_weight()
+	self.__cost = obj:cost()
+	if isMagazinedWeapon(obj) then
+		self.ammo_elapsed = obj:get_ammo_in_magazine()
+	end
+	local binder = obj:binded_object()
+	if binder and binder.get_charge_level then
+		self.charge_level = binder:get_charge_level()
+		if self.charge_level > 0 then
+			local accum = sys_ini:r_string_ex( self.__section, "energy_source", nil )
+			if accum then
+				self.weight = self.weight + sys_ini:r_float(accum, "inv_weight")
+			end
+		end
+	end
+
+	local data = netpk:get(alife():object(obj:id()))
+	self.custom_data = data.custom_data
+	self.worked_time = data.worked_time
+	self.ammo_left = data.ammo_left
+	self.ammo_type = data.ammo_type
+	self.addon_flags = data.addon_flags
+	self.ammo_ids = data.upd.ammo_ids
+
+	if string.find(self.__section, "^arc_art_box_") then
+		local arts = self:get_container_arts()
+		if arts then
+			for i, v in ipairs(arts) do
+				if v ~= "_" then
+					self.weight = self.weight + sys_ini:r_float(v, "inv_weight")
+				end
+			end
+		end
+	end
+end
+
+function fake_item:set_server_object(se_obj)
+	local t = {}
+	t.custom_data = self.custom_data
+	t.condition = self:condition()
+	t.worked_time = self.worked_time
+	t.ammo_elapsed = self.ammo_elapsed
+	t.ammo_type = self.ammo_type
+	t.ammo_left = self.ammo_left
+	t.addon_flags = self.addon_flags
+	if self.ammo_ids then
+		t.upd = {}
+		t.upd.ammo_ids = self.ammo_ids
+	end
+	
+	netpk:modify(se_obj, t)
+end
+
+function fake_item:section()
+	return self.__section
+end
+
+function fake_item:condition()
+	return self.__condition
+end
+
+function fake_item:id()
+	return self.__id
+end
+
+function fake_item:name()
+	return self.__section..tostring(self.__id)
+end
+
+function fake_item:clsid()
+	return self.__clsid
+end
+
+function fake_item:cost()
+	return self.__cost
+end
+
+function fake_item:get_weight()
+	return self.weight
+end
+
+function fake_item:is_artefact()
+	return isArtefact(nil, self.__clsid)
+end
+
+function fake_item:is_outfit()
+	return isOutfit(nil, self.__clsid)
+end
+
+function fake_item:is_knife()
+	return isKnife(nil, self.__clsid)
+end
+
+function fake_item:is_ammo()
+	return isAmmo(nil, self.__clsid)
+end
+
+function fake_item:is_scope()
+	return isScope(nil, self.__clsid)
+end
+
+function fake_item:is_grenade()
+	return isGrenade(nil, self.__clsid)
+end
+
+function fake_item:is_weapon()
+	return isWeapon(self) and (not isGrenade(nil, self.__clsid))
+end
+
+function fake_item:get_container_arts()
+	local cd = netpk:parse_custom_data(self.custom_data)
+	if not (cd and cd.arts) then  return nil end
+	local ret = {}
+	for n, sec in pairs(cd.arts) do
+		ret[ tonumber(n) ] = sec
+	end
+	return ret
+end
+
+function fake_item:get_go_float(n)
+	if n == 480 then
+		return sys_ini:r_float_ex(self.__section, "power_loss", 1)
+	elseif n == 500 then
+		return sys_ini:r_float_ex(self.__section, "additional_inventory_weight", 0)
+	end
+end
+
+function fake_item:binded_object()
+	return self.binder
+end
+
+function fake_item:get_ammo_in_magazine()
+	return self.ammo_elapsed
+end
+
+function fake_item:destroy()
+	if self.binder then
+		self.binder.object = nil
+		self.binder = nil
+	end
+	fake_items[self.__id] = nil
+end
+
+
+class "fake_binder"
+function fake_binder:__init(item)
+	self.object = item
+end
+function fake_binder:__finalize()
+end
+function fake_binder:get_charge_level()
+	return self.object.charge_level or self.object:condition()
+end
+function fake_binder:destroy()
+	self.object = nil
+end
+

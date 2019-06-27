@@ -117,12 +117,11 @@ function generic_physics_binder:update(delta)
 			elseif self.health-health>0.001 then
 				--get_console():execute("load ~~~ health: "..self.health)
 				--get_console():execute("load ~~~ health on hit: "..health)
-				local wpn = db.actor:active_item()
-				if wpn then
-					if weapon_immunity_btr(wpn) then	-- Оружие, против которого у бтр иммунитет
+				if actor_active_item then
+					if weapon_immunity_btr(actor_active_item) then	-- Оружие, против которого у бтр иммунитет
 						health = 1
 
-					elseif not weapon_against_btr(wpn) then	-- Усиление бтр против всего, кроме отдельных стволов
+					elseif not weapon_against_btr(actor_active_item) then	-- Усиление бтр против всего, кроме отдельных стволов
 						if self.health-health > 0.1 then
 							health = self.health-0.1
 						end
@@ -241,11 +240,6 @@ function generic_physics_binder:use_callback(obj, who)
 end
 
 function generic_physics_binder:hit_callback(obj, amount, local_direction, who, bone_index)
-
-	--AMK UTILS--
---	amk.on_ph_obj_hit(obj, amount, local_direction, who, bone_index)	-- don't use
---	amk_utils.physics_hit(obj, amount, local_direction, who, bone_index)	-- don't use
-	--AMK UTILS--
 --	printf("_bp: generic_physics_binder:hit_callback: obj='%s'", obj:name())
 
 	self.nofixonhit=true

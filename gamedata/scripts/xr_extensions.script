@@ -63,6 +63,19 @@ DIK_keys.DIK_LMOUSE			= 337
 DIK_keys.DIK_RMOUSE			= 338
 DIK_keys.DIK_WMOUSE			= 339
 
+_G['inventory_slots'] = {
+	KNIFE		= 0,
+	PISTOL		= 1,
+	RIFLE		= 2,
+	GRENADE		= 3,
+	BINOCULAR	= 4,
+	BOLT 		= 5,
+	OUTFIT		= 6,
+	PDA			= 7,
+	DETECTOR	= 8,
+	TORCH		= 9
+}
+
 -- extension of namespaces Lua 
 --// string
 -- обрезаем пробелы по кра€м строки
@@ -73,9 +86,7 @@ if string.trim==nil then
 else
 	_G.trim = string.trim
 end
--- ¬ основном функци€ используетс€ дл€ разбивки строки по одному символу,
--- поэтому дл€ ускорени€ работы сделаем так.
--- ƒл€ других случаев можно и отдельную функцию написать.
+-- разбивка строки по символу
 string.explode = function ( str, div, clear )
 	local ret = {}
 	for s in string.gmatch( str, "([^"..div.."]+)" ) do
@@ -92,15 +103,17 @@ string.upper1 = function ( str )
 	return string.upper( str:gsub( "([а-€])",
 		function( s ) return string.char( s:byte()-32 ) end ):gsub( "Є", "®" ) )
 end
--- очистка строки от "лишних" символов (полезно при работе с FS)
+-- очистка строки от недопустимых дл€ имЄн файлов символов (используетс€ при работе с FS)
 string.clear = function ( str )
 	return str:gsub( "%p", function( s ) return s:match( "[%.%-_]*" ) end )
 end
 --// math
 -- выравнивание значени€ n в пределы от min до max
 math.clamp = function( n, min, max )
-	if min>max then min,max=max,min end
-	return ( n>max and max ) or ( n<min and min ) or n
+	if min > max then
+		min, max = max, min
+	end
+	return ( n > max and max ) or ( n < min and min ) or n
 end
 -- округление числа
 --math.round = function ( n )
@@ -108,7 +121,7 @@ end
 --	return (r>=0.5 and n-r+1) or n-r
 --end
 --// table
--- получаем реальный размер таблицы
+-- получаем размер таблицы (количество св€зок [ключ] = значение)
 if table.size == nil then
 	table.size = function ( t )
 		local n = 0
@@ -135,6 +148,7 @@ table.find = function( tbl, val )
 	end
 	return false
 end
+-- функции дл€ подсчета чего-либо в виде: [ключ] = количество
 table.add = function( tbl, key, v )
 	local n = tbl[key] or 0
 	tbl[key] = n + (v or 1)
@@ -147,6 +161,7 @@ table.sub = function( tbl, key, v )
 		tbl[key] = n - (v or 1)
 	end
 end
+-- получение рандомного значени€ из массива
 table.random = function ( tbl )
 	if not next(tbl) then return nil end
 	return tbl[ math.random(#tbl) ]
@@ -187,10 +202,11 @@ table.print = function( tbl, subs )
 		end
 	end
 end
-
+-- печатаем вектор
 function print_vector(v, subs)
 	log1((subs or "")..v.x..":"..v.y..":"..v.z)
 end
+-- печатаем матрицу
 function print_matrix(m, subs)
 	print_vector(m.i, subs)
 	print_vector(m.j, subs)
@@ -432,10 +448,10 @@ CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
 		end,
 	id )
 end
-CUIScriptWnd.unregister_self = function ( self )
+CUIScriptWnd.ClearCallbacks = function ( self )
 	local id = self.__CUIScriptWnd_id
 	if id == nil then
-		log("~ CUIScriptWnd.unregister_self : __CUIScriptWnd_id not found" )
+		log("~ CUIScriptWnd.ClearCallbacks : __CUIScriptWnd_id not found" )
 	else
 		if self.__reg_childs then
 			for i, v in ipairs( self.__reg_childs ) do
@@ -445,7 +461,7 @@ CUIScriptWnd.unregister_self = function ( self )
 		end
 		registered_windows[ id ] = nil
 	end
---	log("CUIScriptWnd.unregister_self: registered windows count [%d]", table.size(registered_windows) )
+--	log("CUIScriptWnd.ClearCallbacks: registered windows count [%d]", table.size(registered_windows) )
 end
 CUIScriptWnd.register_child_to_unreg = function( self, child )
 	if child.__CUIScriptWnd_id == nil then return end
@@ -486,6 +502,16 @@ end
 level.vertex_id_by_pos = function ( position )
 	db.actor:set_vector_global_arg_1( position )
 	return level.vertex_id()
+end
+level.__time_factor = sys_ini:r_u32("alife", "time_factor")
+level.get_time_factor_old = level.get_time_factor
+level.get_time_factor = function()
+	return level.__time_factor
+end
+level.set_time_factor_old = level.set_time_factor
+level.set_time_factor = function(factor)
+	level.set_time_factor_old(factor)
+	level.__time_factor = factor
 end
 
 -- namespace 'relation_registry'
@@ -566,19 +592,6 @@ local ru = [[йцукенгшщзхъфывапролджэ€чсмитьбю.…÷” ≈Ќ√Ўў«’Џ/‘џ¬јѕ–ќЋƒ∆Ёя„—ћ»“№Ѕё,
 local tt = {}
 for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
 _G['translit']  = function (l) return tt[l] or l end
-
-_G['inventory_slots'] = {
-	KNIFE		= 0,
-	PISTOL		= 1,
-	RIFLE		= 2,
-	GRENADE		= 3,
-	BINOCULAR	= 4,
-	BOLT 		= 5,
-	OUTFIT		= 6,
-	PDA			= 7,
-	DETECTOR	= 8,
-	TORCH		= 9
-}
 
 --tmr:stop()
 --log1( "# loading xray_extensions: "..tostring(tmr:time()) )

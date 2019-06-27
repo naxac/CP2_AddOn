@@ -18,17 +18,28 @@ function det_binder:net_spawn(data)
 	if not object_binder.net_spawn(self, data) then
 		return false
 	end
-	
+
+	db.volatiles[self.object:id()] = true
+
 	self.full_charge_time = sys_ini:r_u32(self.object:section(), "working_time") *60
 	self.condition = self.object:condition()
 	self.time_left = self.full_charge_time * self.condition
 	self.last_time = get_seconds()
-	
+
 	return true
 end
 
 function det_binder:update(delta)
 	object_binder.update(self, delta)
+
+	-- fix
+	if self.object:condition() ~= self.condition then
+	--	log("detector fix")
+		self.condition = self.object:condition()
+		self.time_left = self.full_charge_time * self.condition
+		self:save_condition()
+		return
+	end
 
 	if not db.actor:is_on_belt(self.object) then
 		return
@@ -43,17 +54,19 @@ function det_binder:update(delta)
 	local _shift = t - self.last_time
 	if _shift < upd_step then return end
 
-	self.time_left = math.max(self.time_left - _shift, 0)
 	self.last_time = t
+
+	self.time_left = math.max(self.time_left - _shift, 0)
 
 	self.condition = self.time_left/self.full_charge_time
 	self.object:set_condition(self.condition)
 end
 
 function det_binder:net_destroy()
-	object_binder.net_destroy(self)
-
 	self:save_condition()
+	db.volatiles[self.object:id()] = nil
+
+	object_binder.net_destroy(self)
 end
 
 function det_binder:save(packet)
@@ -91,12 +104,14 @@ function det_binder:charge(new_charge)
 				obj:set_condition(condition)
 			end,
 		old_charge)
+		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge
 	self.last_time = get_seconds()
 	self.condition = new_charge
 	self.object:set_condition(new_charge)
+	return true
 end
 ------------------------------------------------------------------------------
 function init(obj)

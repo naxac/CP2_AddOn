@@ -599,11 +599,6 @@ function on_info(npc, info_id)
 	end
 end
 
---колбэк на взятие предмета в инвентарь ГГ
-function on_item_take(obj)
-	gps_habar.on_item_take(obj) -- Idler ++--
-end
-
 --колбэк на взятие предмета в инвентарь ГГ из ящика
 function on_item_take_from_box(obj, item)
 remove_spot_from_map(obj:id(),"crlc_big")
@@ -645,6 +640,7 @@ function on_actor_update(delta)
 			elseif v==1 and obj then -- тайник не перешёл в оффлайн попытаемся его туда запихнуть.
 				sim:set_switch_online(k, false)
 				sim:set_switch_offline(k, true)
+				convert_npc[k]=true
 			elseif v==1 then -- тайник в оффлайне. выталкиваем.
 				convert_npc[k]=nil
 				switch_online(k)      
@@ -679,9 +675,8 @@ function on_actor_update(delta)
 				local snd_obj = xr_sound.get_safe_sound_object( "actor\\"..table.random(sounds) )
 				snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)
 				if math_random()<(prev_health-h)/2.5 then
-					local active_item = actor:active_item()
-					if active_item and active_item:section()~= "bolt" then
-						actor:drop_item(active_item)
+					if actor_active_item and actor_active_item:section()~= "bolt" then
+						actor:drop_item(actor_active_item)
 					end
 				end
 			end
@@ -864,12 +859,7 @@ end
 -- Эта функция вызывается самой первой. Онлайновые объекты недоступны! db.actor недоступен!
 function on_game_start()
 	math.randomseed ( device():time_global() )
-
 	getStartTime()
-
-    IAmAStalkerInit()
-    IAmAMonsterInit()
-	IAmAWeaponInit()
 end
 
 function getStartTime()

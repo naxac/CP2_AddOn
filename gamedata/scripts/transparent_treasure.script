@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- скрипт прозрачных рюкзаков
 
---local convert_visual = {}
+local treasure_change_visual = {}
 
 -- подменяемый ли визуал?
 function IsChangeable(section)
@@ -17,7 +17,7 @@ function IsTaken(section)
 end
 
 -- перебор рюкзаков, вызывается при смене сложности
-function scan()
+function on_options_change()
 	if level.present() then
 		-- игра загружена
 
@@ -36,9 +36,9 @@ end
 
 function net_spawn(box)
 	if IsChangeable(box:section()) then
-		if db.treasure_change_visual[box:id()] then
+		if treasure_change_visual[box:id()] then
 			-- уже заменили визуал
-			db.treasure_change_visual[box:id()] = nil
+			treasure_change_visual[box:id()] = nil
 		else
 			change_visual(box)
 		end
@@ -65,33 +65,11 @@ function change_visual(box)
 	
 	-- меняем визуал
 	local se_box = alife():object(box:id())
-	db.treasure_change_visual[se_box.id] = true
+	treasure_change_visual[se_box.id] = true
 	netpk:modify(se_box, {visual_name = visual}, netpk.fState)
 
 	-- отправляем в оффлайн и обратно для обновления визуала
 	amk.convert_npc[se_box.id] = 1
---	convert_visual[se_box.id]="turn_off"
 end
---[[
-function update()
-	for k,v in pairs(convert_visual) do
-		local box = level.object_by_id(k)
-		local se_box = alife():object(k)
-		if se_box then
-			if box ~= nil and v == "turn_off" then
-				alife():set_switch_online(se_box.id, false)
-				alife():set_switch_offline(se_box.id, true)
-				convert_visual[k] = "turn_on"
-			elseif box == nil and v == "turn_on" then
-				alife():set_switch_online(se_box.id, true)
-				alife():set_switch_offline(se_box.id, true)
-				convert_visual[k] = false
-			elseif v == false then
-				convert_visual[k] = nil
-			end
-		else
-			convert_visual[k] = nil
-		end
-	end
-end
-]]
+
+

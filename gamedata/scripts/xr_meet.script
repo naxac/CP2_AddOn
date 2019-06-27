@@ -264,7 +264,7 @@ end
 function Cmeet_manager:process_meet()
   local key
   local is_talking = self.npc:is_talking()
-  if db.actor:active_item() and IAmAWeapon[db.actor:active_item():clsid()] and
+  if actor_active_item and IAmAWeapon[actor_active_item:clsid()] and
        self.npc:relation(db.actor) ~= game_object.friend and self:actor_targets_npc(self.npc)
     then
     key = self:get_key_from_distance(self.a.meet_state_wpn)
@@ -307,7 +307,7 @@ function Cmeet_manager:process_meet()
 end
 function Cmeet_manager:process_victim()
   local key
-  if db.actor:active_item() and IAmAWeapon[db.actor:active_item():clsid()] then
+  if actor_active_item and IAmAWeapon[actor_active_item:clsid()] then
     key = self:get_key_from_distance(self.a.victim_wpn)
     if key ~= nil then
       return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.victim_wpn[key].state))
@@ -372,7 +372,7 @@ function Cmeet_manager:process_use()
   end
   
   local t
-  if db.actor:active_item() and IAmAWeapon[db.actor:active_item():clsid()] then
+  if actor_active_item and IAmAWeapon[actor_active_item:clsid()] then
     t = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.use_wpn)
     if t == "false" then
       self.disable_talk_weapon = true
@@ -809,7 +809,7 @@ end
 function cannot_talk_by_weapon(npc)
   local st = db.storage[npc:id()].meet
   if st then
-    if not db.actor:active_item() or not IAmAWeapon[db.actor:active_item():clsid()] then
+    if (not actor_active_item) or not IAmAWeapon[actor_active_item:clsid()] then
       return false
     end
     if st.use then

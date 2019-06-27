@@ -421,6 +421,7 @@ function add_blood_green()
 	alife():create("polter_xray",vector():set(27.053871154785,0.084938794374466,-9.735237121582),52620,1507)
 	alife():create("controller_flame",vector():set(90.896003723145,0.028825730085373,12.075715065002),87194,1513)
 	alife():create("m_controller_act",vector():set(15.076522827148,0.030788093805313,19.65348815918),46805,1445)
+	artefact_hunter.add_art_info("af_blood_green")
 end
 function add_battery_red()
 amk.spawn_item("af_dummy_battery_red",vector():set(668.9,-45.79,-39.93),1896,227187,true) --Рубиновая батарейка на Радаре 
@@ -547,69 +548,6 @@ function info_teleport()
   amk.send_tip("","Телепорт готов.",0,10,"gen_info")
 end
 
---local items_count=0
---local itemin=nil
-
-function have_item_namber(itm,need_namber)
-	return amk_utils.inventory_search(itm, need_namber)
-end
-function create_items(npc,section,number)
-        for i=1,number do
-			alife():create(section, 
-            npc:position(),
-            npc:level_vertex_id(),  
-            npc:game_vertex_id(),
-            npc:id())
-        end 
-end
-local reloc_params={}
---local stalk
--- Спавн в инвентарь гг с выдачей сообщения.
-function create_items_actor(itm_section,number)
-	this.create_items(db.actor, itm_section, number or 1)
-	news_manager.relocate_item(db.actor, "in", itm_section, number)
-end
--- функция удаления всех itm_section из инвентаря ГГ. Полезна, когда количество неизвестно
-function out_item_all(itm_section)
-	reloc_params.itm_section=itm_section
-	reloc_params.itm_cnt=0
-	db.actor:iterate_inventory(out_items_all_count,db.actor)
-	news_manager.relocate_item(db.actor, "out", itm_section, reloc_params.itm_cnt)
-	reloc_params={}
-end
-function out_items_all_count(actor,item)
-	if item.section and item:section()==reloc_params.itm_section then
-		amk.remove_item_from_inventory(item, actor)
-		reloc_params.itm_cnt = reloc_params.itm_cnt + 1
-	end
-end
-function out_item_namber(itm_section,need_number)
-	local out_cnt = 0
-	db.actor:iterate_inventory(function (actor, item)
-		if out_cnt>=need_number then return end
-		if item.section and item:section()==itm_section then
-			amk.remove_item_from_inventory(item, actor)
-			out_cnt = out_cnt + 1
-		end
-	end,
-	db.actor)
-	news_manager.relocate_item(db.actor, "out", itm_section, out_cnt)
-end
-
-function relocate_item_namber(stalker,itm_section,need_number)
-	local out_cnt = 0
-	db.actor:iterate_inventory(function (actor, item)
-		if out_cnt>=need_number then return end
-		if item.section and item:section()==itm_section and alife():object(item:id()) then
-			alife():release(alife():object(item:id()))
-			out_cnt = out_cnt + 1
-		end
-	end,
-	db.actor)
-	news_manager.relocate_item(db.actor, "out", itm_section, out_cnt)
-
-end
-
 function make_kill_task_failed(actor,npc,p1,p2) 
   local nid=npc:id()
   if nid==db.actor:id() then
@@ -663,14 +601,17 @@ local nepis = {
 	-- Агропром
 	{story_id = 302, _umer = true, info = {"agr_krot_dead", "sar2_death_19"}},	-- Крот
 	{story_id = 370, _umer = true, info = {"sar2_death_11"}},		-- Дезертир
-	{story_id = 9506},					-- Шерстюк
---	{story_id = 14006},					-- Чук
---	{story_id = 14007},					-- Гек
+	{story_id = 9506, info = {"sherstuk_enemy"}},				-- Шерстюк
+	{story_id = 14006, info = {"chuk_dead"}},					-- Чук
+	{story_id = 14007, info = {"gek_dead"}},					-- Гек
 	-- Забытый Лес
-	{story_id = 30118, trup = true, script = "buusty_dialog.himik_resurrect()"},	-- Химик труп
-	{story_id = 30124, script = "buusty_dialog.himik_resurrect()"},					-- Химик живой
+	{story_id = 30117,  script = "buusty_dialog.prygorshnya_resurrect"},				-- Пригоршня
+	{story_id = 30118, trup = true, script = "buusty_dialog.himik_resurrect"},	-- Химик труп
+	{story_id = 30124, script = "buusty_dialog.himik_resurrect"},					-- Химик живой
 	-- Темная Долина
 	{story_id = 400, _umer = true},		-- Макс Любер
+	{story_id = 401, info = {"val_sacrifice_victim_dead"}},	-- пленный долговец в сценке у ямы
+	{story_id = 402, info = {"val_prisoner_dead"}},		-- пленный долговец в камере в подвале
 	{story_id = 406, _umer = true},		-- Пуля
 	{story_id = 422, info = {"val_sos_dead", "val_sos_got_medkit"}},	-- Мессер
 	{story_id = 425, info = {"val_borov_dead"}},	-- Боров
@@ -705,12 +646,12 @@ local nepis = {
 	{story_id = 19810},					-- Альфа 2012 (охранник на входе на базу Свободы)
 	{story_id = 724},					-- Кэп (командир Барьера)
 	-- ЧАЭС2
-	{story_id = 9969, _umer = true, script = "kostya_dialog.tm_brother_2chaes_spawn()"},	-- Брат Тени Монолита
+	{story_id = 9969, _umer = true, script = "kostya_dialog.tm_brother_2chaes_spawn"},	-- Брат Тени Монолита
 	-- Болота
 	{story_id = 19811, info = {"dyak_dead"}},		-- Дьяк
 	{story_id = 14003, info = {"kalmyak_dead"}},	-- Калмык
 	-- ВП
-	{story_id = 21005, info = {"akill_npc_dead"}, script = "akill.akill_npc_spawn()"},	-- Акилл
+	{story_id = 21005, info = {"akill_npc_dead"}, script = "akill.akill_npc_spawn"},	-- Акилл
 	-- Варлаб
 	{story_id = 19809},					-- Сольвадор
 	{story_id = 22005, _umer = true}, 	-- Лентяй
@@ -747,10 +688,18 @@ function deadman_to_life(art)
 			amk.send_tip("%c[255,0,255,0]Обнаружен новый сталкер: "..naxac_netpk.get_character_name(obj)..". Добавлен в базу данных сети.%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 0, 15, "questman_death")
 			local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
 			sim:release(obj)
+
+			local se_npc
 			if nepis[a].script then
-				loadstring(nepis[a].script)()
+			--	loadstring(nepis[a].script)()
+				local m, func = string.explode(nepis[a].script, ".")
+				if _G[m] and _G[m][func] then
+					se_npc = _G[m][func]()
+				end
 			else
-				local se_npc = sim:create(sim:spawn_id(nepis[a].story_id))
+				se_npc = sim:create(sim:spawn_id(nepis[a].story_id))
+			end
+			if se_npc then
 				sim:teleport_object("", pos, lv, gv, se_npc.id)
 			end
 			return
@@ -953,16 +902,16 @@ function switch_mil_matugalnik()
 	end
 end
 function add_3repair_item_outfit()
-	sak.create_items_actor("repair_item_outfit",3)
+	inventory.give_items("repair_item_outfit",3)
 end
 function add_3repair_item_weapon()
-	sak.create_items_actor("repair_item_weapon",3)
+	inventory.give_items("repair_item_weapon",3)
 end
 function add_repair_item_outfit()
-	sak.create_items_actor("repair_item_outfit",1)
+	inventory.give_items("repair_item_outfit",1)
 end
 function add_repair_item_weapon()
-	sak.create_items_actor("repair_item_weapon",1)
+	inventory.give_items("repair_item_weapon",1)
 end
 function add_medkit(first_speaker, second_speaker)
      dialogs.relocate_item_section(second_speaker, "medkit", "in")
@@ -970,6 +919,28 @@ function add_medkit(first_speaker, second_speaker)
 end 
 function set_community(actor, npc)
 	relation_registry.set_community_goodwill("bandit", 0, 500)
+	-- поссорим актёра с конвоем Макса Любера
+	local sim = alife()
+	local obj = sim:object("val_escort_guard2")
+	if obj and obj:alive() then
+		relation_registry.set_goodwill(obj.id, db.actor:id(), -1000)
+	end
+	obj = sim:object("val_escort_guard1")
+	if obj and obj:alive() then
+		relation_registry.set_goodwill(obj.id, db.actor:id(), -1000)
+	end
+	-- Помирим Макса Любера и Пулю с Монголом
+	obj = sim:object("val_escort_bandit_halfdead")
+	if obj and obj:alive() then
+		local npc1 = sim:object("val_escort_nap1")
+		local npc2 = sim:object("val_escort_captive")
+		if npc1 and npc1:alive() and npc2 and npc2:alive() then
+			relation_registry.set_goodwill(obj.id, npc1.id, 500)
+			relation_registry.set_goodwill(npc1.id, obj.id, 500)
+			relation_registry.set_goodwill(obj.id, npc2.id, 500)
+			relation_registry.set_goodwill(npc2.id, obj.id, 500)
+		end
+	end
 end
 function bandits_enemy(actor, npc)
 	if xr_conditions.killed_by_actor(actor, npc) then

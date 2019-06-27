@@ -110,8 +110,8 @@ function init()
 		-- rel_enemy,rel_friend = utils.cfg_get_number(sys_ini, "game_relations", "goodwill_enemy", nil, false, -1000), utils.cfg_get_number(sys_ini, "game_relations", "goodwill_friend", nil, false, 1000)
 		rel_enemy,rel_friend = getIniValueFloat("game_relations", "goodwill_enemy", -1000, nil), getIniValueFloat("game_relations", "goodwill_friend", 1000, nil)
 
-	    if not amk.has_g_timer("news_check") then
-			amk.g_start_timer("news_check", 0, 0, timer_check_freq)
+	    if not xr_timers.has_timer("news_check") then
+			xr_timers.start_game_timer("news_check", 0, 0, timer_check_freq)
 	    end
     
 		bInit = true
@@ -2242,13 +2242,8 @@ function on_news()
 		amk.oau_reason="cn on_news first pass"
 		for k,v in pairs(news_stack) do
 			if v.activated == nil then
-				if (v.lifetime > amk.game_minutes()) then
---[[					if (v.timeout < game_minutes) then -- Новость актуальна.
-						--ti(avail, k)
-					else
-						mylog("Not ready yet - ".. v.from) -- Еще не время.
-					end]]
-				else -- Новость устарела.
+				if (v.lifetime <= amk.game_minutes()) then
+					-- Новость устарела.
 						-- mylog("Too old - "..v.from..": "..v.text)
 					table_remove(news_stack, k)
 				end
@@ -2327,7 +2322,7 @@ function on_news()
 
 	if (timer_next_blow == 0) then
 		local timer = xr_timers.get_timer("blow_shift")
-		timer_next_blow = timer.time or 0
+		timer_next_blow = (timer.time or 0)/60000
 	end
 
     local gtime = amk.game_minutes()
@@ -2344,9 +2339,6 @@ function on_news()
 	if (gtime - timer_eternal_stalker > timer_eternal_stalker_freq) then
 		do_eternal_stalker()	
 	end
-	--[[ if (gtime - timer_random_spawn > timer_random_spawn_freq) then
-		do_seen()
-	end ]]
 	if (gtime - timer_def_spawn > timer_def_spawn_freq) then
 		do_seen_monster()	
 	end	
@@ -2354,11 +2346,6 @@ function on_news()
 		on_daytime()
 	end
 end
-
---[[function game_minutes()
-	local gtime = level.get_time_days()*60*24+level.get_time_hours()*60+level.get_time_minutes()  --time in game minutes
-	return gtime
-end]]
 
 function on_offline_item_found(who, object)
 	if _debug == true then
@@ -2624,16 +2611,19 @@ end
 function create_treasurebox()
 	local actor = db.actor
 	local obj = alife():create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
-	if (obj) then
-		local t = netpk:get(obj, netpk.fState)
+	if not obj then return false end
+	
+	local t = netpk:get(obj, netpk.fState)
+	if game_options.NewTreasures then
+		t.custom_data = "[logic]\ncfg = scripts\\new_inventory_box_1.ltx"
+	else
 		-- Сбросим флаги, чтобы объект не уходил в оффлайн
 		t.object_flags = bit_and(t.object_flags, bit_not(197))
 		t.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
-		netpk:set(obj, t)
-		obj = alife():object( obj.id )
-		obj:use_ai_locations( false )
-		--amk.add_spot_on_map(obj.id, "treasure_spot", "My treasure")
 	end
+	netpk:set(obj, t)
+	obj = alife():object( obj.id )
+	obj:use_ai_locations( false )
 end
 
 function get_spawn_t(t)
@@ -2670,7 +2660,7 @@ function on_miniquest_reward(trader)
 					local tbl = string.explode(items, ",", true)
 					local spawn = get_spawn_t(tbl)
 					for k,v in pairs(spawn) do
-						sak.create_items_actor(k,v)
+						inventory.give_items(k,v)
 					end
 					cd.microquest = {}
 					cd.microquest.reward_money = 0

@@ -1,0 +1,297 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local get_seconds = amk.game_seconds
+
+-- процент заряда аккумулятора, при котором:
+local bad_charge_level	= 0.05	-- аккумулятор непригоден на замену
+local chrg_dec_carrying	= 0.25	-- падает грузоподъёмность
+local chrg_sprint_off	= 0.2	-- отключается режим бега (спринта)
+local chrg_jump_off		= 0.16	-- становится невозможно прыгать
+local chrg_walk_off		= 0.0	-- становится невозможно идти
+local chrg_power_loss	= 0.5	-- увеличивается усталость
+
+local upd_step_accum	= 500	-- частота апдейта заряда аккумулятора, мс
+local upd_step_carrying	= 2000	-- частота апдейта грузоподъёмности, мс
+
+local current_outfit_id = 0
+
+local function set_additional_weight(binder, condition)
+	local sect = binder.object:section()
+	if binder.add_weight > 0 then
+		binder.object:set_go_float(nil, binder.add_weight * condition, 500)
+	end
+	if binder.add_weight2 > 0 then
+		binder.object:set_go_float(nil, binder.add_weight2 * condition, 504)
+	end
+end
+local function set_power_loss(binder, condition)
+	local n = (2-binder.power_loss) * math.max(chrg_power_loss - condition, 0)/chrg_power_loss + binder.power_loss
+--	log("set power_loss [%s] for [%s]", n, binder.object:name())
+	binder.object:set_go_float(nil, n, 480)
+end
+---------------------------------------------------------------------------------------
+class "outfit_binder" (object_binder)
+
+function outfit_binder:__init(obj)
+	super (obj)
+	self.upd_time_carrying = 0
+	self.upd_time_accum = 0
+
+	self.volatile = false
+	self.full_charge_time = 1
+	self.current_chrg = 1
+	self.last_time = 0
+	self.time_left = 0
+	self.need_init = true
+end
+
+function outfit_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then return false end
+
+	local sect = self.object:section()
+	
+	if sys_ini:line_exist(sect, "volatile")
+		and sys_ini:r_bool(sect, "volatile")==true
+	then
+		if alife():object( self.object:id() ) then
+			self:init_volatile()
+		end
+	end
+	self.add_weight = sys_ini:r_float_ex(sect, "additional_inventory_weight", 0)
+	self.add_weight2 = sys_ini:r_float_ex(sect, "additional_inventory_weight2", 0)
+
+	local cond = self.object:condition() * self:get_weight_koef()
+	if cond < 0.99 then
+		set_additional_weight(self, cond)
+	end
+	self.last_cond = cond
+
+	return true
+end
+
+function outfit_binder:init_volatile()
+	self.volatile = true
+	db.volatiles[self.object:id()] = true
+
+	self.full_charge_time = sys_ini:r_float( sect, "working_time" ) * 60
+	self.se_obj = alife():object( self.object:id() )
+	self.time_left = self.full_charge_time - self.se_obj.worked_time
+	self.last_time = get_seconds()
+	self.current_chrg = self.time_left/self.full_charge_time
+	self.last_chrg = self.current_chrg
+	self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
+
+	if self.current_chrg < chrg_power_loss then
+		set_power_loss(self, self.current_chrg )
+	end
+	if self.current_chrg < chrg_sprint_off then
+		self.object:set_item_flag("sprint_allowed", false)
+	end
+
+	self.need_init = false
+end
+
+function outfit_binder:net_destroy()
+	db.volatiles[self.object:id()] = nil
+
+	object_binder.net_destroy(self)
+end
+
+function outfit_binder:update(delta)
+	object_binder.update(self, delta)
+
+	if self.upd_time_carrying < upd_step_carrying then
+		self.upd_time_carrying = self.upd_time_carrying + delta
+	else
+		self.upd_time_carrying = 0
+
+		local cond = self.object:condition() * self:get_weight_koef()
+		if self.last_cond > cond + 0.01 or self.last_cond < cond - 0.01 then
+			self.last_cond = cond
+			set_additional_weight(self, cond)
+		end
+	end
+
+	if self.volatile == false then return end
+	if self.need_init then
+		if alife():object( self.object:id() ) then
+			self:init_volatile()
+		else
+			return
+		end
+	end
+
+	if self.upd_time_accum < upd_step_accum then
+		self.upd_time_accum = self.upd_time_accum + delta
+		return
+	end
+	self.upd_time_accum = 0
+
+	if not db.actor:is_in_slot(self.object) then
+		return
+	end
+
+	local sec = get_seconds()
+	local time_shift = sec - self.last_time
+	self.last_time = sec
+
+	local act = db.actor
+	if act:is_actor_running() then				-- бежит
+		time_shift = time_shift * 1.5
+	elseif act:is_actor_crouching() then		-- идёт в полуприсяди
+		time_shift = time_shift * 1.3
+	elseif act:is_actor_sprinting() then		-- бежит спринтом
+		time_shift = time_shift * 1.8
+	elseif act:is_actor_creeping() then			-- ползёт в полном присяде
+		time_shift = time_shift * 1.4
+	elseif act:is_actor_climbing() then			-- ползёт по лестнице
+		time_shift = time_shift * 1.6
+	elseif act:is_actor_walking() then			-- идёт шагом
+		time_shift = time_shift * 1.2
+	end
+
+	-- проверяем перегруз
+	local excess_weight = act:get_inventory_weight() - act:get_actor_max_weight()
+	if excess_weight > 0 then
+		local m = 1 + math.min(0.7 * excess_weight/(self.add_weight2 + 0.01), 1)
+		time_shift = time_shift * m
+	end
+
+	self.time_left = math.max(self.time_left - time_shift, 0)
+
+	self.se_obj.worked_time = self.full_charge_time - self.time_left
+	self.current_chrg = self.time_left/self.full_charge_time
+
+	if math.abs(self.current_chrg - self.last_chrg) >= 0.01 then
+		set_power_loss(self, self.current_chrg)
+		self.object:set_item_flag("sprint_allowed", self.current_chrg>chrg_sprint_off)
+		set_actor_params(self.current_chrg)
+		self.last_chrg = self.current_chrg
+	end
+end
+
+function outfit_binder:get_weight_koef()
+	if not self.volatile then
+		return 1
+	end
+	return 1 - math.max( chrg_dec_carrying - self.current_chrg, 0 )/chrg_dec_carrying
+end
+
+function outfit_binder:get_charge_level()
+	return self.current_chrg
+end
+
+function outfit_binder:charge(new_charge, no_test)
+	if not no_test then
+		if new_charge <= bad_charge_level then
+			ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой")
+			return false
+		elseif math.abs(self.current_chrg - new_charge) < 0.02 then
+			return false
+		end
+	end
+
+	if self.current_chrg > 0 and not no_test then
+		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
+		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
+		level.client_spawn_manager():add(accum.id, -1,
+			function(condition, id, obj)
+				obj:set_condition(condition)
+			end,
+		self.current_chrg)
+		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+	end
+
+	self.time_left = self.full_charge_time * new_charge
+	self.se_obj.worked_time = self.full_charge_time - self.time_left
+	self.current_chrg = new_charge
+	self.last_cond = self.object:condition() * self:get_weight_koef()
+
+	set_additional_weight(self, self.last_cond)
+	set_power_loss(self, new_charge)
+	self.object:set_item_flag("sprint_allowed", new_charge>chrg_sprint_off)
+	if db.actor:is_in_slot(self.object) then
+		set_actor_params(new_charge)
+	end
+
+	return true
+end
+
+function outfit_binder:discharge()
+	self.time_left = 0
+	self.se_obj.worked_time = self.full_charge_time
+	self.current_chrg = 0
+	self.last_cond = 0
+	set_additional_weight(self, 0)
+	set_power_loss(self, 0)
+end
+------------------------------------------------------------------------------
+function init(obj)
+	local new_binder = outfit_binder(obj)
+	obj:bind_object(new_binder)
+end
+------------------------------------------------------------------------------
+
+local flags = {}
+function set_actor_params(cond)
+	if cond <= chrg_jump_off then
+		if not flags.jump then
+			flags.jump = true
+			xr_actor.jump_off("outf")
+		end
+	elseif flags.jump then
+		flags.jump = nil
+		xr_actor.jump_on("outf")
+	end
+
+	if cond <= chrg_walk_off then
+		if not flags.walk then
+			flags.walk = true
+			xr_actor.walk_off("outf")
+		end
+	elseif flags.walk then
+		flags.walk = nil
+		xr_actor.walk_on("outf")
+	end
+end
+
+function on_item_from_slot(item)
+	if current_outfit_id ~= item:id() then return end
+
+	set_actor_params(1)
+	current_outfit_id = 0
+	if ShiftPressed() then
+		local binder = item:binded_object()
+		if binder and binder.volatile then
+			local cond = binder:get_charge_level()
+			if cond > 0 then
+				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
+				local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+				netpk:modify(accum, {condition = cond}, netpk.fState)
+				level.client_spawn_manager():add(accum.id, -1,
+					function(condition, id, obj)
+						obj:set_condition(condition)
+					end,
+				cond)
+				binder:discharge()
+				arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+			end
+		end
+	end
+end
+function on_item_to_slot(item)
+	if not item:is_outfit() then return end
+	local binder = item:binded_object()
+	if binder then
+		binder.last_time = get_seconds()
+		binder.upd_time_accum = upd_step_accum + 1
+		set_actor_params( binder:get_charge_level() )
+	end
+	current_outfit_id = item:id()
+end
+
+function attach()
+	xr_s.subscribe("item_to_ruck", this.on_item_from_slot)
+	xr_s.subscribe("item_drop", this.on_item_from_slot)
+	xr_s.subscribe("item_to_slot", this.on_item_to_slot)
+end

@@ -1,5 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Биндер фотоаппарата
+local ShowFocus = game_options.FotoFocus
+local CheatFoto = game_options.FotoCheat
 
 -- фото местности с указанных точек
 local territory_from_places = {
@@ -229,11 +231,10 @@ end
 
 function foto_binder:update(delta)
     object_binder.update(self, delta)
-	
-	local aitem = db.actor:active_item()
-	if aitem and aitem:id() == self.object:id() then -- активен фотоаппарат
+
+	if actor_active_item and actor_active_item:id() == self.object:id() then -- активен фотоаппарат
 		-- Вывод сообщения о нахождении объекта в фокусе
-		if self:check_focus() then
+		if ShowFocus and self:check_focus() then
 			if self.cs_focus == nil then
 				self.cs_focus = get_hud():AddCustomStatic('cs_debug', true)
 				self.cs_focus:wnd():SetText("Объект в фокусе!")
@@ -251,7 +252,6 @@ function foto_binder:update(delta)
 				-- если это сообщение на тесте перестало приходить - завис биндер фотика, смотри лог.
 				news_manager.send_tip(db.actor, "Сделано фото.", nil, nil, 10000)
 			end
-			self.is_cheat = game_options.Spawner
 			-- вызываем поочередно проверки. останавливаем при первой удачной
 			if self:check_creatures() or self:check_anomaly() or self:check_territory_from_places() then
 			end
@@ -304,7 +304,7 @@ function foto_binder:check_creatures()
 			-- сначала смотрим тихую охоту
 			if  (has_alife_info("silent_hunt_start") and not has_alife_info("silent_hunt_done")) and
 				(silent_hunt_monsters[clsid] and not has_alife_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
-				( self.is_cheat or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 2, 3.5, true, nil, true) )
+				( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 2, 3.5, true, nil, true) )
 			then
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip(db.actor, "%c[255,160,160,160]".."МЕЧЕНЫЙ:".."\\n".."%c[255,255,128,128]Захар, я подкрался к очередному монстру и успешно его сфотографировал.".."".."\n", nil, nil, 15000)
@@ -316,7 +316,7 @@ function foto_binder:check_creatures()
 			elseif 
 				foto_unique_monster[section] and 
 				has_alife_info(foto_unique_monster[section].has_info) and not has_alife_info(foto_unique_monster[section].info) and
-				( self.is_cheat or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
+				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip(db.actor, "Уникальный монстр сфотографирован.".."\n", nil, nil, 10000)
@@ -326,7 +326,7 @@ function foto_binder:check_creatures()
 			-- затем обычную охоту
 			elseif (has_alife_info("foto_ohota_start") and not has_alife_info("foto_ohota_done")) and
 				foto_ohota_monsters[section] and not has_alife_info(foto_ohota_monsters[section]) and
-				( self.is_cheat or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
+				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip(db.actor, "Монстр сфотографирован.".."\n", nil, nil, 10000)
@@ -348,7 +348,7 @@ function foto_binder:check_anomaly()
 		if not has_alife_info(info) then
 			-- такого снимка еще не было, смотрим аномалии
 			for _, anom in ipairs(anoms) do 	-- внутри это: {id=id,name=obj:name(),pos=o.pos,radius=o.radius}
-				if string.find(anom.name, anom_sect) and ( self.is_cheat or self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) ) then
+				if string.find(anom.name, anom_sect) and ( CheatFoto or self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) ) then
 					-- удачный снимок
 					news_manager.send_tip(db.actor, "Аномалия сфотографирована.".."\n", nil, nil, 10000)
 					db.actor:give_info_portion(info)
@@ -436,4 +436,10 @@ function foto_binder:check_focus()
 		end
 	end
 	return false
+end
+
+---------------------------------------------------------------------------------------------------
+function on_options_change()
+	ShowFocus = game_options.FotoFocus
+	CheatFoto = game_options.FotoCheat
 end

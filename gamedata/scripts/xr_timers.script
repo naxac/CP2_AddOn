@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local get_ms = amk.game_milliseconds
+local game_milliseconds = amk.game_milliseconds
 local mgr = nil
 
 class "nTimers"
@@ -13,12 +13,14 @@ end
 
 function nTimers:load_timers()
 	local tmp = amk.load_table( "timers" )
-	local ms = get_ms()
+	local ms = game_milliseconds()
+	local tg = time_global()
 	for i, v in ipairs( tmp ) do
 		local t = {}
 		t.name = v[1]
-		t.time = v[2] + ms
 		t.params = v[3] or ""
+		t.real = (v[4]==true)
+		t.time = v[2] + (t.real and tg or ms)
 		table.insert(self.timers, t)
 	end
 	self.need_sort = true
@@ -26,10 +28,13 @@ end
 
 function nTimers:save_timers()
 	local tmp = {}
-	local ms = get_ms()
+	local ms = game_milliseconds()
+	local tg = time_global()
+	local tm
 	for i, v in ipairs( self.timers ) do
 		if v.no_save == nil then
-			table.insert( tmp, { v.name, v.time - ms, v.params} )
+			tm = v.time - (v.real and tg or ms)
+			table.insert( tmp, { v.name, tm, v.params, v.real} )
 		end
 	end
 	amk.save_table( "timers", tmp )
@@ -37,6 +42,7 @@ end
 
 function nTimers:check_timers()
 	amk.oau_watchdog = 1999
+	amk.oau_reason="nTimers:check_timers"
 
 	if self.need_sort then
 		self.need_sort = false
@@ -46,15 +52,16 @@ function nTimers:check_timers()
 	end
 
 	local tmr, f = nil, false
-	local ms = get_ms()
+	local ms = game_milliseconds()
+	local tg = time_global()
 	for i = #self.timers, 1, -1 do
 		tmr = self.timers[i]
-		if ms > tmr.time then
+		if (tmr.real and tg or ms) > tmr.time then
 			f = true
 			table.insert( self.to_start, { n = tmr.name, p = tmr.params, f = tmr.func } )
-			table.remove( self.timers )
-		else
-			break
+			table.remove( self.timers, i )
+	--	else
+	--		break
 		end
 	end
 
@@ -74,7 +81,7 @@ function nTimers:get_timer( name )
 	for i, v in ipairs( self.timers ) do
 		if v.name == name then
 			local t = table.copy( {}, v )
-			t.time_shift = t.time - get_ms()
+			t.time_shift = t.time - game_milliseconds()
 			return t
 		end
 	end
@@ -111,11 +118,12 @@ function nTimers:remove_timer( name )
 	self.need_sort = true
 end
 
-function nTimers:start_timer( name, time, params )
+function nTimers:start_timer( name, time, params, real )
 	local t = {}
 	t.name = name
-	t.time = time + get_ms()
+	t.time = time + (real and time_global() or game_milliseconds())
 	t.params = params or ""
+	t.real = real
 	table.insert( self.timers, t )
 	self.need_sort = true
 	return true
@@ -125,8 +133,8 @@ function nTimers:start_real_timer( name, delay, parameters )
 	ASSERT( name and delay,
 		"nTimers:start_real_timer: incorrect parameters: [ %s : %s ]",
 		tostring(name), tostring(delay) )
-	local tmr = delay * 1000 * level.get_time_factor()
-	return self:start_timer( name, tmr, parameters )
+	local tmr = delay * 1000	-- * level.get_time_factor()
+	return self:start_timer( name, tmr, parameters, true )
 end
 
 function nTimers:start_game_timer( name, delay_d, delay_h, delay_m, parameters )
@@ -134,7 +142,7 @@ function nTimers:start_game_timer( name, delay_d, delay_h, delay_m, parameters )
 		"nTimers:start_game_timer: incorrect parameters: [ %s : %s : %s : %s ]",
 			tostring(name), tostring(delay_d), tostring(delay_h), tostring(delay_m) )
 	local tmr = ( delay_d*60*24 + delay_h*60 + delay_m ) * 60 * 1000
-	return self:start_timer( name, tmr, parameters )
+	return self:start_timer( name, tmr, parameters, false )
 end
 
 function nTimers:start_small_timer( time_ms, func, ... )
@@ -142,11 +150,12 @@ function nTimers:start_small_timer( time_ms, func, ... )
 		tostring(time_ms), tostring(func) )
 	local t = {}
 	t.name = "smltmr_"..self.stmr_id
-	t.time = time_ms * level.get_time_factor() + get_ms()
+	t.time = time_global() + time_ms		-- * level.get_time_factor()
 	t.func = func
 	t.params = {...}
 	t.no_save = true
 	self.stmr_id = self.stmr_id + 1
+	t.real = true
 	table.insert( self.timers, t )
 	self.need_sort = true
 	return t.name
@@ -188,10 +197,17 @@ _G['remove_small_timer'] = function ( name )
 	get_mgr():remove_timer( name )
 end
 
+function detach()
+	local m = get_mgr()
+	xr_s.unsubscribe( "update", m.check_timers )
+	xr_s.unsubscribe( "pre_save", m.save_timers )
+end
+
 function attach()
 	local m = get_mgr()
 	xr_s.subscribe( "net_spawn", m.load_timers, { self = m, once = true } )
 	xr_s.subscribe( "update", m.check_timers, { self = m } )
 	xr_s.subscribe( "pre_save", m.save_timers, { self = m } )
+	xr_s.unsubscribe( "net_destroy", this.detach )
 	xr_timers_actions.timer_action( "~~ timers init ~~", "" ) -- init actions
 end

@@ -120,6 +120,7 @@ local reg_callbacks = {
 }
 
 function car_body_open()
+	if used_box == nil then return end
 	carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
 end
 
@@ -179,7 +180,8 @@ end
 
 function CUICarbodyAddons:Remove()
 	self.DescrWnd:Remove()
-	self:unregister_self()
+	self.DescrWnd = nil
+	self:ClearCallbacks()
 	self.owner:DetachChild(self)
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unsubscribe(k, self[v])
@@ -257,26 +259,30 @@ function steel_arms()
 	if actor:active_slot() ~= inventory_slots.KNIFE then return end
 	if time_shift > time_global() then return end
 	
-	local wpn = actor:active_item()
-	if wpn == nil then return end
+	if actor_active_item == nil then return end
 	-- длительность анимации получить нельзя - будем считать "на глаз"
 	time_shift = time_global() + 750
 	
-	local sec = wpn:section()
+	local sec = actor_active_item:section()
 	-- Усталость от махания железякой
 	-- все ножи не проверяем, только самое тяжелое
 	local dif = level.get_game_difficulty() + 1
 	if wpn_power[sec] then
-		actor.power = - dif * wpn:get_weight() * 0.01
+		actor.power = - dif * actor_active_item:get_weight() * 0.01
 	end
-	
-	if level.get_target_dist() + 0.2 > sys_ini:r_float(sec, "fire_distance") then return end
-	
+
+	if level.get_target_dist() > sys_ini:r_float(sec, "fire_distance") + 0.1 then return end
+
 	local d = sys_ini:r_float(sec, "condition_shot_dec")
-	local cond = wpn:condition() - dif * d
-	wpn:set_condition(cond)
-	if cond < 0.05 then
-		start_small_timer(200, function() kostya_dialog.remove_wpn(wpn:id()) end)
+	this.knife_deterioration(actor_active_item, dif * d)
+end
+
+function knife_deterioration(obj, dec)
+	local cond = obj:condition() - dec
+	obj:set_condition(cond)
+--	log("# knife_deterioration: [%s] cond -> %s", obj:section(), cond)
+	if cond < 0.04 then
+		start_small_timer(200, function() kostya_dialog.remove_wpn(obj:id()) end)
 	end
 end
 -- runner/returner

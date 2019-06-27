@@ -1,17 +1,26 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --\\*Модуль "Эффектор Монстров"..Меченый(Стрелок)..
 
-class"MonsterEffector"
+class "MonsterEffector"
 
-function MonsterEffector:__init(obj) end
+function MonsterEffector:__init(obj)
+	self.object = obj
+	self.chtime = 0 
+end
 
-function MonsterEffector:update(obj)
-	local be = obj:best_enemy()
+function MonsterEffector:update(_time)
+	if self.chtime >= _time then
+		return
+	end
+
+	self.chtime = _time + 2000
+
+	local be = self.object:best_enemy()
 	if be
-		and obj:position():distance_to(be:position()) < 1.5
-		and obj:see(be)
+		and self.object:position():distance_to(be:position()) < 1.5
+		and self.object:see(be)
 	then
-		bloodsucker_effector(obj, be)
+		bloodsucker_effector(self.object, be)
 	end
 end
 
@@ -19,7 +28,7 @@ function MonsterEffector:on_death(obj, who)
 	bloodsucker_effector(obj, who)
 	if who and who:id() == 0 then
 		if db.actor:dont_has_info("bloodsucker_effector")
-			and obj:position():distance_to(db.actor:position()) < 10
+			and self.object:position():distance_to(db.actor:position()) < 10
 		then
 			local text = "Меченый, ты жив??? Хм... Впервые вижу, чтобы человек выжил после встречи с этим видом кровососа... Его называют \"Болотной Тварью\"... Очень опасный вид кровососа, мало того,что он сильный, может быть невидимым человеческому глазу, так он ещё после своей смерти даёт разряд электроэнергии, но сохраняет своё тело невредимым. Непонятно, как вы могли выжить после такого...\nЯ рад что вы живы! Удачи!"
 			amk.send_tip(text, "Сахаров:", nil, 18, "saharov")

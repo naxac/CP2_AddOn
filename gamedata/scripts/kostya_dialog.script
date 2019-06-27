@@ -1,6 +1,6 @@
 -- stealth
 function stealth_start()
-	amk.start_timer("run",1.0,"kostya_dialog.stealth_start2()")
+	xr_timers.start_real_timer("run",1.0,"kostya_dialog.stealth_start2()")
 end
 function stealth_start2()
 	level.add_pp_effector ("teleport.ppe", 2006, false)
@@ -15,17 +15,24 @@ function stealth1_have()
 	news_manager.relocate_item(db.actor, "out", "arhara_seif")
 end
 function stealth1_done()
-	amk.start_timer( "run",0.5,"kostya_dialog.stealth1_done2()" )
+	xr_timers.start_real_timer( "run",0.5,"kostya_dialog.stealth1_done2()" )
 end
 function stealth1_done2()
 	level.add_pp_effector ("teleport.ppe", 2006, false)
 	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-	alife():release(alife():object(snp.object_by_section("tm_brother_labirint"):id()))
+	local obj = snp.object_by_section("tm_brother_labirint")
+	if obj then
+		local sobj = alife():object(obj:id())
+		if sobj then
+			alife():release(sobj, true)
+		end
+	end
 	tm_brother_2chaes_spawn()
 end
 function tm_brother_2chaes_spawn()
 	local se_obj = alife():create("tm_brother_2chaes",vector():set(84.960639953613,8.7271690368652,113.30625152588),56965,2566)
-	snp.set_stalker_story_id(se_obj,9969)
+	set_story_id(se_obj,9969)
+	return se_obj
 end
 function stealth2_done()
 	alife():create("s_inventory_box_stealth1",vector():set(157.05128479004,12.03516960144,82.391082763672),39526,1229)
@@ -35,7 +42,7 @@ function stealth2_done()
 	alife():create("s_inventory_box_stealth5",vector():set(23.35853767395,0.18157379329205,-24.917425918579),209456,1046)
 end
 function stealth5_done()
-	sak.create_items_actor("arhara_seif",1)
+	inventory.give_items("arhara_seif",1)
 	local obj = snp.object_by_section_offline("tm_brother_2chaes")
 	if obj then
 		alife():release(obj)
@@ -56,11 +63,11 @@ function stealth_on_take(box)
 end
 -- сдача ПДА
 function stealth_find_pda_done()
-	sak.out_item_all("stealth_pda")
+	inventory.out_items_all("stealth_pda")
 end
 function stealth_blow_sidor_done()
-	sak.create_items_actor("wpn_aks74_kalibr_ves_otdaca",1)
-	sak.create_items_actor("wpn_gp100",1)
+	inventory.give_items("wpn_aks74_kalibr_ves_otdaca",1)
+	inventory.give_items("wpn_gp100",1)
 	braad_test.lab_sar()
 end
 
@@ -170,11 +177,10 @@ end
 
 -- Холодное оружие перенесено в hotkeys.script
 function kuv_hit()
-	local wpn = db.actor:active_item()
-	if wpn == nil then return end
+	if actor_active_item == nil then return end
 	
-	local sect = wpn:section()
-	local cond = wpn:condition()
+	local sect = actor_active_item:section()
+	local cond = actor_active_item:condition()
 	
 	-- Взрыв убитого ствола
 	if cond < 0.1 and math.random() < 0.2-cond*2 and sect ~= "wpn_shmel" then
@@ -194,7 +200,7 @@ function kuv_hit()
 		h.impulse = 200
 		db.actor:hit(h)
 
-		start_small_timer(200, function() kostya_dialog.remove_wpn(wpn:id()) end)
+		start_small_timer(200, function() kostya_dialog.remove_wpn(actor_active_item:id()) end)
 	end
 end
 function remove_wpn(id)
@@ -401,49 +407,49 @@ end
 
 function vzn_done(vzn) -- удаление уникального хабара
 	if     vzn == 1 then
-		sak.out_item_all("vzn_venok")
-		sak.out_item_all("vzn_lopata")
-		sak.out_item_all("vzn_mogila")
+		inventory.out_items_all("vzn_venok")
+		inventory.out_items_all("vzn_lopata")
+		inventory.out_items_all("vzn_mogila")
 	elseif vzn == 2 then
-		sak.out_item_all("vzn_platok")
+		inventory.out_items_all("vzn_platok")
 	elseif vzn == 3 then
-		sak.out_item_all("vzn_vodka")
+		inventory.out_items_all("vzn_vodka")
 	elseif vzn == 4 then
-		sak.out_item_all("vzn_prez")
-		sak.out_item_all("vzn_prez_zapis")
-		sak.out_item_all("vzn_stirka")
-		sak.out_item_all("vzn_vivarka")
-		sak.out_item_all("vzn_polovnik")
+		inventory.out_items_all("vzn_prez")
+		inventory.out_items_all("vzn_prez_zapis")
+		inventory.out_items_all("vzn_stirka")
+		inventory.out_items_all("vzn_vivarka")
+		inventory.out_items_all("vzn_polovnik")
 	elseif vzn == 5 then
-		sak.out_item_all("vzn_voen_zapis")
+		inventory.out_items_all("vzn_voen_zapis")
 	elseif vzn == 6 then
-		sak.out_item_all("vzn_ganteli")
-		sak.out_item_all("vzn_gira")
+		inventory.out_items_all("vzn_ganteli")
+		inventory.out_items_all("vzn_gira")
 	elseif vzn == 7 then
-		sak.out_item_all("vzn_grob")
+		inventory.out_items_all("vzn_grob")
 	elseif vzn == 8 then
-		sak.out_item_all("vzn_rover")
+		inventory.out_items_all("vzn_rover")
 	elseif vzn == 9 then
-		sak.out_item_all("vzn_pesok")
+		inventory.out_items_all("vzn_pesok")
 	elseif vzn == 10 then
 		play_tush()
-		sak.out_item_all("vzn_darwin")
-		sak.out_item_all("vzn_darwin_zapis")
+		inventory.out_items_all("vzn_darwin")
+		inventory.out_items_all("vzn_darwin_zapis")
 		aem_manager.manage_money(300000, "in")
 	elseif vzn == 12 then
-		sak.out_item_all("vzn_medal")
+		inventory.out_items_all("vzn_medal")
 	elseif vzn == 13 then
-		sak.out_item_all("vzn_mladen")
+		inventory.out_items_all("vzn_mladen")
 	elseif vzn == 14 then
-		sak.out_item_all("vzn_pensia")
-		sak.out_item_all("vzn_polis")
+		inventory.out_items_all("vzn_pensia")
+		inventory.out_items_all("vzn_polis")
 	elseif vzn == 15 then
-		sak.out_item_all("vzn_torch")
-		sak.out_item_all("vzn_noty")
+		inventory.out_items_all("vzn_torch")
+		inventory.out_items_all("vzn_noty")
 		aem_manager.manage_money(200000, "in")
 	elseif vzn == 16 then
-		sak.out_item_all("vzn_kuvalda")
-		sak.out_item_all("vzn_krovosos_cocoon")
+		inventory.out_items_all("vzn_kuvalda")
+		inventory.out_items_all("vzn_krovosos_cocoon")
 	end
 
 	db.actor:give_info_portion("vzn"..tostring(vzn).."_done")
@@ -489,10 +495,10 @@ end
 
 function play_tush()
 	db.actor:give_info_portion("sidor_tush")
-	amk.start_timer("stop_tush", 18.3, 0)
+	xr_timers.start_real_timer("stop_tush", 18.3, 0)
 end
 function give_ak_strelka()
-	sak.create_items_actor("wpn_ak104t",1)
+	inventory.give_items("wpn_ak104t",1)
 end
 function play_video_strelok()
   game.start_tutorial("intro_game_2")
@@ -527,25 +533,30 @@ function give_ammo(qty)
 		"ammo_5.45x39_izomorf"
 	}
 	for i =1,qty do
-		sak.create_items_actor(ammo[math.random(#ammo)],1)
+		inventory.give_items(ammo[math.random(#ammo)],1)
 	end
 end
 
 function checking_taken_item63(obj)
-	if not (string.sub(obj:section(),1,7)=="tm_docs") then return end 
-	
-	if db.actor:object("tm_docs01") and db.actor:object("tm_docs02") and db.actor:object("tm_docs03") and db.actor:object("tm_docs04") and db.actor:object("tm_docs05") and db.actor:object("tm_docs06") and db.actor:object("tm_docs07") and db.actor:object("tm_docs08") and db.actor:object("tm_docs09") and db.actor:object("tm_docs10") and db.actor:object("tm_docs11") and db.actor:object("tm_docs12") and db.actor:object("tm_docs13") then
-		if not has_alife_info("tm_find_all") then 
-			db.actor:give_info_portion("tm_find_all")
-			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ДРАГУНОВ:".."\\n".."%c[255,255,128,128]Стрелок, пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, Стрелок, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.".."".."\n", nil, nil, 30000)
-			this.tm_done1()
-			spawn_tm_taynik()
-			local se_obj = alife():create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
-			xr_logic.pstor_store(db.actor, "tm_teleport_1", se_obj.id)		  
-			se_obj = alife():create("tm_teleport_2",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
-			xr_logic.pstor_store(db.actor, "tm_teleport_2", se_obj.id)		  
-			spawn_restrictor.tm_sr1()
+	if not (string.sub(obj:section(),1,7)=="tm_docs") then return end
+
+	local act = db.actor
+	for i = 1, 13 do
+		if act:object( "tm_docs"..string.format("%02d",i) ) == nil then
+			return false
 		end
+	end
+
+	if not has_alife_info("tm_find_all") then 
+		act:give_info_portion("tm_find_all")
+		news_manager.send_tip(act, "%c[255,160,160,160]ДРАГУНОВ:\\n%c[255,255,128,128]"..act:character_name()..", пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, Стрелок, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.", nil, nil, 30000)
+		this.tm_done1()
+		spawn_tm_taynik()
+		local se_obj = alife():create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
+		xr_logic.pstor_store(act, "tm_teleport_1", se_obj.id)		  
+		se_obj = alife():create("tm_teleport_2",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
+		xr_logic.pstor_store(act, "tm_teleport_2", se_obj.id)		  
+		spawn_restrictor.tm_sr1()
 	end
 end
 function tm_spawn1()
@@ -642,9 +653,9 @@ function checking_taken_item61(obj)
 			total = 60
 		end
 		
-		if     amk_utils.inventory_search("zone_docs",total-1) then
+		if     inventory.search("zone_docs",total-1) then
 			db.actor:give_info_portion("voronin_docs1_have")
-		elseif amk_utils.inventory_search("zone_docs",total-3) then
+		elseif inventory.search("zone_docs",total-3) then
 			db.actor:give_info_portion("voronin_docs1_almost_have")
 		end
 		
@@ -668,17 +679,17 @@ function checking_taken_item61(obj)
 			end
 		end
 		
-		new_dialog.create_items(db.actor,"zone_docs",1)
+		inventory.give_items("zone_docs",1)
 	end
 end
 
 function zonedocs_buy()
-	sak.create_items_actor("zonedocs_0",1)
+	inventory.give_items("zonedocs_0",1)
 	db.actor:give_info_portion("acv_docs_fail")
 end
 
 function voronin_docs1_done()
-	sak.out_item_all("zone_docs")
+	inventory.out_items_all("zone_docs")
 	if not has_alife_info("voronin_docs1_have") then -- удаляем ненайденные части
 		local sim = alife()
 		local sobj
@@ -823,7 +834,7 @@ function zonedocs_dolg_vrag()
 end
 function zonedocs_gg_death()
 	db.actor:give_info_portion("voronin_docs1_end_fail")
-	amk.start_timer("zonedocs_gg_kill",15,0)
+	xr_timers.start_real_timer("zonedocs_gg_kill",15,0)
 	level.add_cam_effector("camera_effects\\radar_stop.anm", 2506, false, "")
 end
 function zonedocs_gg_kill()
@@ -831,19 +842,19 @@ function zonedocs_gg_kill()
 end
 function zonedocs_gg_reward()
 	this.give_ammo(30)
-	sak.create_items_actor("wpn_svt40",1)
-	sak.create_items_actor("wpn_pps43",1)
-	sak.create_items_actor("wpn_mkb_42",1)
-	sak.create_items_actor("wpn_kedr",1)
-	sak.create_items_actor("wpn_sig_m2",1)
-	sak.create_items_actor("wpn_sayga_un",1)
-	sak.create_items_actor("wpn_mauser_red9",1)
+	inventory.give_items("wpn_svt40",1)
+	inventory.give_items("wpn_pps43",1)
+	inventory.give_items("wpn_mkb_42",1)
+	inventory.give_items("wpn_kedr",1)
+	inventory.give_items("wpn_sig_m2",1)
+	inventory.give_items("wpn_sayga_un",1)
+	inventory.give_items("wpn_mauser_red9",1)
 	archievements.acv_docs()
 end
 
 function kostya_biznes1_have_all()
 	return
-		amk_utils.inventory_search("af_buliz",5)
+		inventory.search("af_buliz",5)
 end		
 function kostya_biznes1_have()
 	if kostya_biznes1_have_all() then
@@ -854,7 +865,7 @@ function kostya_biznes1_have()
 	end
 end
 function kostya_biznes1_done()
-		sak.out_item_namber("af_buliz",5)
+		inventory.out_items("af_buliz",5)
 	db.actor:give_info_portion("info_amk_recipt_power_2")
 end
 
@@ -872,39 +883,39 @@ end
 
 function sidor_biznes1_have_all()
 	return has_alife_info("sidor_biznes1_start") and
-		amk_utils.inventory_search("mutant_spider_gland",2) and
-		amk_utils.inventory_search("mutant_rotan_heart",2) and
-		amk_utils.inventory_search("mutant_plague_hand",2) and
-		amk_utils.inventory_search("mutant_carlic_hand",2) and
-		amk_utils.inventory_search("mutant_raptor_kogot",2) and
-		amk_utils.inventory_search("mutant_zanoza_leg",2) and
-		amk_utils.inventory_search("mutant_flesh_eye",2) and
-		amk_utils.inventory_search("mutant_boar_leg",2) and
-		amk_utils.inventory_search("mutant_dog_tail",2) and
-		amk_utils.inventory_search("mutant_psevdodog_tail",2) and
-		amk_utils.inventory_search("mutant_krovosos_jaw",2) and
-		amk_utils.inventory_search("mutant_burer_hand",2) and
-		amk_utils.inventory_search("mutant_zombie_hand",2) and
-		amk_utils.inventory_search("mutant_snork_leg",2) and
-		amk_utils.inventory_search("mutant_face_tushkano",2) and
-		amk_utils.inventory_search("mutant_hand_kontroler",2) and
-		amk_utils.inventory_search("mutant_poltergeist_glas",2) and
-		amk_utils.inventory_search("mutant_psevdogigant_hand",2) and
-		amk_utils.inventory_search("mutant_tail_cat",2) and
-		amk_utils.inventory_search("mutant_chimera_kogot",2) and
-		amk_utils.inventory_search("mutant_fracture_hand",2) and
-		amk_utils.inventory_search("mutant_deathclaw_antler",2) and
-		amk_utils.inventory_search("part_digitis_biblio",2) and
-		amk_utils.inventory_search("mutant_vypolzen_hrebet",2) and
-		amk_utils.inventory_search("part_tarakan",2) and
-		amk_utils.inventory_search("part_tarakan_strong",2) and
-		amk_utils.inventory_search("mutant_zombie_teeth",2) and
-		amk_utils.inventory_search("mutant_spleen_rat",2) and
-		amk_utils.inventory_search("mutant_krovosos_red_jaw",1) and
-		amk_utils.inventory_search("mutant_burer_red_hand",1) and
-		amk_utils.inventory_search("bezoar",2) and
-		amk_utils.inventory_search("mushroom",2) and
-		amk_utils.inventory_search("bread_a",2)
+		inventory.search("mutant_spider_gland",2) and
+		inventory.search("mutant_rotan_heart",2) and
+		inventory.search("mutant_plague_hand",2) and
+		inventory.search("mutant_carlic_hand",2) and
+		inventory.search("mutant_raptor_kogot",2) and
+		inventory.search("mutant_zanoza_leg",2) and
+		inventory.search("mutant_flesh_eye",2) and
+		inventory.search("mutant_boar_leg",2) and
+		inventory.search("mutant_dog_tail",2) and
+		inventory.search("mutant_psevdodog_tail",2) and
+		inventory.search("mutant_krovosos_jaw",2) and
+		inventory.search("mutant_burer_hand",2) and
+		inventory.search("mutant_zombie_hand",2) and
+		inventory.search("mutant_snork_leg",2) and
+		inventory.search("mutant_face_tushkano",2) and
+		inventory.search("mutant_hand_kontroler",2) and
+		inventory.search("mutant_poltergeist_glas",2) and
+		inventory.search("mutant_psevdogigant_hand",2) and
+		inventory.search("mutant_tail_cat",2) and
+		inventory.search("mutant_chimera_kogot",2) and
+		inventory.search("mutant_fracture_hand",2) and
+		inventory.search("mutant_deathclaw_antler",2) and
+		inventory.search("part_digitis_biblio",2) and
+		inventory.search("mutant_vypolzen_hrebet",2) and
+		inventory.search("part_tarakan",2) and
+		inventory.search("part_tarakan_strong",2) and
+		inventory.search("mutant_zombie_teeth",2) and
+		inventory.search("mutant_spleen_rat",2) and
+		inventory.search("mutant_krovosos_red_jaw",1) and
+		inventory.search("mutant_burer_red_hand",1) and
+		inventory.search("bezoar",2) and
+		inventory.search("mushroom",2) and
+		inventory.search("bread_a",2)
 end		
 function sidor_biznes1_have()
 	if sidor_biznes1_have_all() then
@@ -915,53 +926,53 @@ function sidor_biznes1_have()
 	end
 end
 function sidor_biznes1_done()
-		sak.out_item_namber("mutant_spider_gland",2)
-		sak.out_item_namber("mutant_rotan_heart",2)
-		sak.out_item_namber("mutant_plague_hand",2)
-		sak.out_item_namber("mutant_carlic_hand",2)
-		sak.out_item_namber("mutant_raptor_kogot",2)
-		sak.out_item_namber("mutant_zanoza_leg",2)
-		sak.out_item_namber("mutant_flesh_eye",2)
-		sak.out_item_namber("mutant_boar_leg",2)
-		sak.out_item_namber("mutant_dog_tail",2)
-		sak.out_item_namber("mutant_psevdodog_tail",2)
-		sak.out_item_namber("mutant_krovosos_jaw",2)
-		sak.out_item_namber("mutant_burer_hand",2)
-		sak.out_item_namber("mutant_zombie_hand",2)
-		sak.out_item_namber("mutant_snork_leg",2)
-		sak.out_item_namber("mutant_face_tushkano",2)
-		sak.out_item_namber("mutant_hand_kontroler",2)
-		sak.out_item_namber("mutant_poltergeist_glas",2)
-		sak.out_item_namber("mutant_psevdogigant_hand",2)
-		sak.out_item_namber("mutant_tail_cat",2)
-		sak.out_item_namber("mutant_chimera_kogot",2)
-		sak.out_item_namber("mutant_fracture_hand",2)
-		sak.out_item_namber("mutant_deathclaw_antler",2)
-		sak.out_item_namber("part_digitis_biblio",2)
-		sak.out_item_namber("mutant_vypolzen_hrebet",2)
-		sak.out_item_namber("part_tarakan",2)
-		sak.out_item_namber("part_tarakan_strong",2)
-		sak.out_item_namber("mutant_zombie_teeth",2)
-		sak.out_item_namber("mutant_spleen_rat",2)
-		sak.out_item_namber("mutant_krovosos_red_jaw",1)
-		sak.out_item_namber("mutant_burer_red_hand",1)
-		sak.out_item_namber("bezoar",2)
-		sak.out_item_namber("mushroom",2)
-		sak.out_item_namber("bread_a",2)
+		inventory.out_items("mutant_spider_gland",2)
+		inventory.out_items("mutant_rotan_heart",2)
+		inventory.out_items("mutant_plague_hand",2)
+		inventory.out_items("mutant_carlic_hand",2)
+		inventory.out_items("mutant_raptor_kogot",2)
+		inventory.out_items("mutant_zanoza_leg",2)
+		inventory.out_items("mutant_flesh_eye",2)
+		inventory.out_items("mutant_boar_leg",2)
+		inventory.out_items("mutant_dog_tail",2)
+		inventory.out_items("mutant_psevdodog_tail",2)
+		inventory.out_items("mutant_krovosos_jaw",2)
+		inventory.out_items("mutant_burer_hand",2)
+		inventory.out_items("mutant_zombie_hand",2)
+		inventory.out_items("mutant_snork_leg",2)
+		inventory.out_items("mutant_face_tushkano",2)
+		inventory.out_items("mutant_hand_kontroler",2)
+		inventory.out_items("mutant_poltergeist_glas",2)
+		inventory.out_items("mutant_psevdogigant_hand",2)
+		inventory.out_items("mutant_tail_cat",2)
+		inventory.out_items("mutant_chimera_kogot",2)
+		inventory.out_items("mutant_fracture_hand",2)
+		inventory.out_items("mutant_deathclaw_antler",2)
+		inventory.out_items("part_digitis_biblio",2)
+		inventory.out_items("mutant_vypolzen_hrebet",2)
+		inventory.out_items("part_tarakan",2)
+		inventory.out_items("part_tarakan_strong",2)
+		inventory.out_items("mutant_zombie_teeth",2)
+		inventory.out_items("mutant_spleen_rat",2)
+		inventory.out_items("mutant_krovosos_red_jaw",1)
+		inventory.out_items("mutant_burer_red_hand",1)
+		inventory.out_items("bezoar",2)
+		inventory.out_items("mushroom",2)
+		inventory.out_items("bread_a",2)
 	this.give_ammo(10)
-	sak.create_items_actor("af_power",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("af_power",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sidor_biznes2_have_all()
 	return has_alife_info("sidor_biznes2_start") and
-		amk_utils.inventory_search("af_dummy_battery_red",3) and
-		amk_utils.inventory_search("af_dummy_spring_red",3) and
-		amk_utils.inventory_search("af_dummy_pellicle_red",3) and
-		amk_utils.inventory_search("af_caterpillar",4) and
-		amk_utils.inventory_search("af_simbion",2) and
-		amk_utils.inventory_search("af_arhara_globus",1) and
-		amk_utils.inventory_search("bread_a",3)
+		inventory.search("af_dummy_battery_red",3) and
+		inventory.search("af_dummy_spring_red",3) and
+		inventory.search("af_dummy_pellicle_red",3) and
+		inventory.search("af_caterpillar",4) and
+		inventory.search("af_simbion",2) and
+		inventory.search("af_arhara_globus",1) and
+		inventory.search("bread_a",3)
 end
 function sidor_biznes2_have()
 	if sidor_biznes2_have_all() then
@@ -972,55 +983,55 @@ function sidor_biznes2_have()
 	end
 end
 function sidor_biznes2_done()
-		sak.out_item_namber("af_dummy_battery_red",3)
-		sak.out_item_namber("af_dummy_spring_red",3)
-		sak.out_item_namber("af_dummy_pellicle_red",3)
-		sak.out_item_namber("af_caterpillar",4)
-		sak.out_item_namber("af_simbion",2)
-		sak.out_item_namber("af_arhara_globus",1)
-		sak.out_item_namber("bread_a",3)
+		inventory.out_items("af_dummy_battery_red",3)
+		inventory.out_items("af_dummy_spring_red",3)
+		inventory.out_items("af_dummy_pellicle_red",3)
+		inventory.out_items("af_caterpillar",4)
+		inventory.out_items("af_simbion",2)
+		inventory.out_items("af_arhara_globus",1)
+		inventory.out_items("bread_a",3)
 	this.give_ammo(5)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("cube_chip",1)
 	db.actor:give_info_portion("info_amk_recipt_power_3")
 end
 
 function sidor_biznes3_have_all()
 	return has_alife_info("sidor_biznes3_start") and
-		amk_utils.inventory_search("af_buliz",15) and
-		amk_utils.inventory_search("af_drops",1) and
-		amk_utils.inventory_search("af_cry_1",1) and
-		amk_utils.inventory_search("af_cry_2",1) and
-		amk_utils.inventory_search("af_cry_3",2) and
-		amk_utils.inventory_search("af_dummy_glassbeads",1) and
-		amk_utils.inventory_search("af_babka_1",1) and
-		amk_utils.inventory_search("af_babka_2",1) and
-		amk_utils.inventory_search("af_babka_3",2) and
-		amk_utils.inventory_search("af_babka_4",2) and
-		amk_utils.inventory_search("af_rusty_sea-urchin",1) and
-		amk_utils.inventory_search("af_dik_1",1) and
-		amk_utils.inventory_search("af_dik_2",1) and
-		amk_utils.inventory_search("af_dik_3",2) and
-		amk_utils.inventory_search("af_dik_4",2) and
-		amk_utils.inventory_search("af_soul",1) and
-		amk_utils.inventory_search("af_spirit_1",1) and
-		amk_utils.inventory_search("af_spirit_2",1) and
-		amk_utils.inventory_search("af_spirit_3",2) and
-		amk_utils.inventory_search("af_spirit_4",2) and
-		amk_utils.inventory_search("af_dummy_pellicle",1) and
-		amk_utils.inventory_search("af_armor_1",1) and
-		amk_utils.inventory_search("af_armor_2",1) and
-		amk_utils.inventory_search("af_armor_3",2) and
-		amk_utils.inventory_search("af_armor_4",2) and
-		amk_utils.inventory_search("af_dummy_dummy",1) and
-		amk_utils.inventory_search("af_pudd_1",1) and
-		amk_utils.inventory_search("af_pudd_2",1) and
-		amk_utils.inventory_search("af_pudd_3",2) and
-		amk_utils.inventory_search("af_pudd_4",2) and
-		amk_utils.inventory_search("af_fuzz_kolobok",1) and
-		amk_utils.inventory_search("af_kol_1",1) and
-		amk_utils.inventory_search("af_kol_2",1) and
-		amk_utils.inventory_search("af_kol_3",2) and
-		amk_utils.inventory_search("af_kol_4",2)
+		inventory.search("af_buliz",15) and
+		inventory.search("af_drops",1) and
+		inventory.search("af_cry_1",1) and
+		inventory.search("af_cry_2",1) and
+		inventory.search("af_cry_3",2) and
+		inventory.search("af_dummy_glassbeads",1) and
+		inventory.search("af_babka_1",1) and
+		inventory.search("af_babka_2",1) and
+		inventory.search("af_babka_3",2) and
+		inventory.search("af_babka_4",2) and
+		inventory.search("af_rusty_sea-urchin",1) and
+		inventory.search("af_dik_1",1) and
+		inventory.search("af_dik_2",1) and
+		inventory.search("af_dik_3",2) and
+		inventory.search("af_dik_4",2) and
+		inventory.search("af_soul",1) and
+		inventory.search("af_spirit_1",1) and
+		inventory.search("af_spirit_2",1) and
+		inventory.search("af_spirit_3",2) and
+		inventory.search("af_spirit_4",2) and
+		inventory.search("af_dummy_pellicle",1) and
+		inventory.search("af_armor_1",1) and
+		inventory.search("af_armor_2",1) and
+		inventory.search("af_armor_3",2) and
+		inventory.search("af_armor_4",2) and
+		inventory.search("af_dummy_dummy",1) and
+		inventory.search("af_pudd_1",1) and
+		inventory.search("af_pudd_2",1) and
+		inventory.search("af_pudd_3",2) and
+		inventory.search("af_pudd_4",2) and
+		inventory.search("af_fuzz_kolobok",1) and
+		inventory.search("af_kol_1",1) and
+		inventory.search("af_kol_2",1) and
+		inventory.search("af_kol_3",2) and
+		inventory.search("af_kol_4",2)
 end
 function sidor_biznes3_have()
 	if sidor_biznes3_have_all()	then
@@ -1031,54 +1042,54 @@ function sidor_biznes3_have()
 	end
 end
 function sidor_biznes3_done()
-		sak.out_item_namber("af_buliz",15)
-		sak.out_item_namber("af_drops",1)
-		sak.out_item_namber("af_cry_1",1)
-		sak.out_item_namber("af_cry_2",1)
-		sak.out_item_namber("af_cry_3",2)
-		sak.out_item_namber("af_dummy_glassbeads",1)
-		sak.out_item_namber("af_babka_1",1)
-		sak.out_item_namber("af_babka_2",1)
-		sak.out_item_namber("af_babka_3",2)
-		sak.out_item_namber("af_babka_4",2)
-		sak.out_item_namber("af_rusty_sea-urchin",1)
-		sak.out_item_namber("af_dik_1",1)
-		sak.out_item_namber("af_dik_2",1)
-		sak.out_item_namber("af_dik_3",2)
-		sak.out_item_namber("af_dik_4",2)
-		sak.out_item_namber("af_soul",1)
-		sak.out_item_namber("af_spirit_1",1)
-		sak.out_item_namber("af_spirit_2",1)
-		sak.out_item_namber("af_spirit_3",2)
-		sak.out_item_namber("af_spirit_4",2)
-		sak.out_item_namber("af_dummy_pellicle",1)
-		sak.out_item_namber("af_armor_1",1)
-		sak.out_item_namber("af_armor_2",1)
-		sak.out_item_namber("af_armor_3",2)
-		sak.out_item_namber("af_armor_4",2)
-		sak.out_item_namber("af_dummy_dummy",1)
-		sak.out_item_namber("af_pudd_1",1)
-		sak.out_item_namber("af_pudd_2",1)
-		sak.out_item_namber("af_pudd_3",2)
-		sak.out_item_namber("af_pudd_4",2)
-		sak.out_item_namber("af_fuzz_kolobok",1)
-		sak.out_item_namber("af_kol_1",1)
-		sak.out_item_namber("af_kol_2",1)
-		sak.out_item_namber("af_kol_3",2)
-		sak.out_item_namber("af_kol_4",2)
+		inventory.out_items("af_buliz",15)
+		inventory.out_items("af_drops",1)
+		inventory.out_items("af_cry_1",1)
+		inventory.out_items("af_cry_2",1)
+		inventory.out_items("af_cry_3",2)
+		inventory.out_items("af_dummy_glassbeads",1)
+		inventory.out_items("af_babka_1",1)
+		inventory.out_items("af_babka_2",1)
+		inventory.out_items("af_babka_3",2)
+		inventory.out_items("af_babka_4",2)
+		inventory.out_items("af_rusty_sea-urchin",1)
+		inventory.out_items("af_dik_1",1)
+		inventory.out_items("af_dik_2",1)
+		inventory.out_items("af_dik_3",2)
+		inventory.out_items("af_dik_4",2)
+		inventory.out_items("af_soul",1)
+		inventory.out_items("af_spirit_1",1)
+		inventory.out_items("af_spirit_2",1)
+		inventory.out_items("af_spirit_3",2)
+		inventory.out_items("af_spirit_4",2)
+		inventory.out_items("af_dummy_pellicle",1)
+		inventory.out_items("af_armor_1",1)
+		inventory.out_items("af_armor_2",1)
+		inventory.out_items("af_armor_3",2)
+		inventory.out_items("af_armor_4",2)
+		inventory.out_items("af_dummy_dummy",1)
+		inventory.out_items("af_pudd_1",1)
+		inventory.out_items("af_pudd_2",1)
+		inventory.out_items("af_pudd_3",2)
+		inventory.out_items("af_pudd_4",2)
+		inventory.out_items("af_fuzz_kolobok",1)
+		inventory.out_items("af_kol_1",1)
+		inventory.out_items("af_kol_2",1)
+		inventory.out_items("af_kol_3",2)
+		inventory.out_items("af_kol_4",2)
 	this.give_ammo(30)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_pkm",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_pkm",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sidor_biznes4_have_all()
 	return has_alife_info("sidor_biznes4_start") and
-		amk_utils.inventory_search("wpn_gauss",6,true) and
-		amk_utils.inventory_search("ammo_gauss",10) and
-		amk_utils.inventory_search("ammo_super_gauss",15) and
-		amk_utils.inventory_search("wpn_rpg7",3, true) and
-		amk_utils.inventory_search("ammo_og-7b",30)
+		inventory.search("wpn_gauss",6,true) and
+		inventory.search("ammo_gauss",10) and
+		inventory.search("ammo_super_gauss",15) and
+		inventory.search("wpn_rpg7",3, true) and
+		inventory.search("ammo_og-7b",30)
 end
 function sidor_biznes4_have()
 	if sidor_biznes4_have_all() then
@@ -1089,31 +1100,31 @@ function sidor_biznes4_have()
 	end
 end
 function sidor_biznes4_done()
-		sak.out_item_namber("wpn_gauss",6)
-		sak.out_item_namber("ammo_gauss",10)
-		sak.out_item_namber("ammo_super_gauss",15)
-		sak.out_item_namber("wpn_rpg7",3)
-		sak.out_item_namber("ammo_og-7b",30)
+		inventory.out_items("wpn_gauss",6,true)
+		inventory.out_items("ammo_gauss",10)
+		inventory.out_items("ammo_super_gauss",15)
+		inventory.out_items("wpn_rpg7",3,true)
+		inventory.out_items("ammo_og-7b",30)
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_pkm",1)
-	sak.create_items_actor("scientist_suit_white",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_pkm",1)
+	inventory.give_items("scientist_suit_white",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sidor_biznes5_have_all()
 	return has_alife_info("sidor_biznes5_start") and
-		amk_utils.inventory_search("broken_exoskeleton",2, true) and
-		amk_utils.inventory_search("voen_exo_outfit",2, true) and
-		amk_utils.inventory_search("exo_outfit",2, true) and
-		amk_utils.inventory_search("killer_blue_exoskeleton",2, true) and
-		amk_utils.inventory_search("monolit_exoskeleton",2, true) and
-		amk_utils.inventory_search("svoboda_exoskeleton",2, true) and
-		amk_utils.inventory_search("dolg_black_exoskeleton",2, true) and
-		amk_utils.inventory_search("nebo_exo_outfit",2, true) and
-		amk_utils.inventory_search("exo_bandit_outfit",2, true) and
-		amk_utils.inventory_search("exo_scientist_outfit",2, true) and
-		amk_utils.inventory_search("nano_outfit",1, true)
+		inventory.search("broken_exoskeleton",2, true) and
+		inventory.search("voen_exo_outfit",2, true) and
+		inventory.search("exo_outfit",2, true) and
+		inventory.search("killer_blue_exoskeleton",2, true) and
+		inventory.search("monolit_exoskeleton",2, true) and
+		inventory.search("svoboda_exoskeleton",2, true) and
+		inventory.search("dolg_black_exoskeleton",2, true) and
+		inventory.search("nebo_exo_outfit",2, true) and
+		inventory.search("exo_bandit_outfit",2, true) and
+		inventory.search("exo_scientist_outfit",2, true) and
+		inventory.search("nano_outfit",1, true)
 end
 function sidor_biznes5_have()
 	if sidor_biznes5_have_all() then
@@ -1124,38 +1135,38 @@ function sidor_biznes5_have()
 	end
 end
 function sidor_biznes5_done()
-		sak.out_item_namber("broken_exoskeleton",2)
-		sak.out_item_namber("voen_exo_outfit",2)
-		sak.out_item_namber("exo_outfit",2)
-		sak.out_item_namber("killer_blue_exoskeleton",2)
-		sak.out_item_namber("monolit_exoskeleton",2)
-		sak.out_item_namber("svoboda_exoskeleton",2)
-		sak.out_item_namber("dolg_black_exoskeleton",2)
-		sak.out_item_namber("nebo_exo_outfit",2)
-		sak.out_item_namber("exo_bandit_outfit",2)
-		sak.out_item_namber("exo_scientist_outfit",2)
-		sak.out_item_namber("nano_outfit",1)
+		inventory.out_items("broken_exoskeleton",2,true)
+		inventory.out_items("voen_exo_outfit",2,true)
+		inventory.out_items("exo_outfit",2,true)
+		inventory.out_items("killer_blue_exoskeleton",2,true)
+		inventory.out_items("monolit_exoskeleton",2,true)
+		inventory.out_items("svoboda_exoskeleton",2,true)
+		inventory.out_items("dolg_black_exoskeleton",2,true)
+		inventory.out_items("nebo_exo_outfit",2,true)
+		inventory.out_items("exo_bandit_outfit",2,true)
+		inventory.out_items("exo_scientist_outfit",2,true)
+		inventory.out_items("nano_outfit",1,true)
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_vepr12_m1",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_vepr12_m1",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sidor_biznes6_have_all()
 	return has_alife_info("sidor_biznes6_start") and
-		amk_utils.inventory_search("wpn_crossbow",5, true) and
-		amk_utils.inventory_search("ammo_arbolt",30) and
-		amk_utils.inventory_search("wpn_awm",5, true) and
-		amk_utils.inventory_search("ammo_igl",15) and
-		amk_utils.inventory_search("wpn_svd",2, true) and
-		amk_utils.inventory_search("wpn_svu",2, true) and
-		amk_utils.inventory_search("ammo_7.62x54_7h1",16) and
-		amk_utils.inventory_search("ammo_7.62x54_7h14",16) and
-		amk_utils.inventory_search("ammo_7.62x54_ap",16) and
-		amk_utils.inventory_search("wpn_vintorez",5, true) and
-		amk_utils.inventory_search("ammo_9x39_sp5",5) and
-		amk_utils.inventory_search("ammo_9x39_ap",5) and
-		amk_utils.inventory_search("ammo_9x39_pab9",5)
+		inventory.search("wpn_crossbow",5, true) and
+		inventory.search("ammo_arbolt",30) and
+		inventory.search("wpn_awm",5, true) and
+		inventory.search("ammo_igl",15) and
+		inventory.search("wpn_svd",2, true) and
+		inventory.search("wpn_svu",2, true) and
+		inventory.search("ammo_7.62x54_7h1",16) and
+		inventory.search("ammo_7.62x54_7h14",16) and
+		inventory.search("ammo_7.62x54_ap",16) and
+		inventory.search("wpn_vintorez",5, true) and
+		inventory.search("ammo_9x39_sp5",5) and
+		inventory.search("ammo_9x39_ap",5) and
+		inventory.search("ammo_9x39_pab9",5)
 end
 function sidor_biznes6_have()
 	if sidor_biznes6_have_all() then
@@ -1166,55 +1177,55 @@ function sidor_biznes6_have()
 	end
 end
 function sidor_biznes6_done()
-		sak.out_item_namber("wpn_crossbow",5)
-		sak.out_item_namber("ammo_arbolt",30)
-		sak.out_item_namber("wpn_awm",5)
-		sak.out_item_namber("ammo_igl",15)
-		sak.out_item_namber("wpn_svd",2)
-		sak.out_item_namber("wpn_svu",2)
-		sak.out_item_namber("ammo_7.62x54_7h1",16)
-		sak.out_item_namber("ammo_7.62x54_7h14",16)
-		sak.out_item_namber("ammo_7.62x54_ap",16)
-		sak.out_item_namber("wpn_vintorez",5)
-		sak.out_item_namber("ammo_9x39_sp5",5)
-		sak.out_item_namber("ammo_9x39_ap",5)
-		sak.out_item_namber("ammo_9x39_pab9",5)
+		inventory.out_items("wpn_crossbow",5,true)
+		inventory.out_items("ammo_arbolt",30)
+		inventory.out_items("wpn_awm",5,true)
+		inventory.out_items("ammo_igl",15)
+		inventory.out_items("wpn_svd",2,true)
+		inventory.out_items("wpn_svu",2,true)
+		inventory.out_items("ammo_7.62x54_7h1",16)
+		inventory.out_items("ammo_7.62x54_7h14",16)
+		inventory.out_items("ammo_7.62x54_ap",16)
+		inventory.out_items("wpn_vintorez",5,true)
+		inventory.out_items("ammo_9x39_sp5",5)
+		inventory.out_items("ammo_9x39_ap",5)
+		inventory.out_items("ammo_9x39_pab9",5)
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_aks74_m2",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_aks74_m2",1)
+	inventory.give_items("cube_chip",1)
 end
 function sidor_biznes7_have_all()
 	return has_alife_info("sidor_biznes7_start") and
-		amk_utils.inventory_search("mutant_spider_gland",2) and
-		amk_utils.inventory_search("mutant_rotan_heart",2) and
-		amk_utils.inventory_search("mutant_plague_hand",2) and
-		amk_utils.inventory_search("mutant_carlic_hand",2) and
-		amk_utils.inventory_search("mutant_raptor_kogot",2) and
-		amk_utils.inventory_search("mutant_zanoza_leg",2) and
-		amk_utils.inventory_search("mutant_boar_leg",10) and
-		amk_utils.inventory_search("mutant_dog_tail",10) and
-		amk_utils.inventory_search("mutant_psevdodog_tail",20) and
-		amk_utils.inventory_search("mutant_krovosos_jaw",10) and
-		amk_utils.inventory_search("mutant_zombie_hand",20) and
-		amk_utils.inventory_search("mutant_snork_leg",10) and
-		amk_utils.inventory_search("mutant_face_tushkano",20) and
-		amk_utils.inventory_search("mutant_hand_kontroler",20) and
-		amk_utils.inventory_search("mutant_psevdogigant_hand",10) and
-		amk_utils.inventory_search("mutant_tail_cat",10) and
-		amk_utils.inventory_search("mutant_chimera_kogot",20) and
-		amk_utils.inventory_search("mutant_fracture_hand",20) and
-		amk_utils.inventory_search("mutant_deathclaw_antler",10) and
-		amk_utils.inventory_search("part_digitis_biblio",10) and
-		amk_utils.inventory_search("mutant_vypolzen_hrebet",10) and
-		amk_utils.inventory_search("part_tarakan",6) and
-		amk_utils.inventory_search("part_tarakan_strong",20) and
-		amk_utils.inventory_search("mutant_zombie_teeth",10) and
-		amk_utils.inventory_search("rudiment_big",3) and
-		amk_utils.inventory_search("mutant_spleen_rat",20) and
-		amk_utils.inventory_search("mozg",6) and
-		amk_utils.inventory_search("bezoar",6) and
-		amk_utils.inventory_search("bread_a",8)
+		inventory.search("mutant_spider_gland",2) and
+		inventory.search("mutant_rotan_heart",2) and
+		inventory.search("mutant_plague_hand",2) and
+		inventory.search("mutant_carlic_hand",2) and
+		inventory.search("mutant_raptor_kogot",2) and
+		inventory.search("mutant_zanoza_leg",2) and
+		inventory.search("mutant_boar_leg",10) and
+		inventory.search("mutant_dog_tail",10) and
+		inventory.search("mutant_psevdodog_tail",20) and
+		inventory.search("mutant_krovosos_jaw",10) and
+		inventory.search("mutant_zombie_hand",20) and
+		inventory.search("mutant_snork_leg",10) and
+		inventory.search("mutant_face_tushkano",20) and
+		inventory.search("mutant_hand_kontroler",20) and
+		inventory.search("mutant_psevdogigant_hand",10) and
+		inventory.search("mutant_tail_cat",10) and
+		inventory.search("mutant_chimera_kogot",20) and
+		inventory.search("mutant_fracture_hand",20) and
+		inventory.search("mutant_deathclaw_antler",10) and
+		inventory.search("part_digitis_biblio",10) and
+		inventory.search("mutant_vypolzen_hrebet",10) and
+		inventory.search("part_tarakan",6) and
+		inventory.search("part_tarakan_strong",20) and
+		inventory.search("mutant_zombie_teeth",10) and
+		inventory.search("rudiment_big",3) and
+		inventory.search("mutant_spleen_rat",20) and
+		inventory.search("mozg",6) and
+		inventory.search("bezoar",6) and
+		inventory.search("bread_a",8)
 end		
 function sidor_biznes7_have()
 	if sidor_biznes7_have_all() then
@@ -1225,44 +1236,44 @@ function sidor_biznes7_have()
 	end
 end
 function sidor_biznes7_done()
-		sak.out_item_namber("mutant_spider_gland",2)
-		sak.out_item_namber("mutant_rotan_heart",2)
-		sak.out_item_namber("mutant_plague_hand",2)
-		sak.out_item_namber("mutant_carlic_hand",2)
-		sak.out_item_namber("mutant_raptor_kogot",2)
-		sak.out_item_namber("mutant_zanoza_leg",2)
-		sak.out_item_namber("mutant_boar_leg",10)
-		sak.out_item_namber("mutant_dog_tail",10)
-		sak.out_item_namber("mutant_psevdodog_tail",20)
-		sak.out_item_namber("mutant_krovosos_jaw",10)
-		sak.out_item_namber("mutant_zombie_hand",20)
-		sak.out_item_namber("mutant_snork_leg",10)
-		sak.out_item_namber("mutant_face_tushkano",20)
-		sak.out_item_namber("mutant_hand_kontroler",20)
-		sak.out_item_namber("mutant_psevdogigant_hand",10)
-		sak.out_item_namber("mutant_tail_cat",10)
-		sak.out_item_namber("mutant_chimera_kogot",20)
-		sak.out_item_namber("mutant_fracture_hand",20)
-		sak.out_item_namber("mutant_deathclaw_antler",10)
-		sak.out_item_namber("part_digitis_biblio",10)
-		sak.out_item_namber("mutant_vypolzen_hrebet",10)
-		sak.out_item_namber("part_tarakan",6)
-		sak.out_item_namber("part_tarakan_strong",20)
-		sak.out_item_namber("mutant_zombie_teeth",10)
-		sak.out_item_namber("rudiment_big",3)
-		sak.out_item_namber("mutant_spleen_rat",20)
-		sak.out_item_namber("mozg",6)
-		sak.out_item_namber("bezoar",6)
-		sak.out_item_namber("bread_a",8)
+		inventory.out_items("mutant_spider_gland",2)
+		inventory.out_items("mutant_rotan_heart",2)
+		inventory.out_items("mutant_plague_hand",2)
+		inventory.out_items("mutant_carlic_hand",2)
+		inventory.out_items("mutant_raptor_kogot",2)
+		inventory.out_items("mutant_zanoza_leg",2)
+		inventory.out_items("mutant_boar_leg",10)
+		inventory.out_items("mutant_dog_tail",10)
+		inventory.out_items("mutant_psevdodog_tail",20)
+		inventory.out_items("mutant_krovosos_jaw",10)
+		inventory.out_items("mutant_zombie_hand",20)
+		inventory.out_items("mutant_snork_leg",10)
+		inventory.out_items("mutant_face_tushkano",20)
+		inventory.out_items("mutant_hand_kontroler",20)
+		inventory.out_items("mutant_psevdogigant_hand",10)
+		inventory.out_items("mutant_tail_cat",10)
+		inventory.out_items("mutant_chimera_kogot",20)
+		inventory.out_items("mutant_fracture_hand",20)
+		inventory.out_items("mutant_deathclaw_antler",10)
+		inventory.out_items("part_digitis_biblio",10)
+		inventory.out_items("mutant_vypolzen_hrebet",10)
+		inventory.out_items("part_tarakan",6)
+		inventory.out_items("part_tarakan_strong",20)
+		inventory.out_items("mutant_zombie_teeth",10)
+		inventory.out_items("rudiment_big",3)
+		inventory.out_items("mutant_spleen_rat",20)
+		inventory.out_items("mozg",6)
+		inventory.out_items("bezoar",6)
+		inventory.out_items("bread_a",8)
 	this.give_ammo(25)
-	sak.create_items_actor("vodka",100)
+	inventory.give_items("vodka",100)
 end
 
 function kuznetsov_biznes1_have_all()
 	return
-		amk_utils.inventory_search("wpn_ak47",30) and
-		amk_utils.inventory_search("ammo_7.62x39_fmj",40) and
-		amk_utils.inventory_search("ammo_7.62x39_ap",20)
+		inventory.search("wpn_ak47",30) and
+		inventory.search("ammo_7.62x39_fmj",40) and
+		inventory.search("ammo_7.62x39_ap",20)
 end		
 function kuznetsov_biznes1_have()
 	if kuznetsov_biznes1_have_all() then
@@ -1273,18 +1284,18 @@ function kuznetsov_biznes1_have()
 	end
 end
 function kuznetsov_biznes1_done()
-		sak.out_item_namber("wpn_ak47",30)
-		sak.out_item_namber("ammo_7.62x39_fmj",40)
-		sak.out_item_namber("ammo_7.62x39_ap",20)
-	sak.create_items_actor("sigaret",100)
-	sak.create_items_actor("cube_chip",1)
+		inventory.out_items("wpn_ak47",30)
+		inventory.out_items("ammo_7.62x39_fmj",40)
+		inventory.out_items("ammo_7.62x39_ap",20)
+	inventory.give_items("sigaret",100)
+	inventory.give_items("cube_chip",1)
 end
 
 function adrenalin_biznes1_have_all1()
 	return
-		amk_utils.inventory_search("wpn_pkm",7, true) and
-		amk_utils.inventory_search("wpn_m_134",14, true) and
-		amk_utils.inventory_search("wpn_mg42",1, true)
+		inventory.search("wpn_pkm",7, true) and
+		inventory.search("wpn_m_134",14, true) and
+		inventory.search("wpn_mg42",1, true)
 end		
 function adrenalin_biznes1_have1()
 	if adrenalin_biznes1_have_all1() then
@@ -1295,16 +1306,16 @@ function adrenalin_biznes1_have1()
 	end
 end
 function adrenalin_biznes1_done1()
-		sak.out_item_namber("wpn_pkm",7)
-		sak.out_item_namber("wpn_m_134",14)
-		sak.out_item_namber("wpn_mg42",1)
+		inventory.out_items("wpn_pkm",7)
+		inventory.out_items("wpn_m_134",14)
+		inventory.out_items("wpn_mg42",1)
 		this.adrenalin_biznes1_done()
 end
 function adrenalin_biznes1_have_all2()
 	return
-		amk_utils.inventory_search("ammo_7.62x54r",20) and
-		amk_utils.inventory_search("ammo_minigun",24) and
-		amk_utils.inventory_search("ammo_7.62x51box",10)
+		inventory.search("ammo_7.62x54r",20) and
+		inventory.search("ammo_minigun",24) and
+		inventory.search("ammo_7.62x51box",10)
 end		
 function adrenalin_biznes1_have2()
 	if adrenalin_biznes1_have_all2() then
@@ -1315,15 +1326,15 @@ function adrenalin_biznes1_have2()
 	end
 end
 function adrenalin_biznes1_done2()
-		sak.out_item_namber("ammo_7.62x54r",20)
-		sak.out_item_namber("ammo_minigun",24)
-		sak.out_item_namber("ammo_7.62x51box",10)
+		inventory.out_items("ammo_7.62x54r",20)
+		inventory.out_items("ammo_minigun",24)
+		inventory.out_items("ammo_7.62x51box",10)
 		this.adrenalin_biznes1_done()
 end
 function adrenalin_biznes1_have_all3()
 	return	
-		amk_utils.inventory_search("treasure_item",60) and
-		amk_utils.inventory_search("zamok",30)
+		inventory.search("treasure_item",60) and
+		inventory.search("zamok",30)
 end		
 function adrenalin_biznes1_have3()
 	if adrenalin_biznes1_have_all3() then
@@ -1335,33 +1346,33 @@ function adrenalin_biznes1_have3()
 end
 function adrenalin_biznes1_done3()
 		shiftCheckDropItem()
-		sak.out_item_namber("treasure_item",60)
-		sak.out_item_namber("zamok",30)
+		inventory.out_items("treasure_item",60)
+		inventory.out_items("zamok",30)
 		this.adrenalin_biznes1_done()
 end
 function adrenalin_biznes1_done()
 	if has_alife_info("adrenalin_biznes1_done1") and has_alife_info("adrenalin_biznes1_done2") and has_alife_info("adrenalin_biznes1_done3") then
-		sak.create_items_actor("ammo_12.7x108",30)
-		sak.create_items_actor("ammo_7.62x39_k",10)
-		sak.create_items_actor("ammo_5.56x45_gd",10)
-		sak.create_items_actor("ammo_12x70_kart",30)
-		sak.create_items_actor("ammo_gauss",30)
-		sak.create_items_actor("ammo_super_gauss",30)
-		sak.create_items_actor("ammo_balon",10)
-		sak.create_items_actor("grenade_f1_double",30)
-		sak.create_items_actor("cube_chip",1)
+		inventory.give_items("ammo_12.7x108",30)
+		inventory.give_items("ammo_7.62x39_k",10)
+		inventory.give_items("ammo_5.56x45_gd",10)
+		inventory.give_items("ammo_12x70_kart",30)
+		inventory.give_items("ammo_gauss",30)
+		inventory.give_items("ammo_super_gauss",30)
+		inventory.give_items("ammo_balon",10)
+		inventory.give_items("grenade_f1_double",30)
+		inventory.give_items("cube_chip",1)
 		db.actor:give_info_portion("adrenalin_biznes1_done")
 	end
 end
 
 function zahar_biznes1_have_all()
 	return
-		amk_utils.inventory_search("amk_metka",10) and
-		amk_utils.inventory_search("wpn_saiga12c",10, true) and
-		amk_utils.inventory_search("ammo_12x70_buck",30) and
-		amk_utils.inventory_search("ammo_12x76_dart",20) and
-		amk_utils.inventory_search("ammo_12x76_zhekan",15) and
-		amk_utils.inventory_search("ammo_12x70_kart",50)
+		inventory.search("amk_metka",10) and
+		inventory.search("wpn_saiga12c",10, true) and
+		inventory.search("ammo_12x70_buck",30) and
+		inventory.search("ammo_12x76_dart",20) and
+		inventory.search("ammo_12x76_zhekan",15) and
+		inventory.search("ammo_12x70_kart",50)
 end		
 function zahar_biznes1_have()
 	if zahar_biznes1_have_all() then
@@ -1373,25 +1384,25 @@ function zahar_biznes1_have()
 end
 function zahar_biznes1_done()
 		shiftCheckDropItem()
-		sak.out_item_namber("amk_metka",10)
-		sak.out_item_namber("wpn_saiga12c",10)
-		sak.out_item_namber("ammo_12x70_buck",30)
-		sak.out_item_namber("ammo_12x76_dart",20)
-		sak.out_item_namber("ammo_12x76_zhekan",15)
-		sak.out_item_namber("ammo_12x70_kart",50)
+		inventory.out_items("amk_metka",10)
+		inventory.out_items("wpn_saiga12c",10)
+		inventory.out_items("ammo_12x70_buck",30)
+		inventory.out_items("ammo_12x76_dart",20)
+		inventory.out_items("ammo_12x76_zhekan",15)
+		inventory.out_items("ammo_12x70_kart",50)
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_pkm",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_pkm",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function barman_biznes1_have_all()
 	return
-		amk_utils.inventory_search("sweetness",20) and
-		amk_utils.inventory_search("beer_a",20) and
-		amk_utils.inventory_search("cigara",50) and
-		amk_utils.inventory_search("sigaret",100) and
-		amk_utils.inventory_search("vodka",200)
+		inventory.search("sweetness",20) and
+		inventory.search("beer_a",20) and
+		inventory.search("cigara",50) and
+		inventory.search("sigaret",100) and
+		inventory.search("vodka",200)
 end		
 function barman_biznes1_have()
 	if barman_biznes1_have_all() then
@@ -1402,23 +1413,23 @@ function barman_biznes1_have()
 	end
 end
 function barman_biznes1_done()
-		sak.out_item_namber("sweetness",20)
-		sak.out_item_namber("beer_a",20)
-		sak.out_item_namber("cigara",50)
-		sak.out_item_namber("sigaret",100)
-		sak.out_item_namber("vodka",200)
+		inventory.out_items("sweetness",20)
+		inventory.out_items("beer_a",20)
+		inventory.out_items("cigara",50)
+		inventory.out_items("sigaret",100)
+		inventory.out_items("vodka",200)
 	db.actor:give_info_portion("info_amk_recipt_power_1")
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function kruglov_biznes1_have_all()
 	return
-		amk_utils.inventory_search("nebo_scientific_outfit",1, true) and
-		amk_utils.inventory_search("af_dik_1",2) and
-		amk_utils.inventory_search("af_dik_2",2) and
-		amk_utils.inventory_search("af_dik_3",2) and
-		amk_utils.inventory_search("af_dik_4",2) and
-		amk_utils.inventory_search("af_spirit_4",1)
+		inventory.search("nebo_scientific_outfit",1, true) and
+		inventory.search("af_dik_1",2) and
+		inventory.search("af_dik_2",2) and
+		inventory.search("af_dik_3",2) and
+		inventory.search("af_dik_4",2) and
+		inventory.search("af_spirit_4",1)
 end		
 function kruglov_biznes1_have()
 	if kruglov_biznes1_have_all() then
@@ -1429,21 +1440,21 @@ function kruglov_biznes1_have()
 	end
 end
 function kruglov_biznes1_done()
-		sak.out_item_namber("nebo_scientific_outfit",1)
-		sak.out_item_namber("af_dik_1",2)
-		sak.out_item_namber("af_dik_2",2)
-		sak.out_item_namber("af_dik_3",2)
-		sak.out_item_namber("af_dik_4",2)
-		sak.out_item_namber("af_spirit_4",1)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+		inventory.out_items("nebo_scientific_outfit",1)
+		inventory.out_items("af_dik_1",2)
+		inventory.out_items("af_dik_2",2)
+		inventory.out_items("af_dik_3",2)
+		inventory.out_items("af_dik_4",2)
+		inventory.out_items("af_spirit_4",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function yakut_biznes1_have_all()
 	return
-		amk_utils.inventory_search("af_simbion",6) and
-		amk_utils.inventory_search("af_armor_4",6) and
-		amk_utils.inventory_search("antizombie",3)
+		inventory.search("af_simbion",6) and
+		inventory.search("af_armor_4",6) and
+		inventory.search("antizombie",3)
 end		
 function yakut_biznes1_have()
 	if yakut_biznes1_have_all() then
@@ -1454,20 +1465,20 @@ function yakut_biznes1_have()
 	end
 end
 function yakut_biznes1_done()
-		sak.out_item_namber("af_simbion",6)
-		sak.out_item_namber("af_armor_4",6)
-		sak.out_item_namber("antizombie",3)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+		inventory.out_items("af_simbion",6)
+		inventory.out_items("af_armor_4",6)
+		inventory.out_items("antizombie",3)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function voron_biznes1_have_all()
 	return
-		amk_utils.inventory_search("wpn_peceneg",8, true) and
-		amk_utils.inventory_search("ammo_7.62x54r",12) and
-		amk_utils.inventory_search("military_outfit",4, true) and
-		amk_utils.inventory_search("militaryspec_outfit",4, true) and
-		amk_utils.inventory_search("medkit_army",20)
+		inventory.search("wpn_peceneg",8, true) and
+		inventory.search("ammo_7.62x54r",12) and
+		inventory.search("military_outfit",4, true) and
+		inventory.search("militaryspec_outfit",4, true) and
+		inventory.search("medkit_army",20)
 end		
 function voron_biznes1_have()
 	if voron_biznes1_have_all() then
@@ -1478,32 +1489,32 @@ function voron_biznes1_have()
 	end
 end
 function voron_biznes1_done()
-		sak.out_item_namber("wpn_peceneg",8)
-		sak.out_item_namber("ammo_7.62x54r",12)
-		sak.out_item_namber("military_outfit",4)
-		sak.out_item_namber("militaryspec_outfit",4)
-		sak.out_item_namber("medkit_army",20)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("wpn_rpk47_sk1",1)
-	sak.create_items_actor("cube_chip",1)
+		inventory.out_items("wpn_peceneg",8)
+		inventory.out_items("ammo_7.62x54r",12)
+		inventory.out_items("military_outfit",4)
+		inventory.out_items("militaryspec_outfit",4)
+		inventory.out_items("medkit_army",20)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("wpn_rpk47_sk1",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function lukash_biznes1_have_all()
 	return
-		amk_utils.inventory_search("grenade_f1",20) and
-		amk_utils.inventory_search("grenade_f1_double",5) and
-		amk_utils.inventory_search("grenade_rgd5",20) and
-		amk_utils.inventory_search("grenade_gd-05",20) and
-		amk_utils.inventory_search("wpn_rg-6",1, true) and
-		amk_utils.inventory_search("ammo_vog-25",20) and
-		amk_utils.inventory_search("ammo_vog-25p",20) and
-		amk_utils.inventory_search("wpn_groza",4, true) and
-		amk_utils.inventory_search("medkit_army",10) and
-		amk_utils.inventory_search("antirad",10) and
-		amk_utils.inventory_search("energy_drink",20) and
-		amk_utils.inventory_search("amk_metka",5) and
-		amk_utils.inventory_search("treasure_item",5) and
-		amk_utils.inventory_search("detector_elite",1)
+		inventory.search("grenade_f1",20) and
+		inventory.search("grenade_f1_double",5) and
+		inventory.search("grenade_rgd5",20) and
+		inventory.search("grenade_gd-05",20) and
+		inventory.search("wpn_rg-6",1, true) and
+		inventory.search("ammo_vog-25",20) and
+		inventory.search("ammo_vog-25p",20) and
+		inventory.search("wpn_groza",4, true) and
+		inventory.search("medkit_army",10) and
+		inventory.search("antirad",10) and
+		inventory.search("energy_drink",20) and
+		inventory.search("amk_metka",5) and
+		inventory.search("treasure_item",5) and
+		inventory.search("detector_elite",1)
 end		
 function lukash_biznes1_have()
 	if lukash_biznes1_have_all() then
@@ -1514,53 +1525,53 @@ function lukash_biznes1_have()
 	end
 end
 function lukash_biznes1_done()
-		sak.out_item_namber("grenade_f1",20)
-		sak.out_item_namber("grenade_f1_double",5)
-		sak.out_item_namber("grenade_rgd5",20)
-		sak.out_item_namber("grenade_gd-05",20)
-		sak.out_item_namber("wpn_rg-6",1)
-		sak.out_item_namber("ammo_vog-25",20)
-		sak.out_item_namber("ammo_vog-25p",20)
-		sak.out_item_namber("wpn_groza",4)
-		sak.out_item_namber("antirad",10)
-		sak.out_item_namber("medkit_army",10)
-		sak.out_item_namber("detector_elite",1)
+		inventory.out_items("grenade_f1",20)
+		inventory.out_items("grenade_f1_double",5)
+		inventory.out_items("grenade_rgd5",20)
+		inventory.out_items("grenade_gd-05",20)
+		inventory.out_items("wpn_rg-6",1)
+		inventory.out_items("ammo_vog-25",20)
+		inventory.out_items("ammo_vog-25p",20)
+		inventory.out_items("wpn_groza",4)
+		inventory.out_items("antirad",10)
+		inventory.out_items("medkit_army",10)
+		inventory.out_items("detector_elite",1)
 
 		shiftCheckDropItem()
-		sak.out_item_namber("amk_metka",5)
-		sak.out_item_namber("treasure_item",5)
-		sak.out_item_namber("energy_drink",20)
+		inventory.out_items("amk_metka",5)
+		inventory.out_items("treasure_item",5)
+		inventory.out_items("energy_drink",20)
 
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sakharov_biznes1_have_all()
 	return
-		amk_utils.inventory_search("caps_mosquito_bald",3) and
-		amk_utils.inventory_search("caps_gravi",3) and
-		amk_utils.inventory_search("caps_mincer",3) and
-		amk_utils.inventory_search("caps_electra",3) and
-		amk_utils.inventory_search("caps_zharka",3) and
-		amk_utils.inventory_search("caps_ameba",3) and
-		amk_utils.inventory_search("caps_ice",3) and
-		amk_utils.inventory_search("mutant_krovosos_cocoon",1) and
-		amk_utils.inventory_search("mutant_burer_cocoon",1) and
-		amk_utils.inventory_search("mutant_zombie_cocoon",1) and
-		amk_utils.inventory_search("mutant_snork_cocoon",1) and
-		amk_utils.inventory_search("mutant_flesh_cocoon",1) and
-		amk_utils.inventory_search("mutant_gigant_cocoon",1) and
-		amk_utils.inventory_search("mutant_poltergeist_cocoon",1) and
-		amk_utils.inventory_search("mutant_psevdodog_cocoon",1) and
-		amk_utils.inventory_search("mutant_dog_cocoon",1) and
-		amk_utils.inventory_search("mutant_controller_cocoon",1) and
-		amk_utils.inventory_search("mutant_chimera_cocoon",1) and
-		amk_utils.inventory_search("mutant_boar_cocoon",1) and
-		amk_utils.inventory_search("mutant_tushkano_cocoon",1) and
-		amk_utils.inventory_search("mutant_psydog_cocoon",1) and
-		amk_utils.inventory_search("mutant_cat_cocoon",1) and
-		amk_utils.inventory_search("bezoar",5)
+		inventory.search("caps_mosquito_bald",3) and
+		inventory.search("caps_gravi",3) and
+		inventory.search("caps_mincer",3) and
+		inventory.search("caps_electra",3) and
+		inventory.search("caps_zharka",3) and
+		inventory.search("caps_ameba",3) and
+		inventory.search("caps_ice",3) and
+		inventory.search("mutant_krovosos_cocoon",1) and
+		inventory.search("mutant_burer_cocoon",1) and
+		inventory.search("mutant_zombie_cocoon",1) and
+		inventory.search("mutant_snork_cocoon",1) and
+		inventory.search("mutant_flesh_cocoon",1) and
+		inventory.search("mutant_gigant_cocoon",1) and
+		inventory.search("mutant_poltergeist_cocoon",1) and
+		inventory.search("mutant_psevdodog_cocoon",1) and
+		inventory.search("mutant_dog_cocoon",1) and
+		inventory.search("mutant_controller_cocoon",1) and
+		inventory.search("mutant_chimera_cocoon",1) and
+		inventory.search("mutant_boar_cocoon",1) and
+		inventory.search("mutant_tushkano_cocoon",1) and
+		inventory.search("mutant_psydog_cocoon",1) and
+		inventory.search("mutant_cat_cocoon",1) and
+		inventory.search("bezoar",5)
 end		
 function sakharov_biznes1_have()
 	if sakharov_biznes1_have_all() then
@@ -1571,70 +1582,70 @@ function sakharov_biznes1_have()
 	end
 end
 function sakharov_biznes1_done()
-		sak.out_item_namber("caps_mosquito_bald",3)
-		sak.out_item_namber("caps_gravi",3)
-		sak.out_item_namber("caps_mincer",3)
-		sak.out_item_namber("caps_electra",3)
-		sak.out_item_namber("caps_zharka",3)
-		sak.out_item_namber("caps_ameba",3)
-		sak.out_item_namber("caps_ice",3)
-		sak.out_item_namber("mutant_krovosos_cocoon",1)
-		sak.out_item_namber("mutant_burer_cocoon",1)
-		sak.out_item_namber("mutant_zombie_cocoon",1)
-		sak.out_item_namber("mutant_snork_cocoon",1)
-		sak.out_item_namber("mutant_flesh_cocoon",1)
-		sak.out_item_namber("mutant_gigant_cocoon",1)
-		sak.out_item_namber("mutant_poltergeist_cocoon",1)
-		sak.out_item_namber("mutant_psevdodog_cocoon",1)
-		sak.out_item_namber("mutant_dog_cocoon",1)
-		sak.out_item_namber("mutant_controller_cocoon",1)
-		sak.out_item_namber("mutant_chimera_cocoon",1)
-		sak.out_item_namber("mutant_boar_cocoon",1)
-		sak.out_item_namber("mutant_tushkano_cocoon",1)
-		sak.out_item_namber("mutant_psydog_cocoon",1)
-		sak.out_item_namber("mutant_cat_cocoon",1)
-		sak.out_item_namber("bezoar",5)
-	sak.create_items_actor("af_power",1)
-	sak.create_items_actor("cube_chip",1)
+		inventory.out_items("caps_mosquito_bald",3)
+		inventory.out_items("caps_gravi",3)
+		inventory.out_items("caps_mincer",3)
+		inventory.out_items("caps_electra",3)
+		inventory.out_items("caps_zharka",3)
+		inventory.out_items("caps_ameba",3)
+		inventory.out_items("caps_ice",3)
+		inventory.out_items("mutant_krovosos_cocoon",1)
+		inventory.out_items("mutant_burer_cocoon",1)
+		inventory.out_items("mutant_zombie_cocoon",1)
+		inventory.out_items("mutant_snork_cocoon",1)
+		inventory.out_items("mutant_flesh_cocoon",1)
+		inventory.out_items("mutant_gigant_cocoon",1)
+		inventory.out_items("mutant_poltergeist_cocoon",1)
+		inventory.out_items("mutant_psevdodog_cocoon",1)
+		inventory.out_items("mutant_dog_cocoon",1)
+		inventory.out_items("mutant_controller_cocoon",1)
+		inventory.out_items("mutant_chimera_cocoon",1)
+		inventory.out_items("mutant_boar_cocoon",1)
+		inventory.out_items("mutant_tushkano_cocoon",1)
+		inventory.out_items("mutant_psydog_cocoon",1)
+		inventory.out_items("mutant_cat_cocoon",1)
+		inventory.out_items("bezoar",5)
+	inventory.give_items("af_power",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function sak_biznes1_have_all()
 	return
-		amk_utils.inventory_search("af_medusa",8) and
-		amk_utils.inventory_search("af_cristall_flower",6) and
-		amk_utils.inventory_search("af_night_star",6) and
-		amk_utils.inventory_search("af_vyvert",7) and
-		amk_utils.inventory_search("af_gravi",12) and
-		amk_utils.inventory_search("af_gold_fish",4) and
-		amk_utils.inventory_search("af_blood",4) and
-		amk_utils.inventory_search("af_mincer_meat",3) and
-		amk_utils.inventory_search("af_soul",7) and
-		amk_utils.inventory_search("af_electra_sparkler",5) and
-		amk_utils.inventory_search("af_electra_flash",5) and
-		amk_utils.inventory_search("af_electra_moonlight",6) and
-		amk_utils.inventory_search("af_rusty_thorn",6) and
-		amk_utils.inventory_search("af_rusty_kristall",8) and
-		amk_utils.inventory_search("af_rusty_sea-urchin",4) and
-		amk_utils.inventory_search("af_ameba_slime",5) and
-		amk_utils.inventory_search("af_ameba_slug",10) and
-		amk_utils.inventory_search("af_ameba_mica",8) and
-		amk_utils.inventory_search("af_drops",9) and
-		amk_utils.inventory_search("af_fireball",4) and
-		amk_utils.inventory_search("af_cristall",4) and
-		amk_utils.inventory_search("af_dummy_glassbeads",6) and
-		amk_utils.inventory_search("af_dummy_pellicle",5) and
-		amk_utils.inventory_search("af_dummy_battery",9) and
-		amk_utils.inventory_search("af_dummy_dummy",6) and
-		amk_utils.inventory_search("af_dummy_spring",7) and
-		amk_utils.inventory_search("af_fuzz_kolobok",4) and
-		amk_utils.inventory_search("af_cry_2",3) and
-		amk_utils.inventory_search("af_arhara_globus",1) and
-		amk_utils.inventory_search("arc_art_box_1basic",3) and
-		amk_utils.inventory_search("arc_art_box_basic",3) and
-		amk_utils.inventory_search("arc_art_box_8basic",3) and
-		amk_utils.inventory_search("zamok",1) and
-		amk_utils.inventory_search("treasure_item",1) and
-		amk_utils.inventory_search("amk_metka",1)
+		inventory.search("af_medusa",8) and
+		inventory.search("af_cristall_flower",6) and
+		inventory.search("af_night_star",6) and
+		inventory.search("af_vyvert",7) and
+		inventory.search("af_gravi",12) and
+		inventory.search("af_gold_fish",4) and
+		inventory.search("af_blood",4) and
+		inventory.search("af_mincer_meat",3) and
+		inventory.search("af_soul",7) and
+		inventory.search("af_electra_sparkler",5) and
+		inventory.search("af_electra_flash",5) and
+		inventory.search("af_electra_moonlight",6) and
+		inventory.search("af_rusty_thorn",6) and
+		inventory.search("af_rusty_kristall",8) and
+		inventory.search("af_rusty_sea-urchin",4) and
+		inventory.search("af_ameba_slime",5) and
+		inventory.search("af_ameba_slug",10) and
+		inventory.search("af_ameba_mica",8) and
+		inventory.search("af_drops",9) and
+		inventory.search("af_fireball",4) and
+		inventory.search("af_cristall",4) and
+		inventory.search("af_dummy_glassbeads",6) and
+		inventory.search("af_dummy_pellicle",5) and
+		inventory.search("af_dummy_battery",9) and
+		inventory.search("af_dummy_dummy",6) and
+		inventory.search("af_dummy_spring",7) and
+		inventory.search("af_fuzz_kolobok",4) and
+		inventory.search("af_cry_2",3) and
+		inventory.search("af_arhara_globus",1) and
+		inventory.search("arc_art_box_1basic",3) and
+		inventory.search("arc_art_box_basic",3) and
+		inventory.search("arc_art_box_8basic",3) and
+		inventory.search("zamok",1) and
+		inventory.search("treasure_item",1) and
+		inventory.search("amk_metka",1)
 end		
 function sak_biznes1_have()
 	if sak_biznes1_have_all() then
@@ -1645,47 +1656,47 @@ function sak_biznes1_have()
 	end
 end
 function sak_biznes1_done()
-		sak.out_item_namber("af_medusa",8)
-		sak.out_item_namber("af_cristall_flower",6)
-		sak.out_item_namber("af_night_star",6)
-		sak.out_item_namber("af_vyvert",7)
-		sak.out_item_namber("af_gravi",12)
-		sak.out_item_namber("af_gold_fish",4)
-		sak.out_item_namber("af_blood",4)
-		sak.out_item_namber("af_mincer_meat",3)
-		sak.out_item_namber("af_soul",7)
-		sak.out_item_namber("af_electra_sparkler",5)
-		sak.out_item_namber("af_electra_flash",5)
-		sak.out_item_namber("af_electra_moonlight",6)
-		sak.out_item_namber("af_rusty_thorn",6)
-		sak.out_item_namber("af_rusty_kristall",8)
-		sak.out_item_namber("af_rusty_sea-urchin",4)
-		sak.out_item_namber("af_ameba_slime",5)
-		sak.out_item_namber("af_ameba_slug",10)
-		sak.out_item_namber("af_ameba_mica",8)
-		sak.out_item_namber("af_drops",9)
-		sak.out_item_namber("af_fireball",4)
-		sak.out_item_namber("af_cristall",4)
-		sak.out_item_namber("af_dummy_glassbeads",6)
-		sak.out_item_namber("af_dummy_pellicle",5)
-		sak.out_item_namber("af_dummy_battery",9)
-		sak.out_item_namber("af_dummy_dummy",6)
-		sak.out_item_namber("af_dummy_spring",7)
-		sak.out_item_namber("af_fuzz_kolobok",4)
-		sak.out_item_namber("af_cry_2",3)
-		sak.out_item_namber("af_arhara_globus",1)
+		inventory.out_items("af_medusa",8)
+		inventory.out_items("af_cristall_flower",6)
+		inventory.out_items("af_night_star",6)
+		inventory.out_items("af_vyvert",7)
+		inventory.out_items("af_gravi",12)
+		inventory.out_items("af_gold_fish",4)
+		inventory.out_items("af_blood",4)
+		inventory.out_items("af_mincer_meat",3)
+		inventory.out_items("af_soul",7)
+		inventory.out_items("af_electra_sparkler",5)
+		inventory.out_items("af_electra_flash",5)
+		inventory.out_items("af_electra_moonlight",6)
+		inventory.out_items("af_rusty_thorn",6)
+		inventory.out_items("af_rusty_kristall",8)
+		inventory.out_items("af_rusty_sea-urchin",4)
+		inventory.out_items("af_ameba_slime",5)
+		inventory.out_items("af_ameba_slug",10)
+		inventory.out_items("af_ameba_mica",8)
+		inventory.out_items("af_drops",9)
+		inventory.out_items("af_fireball",4)
+		inventory.out_items("af_cristall",4)
+		inventory.out_items("af_dummy_glassbeads",6)
+		inventory.out_items("af_dummy_pellicle",5)
+		inventory.out_items("af_dummy_battery",9)
+		inventory.out_items("af_dummy_dummy",6)
+		inventory.out_items("af_dummy_spring",7)
+		inventory.out_items("af_fuzz_kolobok",4)
+		inventory.out_items("af_cry_2",3)
+		inventory.out_items("af_arhara_globus",1)
 
 		shiftCheckDropItem()
-		sak.out_item_namber("amk_metka",1)
-		sak.out_item_namber("arc_art_box_1basic",3)
-		sak.out_item_namber("arc_art_box_basic",3)
-		sak.out_item_namber("arc_art_box_8basic",3)
-		sak.out_item_namber("zamok",1)
-		sak.out_item_namber("treasure_item",1)
+		inventory.out_items("amk_metka",1)
+		inventory.out_items("arc_art_box_1basic",3)
+		inventory.out_items("arc_art_box_basic",3)
+		inventory.out_items("arc_art_box_8basic",3)
+		inventory.out_items("zamok",1)
+		inventory.out_items("treasure_item",1)
 
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function skraga_biznes1_have_all()
@@ -1700,26 +1711,26 @@ function skraga_biznes1_have()
 	end
 end
 function skraga_biznes1_done()
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function doktor_biznes1_have_all()
 	return
-		amk_utils.inventory_search("medkit",20) and
-		amk_utils.inventory_search("medkit_army",30) and
-		amk_utils.inventory_search("medkit_scientic",40) and
-		amk_utils.inventory_search("bandage",100) and
-		amk_utils.inventory_search("antirad",50) and
-		amk_utils.inventory_search("antizombie",10) and
-		amk_utils.inventory_search("vodka",20) and
-		amk_utils.inventory_search("suvorotka",5) and
-		amk_utils.inventory_search("af_life_heart",5) and
-		amk_utils.inventory_search("maz",15) and
-		amk_utils.inventory_search("matras",10) and
-		amk_utils.inventory_search("zamok",10) and
-		amk_utils.inventory_search("treasure_item",10) and
-		amk_utils.inventory_search("amk_metka",1)
+		inventory.search("medkit",20) and
+		inventory.search("medkit_army",30) and
+		inventory.search("medkit_scientic",40) and
+		inventory.search("bandage",100) and
+		inventory.search("antirad",50) and
+		inventory.search("antizombie",10) and
+		inventory.search("vodka",20) and
+		inventory.search("suvorotka",5) and
+		inventory.search("af_life_heart",5) and
+		inventory.search("maz",15) and
+		inventory.search("matras",10) and
+		inventory.search("zamok",10) and
+		inventory.search("treasure_item",10) and
+		inventory.search("amk_metka",1)
 end		
 function doktor_biznes1_have()
 	if doktor_biznes1_have_all() then
@@ -1730,45 +1741,45 @@ function doktor_biznes1_have()
 	end
 end
 function doktor_biznes1_done()
-		sak.out_item_namber("medkit",20)
-		sak.out_item_namber("medkit_army",30)
-		sak.out_item_namber("medkit_scientic",40)
-		sak.out_item_namber("bandage",100)
-		sak.out_item_namber("antirad",50)
-		sak.out_item_namber("antizombie",10)
-		sak.out_item_namber("vodka",20)
-		sak.out_item_namber("suvorotka",5)
-		sak.out_item_namber("af_life_heart",5)
-		sak.out_item_namber("maz",15)
+		inventory.out_items("medkit",20)
+		inventory.out_items("medkit_army",30)
+		inventory.out_items("medkit_scientic",40)
+		inventory.out_items("bandage",100)
+		inventory.out_items("antirad",50)
+		inventory.out_items("antizombie",10)
+		inventory.out_items("vodka",20)
+		inventory.out_items("suvorotka",5)
+		inventory.out_items("af_life_heart",5)
+		inventory.out_items("maz",15)
 
 		shiftCheckDropItem()
-		sak.out_item_namber("amk_metka",1)
-		sak.out_item_namber("matras",10)
-		sak.out_item_namber("zamok",10)
-		sak.out_item_namber("treasure_item",10)
+		inventory.out_items("amk_metka",1)
+		inventory.out_items("matras",10)
+		inventory.out_items("zamok",10)
+		inventory.out_items("treasure_item",10)
 
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function borov_biznes1_have_all()
 	return
-		amk_utils.inventory_search("wpn_mp5sd",2,true) and
-		amk_utils.inventory_search("wpn_mp5",10,true) and
-		amk_utils.inventory_search("ammo_9x19_pbp",50) and
-		amk_utils.inventory_search("medkit",20) and
-		amk_utils.inventory_search("bandage",30) and
-		amk_utils.inventory_search("bread",20) and
-		amk_utils.inventory_search("kolbasa",10) and
-		amk_utils.inventory_search("conserva",10) and
-		amk_utils.inventory_search("af_medusa",2) and
-		amk_utils.inventory_search("af_gravi",3) and
-		amk_utils.inventory_search("af_drops",3) and
-		amk_utils.inventory_search("af_blood",5) and
-		amk_utils.inventory_search("af_fuzz_kolobok",2) and
-		amk_utils.inventory_search("af_soul",1) and
-		amk_utils.inventory_search("af_cry_1",2)
+		inventory.search("wpn_mp5sd",2,true) and
+		inventory.search("wpn_mp5",10,true) and
+		inventory.search("ammo_9x19_pbp",50) and
+		inventory.search("medkit",20) and
+		inventory.search("bandage",30) and
+		inventory.search("bread",20) and
+		inventory.search("kolbasa",10) and
+		inventory.search("conserva",10) and
+		inventory.search("af_medusa",2) and
+		inventory.search("af_gravi",3) and
+		inventory.search("af_drops",3) and
+		inventory.search("af_blood",5) and
+		inventory.search("af_fuzz_kolobok",2) and
+		inventory.search("af_soul",1) and
+		inventory.search("af_cry_1",2)
 end		
 function borov_biznes1_have()
 	if borov_biznes1_have_all() then
@@ -1779,24 +1790,24 @@ function borov_biznes1_have()
 	end
 end
 function borov_biznes1_done()
-		sak.out_item_namber("wpn_mp5sd",2)
-		sak.out_item_namber("wpn_mp5",10)
-		sak.out_item_namber("ammo_9x19_pbp",50)
-		sak.out_item_namber("medkit",20)
-		sak.out_item_namber("bandage",30)
-		sak.out_item_namber("bread",20)
-		sak.out_item_namber("kolbasa",10)
-		sak.out_item_namber("conserva",10)
-		sak.out_item_namber("af_medusa",2)
-		sak.out_item_namber("af_gravi",3)
-		sak.out_item_namber("af_drops",3)
-		sak.out_item_namber("af_blood",5)
-		sak.out_item_namber("af_fuzz_kolobok",2)
-		sak.out_item_namber("af_soul",1)
-		sak.out_item_namber("af_cry_1",2)
+		inventory.out_items("wpn_mp5sd",2)
+		inventory.out_items("wpn_mp5",10)
+		inventory.out_items("ammo_9x19_pbp",50)
+		inventory.out_items("medkit",20)
+		inventory.out_items("bandage",30)
+		inventory.out_items("bread",20)
+		inventory.out_items("kolbasa",10)
+		inventory.out_items("conserva",10)
+		inventory.out_items("af_medusa",2)
+		inventory.out_items("af_gravi",3)
+		inventory.out_items("af_drops",3)
+		inventory.out_items("af_blood",5)
+		inventory.out_items("af_fuzz_kolobok",2)
+		inventory.out_items("af_soul",1)
+		inventory.out_items("af_cry_1",2)
 	this.give_ammo(10)
-	sak.create_items_actor("wpn_m_134",1)
-	sak.create_items_actor("cube_chip",1)
+	inventory.give_items("wpn_m_134",1)
+	inventory.give_items("cube_chip",1)
 end
 
 function doktor_lekar1_have()
@@ -1900,7 +1911,7 @@ function s_inventory_box7()
 end
 
 function strelok_taynik_pda1_have(task, objective)
-    return has_alife_info("strelok_taynik_pda1_found") and amk_utils.inventory_search("strelok_taynik_pda1", 1)
+    return has_alife_info("strelok_taynik_pda1_found") and inventory.search("strelok_taynik_pda1", 1)
 end
 function strelok_taynik_pda1_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda1", "out")
@@ -1908,8 +1919,8 @@ function strelok_taynik_pda1_done(first_speaker, second_speaker)
 end
 
 function strelok_taynik_pda2_have(task, objective)
-	return amk_utils.inventory_search("strelok_taynik_pda2_1", 1)
-		and amk_utils.inventory_search("strelok_taynik_pda2_2", 1)
+	return inventory.search("strelok_taynik_pda2_1", 1)
+		and inventory.search("strelok_taynik_pda2_2", 1)
 end
 function strelok_taynik_pda2_done(first_speaker, second_speaker)
 	dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda2_1", "out")
@@ -1917,14 +1928,14 @@ function strelok_taynik_pda2_done(first_speaker, second_speaker)
 end
 
 function strelok_taynik_pda30_have(task, objective)
-  return amk_utils.inventory_search("strelok_taynik_pda30", 1)
+  return inventory.search("strelok_taynik_pda30", 1)
 end
 function strelok_taynik_pda30_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda30", "out")
 end
 
 function strelok_taynik_pda3_have(task, objective)
-  return amk_utils.inventory_search("strelok_taynik_pda3", 1)
+  return inventory.search("strelok_taynik_pda3", 1)
 end
 function strelok_taynik_pda3_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda3", "out")
@@ -1944,14 +1955,14 @@ end
 
 function strelok_taynik_pda4_have(task, objective)
 	return has_alife_info("strelok_taynik_pda4_found")
-		and amk_utils.inventory_search("strelok_taynik_pda4", 1)
+		and inventory.search("strelok_taynik_pda4", 1)
 end
 function strelok_taynik_pda4_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda4", "out")
 end
 
 function strelok_taynik_pda5_have(task, objective)
-	return amk_utils.inventory_search("strelok_taynik_pda5", 1)
+	return inventory.search("strelok_taynik_pda5", 1)
 end
 function strelok_taynik_pda5_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda5", "out")
@@ -1959,7 +1970,7 @@ end
 
 function strelok_taynik_pda6_have(task, objective)
 	return has_alife_info("strelok_taynik_pda6_found")
-		and amk_utils.inventory_search("strelok_taynik_pda6", 1)
+		and inventory.search("strelok_taynik_pda6", 1)
 end
 function strelok_taynik_pda6_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda6", "out")
@@ -1967,7 +1978,7 @@ end
 
 function strelok_taynik_pda7_have(task, objective)
 	return has_alife_info("strelok_taynik_pda7_found") 
-		and amk_utils.inventory_search("strelok_taynik_pda7", 1)
+		and inventory.search("strelok_taynik_pda7", 1)
 end
 
 function spawn_s_teleport1_2()
@@ -2079,7 +2090,7 @@ function t_inventory_box21()
   taynik_spawn.t_new_inventory21()
 end
 function kostya_taynik_pda21_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda21",18) then
+	if inventory.search("kostya_taynik_pda21",18) then
 		db.actor:give_info_portion("kostya_taynik_pda21_have")
 		return true
 	else
@@ -2087,7 +2098,7 @@ function kostya_taynik_pda21_have(task, objective)
 	end
 end
 function kostya_taynik_pda21_done(task, objective)
-	sak.out_item_namber("kostya_taynik_pda21",18)
+	inventory.out_items("kostya_taynik_pda21",18)
 
 	-- спавним порталы и переходы
 	local obj, params
@@ -2253,7 +2264,7 @@ function t_inventory_box2()
   taynik_spawn.t_new_inventory2()
 end
 function kostya_taynik_pda2_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda2", 1) then
+	if inventory.search("kostya_taynik_pda2", 1) then
 		db.actor:give_info_portion("kostya_taynik_pda2_have")
 		return true
 	else
@@ -2290,7 +2301,7 @@ function t_inventory_box4()
   local obj = alife():create("t_inventory_box4",vector():set(316.57379150391,-12.273648262024,-261.89810180664),1431070,2903)
 end
 function kostya_taynik_pda4_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda4", 1) then
+	if inventory.search("kostya_taynik_pda4", 1) then
 		db.actor:give_info_portion("kostya_taynik_pda4_have")
 		return true
 	else
@@ -2305,7 +2316,7 @@ function t_inventory_box5()
   taynik_spawn.t_new_inventory5()
 end
 function kostya_taynik_pda5_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda5", 1) then
+	if inventory.search("kostya_taynik_pda5", 1) then
 		db.actor:give_info_portion("kostya_taynik_pda5_have")
 		return true
 	else
@@ -2321,8 +2332,8 @@ function t_inventory_box6()
   taynik_spawn.t_new_inventory6_2()
 end
 function kostya_taynik_pda6_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda6_1", 1)
-		and amk_utils.inventory_search("kostya_taynik_pda6_2", 1)
+	if inventory.search("kostya_taynik_pda6_1", 1)
+		and inventory.search("kostya_taynik_pda6_2", 1)
 	then
 		db.actor:give_info_portion("kostya_taynik_pda6_have")
 		return true
@@ -2338,7 +2349,7 @@ function t_inventory_box7()
   local obj = alife():create("t_inventory_box7",vector():set(94.308715820313,14.254689216614,50.491359710693),40199,3336)
 end
 function kostya_taynik_pda7_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda7", 1) then
+	if inventory.search("kostya_taynik_pda7", 1) then
 		db.actor:give_info_portion("kostya_taynik_pda7_have")
 		return true
 	else
@@ -2353,7 +2364,7 @@ function t_inventory_box8()
   taynik_spawn.t_new_inventory8()
 end
 function kostya_taynik_pda8_have(task, objective)
-	if amk_utils.inventory_search("kostya_taynik_pda8", 1) then
+	if inventory.search("kostya_taynik_pda8", 1) then
 		db.actor:give_info_portion("kostya_taynik_pda8_have")
 		return true
 	end
@@ -2578,7 +2589,7 @@ function sacharov_pda_have(task, objective)
 end
 
 function sacharov_pda_done(first_speaker, second_speaker)
-	sak.out_item_namber("pda_vasilyev",1)
+	inventory.out_items("pda_vasilyev",1)
 end
 
 function kostya_art2_have(task, objective)
@@ -2590,7 +2601,7 @@ function kostya_art2_done(first_speaker, second_speaker)
 end
 
 function document_done(first_speaker, second_speaker)
-	sak.out_item_namber("kostya_documents",1)
+	inventory.out_items("kostya_documents",1)
 end
 
 function kostya_teleport(first_speaker, second_speaker)

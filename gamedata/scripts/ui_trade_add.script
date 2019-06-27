@@ -7,9 +7,9 @@ function trade_open()
 		wnd = TradeWnd(level.get_trade_wnd())
 	end
 	trade_manager.start_trade()
+
 	_G['recolor_items'] = true
---	db.actor:invalidate_inventory()
-	update_inventory_window()
+	db.actor:invalidate_inventory()
 end
 
 function trade_close()
@@ -18,13 +18,14 @@ function trade_close()
 		wnd = nil
 	end
 	trade_manager.stop_trade()
+
 	_G['recolor_items'] = nil
 end
 
 ---------------------------------------------------------------------
 local reg_callbacks = {
-	item_take = "calc_and_change",
-	item_drop = "calc_and_change"
+	item_take = "ShowWeight",
+	item_drop = "ShowWeight"
 }
 class "TradeWnd" (CUIScriptWnd)
 
@@ -51,34 +52,34 @@ function TradeWnd:InitControls()
 	self.wght:SetFont(GetFontGraffiti22Russian())
 	self.wght:SetTextComplexMode(true)
 	self.stat:AttachChild(self.wght)
-	self:calc_and_change()
+	self:ShowWeight()
 	
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
 end
 
-function TradeWnd:calc_and_change()
+function TradeWnd:ShowWeight()
 	local a = db.actor
-	-- Получаем текущий вес инвентаря
-	local wght = a:get_inventory_weight()
-	-- Получаем максимально допустимый вес
-	local mw = a:get_actor_max_weight()
-	-- Добавлен ли вес костюмом
+	local inv_weight = a:get_inventory_weight()
+	local max_weight = a:get_actor_max_weight()
 	local outfit = a:get_current_outfit()
 	if outfit then
-		mw = mw + sys_ini:r_float_ex(outfit:section(), "additional_inventory_weight2", 0) * outfit:condition()
+		max_weight = max_weight + outfit:get_go_float(504)
 	end
-	
-	local color_str = (wght<mw and "%c[255,238,155,23]") or "%c[255,255,0,0]"
-		
-	local text = "%c[255,170,170,185]Вес: "..
-		color_str..string.format("%.1f", wght)..
-		" %c[255,238,155,23]/"..string.format("%.1f", mw)
-	
+
+	local max_weight_text = string.format("%.1f", max_weight)
+	if #max_weight_text < 5 then
+		max_weight_text = string.rep(" ", 5 - #max_weight_text)..max_weight_text
+	end
+	local text = (inv_weight<max_weight and "%c[255,238,155,23]" or "%c[255,255,0,0]")..
+		string.format("%.1f", inv_weight)..
+		" %c[255,238,155,23]/"..max_weight_text
+
 	self.wght:SetText(text)
 end
 
 function TradeWnd:DetachWnd()
 	self.DescrWnd:Remove()
+	self.DescrWnd = nil
 	self.owner:DetachChild(self.stat)
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unsubscribe(k, self[v])

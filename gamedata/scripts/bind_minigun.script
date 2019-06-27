@@ -16,26 +16,38 @@ function minigun_binder:reinit()
 	self.worked_time = self.se_wpn.worked_time
 end
 
+function minigun_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then
+		return false
+	end
+
+	db.volatiles[self.object:id()] = true
+
+	return true
+end
+
 function minigun_binder:net_destroy()
 	self.fire = false
+
+	db.volatiles[self.object:id()] = nil
+
 	object_binder.net_destroy(self)
 end
 
 function minigun_binder:update(delta)
 	object_binder.update(self, delta)
 
-	local wpn = db.actor:active_item()
-	if wpn and wpn:id() == self.id then
-		if not self.subscribed then
-			self.subscribed = true
-			xr_s.subscribe( "key_press", self.on_key_press, {self = self} )
-			xr_s.subscribe( "key_release", self.on_key_release, {self = self} )
-		end
+	if actor_active_item and actor_active_item:id() == self.id then
 		if self.worked_time >= self.full_charge_time then
 			db.actor:activate_slot(-1)
 			db.actor:move_to_ruck(self.object)
 			amk.send_tip("Для использования "..game.translate_string( get_inv_name(self.object:section()) ).." необходимо поменять аккумулятор!", nil, nil, 5, "nano")
 			return
+		end
+		if not self.subscribed then
+			self.subscribed = true
+			xr_s.subscribe( "key_press", self.on_key_press, {self = self} )
+			xr_s.subscribe( "key_release", self.on_key_release, {self = self} )
 		end
 	elseif self.subscribed then
 		self.subscribed = nil
@@ -85,6 +97,7 @@ function minigun_binder:charge(new_charge)
 				obj:set_condition(condition)
 			end,
 		old_charge)
+		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.worked_time = self.full_charge_time - self.full_charge_time * new_charge

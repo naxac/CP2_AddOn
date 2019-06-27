@@ -17,10 +17,12 @@ local IsHuman = {
 }
 
 local is_gps_debug = false -- для включения локальной отладочной информации
-local max_comments_strings_on_screen = 38 -- сколько строк комментариев максимально влезает в экран на ПДА
+local max_comments_strings_on_screen = 35 -- сколько строк комментариев максимально влезает в экран на ПДА
 
 local labels = {} -- в таблице ссылки на тайники помеченные маячками, а также реквизиты маячка (время до заряда  и т.д.). содержит всегда актуальные значения
 local items_in_box = {}
+
+local fake_box = {}
 
 --  переменные из конфига  misc\gps_habar.ltx
 local activity_time = 0
@@ -192,10 +194,10 @@ function remove_item(boxId, item, is_need_msg_warning)
 	end
 	
 	-- если было ограбление и нет мода Заминированные тайники, предупреждаем ГГ
-	if is_need_msg_warning and is_msg_warning and not amk_offline_alife.item_cost then
+	if is_need_msg_warning and is_msg_warning then
 		local seBox = alife():object(boxId)
 	  if not IsHuman[seBox:clsid()] then
-		local lvname = ""
+		local lvname = "Зоны Отчуждения"
 		if boxId and game_graph():valid_vertex_id(seBox.m_game_vertex_id) then
 			lvname = game.translate_string(alife():level_name(game_graph():vertex(seBox.m_game_vertex_id):level_id()))
 		end
@@ -505,19 +507,19 @@ function get_color(secName)
 		return "%c[default]"
 	end
 	
-	local lsecName = string.lower(secName)
+	local cls = sys_ini:r_clsid(secName, "class")
 	
-	if string_find(lsecName, "wpn_") == 1 then -- нашли оружие
-		return "%c[254,243,122,11]" -- оранжевый
-	elseif string_find(lsecName, "ammo_") == 1 or string_find(lsecName, "grenade_") == 1 then -- нашли патроны
+	if isAmmo(nil, cls) or isGrenade(nil, cls) then -- нашли патроны
 		return "%c[254,129,129,11]" -- хаки
-	elseif bind_det_arts.is_detected_art(lsecName) then -- нашли артефакт
+	elseif isWeapon(nil, cls) then -- нашли оружие
+		return "%c[254,243,122,11]" -- оранжевый
+	elseif bind_det_arts.is_detected_art(secName) then -- нашли артефакт
 		return "%c[207,255,085,085]" -- красный
-	elseif string_find(lsecName, "mutant_") or string_find(lsecName, "part_") or string_find(lsecName, "_cocoon") then -- нашли часть монстра или эмбрион
-		return "%c[50,1,150,1]" -- зеленый
-	elseif string_find(lsecName, "outfit") or string_find(lsecName, "exo") then -- нашли броник
+	elseif isOutfit(nil, cls) then -- нашли броник
 		return "%c[100,200,200,1]" -- желтый
-	elseif string_find(lsecName, "pda") or string_find(lsecName, "flash") then -- нашли пда
+	elseif string_find(secName, "mutant_") or string_find(secName, "part_") or string_find(secName, "_cocoon") then -- нашли часть монстра или эмбрион
+		return "%c[50,1,150,1]" -- зеленый
+	elseif string_find(secName, "pda") or string_find(secName, "flash") then -- нашли пда
 		return "%c[208,100,100,255]" --  синий
 	end
 
@@ -539,159 +541,156 @@ function update_gps_habar(boxId)
 --	spawn_m_inv()
 	-- если в тайнике есть метка, апдейтим или ставим список. иначе снимаем маркер
 	local gps_count = get_gps_count(boxId)
-	if gps_count > 0 then
-		local fl_send_tip_msg = false
-		local text_metki = ""
-		local gm = amk.game_minutes()
-		local gh = amk.game_hours()
-		
-		-- новая метка, добавляем в таблицу
-		if not labels[boxId] then
-			fl_send_tip_msg = true -- надо сообщить что ставим новую метку
-			labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0}
-			amk.save_table("gps_labels", labels)
-			-- mylog("UPDATE_GPS_HABAR: уст. новая метка с хабаром на тайник. " .. tableinfo(labels[boxId]))
-		end
-
-		--составляем список предметов
-		if items_in_box[boxId] then
-			local secName, invName, locObj
-			local itemsbox = {}
-			local is_yes
-			local sim = alife()
-			
-			for i, v in pairs(items_in_box[boxId]) do
-				locObj = sim:object(v.id)
-				if locObj and locObj:section_name() then
-					secName = locObj:section_name()
-					invName = get_name(secName)
-					
-					is_yes = false
-					-- mylog("itemsbox = " .. table.getn(itemsbox))
-					for k, kk in pairs(itemsbox) do
-						-- mylog("k = " .. k)
-						if kk.inv == invName then
-							kk.cnt = kk.cnt + 1
-							is_yes = true
-							break
-						end
-					end
-					
-					if not is_yes then
-						table.insert(itemsbox, {sn = secName, inv = invName, cnt = 1, clr = get_color(secName)})
-					end
-				end
-			end
-			
-			-- сортируем по section_name, чтобы список хабара получился с какой-то закономерностью, а не в разброд.
-			table_sort(	itemsbox, 
-						function(a,b)
-							return (a.clr > b.clr)
-						end
-			)
-			
-			-- лежит только мячок, считаем что тайник пустой
-			if #itemsbox == 1 and itemsbox[1].sn == "amk_metka" and itemsbox[1].cnt == 1 then
-			else
---				local items_count = 0
-				local is_one_item_on_string = true
-				
-				-- если много предметов, выключаем режим "один предмет на строку"
-				if #itemsbox > max_comments_strings_on_screen then
-					is_one_item_on_string = false
-				end
-				
-				-- формируем текст метки
-				local all_cnt = 0
-				local color_code  = ""
-				for i, v in pairs(itemsbox) do
-					--mylog("i = " .. i .. " name = " .. v.sn)
-					if not (v.sn == "amk_metka" and v.cnt == 1) then
---						items_count = items_count + 1
-						
---						if items_count > 50 then
---							text_metki = text_metki .. ", ..."
---							break
---						end
-
-						if is_color_and_sort_list then
-							color_code = v.clr
-						end
-						
-						if is_one_item_on_string then
-							if text_metki ~= "" then 
-								text_metki = text_metki .. "\\n"
-							end
-							text_metki = text_metki .. color_code .. v.inv
-						else
-							if text_metki ~= "" then 
-								text_metki = text_metki .. ", "
-							end
-							text_metki = text_metki .. game.translate_string(color_code .. v.inv)
-						end
-						
-						if is_show_quantity then
-							if v.cnt > 1 then 
-								text_metki = text_metki .. "(" .. tostring(v.cnt) .. ")"
-							end
-							all_cnt = all_cnt + v.cnt
-						end
-					end
-				end
-
-				if is_show_quantity then 
-					text_metki = text_metki .. "\\n%c[255,255,255,255]Итого " .. tostring(all_cnt) .. " предм" 
-				end
-			end
-		end
-
-		-- mylog("Список хабара: " .. text_metki)
-	
-		--смотрим какого цвета нужны иконки
-		local is_warning = false
-		local labels_item = labels[boxId]
-		if habar_list_mode and labels_item.at > 0 and labels_item.wit > 0 and ((gh - labels_item.gt) >= (labels_item.at - labels_item.wit)) then
-			is_warning = true
-		end
-		
-		local location = ""
-		-- смотрим пустой тайник или есть что-то?
-		if text_metki == "" then
-			if fl_send_tip_msg then
-				amk.send_tip("В схроне нет хабара. Установлена метка пустого тайника.", "GPS", nil, 10, "nano")
-			end
-			if is_warning then
-				location = "habar_clear_location_w"
-			else
-				location = "habar_clear_location"
-			end
-			
-			text_metki = "Пустой тайник."
-		else
-			text_metki = text_metki .. "."
-			if fl_send_tip_msg then
-				amk.send_tip("Установлена метка со списком хабара.", "GPS", nil, 10, "nano")
-			end
-			if is_warning then
-				location = "habar_location_w"
-			else
-				location = "habar_location"
-			end
-		end
-		
-		-- добавим инфу о разряде
-		if habar_list_mode and labels_item.at > 0 then
-			text_metki = get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
-		end
-		
-		--апдейтим список
-		remove_all_spots(boxId)
-		amk.add_spot_on_map(boxId, location, text_metki)
-	else
+	if gps_count == 0 then
 		remove_all_spots(boxId)
 		remove_label(boxId)
 		amk.save_table("gps_labels", labels)
+		return
 	end
+
+	local fl_send_tip_msg = false
+	local text_metki = ""
+	local gm = amk.game_minutes()
+	local gh = amk.game_hours()
+	
+	-- новая метка, добавляем в таблицу
+	if not labels[boxId] then
+		fl_send_tip_msg = true -- надо сообщить что ставим новую метку
+		labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0}
+		amk.save_table("gps_labels", labels)
+		-- mylog("UPDATE_GPS_HABAR: уст. новая метка с хабаром на тайник. " .. tableinfo(labels[boxId]))
+	end
+
+	--составляем список предметов
+	if items_in_box[boxId] then
+		local secName, invName, locObj
+		local itemsbox = {}
+		local is_yes
+		local sim = alife()
+		
+		for i, v in pairs(items_in_box[boxId]) do
+			locObj = sim:object(v.id)
+			if locObj and locObj:section_name() then
+				secName = locObj:section_name()
+				invName = get_name(secName)
+				
+				is_yes = false
+				-- mylog("itemsbox = " .. table.getn(itemsbox))
+				for k, kk in pairs(itemsbox) do
+					-- mylog("k = " .. k)
+					if kk.inv == invName then
+						kk.cnt = kk.cnt + 1
+						is_yes = true
+						break
+					end
+				end
+				
+				if not is_yes then
+					table.insert(itemsbox, {sn = secName, inv = invName, cnt = 1, clr = get_color(secName)})
+				end
+			end
+		end
+		
+		-- сортируем по section_name, чтобы список хабара получился с какой-то закономерностью, а не в разброд.
+		table_sort(	itemsbox, 
+					function(a,b)
+						if a.clr == b.clr then
+							return a.inv < b.inv
+						end
+						return (a.clr > b.clr)
+					end
+		)
+		
+		-- лежит только мячок, считаем что тайник пустой
+		if #itemsbox == 1 and itemsbox[1].sn == "amk_metka" and itemsbox[1].cnt == 1 then
+		else
+--				local items_count = 0
+			local is_one_item_on_string = true
+			
+			-- если много предметов, выключаем режим "один предмет на строку"
+			if #itemsbox > max_comments_strings_on_screen then
+				is_one_item_on_string = false
+			end
+			
+			-- формируем текст метки
+			local all_cnt = 0
+			local color_code  = ""
+			for i, v in pairs(itemsbox) do
+				--mylog("i = " .. i .. " name = " .. v.sn)
+				if not (v.sn == "amk_metka" and v.cnt == 1) then
+					if is_color_and_sort_list then
+						color_code = v.clr
+					end
+					
+					if is_one_item_on_string then
+						if text_metki ~= "" then 
+							text_metki = text_metki .. "\\n"
+						end
+						text_metki = text_metki .. color_code .. v.inv
+					else
+						if text_metki ~= "" then 
+							text_metki = text_metki .. ", "
+						end
+						text_metki = text_metki .. game.translate_string(color_code .. v.inv)
+					end
+					
+					if is_show_quantity then
+						if v.cnt > 1 then 
+							text_metki = text_metki .. "(" .. tostring(v.cnt) .. ")"
+						end
+						all_cnt = all_cnt + v.cnt
+					end
+				end
+			end
+
+			if is_show_quantity then 
+				text_metki = text_metki .. "\\n%c[255,255,255,255]Итого " .. tostring(all_cnt) .. " предм" 
+			end
+		end
+	end
+
+	-- mylog("Список хабара: " .. text_metki)
+
+	--смотрим какого цвета нужны иконки
+	local is_warning = false
+	local labels_item = labels[boxId]
+	if habar_list_mode and labels_item.at > 0 and labels_item.wit > 0 and ((gh - labels_item.gt) >= (labels_item.at - labels_item.wit)) then
+		is_warning = true
+	end
+	
+	local location = ""
+	-- смотрим пустой тайник или есть что-то?
+	if text_metki == "" then
+		if fl_send_tip_msg then
+			amk.send_tip("В схроне нет хабара. Установлена метка пустого тайника.", "GPS", nil, 10, "nano")
+		end
+		if is_warning then
+			location = "habar_clear_location_w"
+		else
+			location = "habar_clear_location"
+		end
+		
+		text_metki = "Пустой тайник."
+	else
+		text_metki = text_metki .. "."
+		if fl_send_tip_msg then
+			amk.send_tip("Установлена метка со списком хабара.", "GPS", nil, 10, "nano")
+		end
+		if is_warning then
+			location = "habar_location_w"
+		else
+			location = "habar_location"
+		end
+	end
+	
+	-- добавим инфу о разряде
+	if habar_list_mode and labels_item.at > 0 then
+		text_metki = get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
+	end
+	
+	--апдейтим список
+	remove_all_spots(boxId)
+	amk.add_spot_on_map(boxId, location, text_metki)
 end
 
 function update_gps_state()
@@ -726,7 +725,9 @@ function update_gps_state()
 				v.upd = gm;
 				
 				if not is_gps_update_in_process then
-					update_gps(nil, nil, i)
+					if not v.fk then
+						update_gps(nil, nil, i)
+					end
 				end
 				is_save_table = true
 			end
@@ -812,10 +813,10 @@ end
 
 --колбэк на взятие предмета в инвентарь ГГ
 -- вызываем из amk.script
-function on_item_take(item)
+function on_item_take()
 	-- если взяли метку, проверяем всех помеченных. вдруг меку купили у одного из них.
-	if item and item:section() and item:section() == "amk_metka" then
-		for i, v in pairs(labels) do
+	for i, v in pairs(labels) do
+		if not v.fk then
 			reinit_box(i)
 			update_gps(nil, nil, i)
 		end
@@ -854,3 +855,143 @@ end
 function on_actor_update(delta)
 	update_gps_state()
 end
+
+
+------------------------------------------------------------------------------------------------------
+function update_gps_spot_on_fake(has_gps, boxId, items)
+	if not has_gps then
+		remove_all_spots(boxId)
+		remove_label(boxId)
+		amk.save_table("gps_labels", labels)
+		return
+	end
+		
+	local fl_send_tip_msg = false
+	local text_metki = ""
+	local gm = amk.game_minutes()
+	local gh = amk.game_hours()
+	
+	-- новая метка, добавляем в таблицу
+	if not labels[boxId] then
+		fl_send_tip_msg = true -- надо сообщить что ставим новую метку
+		labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0, fk = true}
+		amk.save_table("gps_labels", labels)
+	end
+
+	local itemsbox = {}
+	local invName
+	local is_yes
+	for i, v in ipairs(items) do
+		invName = get_name(v.s)
+
+		is_yes = false
+		for k, kk in pairs(itemsbox) do
+			if kk.inv == invName then
+				kk.cnt = kk.cnt + 1
+				is_yes = true
+				break
+			end
+		end
+
+		if not is_yes then
+			table.insert(itemsbox, {sn = v.s, inv = invName, cnt = 1, clr = get_color(v.s)})
+		end
+	end
+
+	table_sort(	itemsbox, function(a,b)
+		if a.clr == b.clr then
+			return a.inv < b.inv
+		end
+		return (a.clr > b.clr)
+	end )
+
+	-- лежит только мячок, считаем что тайник пустой
+	if #itemsbox == 1 and itemsbox[1].sn == "amk_metka" and itemsbox[1].cnt == 1 then
+	else
+		local is_one_item_on_string = true
+		-- если много предметов, выключаем режим "один предмет на строку"
+		if #itemsbox > max_comments_strings_on_screen then
+			is_one_item_on_string = false
+		end
+
+		-- формируем текст метки
+		local all_cnt = 0
+		local color_code  = ""
+		for i, v in pairs(itemsbox) do
+			if not (v.sn == "amk_metka" and v.cnt == 1) then
+				if is_color_and_sort_list then
+					color_code = v.clr
+				end
+
+				if is_one_item_on_string then
+					if text_metki ~= "" then 
+						text_metki = text_metki .. "\\n"
+					end
+					text_metki = text_metki .. color_code .. v.inv
+				else
+					if text_metki ~= "" then 
+						text_metki = text_metki .. ", "
+					end
+					text_metki = text_metki .. game.translate_string(color_code .. v.inv)
+				end
+
+				if is_show_quantity then
+					if v.cnt > 1 then 
+						text_metki = text_metki .. "(" .. tostring(v.cnt) .. ")"
+					end
+					all_cnt = all_cnt + v.cnt
+				end
+			end
+		end
+
+		if is_show_quantity then 
+			text_metki = text_metki .. "\\n%c[255,255,255,255]Итого " .. tostring(all_cnt) .. " предм" 
+		end
+	end
+
+	--смотрим какого цвета нужны иконки
+	local is_warning = false
+	local labels_item = labels[boxId]
+	if habar_list_mode and labels_item.at > 0 and labels_item.wit > 0 and ((gh - labels_item.gt) >= (labels_item.at - labels_item.wit)) then
+		is_warning = true
+	end
+	
+	local location = ""
+	-- смотрим пустой тайник или есть что-то?
+	if text_metki == "" then
+		if fl_send_tip_msg then
+			amk.send_tip("В схроне нет хабара. Установлена метка пустого тайника.", "GPS", nil, 10, "nano")
+		end
+		if is_warning then
+			location = "habar_clear_location_w"
+		else
+			location = "habar_clear_location"
+		end
+		
+		text_metki = "Пустой тайник."
+	else
+		text_metki = text_metki .. "."
+		if fl_send_tip_msg then
+			amk.send_tip("Установлена метка со списком хабара.", "GPS", nil, 10, "nano")
+		end
+		if is_warning then
+			location = "habar_location_w"
+		else
+			location = "habar_location"
+		end
+	end
+	
+	-- добавим инфу о разряде
+	if habar_list_mode and labels_item.at > 0 then
+		text_metki = get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
+	end
+	
+	--апдейтим список
+	remove_all_spots(boxId)
+	level.map_add_object_spot_ser(boxId, location, text_metki)
+end
+
+function has_label(box_id)
+	return labels[box_id] ~= nil
+end
+

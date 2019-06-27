@@ -40,6 +40,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:net_spawn(data)
 	set_extensions_flags(15)
+	level.__time_factor = level.get_time_factor_old()
 
 	db.add_actor(self.object)
 
@@ -194,11 +195,17 @@ function actor_binder:inv_item_focus(obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:on_belt_action(obj)
+	inventory.on_item_to_belt(obj)
 	xr_s.on_event("item_to_belt", obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:on_slot_action(obj)
 	xr_s.on_event("item_to_slot", obj)
+end
+----------------------------------------------------------------------------------------------------------------------
+function actor_binder:on_ruck_action(obj)
+	inventory.on_item_to_ruck(obj)
+	xr_s.on_event("item_to_ruck", obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:inv_item_select(obj)
@@ -218,10 +225,6 @@ end
 function actor_binder:key_release(dik)
 	if kShifts[dik] then ShiftPressed(false) end
 	xr_s.on_event("key_release", dik, dik_to_bind(dik))
-end
-----------------------------------------------------------------------------------------------------------------------
-function actor_binder:on_ruck_action(obj)
-	xr_s.on_event("item_to_ruck", obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:death_callback(victim, who)
@@ -287,14 +290,16 @@ function actor_binder:level_border_exit(npc, info_id)
 end
 ----------------------------------------------------------------------------------------------------------------------
 local info2call = {
-	ui_inventory = "inventory_open",  ui_inventory_hide = "inventory_close",
-	ui_pda       = "pda_open",        ui_pda_hide       = "pda_close",
-	ui_trade     = "trade_open",      ui_trade_hide     = "trade_close",
-	ui_car_body  = "car_body_open",   ui_car_body_hide  = "car_body_close"
+	ui_inventory	= "inventory_open",	ui_inventory_hide	= "inventory_close",
+	ui_pda			= "pda_open",		ui_pda_hide			= "pda_close",
+	ui_talk			= "talk_open",		ui_talk_hide		= "talk_close",
+	ui_trade		= "trade_open",		ui_trade_hide		= "trade_close",
+	ui_car_body		= "car_body_open",	ui_car_body_hide	= "car_body_close",
+	ui_car_body_new	= "car_body_new_open",	ui_car_body_new_hide	= "car_body_new_close"
 }
 function actor_binder:info_callback(npc, info_id)
 --  printf("*INFO*: npc='%s' id='%s'", npc:name(), info_id)
---	log1("- actor_binder:info_callback info_id = "..info_id)
+--	log("- actor_binder:info_callback info_id = [%s]", info_id)
 	if info2call[info_id] then
 		xr_s.on_event(info2call[info_id])
 	else
@@ -325,10 +330,8 @@ function actor_binder:article_callback(npc, group, name, atype)
 end
 --------------------------------------------------------------------------------------------------
 function actor_binder:on_item_take (obj)
+	inventory.on_item_take(obj)
 	--game_stats.update_take_item (obj, self.object)
-	--AMK UTILS--
-	gps_habar.on_item_take(obj)
-	amk_utils.inventory_update(obj, 1)
 
 	if obj:is_ammo() then
 		dunin_ammo.on_take(obj)
@@ -355,6 +358,7 @@ function actor_binder:on_item_take (obj)
 end
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:on_item_drop (obj)
+	inventory.on_item_drop(obj)
 	babah.li(obj)
 
      -- Vergas ogg-player
@@ -364,7 +368,6 @@ function actor_binder:on_item_drop (obj)
 
 	--AMK UTILS--
 	amk.on_item_drop(obj)
-	amk_utils.inventory_update(obj, -1)
 	--AMK UTILS--
 	arc_main.lose_item(obj)
 
@@ -443,8 +446,7 @@ function actor_binder:update(delta)
 		if amk.load_variable("no_save", false) then
 			abort("Этим сохранением пользоваться нельзя. Удалите его.")
 		end
-		amk.save_variable("no_save", true)
-		if not game_options.LoadPause then
+		if game_options.LoadPause == false then
 			autopause.start_timer_no_save()
 		end
 
@@ -459,6 +461,10 @@ function actor_binder:update(delta)
 
 	amk.oau_watchdog=199
 	hud_items.update()
+	
+	amk.oau_watchdog=30121
+	
+	_G['actor_active_item'] = actor:active_item()
 	
 	amk.oau_watchdog=3011
 	self:rotting() -- гниение тупов
@@ -520,16 +526,15 @@ function actor_binder:update(delta)
 		amk.oau_watchdog=304
 		if bit_and(actor:get_actor_int(nil, 1480), 1) == 1 then
 			if not scopeUsed then
-				local item = actor:active_item()
-				if item then
-					local section = item:section()
-					local cls = item:clsid()
+				if actor_active_item then
+					local section = actor_active_item:section()
+					local cls = actor_active_item:clsid()
 					--log1("- actor:active_item():section()="..tostring(section))
 						
 					if cls == clsid.wpn_binocular_s then
 						scopeUsed = true
 					elseif IAmAWeapon[cls] then
-						local t = netpk:get(alife():object(item:id()), netpk.fState)
+						local t = netpk:get(alife():object(actor_active_item:id()), netpk.fState)
 						scopeUsed = ( bit_and(t.addon_flags, addon_flags.scope) ~= 0
 							or sys_ini:r_u32(section, "scope_status") == 1 )
 					end
@@ -694,7 +699,7 @@ end
 function actor_binder:save(packet)
 	if amk.load_variable("no_save", false) and not db.debug then
 		abort("Сохранение сделано слишком быстро после загрузки. Из-за этого очень вероятно, что созданное сохранение, а также текущее игровое состояние будет повреждено. Поэтому немедленно удалите только что созданное сохранение, затем полностью перезапустите игру.")
-		amk.start_timer("zonedocs_gg_kill",3,0)
+		xr_timers.start_real_timer("zonedocs_gg_kill",3,0)
 	end
 
 	-- проваливание заданий, во время которых нельзя сохраняться

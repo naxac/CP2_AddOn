@@ -1284,68 +1284,7 @@ end
 
 function get_clsid(npc)
     if npc == nil then return nil end
-
-  return npc:clsid()
-
---    if is_object_online(npc:id()) then
---      return npc:clsid()
---    else
---        return nil
---    end
-end
-
-IAmAWeapon = {}
-clsid_magazined_weapon = {}
-
-function IAmAWeaponInit()
-IAmAWeapon = {
-	[clsid.wpn_ak74_s]              = "magazined_w_gl",
-	[clsid.wpn_bm16_s]              = "shotgun",
-	[clsid.wpn_grenade_f1]          = "grenade",
-	[clsid.wpn_grenade_fake]        = "grenade_fake",
-	[clsid.wpn_grenade_rgd5]        = "grenade",
-	[clsid.wpn_grenade_rpg7]        = "grenade",
-	[clsid.wpn_groza_s]             = "magazined_w_gl",
-	[clsid.wpn_hpsa_s]              = "magazined",
-	[clsid.wpn_knife_s]             = "knife",
-	[clsid.wpn_lr300_s]             = "magazined",
-	[clsid.wpn_pm_s]                = "magazined",
-    [clsid.wpn_rg6_s]               = "shotgun",
-	[clsid.wpn_rpg7_s]              = "magazined",
-	[clsid.wpn_shotgun_s]           = "shotgun",
-	[clsid.wpn_svd_s]               = "magazined",
-	[clsid.wpn_svu_s]               = "magazined",
-	[clsid.wpn_usp45_s]             = "magazined",
-	[clsid.wpn_val_s]               = "magazined",
-	[clsid.wpn_vintorez_s]          = "magazined",
-	[clsid.wpn_walther_s]           = "magazined",
-	[clsid.wpn_binocular_s]         = "magazined"
-}
-clsid_magazined_weapon = {
-    [clsid.wpn_ak74_s]              = true,
-    [clsid.wpn_bm16_s]              = true,
-    [clsid.wpn_groza_s]             = true,
-    [clsid.wpn_hpsa_s]              = true,
-    [clsid.wpn_lr300_s]             = true,
-    [clsid.wpn_pm_s]                = true,
-    [clsid.wpn_rpg7_s]              = true,
-    [clsid.wpn_shotgun_s]           = true,
-    [clsid.wpn_svd_s]               = true,
-    [clsid.wpn_svu_s]               = true,
-    [clsid.wpn_usp45_s]             = true,
-    [clsid.wpn_val_s]               = true,
-    [clsid.wpn_vintorez_s]          = true,
-    [clsid.wpn_walther_s]           = true,
-    [clsid.wpn_binocular_s]         = true,
-    [clsid.wpn_rg6_s]               = true
-}
-end
-
-function isWeapon(object)
-    return (object and IAmAWeapon[object:clsid()])
-end
-function isMagazinedWeapon(object)
-    return (object and clsid_magazined_weapon[object:clsid()]~=nil)
+	return npc:clsid()
 end
 
 --Tvчисляет yaw в радианах
@@ -1645,8 +1584,21 @@ function get_actor_id()
   return level.actor():id()
 end
 -------------------------------------------------------------------------------------------
+IAmAStalker = {}
 IAmAMonster = {}
-function IAmAMonsterInit()
+IAmAnArtefact = {}
+IAmAnOutfit = {}
+IAmAnEatable = {}
+IAmAGrenade = {}
+IAmAScope = {}
+IAmAWeapon = {}
+clsid_magazined_weapon = {}
+
+function InitObjectTypeTables()
+	IAmAStalker = {
+        [clsid.actor] = true,
+        [clsid.script_stalker] = true
+    }
     IAmAMonster = {
        [clsid.boar_s] = true,
        [clsid.bloodsucker_s] = true,
@@ -1665,22 +1617,143 @@ function IAmAMonsterInit()
        [clsid.tushkano_s] = true,
        [clsid.snork_s] = true
     }
+    IAmAWeapon = {
+		[clsid.wpn_ak74_s]              = "magazined_w_gl",
+		[clsid.wpn_bm16_s]              = "shotgun",
+		[clsid.wpn_grenade_f1]          = "grenade",
+		[clsid.wpn_grenade_fake]        = "grenade_fake",
+		[clsid.wpn_grenade_rgd5]        = "grenade",
+		[clsid.wpn_grenade_rpg7]        = "grenade",
+		[clsid.wpn_groza_s]             = "magazined_w_gl",
+		[clsid.wpn_hpsa_s]              = "magazined",
+		[clsid.wpn_knife_s]             = "knife",
+		[clsid.wpn_lr300_s]             = "magazined",
+		[clsid.wpn_pm_s]                = "magazined",
+	    [clsid.wpn_rg6_s]               = "shotgun",
+		[clsid.wpn_rpg7_s]              = "magazined",
+		[clsid.wpn_shotgun_s]           = "shotgun",
+		[clsid.wpn_svd_s]               = "magazined",
+		[clsid.wpn_svu_s]               = "magazined",
+		[clsid.wpn_usp45_s]             = "magazined",
+		[clsid.wpn_val_s]               = "magazined",
+		[clsid.wpn_vintorez_s]          = "magazined",
+		[clsid.wpn_walther_s]           = "magazined",
+		[clsid.wpn_binocular_s]         = "magazined"
+	}
+	clsid_magazined_weapon = {
+	    [clsid.wpn_ak74_s]              = true,
+	    [clsid.wpn_bm16_s]              = true,
+	    [clsid.wpn_groza_s]             = true,
+	    [clsid.wpn_hpsa_s]              = true,
+	    [clsid.wpn_lr300_s]             = true,
+	    [clsid.wpn_pm_s]                = true,
+	    [clsid.wpn_rpg7_s]              = true,
+	    [clsid.wpn_shotgun_s]           = true,
+	    [clsid.wpn_svd_s]               = true,
+	    [clsid.wpn_svu_s]               = true,
+	    [clsid.wpn_usp45_s]             = true,
+	    [clsid.wpn_val_s]               = true,
+	    [clsid.wpn_vintorez_s]          = true,
+	    [clsid.wpn_walther_s]           = true,
+	    [clsid.wpn_binocular_s]         = true,
+	    [clsid.wpn_rg6_s]               = true
+	}
+	IAmAnArtefact = {
+		[clsid.art_bast_artefact]	= true,
+		[clsid.art_black_drops]		= true,
+		[clsid.art_dummy]			= true,
+		[clsid.art_electric_ball]	= true,
+		[clsid.art_faded_ball]		= true,
+		[clsid.art_galantine]		= true,
+		[clsid.art_gravi]			= true,
+		[clsid.art_gravi_black]		= true,
+		[clsid.art_mercury_ball]	= true,
+		[clsid.art_needles]			= true,
+		[clsid.art_rusty_hair]		= true,
+		[clsid.art_thorn]			= true,
+		[clsid.art_zuda]			= true,
+		[clsid.artefact]			= true,
+		[clsid.artefact_s]			= true
+	}
+	IAmAnOutfit = {
+		[clsid.equ_exo]			= true,
+		[clsid.equ_military]	= true,
+		[clsid.equ_scientific]	= true,
+		[clsid.equ_stalker_s]	= true,
+		[clsid.equ_stalker]		= true
+	}
+	IAmAnEatable = {
+		[clsid.obj_antirad]	= true,
+		[clsid.obj_bandage]	= true,
+		[clsid.obj_bottle]	= true,
+		[clsid.obj_food]	= true,
+		[clsid.obj_medkit]	= true
+	}
+	IAmAGrenade={
+		[clsid.wpn_grenade_f1]		= true,
+		[clsid.wpn_grenade_fake]	= true,
+		[clsid.wpn_grenade_rgd5]	= true,
+		[clsid.wpn_grenade_rpg7]	= true
+	}
+	IAmAKnife={
+		[clsid.wpn_knife]	=true,
+		[clsid.wpn_knife_s]	=true
+	}
+	IAmAScope = {
+		[clsid.wpn_scope_s]	= true,
+		[clsid.wpn_scope]	= true
+	}
+	IAmAnAmmo = {
+		[clsid.wpn_ammo]		= true,
+		[clsid.wpn_ammo_vog25]	= true,
+		[clsid.wpn_ammo_og7b]	= true,
+		[clsid.wpn_ammo_m209]	= true
+	}
 end
+
 function IsMonster (object, class_id)
     local id = class_id or get_clsid (object)
 	return IAmAMonster[id]~=nil
 end
--------------------------------------------------------------------------------------------
-IAmAStalker = {}
-function IAmAStalkerInit()
-    IAmAStalker = {
-        [clsid.actor] = true,
-        [clsid.script_stalker] = true
-    }
-end
 function IsStalker (object, class_id)
     local id = class_id or get_clsid (object)
 	return IAmAStalker[id]~=nil
+end
+function isWeapon(object, class_id)
+	local id = class_id or get_clsid (object)
+    return IAmAWeapon[id]~=nil
+end
+function isMagazinedWeapon(object, class_id)
+	local id = class_id or get_clsid (object)
+    return clsid_magazined_weapon[id]~=nil
+end
+function isArtefact(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAnArtefact[id]~=nil
+end
+function isOutfit(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAnOutfit[id]~=nil
+end
+function isEatable(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAnEatable[id]~=nil
+end
+function isGrenade(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAGrenade[id]~=nil
+end
+function isKnife(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAKnife[id]~=nil
+end
+function isScope(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAScope[id]~=nil
+end
+function isAmmo(object, class_id)
+	local id = class_id or get_clsid (object)
+	return IAmAnAmmo[id]~=nil
 end
 -------------------------------------------------------------------------------------------
 function level_object_by_sid( sid )
@@ -1872,15 +1945,15 @@ function start_game_callback()
 -- malandrinus
     --level.add_call(watch_condition, dummy_action)
 --/ malandrinus
-  printf  ("start_game_callback called")
+ -- printf  ("start_game_callback called")
+	InitObjectTypeTables()
   task_manager.clear_task_manager()
   treasure_manager.clear_treasure_manager()
   xr_sound.clear_all_sound_object()
   dialog_manager.fill_phrase_table() 
 
   --AMK UTILS--
-  amk.on_game_start(obj)
-  amk_utils.start_game()
+  amk.on_game_start()
   --AMK UTILS--
 	_G[ "netpk" ] = naxac_netpk.init()
 	-- Пишем версию мода в лог

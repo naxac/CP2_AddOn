@@ -10,7 +10,6 @@ local chrg_walk_off		= 0.0	-- становится невозможно идти
 local chrg_power_loss	= 0.5	-- увеличивается усталость
 
 local upd_step_accum	= 500	-- частота апдейта заряда аккумулятора, мс
-local upd_step_actor	= 5000	-- частота апдейта изменения параметров актёра, мс
 local upd_step_carrying	= 2000	-- частота апдейта грузоподъёмности, мс
 
 local current_outfit_id = 0
@@ -50,13 +49,15 @@ function outfit_binder:net_spawn(data)
 	local sect = self.object:section()
 	if sys_ini:line_exist(sect, "volatile") and sys_ini:r_bool(sect, "volatile")==true then
 		self.volatile = true
+		db.volatiles[self.object:id()] = true
+
+		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
 		self.full_charge_time = sys_ini:r_float( sect, "working_time" ) * 60
 		self.se_obj = alife():object( self.object:id() )
-		self.time_left = self.full_charge_time - self.se_obj.worked_time
+		self.time_left = self.full_charge_time - (self.se_obj and self.se_obj.worked_time or 0)
 		self.last_time = get_seconds()
 		self.current_chrg = self.time_left/self.full_charge_time
 		self.last_chrg = self.current_chrg
-		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
 	end
 	self.add_weight = sys_ini:r_float_ex(sect, "additional_inventory_weight", 0)
 	self.add_weight2 = sys_ini:r_float_ex(sect, "additional_inventory_weight2", 0)
@@ -76,6 +77,12 @@ function outfit_binder:net_spawn(data)
 	self.last_cond = cond
 
 	return true
+end
+
+function outfit_binder:net_destroy()
+	db.volatiles[self.object:id()] = nil
+
+	object_binder.net_destroy(self)
 end
 
 function outfit_binder:update(delta)
@@ -133,7 +140,17 @@ function outfit_binder:update(delta)
 
 	self.time_left = math.max(self.time_left - time_shift, 0)
 
-	self.se_obj.worked_time = self.full_charge_time - self.time_left
+	if self.se_obj then
+		self.se_obj.worked_time = self.full_charge_time - self.time_left
+	else
+		local sobj = alife():object(self.object:id())
+		if sobj then
+			self.se_obj = sobj
+			self.time_left = self.full_charge_time - self.se_obj.worked_time
+			self.current_chrg = self.time_left/self.full_charge_time
+			self.last_chrg = self.current_chrg
+		end
+	end
 	self.current_chrg = self.time_left/self.full_charge_time
 
 	if math.abs(self.current_chrg - self.last_chrg) >= 0.01 then
@@ -165,7 +182,7 @@ function outfit_binder:charge(new_charge, no_test)
 		end
 	end
 
-	if self.current_chrg > 0 then
+	if self.current_chrg > 0 and not no_test then
 		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
 		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
@@ -174,10 +191,13 @@ function outfit_binder:charge(new_charge, no_test)
 				obj:set_condition(condition)
 			end,
 		self.current_chrg)
+		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge
-	self.se_obj.worked_time = self.full_charge_time - self.time_left
+	if self.se_obj then
+		self.se_obj.worked_time = self.full_charge_time - self.time_left
+	end
 	self.current_chrg = new_charge
 	self.last_cond = self.object:condition() * self:get_weight_koef()
 
@@ -193,7 +213,9 @@ end
 
 function outfit_binder:discharge()
 	self.time_left = 0
-	self.se_obj.worked_time = self.full_charge_time
+	if self.se_obj then
+		self.se_obj.worked_time = self.full_charge_time
+	end
 	self.current_chrg = 0
 	self.last_cond = 0
 	set_additional_weight(self, 0)
@@ -248,6 +270,7 @@ function on_item_from_slot(item)
 					end,
 				cond)
 				binder:discharge()
+				arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
 			end
 		end
 	end
