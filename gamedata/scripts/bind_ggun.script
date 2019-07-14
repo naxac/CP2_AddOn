@@ -1,16 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local con = get_console()
-local indicator = nil
-local ind_bar = nil
 local crosshair = nil
--- local icon = nil -- иконка перенесена в аммо
-local ggunable = {}
 
-
-local function log(arg)
-	--con:execute(string.gsub(tostring(arg), " ", "_"))
-	--con:execute("flush")
-end
 
 function init(obj)
 	local new_binder = ggun_binder(obj)
@@ -23,14 +13,13 @@ end
 ---------------------------------------------------------------------------------------------
 class "ggun_binder" (object_binder)
 function ggun_binder:__init(obj) super(obj)
-	log("ggun_binder:__init")
+--	log("ggun_binder:__init")
 	self.initialized = false
 	self.loaded = false
 end 
 
 function ggun_binder:reload(section)
 	object_binder.reload(self, section)
-	self.ammo_max = sys_ini:r_u32(section, "ammo_mag_size")
 	self.impulse_max = sys_ini:r_u32(section, "hit_impulse")
 	self.particle_hold = particles_object([[weapons\group_items\flame_center]])
 	self.particle_fire = particles_object([[weapons\group_items\rpg7_rocket_glow]])
@@ -43,46 +32,44 @@ function ggun_binder:reload(section)
 	self.sound_nohold = sound_object([[weapons\gravigun\gravigun_nohold]])
 	self.sound_nofire = sound_object([[weapons\gravigun\gravigun_nofire]])
 	self.nofire_stop_time = 0
-	log("ggun_binder:reload")
+--	log("ggun_binder:reload")
 end
 
 function ggun_binder:reinit()
 	object_binder.reinit(self)
-	log("ggun_binder:reinit")
+--	log("ggun_binder:reinit")
 end
 
 function ggun_binder:net_spawn(data)
 	if not object_binder.net_spawn(self, data) then
 		return false
 	end
-	log("ggun_binder:net_spawn")
+--	log("ggun_binder:net_spawn")
 	self.lbutton_pressed = false
 	self.rbutton_pressed = false
-	self.first_update = true
 	self.target = nil
-	self.last_ammo_elapsed = 0
-	self.last_accuracy = 0
 	self.last_in_slot = false
 	return true
 end
 
 function ggun_binder:update(delta)
 	object_binder.update(self, delta)
-	local ammo_elapsed = self.object:get_ammo_in_magazine()
-	local accuracy = db.actor:accuracy()
+
+	if has_alife_info("no_gravigun") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
+		-- запрет на использование - все отпускаем
+		if self.last_in_slot then -- только убрали
+			self.last_in_slot = false
+			self:OnRemove()
+		end
+		return
+	end
+
 	--позиция партиклов и звуков
 	local pos = vector()
 	pos:mad(device().cam_pos,device().cam_dir,0.75)
 	pos:mad(pos,device().cam_top,-0.3)
 	pos:mad(pos,device().cam_right,0.3)
 	self.gun_end_pos = vector():set(pos.x,pos.y,pos.z)
-
-	if self.first_update then
-		self.first_update = false
-		self.last_ammo_elapsed = ammo_elapsed
-		self.last_accuracy = accuracy
-		return
-	end
 	
 	-- генерируем события взятия в руки и убирания
 	local qwerty = actor_active_item and (self.object:id() == actor_active_item:id())
@@ -101,48 +88,16 @@ function ggun_binder:update(delta)
 		return -- больше ничего не делаем
 	end
 
-	if has_alife_info("no_gravigun") or has_alife_info("ui_inventory") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
-		-- запрет на использование - все отпускаем
-		if self.lbutton_pressed then
-			self:OnLButtonUp()
-			self.lbutton_pressed = false
-		end
-		if self.rbutton_pressed then
-			self:OnRButtonUp()
-			self.rbutton_pressed = false
-		end
-	else
-		-- Определяем что делаем с левой кнопокой мыши
-		local da = self.last_ammo_elapsed - ammo_elapsed
-		if da > 0 then -- это либо первое нажатие, либо удержание
-			if not self.lbutton_pressed then -- первое нажатие
-				self:OnLButtonDown()
-				self.lbutton_pressed = true
-			else -- удерживание
-				self:OnLButtonHold(delta)
-			end
-		elseif self.lbutton_pressed then -- отпускание
-			self:OnLButtonUp()
-			self.lbutton_pressed = false
-		end
-		self.last_ammo_elapsed = ammo_elapsed
-		---- Аналогично отрабатываем для правой кнопки мыши ---------
-		if accuracy*1000 < 1 then -- это либо первое нажатие, либо удержание
-			if not self.rbutton_pressed then -- первое нажатие
-				self:OnRButtonDown()
-				self.rbutton_pressed = true
-			else -- удерживание
-				self:OnRButtonHold(delta)
-			end
-		elseif self.rbutton_pressed then -- отпускание
-			self:OnRButtonUp()
-			self.rbutton_pressed = false
-		end
+	if self.rbutton_pressed then
+		self:OnRButtonHold(delta)
 	end
-	
+--	if self.lbutton_pressed then
+--		self:OnLButtonHold(delta)
+--	end
+
 	-- отслеживаем положение партиклов в fastcall-е, update отработать не успевает
 	self.object:set_fastcall( self.sound_particle_fastcall, self )
-	
+
 	--отслеживаем судьбу брошенного из захвата объекта
 	if self.thrown then
 		self:track_thrown()
@@ -150,27 +105,24 @@ function ggun_binder:update(delta)
 end
 
 function ggun_binder:net_destroy()
-	log("ggun_binder:net_destroy")
-	self.rbutton_pressed = false
-	self.lbutton_pressed = false
-	self:HideCrosshair()
-	ggunable = {}
+--	log("ggun_binder:net_destroy")
+	self:OnRemove()
 	object_binder.net_destroy(self)
 end
 
 function ggun_binder:net_save_relevant()
-	log("ggun_binder:net_save_relevant")
+--	log("ggun_binder:net_save_relevant")
 	return true
 end
 
 function ggun_binder:save(packet)
-	log("ggun_binder:save")
+--	log("ggun_binder:save")
 	object_binder.save(self, packet)
 end
 
 function ggun_binder:load(reader)
 	self.loaded = true
-	log("ggun_binder:load")
+--	log("ggun_binder:load")
 
 	object_binder.load(self, reader)
 end
@@ -235,8 +187,7 @@ function ggun_binder:sound_particle_fastcall()
 
 end
 
-function ggun_binder:OnRButtonDown(no_sound) -- was L
-	ggunable = {}
+function ggun_binder:OnRButtonDown(no_sound)
 	if not no_sound then
 		self.block_nohold = nil
 		if not self.sound_open:playing() then
@@ -249,52 +200,22 @@ function ggun_binder:OnRButtonDown(no_sound) -- was L
 	if not self.particle_hold:playing() then
 		self.particle_hold:play_at_pos(self.gun_end_pos)
 	end
-	
-	-- ищем цель: онлайновый объект с физической оболочкой в радиусе захвата и в конусе взгляда
-	local cobj, ps
-	for id=1,65534 do
-		cobj = level.object_by_id(id)
-		if cobj then -- есть онлайновый объект
-			ps = cobj:get_physics_shell()
-			if ps and cobj:mass() < 1000 then -- есть оболочка
-				ggunable[id] = true
-			end 
-		end 
-	end
 end
 
-function ggun_binder:capture(cone,dist)
-	if not cone then cone = 0.999 end -- на деле - cos угла захвата на дистанции dist
+function ggun_binder:capture(dist)
 	if not dist then dist = 13 end -- дистанция захвата
-	local back = 2 --  смещение конуса захвата за спину актора.
-	dist = dist + back
+
 	local capt_id = nil
 	local capt_obj = nil
-	local dist_min = 1.2*dist
-	local cone_max = 0.8*cone
-	for id,v in pairs (ggunable) do
-		local cobj = level.object_by_id(id)
-		if cobj and cobj:get_physics_shell() then
-			local rvec = cobj:center():sub(device().cam_pos:mad(device().cam_dir, -2.0))
-			local r = rvec:magnitude()
-			if r < 1.1*dist and r > back + 1 then -- в радиусе захвата, но перед актором
-				local proj = rvec:dotproduct(device().cam_dir)
-				local cos_a = proj/r
-				if cos_a > cone then -- попадает в конус прицеливания
-					if cos_a >= cone_max and r < dist_min then 
-					-- если предмет хотя бы не дальше от оси прицеливания, чем предыдущий выбранный, 
-					-- но ближе по расстоянию, то выбираем его
-						dist_min = r
-						cone_max = cos_a
-						capt_id = id
-						capt_obj = cobj
-					end
-				end
-			end
-		else
-			ggunable[id] = nil
+
+	local cobj = level.get_target_obj()
+	if cobj then
+		if cobj:get_physics_shell() and level.get_target_dist() <= dist then
+			capt_id = cobj:id()
+			capt_obj = cobj
 		end
 	end
+
 	if capt_id and capt_obj then -- если выбрали подходящий объект для захвата
 		self.target = capt_obj -- запомнили
 		self.target_id = capt_id -- запомнили id
@@ -310,8 +231,7 @@ function ggun_binder:capture(cone,dist)
 	end
 end
 
-function ggun_binder:OnRButtonHold(delta) -- was L
-	--self:UpdateBatteryIndicator(self.object:get_ammo_in_magazine())
+function ggun_binder:OnRButtonHold(delta)
 	if self.captured then
 		if not self.sound_pickup:playing() then
 			if not self.sound_hold:playing() then
@@ -325,14 +245,13 @@ function ggun_binder:OnRButtonHold(delta) -- was L
 	end
 	
 	if not self.target then
-		self:capture(0.999,13)
+		self:capture(13)
 	end
 	
 	if self.target then
 		if not level.object_by_id(self.target_id) then
 			-- Защита от зависания биндера при исчезновении захваченного грави-пушкой объекта 
 			-- (взорвавшаяся бочка, исчезнувший от времени обломок ящика и т.п.)
-			ggunable[self.target_id] = nil
 			self.target = nil
 			self.target_id = nil
 			return
@@ -406,7 +325,6 @@ function ggun_binder:OnRButtonHold(delta) -- was L
 			-- проверка на срыв захвата: если не захваченная до конца цель уперлась, и давно - сбросить захват
 			if self.capture_nomove_counter == 0 then
 				self.target:set_const_force(vector():set(0,1,0), -self.target:mass()*19.62, 65535*65535)
-				ggunable[self.target_id] = nil
 				self.target = nil
 				self.target_id = nil
 				self.block_nohold = nil
@@ -414,10 +332,11 @@ function ggun_binder:OnRButtonHold(delta) -- was L
 		end
 		ps:apply_force(result_impulse.x, result_impulse.y, result_impulse.z)
 	end -- if self.target ...
-end -- ggun_binder:OnLButtonHold
+end -- ggun_binder:OnRButtonHold
 
 function ggun_binder:OnRButtonUp() -- was L
-	log("ggun_binder:OnLButtonUp___start")
+	self.rbutton_pressed = false
+--	log("ggun_binder:OnLButtonUp___start")
 	if self.sound_hold:playing() then
 		self.sound_hold:stop_deffered()
 	end
@@ -441,12 +360,9 @@ function ggun_binder:OnRButtonUp() -- was L
 		-- поскольку цель может и быть захвачена, но сила тяжести будет включаться
 		-- только с определённого расстояния
 		self.target:set_const_force(vector():set(0,1,0), -self.target:mass()*19.62, 65535*65535)
-		--local ps = self.target:get_physics_shell()
-		--local impulse = device().cam_dir:mul(self.target:mass()*10000)
-		--ps:apply_force(impulse.x, impulse.y, impulse.z)
 		self.target = nil
 	end
-	log("ggun_binder:OnLButtonUp___end")
+--	log("ggun_binder:OnLButtonUp___end")
 end
 
 function ggun_binder:OnLButtonDown() -- was R
@@ -461,16 +377,13 @@ function ggun_binder:OnLButtonDown() -- was R
 		self.pulse = impulse
 		self.thrown = self.target_id
 		self.throw_time = time_global()
-		ggunable[self.target_id] = nil
 		self.target = nil
 		self.target_id = nil
 		self.sound_fire:play_at_pos(db.actor, self.gun_end_pos)
 		self.particle_fire:play_at_pos(self.gun_end_pos)
+		self:OnRButtonUp()
 	else
-		if table.getn(ggunable) == 0 then
-			self:OnRButtonDown(0)
-		end
-		self:capture(0.99,4)
+		self:capture(4)
 		if self.target then
 			self.target:set_const_force(vector():set(0,1,0), -self.target:mass()*19.62, 65535*65535)
 			local ps = self.target:get_physics_shell()
@@ -485,26 +398,45 @@ function ggun_binder:OnLButtonDown() -- was R
 			self.sound_nofire:play_at_pos(db.actor, self.gun_end_pos)
 		end
 	end
-	log("ggun_binder:OnRButtonDown")
+--	log("ggun_binder:OnLButtonDown")
 end
 
 function ggun_binder:OnLButtonHold(delta) -- was R
-	--log("ggun_binder:OnRButtonHold")
+--	log("ggun_binder:OnLButtonHold")
 end
 
 function ggun_binder:OnLButtonUp() -- was R
 end
 
+function ggun_binder:OnKeyPress(dik, bind)
+	if bind == key_bindings.kWPN_FIRE then
+		self:OnLButtonDown()
+		self.lbutton_pressed = true
+		self.object:set_ammo_elapsed(1)
+	elseif bind == key_bindings.kWPN_ZOOM then
+		self:OnRButtonDown()
+		self.rbutton_pressed = true
+	end
+end
+
+function ggun_binder:OnKeyRelease(dik, bind)
+	if bind == key_bindings.kWPN_FIRE then
+		self:OnLButtonUp()
+		self.lbutton_pressed = false
+	elseif bind == key_bindings.kWPN_ZOOM then
+		self:OnRButtonUp()
+		self.rbutton_pressed = false
+	end
+end
+
 function ggun_binder:OnTake()
-	log("ggun_binder:OnTake")
+--	log("ggun_binder:OnTake")
 	self:ShowCrosshair()
+	xr_s.subscribe("key_press", self.OnKeyPress, {self = self})
+	xr_s.subscribe("key_release", self.OnKeyRelease, {self = self})
 end
 
 function ggun_binder:OnHold(delta)
-	local ammo = self.object:get_ammo_in_magazine()
-	if ammo < self.ammo_max then ammo = ammo + 1 end
-	self.object:set_ammo_elapsed(ammo)
-	
 	-- разные проверки
 	if has_alife_info("snp_fenrir14_done") and
 		not has_alife_info("snp_kamen_udachy_have") and
@@ -521,10 +453,14 @@ function ggun_binder:OnHold(delta)
 end
 
 function ggun_binder:OnRemove()
-	log("ggun_binder:OnRemove")
+--	log("ggun_binder:OnRemove")
+	if self.rbutton_pressed then self:OnRButtonUp() end
+	if self.lbutton_pressed then self:OnLButtonUp() end
 	self.rbutton_pressed = false
 	self.lbutton_pressed = false
 	self:HideCrosshair()
+	xr_s.unsubscribe("key_press", self.OnKeyPress)
+	xr_s.unsubscribe("key_release", self.OnKeyRelease)
 end
 
 
@@ -540,7 +476,6 @@ function ggun_binder:track_thrown()
 			local ps = obj:get_physics_shell()
 			if ps then
 				if self.throw_time and (time_global() > self.throw_time + 500) then
-					ggunable[self.thrown] = true -- возвращаем брошенный предмет в список захватываемых
 					self.throw_time = nil
 					if not string.find(obj:section(),"explosive") and not string.find(obj:section(),"af_") then 
 					-- если при ударе ничего особенного не должно происходить,то и следить за предметом дальше незачем
@@ -578,11 +513,10 @@ function ggun_binder:track_thrown()
 						-- предохранитель от ложного срабатывания: в верхней точке крутой навесной траектории  направление линейной скорости сильно меняется без удара
 						-- отслеживаем изменения угловой скорости. Либо врашения объекта не было (угловая скорость = 0), но оно появилось
 						-- либо направление угловой скорости заметно изменилось за короткое время ( cos угла между старым вектором угловой скорости и новым  < 0.99)
-						local sect = obj:section()
-						if string.find(sect,"explosive") then
+						if obj:clsid() == clsid.obj_explosive then
 							obj:explode()
-						elseif string.find(sect,"af_") then
-							af_activate(sect,obj:position(),self.thrown)
+						elseif obj:is_artefact() then
+							af_activate(obj:section(),obj:position(),self.thrown)
 						end
 						self.thrown = nil
 						self.throw_time = nil
@@ -634,25 +568,6 @@ function ggun_binder:ShowCrosshair()
 		crosshair:SetStretchTexture(true)
 		get_hud():AddDialogToRender(crosshair)
 	end
---[[ иконка перенесена в аммо
-	if not icon then
-		local pos_x
-		local scale_x = 170
-		if ar > 0.75 then
-			pos_x = 975
-			scale_x = 170
-		else
-			pos_x = 996
-			scale_x = 150
-		end
-		local scale_y = math.floor(scale_x/2*0.8/ar)
-		icon = CUIStatic() --740
-		icon:Init(pos_x-scale_x/2,739-scale_y/2,scale_x,scale_y)
-		icon:InitTexture("wpn\\gravigun\\gravigun_icon")
-		icon:SetStretchTexture(true)
-		get_hud():AddDialogToRender(icon)
-	end
-]]
 end
 
 function ggun_binder:HideCrosshair()
@@ -660,12 +575,6 @@ function ggun_binder:HideCrosshair()
 		get_hud():RemoveDialogToRender(crosshair)
 		crosshair = nil
 	end
---[[ иконка перенесена в аммо
-	if icon then
-		get_hud():RemoveDialogToRender(icon)
-		icon = nil
-	end
-]]
 end
 
 ----------------------------- АКТИВАЦИЯ АРТОВ ГРАВИ-ПУШКОЙ
@@ -673,7 +582,7 @@ end
 function af_activate(sect,pos,id)
 	if not sys_ini:line_exist("wpn_gravigun", sect) then return end
 	local strng = sys_ini:r_string("wpn_gravigun", sect)
-	local anomaly_params = parse_data(strng)
+	local anomaly_params = string.explode(strng, ",", true)
 	local radius = math.random((anomaly_params[2]*100),(anomaly_params[3]*100))/100
 	local power = math.random((anomaly_params[4]*100),(anomaly_params[5]*100))/100
 	an_spawn(anomaly_params[1],radius,pos,db.actor:level_vertex_id(),db.actor:game_vertex_id(),power)
@@ -692,7 +601,6 @@ end
 
 -- Не со всеми аномалиями работает 100% корректно, давно приватизировал с АМК форума...
 function an_spawn(anom_name,plosh,position,level_vertex_id,game_vertex_id,powers_a,time_dangeros)
-local con = get_console()
 	local obj = alife():create(anom_name,position,level_vertex_id,game_vertex_id)
 	local t = {}
 	t.shapes = {
@@ -708,46 +616,4 @@ local con = get_console()
 	netpk:modify( obj, t, netpk.fState )
 
 	return obj
-end
-
-function parse_data(str)
-	local string_parts = {}
-	if str == nil then
-		string_parts[1] = nil
-		return string_parts
-	end
-	local str_beg,str_end
-	str_end = str
-	local split_pos = find_split_pos(str_end)
-	while split_pos ~= nil do
-		str_beg, str_end = split_string(str_end,split_pos)
-		table.insert(string_parts,str_beg)
-		split_pos = find_split_pos(str_end)
-	end
-	table.insert(string_parts,str_end)
-	return string_parts
-end
-
-function find_split_pos(str)
-	local split_pos = string.find(str,",")
-	if split_pos == nil then
-		return nil
-	end
-	local br1_pos = string.find(str,"(",1,true)
-	local br2_pos = string.find(str,")",1,true)
-	if br1_pos ~= nil and br2_pos ~= nil and br1_pos < br2_pos and split_pos > br1_pos then
-		local str_end1 = string.sub(str,(br2_pos +1),string.len(str))
-		if string.find(str_end1,",") ~= nil then
-			split_pos = br2_pos + string.find(str_end1,",")
-		else
-			split_pos = nil
-		end
-	end
-	return split_pos
-end
-
-function split_string(str,split_pos)
-	local str_beg = (string.sub(str,1,split_pos-1))
-	local str_end = string.sub(str,(split_pos+1),string.len(str))
-	return str_beg,str_end
 end
