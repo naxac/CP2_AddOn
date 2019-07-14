@@ -197,17 +197,10 @@ _G['remove_small_timer'] = function ( name )
 	get_mgr():remove_timer( name )
 end
 
-function detach()
-	local m = get_mgr()
-	xr_s.unsubscribe( "update", m.check_timers )
-	xr_s.unsubscribe( "pre_save", m.save_timers )
-end
-
 function attach()
 	local m = get_mgr()
 	xr_s.subscribe( "net_spawn", m.load_timers, { self = m, once = true } )
 	xr_s.subscribe( "update", m.check_timers, { self = m } )
 	xr_s.subscribe( "pre_save", m.save_timers, { self = m } )
-	xr_s.unsubscribe( "net_destroy", this.detach )
 	xr_timers_actions.timer_action( "~~ timers init ~~", "" ) -- init actions
 end
