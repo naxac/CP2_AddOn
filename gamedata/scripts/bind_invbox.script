@@ -1,0 +1,101 @@
+----------------------------------------------------------------------------------------------------
+-- Physic objects binding
+----------------------------------------------------------------------------------------------------
+-- Разработчик: Evgeniy Negrobov (Jon) jon@gsc-game.kiev.ua
+-- Доработки: Andrey Fidrya (Zmey) af@svitonline.com
+----------------------------------------------------------------------------------------------------
+
+function init(obj)
+	local new_binder = inv_box_binder(obj)
+	obj:bind_object(new_binder)
+end
+
+---------------------------------------------------------------------------------------------
+class "inv_box_binder" (object_binder)
+function inv_box_binder:__init(obj) super(obj)
+	self.initialized = false
+	self.loaded = false
+end 
+
+function inv_box_binder:reload(section)
+	object_binder.reload(self, section)
+end
+
+function inv_box_binder:reinit()
+	object_binder.reinit(self)
+
+	--printf("inv_box_binder:reinit()")
+
+	--printf("_bp: inv_box_binder: %s", self.object:name())
+	db.storage[self.object:id()] = { }
+
+	self.st = db.storage[self.object:id()]
+end
+
+function inv_box_binder:update(delta)
+	object_binder.update(self, delta)
+
+	if (not self.initialized) and db.actor then
+		self.initialized = true
+		xr_logic.initialize_obj(self.object, self.st, self.loaded, db.actor, modules.stype_item)        
+	end
+
+	if self.st.active_section ~= nil then
+		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "update", delta)
+
+		self.object:set_callback(callback.use_object, self.use_callback, self)
+	end
+end
+
+function inv_box_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then
+		return false
+	end
+
+	-- прозрачные рюкзаки
+	transparent_treasure.net_spawn(self.object)
+
+	return true
+end
+
+function inv_box_binder:net_destroy()
+	local st = db.storage[self.object:id()]
+	if st.active_scheme then
+		xr_logic.issue_event(self.object, st[st.active_scheme], "net_destroy")
+	end
+
+	self.object:set_callback(callback.use_object, nil)
+	
+	object_binder.net_destroy(self)
+end
+
+function inv_box_binder:net_save_relevant()
+	--printf("inv_box_binder:net_save_relevant(): self.object:name()='%s'", self.object:name())
+	return true
+end
+
+function inv_box_binder:save(packet)
+	--printf("inv_box_binder:save(): self.object:name()='%s'", self.object:name())
+	object_binder.save(self, packet)
+
+	xr_logic.save_obj(self.object, packet)
+end
+
+function inv_box_binder:load(reader)
+	self.loaded = true
+
+	--printf("inv_box_binder:load(): self.object:name()='%s'", self.object:name())
+	object_binder.load(self, reader)
+
+	xr_logic.load_obj(self.object, reader)
+end
+
+function inv_box_binder:use_callback(obj, who)
+	xr_s.on_event("npc_use", obj, who)
+
+	if self.st.active_section then
+		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "use_callback", obj, who)
+	end
+
+	fly.returner_clear_pos()
+end
