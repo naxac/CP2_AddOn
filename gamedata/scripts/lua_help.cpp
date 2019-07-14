@@ -6134,6 +6134,8 @@ C++ class CUIComboBox : CUIWindow {
     function ResetPPMode();
     function SetCurrentID(number);
     function IsAutoDelete();
+    function AddItem(CUIListItem*);
+    function GetText();
 };
 
 C++ class CUICustomEdit : CUIWindow {
