@@ -27,7 +27,7 @@ function item_binder:net_spawn(obj)
 	
 	if self.quest_item_condlist then
 		local res = xr_logic.pick_section_from_condlist(db.actor, self.object, self.quest_item_condlist)
-		self.object:set_item_flag("quest_item", res~=nil)
+		self.object:set_inventory_item_flags(ii_flags.is_quest_item, res~=nil)
 	end
 	if self.can_take_condlist then
 		local res = xr_logic.pick_section_from_condlist(db.actor, self.object, self.can_take_condlist)
@@ -37,11 +37,11 @@ function item_binder:net_spawn(obj)
 	return true
 end
 
-function item_binder:set_can_take(flag)
-	if flag == false and self.object:parent() ~= nil then
+function item_binder:set_can_take(val)
+	if val == false and self.object:parent() ~= nil then
 		self.object:parent():drop_item(self.object)
 	end
-	self.object:set_item_flag("can_take", flag)
+	self.object:set_inventory_item_flags(ii_flags.can_take, val)
 end
 ---------------------------------------------------------------------------------
 function bind(item)
