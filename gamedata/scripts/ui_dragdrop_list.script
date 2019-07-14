@@ -1,4 +1,14 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+
+local function parse_dragdrop_params(str)
+	local ret = {}
+	local t = string.explode(str, ":")
+	for i = 1, #t-1, 2 do
+		ret[ t[i] ] = tonumber( t[i+1] )
+	end
+	return ret
+end
+
 local cond_similar = 2
 local function cond_interval(cond)
 	local cnt = 100/cond_similar
@@ -68,12 +78,14 @@ end
 
 class "UIDragDropList" (CUIScriptWnd)
 
-function UIDragDropList:__init(width, height, cell_width, cell_height, rows_num, cols_num, group_similar)
+function UIDragDropList:__init(width, height, params_string)
 	super()
 
 	self:Init(0, 0, width, height)
 
-	local xml_name = create_xml(width, height, cell_width*cols_num, cell_height*rows_num)
+	local p = parse_dragdrop_params(params_string)
+
+	local xml_name = create_xml(width, height, p.cell_width*p.cols_num, p.cell_height*p.rows_num)
 
 	local xml = CScriptXmlInit()
 	xml:ParseFile(xml_name)
@@ -82,12 +94,13 @@ function UIDragDropList:__init(width, height, cell_width, cell_height, rows_num,
 	self.list = xml:InitStatic("list", nil)
 
 	self.containers = {}
-	self.cell_width = cell_width
-	self.cell_height = cell_height
-	self.rows_num = rows_num
-	self.rows_num_cfg = rows_num
-	self.cols_num = cols_num
-	self.group_similar = group_similar
+	self.cell_width = p.cell_width
+	self.cell_height = p.cell_height
+	self.rows_num = p.rows_num
+	self.rows_num_cfg = p.rows_num
+	self.cols_num = p.cols_num
+	self.group_similar = (p.group_similar==nil or p.group_similar~=0)
+	self.unlimited = (p.unlimited==nil or p.unlimited~=0)
 
 	self.place2cell = {}
 	self.name2item = {}
@@ -171,7 +184,13 @@ function UIDragDropList:AddItem(item)
 		itm = ui_cell_item.UICellItem(item)
 		itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
 		local idx = self:GetFreePlace(itm.icon.width, itm.icon.height)
-			or abort("UIDragDropList:AddItem: no free cell for item!")
+		if not idx then
+			if self.unlimited then
+				return abort("[UIDragDropList:AddItem] error for create free cells for item[%s]", item:name())
+			end
+			return false
+		end
+		
 		local cell = self.containers[idx]
 		
 		itm:Init(
@@ -206,14 +225,18 @@ function UIDragDropList:GetFreePlace(width, height)
 		idx = idx + 1
 		cell = self.containers[idx]
 		if not cell then
-			self.scroll_v:RemoveWindow(self.list)
-		--	self.scroll_v:Clear()
-			self:AddRow()
-			self.list:SetHeight(self.rows_num*self.cell_height)
-			self.scroll_v:AddWindow(self.list, true)
-			self.list:SetAutoDelete(false)
-		--	cell = self.containers[idx]
-			return self:GetFreePlace(width, height)
+			if self.unlimited then
+				self.scroll_v:RemoveWindow(self.list)
+			--	self.scroll_v:Clear()
+				self:AddRow()
+				self.list:SetHeight(self.rows_num*self.cell_height)
+				self.scroll_v:AddWindow(self.list, true)
+				self.list:SetAutoDelete(false)
+			--	cell = self.containers[idx]
+				return self:GetFreePlace(width, height)
+			else
+				return false
+			end
 		end
 
 		if cell.free
