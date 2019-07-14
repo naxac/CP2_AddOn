@@ -3,14 +3,9 @@
 -----------------------------------------------------------------------------------
 local particles={}
 
-function bind(obj)      
---   printf("_bp: monster.bind: name='%s', id='%d'", obj:name(), obj:id())
-
-   -- Для спауна
-   --xr_spawner.spawn_client(obj) 
-
-   local new_binder = generic_object_binder(obj) 
-   obj:bind_object(new_binder) 
+function bind(obj)
+   local new_binder = generic_object_binder(obj)
+   obj:bind_object(new_binder)
 end 
 
 ------------------------------------------------------------------------------------
@@ -18,7 +13,6 @@ class "generic_object_binder" (object_binder)
 
 function generic_object_binder:__init(obj) super(obj) 
 	self.loaded = false 
-	self.first_update = false
 	self.last_update = 0 
 	self.particles = {} 
 --	Обработчик мутантов
@@ -40,11 +34,8 @@ end
 
 function generic_object_binder:reinit() 
 	object_binder.reinit(self) 
-	
-	-- У торговца нет поддержки перемещения
-	if self.object:clsid() ~= clsid.script_trader then 
-		self.object:set_patrol_extrapolate_callback(generic_object_binder.extrapolate_callback, self) 
-	end 
+
+	self.object:set_patrol_extrapolate_callback(generic_object_binder.extrapolate_callback, self) 
 
 	db.storage[self.object:id()] = { }
 
@@ -62,14 +53,6 @@ function generic_object_binder:update(delta)
 
 	local section = self.object:section()
 	local cls = self.object:clsid()
-	
-	if self.first_update == false then
-		self.first_update = true
-		-- Апдейт торговли
-		if cls == clsid.script_trader then 
-			trade_manager.update(self.object) 
-		end 
-	end
 
 	if particles[self.object:id()] and table.getn(particles[self.object:id()])>0 then 
 		for kk,vv in pairs(particles[self.object:id()]) do 
@@ -276,7 +259,7 @@ function generic_object_binder:death_callback(victim, who)
 		end 
 	end 
     
-	if rx_ai then rx_ai.monster_death(victim, who) end
+--	if rx_ai then rx_ai.monster_death(victim, who) end
 
 	--AMK UTILS--
 	amk.on_death(victim, who)
@@ -384,17 +367,12 @@ function generic_object_binder:net_spawn(sobject)
 	end
    
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
-	
-	amk.on_net_spawn(self.object) 
 
-	--local particle_param = utils.cfg_get_string(sys_ini, self.object:section(), "bones_particles", null, false, false, nil) 
 	local particle_param = getIniValueString(self.object:section(), "bones_particles", nil, nil) 
 
 	if particle_param and sys_ini:section_exist(particle_param) then 
-		--local tmp=amk.parse_ini_section_to_array(sys_ini),particle_param) 
 		local tmp=amk.parse_ini_section_to_array_new(nil,particle_param) 
 		for k,v in pairs(tmp) do 
-			--local t = amk.parse_ini_section_to_array(sys_ini, v) 
 			local t = amk.parse_ini_section_to_array_new(nil, v) 
 			t.obj = self.object 
 			if not t.stop_on_death or self.object:alive() then 
@@ -492,21 +470,18 @@ function generic_object_binder:load(reader)
 	xr_logic.load_obj(self.object, reader)
 end
 
--- ОП-2: Добавлен калбек на юзанье монстра, а также для всех монстров подключена схема on_use.
--- Cхема on_use не подключена для класса script_trader (Василий и Сидорович) для обратной совместимости.
+-- ОП-2: Добавлен калбек на юзанье монстра, а также для всех монстров подключена схема on_use
 function generic_object_binder:use_callback(obj, who)
 	fly.returner_clear_pos()
 	if self.object == nil then return end
 
-	if self.object:clsid() == clsid.script_trader then return end
+	xr_s.on_event("npc_use", obj, who)
 
 	if self.object:alive() then
 		if self.st.active_section then
 		  xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "use_callback", obj, who)
 		end
 	else
-		hotkeys.on_use(obj, who)
-	
 		monster_parts.on_monster_use(obj, who) -- обыск трупа
 		-- автообыск трупа
 		if game_options.AutoGrab then
