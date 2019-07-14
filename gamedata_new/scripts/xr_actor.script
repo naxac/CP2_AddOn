@@ -1,0 +1,110 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- получение некоторых значений с плавающей запятой
+-- параметры бега
+function get_walk_accel()         return db.actor:get_actor().walk_accel end
+function get_jump_speed()         return db.actor:get_actor().jump_speed end
+function get_run_factor()         return db.actor:get_actor().run_coef end
+function get_run_back_factor()    return db.actor:get_actor().run_back_coef end
+function get_walk_back_factor()   return db.actor:get_actor().walk_back_coef end
+function get_crouch_factor()      return db.actor:get_actor().crouch_coef end
+function get_climb_factor()       return db.actor:get_actor().climb_coef end
+function get_sprint_koef()        return db.actor:get_actor().sprint_koef end
+function get_walk_strafe_factor() return db.actor:get_actor().walk_strafe_coef end
+function get_run_strafe_factor()  return db.actor:get_actor().run_strafe_coef end
+-- параметры стрельбы
+function get_disp_base()          return db.actor:get_actor().disp_base end -- в радианах
+function get_disp_aim()           return db.actor:get_actor().disp_aim end -- в радианах
+function get_disp_vel_factor()    return db.actor:get_actor().disp_vel_factor end
+function get_disp_accel_factor()  return db.actor:get_actor().disp_accel_factor end
+function get_disp_crouch_factor() return db.actor:get_actor().disp_crouch_factor end
+function get_disp_crouch_no_accel_factor()  return db.actor:get_actor().disp_crouch_no_acc_factor end
+-- получение некоторых целых и логических значений
+-- режим прицеливания
+function zoom_mode() return bit_and(db.actor:get_actor_int(nil, 1480), 1) end -- возвращает 0/1
+
+-- установка некоторых значений
+-- параметры бега
+function set_sprint_koef(v)        db.actor:get_actor().sprint_koef = v end
+function set_jump_speed(v)         db.actor:get_actor().jump_speed = v end
+function set_walk_accel(v)         db.actor:get_actor().walk_accel = v end
+function set_run_factor(v)         db.actor:get_actor().run_coef = v end
+function set_run_back_factor(v)    db.actor:get_actor().run_back_coef = v end
+function set_walk_back_factor(v)   db.actor:get_actor().walk_back_coef = v end
+function set_crouch_factor(v)      db.actor:get_actor().crouch_coef = v end
+function set_climb_factor(v)       db.actor:get_actor().climb_coef = v end
+function set_walk_strafe_factor(v) db.actor:get_actor().walk_strafe_coef = v end
+function set_run_strafe_factor(v)  db.actor:get_actor().run_strafe_coef = v end
+-- параметры стрельбы
+function set_disp_base(v)          db.actor:get_actor().disp_base = v end -- в радианах
+
+function set_jump_power( v )
+  db.actor:get_actor().condition.jump_power = v
+end
+function set_walk_power( v )
+  db.actor:get_actor().condition.walk_power = v
+end
+
+------------------------------------------------------------------------------------
+local tbl_check = {}
+
+function change_actor_parameter( line, who, mode, value )
+	local t = tbl_check[line]
+	if not t then
+		t = {}
+		tbl_check[line] = t
+	end
+
+	if mode then	-- restore default parameter
+		t[who] = nil
+		for k,v in pairs(t) do return false end		-- can't enable
+		this["set_"..line]( sys_ini:r_float("actor", line) )
+		return true
+	else
+		t[who] = true
+		for k in pairs(t) do
+			if k~=who then return false end		-- already disabled
+		end
+		this["set_"..line](value or 0)
+		return true
+	end
+end
+
+function walk_off(k)
+	return change_actor_parameter("walk_accel", k, false)
+end
+function walk_on(k)
+	return change_actor_parameter("walk_accel", k, true)
+end
+
+function jump_off(k)
+	return change_actor_parameter("jump_speed", k, false)
+end
+function jump_on(k)
+	return change_actor_parameter("jump_speed", k, true)
+end
+
+function sprint_off(k)
+	return change_actor_parameter("sprint_koef", k, false, 1)
+end
+function sprint_on(k)
+	return change_actor_parameter("sprint_koef", k, true)
+end
+
+function change_move(s, mode)
+	if mode then
+		walk_on(s)
+		jump_on(s)
+	else
+		walk_off(s)
+		jump_off(s)
+	end
+end
+
+function change_actor_weight(delta)
+	local a = db.actor
+	local mw = a:get_actor_max_weight()
+	local mww = a:get_actor_max_walk_weight()
+	a:set_actor_max_weight(mw + delta)
+	a:set_actor_max_walk_weight(mww + delta)
+end
+

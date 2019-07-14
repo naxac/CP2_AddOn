@@ -1,0 +1,548 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+---- Rulix aka Bak ----
+
+rx_utils.init()
+--myspy = rx_utils.prof_spy()
+local rx_ini = ini_file("misc\\rx_ai.ltx")
+--------------------------------------utils------------------------------------------
+
+local inited_npcs = {}
+ids_to_remove = {}
+
+local death_sound_prob = rx_utils.read_from_ini(rx_ini,"sound","death_probability",50)/100
+local ff_sound_prob = rx_utils.read_from_ini(rx_ini,"sound","friendlyfire_probability",50)/100
+
+function printf(str,...)
+	rx_utils.printf(str,...)
+end
+
+function count_table(t)
+	if type(t) ~= "table" then
+		return
+	end
+	local cnt = 0
+	for k,v in pairs(t) do
+		cnt = cnt+1
+	end
+	return cnt
+end
+
+-----------------------------------storage-------------------------------------
+function get_storage(id,name)
+	local st = db.storage[id]
+	if not st then
+		if not id then
+			printf("get_storage[%s|%s]:not id!!!",id,name)
+			return {}
+		end
+		local obj = level.object_by_id(id)
+		local objname = obj and obj:character_name() or "<nil>"
+		printf("get_storage[%s|%s]:not npc storage!!! (%s)",id,name,objname)
+		return {}
+	end
+	if not st.rx_ai then
+		st.rx_ai = {}
+	end
+	if not name then
+		return st.rx_ai
+	end
+	if not st.rx_ai[name] then
+		st.rx_ai[name] = {}
+	end
+	return st.rx_ai[name]
+end
+function IsTrader(npc)
+ return rx_utils.IsTrader(npc)
+end
+function get_var(npc,name,def)
+	local st = npc and db.storage[npc:id()]
+	if st.pstor and st.pstor[name] then
+		return st.pstor[name]
+	end
+	return def
+end
+
+function save_var(npc,name,val)
+	local st = db.storage[npc:id()]
+	if not st.pstor then
+		st.pstor = {}
+	end
+	st.pstor[name] = val
+	return val
+end
+
+------------------------------------callbacks--------------------------------------
+
+
+function actor_update()
+	if #ids_to_remove > 0 then
+		for i=1,#ids_to_remove do
+			local sobj = alife():object(ids_to_remove[i])
+			if sobj then
+				alife():release(sobj)
+			end
+		end
+		ids_to_remove = {}
+	end
+	local tg = time_global()
+	if db.actor then
+		if rx_wmgr then
+			rx_wmgr.global_update(tg)
+		end
+		if rx_addons then
+			rx_addons.update(tg)
+		end
+	end
+end
+
+function actor_net_spawn()
+--	if rx_gl then
+--		rx_gl.net_spawn()
+--	end
+	if rx_wmgr then
+		rx_wmgr.init()
+	end
+	rx_sound.load_sounds()
+end
+
+-- Ќам это не надо...
+function actor_item_take(item)
+	-- все подобранные ножи замен€ем на фейковые
+	if item:clsid() == clsid.wpn_knife_s and sys_ini:section_exist("fake_"..item:section()) then
+		local wpn = db.actor:item_in_slot(inventory_slots.KNIFE)
+		if not (wpn and wpn:id() == item:id()) then
+			table.insert(ids_to_remove,item:id())
+			local obj = alife():create("fake_"..item:section(), db.actor:position(),0,0, db.actor:id())
+			monnoroch.update_condition(obj.id,item:condition())
+		end
+	end
+end
+
+function actor_save()
+	if rx_wmgr then
+		rx_wmgr.return_all()
+	end
+	if rx_addons then
+		rx_addons.actor_save()
+	end
+end
+
+function npc_update(npc,st)
+	if npc and npc:alive() then
+		if st.wm then
+			st.wm:update()
+		end
+		if rx_addons then
+			rx_addons.npc_update(npc,st)
+		end
+--		eat_medkit(npc)
+--		look_into_optical_sight(npc)
+	end
+	rx_sound.npc_update(npc)
+end
+
+function npc_net_spawn(npc)
+	get_storage(npc:id())
+	rx_sound.init_npc_sound(npc)
+end
+
+function npc_switch_offline(npc)
+	if rx_addons then
+		rx_addons.npc_switch_offline(npc)
+	end
+	if rx_wmgr then
+		rx_wmgr.kill_wm(npc)
+	end
+	if rx_bandage then
+		rx_bandage.npc_switch_offline(npc)
+	end
+	if rx_gl then
+		rx_gl.on_npc_go_offline(npc)
+	end
+	unsubscribe_from_events(npc:id())
+	inited_npcs[npc:id()] = nil
+end
+
+death_disable_evas = {
+--[xr_evaluators_id.state_mgr + 1] = true,
+[xr_evaluators_id.state_mgr + 2] = true,
+}
+function npc_death(npc,who)
+	if npc then
+		local npc_id = npc:id()
+		if rx_wmgr then
+			rx_wmgr.kill_wm(npc)
+		end
+--		if xr_corpse_detection then
+--			xr_corpse_detection.npc_death(npc,who)
+--		end
+		issue_event(npc,"death_callback",who)
+		unsubscribe_from_events(npc_id)
+		inited_npcs[npc_id] = nil
+		-- озвучка смерти
+		if math.random() > death_sound_prob then
+			npc:set_sound_mask(-1)
+		end
+
+		local planner = npc:motivation_action_manager()
+		for id,ret in pairs(death_disable_evas) do
+			planner:remove_evaluator(id)
+			planner:add_evaluator(id,property_evaluator_const(ret))
+		end
+	end
+end
+
+function npc_hit(npc,amount,dir,who,bone_id)
+	if npc and amount ~= 0 then
+		issue_event(npc,"hit_callback",amount,dir,who,bone_id)
+		-- sound part
+		local snd
+		if math.random() < ff_sound_prob and who and who.is_alive
+			and (not xr_wounded.is_wounded(npc)) and who:id() ~= npc:id()
+		then
+			if npc:relation(who) ~= game_object.enemy
+				and who:relation(npc) ~= game_object.enemy
+				and npc:position():distance_to_sqr(who:position()) < 1000
+			then
+				if bone_id == 0 then
+					snd = "friendly_grenade"
+				else
+					snd = "friendly_fire"
+				end
+			end
+		end
+		if snd then
+			rx_sound.set_sound_play(npc:id(),snd)
+		end
+	end
+end
+--[[
+function npc_item_take(npc,item)
+	if npc then
+		issue_event(npc,"on_item_take",item)
+	end
+	if rx_addons then
+		rx_addons.npc_item_take(npc,item)
+	end
+end
+
+function npc_item_drop(npc,item)
+	if npc then
+		issue_event(npc,"on_item_drop",item)
+	end
+end]]
+
+function monster_death(npc,who)
+	if xr_corpse_detection then
+		xr_corpse_detection.npc_death(npc,who)
+	end
+end
+
+function issue_event(npc,name,...)
+	local st = get_storage(npc:id(),"events")
+	if not st then
+		return
+	end
+	for k,v in pairs(st) do
+		if v and k[name] then
+			k[name](k,...)
+		end
+	end
+end
+
+function subscribe_for_events(npc,obj)
+	get_storage(npc:id(),"events")[obj] = true
+end
+
+function unsubscribe_from_events(npc_id,obj)
+	if obj then
+		get_storage(npc_id,"events")[obj] = nil
+	else
+		get_storage(npc_id)["events"] = nil
+	end
+end
+
+base_id = 18800
+
+function load_schemes()
+	if rx_reload then
+		load_scheme("rx_reload","reload",modules.stype_stalker)
+	end
+	if rx_gl then
+		load_scheme("rx_gl","launch_grenade",modules.stype_stalker)
+	end
+	if rx_facer then
+		load_scheme("rx_facer","facer",modules.stype_stalker)
+	end
+	if rx_bandage then
+		load_scheme("rx_bandage","bandage",modules.stype_stalker)
+	end
+	if rx_ff then
+		load_scheme("rx_ff","rx_ff",modules.stype_stalker)
+	end
+	if rx_knife then
+		load_scheme("rx_knife","rx_knife",modules.stype_stalker)
+	end
+	if rx_kill_wounded then
+		load_scheme("rx_kill_wounded","kill_wounded",modules.stype_stalker)
+	end
+	if xr_help_wounded then
+		load_scheme("xr_help_wounded","help_wounded",modules.stype_stalker)
+	end
+	if post_combat_idle then
+		load_scheme("post_combat_idle","post_combat_idle",modules.stype_stalker)
+	end
+	if xr_corpse_detection then
+		load_scheme("xr_corpse_detection","corpse_detection",modules.stype_stalker)
+	end
+end
+
+function disable_schemes(npc)
+--[[	if rx_bandage then
+		rx_bandage.disable_scheme(npc)
+	end
+	if rx_reload then
+		rx_reload.disable_scheme(npc,"reload")
+	end
+	if rx_gl then
+		rx_gl.disable_scheme(npc,"launch_grenade")
+	end
+	if rx_facer then
+		rx_facer.disable_scheme(npc,"facer")
+	end
+	if rx_knife then
+		rx_knife.disable_scheme(npc,"knife")
+	end]]
+end
+
+function enable_schemes(ini,npc)
+	if not inited_npcs[npc:id()] then
+		npc_net_spawn(npc)
+		inited_npcs[npc:id()] = true
+	end
+	if rx_reload then
+		rx_reload.set_scheme(npc,ini,"reload","reload")
+	end
+	if rx_gl then
+		rx_gl.set_scheme(npc,ini,"launch_grenade","launch_grenade")
+	end
+	if rx_facer then
+		rx_facer.set_scheme(npc,ini,"facer","facer")
+	end
+	if rx_bandage then
+		rx_bandage.set_scheme(npc,ini,"bandage","bandage")
+	end
+	if rx_ff then
+		rx_ff.set_scheme(npc,ini,"rx_ff","rx_ff")
+	end
+	if rx_knife then
+		rx_knife.set_scheme(npc,ini,"rx_knife","rx_knife")
+	end
+	if rx_kill_wounded then
+		rx_kill_wounded.set_scheme(npc,ini,"kill_wounded","kill_wounded")
+	end
+	if xr_help_wounded then
+		xr_help_wounded.set_help_wounded(npc,ini,"help_wounded","help_wounded")
+	end
+	if post_combat_idle then
+		post_combat_idle.set_scheme(npc,ini,"post_combat_idle",section_logic)
+	end
+	if xr_corpse_detection then
+		xr_corpse_detection.set_corpse_detection(npc,ini,"corpse_detection","corpse_detection")
+	end
+end
+
+function reset_schemes(npc, scheme, st, section)
+	if xr_help_wounded then
+		xr_help_wounded.reset_help_wounded(npc, scheme, st, section)
+	end
+	if post_combat_idle then
+		post_combat_idle.reset_scheme(npc, scheme, st, section)
+	end
+	if xr_corpse_detection then
+		xr_corpse_detection.reset_corpse_detection(npc, scheme, st, section)
+	end
+end
+
+function addCommonPrecondition(action)
+	if rx_reload then
+		action:add_precondition(world_property(rx_reload.evid_reload,false))
+	end
+	if rx_gl then
+		action:add_precondition(world_property(rx_gl.evid_gl_fire,false))
+		action:add_precondition(world_property(rx_gl.evid_gl_reload,false))
+	end
+	if rx_facer then
+		action:add_precondition(world_property(rx_facer.evid_facer,false))
+	end
+	if rx_bandage then
+		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
+	end
+	if rx_knife then
+		action:add_precondition(world_property(rx_knife.evid_knife_attack,false))
+	end
+	if xr_help_wounded then
+		action:add_precondition(world_property(xr_help_wounded.evid_wounded_exist,false))
+	end
+	if post_combat_idle then
+		action:add_precondition(world_property(post_combat_idle.evid_post_combat,false))
+	end
+	if xr_corpse_detection then
+		action:add_precondition(world_property(xr_corpse_detection.evid_corpse_exist,false))
+	end
+end
+
+------------------------------------eating----------------------------------------
+
+local eating = {enabled = rx_ini:section_exist("npc_eating") and rx_ini:r_bool("npc_eating","enabled")}
+
+function eat_init()
+	local sect = "npc_eating"
+	eating.exc_comms = rx_utils.parse_list(rx_ini,sect,"excluded_communities",true)
+	eating.exc_npcs = rx_utils.parse_list(rx_ini,sect,"excluded_npcs",true)
+	eating.ic = rx_utils.read_from_ini(rx_ini,sect,"in_combat",false,0)
+	eating.oc = rx_utils.read_from_ini(rx_ini,sect,"out_combat",true,0)
+	eating.max_h = rx_utils.read_from_ini(rx_ini,sect,"medkit_health",50)/100
+	eating.min_b = rx_utils.read_from_ini(rx_ini,sect,"bandage_bleeding",0.2)
+	eating.medkits = rx_utils.parse_list(rx_ini,sect,"medkits")
+	eating.bandages = rx_utils.parse_list(rx_ini,sect,"bandages")
+	eating.delay = rx_utils.parse_list(rx_ini,sect,"delay")
+end
+
+function eat_medkit(npc)
+	if not eating.enabled then
+		return
+	end
+	if not eating.max_h then
+		eat_init()
+	end
+	local st = get_storage(npc:id(),"eating")
+	if st.disabled then
+		return
+	elseif st.disabled == nil then
+		st.disabled = false
+		if eating.exc_comms[npc:character_community()] or eating.exc_npcs[npc:name()] then
+			st.disabled = true
+--			printf("[%s]eating disabled",npc:character_name())
+		end
+		return
+	end
+	local enemy = npc:best_enemy()
+	if xr_wounded.is_wounded(npc) or (not eating.ic and enemy) or (not eating.oc and not enemy) then
+		st.item = nil
+		st.time = nil
+		return
+	end
+	if st.item and st.time then
+		if st.time < time_global() then
+--			printf("[%s]eat[%s] enemy %s",npc:character_name(),st.item,tostring(enemy ~= nil))
+			local med = npc:object(st.item)
+			if med then
+				rx_utils.eat_medkit(npc,med)
+			end
+			st.item = nil
+		end
+		return
+	end
+	if npc.health < eating.max_h and not xr_wounded.is_wounded(npc) then
+		for k,v in ipairs(eating.medkits) do
+			local medkit = npc:object(v)
+			if medkit then
+--				printf("health[%s]=%s:set[%s]",npc:character_name(),npc.health,v)
+				st.time = time_global()+math.random(eating.delay[1],eating.delay[2])
+				st.item = v
+				return
+			end
+		end
+	end
+	if npc:get_bleeding() > eating.min_b then
+		for k,v in ipairs(eating.bandages) do
+			local bandage = npc:object(v)
+			if bandage then
+--				printf("bleeding[%s]=%s:set[%s]",npc:character_name(),npc:get_bleeding(),v)
+				st.time = time_global()+math.random(eating.delay[1],eating.delay[2])
+				st.item = v
+				return
+			end
+		end
+	end
+end
+
+------------------------------------lios-----------------------------------------
+local lios = {enabled = rx_ini:section_exist("look_into_os") and rx_ini:r_bool("look_into_os","enabled")}
+
+function lios_init()
+	local sect = "look_into_os"
+	lios.exc_comms = rx_utils.parse_list(rx_ini,sect,"excluded_communities",true)
+	lios.exc_npcs = rx_utils.parse_list(rx_ini,sect,"excluded_npcs",true)
+	lios.range_add = rx_utils.read_from_ini(rx_ini,sect,"range_add",0.5)/100
+	lios.fov_add = rx_utils.read_from_ini(rx_ini,sect,"fov_add",-0.3)/100
+	lios.zoom_factor = {}
+	lios.fire_dist = {}
+end
+
+function look_into_optical_sight(npc)
+	if not lios.enabled then
+		return
+	elseif not lios.range_add then
+		lios_init()
+	end
+	local storage = get_storage(npc:id(),"lios")
+	if storage.disabled then
+		return
+	end
+	if not storage.range then
+		if lios.exc_comms[npc:character_community()] or lios.exc_npcs[npc:name()] then
+			storage.disabled = true
+--			printf("[%s]lios disabled",npc:character_name())
+		else
+			storage.range = npc:range()
+			storage.fov = npc:fov()
+			storage.ch = false
+		end
+		return
+	end
+	local act = false
+	local weapon = npc:active_item()
+	if rx_utils.item_is_fa(weapon) and rx_utils.addon_attached(weapon,"sc") then
+--		printf("[%s]have os",npc:character_name())
+		local move_type,mental_state = npc:movement_type(),npc:mental_state()
+		if (move_type == move.stand or move_type == move.walk) and mental_state == anim.danger then
+--			printf("[%s]set lios",npc:character_name())
+			act = true
+		end
+	end
+	if storage.ch ~= act then
+		local range,fov = storage.range,storage.fov
+		if act == true then
+			local function get_zoom_factor(sect)
+				if lios.zoom_factor[sect] == nil then
+					local scope = rx_utils.read_from_ini(nil,sect,"scope_status",nil) == 2 and rx_utils.read_from_ini(nil,sect,"scope_name",nil,1)
+					if not scope then
+						scope = sect
+					end
+					lios.zoom_factor[sect] = rx_utils.read_from_ini(nil,scope,"scope_zoom_factor",30)
+					lios.fire_dist[sect] = rx_utils.read_from_ini(nil,sect,"fire_distance",150)
+--					printf("lios:%s zf = %s, fd = %s",sect,lios.zoom_factor[sect],lios.fire_dist[sect])
+				end
+				return lios.zoom_factor[sect],lios.fire_dist[sect]
+			end
+			local factor,max_range = get_zoom_factor(weapon:section())
+			if factor < 80 and max_range > storage.range then
+				factor = 30/factor
+				range = range+range*lios.range_add*factor
+				if range > max_range then
+					range = max_range
+				end
+				fov = fov+fov*lios.fov_add*factor
+				if fov < 40 then
+					fov = 40
+				end
+			end
+		end
+		npc:set_range(range)
+		npc:set_fov(fov)
+		storage.ch = act
+--		printf("[%s]change to %s,set[%s][%s]",npc:character_name(),tostring(storage.ch),range,fov)
+	end
+end

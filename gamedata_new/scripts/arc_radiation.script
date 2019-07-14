@@ -1,0 +1,180 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+DOSE_TIRING = 2500
+DOSE_HARMFUL = 5000
+DOSE_DEADLY = 35000
+
+local DOSE_DEC_DIV = 20
+
+local rad_dose = 0
+
+local last_anom_hit_time = 0
+
+local art_hits = {}
+
+local arts_rad = 0
+local anom_rad = 0
+-----------------------------------------------------------------------------------
+local inv_arts_radiation = 0
+local arts_satiety = 0
+
+local game_ms = 1000 / level.get_time_factor()
+
+function change_arts_satiety(delta)
+--	arts_satiety = arts_satiety + delta
+end
+
+function change_inv_radiation(delta)
+--	inv_arts_radiation = inv_arts_radiation + delta
+end
+-----------------------------------------------------------------------------------
+local arts_upd_time = 100
+local update_time = 0
+
+function on_actor_update(delta)
+	arc_inventory.on_actor_update(delta)
+
+	local r = db.actor.radiation
+	local d = r - 0.05
+	mod_rad_dose(d*4000)
+	db.actor.radiation = - d	-- + add_rad
+
+	if d>0.000001 then
+		local rp = arc_inventory.cur_rad_protection
+		if arc_inventory.crp_changed or ( rp==0 and d>0.005 ) then
+			anom_rad = d / ( 1 - rp )
+			last_anom_hit_time = 0
+		else
+			table.insert( art_hits, 1, { time_since_hit = 0, hit_power = d } )
+		end
+	end
+	
+	if last_anom_hit_time>400 then
+		anom_rad = 0
+		last_anom_hit_time = 0
+	else
+		last_anom_hit_time = last_anom_hit_time + delta
+	end
+	
+	local i = 1
+	local hits_time, hits_summ = 0, 0
+	
+	while art_hits[i] do
+		local t = art_hits[i].time_since_hit + delta
+		
+		if t > 200 then
+			table.remove(art_hits, i)
+		else
+			hits_time = t
+			hits_summ = hits_summ + art_hits[i].hit_power
+			art_hits[i].time_since_hit = t
+			i = i + 1
+		end
+	end
+	
+	arts_rad = (hits_time > 0) and ( hits_summ * 200 / hits_time ) or 0
+
+	if game_options.HudRad then
+		amk.oau_watchdog=30011
+		amk.oau_reason="arc_ui_dosimeter.update"
+		arc_ui_dosimeter.update(delta)
+	end
+end
+
+function save_rad_dose()
+	amk.save_variable("rad_dose", rad_dose)
+end
+	
+function get_rad_level()
+	return (arts_rad + anom_rad) / 0.1
+end
+
+function get_rad_dose()
+	return rad_dose
+end
+
+function get_critical_dose()
+	return DOSE_HARMFUL
+end
+
+function get_deadly_dose()
+	return DOSE_DEADLY
+end
+
+function get_dose_string()
+	return string.format("%6.2f", rad_dose/100)
+end
+
+function get_dose_string_color()
+	local rd = rad_dose / DOSE_DEADLY
+	return math.min(round(196+196*rd),255), math.max(round(255-255*rd),0), math.max(round(196-255*rd),0)
+end
+
+function set_rad_dose(new_dose)
+	if new_dose > 0 then
+		rad_dose = new_dose
+	else
+		rad_dose = 0
+	end
+	
+	local rd
+	rd = (rad_dose > DOSE_HARMFUL) and (rad_dose - DOSE_HARMFUL) / (DOSE_DEADLY - DOSE_HARMFUL) or 0
+	if rd<1 then
+		arc_health.set_health_threshold(1-rd*rd)
+	else
+		arc_health.set_health_threshold(1-math.pow(rd,6))
+	end
+	
+	arc_health.set_psy_threshold(1-rd/3)
+	
+	rd = (rad_dose > DOSE_TIRING) and (rad_dose - DOSE_TIRING) / (DOSE_DEADLY - DOSE_TIRING) or 0
+	
+	arc_health.set_power_penalty(rd*1.5)
+end
+
+function mod_rad_dose(dose_delta)
+	if dose_delta > 0.01 then
+		arc_ui_dosimeter.fade(true)
+	elseif dose_delta < 0 then
+		dose_delta = dose_delta / DOSE_DEC_DIV
+	end
+	
+	set_rad_dose(rad_dose+dose_delta)
+end
+-----------------------------------------------------------------------------------
+function use_antirad(delta)
+	mod_rad_dose(delta*100*DOSE_DEC_DIV)
+end
+-----------------------------------------------------------------------------------
+function on_key_release(dik, bind)
+	if bind == key_bindings.kSCORES then
+		arc_ui_dosimeter.fade(true, -1)
+	end
+end
+-----------------------------------------------------------------------------------
+local upd_time_tele = nil
+function spawn_telepatic()
+	if (upd_time_tele or 0) < time_global() then
+		upd_time_tele = 1000 + time_global()
+		
+		local h = hit()
+		h.draftsman = db.actor
+		h.direction = vector():set(0,0,0)
+		h:bone("bip01_spine")
+		h.type = hit.chemical_burn
+		h.power = 0.01
+		h.impulse = 50
+		db.actor:hit(h)          
+		level.add_pp_effector("amk_shoot.ppe", 2011, false)
+	end
+end
+-----------------------------------------------------------------------------------
+function init()
+	rad_dose = amk.load_variable("rad_dose", 0)
+end
+
+function attach()
+	xr_s.subscribe( "net_spawn",   this.init )
+	xr_s.subscribe( "key_release", this.on_key_release )
+	xr_s.subscribe( "pre_save",    this.save_rad_dose  )
+end

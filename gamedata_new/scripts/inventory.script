@@ -1,0 +1,235 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local belt = {}
+local belt_id = {}
+
+-- callbacks
+function on_item_take(item)
+	this.inventory_update(item, 1)
+end
+
+function on_item_drop(item)
+	this.inventory_update(item, -1)
+	this.remove_from_belt(item)
+end
+
+function on_item_to_belt(item)
+	this.add_on_belt(item)
+end
+
+function on_item_to_slot(item)
+	this.remove_from_belt(item)
+end
+
+function on_item_to_ruck(item)
+	this.remove_from_belt(item)
+end
+
+-------------------------------------------------------------------------------------------------
+-- belt
+local wthr = nil
+
+function remove_from_belt( item )
+	local id = item:id()
+	local t = belt_id[ id ]
+	if t == nil then return end
+
+	local sect =  item:section()
+	table.sub( belt, sect )
+	
+	if sect == "af_idol_monolita" and wthr ~= nil then
+		if amk.load_variable( "blowout", 0 ) == 0 then
+			level.set_weather( wthr )
+		end
+		wthr = nil
+	elseif sect == "bioradar" or sect == "bioradar2" then
+		if belt["bioradar"] == nil and belt["bioradar2"] == nil then
+			biodetector.switch_bioradar( false )
+		end
+	end
+
+	belt_id[ id ] = nil
+end
+
+function add_on_belt( item )
+	local id = item:id()
+	if belt_id[ id ]~=nil then return end
+
+	local t = {}
+	belt_id[ id ] = t
+
+	local sect = item:section()
+	table.add( belt, sect )
+	t.section = sect
+
+	if sect == "af_idol_monolita" then
+		if amk.load_variable( "blowout", 0 ) == 0 then
+			wthr = level.get_weather()
+			if wthr == "amk_for_blow" then wthr = nil end
+			level.set_weather( "grey" )
+		end
+	elseif sect == "bioradar" or sect == "bioradar2" then
+		biodetector.switch_bioradar( true )
+	end
+end
+
+-- предмет на поясе, проверка по секции
+function on_belt(sect)
+	return belt[sect]
+end
+
+-- предмет на поясе, проверка по game_object
+function item_on_belt(item)
+	return belt_id[item:id()]~=nil
+end
+
+function is_free_belt_slot()
+	return db.actor:belt_count() < sys_ini:r_u32('inventory', 'max_belt')
+end
+
+function get_free_belt_slot()
+	if is_free_belt_slot() then return end
+	
+	local item
+	for i = 0, db.actor:belt_count()-1 do
+		item = db.actor:item_on_belt(i)
+		if item:is_artefact() and item:section()~="af_invul" then
+			db.actor:move_to_ruck(item)
+			return
+		end
+	end
+end
+-------------------------------------------------------------------------------
+-- Кеш текущего состояния инвентаря ГГ (только предметы проверяемые функцией search, их обычно немного)
+-- Структура: [секция_предмета] = { count = количество_в_инвентаре,
+-- 						good_count = количество_предметов_в_хорошем_состоянии }
+-------------------------------------------------------------------------------
+local InventoryState = {}
+local good_condition = 0.94		-- состояние предмета, при котором считается, что он полностью исправен
+
+--Проверка на количество предметов в инвентаре гг
+function search(iItemSection, iNeededCount, bGood)
+	--Взятие из кеша текущего состояния инвентаря:
+	local tStat = InventoryState[iItemSection]
+	--Загрузка текущего состояния инвентаря в кеш:
+	if tStat == nil then
+		tStat = { count = 0, good_count = 0 }
+		db.actor:iterate_inventory(function (dummy, vItem)
+				if vItem:section() == iItemSection then
+					tStat.count = tStat.count + 1
+					if vItem:condition() > good_condition then
+						tStat.good_count = tStat.good_count + 1
+					end
+				end 
+			end, nil)
+		InventoryState[iItemSection] = tStat
+	end
+
+	--Выдача результата проверки:
+	return (bGood and tStat.good_count or tStat.count) >= (iNeededCount or 1)
+end
+
+-- Заставить данные обновиться принудительно, если в отслеживаем этот предмет
+function force_update(iItemSection)
+	InventoryState[iItemSection] = nil
+end
+
+--Обработчик появления или исчезновения предмета в инвентаре (нужно обновить кеш):
+function inventory_update(iObject, iCountDelta)
+	if iObject == nil then return end
+	--Взятие из кеша текущего состояния инвентаря:
+	local tStat = InventoryState[iObject:section()]
+	--Обновление текущего состояния инвентаря в кеше:
+	if tStat ~= nil then
+		tStat.count = tStat.count + iCountDelta
+		if iObject:condition() > good_condition then
+			tStat.good_count = tStat.good_count + iCountDelta
+		end
+	end
+end
+
+function search_af(section, count)
+	if not artefact_hunter.is_known_art(section) then
+		return false
+	end
+	return this.search(section, count)
+end
+
+function get_items_count(section)
+	local tStat = InventoryState[section]
+	if tStat == nil then
+		this.search(section)
+		tStat = InventoryState[section]
+	end
+	return tStat.count
+end
+
+function give_items(sSection, iNeedCount)
+	if iNeedCount == nil then
+		iNeedCount = 1
+	end
+
+	local sim = alife()
+	for i = 1, iNeedCount do
+		sim:create(sSection, vector(), 0, 0, 0)
+	end
+
+	news_manager.relocate_item(db.actor, "in", sSection, iNeedCount)
+end
+
+function out_items(sSection, iNeedCount, bGood)
+	if iNeedCount == nil then
+		iNeedCount = 1
+	end
+
+	local iOutCount = 0
+	local seObj = nil
+	local sim = alife()
+	db.actor:iterate_inventory(function (dummy, vItem)
+		if iOutCount >= iNeedCount then
+			return
+		end
+
+		if vItem:section() == sSection
+			and (bGood ~= true or vItem:condition() > good_condition)
+		then
+			seObj = sim:object( vItem:id() )
+			if seObj then
+				sim:release(seObj, true)
+			end
+			iOutCount = iOutCount + 1
+		end
+	end,
+	db.actor)
+	
+	news_manager.relocate_item(db.actor, "out", sSection, iOutCount)
+end
+
+function out_items_all(sSection, bGood)
+	local iOutCount = 0
+	local seObj = nil
+	local sim = alife()
+	db.actor:iterate_inventory(function (dummy, vItem)
+		if vItem:section() == sSection
+			and (bGood ~= true or vItem:condition() > good_condition)
+		then
+			seObj = sim:object( vItem:id() )
+			if seObj then
+				sim:release(seObj, true)
+			end
+			iOutCount = iOutCount + 1
+		end
+	end,
+	db.actor)
+	
+	news_manager.relocate_item(db.actor, "out", sSection, iOutCount)
+end
+-------------------------------------------------------------------------------
+
+function attach()
+	xr_s.subscribe( "item_to_belt", this.on_item_to_belt )
+	xr_s.subscribe( "item_to_slot", this.on_item_to_slot )
+	xr_s.subscribe( "item_to_ruck", this.on_item_to_ruck )
+	-- xr_s.subscribe( "item_take", this.on_item_take )
+	-- xr_s.subscribe( "item_drop", this.on_item_drop )
+end

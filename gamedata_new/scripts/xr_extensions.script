@@ -1,0 +1,484 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--local tmr = profile_timer()
+--tmr:start()
+
+_G.kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
+_G.isWideScreen = _G.kScreen <= 0.85
+
+game_options.load_game_options()
+
+-- Ќекоторые недостающие DIK_keys
+DIK_keys.DIK_LMOUSE			= 337
+DIK_keys.DIK_RMOUSE			= 338
+DIK_keys.DIK_WMOUSE			= 339
+
+_G.inventory_slots = {
+	KNIFE			= 0,
+	PISTOL			= 1,
+	RIFLE			= 2,
+	GRENADE			= 3,
+	BINOCULAR		= 4,
+	BOLT 			= 5,
+	OUTFIT			= 6,
+	PDA				= 7,
+	DETECTOR		= 8,
+	TORCH			= 9,
+	-- do not used
+	HELMET			= 10,
+	NIGHT_VISION	= 11,
+	BIODETECTOR		= 12
+}
+
+-- extension of namespaces Lua 
+--// string
+-- обрезаем пробелы по кра€м строки
+if string.trim==nil then
+	_G.trim = function (s)
+		return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
+	end
+else
+	_G.trim = string.trim
+end
+-- разбивка строки по символу
+string.explode = function ( str, div, clear )
+	local ret = {}
+	for s in string.gmatch( str, "([^"..div.."]+)" ) do
+		ret[ #ret+1 ] = ( clear and trim( s ) or s )
+	end
+	return ret
+end
+-- 'string.lower/upper' с поддержкой кириллицы.
+string.lower1 = function ( str )
+	return string.lower( str:gsub( "([ј-я])",
+		function( s ) return string.char( s:byte()+32 ) end ):gsub( "®", "Є" ) )
+end
+string.upper1 = function ( str )
+	return string.upper( str:gsub( "([а-€])",
+		function( s ) return string.char( s:byte()-32 ) end ):gsub( "Є", "®" ) )
+end
+-- очистка строки от недопустимых дл€ имЄн файлов символов (используетс€ при работе с FS)
+string.clear = function ( str )
+	return str:gsub( "%p", function( s ) return s:match( "[%.%-_]*" ) end )
+end
+--// math
+-- выравнивание значени€ n в пределы от min до max
+math.clamp = function( n, min, max )
+	if min > max then
+		min, max = max, min
+	end
+	return ( n > max and max ) or ( n < min and min ) or n
+end
+-- округление числа
+--math.round = function ( n )
+--	local r = n%1
+--	return (r>=0.5 and n-r+1) or n-r
+--end
+--// table
+-- получаем размер таблицы (количество св€зок [ключ] = значение)
+if table.size == nil then
+	table.size = function ( t )
+		local n = 0
+		for _ in pairs( t ) do n = n + 1 end
+		return n
+	end
+end
+-- получаем копию таблицы
+table.copy = function ( tbl, src )
+	for k,v in pairs( src ) do
+		if type( v ) == 'table' then
+			tbl[ k ] = table.copy( {}, v )
+		else
+			tbl[ k ] = v
+		end
+	end
+	return tbl
+end
+-- поиск значени€ в таблице
+table.find = function( tbl, val )
+	local tp = type(val)
+	for k,v in pairs(tbl) do
+		if type(v)==tp and v==val then return true end
+	end
+	return false
+end
+-- функции дл€ подсчета чего-либо в виде: [ключ] = количество
+table.add = function( tbl, key, v )
+	local n = tbl[key] or 0
+	tbl[key] = n + (v or 1)
+end
+table.sub = function( tbl, key, v )
+	local n = tbl[key] or 0
+	if n <= (v or 1) then
+		tbl[key] = nil
+	else
+		tbl[key] = n - (v or 1)
+	end
+end
+-- получение рандомного значени€ из массива
+table.random = function ( tbl )
+	if not next(tbl) then return nil end
+	return tbl[ math.random(#tbl) ]
+end
+-- расширенна€ распечатка таблицы в лог
+table.print = function( tbl, subs )
+	subs = subs or ""
+	local s
+	for k,v in pairs(tbl) do
+		s = (type(k)=="userdata" and "userdata") or tostring(k)
+		if type(v) == "table" then
+			log1(subs..s..":table")
+			table.print(v, subs.."    ")
+		elseif type(v) == "function" then
+			log1(subs..s..":function")
+		elseif type(v) == "userdata" then
+			if v.x and v.y and v.z then
+				log1(subs..s..":vector")
+				print_vector(v, subs.."    ")
+			elseif v.k and v.j and v.i and v.c then
+				log1(subs..s..":matrix")
+				print_matrix(v, subs.."    ")
+			elseif v.id and v.name then
+				if type(v.id) == "function" then
+					log1(subs..s..":game_object")
+					log1(subs.."    "..v:name())
+				elseif type(v.id) == "number" then
+					log1(subs..s..":server_object")
+					log1(subs.."    "..v:name())
+				else
+					log1(subs..s..":userdata")
+				end
+			else
+				log1(subs..s..":userdata")
+			end
+		else
+			log1(subs..s..":"..tostring(v))
+		end
+	end
+end
+-- печатаем вектор
+function print_vector(v, subs)
+	log1((subs or "")..v.x..":"..v.y..":"..v.z)
+end
+-- печатаем матрицу
+function print_matrix(m, subs)
+	print_vector(m.i, subs)
+	print_vector(m.j, subs)
+	print_vector(m.k, subs)
+	print_vector(m.c, subs)
+end
+
+-- class 'ini_file'
+ini_file.r_string_ex = function (ini, section, line, def)
+	if ini:line_exist(section, line) then
+		return ini:r_string(section, line)
+	end
+	return def
+end
+ini_file.r_u32_ex = function (ini, section, line, def)
+	if ini:line_exist(section, line) then
+		return ini:r_u32(section, line)
+	end
+	return def
+end
+ini_file.r_float_ex = function (ini, section, line, def)
+	if ini:line_exist(section, line) then
+		return ini:r_float(section, line)
+	end
+	return def
+end
+ini_file.r_clsid_ex = function (ini, section, line, def)
+	if ini:line_exist(section, line) then
+		return ini:r_clsid(section, line)
+	end
+	return def
+end
+ini_file.r_bool_ex = function (ini, section, line, def)
+	if ini:line_exist(section, line) then
+		return ini:r_bool(section, line)
+	end
+	return def
+end
+
+-- class 'game_object'
+-- CEntityAlive
+game_object.is_wounded = function ( obj )
+	return obj:is_stalker() and obj:alive() and obj:wounded()
+end
+-- CInventoryItem
+-- вспомогательные функции дл€ установки флагов в классе CInventoryItem
+game_object.has_inventory_item_flags = function ( item, mask )
+	local flags = item:get_inventory_item_flags()
+	return flags:test(mask)
+end
+-- получить слот предмета
+game_object.get_slot = function ( obj )
+	return obj:get_inventory_item().slot
+end
+-- задать слот предмету
+game_object.set_slot = function ( obj, slot )
+	obj:get_inventory_item().slot = slot
+end
+
+-- class 'net_packet'
+-- read
+local CTime_0 = game.CTime()
+net_packet.r_vec_q8 = function( pk )
+	return { x = pk:r_u8(), y = pk:r_u8(), z = pk:r_u8() }
+end
+net_packet.r_qt_q8 = function( pk )
+	return { x = pk:r_u8(), y = pk:r_u8(), z = pk:r_u8(), w = pk:r_u8() }
+end
+net_packet.r_u64 = function( pk )
+	return { pk:r_u8(), pk:r_u8(), pk:r_u8(), pk:r_u8(),
+			 pk:r_u8(), pk:r_u8(), pk:r_u8(), pk:r_u8() }
+end
+net_packet.r_vu8u8 = function( pk )
+	local t = {}
+	for i = 1, pk:r_u8() do t[i] = pk:r_u8() end
+	return t
+end
+net_packet.r_vu32u8 = function( pk )
+	local t = {}
+	for i = 1, pk:r_s32() do t[i] = pk:r_u8() end
+	return t
+end
+net_packet.r_vu32u16 = function( pk )
+	local t = {}
+	for i = 1, pk:r_s32() do t[i] = pk:r_u16() end
+	return t
+end
+net_packet.r_tail = function( pk )
+	local t = {}
+	while not pk:r_eof() do t[#t+1] = pk:r_u8() end
+	return t
+end
+net_packet.r_CTime = function( pk )
+	local Y = pk:r_u8()
+	if Y ~= 0 then
+		local t = game.CTime()
+		local M, D, h, m, s, ms = pk:r_u8(), pk:r_u8(), pk:r_u8(), pk:r_u8(), pk:r_u8(), pk:r_u16()
+		t:set( Y + 2000,  M, D, h, m, s, ms )
+		return t
+	else
+		return CTime_0
+	end
+end
+-- write
+net_packet.w_vec_q8 = function( pk, v )
+	pk:w_u8( v.x ); pk:w_u8( v.y ); pk:w_u8( v.z )
+end
+net_packet.w_qt_q8 = function( pk, v )
+	pk:w_u8( v.x ); pk:w_u8( v.y ); pk:w_u8( v.z ); pk:w_u8( v.w )
+end
+net_packet.w_u64 = function( pk, v )
+	for i = 1, 8 do pk:w_u8( v[i] ) end
+end
+net_packet.w_vu8u8 = function( pk, v )
+	local n = #v
+	pk:w_u8( n )
+	for i = 1, n do pk:w_u8( v[i] ) end
+end
+net_packet.w_vu32u8 = function( pk, v )
+	local n = #v
+	pk:w_s32( n )
+	for i = 1, n do pk:w_u8( v[i] ) end
+end
+net_packet.w_vu32u16 = function( pk, v )
+	local n = #v
+	pk:w_s32( n )
+	for i = 1, n do pk:w_u16( v[i] ) end
+end
+net_packet.w_tail = function( pk, v )
+	for i, n in ipairs( v ) do
+		pk:w_u8( n )
+	end
+end
+net_packet.w_CTime = function( pk, v )
+	if v and v ~= CTime_0 then
+		local Y, M, D, h, m, s, ms = 0, 0, 0, 0, 0, 0, 0
+		Y, M, D, h, m, s, ms = v:get( Y, M, D, h, m, s, ms )
+		pk:w_u8 ( Y - 2000 ); pk:w_u8 ( M ); pk:w_u8 ( D )
+		pk:w_u8 ( h ); pk:w_u8 ( m ); pk:w_u8 ( s ); pk:w_u16( ms )
+	else
+		pk:w_u8 ( 0 )
+	end
+end
+
+-- class 'Frect'
+Frect.mul = function ( rect, x, y )
+	if y==nil then y = x end
+	rect.x1 = rect.x1*x; rect.y1 = rect.y1*y;
+	rect.x2 = rect.x2*x; rect.y2 = rect.y2*y;
+	return rect
+end
+Frect.div = function ( rect, x, y )
+	if y==nil then y = x end
+	rect.x1 = rect.x1/x; rect.y1 = rect.y1/y;
+	rect.x2 = rect.x2/x; rect.y2 = rect.y2/y;
+	return rect
+end
+Frect.width = function ( rect )
+	return rect.x2 - rect.x1
+end
+Frect.height = function ( rect )
+	return rect.y2 - rect.y1
+end
+
+-- class 'CGameFont'
+CGameFont.alVTop	= 0
+CGameFont.alVCenter	= 1
+CGameFont.alVBottom	= 2
+
+-- class 'CUIScriptWnd'
+CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
+	self:AddCallback(ui_name, ui_event, function () func(self, ... ) end)
+end
+CUIScriptWnd.ClearCallbacksEx = function ( self )
+	if self.__reg_childs then
+		for i = #self.__reg_childs, 1, -1 do
+			self.__reg_childs[i]:ClearCallbacks()
+			self.__reg_childs[i] = nil
+		end
+	end
+	self:ClearCallbacks()
+end
+CUIScriptWnd.register_child = function( self, child )
+	if self.__reg_childs == nil then
+		self.__reg_childs = {}
+	end
+	table.insert( self.__reg_childs, child )
+end
+CUIScriptWnd.InitEditBoxEx = function ( self, stat, pos_x, pos_y, width, type )
+	local w = ui_edit_box_ru.CUIEditBox_new( stat, pos_x, pos_y, width, type )
+	self:register_child( w )
+	return w
+end
+CUIScriptWnd.InitSpinNum = function ( self, stat, pos_x, pos_y, width, p )
+	local w = ui_spin_num.CUISpinNum( stat, pos_x, pos_y, width, p )
+	self:register_child( w )
+	return w
+end
+CUIScriptWnd.InitSpinStr = function ( self, stat, pos_x, pos_y, width, p )
+	local w = ui_spin_str.CUISpinStr( stat, pos_x, pos_y, width, p )
+	self:register_child( w )
+	return w
+end
+
+-- namespace 'level'
+level.change_game_time = function (m, h, d)	-- minutes, hours, days
+	level.advance_game_time((m or 0) * 60000 + (h or 0) * 3600000 + (d or 0) * 86400000)
+end
+level.vertex_id_by_pos = function ( position )
+	db.actor:set_vector_global_arg_1( position )
+	return level.vertex_id()
+end
+level.__time_factor = sys_ini:r_u32("alife", "time_factor")
+level.get_time_factor_old = level.get_time_factor
+level.get_time_factor = function()
+	return level.__time_factor
+end
+level.set_time_factor_old = level.set_time_factor
+level.set_time_factor = function(factor)
+	level.set_time_factor_old(factor)
+	level.__time_factor = factor
+end
+
+-- namespace 'relation_registry'
+relation_registry.get_goodwill = function (who_id, to_whom_id)
+	return GetGoodwill(who_id, to_whom_id)
+end
+relation_registry.set_goodwill = function (who_id, to_whom_id, goodwill)
+	return db.actor:set_goodwill_ex(who_id, to_whom_id, goodwill)
+end
+relation_registry.change_goodwill = function (who_id, to_whom_id, goodwill_change)
+	return db.actor:change_goodwill_ex(who_id, to_whom_id, goodwill_change)
+end
+
+-- global functions
+_G.get_inv_name = function (section)
+	return sys_ini:r_string_ex(section, "inv_name", section)
+end
+_G.GetIconParams = function (section)
+	if section~=nil and section~=""
+		and sys_ini:section_exist(section)
+		and sys_ini:line_exist(section, "inv_grid_x")
+	then
+		return {x = sys_ini:r_u32(section, "inv_grid_x") *50,
+				y = sys_ini:r_u32(section, "inv_grid_y") *50,
+				w = sys_ini:r_u32(section, "inv_grid_width") *50,
+				h = sys_ini:r_u32(section, "inv_grid_height") *50}
+	end
+	return {x=0, y=0, w=1, h=1}
+end
+
+_G.set_sprint_allowed = function(item, mode)
+	local fl = item:get_inventory_item_flags()
+	fl:set(global_flags.FAllowSprint, mode)
+	item:set_inventory_item_flags(fl)
+end
+_G.set_is_quest_item = function(item, mode)
+	local fl = item:get_inventory_item_flags()
+	fl:set(global_flags.FIsQuestItem, mode)
+	item:set_inventory_item_flags(fl)
+end
+_G.set_item_can_take = function(item, mode)
+	local fl = item:get_inventory_item_flags()
+	fl:set(global_flags.FIsQuestItem, mode)
+	item:set_inventory_item_flags(fl)
+end
+
+
+_G.ShowAutohideMsg = function( text, time_ms )
+	ui_autohide_msg.CUIAutohideMsg( text, time_ms )
+end
+
+_G.set_story_id = function( obj, sid )
+	alife():assign_story_id( nil, nil, obj.id, sid )
+end
+
+_G.old_user_name = user_name
+_G.user_name = function( name )
+	if name == nil then
+		return game_options.UserName or old_user_name()
+	elseif type( name ) == "string" then
+		game_options.UserName = string.clear( name )
+		return true
+	end
+	log("! Wrong user name: type: %s, name: %s", type( name ), utils.to_str( name ) )
+	return false
+end
+
+_G.shiftCheckDropItem = function()
+	_G['biznes_remove_special_item']= true
+	start_small_timer(300,
+		function() _G['biznes_remove_special_item'] = nil end
+	)
+end
+
+local IsBlocked = false
+_G.BlockUIDescr = function( b )
+	if b == nil then
+		return IsBlocked
+	else
+		IsBlocked = b
+	end
+end
+
+local ShiftHold = false
+_G.ShiftPressed = function( b )
+	if b == nil then
+		return ShiftHold
+	else
+		ShiftHold = b
+	end
+end
+
+local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
+local ru = [[йцукенгшщзхъфывапролджэ€чсмитьбю.…÷” ≈Ќ√Ўў«’Џ/‘џ¬јѕ–ќЋƒ∆Ёя„—ћ»“№Ѕё,"є;:?]]
+local tt = {}
+for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
+_G.translit  = function (l) return tt[l] or l end
+
+--tmr:stop()
+--log1( "# loading xray_extensions: "..tostring(tmr:time()) )
+--tmr = nil
