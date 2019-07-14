@@ -1,0 +1,182 @@
+-----------------------------------------------------------------------------------
+-- Monster binding
+-----------------------------------------------------------------------------------
+local particles={}
+
+function bind(obj)
+   local new_binder = trader_binder(obj)
+   obj:bind_object(new_binder)
+end 
+
+------------------------------------------------------------------------------------
+class "trader_binder" (object_binder) 
+
+function trader_binder:__init(obj) super(obj) 
+	self.loaded = false 
+	self.first_update = false
+	self.last_update = 0
+end 
+
+function trader_binder:reload(section) 
+	object_binder.reload(self, section) 
+end 
+
+function trader_binder:reinit() 
+	object_binder.reinit(self) 
+
+	db.storage[self.object:id()] = { }
+
+	self.st = db.storage[self.object:id()] 
+	self.object:set_callback(callback.hit, self.hit_callback, self) 
+	self.object:set_callback(callback.death, self.death_callback, self) 
+	self.object:set_callback(callback.use_object, self.use_callback, self)
+end 
+
+function trader_binder:update(delta)
+--	db.storage[self.object:id()].us = 100
+	object_binder.update(self, delta) 
+
+	if self.first_update == false then
+		self.first_update = true
+		-- Апдейт торговли
+		trade_manager.first_update(self.object)
+	end
+
+--	printf("_bp: trader_binder: UPDATE [name='%s' time=%d]",
+--		self.object:name(), time_global())
+
+	if not self.object:alive() then
+		self.object:set_tip_text_default()
+	end 
+
+--	db.storage[self.object:id()].us = 0	
+end
+
+function trader_binder:death_callback(victim, who) 
+	if (self.object == nil) then return end 
+
+	db.del_monster(self.object) -- убираем из онлайн-живых
+
+	if who:id() == db.actor:id() then 
+		kostya_dialog.kuv_hit()
+
+		xr_statistic.addKillCount(self.object) 
+		if bind_soul_cube then
+			bind_soul_cube.add_soul()
+		end
+	end
+	
+	if self.st.mob_death then 
+		xr_logic.issue_event(self.object, self.st.mob_death, "death_callback", victim, who) 
+	end 
+	if self.st.active_section then 
+		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "death_callback", victim, who) 
+	end 
+     
+	smart_terrain.on_death( self.object:id() ) 
+        
+	--' Наносим небольшой импульс вперед.
+	local h = hit() 
+	h.draftsman = self.object 
+	h.type = hit.fire_wound 
+	h.direction = db.actor:position():sub(self.object:position()) 
+	h:bone("pelvis") 
+	h.power = 1 
+	h.impulse = 10 
+	self.object:hit(h) 
+end 
+
+function trader_binder:hit_callback(obj, amount, local_direction, who, bone_index) 
+--	printf("HIT_CALLBACK: [%s] amount[%s]", obj:name(), amount)
+--	amk.logct(self.object:name().." hit ","mcbt")
+	local sect = obj:section()
+	
+	if who.id and who:id()==0 then
+		kostya_dialog.kuv_hit()
+	end
+	
+	if self.st.active_section then
+		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "hit_callback", obj, amount, local_direction, who, bone_index)
+	end
+
+	if self.st.hit then
+		xr_logic.issue_event(self.object, self.st.hit, "hit_callback", obj, amount, local_direction, who, bone_index)
+	end
+end 
+
+function trader_binder:net_spawn(sobject)
+	if not object_binder.net_spawn(self, sobject) then 
+		return false 
+	end
+
+	db.add_obj(self.object)
+
+	if self.object:alive() then
+		db.add_monster(self.object) -- добавляем в онлайн-живых
+	end
+   
+	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
+
+	if self.object:alive() then 
+		if self.object:is_talk_enabled() then
+			self.object:set_tip_text("character_use")
+		else
+			self.object:set_tip_text("") 
+		end 
+	end
+
+	return true 
+end 
+
+function trader_binder:net_destroy()
+	local id = self.object:id()
+	
+	amk.on_monster_go_offline(self.object)
+
+	self.object:set_callback(callback.death, nil)
+	self.object:set_callback(callback.hit, nil)
+	self.object:set_callback(callback.use_object, nil)
+
+	local st = db.storage[id]
+	if st and st.active_scheme then 
+		xr_logic.issue_event(self.object, st[st.active_scheme], "net_destroy") 
+	end 
+
+	db.del_obj(self.object)
+
+	if self.object:alive() then
+		db.del_monster(self.object) -- убираем из онлайн-живых
+	end
+
+	object_binder.net_destroy(self)
+end 
+
+function trader_binder:reload(section) 
+	object_binder.reload(self, section) 
+end
+
+function trader_binder:net_save_relevant()
+	return true
+end 
+
+function trader_binder:save(packet)       
+	object_binder.save(self, packet) 
+
+	xr_logic.save_obj(self.object, packet)
+end 
+
+function trader_binder:load(reader) 
+	self.loaded = true 
+
+	object_binder.load(self, reader) 
+
+	xr_logic.load_obj(self.object, reader)
+end
+
+function trader_binder:use_callback(obj, who)
+	fly.returner_clear_pos()
+	if self.object == nil then return end
+
+	xr_s.on_event("npc_use", obj, who)
+end
+
