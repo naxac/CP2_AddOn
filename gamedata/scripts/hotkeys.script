@@ -121,7 +121,11 @@ local reg_callbacks = {
 
 function car_body_open()
 	if used_box == nil then return end
-	carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
+	if carbody_addons == nil then
+		carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
+	end
+
+	bind_stalker.hide_weapon("inv")
 end
 
 function car_body_close()
@@ -129,18 +133,18 @@ function car_body_close()
 	carbody_addons:Remove()
 	carbody_addons = nil
 	used_box = nil
+
+	bind_stalker.restore_weapon("inv")
 end
 
 function on_use(obj, who)
-	if not ( ( IsMonster(obj) or IsStalker(obj) ) and ShiftPressed() ) then
-		_G['recolor_items'] = true
+	if obj:clsid() == clsid.inventory_box or obj:alive() == false then
+		used_box = obj
 	end
-	used_box = obj
 end
 
 function clear_used_box()
 	used_box = nil
-	_G['recolor_items'] = nil
 end
 	
 -------------------------
@@ -372,4 +376,5 @@ function attach()
 	xr_s.subscribe("car_body_open", this.car_body_open)
 	xr_s.subscribe("car_body_close", this.car_body_close)
 	xr_s.subscribe("key_press", this.on_key)
+    xr_s.subscribe("npc_use", this.on_use)
 end

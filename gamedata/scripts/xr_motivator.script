@@ -335,11 +335,12 @@ function motivator_binder:use_callback(obj, who)
 		end
 	else
 		treasure_manager:get_treasure_manager():use(self.object)
-		hotkeys.on_use(obj, who)
 		if self.object:name() == "rostok_dead_stalker_0000" then
 			db.actor:give_info_portion("acv_vandal")
 		end
 	end
+
+	xr_s.on_event("npc_use", obj, who)
 
 	if string.find(self.object:section(),"zombie") ~= nil then
 		sak.zombie_checkup()
@@ -388,7 +389,7 @@ function motivator_binder:update(delta)
         if self.object:alive() == false then
 			death_manager.drop_manager(self.object):create_release_item()
 		else
-			trade_manager.update(self.object)
+			trade_manager.first_update(self.object)
         end
         self.first_update = true
     end

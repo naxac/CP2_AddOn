@@ -1,0 +1,167 @@
+-------------------------------------------------------------------------------
+--| ogse_trade_precondition.script                                          |--
+--| Запрет торговли и раскраска поврежденных предметов, в слотах и на поясе |--
+--| OGS Evolution Team, 2014                                                |--
+--| version 2.0.0                                                           |--
+-------------------------------------------------------------------------------
+
+--ToDo: сделать отключаемую/завышн. цену продажу по персам, к примеру по дружбн/обиде... 
+
+local use_tradability_restrictions = game_options.TradeCondition
+local lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
+local ungroup_belt_slot_items      = true
+
+local clr = {
+	red = 0,
+	blue = 1,
+	green = 2,
+	orange = 3,
+}
+-- ВАЖНО! цвет с индексом 0, т.е. red используется движком для раскраски по умолчанию 
+-- запрещённых к продаже предметов. Менять этот цвет можно только с учётом того, что изменится
+-- и дефолтовая закраска.
+set_highlight_color(clr.red, GetARGB(255, 124, 0, 0)) -- FF007C00 -- red
+set_highlight_color(clr.blue, GetARGB(255, 0, 0, 124)) -- FF00007C -- blue
+set_highlight_color(clr.green, GetARGB(255, 0, 128, 0)) -- FF007C00 -- green
+set_highlight_color(clr.orange, GetARGB(255, 255, 128, 0)) -- orange
+
+
+function attach()
+	if not use_tradability_restrictions and not ungroup_belt_slot_items and not lock_belt_slot_items then 
+		set_trade_filtration_off()
+		set_manual_grouping_off()
+		set_manual_highlight_off()
+		return
+	end
+	set_manual_grouping_on()
+	set_trade_filtration_on()
+	set_manual_highlight_on()
+
+    xr_s.subscribe("npc_use", this.on_npc_use)
+--	xr_s.subscribe("car_body_open", this.on_body_open)
+
+	xr_s.subscribe("item_to_slot", this.on_item_to_slot)
+	xr_s.subscribe("item_to_ruck", this.on_item_to_ruck)
+	xr_s.subscribe("item_to_belt", this.on_item_to_belt)
+end
+
+function on_options_change()
+	use_tradability_restrictions = game_options.TradeCondition
+	lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
+end
+
+-- проверка, купит ли непись данный предмет
+function item_tradable_for_npc(npc, item)
+	ASSERT(npc, "[item_tradable_for_npc] 'npc' is a nil reference")
+	ASSERT(item, "[item_tradable_for_npc] 'item' is a nil reference")
+	
+	local item_type
+	local sec = item:section()
+	if item:is_weapon() then
+		item_type = "weapon"
+	elseif item:is_outfit() then
+		item_type = "outfit"
+	elseif sys_ini:r_bool_ex(sec, "monster_part", false) == true then
+		item_type = "monster_part"
+	elseif sys_ini:r_bool_ex(sec, "volatile", false) == true
+		and not sys_ini:line_exist(sec, "energy_source")
+	then
+		item_type = "accum"
+	else
+		return true -- тип неизвестен, по умолчанию продать можно
+	end
+
+	local pers_cond = trade_manager.get_item_condition(npc)
+	return (item:condition() >= pers_cond[item_type])
+end
+
+local item_place = {
+	ruck = 0,
+	slot = 1,
+	belt = 2,
+}
+
+function treat_item(item, place, npc)
+	-- если есть собеседник, т.е. идёт разговор или торговля, 
+	-- и он не купит предмет из-за плохого состояния
+	if use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item) then
+		-- то делаем предмет негруппируемым, подсвеченным и непродаваемым
+		local fl = ii_flags.ungroupable + ii_flags.always_untradable + ii_flags.manual_highlighting
+		item:set_inventory_item_flags(fl, true)
+		item:set_inventory_item_flags(ii_flags.always_tradable, false)
+		item:set_custom_color_ids(clr.red) -- красным
+		-- примечание: в движковом фиксе при кастомной подсветке будет сперва проверено движковое 
+		-- условие продаваемости. Если предмет не продаётся по движковому условию (т.е. запрещён
+		-- к продаже конфигом), то будет закрашен движковым цветом (красным)
+		return
+	end
+	-- собеседника нет или предмет разрешён к продаже,
+	-- проверяем размещение
+	local lock = false
+	if ungroup_belt_slot_items then
+		if place == item_place.belt or db.actor:is_on_belt(item) then -- предмет на поясе
+			lock = true -- блокируем
+		elseif place == item_place.slot or db.actor:is_in_slot(item) then -- предмет в слоте
+			if not item:is_grenade() then -- кроме гранат
+				lock = true -- блокируем
+			end
+		elseif place == item_place.ruck or db.actor:is_in_ruck(item) then -- предмет в рюкзаке
+			-- ничего не делаем, в рюкзаке группируются и продаются только движковыми условиями
+		else
+			abort("[trade_precondition.treat_item] item '%s' place is not slot, belt or ruck", item:name())
+		end
+	end
+	if lock then -- блокирован
+		item:set_inventory_item_flags(ii_flags.ungroupable + ii_flags.manual_highlighting, true) -- то делаем предмет негруппируемым и подсвеченным
+		if lock_belt_slot_items then
+			item:set_inventory_item_flags(ii_flags.always_tradable, false) -- непродаваемым
+			item:set_inventory_item_flags(ii_flags.always_untradable, true)
+		else
+			item:set_inventory_item_flags(ii_flags.always_tradable + ii_flags.always_untradable, false)
+		end
+		item:set_custom_color_ids(clr.green) -- зелёным
+	else -- а иначе оставляем решать движку
+		local fl = ii_flags.ungroupable + ii_flags.always_tradable + ii_flags.always_untradable + ii_flags.manual_highlighting
+		item:set_inventory_item_flags(fl, false)
+	end
+end
+
+local function set_actors_items(npc)
+	for i = 0, db.actor:object_count() - 1 do
+		treat_item(db.actor:object(i), nil, npc) 
+	end
+end
+-- открытие ящика или тушки
+function on_body_open()
+	set_actors_items()
+	db.actor:invalidate_inventory()
+end
+-- начало разговора с npc
+function on_npc_use(npc, who)
+	if npc:clsid() == clsid.inventory_box or npc:alive() == false then
+		npc = nil
+	end
+	set_actors_items(npc)
+end
+
+function get_second_talker()
+	local talk_wnd = level.get_talk_wnd()
+	if talk_wnd and talk_wnd:IsShown() then
+		return level.get_second_talker()
+	end
+	local trade_wnd = level.get_trade_wnd()
+	if trade_wnd and trade_wnd:IsShown() then
+		return level.get_second_talker()
+	end
+	return nil
+end
+
+function on_item_to_slot(item, sitem)
+	treat_item(item, item_place.slot, get_second_talker()) 
+end
+function on_item_to_ruck(item, sitem)
+	treat_item(item, item_place.ruck, get_second_talker()) 
+end
+function on_item_to_belt(item, sitem)
+	treat_item(item, item_place.belt, get_second_talker()) 
+end

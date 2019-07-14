@@ -25,17 +25,12 @@ local repkits = {
 	end
 }
 
-local info2stop = {
-	ui_inventory	= bit_or(1,4),	ui_inventory_hide	= bit_or(2,8),
-	ui_pda			= bit_or(1,4),	ui_pda_hide			= bit_or(2,8),
-	ui_car_body		= 1, 			ui_car_body_hide	= 2,
-	ui_car_body_new	= 1, 			ui_car_body_new_hide	= 2
-}
-
 function inventory_open()
 	if not wnd then	
 		wnd = InvWnd(level.main_input_receiver())
 	end
+	bind_stalker.hide_weapon("inv")
+	xr_actor.change_move("inv", false)
 end
 
 function inventory_close()
@@ -44,24 +39,10 @@ function inventory_close()
 		wnd = nil
 		amk.save_table("quick_slots", slot2section)
 	end
+	bind_stalker.restore_weapon("inv")
+	xr_actor.change_move("inv", true)
 end
 
-function on_info(info_id)
-	local b = info2stop[info_id]
-	if b then
-		if bit_and(b, 1)==1 then
-			bind_stalker.hide_weapon("inv")
-		elseif bit_and(b, 2)==2 then
-			bind_stalker.restore_weapon("inv")
-			_G['recolor_items'] = nil
-		end
-		if bit_and(b, 4)==4 then
-			xr_actor.change_move("info", false)
-		elseif bit_and(b, 8)==8 then
-			xr_actor.change_move("info", true)
-		end
-	end
-end
 
 class "InvWnd" (CUIScriptWnd)
 
@@ -365,9 +346,6 @@ function on_create_cell_item( item )
 	local st = CUIFrameWindow():GetTitleStatic()
 	if not st then return end
 
-	if recolor_items and ( db.actor:is_in_slot( item ) or db.actor:is_on_belt( item ) ) then
-		st:SetColor( GetARGB(255,150,255,150) )
-	end
 	-- рисуем шкалу состояния
 	local section = item:section()
 	if sys_ini:r_bool_ex(section, "show_condition", false) == true then
@@ -381,6 +359,7 @@ function on_create_cell_item( item )
 		b:SetAutoDelete( true )
 		b:Init( "ui_mg_progress_efficiency_full_1", x, y, w, h )
 		b:SetStretchTexture( true)
+		b:SetColor( GetARGB( 120, 255, 255, 255 ) )
 		st:AttachChild( b )
 		local s = CUIStatic()
 		s:SetAutoDelete( true )
@@ -388,7 +367,7 @@ function on_create_cell_item( item )
 		s:SetStretchTexture( true )
 		local g = math.min( cond*510, 255 )
 		local r = math.min( (1-cond)*510, 255 )
-		s:SetColor( GetARGB( 255, r, g, 50 ) )
+		s:SetColor( GetARGB( 150, r, g, 50 ) )
 		b:AttachChild( s )
 	end
 end
@@ -468,7 +447,6 @@ function attach()
 	xr_s.subscribe("net_spawn", this.on_net_spawn)
 	xr_s.subscribe("inventory_open", this.inventory_open)
 	xr_s.subscribe("inventory_close", this.inventory_close)
-	xr_s.subscribe("info", this.on_info)
 	xr_s.subscribe("item_drop", this.restore_slot)
 	xr_s.subscribe("cell_item_create", this.on_create_cell_item)
 end

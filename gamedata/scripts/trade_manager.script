@@ -4,12 +4,18 @@ local parse_condlist = xr_logic.parse_condlist
 local cfg_get_str = utils.cfg_get_string
 
 -- game hours
-local RESUPLY_TIME = 40
-local RESUPLY_RND = 10
+local DEF_RESUPLY_TIME = 40
+local DEF_RESUPLY_RND = 10
 
 local trade_manager = {}
+
 local def_ini_file = "misc\\trade_generic.ltx"
 local def_ini = ini_file(def_ini_file)
+local def_item_condition = {}
+def_item_condition.weapon = def_ini:r_float("trader", "item_condition_weapon")
+def_item_condition.outfit = def_ini:r_float("trader", "item_condition_outfit")
+def_item_condition.accum = def_ini:r_float("trader", "item_condition_accum")
+def_item_condition.monster_part = def_ini:r_float("trader", "item_condition_monster_part")
 
 local traders = {
 	['amk_vitek_voron']        = { info = "trade_voron_enough",    cnt = 5  }, -- Витёк Ворон
@@ -32,23 +38,27 @@ function trade_init(npc, cfg)
 	local t = trade_manager[npc:id()]
 --	printf("TRADE INIT[%s]", npc:name())
 	local str
+	local trade_ini
 	if t == nil then	-- if first run
 		t = {}
 		trade_manager[npc:id()] = t
 
 		if cfg ~= def_ini_file then
 			t.config = ini_file(cfg)
+			trade_ini = t.config
+		else
+			trade_ini = def_ini
 		end
 
 		-- коэфициенты покупки
-		str = cfg_get_str(t.config or def_ini, "trader", "buy_condition", npc, true, "")
+		str = trade_ini:r_string_ex("trader", "buy_condition", nil)
 		if str == nil then
 			abort("Incorrect trader settings. Can't find buy_condition. [%s]->[%s]", npc:name(), cfg)
 		end
 		t.buy_condition = parse_condlist(npc, "trade_manager", "buy_condition", str)
 
 		-- коэфициенты продажи
-		str = cfg_get_str(t.config or def_ini, "trader", "sell_condition", npc, true, "")
+		str = trade_ini:r_string_ex("trader", "sell_condition", nil)
 		if str == nil then
 			abort("Incorrect trader settings. Can't find sell_condition. [%s]->[%s]", npc:name(), cfg)
 		end
@@ -56,29 +66,38 @@ function trade_init(npc, cfg)
 
 		-- список закупки
 		if t.config then
-			str = cfg_get_str(t.config, "trader", "buy_supplies", npc, false, "")
+			str = trade_ini:r_string_ex("trader", "buy_supplies", nil)
 			if str ~= nil then
 				t.is_trader = true
 				t.buy_supplies = str
 			end
+			-- состояние покупаемого
+			t.item_condition = {}
+			t.item_condition.weapon = trade_ini:r_float_ex("trader", "item_condition_weapon", def_item_condition.weapon)
+			t.item_condition.outfit = trade_ini:r_float_ex("trader", "item_condition_outfit", def_item_condition.outfit)
+			t.item_condition.accum = trade_ini:r_float_ex("trader", "item_condition_accum", def_item_condition.accum)
+			t.item_condition.monster_part = trade_ini:r_float_ex("trader", "item_condition_monster_part", def_item_condition.monster_part)
+
+			t.resuply_time = trade_ini:r_float_ex("trader", "resuply_time", DEF_RESUPLY_TIME)
+			t.resuply_rnd = trade_ini:r_float_ex("trader", "resuply_rnd", DEF_RESUPLY_RND)
 		end
+	else
+		trade_ini = t.config or def_ini
 	end
 
 	-- устанавливаем параметры торговли...
 	str = pick_from_condlist(db.actor, npc, t.buy_condition)
 	if str then
-		npc:buy_condition(t.config or def_ini, str)
-	--	t.current_buy_condition = str
+		npc:buy_condition(trade_ini, str)
 	end
 
 	str = pick_from_condlist(db.actor, npc, t.sell_condition)
 	if str then
-		npc:sell_condition(t.config or def_ini, str)
-	--	t.current_sell_condition = str
+		npc:sell_condition(trade_ini, str)
 	end
 end
 
-function update(npc)
+function first_update(npc)
 	local t = trade_manager[npc:id()]
 	if t == nil then return end
 
@@ -86,7 +105,7 @@ function update(npc)
 	if t.is_trader or lim then
 		local se_obj = alife():object(npc:id())
 		local hours = amk.game_hours()
-	--	log1("trade_manager: npc["..npc:name().."] inited, resupply_time = "..se_obj.resupply_time)
+	--	log("trade_manager: npc["..npc:name().."] inited, resupply_time = "..se_obj.resupply_time)
 		if se_obj.resupply_time <= hours then
 			if t.buy_supplies then
 				local buy_supplies = parse_condlist(npc, "trade_manager", "buy_supplies", t.buy_supplies)
@@ -96,7 +115,9 @@ function update(npc)
 				end
 			end
 
-			se_obj.resupply_time = hours + RESUPLY_TIME + math.random(-RESUPLY_RND, RESUPLY_RND)
+			local resuply_time = t.resuply_time or DEF_RESUPLY_TIME
+			local resuply_rnd = t.resuply_rnd or DEF_RESUPLY_RND
+			se_obj.resupply_time = hours + resuply_time + math.random(-resuply_rnd, resuply_rnd)
 
 			-- Обновляем бартер
 			if lim then
@@ -106,7 +127,7 @@ function update(npc)
 					end
 				end
 			end
-		--	log1("- resupply: "..npc:name()..", next time: "..se_obj.resupply_time)
+		--	log("- resupply: "..npc:name()..", next time: "..se_obj.resupply_time)
 		end
 	end
 end
@@ -149,12 +170,17 @@ function stop_trade()
 	remove_items = {}
 end
 
---[[-----------------------------------------------------------------------------
-function get_trade_params(id)
-	local t = trade_manager[id]
-	if t then
-		return t.config or def_ini, t.current_sell_condition, t.current_buy_condition
+--------------------------------------------------------------------------
+function get_item_condition(npc)
+	local t = trade_manager[npc:id()]
+	if t and t.item_condition then
+		return t.item_condition
 	end
-	return nil, nil, nil
+	return def_item_condition
 end
---]]-----------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+function attach()
+	xr_s.subscribe("trade_open", this.start_trade)
+	xr_s.subscribe("trade_close", this.stop_trade)
+end

@@ -34,7 +34,8 @@ local signals = {
 	talk_open = {},
 	talk_close = {},
 	car_body_new_open = {},
-	car_body_new_close = {}
+	car_body_new_close = {},
+	npc_use = {}
 }
 local always_once = { net_spawn = true, first_update = true }
 local unreg_queue = {}
@@ -54,6 +55,10 @@ function unsubscribe( name, func, queue )
 		table.insert( unreg_queue, { f = func, n = name } )
 		need_clear = true
 	else
+		local t = tbl[ func ]
+		if t and t.self then
+			t.self = nil
+		end
 		tbl[ func ] = nil
 	end
 end
@@ -110,6 +115,10 @@ function on_update( delta )
 
 	if need_clear then
 		for i, v in ipairs( unreg_queue ) do
+			local t = signals[ v.n ][ v.f ]
+			if t and t.self then
+				t.self = nil
+			end
 			signals[ v.n ][ v.f ] = nil
 		end
 		unreg_queue = {}
@@ -125,9 +134,11 @@ local attach_modules = {
 	"bind_torch",
 	"drag_drop_callback",
 	"hotkeys",
---	"inventory",
+	"inventory",
 	"meceniy_in_hell",
 	"nightvision",
+	"trade_manager",
+	"trade_precondition",
 	"ui_hud",
 	"ui_hud_slots",
 	"ui_inv_add",

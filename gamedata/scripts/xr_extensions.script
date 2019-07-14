@@ -63,7 +63,7 @@ DIK_keys.DIK_LMOUSE			= 337
 DIK_keys.DIK_RMOUSE			= 338
 DIK_keys.DIK_WMOUSE			= 339
 
-_G['inventory_slots'] = {
+_G.inventory_slots = {
 	KNIFE		= 0,
 	PISTOL		= 1,
 	RIFLE		= 2,
@@ -74,6 +74,26 @@ _G['inventory_slots'] = {
 	PDA			= 7,
 	DETECTOR	= 8,
 	TORCH		= 9
+}
+-- Движковая таблица EIIFlags для CInventoryItem
+_G.ii_flags = {
+	drop_manual         = 1,		-- Fdrop
+	can_take            = 2,		-- FCanTake
+	can_trade           = 4,		-- FCanTrade
+	belt                = 8,		-- Fbelt
+	ruck                = 16,		-- Fruck
+	ruck_default        = 32,		-- FRuckDefault
+	using_condition     = 64,		-- FUsingCondition
+	allow_sprint        = 128,		-- FAllowSprint
+	useful_for_npc      = 256,		-- Fuseful_for_NPC
+	in_interpolation    = 512,		-- FInInterpolation
+	in_interpolate      = 1024,		-- FInInterpolate
+	is_quest_item       = 2048,		-- FIsQuestItem
+	-- extra flags added in X-Ray Extensions
+	always_tradable     = 4096,
+	always_untradable   = 8192,
+	ungroupable         = 16384,
+	manual_highlighting = 32768,
 }
 
 -- extension of namespaces Lua 
@@ -256,53 +276,26 @@ game_object.is_wounded = function ( obj )
 	return obj:is_stalker() and obj:alive() and obj:wounded()
 end
 -- CInventoryItem
-local inventory_item_flags = {		-- EIIFlags
-	drop				= 1,		-- Fdrop
-	can_take			= 2,		-- FCanTake
-	can_trade			= 4,		-- FCanTrade
-	belt				= 8,		-- Fbelt
-	ruck				= 16,		-- Fruck
-	default_to_ruck		= 32,		-- FRuckDefault
-	use_condition		= 64,		-- FUsingCondition
-	sprint_allowed		= 128,		-- FAllowSprint
-	useful_for_npc		= 256,		-- Fuseful_for_NPC
---	FInInterpolation	= 512,		-- FInInterpolation
---	FInInterpolate		= 1024,		-- FInInterpolate
-	quest_item			= 2048		-- FIsQuestItem
-}
-game_object.set_item_flag = function ( obj, flag_name, mode )
-	local fl = inventory_item_flags[flag_name]
-	if not fl then
-		abort("set_item_flag for [%s]: unknown flag name: %s", obj:name(), tostring(flag_name))
-		return false
-	end
-
-	local flags = obj:get_inventory_item_int( nil, 132 )
-	local new_flags
-	if mode == true then
-		new_flags = bit_or(flags, fl)
-	else
-		new_flags = bit_and(flags, bit_not(fl))
-	end
-
-	if new_flags == flags then return false end
-
-	obj:set_inventory_item_int( 132, new_flags )
-	return true
+-- вспомогательные функции для установки флагов в классе CInventoryItem
+game_object.set_inventory_item_flags = function ( item, mask, value )
+	local flags = item:get_inventory_item_int16( nil, 132 )
+	flags = flags16():assign(flags):set(mask, value):get()
+	item:set_inventory_item_int16( 132, flags )
 end
-game_object.get_item_flag = function ( obj, flag_name )
-	local fl = inventory_item_flags[flag_name]
-	if not fl then
-		abort("get_item_flag for [%s]: unknown flag name: %s", obj:name(), tostring(flag_name))
-		return false
-	end
-
-	local flags = obj:get_inventory_item_int( nil, 132 )
-	return bit_and(flags, fl) ~= 0
+game_object.has_inventory_item_flags = function ( item, mask )
+	local flags = item:get_inventory_item_int16( nil, 132 )
+	return bit_and(flags, mask) ~= 0
 end
+game_object.set_custom_color_ids = function (item, col_idx)
+	ASSERT(col_idx >=0 and col_idx <=15, "[game_object.set_custom_color_ids] col_idx must be in the range [0-15]")
+	local fl = bit_or(bit_and(item:get_inventory_item_int16(nil, 134), 65520), col_idx)
+	item:set_inventory_item_int16(134, fl)
+end
+-- получить слот предмета
 game_object.get_slot = function ( obj )
 	return obj:get_inventory_item_int( nil, 156 )
 end
+-- задать слот предмету
 game_object.set_slot = function ( obj, slot )
 	obj:set_inventory_item_int( 156, slot )
 end
@@ -526,10 +519,10 @@ relation_registry.change_goodwill = function (who_id, to_whom_id, goodwill_chang
 end
 
 -- global functions
-_G['get_inv_name'] = function (section)
+_G.get_inv_name = function (section)
 	return sys_ini:r_string_ex(section, "inv_name", section)
 end
-_G['GetIconParams'] = function (section)
+_G.GetIconParams = function (section)
 	if section~=nil and section~=""
 		and sys_ini:section_exist(section)
 		and sys_ini:line_exist(section, "inv_grid_x")
@@ -542,16 +535,16 @@ _G['GetIconParams'] = function (section)
 	return {x=0, y=0, w=1, h=1}
 end
 
-_G['ShowAutohideMsg'] = function( text, time_ms )
+_G.ShowAutohideMsg = function( text, time_ms )
 	ui_autohide_msg.CUIAutohideMsg( text, time_ms )
 end
 
-_G['set_story_id'] = function( obj, sid )
+_G.set_story_id = function( obj, sid )
 	alife():assign_story_id( nil, nil, obj.id, sid )
 end
 
-_G['old_user_name'] = user_name
-_G['user_name'] = function( name )
+_G.old_user_name = user_name
+_G.user_name = function( name )
 	if name == nil then
 		return game_options.UserName or old_user_name()
 	elseif type( name ) == "string" then
@@ -562,7 +555,7 @@ _G['user_name'] = function( name )
 	return false
 end
 
-_G['shiftCheckDropItem'] = function()
+_G.shiftCheckDropItem = function()
 	_G['biznes_remove_special_item']= true
 	start_small_timer(300,
 		function() _G['biznes_remove_special_item'] = nil end
@@ -570,7 +563,7 @@ _G['shiftCheckDropItem'] = function()
 end
 
 local IsBlocked = false
-_G['BlockUIDescr'] = function( b )
+_G.BlockUIDescr = function( b )
 	if b == nil then
 		return IsBlocked
 	else
@@ -579,7 +572,7 @@ _G['BlockUIDescr'] = function( b )
 end
 
 local ShiftHold = false
-_G['ShiftPressed'] = function( b )
+_G.ShiftPressed = function( b )
 	if b == nil then
 		return ShiftHold
 	else
@@ -591,7 +584,7 @@ local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?
 local ru = [[йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"№;:?]]
 local tt = {}
 for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
-_G['translit']  = function (l) return tt[l] or l end
+_G.translit  = function (l) return tt[l] or l end
 
 --tmr:stop()
 --log1( "# loading xray_extensions: "..tostring(tmr:time()) )

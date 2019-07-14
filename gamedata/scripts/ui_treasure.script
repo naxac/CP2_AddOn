@@ -1,12 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local function parse_dragdrop_params(str)
-	local ret = {}
-	local t = string.explode(str, ":")
-	for i = 1, #t-1, 2 do
-		ret[ t[i] ] = tonumber( t[i+1] )
-	end
-	return ret
-end
 local function sort_items(i1, i2)
 	local s1 = i1:section()
 	local s2 = i2:section()
@@ -85,6 +77,7 @@ function UICarBodyNew:__init(obj)
 	self.wnd = self
 
 	db.actor:give_info_portion("ui_car_body_new")
+	bind_stalker.hide_weapon("inv")
 end
 
 function UICarBodyNew:InitControls()
@@ -116,13 +109,7 @@ function UICarBodyNew:InitControls()
 	self:Register(bag, "ruck")
 	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "our_bag")
 	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "our_bag")
-	local p = parse_dragdrop_params( bag:GetText() )
-	self.our_bag = ui_dragdrop_list.UIDragDropList(
-		bag:GetWidth(), bag:GetHeight(),
-		p.cell_width, p.cell_height,
-		p.rows_num, p.cols_num,
-		p.group_similar==1
-	)
+	self.our_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
 
@@ -132,13 +119,7 @@ function UICarBodyNew:InitControls()
 	self:Register(bag, "box")
 	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "others_bag")
 	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "others_bag")
-	p = parse_dragdrop_params( bag:GetText() )
-	self.others_bag = ui_dragdrop_list.UIDragDropList(
-		bag:GetWidth(), bag:GetHeight(),
-		p.cell_width, p.cell_height,
-		p.rows_num, p.cols_num,
-		p.group_similar==1
-	)
+	self.others_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.others_bag)
 	self.others_bag:Show(true)
 
@@ -444,8 +425,8 @@ function UICarBodyNew:Quit()
 	self:GetHolder():start_stop_menu(self, true)
 	self.wnd = nil
 
-	_G['recolor_items'] = nil
 	db.actor:give_info_portion("ui_car_body_new_hide")
+	bind_stalker.restore_weapon("inv")
 end
 
 function UICarBodyNew:OnKeyboard(dik, keyboard_action)
