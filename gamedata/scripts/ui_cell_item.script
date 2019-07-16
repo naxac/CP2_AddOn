@@ -16,6 +16,8 @@ local function GetAmmoSize(item)
 		return se_obj and naxac_netpk.get_ammo_size(se_obj) or 0
 	end
 end
+
+local scale_tex_name, scale_tex_rect = get_texture_info( "ui_inventory_item_status_bar" )
 ----------------------------------------------------------------------------------------------
 
 class "UICellItem" (CUIStatic)
@@ -51,25 +53,24 @@ function UICellItem:RecolorAndScale()
 		self:ShowAddons()
 	end
 
-	if sys_ini:r_bool_ex(self.section, "show_condition", false) == true then
+	local item = self:GetTopItem()
+	if need_show_condition(item) then
 		local x = 2
 		local y = self:GetHeight() - 6
 		local w = self:GetWidth()/self.icon.width - 5
 		local h = 4
 
-		local item = self:GetTopItem()
-		local cond = item:condition()
-		local w_cond = w * cond
-
 		self.scale_b = CUIStatic()
 		self.scale_b:SetAutoDelete( true )
-		self.scale_b:Init( "ui_mg_progress_efficiency_full_1", x, y, w, h )
+		self.scale_b:Init( "ui_inventory_item_status_bar", x, y, w, h )
 		self.scale_b:SetStretchTexture( true)
 		self:AttachChild( self.scale_b )
 
+		local cond = item:condition()
 		self.scale = CUIStatic()
 		self.scale:SetAutoDelete( true )
-		self.scale:Init( "ui_mg_progress_efficiency_full_1", 0, 0, w_cond, 4 )
+		self.scale:Init( scale_tex_name, 0, 0, w*cond, h )
+		self.scale:SetOriginalRect( scale_tex_rect.x1, scale_tex_rect.y1, scale_tex_rect.x2*cond, scale_tex_rect.y2 )
 		self.scale:SetStretchTexture( true )
 		local g = math.min( cond*510, 255 )
 		local r = math.min( (1-cond)*510, 255 )

@@ -342,32 +342,34 @@ end
 
 --  астомна€ заливка предметов в слотах, как в старых билдах
 -- + шкала состо€ни€ на иконках оружи€ и брони
+local tex_name, tex_rect = get_texture_info( "ui_inventory_item_status_bar" )
 function on_create_cell_item( item )
 	local st = CUIFrameWindow():GetTitleStatic()
 	if not st then return end
 
 	-- рисуем шкалу состо€ни€
-	local section = item:section()
-	if sys_ini:r_bool_ex(section, "show_condition", false) == true then
+	if need_show_condition(item) then
 		local x = 2
-		local y = 35 * sys_ini:r_u32(section, "inv_grid_height") - 6
+		local y = 35 * sys_ini:r_u32(item:section(), "inv_grid_height") - 6
 		local w = 30*kScreen
 		local h = 4
-		local cond = item:condition()
-		local w_cond = w * cond
+
 		local b = CUIStatic()
 		b:SetAutoDelete( true )
-		b:Init( "ui_mg_progress_efficiency_full_1", x, y, w, h )
-		b:SetStretchTexture( true)
-		b:SetColor( GetARGB( 120, 255, 255, 255 ) )
+		b:Init( "ui_inventory_item_status_bar", x, y, w, h )
+		b:SetStretchTexture( true )
+		b:SetColor( GetARGB( 180, 255, 255, 255 ) )
 		st:AttachChild( b )
+
+		local cond = item:condition()
 		local s = CUIStatic()
 		s:SetAutoDelete( true )
-		s:Init( "ui_mg_progress_efficiency_full_1", 0, 0, w_cond, 4 )
+		s:Init( tex_name, 0, 0, w*cond, h )
+		s:SetOriginalRect( tex_rect.x1, tex_rect.y1, tex_rect.x2*cond, tex_rect.y2 )
 		s:SetStretchTexture( true )
 		local g = math.min( cond*510, 255 )
 		local r = math.min( (1-cond)*510, 255 )
-		s:SetColor( GetARGB( 150, r, g, 50 ) )
+		s:SetColor( GetARGB( 220, r, g, 50 ) )
 		b:AttachChild( s )
 	end
 end
