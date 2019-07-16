@@ -1,12 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local function parse_dragdrop_params(str)
-	local ret = {}
-	local t = string.explode(str, ":")
-	for i = 1, #t-1, 2 do
-		ret[ t[i] ] = tonumber( t[i+1] )
-	end
-	return ret
-end
 local function sort_items(i1, i2)
 	local s1 = i1:section()
 	local s2 = i2:section()
@@ -28,33 +20,6 @@ local db_click_timeout = 300
 local ActiveBoxId = nil
 
 ---------------------------------------------------------------------------------------------------------
-class "UIDragItem" (CUIStatic)
-
-function UIDragItem:__init()
-	super()
-
-	self.section = ""
-
-	self:Init(0, 0, 50, 50)
-	self:SetAutoDelete(true)
-	self:InitTexture("ui\\ui_icon_equipment")
-	self:SetStretchTexture(true)
-	self:SetColor( GetARGB(150, 255, 255, 255) )
-end
-
-function UIDragItem:__finalize()
-end
-
-function UIDragItem:InitItem(item)
-	local sect = item:section()
-	if self.section ~= sect then
-		self.section = sect
-		local icon = GetIconParams(sect)
-		self:SetOriginalRect(icon.x, icon.y, icon.w, icon.h)
-	end
-end
----------------------------------------------------------------------------------------------------------
-
 class "UICarBodyNew" (CUIScriptWnd)
 
 function UICarBodyNew:__init(obj)
@@ -117,13 +82,7 @@ function UICarBodyNew:InitControls()
 	self:Register(bag, "ruck")
 	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "our_bag")
 	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "our_bag")
-	local p = parse_dragdrop_params( bag:GetText() )
-	self.our_bag = ui_dragdrop_list.UIDragDropList(
-		bag:GetWidth(), bag:GetHeight(),
-		p.cell_width, p.cell_height,
-		p.rows_num, p.cols_num,
-		p.group_similar==1
-	)
+	self.our_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
 
@@ -133,13 +92,7 @@ function UICarBodyNew:InitControls()
 	self:Register(bag, "box")
 	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "others_bag")
 	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "others_bag")
-	p = parse_dragdrop_params( bag:GetText() )
-	self.others_bag = ui_dragdrop_list.UIDragDropList(
-		bag:GetWidth(), bag:GetHeight(),
-		p.cell_width, p.cell_height,
-		p.rows_num, p.cols_num,
-		p.group_similar==1
-	)
+	self.others_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.others_bag)
 	self.others_bag:Show(true)
 
@@ -154,7 +107,7 @@ function UICarBodyNew:InitControls()
 
 	self:ShowWeight()
 
-	self.drag_item = UIDragItem()
+	self.drag_item = ui_drag_item.UIDragItem()
 	self:AttachChild(self.drag_item)
 	self.drag_item:Show(false)
 end
@@ -166,7 +119,7 @@ function UICarBodyNew:Update()
 	CUIScriptWnd.Update(self)
 
 	if self.move then
-		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
+		self.drag_item:SetWndPos( self:GetMousePosX() + self.drag_item.shiftX, self:GetMousePosY() + self.drag_item.shiftY )
 	end
 	if self.first_click and self.first_click < time_global() then
 		self.first_click = nil
@@ -332,7 +285,7 @@ function UICarBodyNew:TransferItem(from_where, item_name)
 		self.our_bag:RemoveItem( item )
 
 		shiftCheckDropItem()
-		alife():release( alife():object( item:id(), true) )
+		alife():release( alife():object( item:id() ), true  )
 	end
 
 	self:ShowOthersWeight()
@@ -437,6 +390,9 @@ function UICarBodyNew:Quit()
 	new_treasure.save_box_items(self.box, self.others_items)
 	self.box = nil
 	ActiveBoxId = nil
+	self.our_items = nil
+	self.others_items = nil
+	self.items_to_convert = nil
 
 	xr_s.unsubscribe("item_take", self.OnItemTake)
 	xr_s.unsubscribe("item_drop", self.ShowWeight)
@@ -473,11 +429,10 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 			local itm = bag:GetItem(self.selected_item)
 			if itm then
 				self.drag_item:InitItem( itm:GetTopItem() )
-				local x = itm:GetAbsolutePosX()
-				local y = itm:GetAbsolutePosY()
-				self.drag_item.shiftX = x - self:GetCursorX()
-				self.drag_item.shiftY = y - self:GetCursorY()
-				self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
+				local r = itm:GetAbsoluteRect()
+				self.drag_item.shiftX = r.x1 - self:GetMousePosX()
+				self.drag_item.shiftY = r.y1 - self:GetMousePosY()
+				self.drag_item:Init( r.x1, r.y1, itm:GetWidth(), itm:GetHeight() )
 				self.drag_item:Show(true)
 
 				self.move = true

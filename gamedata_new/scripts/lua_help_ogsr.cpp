@@ -1060,6 +1060,10 @@ namespace  {
 	void			update_inventory_window();
 	void			update_inventory_weight();
 
+	int<key_bindings*>	dik_to_bind( int<DIK_keys*> );
+	LPCSTR				dik_to_keyname( int<DIK_keys*> );
+	int<DIK_keys*>		keyname_to_dik( LPCSTR<key_name> );
+
     namespace level {
 		bool					is_removing_objects();
 		shared_str				get_weather_prev();

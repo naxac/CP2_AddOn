@@ -1,0 +1,182 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local function GetCellIconParams(section)
+	return {
+		x		= sys_ini:r_u32(section, "inv_grid_x"),
+		y		= sys_ini:r_u32(section, "inv_grid_y"),
+		width	= sys_ini:r_u32(section, "inv_grid_width"),
+		height	= sys_ini:r_u32(section, "inv_grid_height")
+	}
+end
+
+local function GetAmmoSize(item)
+	if item.is_fake then
+		return item.ammo_left
+	else
+		local se_obj = alife():object(item:id())
+		return se_obj and naxac_netpk.get_ammo_size(se_obj) or 0
+	end
+end
+
+local scale_tex_name, scale_tex_rect = get_texture_info( "ui_inventory_item_status_bar" )
+----------------------------------------------------------------------------------------------
+
+class "UICellItem" (CUIStatic)
+
+function UICellItem:__init(item)
+	super()
+
+	self.section = item:section()
+	self.icon = GetCellIconParams(self.section)
+	self.items = {}
+
+	if item:is_ammo() then
+		self.ammo_cnt = 0
+	end
+
+	self:SetAutoDelete(true)
+	self:InitTexture("ui\\ui_icon_equipment")
+	self:SetOriginalRect(self.icon.x*50, self.icon.y*50, self.icon.width*50, self.icon.height*50)
+	self:SetStretchTexture(true)
+
+	self:AddItem(item)
+end
+
+function UICellItem:__finalize()
+end
+
+function UICellItem:RecolorAndScale()
+	if self.in_slot then
+		self:SetColor( GetARGB(255,150,255,150) )
+	end
+
+	if self.addon_flags and self.addon_flags ~= 0 then
+		self:ShowAddons()
+	end
+
+	local item = self:GetTopItem()
+	if need_show_condition(item) then
+		local x = 2
+		local y = self:GetHeight() - 6
+		local w = self:GetWidth()/self.icon.width - 5
+		local h = 4
+
+		self.scale_b = CUIStatic()
+		self.scale_b:SetAutoDelete( true )
+		self.scale_b:Init( "ui_inventory_item_status_bar", x, y, w, h )
+		self.scale_b:SetStretchTexture( true)
+		self:AttachChild( self.scale_b )
+
+		local cond = item:condition()
+		self.scale = CUIStatic()
+		self.scale:SetAutoDelete( true )
+		self.scale:Init( scale_tex_name, 0, 0, w*cond, h )
+		self.scale:SetOriginalRect( scale_tex_rect.x1, scale_tex_rect.y1, scale_tex_rect.x2*cond, scale_tex_rect.y2 )
+		self.scale:SetStretchTexture( true )
+		local g = math.min( cond*510, 255 )
+		local r = math.min( (1-cond)*510, 255 )
+		self.scale:SetColor( GetARGB( 255, r, g, 50 ) )
+		self.scale_b:AttachChild( self.scale )
+	end
+end
+
+function UICellItem:ShowAddons()
+	local owner = self:GetParent()
+	local kX = owner.cell_width/50
+	local kY = owner.cell_height/50
+	local x, y, sect, icn
+	for k, v in pairs(_G['addon_flags']) do
+		if sys_ini:r_u32(self.section, k.."_status") == 2
+			and bit_and(self.addon_flags, v) ~= 0
+		then
+			sect = sys_ini:r_string(self.section, k.."_name")
+			x = sys_ini:r_float(self.section, k.."_x") *kX
+			y = sys_ini:r_float(self.section, k.."_y") *kY
+			icn = GetCellIconParams(sect)
+			local st = CUIStatic()
+			st:SetAutoDelete( true )
+			st:Init("ui\\ui_icon_equipment", x, y, owner.cell_width*icn.width, owner.cell_height*icn.height)
+			st:SetOriginalRect(icn.x*50, icn.y*50, icn.width*50, icn.height*50)
+			st:SetStretchTexture( true )
+			self:AttachChild( st )
+			if self.in_slot then
+				st:SetColor( GetARGB(255,150,255,150) )
+			end
+		end
+	end
+end
+
+function UICellItem:AddItem(item)
+	table.insert(self.items, item)
+
+	local text = ""
+	if self.ammo_cnt then
+		self.ammo_cnt = self.ammo_cnt + GetAmmoSize(item)
+		text = tostring(self.ammo_cnt)
+	elseif #self.items>1 then
+		text = "x"..tostring(#self.items)
+	end
+	self:SetText(text)
+end
+
+function UICellItem:RemoveTopItem()
+	self:RemoveItem(#self.items)
+end
+
+function UICellItem:GetTopItem()
+	return self.items[#self.items]
+end
+
+function UICellItem:Count()
+	return #self.items
+end
+
+function UICellItem:GetItemById(id)
+	for i, item in ipairs(self.items) do
+		if item:id() == id then
+			return item
+		end
+	end
+	return nil
+end
+function UICellItem:RemoveItem(index)
+	local item = self.items[index]
+	table.remove(self.items, index)
+
+	local n = #self.items
+	if n > 0 then
+		local text = ""
+		if self.ammo_cnt then
+			self.ammo_cnt = self.ammo_cnt - GetAmmoSize(item)
+			text = tostring(self.ammo_cnt)
+		elseif n > 1 then
+			text = "x"..tostring(n)
+		end
+		self:SetText(text)
+	end
+
+	if item.is_fake then
+		item:destroy()
+	end
+end
+
+function UICellItem:RemoveItemById(id)
+	for i, item in ipairs(self.items) do
+		if item:id() == id then
+			self:RemoveItem(i)
+			return true
+		end
+	end
+	return false
+end
+
+function UICellItem:Destroy()
+	local it
+	for i = 1, #self.items do
+		it =self.items[i]
+		if it.is_fake then
+			it:destroy()
+		end
+		self.items[i] = nil
+	end
+end
+
