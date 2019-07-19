@@ -1,0 +1,348 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local func_by_string = {}
+-- pda timer
+for i=0,4 do
+	func_by_string['pda_timer'..i] = function ( params )
+		local msg = "%c[255,0,255,0]Таймер сработал\\n"
+		if params ~= "" then
+			msg= msg.."%c[255,255,128,128]"..params
+		end
+		news_manager.send_tip(db.actor, msg, nil, "nano", 15000, nil, "device\\pda\\pda_objective")
+	end
+end
+func_by_string["pda_alarm"] = function ( params )
+	news_manager.send_tip(db.actor, "%c[255,0,255,0]БУДИЛЬНИК", nil, "nano", 15000, nil, "device\\pda\\pda_sos")
+	sleep_manager.stopper()
+end
+
+func_by_string["send_tip"] = function ( params )
+	amk.send_tip( unpack(params) )
+end
+func_by_string['mushroom'] = function ( params )
+	local obj_id = tonumber(params)
+	local obj = alife():object( obj_id )
+	if obj and obj:section_name() == "mushroom" then
+		netpk:modify(obj, {condition = 0.5}, netpk.fState)
+		local item = level.object_by_id(obj_id)
+		if item then item:set_condition(0.5) end
+		xr_timers.start_game_timer("del_m", 0, math.random(2,3), math.random(5,45), obj_id)
+	end
+end
+func_by_string["del_m"] = function ( params )
+	local obj = alife():object( params )
+	if obj and obj:section_name() == "mushroom" then
+		alife():release(obj, true)
+	end
+end
+func_by_string["xo_rep"] = function (params)
+	buusty_dialog.xo_repair_finished(params)
+end
+func_by_string["fli_code"] = function (params)
+	fly_island.check_code()
+end
+-- Proper70: Надоело добавлять сюда строки - сделал универсальный запуск по таймеру любой служебной функции.
+-- params = нужная функция.
+-- Ограничения: нельзя передавать в качестве параметров функции переменные, только конкретные значения.
+func_by_string["run"] = function (params)
+	if params then loadstring(params)() end
+end
+for i = 1, 5 do
+	func_by_string["run"..i] = func_by_string["run"]
+end
+-- острова
+func_by_string["fli_teleport_actor"] = function (params)
+	kostya_dialog.create_teleport(params, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id())
+end
+func_by_string["fli_teleport_timeout"] = function (data)
+	kostya_dialog.create_teleport(data[1], vector():set(data[2], data[3], data[4]), data[5], data[6])
+end
+-- телепортатор
+func_by_string["on_take_teleportator"] = function (params)
+	spawn_level_changer.on_take_teleportator_chunk(params)
+end
+-- битва
+func_by_string["battle"] = function (params)
+	battle.show_must_go_on(params)
+end
+func_by_string["battle_rest"] = function (params)
+	battle.reinforcement(params)
+end
+func_by_string["move_on"] = function (params)
+	monster_parts.move_on()
+end
+-- взносы
+func_by_string["stop_tush"] = function (params)
+	db.actor:give_info_portion("sidor_music")
+end
+-- достижения
+func_by_string["send_archievement"] = function (params)
+	archievements.send_archievement_chunk(params)
+end
+-- autosave
+func_by_string["autosave"] = function (params)
+	if u3_utils.can_save() then
+		u3_utils.savegame(params)
+	else
+		xr_timers.start_real_timer("autosave", 3, params)
+	end
+end
+func_by_string["autosave_data"] = function (params)
+	if u3_utils.can_save() then
+		u3_utils.savegame_date(params)
+	else
+		xr_timers.start_real_timer("autosave_data", 1, params)
+	end
+end
+func_by_string["no_save"] = function (params)
+	amk.del_variable("no_save")
+	local st = get_hud():GetCustomStatic("cs_inviz")
+	if st then get_hud():RemoveCustomStatic("cs_inviz") end
+end
+func_by_string["grenade_flash_disable"] = function (params)
+	db.actor:disable_info_portion("grenade_flash_blow")
+end
+func_by_string["unload_wpn_time"] = function (params)
+	local obj = level.object_by_id(params)
+	if obj and not death_manager.unique_wpn[obj:section()] then
+		--amk.send_tip("Разрядили ",tostring(obj:name()),0,15,"gen_info")
+		obj:unload_magazine()
+	end
+end
+func_by_string["wpn_cond_time"] = function (params)
+	local obj = level.object_by_id(params)
+	if obj and not death_manager.unique_wpn[obj:section()] then
+		--amk.send_tip("Состояние ",tostring(obj:name()),0,15,"gen_info")
+		obj:set_condition((math.random(20, 50)+5*(3-level.get_game_difficulty()))/100)
+	end
+end
+func_by_string["anom_remover"] = function (params)
+	if not inventory.search("art_acumm", 1) then return end
+	local obj = alife():object(params)
+	if obj then
+		alife():release(obj, true)
+		inventory.out_items("art_acumm", 1)
+	end
+end
+func_by_string["mm_opt"] = function (params)
+	db.actor:disable_info_portion("mm_opt")
+end
+func_by_string["set_flame_ammo"] = function (params)
+	flamethrower.set_flame_ammo(params)
+end
+func_by_string["hand_teleporter_jumpto"] = function (params)
+	meceniy_intellectual.jumpTo(params)
+end
+func_by_string["teleport_jumpto"] = function (params)
+	spawn_level_changer.jumpTo(params)
+end
+func_by_string["zonedocs_gg_kill"] = function (params)
+	kostya_dialog.zonedocs_gg_kill()
+end
+func_by_string["tag_trup_to_zombie"] = function (params)
+	tag_spb.trup_to_zombie(params)
+end
+-- repair and upgrade
+func_by_string["hnd_weap_01"] = function (params)
+	repair_check.do_release_action("hnd_weap_01")
+end
+func_by_string["hnd_weap_02"] = function (params)
+	repair_check.do_release_action("hnd_weap_02")
+end
+func_by_string["hnd_weap_03"] = function (params)
+	repair_check.do_release_action("hnd_weap_03")
+end
+func_by_string["hnd_weap_04"] = function (params)
+	repair_check.do_release_action("hnd_weap_04")
+end
+func_by_string["hnd_weap_05"] = function (params)
+	repair_check.do_release_action("hnd_weap_05")
+end
+func_by_string["hnd_weap_06"] = function (params)
+	repair_check.do_release_action("hnd_weap_06")
+end
+func_by_string["hnd_weap_07"] = function (params)
+	repair_check.do_release_action("hnd_weap_07")
+end
+-- storyline
+func_by_string["sms_new"] = function (params)
+	braad_test.sms_new()
+end
+func_by_string["sms_new1"] = function (params)
+	braad_test.sms_new1()
+end
+func_by_string["sms"] = function (params)
+	wawka.smski_besu(tonumber(params))
+end
+func_by_string["smska_borova"] = function (params)
+	wawka.smska_borova()
+end
+func_by_string["smska_volka"] = function (params)
+	wawka.smska_volka()
+end
+func_by_string["smska_shurupa"] = function (params)
+	wawka.smska_shurupa()
+end
+func_by_string["smska_dana"] = function (params)
+	wawka.smska_dana()
+end
+func_by_string["luis_killself"] = function (params)
+	braad_test.luis_killself()
+end
+func_by_string["mitya_sms"] = function (params)
+	braad_test.mitya_sms()
+end
+func_by_string["delete_black_doctor"] = function (params)
+	braad_test.delete_black_doctor()
+end
+-- other
+func_by_string["show_news"] = function (params)
+	amk_mod.show_news()
+end
+func_by_string["gg_need_sleep"] = function (params)
+	amk_mod.test_for_need_sleep()
+end
+func_by_string["block_sleep_menu"] = function (params)
+	amk.del_variable("block_sleep_menu")
+end
+func_by_string["radar_fix"] = function (params)
+	amk_mod.radar_fix()
+end
+func_by_string["af_transform_universal"] = function (params)
+	amk_mod.af_transform_universal_end(params)
+end
+func_by_string["blowout"] = function (params)
+	amk_mod.Blowout_pp(params)
+end
+func_by_string["test"] = function (params)
+	amk_mod.Run_Blowout_pp()
+end
+func_by_string["blowout_ss"] = function (params)
+	amk_mod.blowout_scary_sounds()
+end
+func_by_string["blow_shift"] = function (params)
+	amk_mod.Run_Blowout_pp()
+end
+func_by_string["sleep_repbox"] = function (params)
+	amk_mod.repair_weapon(params)
+end
+func_by_string["repbox_cond"] = function (params)
+	amk_mod.after_repair_weapon(params)
+end
+func_by_string["news_check"] = function (params)
+	if (news_main and news_main.check_news) then
+		news_main.check_news()
+	end
+end
+func_by_string["outfit_cond"] = function (data)
+	local obj = level.object_by_id(data[1])
+	if obj then
+		local cond_add = 5*(3-level.get_game_difficulty())
+		local cond = math.random(data[2], data[3])+cond_add
+		obj:set_condition(cond/100)
+		if sys_ini:r_bool_ex(obj:section(), "volatile", false) == true then
+			local binder = obj:binded_object()
+			if binder then
+				cond_add = 0.07 * (level.get_game_difficulty() + 1)
+				cond = math.random(data[2], data[3])/100 - cond_add
+				binder:charge(math.clamp(cond, 0, 1), true)
+			end
+		end
+	end
+end
+func_by_string["npc_clear_spawn"] = function (data)
+	death_manager.npc_clear_spawn(data[1], data[2], data[3], data[4])
+end
+func_by_string["healing_enemies"] = function (params)
+	xr_wounded.help_wounded_delayed(unpack(params))
+end
+func_by_string["timer_drop_obj_varka"] = function (tbl)
+	local sobj = alife():object(tbl.obj_id)
+	if sobj and sobj.parent_id == 65535 then
+		-- выбросили
+		-- запускаем проверку на рецепт и, если успешно, варку
+		local obj	= level.object_by_id(tbl.obj_id)
+		local anom	= level.object_by_id(tbl.anom_id)
+		if obj and anom then -- если чего само выпадет или будет вброшено в игру скриптом при переходе ГГ между уровнями, то obj == nil и аномалии тоже не будет
+			local obj_sect	= obj:section()
+			local obj_pos	= obj:position()
+			local anom_sect	= anom:section()
+			local anom_pos	= anom:position()
+			amk_mod.check_af_transform(obj, obj_sect, obj_pos, tbl.anom_id, anom_sect, anom_pos, tbl.anom_radius, tbl.lv, tbl.gv)
+		end
+	end
+end
+func_by_string["timer_drop_obj_transform"] = function (tbl)
+	local sobj = alife():object(tbl.obj_id)
+	if sobj and sobj.parent_id == 65535 then
+		-- выбросили
+		-- запускаем трансформацию предмета
+		local obj = level.object_by_id(tbl.obj_id)
+		if obj then
+			amk_mod.item_transform(tbl.obj_id, tbl.lv, tbl.gv)
+		end
+	end
+end
+-- babah
+func_by_string["babah_drop_timeBomb"] = function (tbl)
+	local sobj = alife():object(tbl.id)
+	if sobj == nil then
+		babah.useTimeBomb(tbl)
+	elseif sobj.parent_id == 65535 then
+		babah.dropTimeBomb(tbl)
+	else
+		babah.relocateTimeBomb(tbl)
+	end
+end
+func_by_string["babah_timeBomb_activated"] = function (params)
+	local id = tonumber(params)
+	babah.explosiveExplode(id)
+end
+func_by_string["babah_explode_moved_timeBomb"] = function (params)
+	local id = tonumber(params)
+	babah.explodeMovedTimeBomb(id)
+end
+func_by_string["babah_timeBomb_transfer"] = function (params)
+	local id = tonumber(params)
+	babah.transferTimeBomb(id)
+end
+func_by_string["babah_explode_biside_explosives"] = function (params)
+	babah.explodeBisideExplosives(params)
+ end
+func_by_string["babah_drop_mine"] = function (tbl)
+	local sobj = alife():object(tbl.id)
+	if sobj and sobj.parent_id == 65535 then
+		babah.dropMine(tbl)
+	end
+ end
+func_by_string["babah_activateMine"] = function (tbl)
+	local sobj = alife():object(tbl.id)
+	babah.addMine(sobj)
+end
+func_by_string["babah_drop_detonator"] = function (tbl)
+	local sobj = alife():object(tbl.id)
+	if sobj == nil then
+		babah.useDetonator(tbl.sect)
+	end
+ end
+func_by_string["babah_activateDetonator"] = function (params)
+	babah.explodeBombsByDetonator(params)
+end
+func_by_string["babah_transfer_items"] = function (params)
+	babah.itemsTransferBackToInventory(params)
+end
+	
+-- volazar
+for i = 1, 15 do
+	func_by_string["esc_fly"..i] = function (params)
+		esc_fly.spawn(params)
+	end
+end
+
+function timer_action( name, parametres )
+	amk.oau_reason = "Timers:timer_action -> "..name		--.." : "..utils.to_str(parametres)
+--	log("* %s", amk.oau_reason)
+	if func_by_string[name] then
+		func_by_string[name](parametres)
+	end
+end
+
