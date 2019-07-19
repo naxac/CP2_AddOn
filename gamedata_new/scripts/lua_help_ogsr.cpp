@@ -187,6 +187,11 @@ extern Flags32 psHUD_Flags {
 	HUD_CROSSHAIR_BUILD		= 1024;
 };
 
+class alife_simulator {
+	void use_ai_locations( CSE_ALifeDynamicObject*<object>, bool<use>);
+	void assign_story_id( CSE_ALifeDynamicObject*<object>, int<story_id> );
+};
+
 class ini_file {
 	property bool	readonly;
 
@@ -199,7 +204,7 @@ class ini_file {
 	void			w_float( LPCSTR<section>, LPCSTR<line>, float<value> );
 	void			w_vector( LPCSTR<section>, LPCSTR<line>, vector*<value> );
 	string			get_as_string();
-	void			iterate_sections( const<luabind::functor<void>& functor(section)> );
+	void			iterate_sections( const luabind::functor<void>& functor(section) );
 };
 
 class cse_abstract : cpure_server_object {
@@ -221,7 +226,7 @@ class game_object {
 	CGameObject*				get_game_object();
 	cse_alife_dynamic_object*	get_alife_object();
 	CActor*						get_actor();
-	CCustomZone*				get_anomaly();
+	CustomZone*					get_anomaly();
 	CArtefact*					get_artefact();
 	CBaseMonster*				get_base_monster();
 	CInventoryContainer*		get_container();
@@ -414,6 +419,47 @@ class game_object {
 	void			add_feel_touch( float<radius>, const<luabind::object& lua_object>, const<luabind::functor<void>& new_delete>, const<luabind::functor<bool>& contact> );	// CGameObject
 	void			remove_feel_touch( const<luabind::object& lua_object>, const<luabind::functor<void>& new_delete> );	// CGameObject
 	void			remove_feel_touch( const<luabind::object& lua_object>, const<luabind::functor<void>& new_delete>, const<luabind::functor<bool>& contact> );	// CGameObject
+
+	void			disable_anomaly( bool<keep_update> );	// CCustomZone
+};
+
+class CSpaceRestrictor {
+	CSpaceRestrictor();
+
+	vector*					restrictor_center;
+	property global_flags*	restrictor_type;
+	property float			radius;
+
+	void					schedule_register();
+	void					schedule_unregister();
+	bool					is_scheduled();
+	bool					active_contact( u16<object_id> );
+};
+
+// not exported
+enum EZoneState {
+	eZoneStateIdle = 0,		//состояние зоны, когда внутри нее нет активных объектов
+	eZoneStateAwaking = 1,		//пробуждение зоны (объект попал в зону)
+	eZoneStateBlowout = 2,		//выброс
+	eZoneStateAccumulate = 3,	//накапливание энергии, после выброса
+	eZoneStateDisabled = 4,
+	eZoneStateMax = 5
+};
+
+class CustomZone : CSpaceRestrictor {
+	float		power( float<dist> );
+	float		relative_power( float<dist> );
+
+	property float	attenuation;
+	property float	effective_radius;
+	property float	hit_impulse_scale;
+	property float	max_power;
+	property u32	state_time;
+	property u32	start_time;
+	property u32	time_to_live;
+	property bool	zone_active;
+	property u32<EZoneState>	zone_state;
+	
 };
 
 class ph_capture {
@@ -589,7 +635,9 @@ class CInventoryItemObject : CInventoryItem, CGameObject {
 };
 
 class CTorch : CInventoryItemObject {
-	bool			on();
+	CTorch();
+
+	bool			on;
 	void			enable(bool);
 	void			switch();
 	IRender_Light*	get_light( int<target> );
@@ -601,7 +649,8 @@ class CTorch : CInventoryItemObject {
 	void			set_range( float );
 	void			set_texture( LPCSTR );
 	void			set_virtual_size( float );
-	bool			nvd_on();
+
+	bool			nvd_on;
 	void			enable_nvd( bool );
 	void			switch_nvd();
 	game_object*	get_torch_obj();
@@ -1000,6 +1049,11 @@ class CUIWindow {
 	void		GetAbsoluteRect( Frect*<rect> );
 };
 
+class CUIComboBox : CUIWindow {
+	CUIListBoxItem*	AddItem( LPCSTR<str> );
+	LPCSTR			GetText();
+};
+
 class CIconParams {
 	CIconParams( LPCSTR<section> )
 
@@ -1045,6 +1099,16 @@ enum EMoveCommand
 	mcAnyState	= (mcCrouch|mcAccel|mcClimb|mcSprint),
 	mcLookout	= (mcLLookout|mcRLookout),
 };
+
+class path : stdfs* {
+	char	full_path_name;
+	char	full_filename;
+	char	short_filename;
+	char	extension;
+	int		last_write_time;
+	char	last_write_time_string;
+	char	last_write_time_string_short;
+};
 	
 
 
@@ -1063,6 +1127,11 @@ namespace  {
 	int<key_bindings*>	dik_to_bind( int<DIK_keys*> );
 	LPCSTR				dik_to_keyname( int<DIK_keys*> );
 	int<DIK_keys*>		keyname_to_dik( LPCSTR<key_name> );
+
+	namespace stdfs {
+		void directory_iterator( const char* dir, const luabind::functor<void> &iterator_func(path*) );
+		void recursive_directory_iteratorconst char* dir, const luabind::functor<void> &iterator_func(path*) );
+	};
 
     namespace level {
 		bool					is_removing_objects();
@@ -1104,7 +1173,7 @@ namespace  {
 		void					send_event_key_hold( int<dik> );
 		void					send_event_mouse_wheel( int<vol> );
 
-		void					change_level( GameGraph::_GRAPH_ID<game_vertex_id>, u32<level_vertex_id>, vector<pos>, vector<dir> );
+		void					change_level( GameGraph::_GRAPH_ID<game_vertex_id>, u32<level_vertex_id>, vector*<pos>, vector*<dir> );
 		void					set_cam_inert( float );
 		void					set_monster_relation( LPCSTR<(MONSTER_COMMUNITY_ID)from>, LPCSTR<(MONSTER_COMMUNITY_ID)to>, int<rel> );
 		void					patrol_path_add( LPCSTR<patrol_path>, CPatrolPath*<path> );

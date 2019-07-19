@@ -1,0 +1,114 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-------------------------------------------------------------------------------------------
+-- File         : game_options.script
+-- Description  : Сохранение дополнительных игровых опций
+-- Created      : 03.12.2014
+-- Last update  : 31.12.2015
+-- Author       : naxac
+-------------------------------------------------------------------------------------------
+-- При добавлении новой опции обязательно выставить дефолтное значение!
+-- Типы сохраняемых значений: string, number и boolean
+AutoZoom		= false -- изменение режима прицеливания однокраннм нажатием кнопки
+DynMusic		= false	-- динамическая музыка
+AutoDif			= false	-- автоматическая смена уровня сложности
+-- Сохранение
+AutoSave		= true	-- автосохранение
+SaveRen			= true	-- копирование быстрых сохранений в резерв
+
+DynBio			= 1		-- биорадар
+-- Настройки HUD и эффектов
+CurrentHUD		= "oracle"		-- название активного оформления HUD'а
+DynHud			= true 	-- динамический HUD
+DynHudBlurs		= true	-- эффект запотевания
+DynHudZoom		= true	-- эффект прицеливания
+DynHudBleed		= true	-- эффект плохого самочувствия
+DynHudBlood		= true	-- эффект ранения
+GGKick			= true	-- эффект критического ранения
+HudRad			= true	-- индикация радиации на худе
+QuickSlotsOnHUD	= 1		-- количество предметов в ячейках быстрого доступа на худе
+HudTIme			= false	-- реальное время на худе при нажатии kSCORES
+-- Усложнения
+FastRespawn		= false	-- частый респавн
+HorrorTime		= true	-- "Час Ужаса"
+LockBoxOnly		= true	-- не на все тайники можно повесить замок
+RareMonsterParts	= false	-- редкие части монстров
+TrTrs			= false	-- малозаметные тайники
+ZamokUICode		= true	-- меню для ввода кода к замкам на тайники
+--Настройки выброса
+RunBlowoutPP	= true	-- отключение и включение выбросов в игре
+ZombieTeam		= true	-- превращение мёртвых сталкеров в зомби после выброса
+BlowTimeBasis	= 4320	-- базовое время до следуещего выброса в игровых минутах
+BlowTimeShift	= 720	-- число используется для корректировки BlowTimeBasis, если равно 0, выбросы будут через время = BlowTimeBasis
+BlowPhaseBasis	= 5		-- базовое время одной фазы выброса(всего во время выброса пять фаз) в игровых минутах
+BlowPhaseShift	= 0		-- число используется для корректировки BlowPhaseBasis, если равно 0, время одной фазы будет = BlowPhaseBasis
+BlowPhaseMax	= 5		-- максимальное время фазы выброса в игровых минутах
+-- Тогровля
+UntradeSlotsAndBelt	= false	-- предметы в слотах и на поясе нельзя продать
+TradeCondition	= false	-- ограничение на продажу слишком изношенных предметов
+
+AmkTrs			= 2		-- наполнение тайников
+FullAnim		= true	-- расширенные анимации
+GarbagecollectorStat = false -- сообщения от уборщика
+NewSms			= false	-- "неатмосферные" СМС
+NewRadio		= false -- вместо Сказочника - радио "Чернобыльский Апрель"
+RndReward		= false -- рандомная награда за циклические квесты (еще в разработке)
+RealMoney		= false -- с нпс снимаются реально имеющиеся у него деньги
+NewTreasures	= false	-- новые рюкзаки для тайников
+
+FotoCheat		= false	-- автоматическое фотографирование всего, что видит ГГ
+FotoFocus		= false	-- надпись о попадании объекта в фокус фотоапппарата
+AutoGrab		= false -- автообыск трупов
+RunnerForever	= false -- возвращатель/ускоритель работает независимо ни от каких условий
+Console			= true
+Spawner			= true
+
+UserName		= user_name()	-- текущее имя пользователя
+
+DEBUG			= false	-- debug
+
+-- Вызывается один раз при загрузке скриптов
+function load_game_options()
+	local fs = getFS()
+	if fs:exist("$app_data_root$", "game.options") == nil then
+		local f1 = fs:update_path("$fs_root$", "fsgame.ltx")
+		local f2 = fs:update_path("$app_data_root$", "game.options")
+		fs:file_copy(f1, f2)
+		save_game_options()
+	else
+		local file = io.open(fs:update_path("$app_data_root$", "game.options"), "r")
+		local opt, val, n = "", "", 0
+		local m = _G[script_name()]
+		for line in file:lines() do
+			opt, val = string.match(line, "([%w_]+)%s*=%s*(.+)")
+		--	log("load options: "..tostring(opt).." = "..tostring(val))
+			if opt and m[opt]~=nil then
+				n = tonumber(val)
+				if n then m[opt] = n
+				elseif val=='true' then m[opt] = true
+				elseif val=='false' then m[opt] = false
+				elseif val~="" then m[opt] = val end
+			end
+		end
+		file:close(file)
+	end
+end
+
+-- Вызывается из игровых опций при нажатии кнопки "Применить"
+function save_game_options()
+	-- Отсортируем по алфавиту для удобства
+	local tmp = {}
+	for k,v in pairs( _G[ script_name() ] ) do
+		if type( v ) ~= 'function' then
+			table.insert( tmp, { k, v } )
+		end
+	end
+	table.sort( tmp, function( t1, t2 )
+		return t1[1] < t2[1]
+	end )
+
+	local file = io.open( getFS():update_path( "$app_data_root$", "game.options" ), "w" )
+	for i,v in ipairs( tmp ) do
+		file:write( v[1], " = ", tostring( v[2] ), "\n" )
+	end
+	file:close( file )
+end

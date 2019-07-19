@@ -4,6 +4,7 @@
 
 _G.kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
 _G.isWideScreen = _G.kScreen <= 0.85
+_G.sys_ini = system_ini()
 
 game_options.load_game_options()
 
@@ -48,13 +49,16 @@ string.explode = function ( str, div, clear )
 	return ret
 end
 -- 'string.lower/upper' с поддержкой кириллицы.
-string.lower1 = function ( str )
-	return string.lower( str:gsub( "([А-Я])",
-		function( s ) return string.char( s:byte()+32 ) end ):gsub( "Ё", "ё" ) )
-end
-string.upper1 = function ( str )
-	return string.upper( str:gsub( "([а-я])",
-		function( s ) return string.char( s:byte()-32 ) end ):gsub( "ё", "Ё" ) )
+do
+	local lower = string.lower
+	string.lower = function(s)
+		return lower(s:gsub("([А-Я])",function(c) return string.char(c:byte()+32) end):gsub("Ё", "ё"))
+	end
+	--
+	local upper = string.upper
+	string.upper = function(s)
+		return upper(s:gsub("([а-я])",function(c) return string.char(c:byte()-32) end):gsub("ё", "Ё"))
+	end
 end
 -- очистка строки от недопустимых для имён файлов символов (используется при работе с FS)
 string.clear = function ( str )
@@ -331,7 +335,8 @@ CGameFont.alVBottom	= 2
 
 -- class 'CUIScriptWnd'
 CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
-	self:AddCallback(ui_name, ui_event, function () func(self, ... ) end)
+	local params = {...}
+	self:AddCallback( ui_name, ui_event, function () func( unpack(params) ) end )
 end
 CUIScriptWnd.ClearCallbacksEx = function ( self )
 	if self.__reg_childs then
@@ -432,8 +437,8 @@ _G.ShowAutohideMsg = function( text, time_ms )
 	ui_autohide_msg.CUIAutohideMsg( text, time_ms )
 end
 
-_G.set_story_id = function( obj, sid )
-	alife():assign_story_id( nil, nil, obj.id, sid )
+_G.set_story_id = function( obj_id, sid )
+	alife():assign_story_id( alife():object( obj_id ), sid )
 end
 
 _G.old_user_name = user_name

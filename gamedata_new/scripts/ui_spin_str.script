@@ -1,0 +1,108 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+class "CUISpinStr" ( CUIScriptWnd )
+
+function CUISpinStr:__init( st, x, y, width, p )
+	super()
+
+	self.values = p
+	self.curr_val = 1
+
+	width = math.max( width, 70 )
+	self:Init( x, y, width, 21 )
+	self:SetAutoDelete( true )
+	st:AttachChild( self )
+
+	self.frame = CUIFrameLineWnd()
+	self.frame:Init( "ui_spiner", 0, 0, width, 21, true )
+	self.frame:SetAutoDelete( true )
+	self:AttachChild( self.frame )
+
+	self.btn_up = CUI3tButton()
+	self.btn_up:Init( "ui_spiner_button_t", width-12, -1, 11, 11 )
+	self.btn_up:SetAutoDelete( true )
+	self.frame:AttachChild( self.btn_up )
+	self:Register( self.btn_up, "btn_up" )
+	self:AddCallbackEx( "btn_up", ui_events.BUTTON_CLICKED, self.ChangeValue, self, 1 )
+
+	self.btn_down = CUI3tButton()
+	self.btn_down:Init( "ui_spiner_button_b", width-12, 10, 11, 11 )
+	self.btn_down:SetAutoDelete( true )
+	self.frame:AttachChild( self.btn_down )
+	self:Register( self.btn_down, "btn_down" )
+	self:AddCallbackEx( "btn_down", ui_events.BUTTON_CLICKED, self.ChangeValue, self, -1 )
+
+	self.edit = CUIStatic()
+	self.edit:Init( 0, 0, width-14, 21 )
+	self.edit:SetAutoDelete( true )
+	self.edit:SetText( game.translate_string( self.values[self.curr_val] ) )
+	self.edit:SetTextAlign( CGameFont.alRight )
+	self.edit:SetVTextAlign( CGameFont.alVCenter )
+	self.frame:AttachChild( self.edit )
+
+	self:Show( true )
+end
+
+function CUISpinStr:__finalize()
+--	log( "CUISpinStr:__finalize" )
+end
+
+function CUISpinStr:SetValue( val )
+	if type( val ) == "number" then
+		self.curr_val = math.clamp( val, 1, #self.values )
+	elseif type( val ) == "string" then
+		for i = 1, #self.values do
+			if self.values[ i ] == val then
+				self.curr_val = i
+				break
+			end
+		end
+	end
+	self.edit:SetText( game.translate_string( self.values[self.curr_val] ) )
+
+	self.btn_down:Enable( self.curr_val > 1 )
+	self.btn_up:Enable( self.curr_val < #self.values )
+end
+
+function CUISpinStr:GetValue()
+	return self.values[self.curr_val]
+end
+
+function CUISpinStr:GetValueIndex()
+	return self.curr_val
+end
+
+function CUISpinStr:SetTextColor( a, r, g, b )
+	self.edit:SetTextColor( a, r, g, b )
+end
+
+function CUISpinStr:Enable( b )
+	self.btn_up:Enable( b )
+	self.btn_down:Enable( b )
+	if b then
+		self.edit:SetTextColor( 255, 255, 255, 255 )
+	else
+		self.edit:SetTextColor( 200, 160, 160, 160 )
+	end
+end
+
+function CUISpinStr:ChangeValue( n )
+	self.curr_val = math.clamp( self.curr_val + n, 1, #self.values )
+
+	if n < 0 then
+		if self.curr_val == 1 then
+			self.btn_down:Enable( false )
+		elseif not self.btn_up:IsEnabled() then
+			self.btn_up:Enable( true )
+		end
+	elseif n > 0 then
+		if self.curr_val == #self.values then
+			self.btn_up:Enable( false )
+		elseif not self.btn_down:IsEnabled() then
+			self.btn_down:Enable( true )
+		end
+	end
+
+	self.edit:SetText( game.translate_string( self.values[self.curr_val] ) )
+end
+

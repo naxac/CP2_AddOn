@@ -80,8 +80,8 @@ function UICarBodyNew:InitControls()
 	self.actor_ruck = xml:InitStatic("our_bag_static", self)
 	local bag = xml:InitStatic("dragdrop_list_our", self.actor_ruck)
 	self:Register(bag, "ruck")
-	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "our_bag")
-	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "our_bag")
+	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, self, "our_bag")
+	self:AddCallbackEx("ruck", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, self, "our_bag")
 	self.our_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
@@ -90,8 +90,8 @@ function UICarBodyNew:InitControls()
 	self.box_ruck = xml:InitStatic("others_bag_static", self)
 	bag = xml:InitStatic("dragdrop_list_other", self.box_ruck)
 	self:Register(bag, "box")
-	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "others_bag")
-	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "others_bag")
+	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, self, "others_bag")
+	self:AddCallbackEx("box", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, self, "others_bag")
 	self.others_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.others_bag)
 	self.others_bag:Show(true)
@@ -99,11 +99,11 @@ function UICarBodyNew:InitControls()
 
 	local ctrl = xml:Init3tButton("take_all_btn", self)
 	self:Register(ctrl, "button_take_all")
-	self:AddCallbackEx("button_take_all", ui_events.BUTTON_CLICKED, self.OnButton_take_all_clicked)
+	self:AddCallback("button_take_all", ui_events.BUTTON_CLICKED, self.OnButton_take_all_clicked, self)
 
 	ctrl = xml:Init3tButton("move_btn", self)
 	self:Register(ctrl, "button_move")
-	self:AddCallbackEx("button_move", ui_events.BUTTON_CLICKED, self.OnButton_move_clicked)
+	self:AddCallback("button_move", ui_events.BUTTON_CLICKED, self.OnButton_move_clicked, self)
 
 	self:ShowWeight()
 
@@ -144,8 +144,8 @@ function UICarBodyNew:OnItemTake(item)
 	if itm then
 		local nm = itm.name.."_r"
 		self:Register(itm, nm)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "our_bag", itm.name)
 	end
 
 	self.items_to_convert[item:id()] = nil
@@ -206,8 +206,8 @@ function UICarBodyNew:FillItems()
 		if itm then
 			local nm = itm.name.."_r"
 			self:Register(itm, nm)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "our_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "our_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "our_bag", itm.name)
 		end
 	end
 
@@ -219,8 +219,8 @@ function UICarBodyNew:FillItems()
 		if itm then
 			local nm = itm.name.."_b"
 			self:Register(itm, nm)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "others_bag", itm.name)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "others_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "others_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "others_bag", itm.name)
 		end
 	end
 
@@ -277,8 +277,8 @@ function UICarBodyNew:TransferItem(from_where, item_name)
 		if new_itm then
 			local nm = new_itm.name.."_b"
 			self:Register(new_itm, nm)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "others_bag", new_itm.name)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "others_bag", new_itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "others_bag", new_itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "others_bag", new_itm.name)
 		end
 		self.others_weight = self.others_weight + obj:get_weight()
 
@@ -328,8 +328,8 @@ function UICarBodyNew:OnSpawnItem(obj, condition, ammo)
 	if itm then
 		local nm = itm.name.."_r"
 		self:Register(itm, nm)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "our_bag", itm.name)
 	end
 end
 
@@ -375,8 +375,7 @@ function UICarBodyNew:OnBagFocusLost(bag)
 end
 
 function UICarBodyNew:Quit()
-	local key = hotkeys.dik2key( self.quit_dik )
-	if not key:find("MOUSE") then key = "k"..key end
+	local key = dik_to_keyname( self.quit_dik )
 	get_console():execute( "bind quit "..string.lower( key ) )
 
 	self.our_bag:Destroy()

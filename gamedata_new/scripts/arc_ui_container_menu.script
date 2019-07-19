@@ -59,8 +59,8 @@ function arc_containers_menu:InitControls()
 
 	local container = xml:InitStatic("container", back)
 	self:Register(container, "container")
-	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "container")
-	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "container")
+	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, self, "container")
+	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, self, "container")
 
 	local st = xml:InitStatic("dragdrop_container_1", back)
 	self.container_1 = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
@@ -82,8 +82,8 @@ function arc_containers_menu:InitControls()
 
 	local bag = xml:InitStatic("dragdrop_bag", back)
 	self:Register(bag, "bag")
-	self:AddCallbackEx("bag", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "bag")
-	self:AddCallbackEx("bag", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "bag")
+	self:AddCallbackEx("bag", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, self, "bag")
+	self:AddCallbackEx("bag", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, self, "bag")
 	self.our_bag = ui_dragdrop_list.UIDragDropList( bag:GetWidth(), bag:GetHeight(), bag:GetText() )
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
@@ -192,8 +192,8 @@ function arc_containers_menu:FillContainer()
 			if itm then
 				local nm = itm.name.."_c"..self.container_index
 				self:Register(itm, nm)
-				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self.current_dragdrop, itm.name)
-				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self.current_dragdrop, itm.name)
+				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, self.current_dragdrop, itm.name)
+				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, self.current_dragdrop, itm.name)
 			end
 			self.arts_weight = self.arts_weight + v:get_weight()
 		end
@@ -208,8 +208,8 @@ function arc_containers_menu:FillRuck()
 		if itm then
 			local nm = itm.name.."_r"
 			self:Register(itm, nm)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "our_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "our_bag", itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "our_bag", itm.name)
 		end
 	end
 end
@@ -301,8 +301,8 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name, pos)
 		if new_itm then
 			local nm = new_itm.name.."_c"..self.container_index
 			self:Register(new_itm, nm)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "others_bag", new_itm.name)
-			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "others_bag", new_itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "others_bag", new_itm.name)
+			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "others_bag", new_itm.name)
 		end
 		self.arts_weight = self.arts_weight + add_weight
 
@@ -343,8 +343,8 @@ function arc_containers_menu:OnItemTake(item)
 	if itm then
 		local nm = itm.name.."_r"
 		self:Register(itm, nm)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
-		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self, "our_bag", itm.name)
+		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self, "our_bag", itm.name)
 	end
 
 	self.items_to_convert[item:id()] = nil

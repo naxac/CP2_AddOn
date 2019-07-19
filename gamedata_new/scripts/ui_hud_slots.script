@@ -1,0 +1,196 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- »сходный файл: hud_med.script "јптечки на худе" от Erlik (aka Garry_Galler) (от 10.01.2011 )
+-- переделан под отображение предметов в "€чейках быстрого доступа"
+
+local tStatics = {} --// таблица дл€ хранени€ ссылок на статики
+local hud = nil --// ссылка на экземпл€р класса худа
+
+local cell_sz_x = 30*kScreen	-- размер статика по X
+local cell_sz_y = 30			-- размер статика по Y
+local step_x = cell_sz_x+1		-- рассто€ние между статиками по оси X
+local step_y = cell_sz_y+2		-- рассто€ние между статиками по оси Y
+
+local tSettings = {
+	[1] = { text = "отключено"},
+	[2] = { text = "сверху по центру",	horiz = true,	x = (512 - 2*step_x),	y = 10					},
+	[3] = { text = "снизу по центру",	horiz = true,	x = (512 - 2*step_x),	y = 720					},
+	[4] = { text = "справа по центру",	horiz = false,	x = 990,				y = (384 - 2*step_y)	},
+	[5] = { text = "слева по центру",	horiz = false,	x = 10,					y = (384 - 2*step_y)	}
+}
+local iCurrentSet = 1
+
+local bIsShown = false
+
+-- таблица с отслеживаемыми предметами
+local tShowItems = {}
+
+local bDefolt = true--// использовать ли единые цвета -true  или дл€ каждого свой -false 
+--// таблица цветов текста статиков
+local tColor ={
+	medkit			={255,0,127,255},     -- лазурный
+	medkit_scientic	={255,205,92,92},     --кашатановый
+	medkit_army		={255,199,21,133},    --фиолетово -красный
+	antirad			={255,255,36,0},      --алый
+	bandage			={255,0,255,0},
+	vodka			={255,255,70,0},
+	--defolt          ={255,255,255,0},     -- желтый
+	--defolt          ={255,255,70,0},    --киноварь(коричнево-оранжевый)
+	--defolt          ={255,255,255,255}, --белый
+	--defolt          ={255,255,0,51},      --карминово-красный
+	defolt			={255,255,215,0},      --золотистый
+	--defolt          ={255,0,255,0},      --зеленый
+	key				={200,200,200,200}
+}
+
+--// получаем коордианты из конфига
+local function GetDataTextures(sSection)
+	return
+		sys_ini:r_u32(sSection, "inv_grid_x")*50,
+		sys_ini:r_u32(sSection, "inv_grid_y")*50,
+--		sys_ini:r_u32(sSection, "inv_grid_width")*50,
+--		sys_ini:r_u32(sSection, "inv_grid_height")*50
+		50,
+		50
+end
+
+local tRegCallbacks = {
+	update			= "OnUpdate",
+	net_destroy		= "Destroy",
+	item_take		= "ChangeCount",
+	item_drop		= "ChangeCount",
+	inventory_close	= "CheckChangeItems"
+}
+
+function OnUpdate()
+	if iCurrentSet == 1 then
+		return
+	end
+
+	local bRemove = not db.actor:alive()
+	if bRemove then
+		this.Destroy()
+		return
+	end
+
+	--// выводим данные на худ
+	if not bIsShown then
+		local st
+		bIsShown = true
+		for i, v in ipairs(tShowItems) do
+			st = DrawStatic(v, i)
+			tStatics[v] = st
+			hud:AddDialogToRender(st)
+			ChangeCount(nil, v)
+		end
+	end
+end
+
+function DrawStatic(section, slot)
+	local p = tSettings[iCurrentSet]
+	local x = p.horiz and (p.x + step_x * (slot-1)) or p.x
+	local y = p.horiz and p.y or (p.y + step_y * (slot-1))
+	local st = CUIStatic()
+	st:Init(x, y, cell_sz_x, cell_sz_y)
+	st:InitTexture("ui\\ui_icon_equipment")
+	st:SetOriginalRect( GetDataTextures(section) )
+	st:SetStretchTexture(true)
+	st:SetFont(GetFontSmall())
+	if bDefolt then
+		st:SetTextColor( unpack(tColor.defolt) )
+	else
+		st:SetTextColor( unpack(tColor[k] or tColor.defolt) )
+	end
+	st:SetTextAlign(0)
+
+	local key_name = dik_to_keyname( ui_inv_add.getSlotKey(slot) ):sub(2)
+	local key = CUIStatic()
+	key:Init(cell_sz_x-6, cell_sz_y-6, 6, 6)
+	key:SetAutoDelete(true)
+	key:SetText(key_name)
+	key:SetFont(GetFontSmall())
+	key:SetTextColor( unpack(tColor.key) )
+	key:SetTextAlign(2)
+	st:AttachChild(key)
+
+	return st
+end
+
+function ChangeCount(item, section)
+	-- // выводим кол-во предметов
+	local sect = section or item:section()
+	if bIsShown and tStatics[sect] then
+		local num = inventory.get_items_count(sect)
+		tStatics[sect]:SetText( tostring(num) )
+	end
+end
+
+-- вызываетс€ из метода net_destroy биндера актера
+function Destroy()
+	for i, v in ipairs (tShowItems) do
+		if tStatics[v] then
+			hud:RemoveDialogToRender( tStatics[v] )
+			tStatics[v] = nil
+		end
+	end
+	tStatics = {}
+	bIsShown = false
+end
+
+function CheckChangeItems()
+	local t = table.copy( {}, ui_inv_add.getSlots() )
+	for i, v in ipairs (t) do
+		if tShowItems[i] ~= v then
+			local s = tShowItems[i]
+			if tStatics[s] then
+				hud:RemoveDialogToRender( tStatics[s] )
+				tStatics[s] = nil
+			end
+			tShowItems[i] = v
+			local st = DrawStatic(v, i)
+			tStatics[v] = st
+			hud:AddDialogToRender(st)
+			ChangeCount(nil, v)
+		end
+	end
+end
+
+function init()
+	hud = get_hud()
+	tShowItems = table.copy( {}, ui_inv_add.getSlots() )
+	for sig, func in pairs(tRegCallbacks) do
+		xr_s.subscribe(sig, this[func])
+	end
+end
+
+function get_settings()
+	local ret = {}
+	for i, v in ipairs(tSettings) do
+		table.insert(ret, v.text)
+	end
+	return ret
+end
+
+function on_options_change()
+	iCurrentSet = game_options.QuickSlotsOnHUD
+	Destroy()
+
+	if iCurrentSet == 1 then
+		tShowItems = {}
+		for sig, func in pairs(tRegCallbacks) do
+			xr_s.unsubscribe(sig, this[func])
+		end
+		return
+	end
+
+	if #tShowItems == 0 then
+		init()
+	end
+end
+
+-----------------------------------------------------------------------------------------------------
+function attach()
+	iCurrentSet = game_options.QuickSlotsOnHUD
+	if iCurrentSet == 1 then return end
+
+	xr_s.subscribe("first_update", this.init)
+end

@@ -409,22 +409,30 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	-- Навесы
 	local text = ""
 	local addon, v
+	-- Прицелы
 	local n = sys_ini:r_u32(self.section, 'scope_status')
 	if n ~= 0 then
 		st2 = self.xml:InitStatic("props", self.scroll_v)
-		
-		addon = sys_ini:r_string_ex(self.section, 'scope_name', "wpn_addon_scope")
-		v = GetIconParams(addon)
+
+		local scopes = string.explode(
+			sys_ini:r_string_ex(self.section, 'scope_name', "wpn_addon_scope"),
+			",", true
+		)
 		if n == 1 then
+			v = GetIconParams( scopes[1] )
 			s = sys_ini:r_float(self.section, 'scope_zoom_factor')
 			n = device().fov/(s*0.75)
 			text = "Интегрированный x"..string_format("%.1f", n).."-кратный прицел"
+			self:ShowPropFromIni(v, text)
 		else
-			text = get_inv_name(addon)
+			for i, sc in ipairs(scopes) do
+				v = GetIconParams(sc)
+				text = get_inv_name(sc)
+				self:ShowPropFromIni(v, text)
+			end
 		end
-		self:ShowPropFromIni(v, text)
 	end
-
+	-- Глушитель
 	n = sys_ini:r_u32(self.section, 'silencer_status')
 	if n ~= 0 then
 		if st2 == nil then
@@ -439,7 +447,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		end
 		self:ShowPropFromIni(v, text)
 	end
-
+	-- Подствольный гранатомёт
 	if gl ~= 0 then
 		if st2 == nil then
 			st2 = self.xml:InitStatic("props", self.scroll_v)
@@ -453,6 +461,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		end
 		self:ShowPropFromIni(v, text)
 	end
+
 	if st2 then
 		st2:SetText("Навесы:")
 		st2:SetTextColor(255, 238, 153, 26)

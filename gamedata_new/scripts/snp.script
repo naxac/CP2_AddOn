@@ -1,0 +1,1396 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- snp основной скрипт
+
+-- общий калбек на подъем предмета
+function checking_taken_item_snp(obj)
+	local section = obj:section()
+	chess.item_take(section)
+	if section:find("snp_biopart") then
+		local i = section:sub(-1)
+		local p = "snp_bioradar_parts"..i
+		if not has_alife_info(p) then
+			if tonumber(i) < 5 then
+				amk.remove_item_from_inventory(obj,db.actor)
+				alife():create("snpbiopart",vector():set(0,0,0),0,0,0)
+			end
+			db.actor:give_info_portion(p)
+		end
+	elseif section:find("fli_code") then
+		if not has_alife_info("teleport_started") then
+			local actor = db.actor
+			local n = section:sub(9)
+			if not has_alife_info("fli_have"..n) then
+				actor:give_info_portion("fli_have"..n)
+				fly_island.spawn_zanoza(tonumber(n))
+			end
+
+			if ( not has_alife_info("fli_have_1") )
+				and actor:object("fli_code36") and actor:object("fli_code29")
+				and actor:object("fli_code37") and actor:object("fli_code33")
+				and actor:object("fli_code35") and actor:object("fli_code31")
+				and actor:object("fli_code9") and actor:object("fli_code1")
+			then
+				actor:give_info_portion("fli_have_1")
+			end
+		end
+	end
+end
+
+
+function borov1_done()
+	amk.remove_item_from_inventory_by_name("snp_pda1",db.actor)
+	alife():create("snp_note1",vector():set(60.209255218506,1.2669388055801,202.85401916504),67537,1412)
+end
+
+function kotobegemot1_done()
+	amk.remove_item_from_inventory_by_name("snp_note1",db.actor)
+	alife():create("n_inventory_box_dt1",vector():set(-151.89974975586,0.057822465896606,82.370269775391),67331,1414)
+end
+function kotobegemot2_done()
+	alife():create("n_inventory_box_uagro1",vector():set(-80.046859436035,0.33554920554161,-74.513531799316),2743,717)
+	alife():create("n_inventory_box_uagro2",vector():set(-76.056887817383,5.0370149612427,-71.1019128418),3053,717)
+end
+function kotobegemot3_done()
+	create_trup("suslov_marsh",vector():set(-179.94078063965,-1.9289412498474,-317.0966796875),50507,3365,19910)
+	create_restrictor(vector():set(-179.94078063965,-1.9289412498474,-317.0966796875),50507,3365,5,"snp_spawn.suslov_marsh_sms1")
+end
+function kotobegemot4_done()
+	inventory.give_items("wpn_mp5_m5",1)
+	inventory.give_items("ammo_5.7x28_ap",2)
+	alife():create("n_inventory_box_sd1",vector():set(31.474922180176,-2.0732517242432,-0.33933609724045),23315,3332)
+end
+function kotobegemot5_done()
+	alife():create("n_inventory_box_zaton6",vector():set(472.22393798828,45.309955596924,32.999851226807),1732117,3693)
+end
+
+function fenrir1_done()
+	local obj = create_item_and_restrictor("n_inventory_box_kordon1",vector():set(-279.7380065918,-0.36574172973633,-54.755081176758),771,66)
+	amk.add_spot_on_map(obj.id,"crlc_big","Лёжка Фенрира") 
+end
+function fenrir2_done()
+	alife():create("n_inventory_box_vp1",vector():set(152.8119354248,35.794906616211,192.96481323242),366789,3769)
+	alife():create("n_inventory_box_vp3",vector():set(112.70432434082,7.9362993240356,230.14178771973),336187,3763)
+	alife():create("snp_pda13",vector():set(137.0463104248,28.907472610474,241.01393127441),365077,3769)
+end
+function fenrir3_done()
+	db.actor:give_info_portion("snp_tmp_reset")
+	db.actor:disable_info_portion("snp_tmp_reset")
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."КОТОБЕГЕМОТ:".."\\n".."%c[255,255,128,128]Стрелок, надо встретиться, жду тебя в баре.".."\n", 2, nil, 30000)
+	create_item_and_restrictor("n_inventory_box_limansk1",vector():set(-15.645086288452,31.041418075562,204.26181030273),18361,3010)
+end
+function fenrir5_done()
+	create_item_and_restrictor("n_inventory_box_sd2",vector():set(-68.083503723145,16.592102050781,16.235578536987),11195,3326)
+end
+function fenrir6_done()
+	create_restrictor(vector():set(111.94484710693,26.06196975708,206.38247680664),222943,2163,8,"snp_spawn.n_inventory_box_cp1")
+end
+function fenrir7_done()
+	alife():create("snp_pda4",vector():set(89.451782226563,8.0235919952393,-36.271701812744),40758,3336)
+end
+function fenrir8_done()
+	alife():create("n_inventory_box_limansk2",vector():set(153.16612243652,-3.9684197902679,191.56245422363),48566,3010)
+end
+function fenrir9_done()
+	alife():create("n_inventory_box_pp1",vector():set(34.707355499268,26.599336624146,-34.705635070801),19879,3797)
+end
+function fenrir10_done()
+	inventory.out_items("snp_pda5",1)
+end
+function fenrir11_done()
+	kostya_dialog.create_teleport("snp_dt_tp1",vector():set(-301.47937011719,13.978932380676,-11.043887138367),4079,1392)
+end
+function fenrir12_done()
+	create_item_and_restrictor("n_inventory_box_garbage1",vector():set(-43.013954162598,15.852832794189,-192.50405883789),146745,267)
+	create_item_and_restrictor("n_inventory_box_garbage2",vector():set(-140.48768615723,11.519528388977,-4.1077198982239),76863,320)
+end
+function fenrir14_done()
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."АННА:".."\\n".."%c[255,255,128,128]Спасибо вам, дядя Стрелок! Простите, что накричала на вас!".."\n", 3, nil, 30000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."СТРЕЛОК:".."\\n".."%c[255,255,128,128]Ничего, малышка. Я сам виноват.".."\n", 9, nil, 30000)
+end
+function fenrir15_done2(fs,ss)
+	inventory.give_items("runner_tele")
+	actor:give_info_portion("runner_tele_have")
+end
+function fenrir15_done()
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."АННА:".."\\n".."%c[255,255,128,128]Милый, давай Стрелка на свадьбу пригласим?".."\n", 3, nil, 30000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Обязательно пригласим.".."\n", 9, nil, 30000)
+	alife():create("wolffrend_zaton2",vector():set(244.71939086914,18.52823638916,530.84967041016),1385170,3687)
+	local obj = alife():create("wolffrend_talk_zaton2",vector():set(244.79071044922,18.458442687988,530.23742675781),1385169,3687)
+	set_story_id(obj.id,19924)
+	create_restrictor(vector():set(244.71939086914,18.52823638916,530.84967041016),1385170,3687,20,"snp_spawn.snp_found_vogak")
+end
+function fenrir16_done()
+	alife():create("n_inventory_box_x181",vector():set(5.69282579422,-6.828028678894,-5.3396325111389),3531,1135)
+	create_restrictor(vector():set(9.7957534790039,-7.004012298634,-3.883784532547),4183,1135,2,"snp_spawn.n_inventory_box_x181_1")
+end
+
+function wolffrend3_done()
+--	news_manager.send_tip(db.actor, "Получена информация", nil, nil, 20000)
+	snp_shadow.worker()
+end
+
+function bibliofrend1_done()
+	alife():create("n_inventory_box_td1",vector():set(43.687808990479,8.059473991394,-48.321968078613),229941,1075)
+	alife():create("n_inventory_box_td1",vector():set(49.53458404541,4.5404696464539,-24.940389633179),236607,1088)
+end
+function bibliofrend2_done()
+	alife():create("n_inventory_box_td2",vector():set(-134.16679382324,42.907382965088,-239.34454345703),24281,851)
+end
+
+function bibliofrend_black2_done()
+	inventory.out_items("snp_prime_maz_green",1)
+	inventory.out_items("snp_prime_tabletki",1)
+end
+
+function resident_evil2_done()
+	alife():create("n_inventory_box_cp2",vector():set(209.30194091797,12.337078094482,98.220161437988),257446,2145)
+end
+function resident_evil3_done()
+	local obj = create_restrictor(vector():set(64.295387268066,14.247812271118,141.46493530273),235901,364,1,"snp_spawn.snp_receipt_parts2_1")
+	amk.add_spot_on_map(obj.id,"crlc_big","Начало поисков второй части рецепта")
+	amk.save_variable("snp_spot_id",obj.id)
+end
+function resident_evil4_done()
+	alife():create("n_inventory_box_x161",vector():set(19.222473144531,2.6730494499207,10.203114509583),4529,1537)
+end
+function resident_evil7_done()
+	alife():create("n_inventory_box_2chaes1",vector():set(888.90844726563,18.115972518921,308.2389831543),165937,2615)
+end
+function resident_evil8_done()
+--	news_manager.send_tip(db.actor, "Получена информация", nil, nil, 20000)
+	alife():create("n_inventory_box_as1",vector():set(18.167123794556,-5.2449584007263,436.44525146484),365693,1808)
+end
+function resident_evil9_done()
+	alife():create("n_inventory_box_jupiter2",vector():set(-123.60357666016,54.307857513428,-507.89172363281),530956,3714)
+	create_restrictor(vector():set(-131.71226501465,33.441413879395,-495.35614013672),496987,3714,3,"snp_spawn.n_inventory_box_jupiter2")
+end
+function resident_evil10_done()
+	alife():create("n_inventory_box_jupiter7",vector():set(-441.31995117188,13.287659645081,313.96146850586),3006,3701)
+	snp_spawn.n_inventory_box_agro1()
+end
+function resident_evil11_done()
+	create_restrictor(vector():set(-173.85223388672,24.41708946228,46.521488189697),162421,3600,3,"snp.spawn_brodaga")
+end
+function resident_evil12_done()
+--	news_manager.send_tip(db.actor, "Получена информация", nil, nil, 20000)
+	alife():create("n_inventory_box_sarcofag1",vector():set(31.045442581177,21.825170516968,10.412265777588),6350,2423)
+end
+function resident_evil13_done()
+	create_restrictor(vector():set(-36.414665222168,-8.9850168228149,-38.975612640381),140,3155,1,"snp_spawn.n_inventory_box_warlab1")
+end
+
+function proper70_start_done1()
+	drink_vodka()
+	xr_timers.start_real_timer("run2",4,"snp.proper70_start_done2()")
+end
+function proper70_start_done2()
+	level.add_cam_effector("camera_effects\\radar_stop.anm", 2506, false, "")
+	xr_timers.start_real_timer("run2",14,"snp.proper70_start_done3()")
+end
+function proper70_start_done3()
+	sleep_manager.main(3+amk.load_variable("gg_need_sleep_nrg",0))
+	xr_timers.start_real_timer("run2",2,"snp.proper70_start_done4()")
+end
+function proper70_start_done4()
+	local obj = object_by_section("proper70_limansk")
+	if obj then
+		alife():release(alife():object(obj:id()))
+	end
+	alife():create("n_inventory_box_limansk3",vector():set(-64.228126525879,-0.44177567958832,-133.02131652832),1016,2996)
+end
+function proper70_sms1()
+	local text = "%c[255,160,160,160]".."ПРОПЕР СЕМИДЕСЯТЫЙ:".."\\n".."%c[255,255,128,128]Стрелок, жду тебя в бункере ученых на Юпитере.".."\n"
+	db.actor:give_talk_message(text, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), "iconed_answer_item")
+	news_manager.send_tip(db.actor, text, nil, nil, 30000)
+end
+function proper701_done()
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."АННА:".."\\n".."%c[255,255,128,128]Стрелок, ничего сказать мне не хочешь?".."\n", 2, nil, 30000)
+end
+function proper703_done()
+	local sobj = object_by_section_offline("snp_semetskiy")
+	if sobj then alife():release(sobj, true) end
+	create_restrictor(vector():set(-100.15243530273,-1.140389919281,-16.317848205566),243214,3620,1,"snp.gena_start")
+end
+function proper705_done()
+	alife():create("n_inventory_box_jupiter3",vector():set(0.0003257321077399,9.8299655914307,173.87929992676),716376,3724)
+end
+function proper706_have()
+	inventory.out_items_all("snp_pda7")
+	local sobj = object_by_section_offline("snp_ucheniy1")
+	if sobj then alife():release(sobj, true) end
+end
+function proper7010_done()
+	kostya_dialog.create_teleport("tele_limansk5",vector():set(44.667556762695,3.6490089893341,340.65399169922),52431,3025)
+end
+function proper7012_done()
+	inventory.give_items("af_zvezda_proroka",1)
+	amk.del_variable("snp_make_zp")
+end
+function proper7013_done()
+--	news_manager.send_tip(db.actor, "Получена информация", nil, nil, 20000)
+	alife():create("n_inventory_box_zaton2",vector():set(203.38031005859,54.482738494873,20.770593643188),1317929,3684)
+end
+function proper7014_done()
+--	amk.remove_item_from_inventory_by_name("snp_pftp",db.actor)
+end
+function proper7015_done()
+	alife():create("n_inventory_box_x162",vector():set(113.93637084961,38.142959594727,-17.945663757324),7084,1543)
+end
+
+function anna1_done()
+	alife():create("n_inventory_box_x81",vector():set(-111.18604278564,-32.319286346436,87.424247741699),257,3832)
+	snp_spawn.n_inventory_box_x81()
+end
+function anna4_done()
+	alife():create("n_inventory_box_kordon5",vector():set(20.258415222168,19.372343063354,709.37756347656),297580,1)
+end
+
+function ludmila_start_done()
+	create_trup("snp_ucheniy2",vector():set(10.804178237915,37.729103088379,64.052787780762),91279,2575,19919)
+end
+function ludmila1_done()
+	local sobj = object_by_section_offline("snp_ucheniy2")
+	if sobj then alife():release(sobj, true) end
+	alife():create("n_inventory_box_vp4",vector():set(-44.927261352539,7.6782546043396,-95.03076171875),143417,3759)
+end
+function ludmila2_done()
+	alife():create("n_inventory_box_x82",vector():set(-71.280982971191,-5.6220226287842,70.717254638672),4851,3841)
+end
+
+function ariadna3_done()
+	game.start_tutorial("finish_dopa_dream")
+end
+function ariadna_talk()
+	db.actor:run_talk_dialog(object_by_section("ariadna_zaton"))
+end
+function ariadna4_done()
+    db.actor:hide_weapon()
+    level.disable_input()
+	xr_timers.start_real_timer("run",4,"snp.op2_done1()")
+end
+
+function op2_done1()
+	alife():release(alife():object(object_by_section("skadovsk_radio"):id()))
+	xr_sound.stop_all_sound_object()
+	level.add_pp_effector("agr_u_fade.ppe", 2009, false)
+	level.hide_indicators()
+	xr_timers.start_real_timer("run",5.5,"snp.op2_done2()")
+end
+function op2_done2()
+	local f = getFS()
+	if f:exist("$game_saves$", "credits.ltx") == nil then
+		local f1 = f:update_path("$game_saves$", "game_setup.ltx")
+		local f2 = f:update_path("$game_saves$", "credits.ltx")
+		f:file_copy(f1, f2)
+	end
+
+	xr_effects.game_credits()
+end
+
+function lobsang1_done()
+	alife():create("snp_note20",vector():set(-123.56,2.64,-265.17),71235,3752)
+end
+function lobsang2_done()
+	alife():create("n_inventory_box_zaton3",vector():set(322.16027832031,31.884847640991,-509.40014648438),1661631,3694)
+end
+
+function brodaga_start_done()
+	kostya_dialog.create_teleport("snp_mg_tp1",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id())
+end
+function brodaga1_done()
+	create_restrictor(vector():set(152.49157714844,10.798604011536,135.94035339355),39883,1204,1,"snp_spawn.snpt_bar1_restr1")
+end
+function brodaga2_done()
+	create_restrictor(vector():set(134.34739685059,1.77443754673,209.43351745605),945793,3732,80,"snp_spawn.snpt_jupiter4_restr1")
+	create_restrictor(vector():set(155.5616607666,1.2630597352982,217.27157592773),981446,3732,1,"snp_spawn.snpt_jupiter4_restr2")
+	create_restrictor(vector():set(166.08932495117,-1.0351370573044,216.90351867676),996813,3732,0.5,"snp_spawn.snpt_jupiter4_restr3")
+end
+function brodaga3_done()
+	alife():create("n_inventory_box_hospital3",vector():set(-92.732971191406,36.388934326172,718.83197021484),1801,3034)
+end
+
+function boroda_start_done()
+	create_restrictor(vector():set(398.89025878906,42.905143737793,-186.23631286621),1344338,3743,1,"snp_spawn.snpt_jupiter5_run0")
+end
+function boroda2_done()
+	alife():create("n_inventory_box_bar2",vector():set(157.58059692383,2.3406450748444,99.714075622559),41404,1210)
+end
+
+function bubulyka1_done()
+	alife():create("n_inventory_box_x101",vector():set(-35.10555267334,-12.319800376892,38.615665435791),1883,2740)
+end
+function bubulyka2_done()
+	alife():create("snp_plan",vector():set(127.46975708008,15.725096702576,-85.388702392578),8868,3329)
+	alife():create("n_inventory_box_sd3",vector():set(5.2320046424866,14.60878944397,123.88447570801),4986,3326)
+end
+function bubulyka3_done()
+	alife():create("n_inventory_box_jupiter1",vector():set(223.76635742188,-27.385223388672,118.8678894043),1099877,3740)
+	create_restrictor(vector():set(225.84899902344,-7.6801772117615,121.92847442627),1103327,3740,5,"snp_spawn.n_inventory_box_jupiter1")
+end
+function bubulyka5_done()
+	create_trup("snp_semetskiy",vector():set(-8.7067518234253,2.8850204944611,-137.86454772949),20691,2993,19912)
+end
+function bubulyka7_done()
+	alife():create("n_inventory_box_zaton5",vector():set(-474.8293762207,49.513092041016,-363.09838867188),307427,3664)
+end
+
+function sviblov1_done()
+	alife():create("n_inventory_box_almaz1",vector():set(-323.99597167969,23.688106536865,504.12481689453),12873,3361)
+end
+
+function monolith1_done()
+	local obj = alife():create("n_inventory_box_almaz14",vector():set(-108.42949676514,40.053085327148,479.11297607422),151147,2987)
+	start_sound()
+end
+
+function kalmyk1_done()
+	inventory.give_items("snp_prime_maz",1)
+end
+
+function ginekolog1_done()
+	inventory.give_items("snp_prime_tabletki",1)
+end
+
+function sakharov1_done()
+	create_trup("snp_ucheniy1",vector():set(150.7462310791,12.494668960571,291.85235595703),66667,2546,19913)
+end
+
+function klenov1_done()
+	alife():create("snp_pda9",vector():set(109.70481872559,4.0410284996033,131.71212768555),227060,2173)
+end
+
+function osvedomitel1_done()
+	inventory.give_items("karta_peschera",1)
+end
+
+function docent1_done()
+	create_restrictor(vector():set(342.96533203125,-10.53200340271,265.6682434082),487247,3769,1,"snp_spawn.n_inventory_box_vp7")
+	create_restrictor(vector():set(-149.70997619629,0.07987043261528,-325.49044799805),8641,3241,2,"snp_spawn.n_inventory_box_kl3")
+	alife():create("n_inventory_box_vp7",vector():set(438.14892578125,-3.9284706115723,348.73168945313),487247,3769)
+	alife():create("n_inventory_box_vp8",vector():set(448.04238891602,-9.7089061737061,152.36047363281),487248,3769)
+	alife():create("n_inventory_box_vp9",vector():set(117.89761352539,3.7252898216248,-163.28845214844),345653,3765)
+	alife():create("n_inventory_box_kl3",vector():set(-151.22601318359,4.3636498451233,-330.02380371094),6006,3239)
+	alife():create("n_inventory_box_kl4",vector():set(-200.62432617188,0.13194620609283,-333.20723632813),614,3231)
+end
+function docent2_done()
+	inventory.give_items("bioradar2",1)
+end
+function docent4_done()
+	inventory.give_items("snp_rings",1)
+	inventory.give_items("bullion_gild",1)
+	amk.del_variable("snp_make_rings")
+end
+
+function snpt_kordon1_done()
+	amk.remove_item_from_inventory_by_name("snp_pda2",db.actor)
+	amk.remove_item_from_inventory_by_name("snp_note2",db.actor)
+end
+function snpt_limansk4_done()
+	inventory.out_items_all("snp_note25")
+	inventory.out_items_all("snp_receipt")
+end
+function snpt_x101_done()
+	inventory.out_items("snp_note8",1)
+end
+function snpt_sd1_done()
+	inventory.out_items("snp_plan",1)
+end
+function snpt_sd4_done()
+	amk.remove_item_from_inventory_by_name("snp_pda4",db.actor)
+end
+function snpt_cp2_done()
+	inventory.out_items_all("snp_pda9")
+end
+function snpt_garbage1_done()
+	amk.remove_item_from_inventory_by_name("snp_note16",db.actor)
+end
+function snpt_jupiter3_have2()
+	inventory.out_items_all("snp_note27")
+end
+function snpt_mg2_done()
+	amk.remove_item_from_inventory_by_name("snp_note28",db.actor)
+	amk.remove_item_from_inventory_by_name("snp_pda8",db.actor)
+	aem_manager.manage_money(500000, "in")
+end
+function snpt_kl1_done()
+	inventory.out_items_all("snp_note31")
+end
+function snpt_2chaes3_done()
+	inventory.out_items_all("snp_pda14")
+end
+
+function receipt_parts1_done()
+	amk.remove_item_from_inventory_by_name("snp_note18",db.actor)
+end
+
+function spawn_fenrir_resident()
+	local obj
+	if has_alife_info("snp_kotobegemot2_done") and has_alife_info("doki_dimak_done") then
+		alife():create("skadovsk_radio",vector():set(123.99,-5.22,175.61),1180491,3686)
+		obj = alife():create("fenrir_zaton",vector():set(138.73059082031,-7.3394303321838,178.58042907715),1203766,3686)
+		set_story_id(obj.id,19902)
+		alife():create("wolffrend_zaton",vector():set(137.85824584961,-7.3402981758118,176.09548950195),1202652,3686)
+		obj = alife():create("wolffrend_talk_zaton",vector():set(137.19732666016,-7.3405375480652,176.83992004395),1201535,3686)
+		set_story_id(obj.id,19925)
+		obj = alife():create("resident_evil_zaton",vector():set(125.20777893066,-7.3201112747192,181.31158447266),1181686,3686)
+		set_story_id(obj.id,19903)
+		alife():create("bibliofrend_zaton",vector():set(123.07048034668,-7.3236355781555,177.8239440918),1178118,3686)
+		obj = alife():create("bibliofrend_talk_zaton",vector():set(124.68988037109,-7.3328924179077,177.81799316406),1180494,3686)
+		set_story_id(obj.id,19926)
+		obj = alife():create("anna_zaton",vector():set(130.02600097656,-7.3398327827454,177.09588623047),1189961,3686)
+		set_story_id(obj.id,19904)
+		obj = alife():create("bubulyka_zaton",vector():set(125.23503112793,-7.3206615447998,189.49803161621),1181710,3686)
+		set_story_id(obj.id,19905)
+		alife():create("n_inventory_box_jupiter9",vector():set(-395.90551757813,7.129807472229,8.7594566345215),53666,3708)
+		alife():create("n_inventory_box_jupiter10",vector():set(-394.78768920898,11.417579650879,-16.300596237183),51619,3708)
+		alife():create("n_inventory_box_jupiter12",vector():set(-400.90841674805,8.9562080001831,-372.55517578125),43101,3702)
+		alife():create("yashik_smeley",vector():set(-390.25207519531,11.416480064392,-15.570077896118),58648,3708)
+		alife():create("yashik_smeley",vector():set(-390.9560546875,11.416576385498,-15.566843032837),57648,3708)
+		alife():create("yashik_smeley",vector():set(-391.61871337891,11.416634559631,-15.565946578979),57648,3708)
+		alife():create("yashik_smeley",vector():set(-392.30261230469,11.416634559631,-15.56485748291),56659,3708)
+	end
+end
+
+function fenrir_gone()
+	db.actor:give_info_portion("snp_fenrir13_done")
+	create_restrictor(vector():set(-62.68639755249,-0.44013518095016,-138.39880371094),1086,2996,1,"snp_spawn.n_inventory_box_limansk3")
+end
+
+function spawn_bunker_jupiter()
+	local obj
+	local obj
+	obj = object_by_section_offline("fenrir_2chaes")
+	if obj then alife():release(obj, true) end
+	obj = object_by_section_offline("resident_evil_zaton")
+	if obj then alife():release(obj, true) end
+	obj = object_by_section_offline("anna_zaton")
+	if obj then alife():release(obj, true) end
+	create_trup("fenrir_jupiter",vector():set(-223.81423950195,-2.3742883205414,83.036392211914),335931,3708,19911)
+	obj = alife():create("proper70_jupiter",vector():set(-227.50967407227,-3.3744874000549,79.343292236328),331133,3708)
+	set_story_id(obj.id,19907)
+	obj = alife():create("resident_evil_jupiter",vector():set(-223.96179199219,-3.5705282688141,78.559143066406),337165,3708)
+	set_story_id(obj.id,19908)
+	obj = alife():create("anna_jupiter",vector():set(-222.07434082031,-3.3452470302582,83.116653442383),340907,3708)
+	set_story_id(obj.id,19909)
+	db.actor:give_info_portion("snp_anna2_done")
+end
+
+function spawn_brodaga()
+	local actor = db.actor
+	news_manager.send_tip(actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Стрелок, только что получил сообщение от Бродяги. Нет его на лёжке. Что-то случилось, он в подвале какого-то дома. Найди его, он долго не протянет.".."\n", nil, nil, 20000)
+	create_wounded("brodaga_mg",vector():set(-79.084762573242,0.13354560732841,156.9275970459),266398,3621)
+	if actor:object("medkit") == nil
+		and actor:object("medkit_army") == nil
+		and actor:object("medkit_scientic") == nil
+	then
+		alife():create("medkit",vector(),0,0,0)
+	end
+end
+
+function brodaga_give_medkit(first_speaker, second_speaker)
+	if not has_alife_info("snpt_mg1_done") then 
+		dialogs.transfer_medkit(first_speaker, second_speaker)
+		db.actor:give_info_portion("snpt_mg1_done")
+	end
+end
+
+function move_ariadna_to_bar()
+	if has_alife_info("snpt_kl1_have1") and has_alife_info("snpt_kl1_have2") then
+		local obj = object_by_section_offline("marsh_ariadna2")
+		if obj then
+			alife():release(obj, true)
+		else
+			obj = object_by_section_offline("marsh_ariadna")
+			if obj then
+				alife():release(obj, true)
+			end
+		end
+		obj = alife():create("ariadna_bar",vector():set(115.2995300293,-5.3040218353271,12.653481483459),33757,1239)
+		set_story_id(obj.id,19917)
+	end
+end
+
+-- Вертолеты в ВП
+function heli_vp1()
+	heli_vp1_done(1)
+end
+function heli_vp2()
+	heli_vp1_done(2)
+end
+function heli_vp3()
+	heli_vp1_done(3)
+end
+function heli_vp4()
+	heli_vp1_done(4)
+end
+function heli_vp5()
+	heli_vp1_done(5)
+end
+function heli_vp6()
+	heli_vp1_done(6)
+end
+function heli_vp1_done(num)
+	db.actor:give_info_portion("snp_tmp"..tostring(num))
+	if  has_alife_info("snp_tmp1") and has_alife_info("snp_tmp2") and has_alife_info("snp_tmp3") and has_alife_info("snp_tmp4") and has_alife_info("snp_tmp5") and has_alife_info("snp_tmp6") then
+		if not has_alife_info("snpt_vp1_have") then
+			db.actor:give_info_portion("snpt_vp1_have")
+			db.actor:disable_info_portion("no_teleport_near_heli_btr")
+			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Молодец, братишка! У меня для тебя бонус за хорошую работу. Ищи его на кинотеатре \"Прометей\".".."\n", nil, nil, 30000)
+			alife():create("n_inventory_box_vp1_2",vector():set(101.78779602051,16.476371765137,378.32775878906),321990,3760)
+			alife():create("zone_ozero",vector():set(58.848209381104,1.0079244375229,367.44982910156),276095,3760)
+		end
+	end
+end
+function heli_vp1_fail()
+	if not has_alife_info("snpt_vp1_have") then
+		db.actor:give_info_portion("snp_tmp_reset")
+		db.actor:disable_info_portion("snp_tmp_reset")
+		db.actor:give_info_portion("snpt_vp1_fail")
+	end
+end
+
+-- стрелял в вульфа - враг Фенриру
+function actor_shoot_wolffrend()
+	local obj
+	if not has_alife_info("fenrir_enemy") then 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Зачем ты стрелял в моего лучшего друга? Это мирное животное, к людям он всегда был дружелюбен и на тебя не нападал - я его так научил. Теперь ты мне враг.".."\n", nil, nil, 30000)
+		obj = object_by_section("wolffrend_talk_zaton")
+		if obj then
+			alife():release(alife():object(obj:id()))
+		end
+		relation_registry.set_community_goodwill ("stalker", "actor", -5000)
+		db.actor:set_character_community("monolith", 0, 0)
+		db.actor:give_info_portion("fenrir_enemy")
+	end
+end
+
+-- стрелял в библика - враг Обители Зла
+function actor_shoot_bibliofrend()
+	local obj
+	if not has_alife_info("resident_evil_enemy") then 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Зачем ты стрелял в моего лучшего друга? Это мирное животное, к людям он всегда был дружелюбен и на тебя не нападал - я его так научил. Теперь ты мне враг.".."\n", nil, nil, 30000)
+		obj = object_by_section("bibliofrend_talk_zaton")
+		if obj then
+			alife():release(alife():object(obj:id()))
+		end
+		relation_registry.set_community_goodwill ("stalker", "actor", -5000)
+		db.actor:set_character_community("monolith", 0, 0)
+		db.actor:give_info_portion("resident_evil_enemy")
+	end
+end
+
+-- воскрешение Фенрира
+local fenrir = nil
+function fenrir_recurrection()
+	local art = object_by_section_nobinder("af_zvezda_proroka")
+	fenrir = object_by_section("fenrir_jupiter")
+	if art:position():distance_to(fenrir:position()) > 2.5 then return end
+	
+	level.start_stop_menu(level.main_input_receiver(), true)
+	xr_effects.disable_ui()
+	amk.remove_item(art)
+	level.add_cam_effector("camera_effects\\radar_stop.anm", 2920, false, "")
+	local snd = xr_sound.get_safe_sound_object("ambient\\sparks1")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run4",snd:length()/1000+1,"snp.fenrir_recurrection2()")
+	xr_timers.start_real_timer("run5",15,"snp.fenrir_recurrection5()")
+end
+function fenrir_recurrection2()
+	level.add_pp_effector("teleport.ppe", 2921, false)
+	local snd = xr_sound.get_safe_sound_object("ambient\\mon_explosion")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run",0.5,"snp.fenrir_recurrection3()")
+	xr_timers.start_real_timer("run2",snd:length()/1000+2,"snp.fenrir_recurrection4()")
+end
+function fenrir_recurrection3()
+	alife():release(alife():object(fenrir:id()))
+	alife():release(alife():object(object_by_section("resident_evil_jupiter"):id()))
+	alife():release(alife():object(object_by_section("anna_jupiter"):id()))
+--	db.actor:give_info_portion("teleport_started")
+	db.actor:set_actor_position(vector():set(-223.79437255859,-3.5704712867737,78.461990356445))
+	db.actor:set_actor_direction(0)
+--	db.actor:give_info_portion("teleport_finished")
+	level.remove_cam_effector(2920)
+	level.add_cam_effector("camera_effects\\radar_stop.anm", 2920, false, "")
+end
+function fenrir_recurrection4()
+	xr_sound.get_safe_sound_object("ambient\\earthquake"):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+end
+function fenrir_recurrection5()
+	level.add_pp_effector("agr_u_fade.ppe", 2923, false)
+	xr_timers.start_real_timer("run3",6,"snp.fenrir_recurrection6()")
+end
+function fenrir_recurrection6()
+	level.remove_pp_effector(2923)
+	level.add_pp_effector("deadcity_wake.ppe", 2924, false)
+	local snd = xr_sound.get_safe_sound_object("ambient\\rnd_outdoor\\rnd_boar3")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run",snd:length()/1000+2,"snp.fenrir_recurrection7()")
+end
+function fenrir_recurrection7()
+	level.remove_pp_effector(2924)
+	level.add_pp_effector("deadcity_wake.ppe", 2924, false)
+	local snd = xr_sound.get_safe_sound_object("ambient\\rnd_outdoor\\rnd_boar2")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run",snd:length()/1000+2,"snp.fenrir_recurrection8()")
+end
+function fenrir_recurrection8()
+	level.remove_pp_effector(2924)
+	level.add_pp_effector("deadcity_wake.ppe", 2924, false)
+	local snd = xr_sound.get_safe_sound_object("ambient\\rnd_outdoor\\rnd_boar3")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run",snd:length()/1000+2,"snp.fenrir_recurrection9()")
+end
+function fenrir_recurrection9()
+	level.remove_pp_effector(2924)
+	level.add_pp_effector("deadcity_wake.ppe", 2924, false)
+	local snd = xr_sound.get_safe_sound_object("ambient\\rnd_outdoor\\rnd_boar2")
+	snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_timers.start_real_timer("run",snd:length()/1000+4,"snp.fenrir_recurrection10()")
+end
+function fenrir_recurrection10()
+	local obj = alife():create("fenrir_jupiter",vector():set(-223.79888916016,-3.3462553024292,81.488891601563),337173,3708)
+	set_story_id(obj.id,19911)
+	xr_sound.get_safe_sound_object("ambient\\random\\rnd_respawn"):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	level.add_cam_effector("camera_effects\\prison_1.anm", 2925, false, "")
+	xr_timers.start_real_timer("run",14,"snp.fenrir_recurrection11()")
+end
+function fenrir_recurrection11()
+	xr_effects.enable_ui()
+	db.actor:give_info_portion("snp_fenrir_resurrected")
+end
+
+-- Сборка биорадара
+function snp_bioradar_parts_have_all()
+	return
+		inventory.search("mutant_spider_gland",1) and
+		inventory.search("mutant_rotan_heart",1) and
+		inventory.search("mutant_plague_hand",1) and
+		inventory.search("mutant_carlic_hand",1) and
+		inventory.search("mutant_vypolzen_hrebet",1) and
+		inventory.search("mutant_raptor_kogot",1) and
+		inventory.search("mutant_zanoza_leg",1) and
+		inventory.search("mutant_flesh_eye",1) and
+		inventory.search("mutant_boar_leg",1) and
+		inventory.search("mutant_dog_tail",1) and
+		inventory.search("mutant_psevdodog_tail",1) and
+		inventory.search("mutant_krovosos_jaw",1) and
+		inventory.search("mutant_burer_hand",1) and
+		inventory.search("mutant_zombie_hand",1) and
+		inventory.search("mutant_snork_leg",1) and
+		inventory.search("mutant_face_tushkano",1) and
+		inventory.search("mutant_hand_kontroler",1) and
+		inventory.search("mutant_poltergeist_glas",1) and
+		inventory.search("mutant_psevdogigant_hand",1) and
+		inventory.search("mutant_tail_cat",1) and
+		inventory.search("mutant_chimera_kogot",1) and
+		inventory.search("mutant_fracture_hand",1) and
+		inventory.search("mutant_deathclaw_antler",1) and
+		inventory.search("part_digitis_biblio",1) and
+		inventory.search("part_tarakan",1) and
+		inventory.search("part_tarakan_strong",1) and
+		inventory.search("mutant_zombie_teeth",1) and
+		inventory.search("mutant_spleen_rat",1)
+end		
+function snp_bioradar_parts()
+	if snp_bioradar_parts_have_all() then
+		db.actor:give_info_portion("snp_bioradar_parts")
+		return true
+	end
+end
+function snp_bioradar_parts0_have_all()
+	return
+		inventory.search("bioradar",2)
+end		
+function snp_bioradar_parts0()
+	if snp_bioradar_parts0_have_all() then
+		db.actor:give_info_portion("snp_bioradar_parts0")
+		return true
+	end
+end
+function snp_bioradar_parts_done_have_all()
+	return 
+		snp_bioradar_parts_have_all() and
+		snp_bioradar_parts0_have_all() and
+		inventory.search("snpbiopart",4) and
+		inventory.search("snp_biopart5",1) and
+		inventory.search("snp_biopart6",1) and
+		inventory.search("snp_biopart7",1)
+end
+function snp_bioradar_parts_done()
+	if not has_alife_info("snp_bioradar_parts_done") then 
+		inventory.out_items("mutant_spider_gland",1)
+		inventory.out_items("mutant_rotan_heart",1)
+		inventory.out_items("mutant_plague_hand",1)
+		inventory.out_items("mutant_carlic_hand",1)
+		inventory.out_items("mutant_vypolzen_hrebet",1)
+		inventory.out_items("mutant_raptor_kogot",1)
+		inventory.out_items("mutant_zanoza_leg",1)
+		inventory.out_items("mutant_flesh_eye",1)
+		inventory.out_items("mutant_boar_leg",1)
+		inventory.out_items("mutant_dog_tail",1)
+		inventory.out_items("mutant_psevdodog_tail",1)
+		inventory.out_items("mutant_krovosos_jaw",1)
+		inventory.out_items("mutant_burer_hand",1)
+		inventory.out_items("mutant_zombie_hand",1)
+		inventory.out_items("mutant_snork_leg",1)
+		inventory.out_items("mutant_face_tushkano",1)
+		inventory.out_items("mutant_hand_kontroler",1)
+		inventory.out_items("mutant_poltergeist_glas",1)
+		inventory.out_items("mutant_psevdogigant_hand",1)
+		inventory.out_items("mutant_tail_cat",1)
+		inventory.out_items("mutant_chimera_kogot",1)
+		inventory.out_items("mutant_fracture_hand",1)
+		inventory.out_items("mutant_deathclaw_antler",1)
+		inventory.out_items("part_digitis_biblio",1)
+		inventory.out_items("part_tarakan",1)
+		inventory.out_items("part_tarakan_strong",1)
+		inventory.out_items("mutant_zombie_teeth",1)
+		inventory.out_items("mutant_spleen_rat",1)
+		inventory.out_items("bioradar",2)
+		inventory.out_items("snpbiopart",4)
+		inventory.out_items("snp_biopart5",1)
+		inventory.out_items("snp_biopart6",1)
+		inventory.out_items("snp_biopart7",1)
+		db.actor:give_info_portion("snp_bioradar_parts_done")
+	end
+end
+
+-- Алмазные черепа
+function snp_almaz_have()
+	return
+		inventory.search("snp_skull", 13)
+end
+function snp_almaz_dospehi_have()
+	return
+		inventory.search("snp_suriken", 1) and
+		inventory.search("snp_suriken2", 1) and
+		inventory.search("snp_shield", 1) and
+		inventory.search("snp_sword", 1)
+end
+
+-- Вступление в монолит по сюжету при входе в Лабиринт
+function join_monolith()
+	if level.name()=="av_peshera"
+		and has_alife_info("snp_kotobegemot3_done")
+		and ( not has_alife_info("snp_almaz_done") ) 
+		and ( not db.actor:object("amulet") )
+		and snp_almaz_dospehi_have()
+	then
+		db.actor:set_character_community("monolith", 0, 0)
+	end
+end
+
+-- колбы
+function make_four_kolba_have()
+	if has_alife_info("snp_proper703_done") and
+		inventory.search("kolba_krasn_poln",4) then
+		
+		db.actor:give_info_portion("snp_make_four_kolba_have")
+		return true
+	end
+end
+function make_four_kolba_done()
+	inventory.out_items("kolba_krasn_poln",4)
+end
+
+-- части Звезды Пророка
+function zvezda_parts1_have()
+	if has_alife_info("snp_proper706_done") and
+		inventory.search_af("af_gelion",1) and
+		inventory.search_af("artifact_electro_crystal_thorn",1) and
+		inventory.search_af("af_spiral",1)	then
+		
+			db.actor:give_info_portion("snp_zvezda_parts1_have")
+		return true
+	end
+end
+function zvezda_parts1_done()
+	inventory.out_items("af_gelion",1)
+	inventory.out_items("artifact_electro_crystal_thorn",1)
+	inventory.out_items("af_spiral",1)
+end
+function zvezda_parts2_have()
+	if has_alife_info("snp_proper708_done") and
+		inventory.search_af("af_fobos",1) and
+		inventory.search_af("gold_art",7) and
+		inventory.search_af("af_part_monolit",1) then
+		
+			db.actor:give_info_portion("snp_zvezda_parts2_have")
+		return true
+	end
+end
+function zvezda_parts2_done()
+	inventory.out_items("af_fobos",1)
+	inventory.out_items("gold_art",7)
+	inventory.out_items("af_part_monolit",1)
+	
+	local obj = alife():create("ludmila_zaton",vector():set(130.02600097656,-7.3398327827454,177.09588623047),1189961,3686)
+	set_story_id(obj.id,19916)
+end
+function zvezda_parts3_have()
+	if has_alife_info("snp_proper7010_done") and
+		inventory.search_af("af_encelad",1) and
+		inventory.search_af("af_life_heart",5) and
+		inventory.search_af("af_buliz",30) and
+		inventory.search_af("art_acumm",50) then
+		
+			db.actor:give_info_portion("snp_zvezda_parts3_have")
+		return true
+	end
+end
+function zvezda_parts3_done()
+	inventory.out_items("af_encelad",1)
+	inventory.out_items("af_life_heart",5)
+	inventory.out_items("af_buliz",30)
+	inventory.out_items("art_acumm",50)
+	amk.save_variable("snp_make_zp", amk.game_minutes()+10)
+end
+function zp_ready()
+	return has_alife_info("snp_proper7011_done") and not has_alife_info("snp_proper7012_done") and amk.game_minutes() > amk.load_variable("snp_make_zp", 0)
+end
+
+-- Камень Удачи
+function kamen_udachy_have()
+	return has_alife_info("snp_fenrir14_done") and db.actor:object("af_kamen_udachy2")
+end
+function kamen_udachy_done()
+	inventory.out_items("af_kamen_udachy2",1)
+end
+
+-- Эмбрион вульфа
+function embrion_vogak_have()
+	return has_alife_info("snp_wolffrend2_done") and db.actor:object("mutant_wolf_cocoon")
+end
+function embrion_vogak_done()
+	inventory.out_items("mutant_wolf_cocoon",1)
+end
+
+-- Завершение Звезды Пророка
+function zvezda_proroka_done()
+	local obj
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Ну, вот и все, "..user_name()..". Ты достиг невозможного. Теперь ты - единственный в Зоне, кто смог постичь непостижимое. Надеюсь, в твоей не вымышленной, а настоящей, реальной, насыщенной не меньшими чудесами жизни ты также сможешь добиться многого. Того, чего не смог добиться я. И откроешь ещё немало не выдуманных, а реальных, живых, настоящих тайн. А самое главное - приобретёшь бесценный опыт. Ведь ты превзошёл меня, а значит, ты - лучший!".."\n", 3, nil, 38000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ПРОПЕР СЕМИДЕСЯТЫЙ:".."\\n".."%c[255,255,128,128]Стрелок, зайди на Скадовск, похвастайся приобретением.".."\n", 45, nil, 20000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Поздравляю с находкой! Ну что, воришка: пока лазил по чужим квартирам, не потерял ещё записку с наводкой на мой бонусный тайник?".."\n", 50, nil, 20000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."СТРЕЛОК:".."\\n".."%c[255,255,128,128]Нет, она у меня. Но там написано искать в трубе, и всё. А в какой трубе - непонятно.".."\n", 58, nil, 20000)
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[255,255,128,128]Суть в том, что когда я Юпитер покорял, хабара набрал немерено, и занесла меня нечистая в вентиляционный комплекс. Так вот: залез я туда, а когда дошёл до центрального зала, набежала куча псевдопсов, и начали рвать меня по самые мокасины. Вот я свой хабар и скинул там, а где - не помню. Пока я в спешке записывал наводку на листок бумаги, один из псевдопсов прыгнул на меня и оторвал половину листка. Но хабар точно там. Потому что если бы не скинул, то не говорил бы сейчас с тобой. Найди его и владей содержимым по своему усмотрению.".."\n", 66, nil, 40000)
+	create_restrictor(vector():set(-192.9940032959,0.75845563411713,-274.79794311523),389153,3710,2,"snp_spawn.n_inventory_box_jupiter11_1")
+	-- Возвращаем Вульфа на Скадовск
+	alife():create("wolffrend_zaton",vector():set(137.85824584961,-7.3402981758118,176.09548950195),1202652,3686)
+	obj = alife():create("wolffrend_talk_zaton",vector():set(137.19732666016,-7.3405375480652,176.83992004395),1201535,3686)
+	set_story_id(obj.id,19925)
+	db.actor:disable_info_portion("snp_wolffrend_skadovsk_done")
+	db.actor:give_info_portion("zvezda_proroka_done")
+end
+
+-- Слиток на кольца
+function snp_slitok_have()
+	return has_alife_info("snp_anna4_done") and db.actor:object("bullion_gild")
+end
+function snp_slitok_done()
+	inventory.out_items("bullion_gild",1)
+	amk.save_variable("snp_make_rings", amk.game_minutes()+120)
+end
+function rings_ready()
+	return has_alife_info("snp_docent3_done") and not has_alife_info("snp_rings_have") and amk.game_minutes() > amk.load_variable("snp_make_rings", 0)
+end
+
+-- Видеоархив
+function video_9_have()
+	return has_alife_info("snp_proper7014_done") and inventory.search("snp_video_arhiv",9)
+end
+function video_10_have()
+	return has_alife_info("snpt_x161_done") and inventory.search("snp_video_arhiv",10)
+end
+function video_10_done()
+	inventory.out_items("snp_video_arhiv",10)
+end
+
+-- БТР на вышках на свалке
+function btr_garbage1_done(num)
+	if has_alife_info("snpt_garbage1_fail") then return end
+
+	db.actor:give_info_portion("snp_tmp"..tostring(num))
+	
+	if  has_alife_info("snp_tmp1") and has_alife_info("snp_tmp2") and has_alife_info("snp_tmp3") and has_alife_info("snp_tmp4") then
+		db.actor:give_info_portion("snp_tmp_reset")
+		db.actor:disable_info_portion("snp_tmp_reset")
+		db.actor:disable_info_portion("no_teleport_near_heli_btr")
+		
+		if not has_alife_info("snpt_garbage1_have1") then
+			db.actor:give_info_portion("snpt_garbage1_have1")
+			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]C первой вышкой ты разобрался, братишка! Тебя ждёт следующая!".."\n", 2, nil, 20000)
+		else
+			db.actor:give_info_portion("snpt_garbage1_have2")
+			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФЕНРИР:".."\\n".."%c[255,255,128,128]Молодец! Я не сомневался в тебе! Жарко было? Жду тебя с отчётом!".."\n", 2, nil, 20000)
+			-- убираем Фенрира и Вульфа со Скадовска
+			local sobj = object_by_section_offline("fenrir_zaton")
+			if sobj then alife():release(sobj, true) end
+			sobj = object_by_section_offline("wolffrend_zaton")
+			if sobj then alife():release(sobj, true) end
+			sobj = object_by_section_offline("wolffrend_talk_zaton")
+			if sobj then alife():release(sobj, true) end
+		end
+	end
+end
+function btr_garbage1_fail()
+	if has_alife_info("no_teleport_near_heli_btr") then
+		db.actor:disable_info_portion("no_teleport_near_heli_btr")
+		db.actor:give_info_portion("snp_tmp_reset")
+		db.actor:disable_info_portion("snp_tmp_reset")
+		db.actor:give_info_portion("snpt_garbage1_fail")
+	end
+end
+
+-- x-16-Янтарь
+function x16_1()
+	alife():create("n_inventory_box_yantar1",vector():set(-25.592491149902,-19.088596343994,-23.444808959961),29512,1492)
+	create_restrictor(vector():set(-175.38716125488,-19.114255905151,-42.668083190918),697,1498,2,"snp.x16_2")
+end
+function x16_2()
+	xr_sound.get_safe_sound_object([[snp\zat_b42_controller_warning_1]]):play(db.actor, 0, sound_object.s2d)
+	create_restrictor(vector():set(-55.783111572266,-18.853202819824,-67.143280029297),19582,1456,2,"snp.x16_3")
+end
+function x16_3()
+	xr_sound.get_safe_sound_object([[snp\zat_b42_controller_warning_2]]):play(db.actor, 0, sound_object.s2d)
+	create_restrictor(vector():set(-57.88639831543,-17.625261306763,-134.35594177246),18645,1491,1,"snp.x16_4")
+end
+function x16_4()
+	xr_sound.get_safe_sound_object([[script_sound\help\soldier\soldier_help_1]]):play(db.actor, 0, sound_object.s2d)
+	create_restrictor(vector():set(-26.142684936523,-18.399806976318,-82.548286437988),29275,1492,3,"snp.x16_5")
+end
+function x16_5()
+	xr_sound.get_safe_sound_object([[script_sound\reactions\see_something\soldier\soldier_see_1]]):play(db.actor, 0, sound_object.s2d)
+	xr_sound.get_safe_sound_object([[ambient\special\marsh_generator]]):play(db.actor, 3, sound_object.s2d)
+	kostya_dialog.create_teleport("snp_x16_tp1",vector():set(-145.96894836426,-18.254137039185,-60.513942718506),1275,1457)
+end
+function x16_6()
+	kostya_dialog.delete_teleport("snp_x16_tp1")
+	create_restrictor(vector():set(-25.592491149902,-19.088596343994,-23.444808959961),29512,1492,10,"snp.x16_7")
+end
+function x16_7()
+	xr_sound.get_safe_sound_object([[script_sound\threat\stop\soldier\soldier_stop_1]]):play(db.actor, 0, sound_object.s2d)
+	kostya_dialog.create_teleport("snp_x16_tp2",vector():set(-25.592491149902,-19.088596343994,-23.444808959961),29512,1492)
+end
+function x16_8()
+	kostya_dialog.delete_teleport("snp_x16_tp2")
+	xr_sound.get_safe_sound_object([[meceniy\atmopheric\smex]]):play(db.actor, 2, sound_object.s2d)
+	create_restrictor(vector():set(-241.3547668457,-18.260984420776,-44.497436523438),158,1458,2,"snp.x16_9")
+end
+function x16_9()
+	xr_sound.get_safe_sound_object([[script_replics\comandir_1\normal\comandir_walking_3]]):play(db.actor, 0, sound_object.s2d)
+	create_restrictor(vector():set(-70.197463989258,-17.122535705566,-97.257064819336),14118,1496,2,"snp.x16_10")
+end
+function x16_10()
+	xr_sound.get_safe_sound_object([[script_sound\reactions\dead_mutant\soldier\soldier_deadmutant_1]]):play(db.actor, 0, sound_object.s2d)
+	create_restrictor(vector():set(-26.588277816772,-17.868045806885,-97.226081848145),29255,1492,1.5,"snp.x16_11")
+end
+function x16_11()
+	xr_sound.get_safe_sound_object([[ambient\zhar]]):play(db.actor, 0, sound_object.s2d)
+	kostya_dialog.create_teleport("snp_x16_tp3",vector():set(-87.297988891602,-18.268096923828,-96.16625213623),9080,1496)
+end
+function x16_12()
+	kostya_dialog.delete_teleport("snp_x16_tp3")
+	xr_sound.get_safe_sound_object([[script_replics\comandir_1\normal\comandir_to_soldier_4]]):play(db.actor, 2, sound_object.s2d)
+	kostya_dialog.create_teleport("snp_x16_tp4",vector():set(-25.592491149902,-19.088596343994,-23.444808959961),29512,1492)
+end
+function x16_13()
+	kostya_dialog.delete_teleport("snp_x16_tp4")
+	xr_sound.get_safe_sound_object([[script_replics\stalker_1\newbie\newbie_phrase_artifact_1]]):play(db.actor, 2, sound_object.s2d)
+	create_restrictor(vector():set(-147.08406066895,-19.088594436646,-76.49592590332),1077,1457,2,"snp.x16_14")
+end
+function x16_14()
+	xr_sound.get_safe_sound_object([[snp\tube_breath]]):play(db.actor, 0, sound_object.s2d)
+	kostya_dialog.create_teleport("snp_x16_tp5",vector():set(-144.91662597656,-18.236173629761,-77.360313415527),1255,1457)
+end
+function x16_15()
+	kostya_dialog.delete_teleport("snp_x16_tp5")
+	create_restrictor(vector():set(-25.592491149902,-19.088596343994,-23.444808959961),29512,1492,8,"snp.x16_16")
+end
+function x16_16()
+	xr_sound.get_safe_sound_object([[snp\podoidi_blije]]):play(db.actor, 0, sound_object.s2d)
+end
+function x16_17()
+	xr_sound.get_safe_sound_object([[script_sound\reactions\dead_enemy\soldier\soldier_dead_enemy_1]]):play(db.actor, 2, sound_object.s2d)
+	xr_timers.start_real_timer("run",6,"snp.x16_18()")
+end
+function x16_18()
+	kostya_dialog.create_teleport("snp_x16_tp6", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id())
+end
+function x16_19()
+	kostya_dialog.delete_teleport("snp_x16_tp6")
+end
+
+-- Эмбрионы
+-- выдача рецепта по эмбрионам
+function emb_found_receipt()
+--	news_manager.send_tip(db.actor, "Получен новый рецепт", nil, nil, 20000)
+end
+
+function emb_zahar1_done()
+	alife():create("n_inventory_box_vp2",vector():set(-177.54525756836,9.833262214661,-344.69392700195),38158,3753)
+end
+
+-- Жена Сахарова
+function gena_start()
+	local timeout = 2
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ЭЛЬЗА:".."\\n".."%c[255,255,128,128]Спасите, нахожусь в здании шко...".."\n", timeout, nil, 20000)
+	timeout = timeout+8
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."СТРЕЛОК:".."\\n".."%c[255,255,128,128]Профессор, кое-что появилось по вашему вопросу. Я только что получил сообщение непонятное, но думаю, оно отправлено интересующей вас личностью.".."\n", timeout, nil, 20000)
+	timeout = timeout+8
+	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."САХАРОВ:".."\\n".."%c[255,255,128,128]Стрелок, будете в наших краях - загляните. Кажется, я догадываюсь, о ком вы говорите.".."\n", timeout, nil, 20000)
+	db.actor:give_info_portion("gena_sakharov1_start")
+end
+
+function gena_bum1()
+	alife():create("n_inventory_box_bum1",vector():set(-4.2317895889282,-29.182376098633,11.760759353638),1804,2481)
+end
+
+function gena_sakharov1_done()
+	alife():create("n_inventory_box_as2",vector():set(-244.18141174316,-2.3535263061523,293.23202514648),88245,1797)
+end
+function gena_sakharov2_done()
+	kostya_dialog.create_teleport("gena_tp2", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id())
+end
+
+function gena_oso1_start()
+	all_spawn_fix.release_allspawn_object("mon_stalker")
+	local restrictions_bum = {
+		["mon_monolith_proektor_restr"] = true,
+		["mon_guard_offline_restr"] = true
+	}
+	remove_all_restrictions(restrictions_bum)
+	local obj = alife():create("gena_oso",vector():set(17.6636276245117,-41.899284362793,25.8659324645996),2927,2512)
+	set_story_id(obj.id,19932)
+end
+
+function gena_oso1_done()
+	kostya_dialog.delete_teleport("gena_tp1")
+	amk.remove_item_from_inventory_by_name("gena_note5",db.actor)
+	local obj = alife():create("elsa_yantar",vector():set(25.738025665283,-11.717874526978,-273.18176269531),51613,1480)
+	set_story_id(obj.id,19931)
+	xr_timers.start_real_timer("teleport_jumpto", 0.2, "gena_exit5")
+end
+
+function gena_finish()
+	kostya_dialog.delete_teleport("gena_tp2")
+	local obj = object_by_section_offline("gena_oso")
+	if obj then alife():release(obj, true) end
+	alife():create(alife():spawn_id(1307))
+end
+
+----------------- Разные утилиты -------------------
+
+-- присвоение неписю story_id при скриптовом спавне
+function set_stalker_story_id(obj,sid)
+	set_story_id( obj.id, sid )
+end
+
+-- установка object_flags непися при скриптовом спавне
+function set_stalker_oflags(obj,oflags)
+	netpk:modify( obj, { object_flags = oflags }, netpk.fState )
+end
+
+-- поиск онлайнового объекта скриптового спавна по секции
+function object_by_section(section)
+	local obj
+	for k,v in pairs(db.storage) do
+		obj = level.object_by_id(k)
+		if obj:section() == section then
+			return obj
+		end
+	end
+	return nil
+end
+
+-- поиск онлайнового неприбинденного объекта (отсутствует в db.storage) скриптового спавна по секции
+function object_by_section_nobinder(section)
+	local obj
+	for i=1,65534 do
+		obj=level.object_by_id(i)
+		if obj and obj:section() == section then
+			return obj
+		end
+	end
+	return nil
+end
+
+-- поиск оффлайнового объекта скриптового спавна по секции - alife():object() тут не работает
+function object_by_section_offline(section)
+	local obj
+	local sim = alife()
+	for i=1,65534 do
+		obj = sim:object(i)
+		if obj and obj:section_name() == section then
+			return obj
+		end
+	end
+	log( "! %s:object_by_section_offline : object not found [%s]", script_name(), section )
+	return nil
+end
+
+-- удаление всех онлайновых обьектов по секции
+function release_all_online(section)
+	local obj
+	for k,v in pairs(db.storage) do
+		obj = level.object_by_id(k)
+		if obj:section() == section then
+			alife():release(alife():object(obj:id()))
+		end
+	end
+end
+
+-- Спавн тайника/предмета с установкой рестриктора
+-- Описание: рестриктор спавнится по координатам объекта. Параметры задаются в конфиге объекта:
+-- r_radius   = радиус рестриктора. по умолчанию = 5
+-- r_function = функция, которую вызвать при входе в рестриктор, без кавычек, скобок и параметров
+-- Возвращает ссылку на объект
+function create_item_and_restrictor(section,pos,lv,gv)
+	-- спавним объект
+	local obj = alife():create(section,pos,lv,gv)
+
+	local radius = rx_utils.read_from_ini(nil, section, "r_radius", nil, nil)
+	local func = rx_utils.read_from_ini(nil, section, "r_function", nil, 1)
+	
+	if func then
+		-- функция есть - спавним рестриктор
+		create_restrictor(pos,lv,gv,(radius or 5),func)
+	end
+	
+	return obj
+end
+
+-- Спавн типичного рестриктора на вход. func = вызываемая при входе функция.
+function create_restrictor(pos,lv,gv,radius,func)
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = nil %="..func.."%",
+		radius
+	)
+end
+
+-- Спавн типичного рестриктора на выход. func = вызываемая при выходе функция.
+function create_restrictor_out(pos,lv,gv,radius,func)
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_outside = nil %="..func.."%",
+		radius
+	)
+end
+
+-- Спавн типичного рестриктора на вход со сработкой в определенное время.
+function create_restrictor_timer(pos,lv,gv,radius,timer,func)
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer("..timer..")} nil %="..func.."%",
+		radius
+	)
+end
+
+-- Спавн типичного рестриктора на вход со сработкой в определенное время для сюжета оп Теням.
+function create_restrictor_timer_pftp(pos,lv,gv,radius,timer,func)
+	return netpk:create_restrictor(
+		pos, lv, gv,
+		"[logic]\nactive = sr_idle\n[sr_idle]\non_actor_inside = {=in_timer_pftp("..timer..")} nil %="..func.."%",
+		radius
+	)
+end
+
+-- Спавн зоны на основе рестриктора. При входе в зону выдается поршень info, при выходе - снимается. Работать начинает при входе ГГ в зону
+-- off - поршень, при выдаче которого зона отключается.
+function create_zone(pos,lv,gv,radius,info,off)
+	local custom = 
+	"[logic]\n"..
+	"active = sr_idle@in\n"..
+
+	"[sr_idle@in]\n"..
+	"on_actor_inside = sr_idle@out %+"..info.."%\n"..
+	"on_info = {+"..off.."} nil %-"..info.."%\n"..
+
+	"[sr_idle@out]\n"..
+	"on_actor_outside = sr_idle@in %-"..info.."%\n"..
+	"on_info = {+"..off.."} nil %-"..info.."%\n"
+
+	return netpk:create_restrictor( pos, lv, gv, custom, radius )
+end
+
+-- Убираем ПЫСсовские рестрикторы на территории, чтобы не вылетало по путям. На входе список рестрикторов
+function remove_all_restrictions(restrictions)
+	local obj
+	for id=1, 65534 do
+		obj = level.object_by_id(id)
+		if obj and restrictions[obj:name()] then
+--			get_console():execute("load ~~~ name:"..obj:name())
+			alife():release(alife():object(obj:id()))
+		end
+	end
+end
+
+-- Спавн трупа
+function create_trup(section,pos,lv,gv,sid)
+	local obj = alife():create(section,pos,lv,gv)
+	local params = {}
+	if sid then
+		params.story_id = sid
+	end
+	params.health = 0
+	params.upd = {health = 0}
+	netpk:modify( obj,params )
+	return obj
+end
+
+-- Спавн раненого
+function create_wounded(section,pos,lv,gv,sid)
+	local obj = alife():create(section,pos,lv,gv)
+	local params = {}
+	if sid then
+		params.story_id = sid
+	end
+	params.health = 0.1
+	params.upd = { health = 0.05 }
+	netpk:modify( obj,params )
+	return obj
+end
+
+function invul_on()
+	inventory.get_free_belt_slot()
+	amk.spawn_item_in_inv("af_invul", db.actor)
+end
+function invul_off()
+	local obj = db.actor:object("af_invul")
+	if obj then
+		alife():release(alife():object(obj:id()))
+	end
+end
+
+function move_on()
+	local obj = db.actor:object("ballast")
+	if obj then
+		alife():release(alife():object(obj:id()))
+	end
+end
+function move_off()
+	amk.spawn_item_in_inv("ballast", db.actor)
+end
+
+-- Пьем водку
+function drink_vodka()
+	alife():create("vodka",vector():set(0,0,0),0,0,0)
+	xr_timers.start_real_timer("run",0.2,"snp.drink_vodka_chunk()")
+end
+function drink_vodka_chunk()
+	db.actor:eat(db.actor:object("vodka"))
+end
+
+-- подсчет количества вертолетов в онлайне для бойни на Юпитере
+function count_heli()
+	local count = 0
+	for k,v in pairs(db.heli) do
+		if v:section() == "snp_helicopter" then
+			count = count+1
+		end
+	end
+	return count
+end
+
+-- подсчет количества бтр в онлайне
+function count_btr()
+	local count = 0
+	for k,v in pairs(db.btr) do
+		count = count+1
+	end
+	return count
+end
+
+function net_spawn()
+	start_sound()
+	emb.start_sound()
+	local obj
+	-- спавн бункера
+	if has_alife_info("snp_resident_evil8_done") and not has_alife_info("spawn_bunker_jupiter") and level.name()=="jupiter" then
+		spawn_bunker_jupiter()
+		db.actor:give_info_portion("spawn_bunker_jupiter")
+	end
+	-- финальное удаление Снегиря
+	if has_alife_info("fli_snegir1_done") and not has_alife_info("fli_snegir_remove") and level.name()~="l01_escape" then
+		obj = object_by_section_offline("maria_kordon")
+		if obj then alife():release(obj, true) end
+		obj = object_by_section_offline("snegir_kordon")
+		if obj then alife():release(obj, true) end
+		db.actor:give_info_portion("fli_snegir_remove")
+	end
+	-- перемещение Котобегемота и Ариадны на Скадовск
+	if has_alife_info("snp_docent2_done") and not has_alife_info("ariadna_kot_to_skadovsk") and level.name()~="l05_bar" then
+		obj = object_by_section_offline("kotobegemot_bar")
+		if obj then alife():release(obj, true) end
+		obj = object_by_section_offline("ariadna_bar")
+		if obj then alife():release(obj, true) end
+		obj = alife():create("kotobegemot_zaton",vector():set(132.33285522461,-7.3398036956787,177.00312805176),1193473,3686)
+		set_story_id(obj.id,19920)
+		obj = alife():create("ariadna_zaton",vector():set(133.59469604492,-7.3404812812805,177.0399017334),1195789,3686)
+		set_story_id(obj.id,19921)
+		db.actor:give_info_portion("ariadna_kot_to_skadovsk")
+	end
+	-- перемещение бункера на Скадовск
+	if has_alife_info("snp_proper7013_done") and not has_alife_info("bunker_to_skadovsk") and level.name()~="jupiter" then
+		obj = object_by_section_offline("fenrir_jupiter")
+		if obj then alife():release(obj, true) end
+		obj = object_by_section_offline("proper70_jupiter")
+		if obj then alife():release(obj, true) end
+		obj = alife():create("fenrir_zaton",vector():set(138.73059082031,-7.3394303321838,178.58042907715),1203766,3686)
+		set_story_id(obj.id,19902)
+		obj = alife():create("resident_evil_zaton",vector():set(125.20777893066,-7.3201112747192,181.31158447266),1181686,3686)
+		set_story_id(obj.id,19903)
+		obj = alife():create("proper70_zaton",vector():set(126.26544952393,-7.3198008537292,176.6022644043),1182876,3686)
+		set_story_id(obj.id,19922)
+		obj = alife():create("anna_zaton2",vector():set(138.39352416992,-7.3401217460632,179.81733703613),1203770,3686)
+		set_story_id(obj.id,19923)
+		db.actor:give_info_portion("bunker_to_skadovsk")
+	end
+	-- удаление Вожака с плато
+	if has_alife_info("snp_wolffrend3_done") and not has_alife_info("snp_vogak_remove") and level.name()~="zaton" then
+		obj = object_by_section_offline("wolffrend_zaton2")
+		if obj then alife():release(obj, true) end
+		obj = object_by_section_offline("wolffrend_talk_zaton2")
+		if obj then alife():release(obj, true) end
+		db.actor:give_info_portion("snp_vogak_remove")
+	end
+end
+
+-- апдейт раз в полсекунды
+function update()
+	-- отсечка на Юпитере
+	if  has_alife_info("no_teleport_near_heli_btr") and	has_alife_info("snp_boroda_start_done") and not has_alife_info("snp_parad_start") and not has_alife_info("snpt_jupiter5_fail") then
+	
+		if db.actor:position().y < 40 then
+			db.actor:give_info_portion("snpt_jupiter5_fail")
+			news_manager.send_tip(db.actor, "%c[255,160,160,160]".."БОРОДА:".."\\n".."%c[255,255,128,128]Если ты поднялся наверх - то нельзя возвращаться назад, пока не найдёшь мой рюкзак.".."\n", nil, nil, 20000)
+			
+		elseif has_alife_info("snpt_jupiter5_have1") and not has_alife_info("snpt_jupiter5_have2") and count_heli() == 0 then
+			snp_spawn.create_snpt_jupiter5_restr3()
+			db.actor:give_info_portion("snpt_jupiter5_have2")
+
+		end
+	end
+end
+
+-- запуск сюжетных звуков
+function start_sound()
+	if     has_alife_info("snp_monolith1_done") and not has_alife_info("snp_almaz1") and level.name()=="av_peshera" then
+		xr_sound.get_safe_sound_object([[snp\heartbeat100]]):play_at_pos(db.actor, vector():set(-108.42949676514,40.053085327148,479.11297607422), 0, sound_object.s3d+sound_object.looped)
+
+	elseif has_alife_info("snp_almaz1") and not has_alife_info("snp_almaz2") and level.name()=="av_peshera" then
+		xr_sound.get_safe_sound_object([[snp\heartbeat100]]):play_at_pos(db.actor, vector():set(174.08480834961,55.11833190918,386.01168823242), 0, sound_object.s3d+sound_object.looped)
+	end
+end
+
+function play_snd_rnd_ratchant()
+	xr_sound.get_safe_sound_object([[ambient\random\rnd_ratchant]]):play_no_feedback(db.actor, sound_object.s2d, 1, vector(), 1.0)
+end
+
+-- для диалогов
+function bubulyka_answer1()
+	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
+	db.actor:give_talk_message("Спасибо, "..user_name()..", за честный ответ! Мне тоже с тобой было очень приятно общаться! А что касается тайника - я электриком работал на большой земле, так вот, есть у меня в Зоне дружок один, он тоже электрик, зовут паренька Слипкнот. И он рассказал мне про этот тайник. А спрятал он его на Затоне за Железным лесом, за границей территории, рядом с трансформаторной подстанцией №1758, что на крыше завода.", task_texture, task_rect, "simple_answer_item")
+end
+

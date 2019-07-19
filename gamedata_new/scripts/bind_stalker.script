@@ -135,7 +135,6 @@ function actor_binder:net_destroy()
 
 	xr_sound.stop_all_sound_object()
 
-	set_extensions_flags(0)
 	object_binder.net_destroy(self)
 end
 
@@ -431,12 +430,6 @@ function actor_binder:update(delta)
 		
 		naxac_test.repair()
 		player_ogg.start_pleer_post_save()
-
-		if game_options.RunnerKey == -1 then
-			if not xr_timers.has_timer( "set_runner_key" ) then
-				xr_timers.start_real_timer( "set_runner_key", 20 )
-			end
-		end
 		
 		self.bCheckStart = nil
 	end 
@@ -504,23 +497,28 @@ function actor_binder:update(delta)
 		upd_time = time + 200
 		
 		amk.oau_watchdog=304
-		if bit_and(actor:get_actor_int(nil, 1480), 1) == 1 then
+		local cActor = actor:get_actor()
+		if cActor and cActor:is_zoom_aiming_mode() then
 			if not scopeUsed then
-				if actor_active_item then
-					local section = actor_active_item:section()
-					local cls = actor_active_item:clsid()
-					--log1("- actor:active_item():section()="..tostring(section))
+				-- if actor_active_item then
+					-- local section = actor_active_item:section()
+					-- local cls = actor_active_item:clsid()
+					-- --log("- actor_active_item:section()="..tostring(section))
 						
-					if cls == clsid.wpn_binocular_s then
-						scopeUsed = true
-					elseif IAmAWeapon[cls] then
-						local t = netpk:get(alife():object(actor_active_item:id()), netpk.fState)
-						scopeUsed = ( bit_and(t.addon_flags, addon_flags.scope) ~= 0
-							or sys_ini:r_u32(section, "scope_status") == 1 )
-					end
-					if scopeUsed then
-						hud_scope.on_scope_used( section )
-					end
+					-- if cls == clsid.wpn_binocular_s then
+						-- scopeUsed = true
+					-- elseif IAmAWeapon[cls] then
+						-- local t = netpk:get(alife():object(actor_active_item:id()), netpk.fState)
+						-- scopeUsed = ( bit_and(t.addon_flags, addon_flags.scope) ~= 0
+							-- or sys_ini:r_u32(section, "scope_status") == 1 )
+					-- end
+					-- if scopeUsed then
+						-- hud_scope.on_scope_used( section )
+					-- end
+				-- end
+				scopeUsed = true
+				if actor_active_item then
+					hud_scope.on_scope_used( actor_active_item:section() )
 				end
 			end
 		elseif scopeUsed then

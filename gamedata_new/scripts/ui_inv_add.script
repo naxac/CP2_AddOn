@@ -86,22 +86,22 @@ function InvWnd:InitControls()
 		s.icn:SetStretchTexture(true)
 		
 		s.key = xml:InitStatic("slot_key", s)
-		s.key:SetText(hotkeys.dik2key(slot2key[i]) or "")
+		s.key:SetText(dik_to_keyname(slot2key[i]):sub(2))
 		s.key:SetFont(GetFontSmall())
 		
 		local name = "qslot_"..i
 		self:Register(s, name)
-		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.qslot_focus, i)
-		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.qslot_focus_lost, i)
-		self:AddCallbackEx(name, ui_events.WINDOW_LBUTTON_DB_CLICK, self.qslot_dbclick, i)
+		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.qslot_focus, self, i)
+		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.qslot_focus_lost, self, i)
+		self:AddCallbackEx(name, ui_events.WINDOW_LBUTTON_DB_CLICK, self.qslot_dbclick, self, i)
 		
 		self:DrawSlotIcon(i)
 	end
 
 
 	self.rad_level = xml:InitStatic("rad_level", self.stat)
-	self.radX = self.rad_level:GetHPos()
-	self.radY = self.rad_level:GetVPos()
+	self.radX = self.rad_level:GetPosLeft()
+	self.radY = self.rad_level:GetPosTop()
 	self.rad_max_height = self.rad_level:GetHeight()
 	if arc_inventory.IsRadDetected() then
 		local h = self.rad_max_height * arc_radiation.get_rad_dose() / arc_radiation.get_deadly_dose()
@@ -222,8 +222,7 @@ function InvWnd:DetachWnd()
 	if self.skat_panel then self.skat_panel:Remove() end
 	self.owner:DetachChild(self.stat)
 
-	local key = hotkeys.dik2key( self.use_dik )
-	if not key:find("MOUSE") then key = "k"..key end
+	local key = dik_to_keyname( self.use_dik )
 	get_console():execute( "bind use "..string.lower(key) )
 end
 
@@ -353,7 +352,4 @@ function attach()
 	xr_s.subscribe("net_spawn", this.on_net_spawn)
 	xr_s.subscribe("inventory_open", this.inventory_open)
 	xr_s.subscribe("inventory_close", this.inventory_close)
-	xr_s.subscribe("item_drop", this.restore_slot)
 end
-
-

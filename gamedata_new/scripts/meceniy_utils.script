@@ -1,0 +1,42 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--\\*Модуль Настройки Мода..Меченый(Стрелок)..
+
+local tup = 0
+
+function on_actor_update_callback()
+	amk.oau_watchdog=19312
+	meceniy_outfit.on_actor_update()
+	amk.oau_watchdog=19314
+	meceniy_work.mainw()
+end
+
+--функция для чтения  версии мода(от Artos'a)
+function read_mod_ver()
+	local s = ""
+	s = s..game.translate_string( "mod_ver_type" )
+	s = s.." ( "..game.translate_string( "mod_ver_patch" )
+	s = s..", "..game.translate_string( "mod_ver_fix" ).." )"
+	s = s.." .. + .. "..game.translate_string( "mod_ver_addon" )
+
+	local path = getFS():update_path( "$fs_root$", "" )
+	stdfs.directory_iterator( path, function(file)
+		if file.extension == ".dbh" then
+			s = s.." от "..file.last_write_time_string_short
+		end
+	end)
+
+	return s
+end
+
+function delete_some_somth(section, count)
+	news_manager.relocate_item(db.actor, "out", section, count)
+	db.actor:iterate_inventory(
+		function(dummy, item)
+			if (count > 0) and (item:section() == section) then
+				alife():release(alife():object(item:id()))
+				count = count - 1
+			end
+		end,
+		db.actor
+	)
+end
