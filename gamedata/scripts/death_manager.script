@@ -1,24 +1,22 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local math_random = math.random
-local math_ceil = math.ceil
-local string_find = string.find
 
---' Ключем является группировка персонажа. Значением является таблица, содержашая имена секций предметов.
+--' РљР»СЋС‡РµРј СЏРІР»СЏРµС‚СЃСЏ РіСЂСѓРїРїРёСЂРѕРІРєР° РїРµСЂСЃРѕРЅР°Р¶Р°. Р—РЅР°С‡РµРЅРёРµРј СЏРІР»СЏРµС‚СЃСЏ С‚Р°Р±Р»РёС†Р°, СЃРѕРґРµСЂР¶Р°С€Р°СЏ РёРјРµРЅР° СЃРµРєС†РёР№ РїСЂРµРґРјРµС‚РѕРІ.
 local item_by_community = {}
 
---' Зависимости в спауне предметов. Предмет спауниться только если есть хотя бы один из зависимых.
+--' Р—Р°РІРёСЃРёРјРѕСЃС‚Рё РІ СЃРїР°СѓРЅРµ РїСЂРµРґРјРµС‚РѕРІ. РџСЂРµРґРјРµС‚ СЃРїР°СѓРЅРёС‚СЊСЃСЏ С‚РѕР»СЊРєРѕ РµСЃР»Рё РµСЃС‚СЊ С…РѕС‚СЏ Р±С‹ РѕРґРёРЅ РёР· Р·Р°РІРёСЃРёРјС‹С….
 local item_dependence = {}
 
---' Множители и минимаксы для выпадения вещей в зависимости от уровня
-local count_by_level = {}
+--' РњРЅРѕР¶РёС‚РµР»Рё Рё РјРёРЅРёРјР°РєСЃС‹ РґР»СЏ РІС‹РїР°РґРµРЅРёСЏ РІРµС‰РµР№ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СѓСЂРѕРІРЅСЏ
+local count_by_rank = {}
 
---' Предметы, которые нельзя удалять (квестовые например)
+--' РџСЂРµРґРјРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ РЅРµР»СЊР·СЏ СѓРґР°Р»СЏС‚СЊ (РєРІРµСЃС‚РѕРІС‹Рµ РЅР°РїСЂРёРјРµСЂ)
 local always_keep_item = {}
 
--- Предметы, которые удаляются всегда
+-- РџСЂРµРґРјРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ СѓРґР°Р»СЏСЋС‚СЃСЏ РІСЃРµРіРґР°
 local always_offs_items = {}
 
--- уникальные стволы, которые не разряжаются и всегда должны быть исправны
+-- СѓРЅРёРєР°Р»СЊРЅС‹Рµ СЃС‚РІРѕР»С‹, РєРѕС‚РѕСЂС‹Рµ РЅРµ СЂР°Р·СЂСЏР¶Р°СЋС‚СЃСЏ Рё РІСЃРµРіРґР° РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ РёСЃРїСЂР°РІРЅС‹
 unique_wpn = {
 	["wpn_lr300_m1"] = true,
 	["wpn_beretta_m1"] = true,
@@ -31,14 +29,14 @@ unique_wpn = {
 	["wpn_shmel"] = true
 }
 
--- эти вещи остаются с указанной вероятностью
+-- СЌС‚Рё РІРµС‰Рё РѕСЃС‚Р°СЋС‚СЃСЏ СЃ СѓРєР°Р·Р°РЅРЅРѕР№ РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊСЋ
 local always_offs_items_prob = {
 	["guitar_a"]=0.02,
 	["balalaika_a"]=0.02,
 	["harmonica_a"]=0.02,
 }
 
--- Таблица выдачи инфопорций по части имени погибшего непися.
+-- РўР°Р±Р»РёС†Р° РІС‹РґР°С‡Рё РёРЅС„РѕРїРѕСЂС†РёР№ РїРѕ С‡Р°СЃС‚Рё РёРјРµРЅРё РїРѕРіРёР±С€РµРіРѕ РЅРµРїРёСЃСЏ.
 local names_info = {
 	["snip_esc1"] = "snip_esc1_dead",
 	["snip_esc2"] = "snip_esc2_dead",
@@ -67,11 +65,11 @@ local names_info = {
 	["grab_stal5"] = "grab_stal5_dead"
 }
 
--- вероятность выпадения бронежилетов и диапазон состояний выпавших бронежилетов и оружия
--- condition - диапазон состояний выпавших бронежилетов и оружия
--- probability_outfit - вероятность выпадения бронежилетов
+-- РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РІС‹РїР°РґРµРЅРёСЏ Р±СЂРѕРЅРµР¶РёР»РµС‚РѕРІ Рё РґРёР°РїР°Р·РѕРЅ СЃРѕСЃС‚РѕСЏРЅРёР№ РІС‹РїР°РІС€РёС… Р±СЂРѕРЅРµР¶РёР»РµС‚РѕРІ Рё РѕСЂСѓР¶РёСЏ
+-- condition - РґРёР°РїР°Р·РѕРЅ СЃРѕСЃС‚РѕСЏРЅРёР№ РІС‹РїР°РІС€РёС… Р±СЂРѕРЅРµР¶РёР»РµС‚РѕРІ Рё РѕСЂСѓР¶РёСЏ
+-- probability_outfit - РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РІС‹РїР°РґРµРЅРёСЏ Р±СЂРѕРЅРµР¶РёР»РµС‚РѕРІ
 local data_by_community = {
-	default = { -- значения по-умолчанию для неизвестной группировки
+	default = { -- Р·РЅР°С‡РµРЅРёСЏ РїРѕ-СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ РЅРµРёР·РІРµСЃС‚РЅРѕР№ РіСЂСѓРїРїРёСЂРѕРІРєРё
 		condition = {min = 5, max = 95},
 		probability_outfit = 15
 	},
@@ -131,8 +129,8 @@ local data_by_community = {
 	}
 }
 
--- Письма
-local total_letters = 43	-- всего писем
+-- РџРёСЃСЊРјР°
+local total_letters = 43	-- РІСЃРµРіРѕ РїРёСЃРµРј
 local letters_tbl = {}
 
 function init_drop_settings()
@@ -145,7 +143,7 @@ function init_drop_settings()
 	local result, id, value
 	
     for k,v in pairs(data_by_community.communities) do
-        --' Необходимо заполнить таблицу
+        --' РќРµРѕР±С…РѕРґРёРјРѕ Р·Р°РїРѕР»РЅРёС‚СЊ С‚Р°Р±Р»РёС†Сѓ
         item_by_community[k] = {}
         if ini:section_exist(k) then
 			n = ini:line_count(k)
@@ -156,73 +154,74 @@ function init_drop_settings()
         end
     end
 
-    --' Заполняем таблицу зависимостей
+	--' РџСЂРµРґРјРµС‚С‹, РѕС‚РЅРѕСЃСЏС‰РёРµСЃСЏ Рє РїР°С‚СЂРѕРЅР°Рј. РС… РЅР°РґРѕ СЃРїР°СѓРЅРёС‚СЊ РґСЂСѓРіРёРј РјРµС‚РѕРґРѕРј.
+	local t_ammo = {}
+	local function add_ammo(ammo_sect)
+		if t_ammo[ammo_sect] then return end
+		t_ammo[ammo_sect] = sys_ini:r_u32(ammo_sect, "box_size")
+	end
+
+    --' Р—Р°РїРѕР»РЅСЏРµРј С‚Р°Р±Р»РёС†Сѓ Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№
+	local function add_item_dependence(ammo_sect, wpn_sect)
+		if item_dependence[ammo_sect] == nil then
+			item_dependence[ammo_sect] = {}
+		end
+		table.insert(item_dependence[ammo_sect], wpn_sect)
+	end
+
 	n = ini:line_count("item_dependence")
 	for i=0,n-1 do
 		result, id, value = ini:r_line("item_dependence",i,"","")
 		if id and id~="" then
 			for a in str_gfind(sys_ini:r_string(id, "ammo_class"), "[%w_%-%.]+") do
-				local tt = item_dependence[a]
-				if tt == nil then tt = {}; item_dependence[a] = tt end
-				tt[#tt+1] = id
+				add_item_dependence(a, id)
+				add_ammo(a)
+			end
+			if sys_ini:line_exist(id, "grenade_class") then
+				for a in str_gfind(sys_ini:r_string(id, "grenade_class"), "[%w_%-%.]+") do
+					add_item_dependence(a, id)
+					add_ammo(a)
+				end
 			end
 		end
 	end
+	_G.ammo_sections = t_ammo
 
-	--' Множители и минимаксы для выпадения вещей в зависимости от уровня
-    local vvv = level.name()
-	if not ini:section_exist(vvv) then
-		vvv = "default"
-	end
 
-	local mul_by_level = {}
-    n = ini:line_count(vvv)
-	for i=0,n-1 do
-		result, id, value = ini:r_line(vvv,i,"","")
-		mul_by_level[id] = tonumber(value)
-	end
-
-    vvv = "item_count_" .. level.get_game_difficulty()
-    n = ini:line_count(vvv)
+	--' РњРЅРѕР¶РёС‚РµР»Рё Рё РјРёРЅРёРјР°РєСЃС‹ РґР»СЏ РІС‹РїР°РґРµРЅРёСЏ РІРµС‰РµР№ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СѓСЂРѕРІРЅСЏ
+    local tRanks = ranks.get_stalker_rank_intervals()
+	local sCount = "item_count_" .. level.get_game_difficulty()
 	local count_min, count_max, t, m
-	for i=0,n-1 do
-		result, id, value = ini:r_line(vvv,i,"","")
-		--' Нужно распарсить value в два значения
-		t = {}
-		for v in str_gfind(value, "[%d%.%-]+") do
-			t[#t+1] = tonumber(v) or 0
+	for rank_name in pairs(tRanks) do
+		local tt = {}
+		count_by_rank[rank_name] = tt
+		for i = 0, ini:line_count(rank_name)-1 do
+			result, id, value = ini:r_line(rank_name,i,"","")
+			m = tonumber(value)
+
+			t = {}
+			for v in str_gfind( ini:r_string(sCount, id), "[%d%.%-]+" ) do
+				t[#t+1] = tonumber(v)
+			end
+			if #t == 0 then
+				abort("Error on [death_ini] declaration. Section [%s], line [%s]", vvv, tostring(id))
+			end
+
+			count_min = t[1] *m
+			count_max = (t[2] or t[1]) *m
+			tt[id] = {min = count_min, max = count_max}
 		end
-		if #t == 0 then
-			abort("Error on [death_ini] declaration. Section [%s], line [%s]", vvv, tostring(id))
-		end
-		count_min = t[1]
-		count_max = t[2] or count_min
 		
-		m = mul_by_level[id] or 0
-
-		count_min = count_min * m
-		count_max = count_max * m
-
-		count_by_level[id] = {min = count_min, max = count_max}
 	end
 
-	--' Предметы, которые нельзя удалять (квестовые например)
+	--' РџСЂРµРґРјРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ РЅРµР»СЊР·СЏ СѓРґР°Р»СЏС‚СЊ (РєРІРµСЃС‚РѕРІС‹Рµ РЅР°РїСЂРёРјРµСЂ)
     n = ini:line_count("keep_items")
 	for i=0,n-1 do
 		result, id, value = ini:r_line("keep_items",i,"","")
 		always_keep_item[id] = true
     end
 
-	--' Предметы, относящиеся к патронам. Их надо спаунить другим методом.
-	local t = {}
-    n = ini:line_count("ammo_sections")
-	for i=0,n-1 do
-		result, id, value = ini:r_line("ammo_sections",i,"","")
-		t[id] = sys_ini:r_u32(id, "box_size")
-	end
-    _G['ammo_sections'] = t
-
-	-- Предметы, которые удаляются всегда
+	-- РџСЂРµРґРјРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ СѓРґР°Р»СЏСЋС‚СЃСЏ РІСЃРµРіРґР°
 	always_offs_items = {}
     n = ini:line_count("always_off_items")
 	for i=0,n-1 do
@@ -230,7 +229,7 @@ function init_drop_settings()
 		always_offs_items[id] = true
 	end
 
-	-- Письма
+	-- РџРёСЃСЊРјР°
 	ini = ini_file("misc\\letters.ltx")
 	for i=1, total_letters do
 		n = "letter_"..i
@@ -259,7 +258,7 @@ function drop_manager:create_release_item()
 	if self.npc == nil then return end
 	
 	local sim = alife()
-	--' Спрашиваем у серверного объекта генерились ли предметы
+	--' РЎРїСЂР°С€РёРІР°РµРј Сѓ СЃРµСЂРІРµСЂРЅРѕРіРѕ РѕР±СЉРµРєС‚Р° РіРµРЅРµСЂРёР»РёСЃСЊ Р»Рё РїСЂРµРґРјРµС‚С‹
 	local se_obj = sim:object(self.npc:id())
 	if (se_obj == nil) or (se_obj.death_droped == true) then return end
 	se_obj.death_droped = true
@@ -273,11 +272,13 @@ function drop_manager:create_release_item()
 	local cond_add = 5*(3-level.get_game_difficulty())
 	
 	local ini = self.npc:spawn_ini()
-	local totally_broken_weapon = ini and ini:section_exist("totally_broken_weapon")
+	local totally_broken_weapon = ( ini and ini:section_exist("totally_broken_weapon") )
 
 	local active_item_id = self.npc:active_item() and self.npc:active_item():id()
+	local item_in_slot1_id = self.npc:item_in_slot(1) and self.npc:item_in_slot(1):id()
+	local item_in_slot2_id = self.npc:item_in_slot(2) and self.npc:item_in_slot(2):id()
 	
-    --' Запускаем итератор на удаление предметов
+    --' Р—Р°РїСѓСЃРєР°РµРј РёС‚РµСЂР°С‚РѕСЂ РЅР° СѓРґР°Р»РµРЅРёРµ РїСЂРµРґРјРµС‚РѕРІ
 	local se_item, sect, item_id
     self.npc:iterate_inventory(function (nepis, item)
 		item_id = item:id()
@@ -292,8 +293,12 @@ function drop_manager:create_release_item()
 			if item_id ~= active_item_id then
 				sim:release(se_item, true)
 			end
-		elseif isMagazinedWeapon(item) and unique_wpn[sect]==nil then
-		--	Оставляем немного патронов в магазине
+		elseif ( item_id == item_in_slot1_id
+			or item_id == item_in_slot2_id )
+			and isMagazinedWeapon(item)
+			and unique_wpn[sect] == nil
+		then
+			--	РћСЃС‚Р°РІР»СЏРµРј РЅРµРјРЅРѕРіРѕ РїР°С‚СЂРѕРЅРѕРІ РІ РјР°РіР°Р·РёРЅРµ
 			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
 			item:set_ammo_elapsed(n)
 			if totally_broken_weapon then
@@ -311,33 +316,34 @@ function drop_manager:create_release_item()
 	end
 	, self.npc)
 	
-	--' Проверка на отсутствие спауна лута
+	--' РџСЂРѕРІРµСЂРєР° РЅР° РѕС‚СЃСѓС‚СЃС‚РІРёРµ СЃРїР°СѓРЅР° Р»СѓС‚Р°
 	if ini and ini:section_exist("dont_spawn_loot") then
 		return
 	end
 
-	--' Доспавниваем необходимое количество итемов:
-	--' Необходимо составить список объектов которые могут быть заспавнены для персонажа
+	--' Р”РѕСЃРїР°РІРЅРёРІР°РµРј РЅРµРѕР±С…РѕРґРёРјРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РёС‚РµРјРѕРІ:
+	--' РќРµРѕР±С…РѕРґРёРјРѕ СЃРѕСЃС‚Р°РІРёС‚СЊ СЃРїРёСЃРѕРє РѕР±СЉРµРєС‚РѕРІ РєРѕС‚РѕСЂС‹Рµ РјРѕРіСѓС‚ Р±С‹С‚СЊ Р·Р°СЃРїР°РІРЅРµРЅС‹ РґР»СЏ РїРµСЂСЃРѕРЅР°Р¶Р°
 	local spawn_items = item_by_community[self.npc:character_community()]
 	if spawn_items then
 		local number
-		for k,v in pairs(spawn_items) do
-			--' По каждому объекту необходимо получить зависимости		
+		local tCnt = count_by_rank[ ranks.get_obj_rank_name(self.npc) ]
+		for k, v in pairs(spawn_items) do
+			--' РџРѕ РєР°Р¶РґРѕРјСѓ РѕР±СЉРµРєС‚Сѓ РЅРµРѕР±С…РѕРґРёРјРѕ РїРѕР»СѓС‡РёС‚СЊ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё		
 			if check_item_dependence(self.npc, k) == true then
-				--' По каждому объекту необходимо получить количество
-				number = math_ceil(math_random(count_by_level[k].min, count_by_level[k].max))
-				--' Необходимо заспавнить нужное количество.
+				--' РџРѕ РєР°Р¶РґРѕРјСѓ РѕР±СЉРµРєС‚Сѓ РЅРµРѕР±С…РѕРґРёРјРѕ РїРѕР»СѓС‡РёС‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ
+				number = math.ceil( math_random(tCnt[k].min, tCnt[k].max) )
+				--' РќРµРѕР±С…РѕРґРёРјРѕ Р·Р°СЃРїР°РІРЅРёС‚СЊ РЅСѓР¶РЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ.
 				create_items(self.npc, k, number, v) 
 			end
 		end
 	end
 	
-	--' Даем письмо
+	--' Р”Р°РµРј РїРёСЃСЊРјРѕ
 	give_letter(self.npc)
 	
 	local vis = nil
 	local npc_name = protected_items.get_obj_name(self.npc)
-	if (not string_find(self.npc:section(), "arena")) and
+	if (not string.find(self.npc:section(), "arena")) and
 		self.npc:character_community() ~= "arena_enemy" and
 		npc_name ~= "yan_specnaz_dead" and
 		npc_name ~= "x16_stalker_ghost" then
@@ -361,31 +367,30 @@ function drop_manager:create_release_item()
 	end
 end
 
---' Функция спавнит необходимое число предметов
+--' Р¤СѓРЅРєС†РёСЏ СЃРїР°РІРЅРёС‚ РЅРµРѕР±С…РѕРґРёРјРѕРµ С‡РёСЃР»Рѕ РїСЂРµРґРјРµС‚РѕРІ
 function create_items(npc, section, number, rnd)
-        if npc == nil then return end
-    --'printf("create %s of %s", tostring(number), tostring(section))
-    if _G.ammo_sections[section] ~= nil then
-        if number > 0 then
-            se_respawn.create_ammo(section,
-                                    npc:position(),
-                                    npc:level_vertex_id(),
-                                    npc:game_vertex_id(),
-                                    npc:id(),
-                    number)
-        end
-    else
-        for i=1,number do
-            --' Проверяем вероятность появить каждый объект в отдельности
-            if math_random(1000) <=  rnd then
+	if npc == nil then return end
+	if number == 0 then return end
+	--'printf("create %s of %s", tostring(number), tostring(section))
+	if _G.ammo_sections[section] ~= nil then
+		se_respawn.create_ammo(section,
+								npc:position(),
+								npc:level_vertex_id(),
+								npc:game_vertex_id(),
+								npc:id(),
+								number)
+	else
+		for i=1,number do
+			--' РџСЂРѕРІРµСЂСЏРµРј РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РїРѕСЏРІРёС‚СЊ РєР°Р¶РґС‹Р№ РѕР±СЉРµРєС‚ РІ РѕС‚РґРµР»СЊРЅРѕСЃС‚Рё
+			if math_random(1000) <=  rnd then
 				return alife():create(section, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
-            end
-        end
-    end
+			end
+		end
+	end
 end
 
 
---' Функция проверяет есть ли хоть один из зависимых объектов у персонажа
+--' Р¤СѓРЅРєС†РёСЏ РїСЂРѕРІРµСЂСЏРµС‚ РµСЃС‚СЊ Р»Рё С…РѕС‚СЊ РѕРґРёРЅ РёР· Р·Р°РІРёСЃРёРјС‹С… РѕР±СЉРµРєС‚РѕРІ Сѓ РїРµСЂСЃРѕРЅР°Р¶Р°
 function check_item_dependence(npc, section)
 	if npc == nil then return end
 	if item_dependence[section] == nil then return true end
@@ -398,7 +403,7 @@ end
 
 function give_letter(npc)
 	if math.random() > 0.01 then return end
-	if game_options.DEBUG then amk.send_tip("","Спавним письмо") end
+	if game_options.DEBUG then amk.send_tip("","РЎРїР°РІРЅРёРј РїРёСЃСЊРјРѕ") end
 	local tmp = {}
 	local comm = npc:character_community()
 	for k,v in pairs(letters_tbl) do
@@ -423,9 +428,9 @@ function give_letter_info(sobj)
 	local s = t.custom_data
 	if letters_tbl[s] and not has_alife_info(s) then
 		db.actor:give_info_portion(s)
-		archievements.acv_count_event("acv_ptln", 30, "Почтальон")
+		archievements.acv_count_event("acv_ptln", 30, "РџРѕС‡С‚Р°Р»СЊРѕРЅ")
 	else
-		amk.send_tip("Совсем не разобрать ничего, выкину-ка я лучше эту бумажку...", "Меченый:")
+		amk.send_tip("РЎРѕРІСЃРµРј РЅРµ СЂР°Р·РѕР±СЂР°С‚СЊ РЅРёС‡РµРіРѕ, РІС‹РєРёРЅСѓ-РєР° СЏ Р»СѓС‡С€Рµ СЌС‚Сѓ Р±СѓРјР°Р¶РєСѓ...", "РњРµС‡РµРЅС‹Р№:")
 	end
 end
 

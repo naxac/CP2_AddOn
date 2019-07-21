@@ -1,10 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --[[----------------------------------------------------------------------------
-Хранилище текстовых интерпретаций рангов и функции для работы с ним.
-Чугай Александр
+РҐСЂР°РЅРёР»РёС‰Рµ С‚РµРєСЃС‚РѕРІС‹С… РёРЅС‚РµСЂРїСЂРµС‚Р°С†РёР№ СЂР°РЅРіРѕРІ Рё С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РЅРёРј.
+Р§СѓРіР°Р№ РђР»РµРєСЃР°РЅРґСЂ
 ------------------------------------------------------------------------------]]
 
--- ранги. формат: {novice={0,30}, experienced={30,60}, ...}
+-- СЂР°РЅРіРё. С„РѕСЂРјР°С‚: {novice={0,30}, experienced={30,60}, ...}
 local stalker_rank_intervals
 local monster_rank_intervals
 
@@ -13,10 +13,10 @@ local monster_max_rank_name
 
 local ranks_loaded = false
 
--- парсит заданную строку рангов в заданную таблицу.
--- возвращает название максимального ранга
+-- РїР°СЂСЃРёС‚ Р·Р°РґР°РЅРЅСѓСЋ СЃС‚СЂРѕРєСѓ СЂР°РЅРіРѕРІ РІ Р·Р°РґР°РЅРЅСѓСЋ С‚Р°Р±Р»РёС†Сѓ.
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ РЅР°Р·РІР°РЅРёРµ РјР°РєСЃРёРјР°Р»СЊРЅРѕРіРѕ СЂР°РЅРіР°
 function parse_ranks( s, tbl )
-	s = "0," .. s .. ",10000"
+	s = "0," .. s .. ",1000000"
 
 	local t = parse_names( s )
 	local i = 2
@@ -29,7 +29,7 @@ function parse_ranks( s, tbl )
 	return t[i-2]
 end
 
--- вычитывает сталкерские и монстрячие ранги из game_relations.ltx
+-- РІС‹С‡РёС‚С‹РІР°РµС‚ СЃС‚Р°Р»РєРµСЂСЃРєРёРµ Рё РјРѕРЅСЃС‚СЂСЏС‡РёРµ СЂР°РЅРіРё РёР· game_relations.ltx
 function read_all_ranks()
 	stalker_rank_intervals = {}
 	monster_rank_intervals = {}
@@ -62,7 +62,7 @@ function get_rank_name_by_val( rank, is_stalker )
 	end
 end
 
--- возвращает название ранга заданного game_object (персонажа)
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ РЅР°Р·РІР°РЅРёРµ СЂР°РЅРіР° Р·Р°РґР°РЅРЅРѕРіРѕ game_object (РїРµСЂСЃРѕРЅР°Р¶Р°)
 function get_obj_rank_name( obj )
 	if not ranks_loaded then
 		read_all_ranks()
@@ -70,7 +70,7 @@ function get_obj_rank_name( obj )
 
 	local obj_rank
 
-	-- HACK ( <-- фи, как некрасиво...)
+	-- HACK ( <-- С„Рё, РєР°Рє РЅРµРєСЂР°СЃРёРІРѕ...)
 	if (obj.m_story_id ~= nil and obj.rank) then
 		obj_rank = obj:rank()
 	else
@@ -93,7 +93,7 @@ function get_obj_rank_name( obj )
 	end
 end
 
--- возвращает табличку с интервалом рангов для заданного названия интервала
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ С‚Р°Р±Р»РёС‡РєСѓ СЃ РёРЅС‚РµСЂРІР°Р»РѕРј СЂР°РЅРіРѕРІ РґР»СЏ Р·Р°РґР°РЅРЅРѕРіРѕ РЅР°Р·РІР°РЅРёСЏ РёРЅС‚РµСЂРІР°Р»Р°
 function get_rank_interval( name )
 	if not ranks_loaded then
 		read_all_ranks()
@@ -111,10 +111,18 @@ function change_actor_rank( v )
     local new_rank_name = get_rank_name_by_val( new_rank, true )
     if rank_name ~= new_rank_name then
         if rank > new_rank then
-            amk.send_tip("", "%c[255,255,085,085]Ваш ранг понижен\\n%c[default]Теперь вы "..game.translate_string(new_rank_name), nil, nil, "nano")
+            amk.send_tip("", "%c[255,255,085,085]Р’Р°С€ СЂР°РЅРі РїРѕРЅРёР¶РµРЅ\\n%c[default]РўРµРїРµСЂСЊ РІС‹ "..game.translate_string(new_rank_name), nil, nil, "nano")
         elseif rank < new_rank then
-            amk.send_tip("", "%c[255,105,239,146]Ваш ранг повышен\\n%c[default]Теперь вы "..game.translate_string(new_rank_name), nil, nil, "nano")
+            amk.send_tip("", "%c[255,105,239,146]Р’Р°С€ СЂР°РЅРі РїРѕРІС‹С€РµРЅ\\n%c[default]РўРµРїРµСЂСЊ РІС‹ "..game.translate_string(new_rank_name), nil, nil, "nano")
         end
     end
 	return new_rank
+end
+
+function get_stalker_rank_intervals()
+	if not ranks_loaded then
+		read_all_ranks()
+	end
+
+	return table.copy({}, stalker_rank_intervals)
 end
