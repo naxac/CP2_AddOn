@@ -20,6 +20,12 @@
 
 Список треков: https://yadi.sk/i/UthwR-W_3DY6my
 
+
+Ссылка на папку: https://yadi.sk/d/ZviC7ZENNhXzwg
+
+Альтернативная ссылка:  https://drive.google.com/drive/folders/1SM0CqavXjT8M5lPt8m_Z5sasmJEjotim?usp=sharing
+
+
 НОВАЯ ИГРА ОБЯЗАТЕЛЬНА!
 
 По всем вопросам писать:

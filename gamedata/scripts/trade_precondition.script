@@ -1,11 +1,11 @@
 -------------------------------------------------------------------------------
 --| ogse_trade_precondition.script                                          |--
---| Запрет торговли и раскраска поврежденных предметов, в слотах и на поясе |--
+--| Р—Р°РїСЂРµС‚ С‚РѕСЂРіРѕРІР»Рё Рё СЂР°СЃРєСЂР°СЃРєР° РїРѕРІСЂРµР¶РґРµРЅРЅС‹С… РїСЂРµРґРјРµС‚РѕРІ, РІ СЃР»РѕС‚Р°С… Рё РЅР° РїРѕСЏСЃРµ |--
 --| OGS Evolution Team, 2014                                                |--
 --| version 2.0.0                                                           |--
 -------------------------------------------------------------------------------
 
---ToDo: сделать отключаемую/завышн. цену продажу по персам, к примеру по дружбн/обиде... 
+--ToDo: СЃРґРµР»Р°С‚СЊ РѕС‚РєР»СЋС‡Р°РµРјСѓСЋ/Р·Р°РІС‹С€РЅ. С†РµРЅСѓ РїСЂРѕРґР°Р¶Сѓ РїРѕ РїРµСЂСЃР°Рј, Рє РїСЂРёРјРµСЂСѓ РїРѕ РґСЂСѓР¶Р±РЅ/РѕР±РёРґРµ... 
 
 local use_tradability_restrictions = game_options.TradeCondition
 local lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
@@ -17,9 +17,9 @@ local clr = {
 	green = 2,
 	orange = 3,
 }
--- ВАЖНО! цвет с индексом 0, т.е. red используется движком для раскраски по умолчанию 
--- запрещённых к продаже предметов. Менять этот цвет можно только с учётом того, что изменится
--- и дефолтовая закраска.
+-- Р’РђР–РќРћ! С†РІРµС‚ СЃ РёРЅРґРµРєСЃРѕРј 0, С‚.Рµ. red РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґРІРёР¶РєРѕРј РґР»СЏ СЂР°СЃРєСЂР°СЃРєРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 
+-- Р·Р°РїСЂРµС‰С‘РЅРЅС‹С… Рє РїСЂРѕРґР°Р¶Рµ РїСЂРµРґРјРµС‚РѕРІ. РњРµРЅСЏС‚СЊ СЌС‚РѕС‚ С†РІРµС‚ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃ СѓС‡С‘С‚РѕРј С‚РѕРіРѕ, С‡С‚Рѕ РёР·РјРµРЅРёС‚СЃСЏ
+-- Рё РґРµС„РѕР»С‚РѕРІР°СЏ Р·Р°РєСЂР°СЃРєР°.
 set_highlight_color(clr.red, GetARGB(255, 124, 0, 0)) -- FF007C00 -- red
 set_highlight_color(clr.blue, GetARGB(255, 0, 0, 124)) -- FF00007C -- blue
 set_highlight_color(clr.green, GetARGB(255, 0, 128, 0)) -- FF007C00 -- green
@@ -38,7 +38,6 @@ function attach()
 	set_manual_highlight_on()
 
     xr_s.subscribe("npc_use", this.on_npc_use)
---	xr_s.subscribe("car_body_open", this.on_body_open)
 
 	xr_s.subscribe("item_to_slot", this.on_item_to_slot)
 	xr_s.subscribe("item_to_ruck", this.on_item_to_ruck)
@@ -50,7 +49,7 @@ function on_options_change()
 	lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
 end
 
--- проверка, купит ли непись данный предмет
+-- РїСЂРѕРІРµСЂРєР°, РєСѓРїРёС‚ Р»Рё РЅРµРїРёСЃСЊ РґР°РЅРЅС‹Р№ РїСЂРµРґРјРµС‚
 function item_tradable_for_npc(npc, item)
 	ASSERT(npc, "[item_tradable_for_npc] 'npc' is a nil reference")
 	ASSERT(item, "[item_tradable_for_npc] 'item' is a nil reference")
@@ -68,7 +67,7 @@ function item_tradable_for_npc(npc, item)
 	then
 		item_type = "accum"
 	else
-		return true -- тип неизвестен, по умолчанию продать можно
+		return true -- С‚РёРї РЅРµРёР·РІРµСЃС‚РµРЅ, РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РїСЂРѕРґР°С‚СЊ РјРѕР¶РЅРѕ
 	end
 
 	local pers_cond = trade_manager.get_item_condition(npc)
@@ -82,63 +81,62 @@ local item_place = {
 }
 
 function treat_item(item, place, npc)
-	-- если есть собеседник, т.е. идёт разговор или торговля, 
-	-- и он не купит предмет из-за плохого состояния
+	-- РµСЃР»Рё РµСЃС‚СЊ СЃРѕР±РµСЃРµРґРЅРёРє, С‚.Рµ. РёРґС‘С‚ СЂР°Р·РіРѕРІРѕСЂ РёР»Рё С‚РѕСЂРіРѕРІР»СЏ, 
+	-- Рё РѕРЅ РЅРµ РєСѓРїРёС‚ РїСЂРµРґРјРµС‚ РёР·-Р·Р° РїР»РѕС…РѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ
 	if use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item) then
-		-- то делаем предмет негруппируемым, подсвеченным и непродаваемым
+		-- С‚Рѕ РґРµР»Р°РµРј РїСЂРµРґРјРµС‚ РЅРµРіСЂСѓРїРїРёСЂСѓРµРјС‹Рј, РїРѕРґСЃРІРµС‡РµРЅРЅС‹Рј Рё РЅРµРїСЂРѕРґР°РІР°РµРјС‹Рј
 		local fl = ii_flags.ungroupable + ii_flags.always_untradable + ii_flags.manual_highlighting
 		item:set_inventory_item_flags(fl, true)
 		item:set_inventory_item_flags(ii_flags.always_tradable, false)
-		item:set_custom_color_ids(clr.red) -- красным
-		-- примечание: в движковом фиксе при кастомной подсветке будет сперва проверено движковое 
-		-- условие продаваемости. Если предмет не продаётся по движковому условию (т.е. запрещён
-		-- к продаже конфигом), то будет закрашен движковым цветом (красным)
+		item:set_custom_color_ids(clr.red) -- РєСЂР°СЃРЅС‹Рј
+		-- РїСЂРёРјРµС‡Р°РЅРёРµ: РІ РґРІРёР¶РєРѕРІРѕРј С„РёРєСЃРµ РїСЂРё РєР°СЃС‚РѕРјРЅРѕР№ РїРѕРґСЃРІРµС‚РєРµ Р±СѓРґРµС‚ СЃРїРµСЂРІР° РїСЂРѕРІРµСЂРµРЅРѕ РґРІРёР¶РєРѕРІРѕРµ 
+		-- СѓСЃР»РѕРІРёРµ РїСЂРѕРґР°РІР°РµРјРѕСЃС‚Рё. Р•СЃР»Рё РїСЂРµРґРјРµС‚ РЅРµ РїСЂРѕРґР°С‘С‚СЃСЏ РїРѕ РґРІРёР¶РєРѕРІРѕРјСѓ СѓСЃР»РѕРІРёСЋ (С‚.Рµ. Р·Р°РїСЂРµС‰С‘РЅ
+		-- Рє РїСЂРѕРґР°Р¶Рµ РєРѕРЅС„РёРіРѕРј), С‚Рѕ Р±СѓРґРµС‚ Р·Р°РєСЂР°С€РµРЅ РґРІРёР¶РєРѕРІС‹Рј С†РІРµС‚РѕРј (РєСЂР°СЃРЅС‹Рј)
 		return
 	end
-	-- собеседника нет или предмет разрешён к продаже,
-	-- проверяем размещение
+	-- СЃРѕР±РµСЃРµРґРЅРёРєР° РЅРµС‚ РёР»Рё РїСЂРµРґРјРµС‚ СЂР°Р·СЂРµС€С‘РЅ Рє РїСЂРѕРґР°Р¶Рµ,
+	-- РїСЂРѕРІРµСЂСЏРµРј СЂР°Р·РјРµС‰РµРЅРёРµ
 	local lock = false
 	if ungroup_belt_slot_items then
-		if place == item_place.belt or db.actor:is_on_belt(item) then -- предмет на поясе
-			lock = true -- блокируем
-		elseif place == item_place.slot or db.actor:is_in_slot(item) then -- предмет в слоте
-			if not item:is_grenade() then -- кроме гранат
-				lock = true -- блокируем
+		if place == item_place.belt or db.actor:is_on_belt(item) then -- РїСЂРµРґРјРµС‚ РЅР° РїРѕСЏСЃРµ
+			lock = true -- Р±Р»РѕРєРёСЂСѓРµРј
+		elseif place == item_place.slot or db.actor:is_in_slot(item) then -- РїСЂРµРґРјРµС‚ РІ СЃР»РѕС‚Рµ
+			if not item:is_grenade() then -- РєСЂРѕРјРµ РіСЂР°РЅР°С‚
+				lock = true -- Р±Р»РѕРєРёСЂСѓРµРј
 			end
-		elseif place == item_place.ruck or db.actor:is_in_ruck(item) then -- предмет в рюкзаке
-			-- ничего не делаем, в рюкзаке группируются и продаются только движковыми условиями
+		elseif place == item_place.ruck or db.actor:is_in_ruck(item) then -- РїСЂРµРґРјРµС‚ РІ СЂСЋРєР·Р°РєРµ
+			-- РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј, РІ СЂСЋРєР·Р°РєРµ РіСЂСѓРїРїРёСЂСѓСЋС‚СЃСЏ Рё РїСЂРѕРґР°СЋС‚СЃСЏ С‚РѕР»СЊРєРѕ РґРІРёР¶РєРѕРІС‹РјРё СѓСЃР»РѕРІРёСЏРјРё
 		else
 			abort("[trade_precondition.treat_item] item '%s' place is not slot, belt or ruck", item:name())
 		end
 	end
-	if lock then -- блокирован
-		item:set_inventory_item_flags(ii_flags.ungroupable + ii_flags.manual_highlighting, true) -- то делаем предмет негруппируемым и подсвеченным
+	if lock then -- Р±Р»РѕРєРёСЂРѕРІР°РЅ
+		item:set_inventory_item_flags(ii_flags.ungroupable + ii_flags.manual_highlighting, true) -- С‚Рѕ РґРµР»Р°РµРј РїСЂРµРґРјРµС‚ РЅРµРіСЂСѓРїРїРёСЂСѓРµРјС‹Рј Рё РїРѕРґСЃРІРµС‡РµРЅРЅС‹Рј
 		if lock_belt_slot_items then
-			item:set_inventory_item_flags(ii_flags.always_tradable, false) -- непродаваемым
+			item:set_inventory_item_flags(ii_flags.always_tradable, false) -- РЅРµРїСЂРѕРґР°РІР°РµРјС‹Рј
 			item:set_inventory_item_flags(ii_flags.always_untradable, true)
 		else
 			item:set_inventory_item_flags(ii_flags.always_tradable + ii_flags.always_untradable, false)
 		end
-		item:set_custom_color_ids(clr.green) -- зелёным
-	else -- а иначе оставляем решать движку
+		item:set_custom_color_ids(clr.green) -- Р·РµР»С‘РЅС‹Рј
+	else -- Р° РёРЅР°С‡Рµ РѕСЃС‚Р°РІР»СЏРµРј СЂРµС€Р°С‚СЊ РґРІРёР¶РєСѓ
 		local fl = ii_flags.ungroupable + ii_flags.always_tradable + ii_flags.always_untradable + ii_flags.manual_highlighting
 		item:set_inventory_item_flags(fl, false)
+		if string.find( item:section(), "arc_art_box_" ) then
+			item:set_inventory_item_flags(ii_flags.ungroupable, true)
+		end
 	end
 end
 
-local function set_actors_items(npc)
+function set_actors_items(npc)
 	for i = 0, db.actor:object_count() - 1 do
 		treat_item(db.actor:object(i), nil, npc) 
 	end
 end
--- открытие ящика или тушки
-function on_body_open()
-	set_actors_items()
-	db.actor:invalidate_inventory()
-end
--- начало разговора с npc
+
+-- РЅР°С‡Р°Р»Рѕ СЂР°Р·РіРѕРІРѕСЂР° СЃ npc, РѕС‚РєСЂС‹С‚РёРµ СЏС‰РёРєР° РёР»Рё С‚СѓС€РєРё
 function on_npc_use(npc, who)
-	if npc:clsid() == clsid.inventory_box or npc:alive() == false then
+	if npc and npc:is_alive() == false then
 		npc = nil
 	end
 	set_actors_items(npc)
