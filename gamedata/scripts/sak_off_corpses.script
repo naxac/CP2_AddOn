@@ -1,24 +1,24 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---схема удаления трупов сталкеров
-local summ_corpses = 0 --общее допустимое число трупов на всех территориях (не включая СИД)
+--СЃС…РµРјР° СѓРґР°Р»РµРЅРёСЏ С‚СЂСѓРїРѕРІ СЃС‚Р°Р»РєРµСЂРѕРІ
+local summ_corpses = 0 --РѕР±С‰РµРµ РґРѕРїСѓСЃС‚РёРјРѕРµ С‡РёСЃР»Рѕ С‚СЂСѓРїРѕРІ РЅР° РІСЃРµС… С‚РµСЂСЂРёС‚РѕСЂРёСЏС… (РЅРµ РІРєР»СЋС‡Р°СЏ РЎРР”)
 local tabl_corpses={}
 local tabl_corpses_9510={}
 local tabl_stalkers = {}
 
-local outfit_additional_max = 1 -- количество бронежилетов, которые сталкеры оставят себе про запас (останется самый ценный)
+local outfit_additional_max = 1 -- РєРѕР»РёС‡РµСЃС‚РІРѕ Р±СЂРѕРЅРµР¶РёР»РµС‚РѕРІ, РєРѕС‚РѕСЂС‹Рµ СЃС‚Р°Р»РєРµСЂС‹ РѕСЃС‚Р°РІСЏС‚ СЃРµР±Рµ РїСЂРѕ Р·Р°РїР°СЃ (РѕСЃС‚Р°РЅРµС‚СЃСЏ СЃР°РјС‹Р№ С†РµРЅРЅС‹Р№)
 local tabl_outfits_all = {}
 
---схема удаления трупов монстров
-local tabl_monsters_dead={} --все мёртвые монстры
-local summ_dead_monsters = 0 --общее допустимое число трупов монстров
+--СЃС…РµРјР° СѓРґР°Р»РµРЅРёСЏ С‚СЂСѓРїРѕРІ РјРѕРЅСЃС‚СЂРѕРІ
+local tabl_monsters_dead={} --РІСЃРµ РјС‘СЂС‚РІС‹Рµ РјРѕРЅСЃС‚СЂС‹
+local summ_dead_monsters = 0 --РѕР±С‰РµРµ РґРѕРїСѓСЃС‚РёРјРѕРµ С‡РёСЃР»Рѕ С‚СЂСѓРїРѕРІ РјРѕРЅСЃС‚СЂРѕРІ
 
---плюс схема удаления бесхозного оружия
-local summ_weapons = 0 --общее допустимое число бесхозного оружия на всех территориях.
-local dist_to_weapons = 150 --расстояние от ГГ, свыше которого считается оружие.
-local dist_from_weapons_to_trup = 1 --расстояние от ствола до оставшихся трупов, свыше которого считается оружие.
+--РїР»СЋСЃ СЃС…РµРјР° СѓРґР°Р»РµРЅРёСЏ Р±РµСЃС…РѕР·РЅРѕРіРѕ РѕСЂСѓР¶РёСЏ
+local summ_weapons = 0 --РѕР±С‰РµРµ РґРѕРїСѓСЃС‚РёРјРѕРµ С‡РёСЃР»Рѕ Р±РµСЃС…РѕР·РЅРѕРіРѕ РѕСЂСѓР¶РёСЏ РЅР° РІСЃРµС… С‚РµСЂСЂРёС‚РѕСЂРёСЏС….
+local dist_to_weapons = 150 --СЂР°СЃСЃС‚РѕСЏРЅРёРµ РѕС‚ Р“Р“, СЃРІС‹С€Рµ РєРѕС‚РѕСЂРѕРіРѕ СЃС‡РёС‚Р°РµС‚СЃСЏ РѕСЂСѓР¶РёРµ.
+local dist_from_weapons_to_trup = 1 --СЂР°СЃСЃС‚РѕСЏРЅРёРµ РѕС‚ СЃС‚РІРѕР»Р° РґРѕ РѕСЃС‚Р°РІС€РёС…СЃСЏ С‚СЂСѓРїРѕРІ, СЃРІС‹С€Рµ РєРѕС‚РѕСЂРѕРіРѕ СЃС‡РёС‚Р°РµС‚СЃСЏ РѕСЂСѓР¶РёРµ.
 local tabl_weapons={}
 
--- временные таблицы
+-- РІСЂРµРјРµРЅРЅС‹Рµ С‚Р°Р±Р»РёС†С‹
 local all_objects = {}
 local parent2objects = {}
 local object2parent = {}
@@ -50,7 +50,7 @@ function strn_fix(obj)
 	if strn_id ~= 65535 then
 		local strn = alife():object(strn_id)
 		if strn and strn:clsid() ~= clsid.smart_terrain then
-			log("! Обнаружена привязка к несуществующему smart_terrain: %s, smart_terrain_id: %s. Привязка удалена.",
+			log("! РћР±РЅР°СЂСѓР¶РµРЅР° РїСЂРёРІСЏР·РєР° Рє РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРјСѓ smart_terrain: %s, smart_terrain_id: %s. РџСЂРёРІСЏР·РєР° СѓРґР°Р»РµРЅР°.",
 				obj:name(), tostring(strn_id))
 			obj:clear_smart_terrain()
 		end
@@ -73,14 +73,14 @@ function off_corpses()
 	local actorpos = db.actor:position()
 	
 	local b = amk.load_variable("blowout",0)
-	local is_blowout = (b>0 and b<4)			-- активен ли выброс
-	local level_changing = has_alife_info("level_changing")	-- была ли смена уровня
-	local is_first_run = not has_alife_info("x_first_run")	-- первая ли загрузка
+	local is_blowout = (b>0 and b<4)			-- Р°РєС‚РёРІРµРЅ Р»Рё РІС‹Р±СЂРѕСЃ
+	local level_changing = has_alife_info("level_changing")	-- Р±С‹Р»Р° Р»Рё СЃРјРµРЅР° СѓСЂРѕРІРЅСЏ
+	local is_first_run = not has_alife_info("x_first_run")	-- РїРµСЂРІР°СЏ Р»Рё Р·Р°РіСЂСѓР·РєР°
 	local released = false
 
 	local obj_clsid, obj_level, obj_name, obj_sect
 	local rel = {}
-	-- главный цикл
+	-- РіР»Р°РІРЅС‹Р№ С†РёРєР»
 	for i, obj in pairs(all_objects) do
 		if graph:valid_vertex_id(obj.m_game_vertex_id) then
 			obj_clsid = obj:clsid()
@@ -89,14 +89,14 @@ function off_corpses()
 			obj_sect = obj:section_name()
 			released = false
 
-			-- нет хозяина
+			-- РЅРµС‚ С…РѕР·СЏРёРЅР°
 			if object2parent[i]==nil then
-				-- сталкер
+				-- СЃС‚Р°Р»РєРµСЂ
 				if IAmAStalker[obj_clsid] then
 					if level_changing and obj_level~=actor_level then
 						
 						if not obj:alive() then
-							-- проверка трупа сталкера, если не в исключениях - в таблицу и бум удалять
+							-- РїСЂРѕРІРµСЂРєР° С‚СЂСѓРїР° СЃС‚Р°Р»РєРµСЂР°, РµСЃР»Рё РЅРµ РІ РёСЃРєР»СЋС‡РµРЅРёСЏС… - РІ С‚Р°Р±Р»РёС†Сѓ Рё Р±СѓРј СѓРґР°Р»СЏС‚СЊ
 							if protected_items.is_corps_keep_by_story_id(obj)==false and
 								sak.can_be_resurrected(obj)==false and
 								protected_items.obj_is_protected(obj,"tabl_corps_keep","exactly")==false
@@ -104,11 +104,11 @@ function off_corpses()
 								if obj.m_story_id > 9510 then 
 									table.insert(tabl_corpses, obj)
 								else
-									table.insert(tabl_corpses_9510, obj) -- эти трупы пысовские - не удаляются
+									table.insert(tabl_corpses_9510, obj) -- СЌС‚Рё С‚СЂСѓРїС‹ РїС‹СЃРѕРІСЃРєРёРµ - РЅРµ СѓРґР°Р»СЏСЋС‚СЃСЏ
 								end
 							end
 							released = true
-						else -- живой сталкер - в список на раскуркуливание!
+						else -- Р¶РёРІРѕР№ СЃС‚Р°Р»РєРµСЂ - РІ СЃРїРёСЃРѕРє РЅР° СЂР°СЃРєСѓСЂРєСѓР»РёРІР°РЅРёРµ!
 							if not protected_items.is_no_offline_alife_npc(obj) then
 								table.insert(tabl_stalkers, obj)
 							end
@@ -121,11 +121,11 @@ function off_corpses()
 						table.add( statistic, "dead_npc" )
 					end
 
-				-- монстр
+				-- РјРѕРЅСЃС‚СЂ
 				elseif IAmAMonster[obj_clsid] then
 					if level_changing and obj_level~=actor_level then
 						if not obj:alive() then
-							-- труп
+							-- С‚СЂСѓРї
 							table.insert(tabl_monsters_dead, obj)
 							released = true
 						end
@@ -137,7 +137,7 @@ function off_corpses()
 						table.add( statistic, "dead_monsters" )
 					end
 
-				-- удалем аномалии
+				-- СѓРґР°Р»РµРј Р°РЅРѕРјР°Р»РёРё
 				elseif amk_anoms.is_anomaly(obj_clsid) then
 					if is_blowout==false and amk_anoms.can_remove_anom(obj, obj_level) then
 						sim:release(obj, true)
@@ -145,14 +145,14 @@ function off_corpses()
 					end
 
 				elseif obj_clsid == clsid.artefact or obj_clsid == clsid.artefact_s then
-					-- детекторы артефактов
+					-- РґРµС‚РµРєС‚РѕСЂС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ
 					if obj_level==actor_level then
 						bind_det_arts.add_artefact(obj_sect, i)
 					end
 
-					-- удаляем глючные арты только на первой загрузке
+					-- СѓРґР°Р»СЏРµРј РіР»СЋС‡РЅС‹Рµ Р°СЂС‚С‹ С‚РѕР»СЊРєРѕ РЅР° РїРµСЂРІРѕР№ Р·Р°РіСЂСѓР·РєРµ
 					if is_first_run then
-						-- проблемые арты в Пещере
+						-- РїСЂРѕР±Р»РµРјС‹Рµ Р°СЂС‚С‹ РІ РџРµС‰РµСЂРµ
 						if (obj_level == "peshera")
 							and ( obj_sect == "af_ameba_slime" 
 							or obj_sect == "af_ameba_slug" 
@@ -161,7 +161,7 @@ function off_corpses()
 							sim:release(obj, true)
 							released = true
 
-						-- проблемые арты в СД
+						-- РїСЂРѕР±Р»РµРјС‹Рµ Р°СЂС‚С‹ РІ РЎР”
 						elseif (obj_level == "lost_village")
 							and ( obj_sect == "af_life_heart"
 							or obj_sect == "af_rusty_thorn"
@@ -173,11 +173,11 @@ function off_corpses()
 						end
 					end
 
-				-- оружие
+				-- РѕСЂСѓР¶РёРµ
 				elseif IAmAWeapon[obj_clsid] then
 					if level_changing and ( protected_items.obj_is_protected(obj,"tabl_wpn_keep","like") == false ) then
 						if (obj_level == "l10_radar" or obj_level == "hospital") and (obj_level ~= actor_level) then
-							--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
+							--СѓР±РёСЂР°РµРј РЅР° Р Р°РґР°СЂРµ Рё РІ Р“РѕСЃРїРёС‚Р°Р»Рµ Р±РµР·Рѕ РІСЃСЏРєРёС… С‚Р°Р±Р»РёС†, РєРѕРіРґР° Р“Р“ РЅРµ РЅР° Р Р°РґР°СЂРµ Рё Р“РѕСЃРїРёС‚Р°Р»Рµ (РёСЃРєР»СЋС‡РµРЅРёСЏ РЅРµ С‚СЂРѕРіР°РµРј)
 							sim:release(obj, true)
 							released = true
 							table.add( statistic, "remove_weapons" )
@@ -193,7 +193,7 @@ function off_corpses()
 						if obj_sect == "m_inventory_box" then
 							new_treasure.add_fake_box(obj)
 						else
-							-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
+							-- С„РёРєСЃ СЂР°РЅРґРѕРјРЅРѕРіРѕ РЅРµРІРѕР·РІСЂР°С‚Р° С‚Р°Р№РЅРёРєРѕРІ РІ РѕРЅР»Р°Р№РЅ - РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РІРѕР·РІСЂР°С‰Р°РµРј
 							if obj_level==actor_level then
 								if obj_sect == "a_inventory_box41" then
 									xr_sound.get_safe_sound_object([[zwuk\pluton]]):play_at_pos(db.actor, obj.position, 0, sound_object.s3d+sound_object.looped)
@@ -209,18 +209,18 @@ function off_corpses()
 					amk_mod.add_respawner(obj)
 					released = true
 
-				-- трупы ворон
+				-- С‚СЂСѓРїС‹ РІРѕСЂРѕРЅ
 				elseif obj_sect == "mutant_crow" then
 					sim:release(obj, true)
 					released = true
 				end
 
-			-- в инвентаре
+			-- РІ РёРЅРІРµРЅС‚Р°СЂРµ
 			else
-				-- для фикса маркеров
+				-- РґР»СЏ С„РёРєСЃР° РјР°СЂРєРµСЂРѕРІ
 				gps_habar.add_item(obj)
 
-				-- Замки
+				-- Р—Р°РјРєРё
 				if obj_sect == "zamok" then
 					local box_id = object2parent[i]
 					local se_box = all_objects[box_id]
@@ -228,7 +228,7 @@ function off_corpses()
 						zamok.restore(se_box, box_id, nil)
 					end
 
-				-- Броники
+				-- Р‘СЂРѕРЅРёРєРё
 				elseif level_changing
 					and isOutfit(nil, obj_clsid)
 					and obj_sect~="meceniy_outfit_new" 
@@ -248,7 +248,7 @@ function off_corpses()
 		end
 
 		if not released then
-			-- Удаление лишних гранат
+			-- РЈРґР°Р»РµРЅРёРµ Р»РёС€РЅРёС… РіСЂР°РЅР°С‚
 			if not xrs_grenade.release_grenade(obj) then
 				babah.collectBombs(obj)
 			else
@@ -271,24 +271,24 @@ function off_corpses()
 --	tmr:get("scan 2")
 
 	if level_changing then
-		--раскуркуливание сталкеров по броникам
-		if outfit_additional_max > 0 then -- если сталкерам можно иметь "резервные" броники
+		--СЂР°СЃРєСѓСЂРєСѓР»РёРІР°РЅРёРµ СЃС‚Р°Р»РєРµСЂРѕРІ РїРѕ Р±СЂРѕРЅРёРєР°Рј
+		if outfit_additional_max > 0 then -- РµСЃР»Рё СЃС‚Р°Р»РєРµСЂР°Рј РјРѕР¶РЅРѕ РёРјРµС‚СЊ "СЂРµР·РµСЂРІРЅС‹Рµ" Р±СЂРѕРЅРёРєРё
 			table.sort(tabl_outfits_all, maxOutfit)
 		end
 
 		for i=1,#tabl_stalkers,1 do
 			clear_outfits(tabl_stalkers[i])
-			-- оффлайновая торговля
+			-- РѕС„С„Р»Р°Р№РЅРѕРІР°СЏ С‚РѕСЂРіРѕРІР»СЏ
 			amk_offline_alife.process_trade(tabl_stalkers[i])
 		end
 
-		--зачистка мёртвых монстров
+		--Р·Р°С‡РёСЃС‚РєР° РјС‘СЂС‚РІС‹С… РјРѕРЅСЃС‚СЂРѕРІ
 		local b = #tabl_monsters_dead
 		if b > summ_dead_monsters then
 			local n = b
 			while b > summ_dead_monsters and n > 0 do
 				local corps = tabl_monsters_dead[n]
-				if item_found(corps.id) == false then --если нету "запчастей" - удаляем
+				if item_found(corps.id) == false then --РµСЃР»Рё РЅРµС‚Сѓ "Р·Р°РїС‡Р°СЃС‚РµР№" - СѓРґР°Р»СЏРµРј
 					sim:release(corps,true)
 					table.remove(tabl_monsters_dead,n)
 					table.add( statistic, "remove_monsters" )
@@ -300,7 +300,7 @@ function off_corpses()
 
 	--	tmr:get("release monsters")
 
-		--зачистка мёртвых человеков
+		--Р·Р°С‡РёСЃС‚РєР° РјС‘СЂС‚РІС‹С… С‡РµР»РѕРІРµРєРѕРІ
 		b = #tabl_corpses
 		if b > summ_corpses then
 			local n = b
@@ -318,7 +318,7 @@ function off_corpses()
 
 	--	tmr:get("release stalkers")
 
-		--зачистка оружия
+		--Р·Р°С‡РёСЃС‚РєР° РѕСЂСѓР¶РёСЏ
 		b = #tabl_weapons
 		while b > summ_weapons do
 			local wpn = tabl_weapons[b]
@@ -341,7 +341,7 @@ function off_corpses()
 
 --	tmr:get("release weapons", true)
 
-	-- удаляем ненужное
+	-- СѓРґР°Р»СЏРµРј РЅРµРЅСѓР¶РЅРѕРµ
 	all_objects = nil
 	parent2objects = nil
 	object2parent = nil
@@ -388,7 +388,7 @@ end
 
 function item_keep(item)
 	if not item then return false end
-    -- проверка на предметы, тела с которыми нужно оставить
+    -- РїСЂРѕРІРµСЂРєР° РЅР° РїСЂРµРґРјРµС‚С‹, С‚РµР»Р° СЃ РєРѕС‚РѕСЂС‹РјРё РЅСѓР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ
 	local s = item:section_name()
 	if protected_items.obj_is_protected(item,"tabl_items_keep","like")
 		or protected_items.is_grab_body_item_keep(s)
@@ -396,11 +396,11 @@ function item_keep(item)
 	then
 		return true
 	end
-	--проверка по списку оружия
+	--РїСЂРѕРІРµСЂРєР° РїРѕ СЃРїРёСЃРєСѓ РѕСЂСѓР¶РёСЏ
     return protected_items.obj_is_protected(item,"tabl_wpn_keep","like")
 end
 
-function max_comp(i1,i2) -- возвращает true если i1 меньше i2
+function max_comp(i1,i2) -- РІРѕР·РІСЂР°С‰Р°РµС‚ true РµСЃР»Рё i1 РјРµРЅСЊС€Рµ i2
 	local actorpos = db.actor:position()
 	return i1.position:distance_to(actorpos) < i2.position:distance_to(actorpos)
 end
@@ -419,7 +419,7 @@ function clear_outfits(npc)
 	for i = #tabl_outfits_all, 1, -1 do
 		outfit = tabl_outfits_all[i]
 		if outfit.parent_id == npc_id then
-			-- Если броник лучше нашего, и можно его оставить, то не "продаём"
+			-- Р•СЃР»Рё Р±СЂРѕРЅРёРє Р»СѓС‡С€Рµ РЅР°С€РµРіРѕ, Рё РјРѕР¶РЅРѕ РµРіРѕ РѕСЃС‚Р°РІРёС‚СЊ, С‚Рѕ РЅРµ "РїСЂРѕРґР°С‘Рј"
 			local lvl = xrs_armor.get_outfit_level(outfit:section_name())
 			if lvl > npc_lvl
 				and outfitsOnStalker > outfit_additional_max
@@ -448,25 +448,25 @@ function clear_outfits(npc)
 	end
 end
 
-function maxOutfit(i1,i2) -- возвращает true если i1 меньше i2 (самые ценные в конце таблицы)
+function maxOutfit(i1,i2) -- РІРѕР·РІСЂР°С‰Р°РµС‚ true РµСЃР»Рё i1 РјРµРЅСЊС€Рµ i2 (СЃР°РјС‹Рµ С†РµРЅРЅС‹Рµ РІ РєРѕРЅС†Рµ С‚Р°Р±Р»РёС†С‹)
 	local cost1 = sys_ini:r_float(i1:section_name(), "cost")
 	local cost2 = sys_ini:r_float(i2:section_name(), "cost")
 	return cost1 < cost2
 end
 
 function show_statistic()
-	local msg = "Прошёлся по локациям, и вот чего нашёл:\\n"
-	msg = msg.."живых сталкеров: %c[green]"..( statistic.alive_npc or 0 ).." %c[default]шт.\\n"
-	msg = msg.."мертвых сталкеров: %c[green]"..( statistic.dead_npc or 0 ).." %c[default]шт.\\n"
-	msg = msg.."живых зверушек: %c[green]"..( statistic.alive_monsters or 0 ).." %c[default]шт.\\n"
-	msg = msg.."мёртвых зверушек: %c[green]"..( statistic.dead_monsters or 0 ).." %c[default]шт.\\n"
-	msg = msg.."безхозного оружия: %c[green]"..( statistic.total_weapons or 0 ).." %c[default]шт.\\n"
+	local msg = "РџСЂРѕС€С‘Р»СЃСЏ РїРѕ Р»РѕРєР°С†РёСЏРј, Рё РІРѕС‚ С‡РµРіРѕ РЅР°С€С‘Р»:\\n"
+	msg = msg.."Р¶РёРІС‹С… СЃС‚Р°Р»РєРµСЂРѕРІ: %c[green]"..( statistic.alive_npc or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."РјРµСЂС‚РІС‹С… СЃС‚Р°Р»РєРµСЂРѕРІ: %c[green]"..( statistic.dead_npc or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."Р¶РёРІС‹С… Р·РІРµСЂСѓС€РµРє: %c[green]"..( statistic.alive_monsters or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."РјС‘СЂС‚РІС‹С… Р·РІРµСЂСѓС€РµРє: %c[green]"..( statistic.dead_monsters or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."Р±РµР·С…РѕР·РЅРѕРіРѕ РѕСЂСѓР¶РёСЏ: %c[green]"..( statistic.total_weapons or 0 ).." %c[default]С€С‚.\\n"
 
-	msg = msg.."Навёл порядок. Было удалено:\\n"
-	msg = msg.."мертвых сталкеров: %c[green]"..( statistic.remove_npc or 0 ).." %c[default]шт.\\n"
-	msg = msg.."мёртвых зверушек: %c[green]"..( statistic.remove_monsters or 0 ).." %c[default]шт.\\n"
-	msg = msg.."безхозного оружия: %c[green]"..( statistic.remove_weapons or 0 ).." %c[default]шт.\\n"
+	msg = msg.."РќР°РІС‘Р» РїРѕСЂСЏРґРѕРє. Р‘С‹Р»Рѕ СѓРґР°Р»РµРЅРѕ:\\n"
+	msg = msg.."РјРµСЂС‚РІС‹С… СЃС‚Р°Р»РєРµСЂРѕРІ: %c[green]"..( statistic.remove_npc or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."РјС‘СЂС‚РІС‹С… Р·РІРµСЂСѓС€РµРє: %c[green]"..( statistic.remove_monsters or 0 ).." %c[default]С€С‚.\\n"
+	msg = msg.."Р±РµР·С…РѕР·РЅРѕРіРѕ РѕСЂСѓР¶РёСЏ: %c[green]"..( statistic.remove_weapons or 0 ).." %c[default]С€С‚.\\n"
 
-	amk.send_tip( msg, "Уборщик", 5, 10, "nano" )
+	amk.send_tip( msg, "РЈР±РѕСЂС‰РёРє", 5, 10, "nano" )
 end
 
