@@ -14,6 +14,11 @@ function minigun_binder:reinit()
 	self.se_wpn = alife():object(self.id)
 	self.full_charge_time = sys_ini:r_float( self.object:section(), "working_time" ) * 60000
 	self.worked_time = self.se_wpn.worked_time
+
+	if self:get_charge_level() > 0 then
+		local accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+	end
 end
 
 function minigun_binder:net_spawn(data)
@@ -21,15 +26,11 @@ function minigun_binder:net_spawn(data)
 		return false
 	end
 
-	db.volatiles[self.object:id()] = true
-
 	return true
 end
 
 function minigun_binder:net_destroy()
 	self.fire = false
-
-	db.volatiles[self.object:id()] = nil
 
 	object_binder.net_destroy(self)
 end
@@ -97,7 +98,7 @@ function minigun_binder:charge(new_charge)
 				obj:set_condition(condition)
 			end,
 		old_charge)
-		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.worked_time = self.full_charge_time - self.full_charge_time * new_charge

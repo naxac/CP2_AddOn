@@ -19,12 +19,15 @@ function det_binder:net_spawn(data)
 		return false
 	end
 
-	db.volatiles[self.object:id()] = true
-
 	self.full_charge_time = sys_ini:r_u32(self.object:section(), "working_time") *60
 	self.condition = self.object:condition()
 	self.time_left = self.full_charge_time * self.condition
 	self.last_time = get_seconds()
+
+	if self:get_charge_level() > 0 then
+		local accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+	end
 
 	return true
 end
@@ -64,7 +67,6 @@ end
 
 function det_binder:net_destroy()
 	self:save_condition()
-	db.volatiles[self.object:id()] = nil
 
 	object_binder.net_destroy(self)
 end
@@ -95,7 +97,7 @@ function det_binder:charge(new_charge)
 	end
 
 	local old_charge = self:get_charge_level()
-	if old_charge > 0 then
+	if old_charge > bad_charge_level then
 		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
 		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = old_charge}, netpk.fState)
@@ -104,7 +106,7 @@ function det_binder:charge(new_charge)
 				obj:set_condition(condition)
 			end,
 		old_charge)
-		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge

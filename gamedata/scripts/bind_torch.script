@@ -89,8 +89,10 @@ function torch_binder:net_spawn(data)
 	end
 
 	self:init_torch()
-
-	db.volatiles[self.object:id()] = true
+	if self:get_charge_level() > 0 then
+		local accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+	end
 
 	return true
 end
@@ -178,7 +180,6 @@ function torch_binder:net_destroy()
 	end
 
 	devices[self.object:id()] = nil
-	db.volatiles[self.object:id()] = nil
 
 	object_binder.net_destroy(self)
 end
@@ -213,7 +214,7 @@ function torch_binder:charge(new_charge)
 				obj:set_condition(condition)
 			end,
 		old_charge)
-		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge
@@ -294,7 +295,7 @@ function charge(acumm, torch)
 	local binder = devices[torch:id()]
 	if not binder then return end
 
-	if binder:charge() then
+	if binder:charge(acumm:ondition()) then
 		local se_obj = alife():object(acumm:id())
 		if se_obj then alife():release(se_obj, true) end
 		zvuki.use_snd("acumm")

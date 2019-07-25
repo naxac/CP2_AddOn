@@ -49,7 +49,6 @@ function outfit_binder:net_spawn(data)
 	local sect = self.object:section()
 	if sys_ini:line_exist(sect, "volatile") and sys_ini:r_bool(sect, "volatile")==true then
 		self.volatile = true
-		db.volatiles[self.object:id()] = true
 
 		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
 		self.full_charge_time = sys_ini:r_float( sect, "working_time" ) * 60
@@ -73,6 +72,10 @@ function outfit_binder:net_spawn(data)
 		if self.current_chrg < chrg_sprint_off then
 			self.object:set_inventory_item_flags(ii_flags.allow_sprint, false)
 		end
+		if self.current_chrg > 0 then
+			local accum_sect = sys_ini:r_string( sect, "energy_source" )
+			self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+		end
 	end
 	self.last_cond = cond
 
@@ -80,8 +83,6 @@ function outfit_binder:net_spawn(data)
 end
 
 function outfit_binder:net_destroy()
-	db.volatiles[self.object:id()] = nil
-
 	object_binder.net_destroy(self)
 end
 
@@ -193,7 +194,7 @@ function outfit_binder:charge(new_charge, no_test)
 				obj:set_condition(condition)
 			end,
 		self.current_chrg)
-		arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge
@@ -272,7 +273,7 @@ function on_item_from_slot(item)
 					end,
 				cond)
 				binder:discharge()
-				arc_ballast.change_ballast( -sys_ini:r_float(accum_sect, "inv_weight") )
+				item:set_weight( item:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
 			end
 		end
 	end

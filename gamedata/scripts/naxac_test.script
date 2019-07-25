@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local run_tbl = {
-	2
+	6
 }
 local funcs = {
 	[1] = function()
@@ -17,6 +17,32 @@ local funcs = {
 	end,
 	[3] = function()
 		log(tostring(has_alife_info("val_prisoner_scene_end")))
+	end,
+	[4] = function()
+		local item = db.actor:object("bandage")
+		local w = item:get_weight()
+		for i = 0, 1000, 4 do
+			local v = item:get_inventory_item_float(i)
+			log("%s -> %s", i, v)
+			if v == w then
+				log("- FOUND: %s", i)
+				break
+			end
+		end
+	end,
+	[5] = function()
+		local item = db.actor:object("bandage")
+		item:set_inventory_item_float(nil, 20, 164)
+	end,
+	[6] = function()
+		local obj
+		local sim = alife()
+		for i = 1, 65534 do
+			obj = sim:object(i)
+			if obj and obj:section_name() == "smart_terrain" then
+				level.map_add_object_spot(i, "red_location", obj:name())
+			end
+		end
 	end
 }
 function ggg()
@@ -30,24 +56,37 @@ end
 
 ----------------------------------------------------------------------------------------------------------
 function repair()
-	if has_alife_info( "naxac_test_repair4" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair4" )
+	if has_alife_info( "naxac_test_repair5" ) then return end
 
 	local sim = alife()
-	local obj = sim:object("radar_kukla")
-	if obj then
-		sim:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
-		sim:release(obj, true)
-	end
+	local obj
 
-	obj = snp.object_by_section_offline("good_psy_helmet1")
-	if obj then
-		if obj.parent_id == 65535 then
-			sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
-		else
-			sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+	db.actor:iterate_inventory(function(dummy, item)
+		if item:section() == "wpn_ballast" then
+			local obj = sim:object(item:id())
+			if obj then sim:release(obj, true) end
 		end
-		sim:release(obj, true)
+	end,
+	db.actor)
+
+	if not has_alife_info( "naxac_test_repair4" ) then
+		db.actor:give_info_portion( "naxac_test_repair4" )
+
+		obj = sim:object("radar_kukla")
+		if obj then
+			sim:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+			sim:release(obj, true)
+		end
+
+		obj = snp.object_by_section_offline("good_psy_helmet1")
+		if obj then
+			if obj.parent_id == 65535 then
+				sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+			else
+				sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+			end
+			sim:release(obj, true)
+		end
 	end
 
 	if not has_alife_info( "naxac_test_repair3" ) then
@@ -74,6 +113,8 @@ function repair()
 			sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
 		end
 	end
+
+	db.actor:give_info_portion( "naxac_test_repair5" )
 end
 
 function after_credits()

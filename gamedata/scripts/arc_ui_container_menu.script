@@ -157,7 +157,6 @@ end
 function arc_container_menu:DrawBackground()
 	local b = self.bkg
 	if not b then
-		-- sizes of window
 		local xs, ys = 360, 758
 		self:Init(10,10,xs,ys)
 		self.bkg = CUIFrameWindow()
@@ -306,12 +305,13 @@ function btn_put_art(art_index)
 				arts_cont = arts_cont + 1
 				
 				-- remove artefact
-				arc.remove_item(arc_arts.get_art_section(art_index))
-				
-				arc_arts.register_artefact(arc_arts.get_art_section(art_index),1,true)
-				
+				local art_section = arc_arts.get_art_section(art_index)
+				arc.remove_item(art_section)
+
+				arc_arts.register_artefact(art_section,1,true)
+
 				if k_rad then
-					local inv_rad = arc_arts.get_inv_rad_sect(arc_arts.get_art_section(art_index))
+					local inv_rad = arc_arts.get_inv_rad_sect(art_section)
 					if inv_rad > k_rad then
 						arc_radiation.change_inv_radiation(inv_rad-k_rad)
 						amk.send_tip("Ётот контейнер предназначен дл€ менее радиоактивных артефактов. ¬ы не сможете с его помощью полностью нейтрализовать воздействие радиации.",nil,nil,5,"nano")
@@ -343,13 +343,14 @@ function btn_take_art(slot)
 		_menu:UpdateMenu()
 		
 		-- create artefact
-		arc.give_item(arc_arts.get_art_section(a))
+		local art_section = arc_arts.get_art_section(a)
+		arc.give_item(art_section)
 		
-		arc_arts.register_artefact(arc_arts.get_art_section(a),-1,true)
+		arc_arts.register_artefact(art_section, -1, true)
 		
 		local k_rad = arc_containers.get_container_protection(cur_cont_index)
 		if k_rad then
-			local inv_rad = arc_arts.get_inv_rad_sect(arc_arts.get_art_section(a))
+			local inv_rad = arc_arts.get_inv_rad_sect(art_section)
 			if inv_rad > k_rad then
 				arc_radiation.change_inv_radiation(-(inv_rad-k_rad))
 			end
