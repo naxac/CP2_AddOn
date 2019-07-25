@@ -357,6 +357,18 @@ binds_actions[key_bindings.kTORCH] = function()
 		snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 0.7)
 	end
 end
+binds_actions[key_bindings.kWPN_RELOAD] = function()
+	if not db.actor:is_actor_sprinting() then return end
+	if actor_active_item and isMagazinedWeapon(actor_active_item) then
+		if math.random() < 0.6 then
+			if actor_active_item:get_ammo_in_magazine() == sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
+				return
+			end
+			db.actor:drop_item(actor_active_item)
+		end
+	end
+end
+
 
 dik_actions[game_options.RunnerKey] = hotkeys.run_or_return
 dik_actions[DIK_keys.DIK_F10] = function() ui_console.show_console() end
