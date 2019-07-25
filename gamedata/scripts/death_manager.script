@@ -275,8 +275,6 @@ function drop_manager:create_release_item()
 	local totally_broken_weapon = ( ini and ini:section_exist("totally_broken_weapon") )
 
 	local active_item_id = self.npc:active_item() and self.npc:active_item():id()
-	local item_in_slot1_id = self.npc:item_in_slot(1) and self.npc:item_in_slot(1):id()
-	local item_in_slot2_id = self.npc:item_in_slot(2) and self.npc:item_in_slot(2):id()
 	
     --' Запускаем итератор на удаление предметов
 	local se_item, sect, item_id
@@ -293,11 +291,7 @@ function drop_manager:create_release_item()
 			if item_id ~= active_item_id then
 				sim:release(se_item, true)
 			end
-		elseif ( item_id == item_in_slot1_id
-			or item_id == item_in_slot2_id )
-			and isMagazinedWeapon(item)
-			and unique_wpn[sect] == nil
-		then
+		elseif  isMagazinedWeapon(item) and unique_wpn[sect] == nil then
 			--	Оставляем немного патронов в магазине
 			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
 			item:set_ammo_elapsed(n)
