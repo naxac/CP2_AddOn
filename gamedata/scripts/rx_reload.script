@@ -9,7 +9,7 @@ end
 
 local forbidden_schemes = {patrol = true,remark = true}
 
--- добавление недостающих команд для оружия
+-- РґРѕР±Р°РІР»РµРЅРёРµ РЅРµРґРѕСЃС‚Р°СЋС‰РёС… РєРѕРјР°РЅРґ РґР»СЏ РѕСЂСѓР¶РёСЏ
 if not object.aim_force_full1 then
 	object.aim_ready1 = object.drop+1					-- eObjectActionAimReady1 = 12
 	object.aim_ready2 = object.aim_ready1+1				-- eObjectActionAimReady2 = 13
@@ -18,9 +18,9 @@ if not object.aim_force_full1 then
 end
 
 local scheme_enabled = true
-local elapsed_percent = 80/100		-- процент загруженности магазина, при котором перезарядка не требуется
-local reload_one = false			-- перезаряжать только текущее оружие
-local clean_gun = 10/100			-- чинить оружие при перезарядке на % состояния
+local elapsed_percent = 80/100		-- РїСЂРѕС†РµРЅС‚ Р·Р°РіСЂСѓР¶РµРЅРЅРѕСЃС‚Рё РјР°РіР°Р·РёРЅР°, РїСЂРё РєРѕС‚РѕСЂРѕРј РїРµСЂРµР·Р°СЂСЏРґРєР° РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ
+local reload_one = false			-- РїРµСЂРµР·Р°СЂСЏР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ С‚РµРєСѓС‰РµРµ РѕСЂСѓР¶РёРµ
+local clean_gun = 10/100			-- С‡РёРЅРёС‚СЊ РѕСЂСѓР¶РёРµ РїСЂРё РїРµСЂРµР·Р°СЂСЏРґРєРµ РЅР° % СЃРѕСЃС‚РѕСЏРЅРёСЏ
 
 function get_weapon_to_reload(npc,active_only,stock)
 	local active,active_id = npc:active_item(), nil
@@ -46,7 +46,7 @@ function get_weapon_to_reload(npc,active_only,stock)
 		local aminmag = wpn:get_ammo_in_magazine()
 		return aminmag < mag_size*elapsed_percent and wpn:get_ammo_total() > (stock and aminmag*2 or aminmag) and wpn,mag_size
 	end
-	local wm = nil	--rx_utils.get_wm(npc,true)	не совместима со старым менеджером оружия
+	local wm = nil	--rx_utils.get_wm(npc,true)	РЅРµ СЃРѕРІРјРµСЃС‚РёРјР° СЃРѕ СЃС‚Р°СЂС‹Рј РјРµРЅРµРґР¶РµСЂРѕРј РѕСЂСѓР¶РёСЏ
 	local wpns = {}
 	if wm then
 		wpns = wm.weapons
@@ -89,7 +89,7 @@ function evaluator_reload:evaluate()
 		return false
 	end
 	if npc:best_enemy() or xr_wounded.is_wounded(npc) or npc:is_talking() then
-		self.delay = time_global()+math.random(5000,15000)	-- НПС занят
+		self.delay = time_global()+math.random(5000,15000)	-- РќРџРЎ Р·Р°РЅСЏС‚
 		return false
 	end
 	local stlib = state_lib.states[state_mgr.get_state(npc)]
@@ -97,7 +97,7 @@ function evaluator_reload:evaluate()
 		or stlib.weapon == "fire" or stlib.weapon == "sniper_fire"
 		or forbidden_schemes[db.storage[npc:id()].active_scheme]
 	then
-		self.delay = time_global()+8000	-- НПС занят
+		self.delay = time_global()+8000	-- РќРџРЎ Р·Р°РЅСЏС‚
 		return false
 	end
 	if self.st.act then
@@ -154,7 +154,7 @@ function action_reload:execute()
 	if actit and actit:id() ~= id and not npc:weapon_unstrapped() then
 		npc:set_item(object.idle,actit)
 		return
-	elseif not (actit and npc:weapon_unstrapped() and actit:id() == id) then	-- оружие ещё не активно
+	elseif not (actit and npc:weapon_unstrapped() and actit:id() == id) then	-- РѕСЂСѓР¶РёРµ РµС‰С‘ РЅРµ Р°РєС‚РёРІРЅРѕ
 	elseif self.do_id ~= id then
 		self.do_id = id
 		local shotgun = rx_utils.read_from_ini(nil,wpn:section(),"tri_state_reload",false,0)
@@ -172,7 +172,7 @@ function action_reload:execute()
 		end
 		return
 	elseif self.timer < time_global() then
-		wpn:set_ammo_elapsed(magsize)	-- если сам полностью зарядить не смог - поможет чит
+		wpn:set_ammo_elapsed(magsize)	-- РµСЃР»Рё СЃР°Рј РїРѕР»РЅРѕСЃС‚СЊСЋ Р·Р°СЂСЏРґРёС‚СЊ РЅРµ СЃРјРѕРі - РїРѕРјРѕР¶РµС‚ С‡РёС‚
 		return
 	end
 	npc:set_item(object.aim_force_full1,wpn)
@@ -221,7 +221,7 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(stalker_ids.property_danger,false))
 	action:add_precondition(world_property(stalker_ids.property_enemy,false))
 	action:add_precondition(world_property(xr_evaluators_id.sidor_wounded_base,false))
-	action:add_precondition(world_property(xr_evaluators_id.state_mgr+3,true))	-- отключить эту срань
+	action:add_precondition(world_property(xr_evaluators_id.state_mgr+3,true))	-- РѕС‚РєР»СЋС‡РёС‚СЊ СЌС‚Сѓ СЃСЂР°РЅСЊ
 	if rx_bandage then
 		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
 	end
@@ -246,7 +246,7 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(evid_reload,true))
 	action:add_effect(world_property(evid_reload,false))
 	manager:add_action(actid_reload,action)
-	-- включение в планировщик
+	-- РІРєР»СЋС‡РµРЅРёРµ РІ РїР»Р°РЅРёСЂРѕРІС‰РёРє
 	for n,id in ipairs({xr_actions_id.alife,xr_actions_id.stohe_meet_base+1}) do
 		action = manager:action(id)
 		action:add_precondition(world_property(evid_reload,false))

@@ -1,25 +1,25 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- скрипт прозрачных рюкзаков
+-- СЃРєСЂРёРїС‚ РїСЂРѕР·СЂР°С‡РЅС‹С… СЂСЋРєР·Р°РєРѕРІ
 
 local treasure_change_visual = {}
 
--- подменяемый ли визуал?
+-- РїРѕРґРјРµРЅСЏРµРјС‹Р№ Р»Рё РІРёР·СѓР°Р»?
 function IsChangeable(section)
 	return ( string.sub(section,2,15)=="_inventory_box"
 		and string.find(sys_ini:r_string(section, "visual"), "item_rukzak") )
 		or string.sub(section,1,11)=="val_taynik_"
 		or sys_ini:r_bool_ex(section, "removable", false) == true
 end
--- подбираемый ли рюкзак?
+-- РїРѕРґР±РёСЂР°РµРјС‹Р№ Р»Рё СЂСЋРєР·Р°Рє?
 function IsTaken(section)
 	return IsChangeable(section)
 		or ( string.find(sys_ini:r_string(section, "visual"), "rukzak_invisible")~=nil )
 end
 
--- перебор рюкзаков, вызывается при смене сложности
+-- РїРµСЂРµР±РѕСЂ СЂСЋРєР·Р°РєРѕРІ, РІС‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё СЃРјРµРЅРµ СЃР»РѕР¶РЅРѕСЃС‚Рё
 function on_options_change()
 	if level.present() then
-		-- игра загружена
+		-- РёРіСЂР° Р·Р°РіСЂСѓР¶РµРЅР°
 
 		local box
 		for id,obj in pairs(db.storage) do
@@ -37,7 +37,7 @@ end
 function net_spawn(box)
 	if IsChangeable(box:section()) then
 		if treasure_change_visual[box:id()] then
-			-- уже заменили визуал
+			-- СѓР¶Рµ Р·Р°РјРµРЅРёР»Рё РІРёР·СѓР°Р»
 			treasure_change_visual[box:id()] = nil
 		else
 			change_visual(box)
@@ -45,14 +45,14 @@ function net_spawn(box)
 	end
 end
 
--- замена визуала рюкзака
+-- Р·Р°РјРµРЅР° РІРёР·СѓР°Р»Р° СЂСЋРєР·Р°РєР°
 function change_visual(box)
-	if box:section() == "m_inventory_box" then return end	-- пропускаем "свои" нычки
+	if box:section() == "m_inventory_box" then return end	-- РїСЂРѕРїСѓСЃРєР°РµРј "СЃРІРѕРё" РЅС‹С‡РєРё
 	
-	local visual = "equipments\\item_rukzak" 				-- новичок - оригинальный визуал
+	local visual = "equipments\\item_rukzak" 				-- РЅРѕРІРёС‡РѕРє - РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Р№ РІРёР·СѓР°Р»
 
 	if game_options.TrTrs then
-		-- выбираем визуал
+		-- РІС‹Р±РёСЂР°РµРј РІРёР·СѓР°Р»
 		local difficulty = level.get_game_difficulty()
 		if     difficulty == 1 then
 			visual = visual..tostring(math.random(1, 3)*10)
@@ -63,12 +63,12 @@ function change_visual(box)
 		end
 	end
 	
-	-- меняем визуал
+	-- РјРµРЅСЏРµРј РІРёР·СѓР°Р»
 	local se_box = alife():object(box:id())
 	treasure_change_visual[se_box.id] = true
 	netpk:modify(se_box, {visual_name = visual}, netpk.fState)
 
-	-- отправляем в оффлайн и обратно для обновления визуала
+	-- РѕС‚РїСЂР°РІР»СЏРµРј РІ РѕС„С„Р»Р°Р№РЅ Рё РѕР±СЂР°С‚РЅРѕ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ РІРёР·СѓР°Р»Р°
 	amk.convert_npc[se_box.id] = 1
 end
 

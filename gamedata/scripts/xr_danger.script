@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 ----------------------------------------------------------------------------------------------------------------------
---'	Схема кемпер. Чудак с бальшой пушкой ходит и отстреливает живность.
---'	автор: Диденко Руслан (Stohe)
+--'	РЎС…РµРјР° РєРµРјРїРµСЂ. Р§СѓРґР°Рє СЃ Р±Р°Р»СЊС€РѕР№ РїСѓС€РєРѕР№ С…РѕРґРёС‚ Рё РѕС‚СЃС‚СЂРµР»РёРІР°РµС‚ Р¶РёРІРЅРѕСЃС‚СЊ.
+--'	Р°РІС‚РѕСЂ: Р”РёРґРµРЅРєРѕ Р СѓСЃР»Р°РЅ (Stohe)
 --'	TODO: 
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -18,15 +18,15 @@ local def_danger_inertion_time_sound	= 15000
 local def_danger_inertion_time_ricochet	= 30000
 
 
-local engage_after_update 	= 5 	-- С какого апдейта схема начинает работать. Нельзя чтобы схема стартовала включенной сразу же, иначе будут застранцы без вариантов
-local count_update 			= {}		-- Счетчик апдейтов
+local engage_after_update 	= 5 	-- РЎ РєР°РєРѕРіРѕ Р°РїРґРµР№С‚Р° СЃС…РµРјР° РЅР°С‡РёРЅР°РµС‚ СЂР°Р±РѕС‚Р°С‚СЊ. РќРµР»СЊР·СЏ С‡С‚РѕР±С‹ СЃС…РµРјР° СЃС‚Р°СЂС‚РѕРІР°Р»Р° РІРєР»СЋС‡РµРЅРЅРѕР№ СЃСЂР°Р·Сѓ Р¶Рµ, РёРЅР°С‡Рµ Р±СѓРґСѓС‚ Р·Р°СЃС‚СЂР°РЅС†С‹ Р±РµР· РІР°СЂРёР°РЅС‚РѕРІ
+local count_update 			= {}		-- РЎС‡РµС‚С‡РёРє Р°РїРґРµР№С‚РѕРІ
 
 local always_ignore_danger_from = { m_car = "true" }
 
 ----------------------------------------------------------------------------------------------------------------------
 -- EVALUATORS
 ----------------------------------------------------------------------------------------------------------------------
--- true - есть danger, false - нет danger
+-- true - РµСЃС‚СЊ danger, false - РЅРµС‚ danger
 class "evaluator_danger" (property_evaluator)
 function evaluator_danger:__init(name, storage, npc) super (nil, name)
 	self.a = storage
@@ -40,7 +40,7 @@ function evaluator_danger:evaluate()
 		return false			
 	end
 	
-	self.a.exist = false	-- bak  - информация для скриптов: есть актуальный дэнжер или нет
+	self.a.exist = false	-- bak  - РёРЅС„РѕСЂРјР°С†РёСЏ РґР»СЏ СЃРєСЂРёРїС‚РѕРІ: РµСЃС‚СЊ Р°РєС‚СѓР°Р»СЊРЅС‹Р№ РґСЌРЅР¶РµСЂ РёР»Рё РЅРµС‚
 
 	if self.mgr == nil then
 		self.mgr = self.object:motivation_action_manager()
@@ -48,7 +48,7 @@ function evaluator_danger:evaluate()
 
 	local best_danger = self.object:best_danger()
 
-	-- проверка на денжер.
+	-- РїСЂРѕРІРµСЂРєР° РЅР° РґРµРЅР¶РµСЂ.
 	if best_danger == nil then
 	--	printf("DANGER [%s] [FALSE] no danger", self.object:name())
 		self.danger_time = nil
@@ -59,7 +59,7 @@ function evaluator_danger:evaluate()
 	local active_scheme = db.storage[npc_id].active_scheme
 	local is_friend = self.object:relation(db.actor) ~= game_object.enemy
 
-	-- проверка не находится ли денжер в списке вечнозапрещенных.(БТР, Вертолеты и тд)
+	-- РїСЂРѕРІРµСЂРєР° РЅРµ РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё РґРµРЅР¶РµСЂ РІ СЃРїРёСЃРєРµ РІРµС‡РЅРѕР·Р°РїСЂРµС‰РµРЅРЅС‹С….(Р‘РўР , Р’РµСЂС‚РѕР»РµС‚С‹ Рё С‚Рґ)
 	local best_danger_object = best_danger:object()
 	if bd_type ~= danger_object.grenade
 		and best_danger:dependent_object() ~= nil
@@ -67,7 +67,7 @@ function evaluator_danger:evaluate()
 		best_danger_object = best_danger:dependent_object()
 	end
 	
-	--' Проверяем наличие объекта денжера.
+	--' РџСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ РѕР±СЉРµРєС‚Р° РґРµРЅР¶РµСЂР°.
 	if best_danger_object == nil then
 		return false
 	end
@@ -93,14 +93,14 @@ function evaluator_danger:evaluate()
 		end		
 	end
 	
-	-- Отсеиваем далёких монстров
+	-- РћС‚СЃРµРёРІР°РµРј РґР°Р»С‘РєРёС… РјРѕРЅСЃС‚СЂРѕРІ
 	if is_monster_obj then
 		if ( not self.object:see(best_danger_object) )
 			and best_danger_object:position():distance_to(self.object:position()) > 40
 		then
 			return false
 		end
-	-- И неписей
+	-- Р РЅРµРїРёСЃРµР№
 	elseif is_stalker_obj and is_friend then	
 		if ( not self.object:see(best_danger_object) )
 			and ( not best_danger_object:see(self.object) )
@@ -110,12 +110,12 @@ function evaluator_danger:evaluate()
 		end		
 	end
 
-	-- три года на зоне, вся жопа в шрамах, сам себя боюсь
+	-- С‚СЂРё РіРѕРґР° РЅР° Р·РѕРЅРµ, РІСЃСЏ Р¶РѕРїР° РІ С€СЂР°РјР°С…, СЃР°Рј СЃРµР±СЏ Р±РѕСЋСЃСЊ
 	if is_stalker_obj and best_danger_object:id() == npc_id then
 		return false
 	end	
 
-	-- Проверка на запрещенный денжер от актера
+	-- РџСЂРѕРІРµСЂРєР° РЅР° Р·Р°РїСЂРµС‰РµРЅРЅС‹Р№ РґРµРЅР¶РµСЂ РѕС‚ Р°РєС‚РµСЂР°
 	if best_danger_object:id() == 0 and
 		( bd_type == danger_object.attack_sound
 		or bd_type == danger_object.bullet_ricochet )
@@ -128,13 +128,13 @@ function evaluator_danger:evaluate()
 		end	
 	end
 
-	-- если тип опасности = звук атаки тогда
-	-- если объект опасности сталкер и он нам не враг или соратник
-	-- и у него нету лучшей опасности либо лучшего врага
-	-- тогда пропускаем
-	-- а если есть лучшая опасность
-	-- если эта лучшая опасность он сам то пропускаем
-	-- если эта лучшая опасность это мы то пропускаем, ибо закольцовка
+	-- РµСЃР»Рё С‚РёРї РѕРїР°СЃРЅРѕСЃС‚Рё = Р·РІСѓРє Р°С‚Р°РєРё С‚РѕРіРґР°
+	-- РµСЃР»Рё РѕР±СЉРµРєС‚ РѕРїР°СЃРЅРѕСЃС‚Рё СЃС‚Р°Р»РєРµСЂ Рё РѕРЅ РЅР°Рј РЅРµ РІСЂР°Рі РёР»Рё СЃРѕСЂР°С‚РЅРёРє
+	-- Рё Сѓ РЅРµРіРѕ РЅРµС‚Сѓ Р»СѓС‡С€РµР№ РѕРїР°СЃРЅРѕСЃС‚Рё Р»РёР±Рѕ Р»СѓС‡С€РµРіРѕ РІСЂР°РіР°
+	-- С‚РѕРіРґР° РїСЂРѕРїСѓСЃРєР°РµРј
+	-- Р° РµСЃР»Рё РµСЃС‚СЊ Р»СѓС‡С€Р°СЏ РѕРїР°СЃРЅРѕСЃС‚СЊ
+	-- РµСЃР»Рё СЌС‚Р° Р»СѓС‡С€Р°СЏ РѕРїР°СЃРЅРѕСЃС‚СЊ РѕРЅ СЃР°Рј С‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј
+	-- РµСЃР»Рё СЌС‚Р° Р»СѓС‡С€Р°СЏ РѕРїР°СЃРЅРѕСЃС‚СЊ СЌС‚Рѕ РјС‹ С‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј, РёР±Рѕ Р·Р°РєРѕР»СЊС†РѕРІРєР°
 
 	if bd_type == danger_object.attack_sound or bd_type == danger_object.enemy_sound then
 		if is_stalker_obj and is_friend
@@ -143,23 +143,23 @@ function evaluator_danger:evaluate()
 			if (not best_danger_object:best_enemy()) and not best_danger_object:best_danger() then
 				return false
 			elseif best_danger_object:best_danger() then 		
-				local bdo_bd = best_danger_object:best_danger() -- ужас друга
-				local best_danger_object_test = bdo_bd:object() -- предмет ужаса друга
+				local bdo_bd = best_danger_object:best_danger() -- СѓР¶Р°СЃ РґСЂСѓРіР°
+				local best_danger_object_test = bdo_bd:object() -- РїСЂРµРґРјРµС‚ СѓР¶Р°СЃР° РґСЂСѓРіР°
 				if best_danger_object_test and best_danger_object_test:id() == best_danger_object:id() then
-					-- сам себя боится, идиот. Игнорируем.
+					-- СЃР°Рј СЃРµР±СЏ Р±РѕРёС‚СЃСЏ, РёРґРёРѕС‚. РРіРЅРѕСЂРёСЂСѓРµРј.
 					return false
 				elseif best_danger_object_test and best_danger_object_test:id() == self.object:id() then
-					-- нас боится, при этом дружелюбен, идиот. Игнорируем.
+					-- РЅР°СЃ Р±РѕРёС‚СЃСЏ, РїСЂРё СЌС‚РѕРј РґСЂСѓР¶РµР»СЋР±РµРЅ, РёРґРёРѕС‚. РРіРЅРѕСЂРёСЂСѓРµРј.
 					return false
 				elseif best_danger_object_test and (IsStalker(best_danger_object_test) or IsMonster(best_danger_object_test)) and not best_danger_object_test:alive() then	
-					-- боится атаки трупа. Игнорируем.
+					-- Р±РѕРёС‚СЃСЏ Р°С‚Р°РєРё С‚СЂСѓРїР°. РРіРЅРѕСЂРёСЂСѓРµРј.
 					return false
 				end				
 			end
 		end	
 	end	
 
-	--' Игнорим денжеры от своих.
+	--' РРіРЅРѕСЂРёРј РґРµРЅР¶РµСЂС‹ РѕС‚ СЃРІРѕРёС….
 	if is_stalker_obj and is_friend
 		and best_danger_object:character_community() == self.object:character_community()
 	then
@@ -168,7 +168,7 @@ function evaluator_danger:evaluate()
 		end
 	end
 
-	-- Проверка, не находится ли данжер в списке запрещенных.
+	-- РџСЂРѕРІРµСЂРєР°, РЅРµ РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё РґР°РЅР¶РµСЂ РІ СЃРїРёСЃРєРµ Р·Р°РїСЂРµС‰РµРЅРЅС‹С….
 	if bd_type == danger_object.grenade then
 		if self.a.ignore_types["grenade"] == true
 			or self.is_zombied
@@ -196,7 +196,7 @@ function evaluator_danger:evaluate()
 		end	
 	end
 
-	-- отсеиваем по настройке combat_ignore/danger
+	-- РѕС‚СЃРµРёРІР°РµРј РїРѕ РЅР°СЃС‚СЂРѕР№РєРµ combat_ignore/danger
 	local bd_obj = best_danger:object()
 	if bd_obj and (IsMonster(bd_obj) or IsStalker(bd_obj)) and bd_obj:alive() then
 		db.storage[npc_id].enemy = bd_obj
@@ -213,7 +213,7 @@ function evaluator_danger:evaluate()
 	    end
     end	 
 
-    -- Отсеиваем дружественные туррели.
+    -- РћС‚СЃРµРёРІР°РµРј РґСЂСѓР¶РµСЃС‚РІРµРЅРЅС‹Рµ С‚СѓСЂСЂРµР»Рё.
 	if bd_type == danger_object.attack_sound and
 	   self.object:best_enemy() == nil and
 	   turret_mgun.is_friendly_turret(self.object, best_danger_object, best_danger:position()) then
@@ -221,38 +221,38 @@ function evaluator_danger:evaluate()
 		return false
 	end	
 
-	-- Отсеиваем по дистанции
+	-- РћС‚СЃРµРёРІР°РµРј РїРѕ РґРёСЃС‚Р°РЅС†РёРё
 	if check_danger_distance(self.object, best_danger) == false then
 	--	log("DANGER [%s]->[%s] [FALSE] danger_distance", self.object:name(), best_danger_object:name())
 		return false
 	end
 
-	-- Отсеиваем по зоне
+	-- РћС‚СЃРµРёРІР°РµРј РїРѕ Р·РѕРЅРµ
 	if sr_danger.check_danger_position(best_danger:position()) then
 	--	printf("DANGER [%s]->[%s] [FALSE] nodanger_zone", self.object:name(), best_danger_name)
 		return false
 	end
 
-	-- Отсеиваем по информационным рестрикторам
+	-- РћС‚СЃРµРёРІР°РµРј РїРѕ РёРЅС„РѕСЂРјР°С†РёРѕРЅРЅС‹Рј СЂРµСЃС‚СЂРёРєС‚РѕСЂР°Рј
 	if xr_gulag.is_info_restricted(npc_id, best_danger:position()) then
 	--	printf("DANGER [%s]->[%s] [FALSE] info restrictor", self.object:name(), best_danger_name)
 		return false
 	end
 
-	-- Отсеиваем тяжелораненых
+	-- РћС‚СЃРµРёРІР°РµРј С‚СЏР¶РµР»РѕСЂР°РЅРµРЅС‹С…
 	if xr_wounded.is_heavy_wounded_by_id(npc_id) then
 	--	printf("DANGER [%s]->[%s] [FALSE] heavy_wounded", self.object:name(), best_danger_name)
 		return false
 	end
 
-	-- Отсеиваем психораненых
+	-- РћС‚СЃРµРёРІР°РµРј РїСЃРёС…РѕСЂР°РЅРµРЅС‹С…
 	if xr_wounded.is_psy_wounded_by_id(npc_id) then
 	--	printf("DANGER [%s]->[%s] [FALSE] psy_wounded", self.object:name(), best_danger_name)
 		return false
 	end
 
 
-	-- Денжер для снайпера
+	-- Р”РµРЅР¶РµСЂ РґР»СЏ СЃРЅР°Р№РїРµСЂР°
 	if active_scheme == "camper" then
 		if bd_type == danger_object.grenade then
 			self.danger_time = best_danger:time()
@@ -261,9 +261,9 @@ function evaluator_danger:evaluate()
 		end
 		return false
 	else
-		-- инерция возврата. Только не для кемпера.
+		-- РёРЅРµСЂС†РёСЏ РІРѕР·РІСЂР°С‚Р°. РўРѕР»СЊРєРѕ РЅРµ РґР»СЏ РєРµРјРїРµСЂР°.
 		if self.danger_time then
-			-- self.danger_time = best_danger:time() <-- Дико непонятно нахуя тут вот это было. Убрал пока позырить
+			-- self.danger_time = best_danger:time() <-- Р”РёРєРѕ РЅРµРїРѕРЅСЏС‚РЅРѕ РЅР°С…СѓСЏ С‚СѓС‚ РІРѕС‚ СЌС‚Рѕ Р±С‹Р»Рѕ. РЈР±СЂР°Р» РїРѕРєР° РїРѕР·С‹СЂРёС‚СЊ
 			local passed_time = time_global() - self.danger_time
 			if check_danger_inertion_time(self.object, best_danger, passed_time) then
 				self.a.exist = true

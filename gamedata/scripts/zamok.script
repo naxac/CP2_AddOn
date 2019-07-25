@@ -54,7 +54,7 @@ function remove( box, item )
 
 	if t.count > 1 then
 		 t.count =  t.count - 1
-	else	-- проверим, стоит ли ящик под защитой
+	else	-- РїСЂРѕРІРµСЂРёРј, СЃС‚РѕРёС‚ Р»Рё СЏС‰РёРє РїРѕРґ Р·Р°С‰РёС‚РѕР№
 		for i, v in pairs( amk_offline_alife.protected.ids ) do
 			if v == box_id then
 				if zamok_code then
@@ -62,7 +62,7 @@ function remove( box, item )
 				end
 				table.remove( amk_offline_alife.protected.ids, i )
 				--amk_offline_alife.update_tables( level.name() )
-				ShowAutohideMsg( "С тайника убрали замок.", 2000 )
+				ShowAutohideMsg( "РЎ С‚Р°Р№РЅРёРєР° СѓР±СЂР°Р»Рё Р·Р°РјРѕРє.", 2000 )
 				break
 			end
 		end
@@ -71,10 +71,10 @@ function remove( box, item )
 end
 
 function add( item )
-	local sitem = alife():object( item:id() ) -- получаем серверный объект
-	if sitem == nil then return end		-- если удалили замок, то ничего не делаем
+	local sitem = alife():object( item:id() ) -- РїРѕР»СѓС‡Р°РµРј СЃРµСЂРІРµСЂРЅС‹Р№ РѕР±СЉРµРєС‚
+	if sitem == nil then return end		-- РµСЃР»Рё СѓРґР°Р»РёР»Рё Р·Р°РјРѕРє, С‚Рѕ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
 	local pid = sitem.parent_id
-	local se_box = alife():object( pid ) -- получаем серверный объект хозяина
+	local se_box = alife():object( pid ) -- РїРѕР»СѓС‡Р°РµРј СЃРµСЂРІРµСЂРЅС‹Р№ РѕР±СЉРµРєС‚ С…РѕР·СЏРёРЅР°
 	if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
 		check_box( nil, pid )
 	end
@@ -82,7 +82,7 @@ end
 
 function check_box( box, box_id )
 	local t = zamok_box[ box_id ]
-	if t == nil then		-- если в тайнике ещё нет замков
+	if t == nil then		-- РµСЃР»Рё РІ С‚Р°Р№РЅРёРєРµ РµС‰С‘ РЅРµС‚ Р·Р°РјРєРѕРІ
 		local obj = box or level.object_by_id( box_id )
 		if obj == nil then return end
 	
@@ -93,7 +93,7 @@ function check_box( box, box_id )
 			if can_lock_visuals[ visual ] == nil then
 				BlockUIDescr( true )
 				ui_messagebox_new.UIMessageBox(
-					"ok_alarm", "На этот тайник невозможно установить замок.",
+					"ok_alarm", "РќР° СЌС‚РѕС‚ С‚Р°Р№РЅРёРє РЅРµРІРѕР·РјРѕР¶РЅРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РјРѕРє.",
 					function() BlockUIDescr( false ) end
 				)
 				return
@@ -103,17 +103,17 @@ function check_box( box, box_id )
 		if not zamok_code then
 			table.insert( amk_offline_alife.protected.ids, box_id )
 			--amk_offline_alife.update_tables(level.name())
-			ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
+			ShowAutohideMsg( "Р—Р°РїРµСЂР»Рё С‚Р°Р№РЅРёРє РЅР° Р·Р°РјРѕРє.", 2000 )
 			return
 		end
 	
 		BlockUIDescr( true )
 		ui_messagebox_new.UIMessageBox(
-			"yes_no_info", "Установить замок на этот тайник?",
+			"yes_no_info", "РЈСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РјРѕРє РЅР° СЌС‚РѕС‚ С‚Р°Р№РЅРёРє?",
 			function() this.codelock( obj, 1 ) end,
 			function() BlockUIDescr( false ) end
 		)
-	else	-- иначе - ничего не делаем
+	else	-- РёРЅР°С‡Рµ - РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
 		t.count = t.count + 1
 	end
 end
@@ -182,9 +182,9 @@ function codelock:OnNumberReceive( text, mode )
 
 		table.insert( amk_offline_alife.protected.ids, box_id )
 		--amk_offline_alife.update_tables(level.name())
-		ShowAutohideMsg( "Заперли тайник на замок.", 2000 )
+		ShowAutohideMsg( "Р—Р°РїРµСЂР»Рё С‚Р°Р№РЅРёРє РЅР° Р·Р°РјРѕРє.", 2000 )
 
-		-- Перезагружаем логику
+		-- РџРµСЂРµР·Р°РіСЂСѓР¶Р°РµРј Р»РѕРіРёРєСѓ
 		local st = db.storage[ box_id ]
 		st = {}
 		xr_logic.initialize_obj( self.object, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx" )
@@ -211,7 +211,7 @@ function actor_open_box( box, is_fake )
 end
 
 
--- Вызывается при открытии тайника из логики, если на нём стоит замок
+-- Р’С‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РѕС‚РєСЂС‹С‚РёРё С‚Р°Р№РЅРёРєР° РёР· Р»РѕРіРёРєРё, РµСЃР»Рё РЅР° РЅС‘Рј СЃС‚РѕРёС‚ Р·Р°РјРѕРє
 function show_codelock(actor, box)
 	local se_box = alife():object( box:id() )
 	if se_box then
@@ -221,8 +221,8 @@ function show_codelock(actor, box)
 	end
 end
 
--- Забираем тайник вместе с содержимым на 'kUSE + Shift'
--- Вызывается из логики
+-- Р—Р°Р±РёСЂР°РµРј С‚Р°Р№РЅРёРє РІРјРµСЃС‚Рµ СЃ СЃРѕРґРµСЂР¶РёРјС‹Рј РЅР° 'kUSE + Shift'
+-- Р’С‹Р·С‹РІР°РµС‚СЃСЏ РёР· Р»РѕРіРёРєРё
 function transfer_all(actor, box)
 	if not ShiftPressed() then return false end
 	
@@ -245,7 +245,7 @@ function transfer_all(actor, box)
 	hotkeys.clear_used_box()
 end
 
--- Перезагрузка логики ящика без перевода в оффлайн
+-- РџРµСЂРµР·Р°РіСЂСѓР·РєР° Р»РѕРіРёРєРё СЏС‰РёРєР° Р±РµР· РїРµСЂРµРІРѕРґР° РІ РѕС„С„Р»Р°Р№РЅ
 function change_box_data(box)
 	local box_id = box:id()
 	local se_box = alife():object(box_id)
@@ -254,7 +254,7 @@ function change_box_data(box)
 		local inifilename = nil
 		local data = netpk:get(se_box, netpk.fState)
 		local cd = netpk:parse_custom_data(data.custom_data)
-		if se_box:section_name() == "m_inventory_box" then	-- самопальный тайник
+		if se_box:section_name() == "m_inventory_box" then	-- СЃР°РјРѕРїР°Р»СЊРЅС‹Р№ С‚Р°Р№РЅРёРє
 			local path = ""
 			if ui_treasure.get_active_box() == se_box.id then
 				path = "scripts\\new_inventory_box_1.ltx"
@@ -263,13 +263,13 @@ function change_box_data(box)
 			end
 			cd.logic = { cfg = path }
 			inifilename = path
-		else		-- какой-то другой
+		else		-- РєР°РєРѕР№-С‚Рѕ РґСЂСѓРіРѕР№
 			cd = {}
 			inifilename = "scripts\\treasure_inventory_box.ltx"
 		end
 		data.custom_data = netpk:gen_custom_data(cd)
 		netpk:set(se_box, data, netpk.fState)
-		-- Перезагружаем логику
+		-- РџРµСЂРµР·Р°РіСЂСѓР¶Р°РµРј Р»РѕРіРёРєСѓ
 		local st = db.storage[box_id]
 		st = {}
 		xr_logic.initialize_obj(box, st, false, db.actor, modules.stype_item, inifilename)
@@ -343,7 +343,7 @@ function init_code_dialog( dlg )
 				p1 = gen_phrase_id_str()
 				dlg:AddPhrase( text, p1, "3", -10000 )
 
-				text = "Тааак, погоди, вижу там какой-то тайничок, точно... Ага... Цифры, цифры, цифры... Так, записывай скорее, и больше не забывай.\\n"..v.code.."\\nУф, что-то аж голова разболелась..."
+				text = "РўР°Р°Р°Рє, РїРѕРіРѕРґРё, РІРёР¶Сѓ С‚Р°Рј РєР°РєРѕР№-С‚Рѕ С‚Р°Р№РЅРёС‡РѕРє, С‚РѕС‡РЅРѕ... РђРіР°... Р¦РёС„СЂС‹, С†РёС„СЂС‹, С†РёС„СЂС‹... РўР°Рє, Р·Р°РїРёСЃС‹РІР°Р№ СЃРєРѕСЂРµРµ, Рё Р±РѕР»СЊС€Рµ РЅРµ Р·Р°Р±С‹РІР°Р№.\\n"..v.code.."\\nРЈС„, С‡С‚Рѕ-С‚Рѕ Р°Р¶ РіРѕР»РѕРІР° СЂР°Р·Р±РѕР»РµР»Р°СЃСЊ..."
 				p2 = gen_phrase_id_str()
 				dlg:AddPhrase( text, p2, p1, -10000 )
 

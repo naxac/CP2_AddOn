@@ -48,20 +48,20 @@ function stealth5_done()
 		alife():release(obj)
 	end
 end
--- проверка на провал при убийстве, сняти амулета или одевании маскхалата
+-- РїСЂРѕРІРµСЂРєР° РЅР° РїСЂРѕРІР°Р» РїСЂРё СѓР±РёР№СЃС‚РІРµ, СЃРЅСЏС‚Рё Р°РјСѓР»РµС‚Р° РёР»Рё РѕРґРµРІР°РЅРёРё РјР°СЃРєС…Р°Р»Р°С‚Р°
 function stealth_fail_task(victim, who)
 	if has_alife_info("stealth2_done") and not has_alife_info("stealth_find_pda_done") and (not who or who:id() == db.actor:id()) then
 		db.actor:give_info_portion("stealth_find_pda_fail")
 	end
 end
--- подъем рюкзака
+-- РїРѕРґСЉРµРј СЂСЋРєР·Р°РєР°
 function stealth_on_take(box)
 	local section = box:section()
 	if string.find(section, "s_inventory_box_stealth") then
 		db.actor:give_info_portion("stealth_find_pda_have"..string.sub(section,24,24))
 	end
 end
--- сдача ПДА
+-- СЃРґР°С‡Р° РџР”Рђ
 function stealth_find_pda_done()
 	inventory.out_items_all("stealth_pda")
 end
@@ -163,7 +163,7 @@ function peshera_end()
 	db.actor:disable_info_portion("peshera_go")
 end
 
--- Поиск онлайнового объекта по его name в all.spawn
+-- РџРѕРёСЃРє РѕРЅР»Р°Р№РЅРѕРІРѕРіРѕ РѕР±СЉРµРєС‚Р° РїРѕ РµРіРѕ name РІ all.spawn
 function obj_by_name(name)
 	local obj
 	for id=1, 65534 do
@@ -175,14 +175,14 @@ function obj_by_name(name)
 	end
 end
 
--- Холодное оружие перенесено в hotkeys.script
+-- РҐРѕР»РѕРґРЅРѕРµ РѕСЂСѓР¶РёРµ РїРµСЂРµРЅРµСЃРµРЅРѕ РІ hotkeys.script
 function kuv_hit()
 	if actor_active_item == nil then return end
 	
 	local sect = actor_active_item:section()
 	local cond = actor_active_item:condition()
 	
-	-- Взрыв убитого ствола
+	-- Р’Р·СЂС‹РІ СѓР±РёС‚РѕРіРѕ СЃС‚РІРѕР»Р°
 	if cond < 0.1 and math.random() < 0.2-cond*2 and sect ~= "wpn_shmel" then
 		amk_particle.amk_particle({
 			particle="explosions\\explosion_fuelcan",
@@ -210,7 +210,7 @@ function remove_wpn(id)
 	end
 end
 
--- Взносы
+-- Р’Р·РЅРѕСЃС‹
 function vzn_begin()
 	return db.actor:money()>=2000000 and
 		has_alife_info("sar_monolith_destroy")
@@ -259,8 +259,8 @@ function vzn_end()
 		has_alife_info("vzn16_done")
 end
 
--- перенесено в spawn_teleport.script
-function checking_taken_item_vzn(obj) -- взятие тайника
+-- РїРµСЂРµРЅРµСЃРµРЅРѕ РІ spawn_teleport.script
+function checking_taken_item_vzn(obj) -- РІР·СЏС‚РёРµ С‚Р°Р№РЅРёРєР°
 	local section = obj:section()
 	if	section == "vzn_mogila" or
 		section == "vzn_platok" or
@@ -281,33 +281,33 @@ function checking_taken_item_vzn(obj) -- взятие тайника
 	end
 		
 	if section == "vzn_treasure_item" then
-		-- лотерея
+		-- Р»РѕС‚РµСЂРµСЏ
 		amk.remove_item_from_inventory_by_name("vzn_treasure_item",db.actor)
 		amk.spawn_item_in_inv("treasure_item", db.actor)
 		amk.spawn_item_in_inv("vzn_medal", db.actor)
 		amk.spawn_item_in_inv(vzn_taynik_stvol(), db.actor)
 	end
 	if section == "vzn_mladen" then
-		-- младенец
+		-- РјР»Р°РґРµРЅРµС†
 		local snd = xr_sound.get_safe_sound_object([[characters_voice\scenario\trader\plach]])
 		snd:stop()
 		snd:play_no_feedback(db.actor, sound_object.s2d, 1.0, vector(), 1.0)
 	end
 end
-function vzn_fill(vzn) -- создание тайника
+function vzn_fill(vzn) -- СЃРѕР·РґР°РЅРёРµ С‚Р°Р№РЅРёРєР°
 	if     vzn == 11 then
-		-- контрик
+		-- РєРѕРЅС‚СЂРёРє
 		alife():create("vzn_stalker_kontrik",vector():set(-209.23837280273,-20.614948272705,-149.44313049316),43943,61)
 		aem_manager.manage_money(450000, "out")
 	elseif vzn == 12 then
-		-- лотерея
+		-- Р»РѕС‚РµСЂРµСЏ
 		spawn_restrictor.vzn12_restr()
 		aem_manager.manage_money(100000, "out")
 	else
-		-- спавним тайник и получаем ссылку на него
+		-- СЃРїР°РІРЅРёРј С‚Р°Р№РЅРёРє Рё РїРѕР»СѓС‡Р°РµРј СЃСЃС‹Р»РєСѓ РЅР° РЅРµРіРѕ
 		local obj = taynik_spawn.vzn_taynik()
 		
-		-- Наполняем тайник
+		-- РќР°РїРѕР»РЅСЏРµРј С‚Р°Р№РЅРёРє
 		vzn_fill_taynik(vzn_taynik_stvol(), 1, obj)
 		
 		if     vzn == 1 then
@@ -392,7 +392,7 @@ function vzn_fill_taynik(section, cnt, obj)
 		spawn_item_in_taynik(section, obj)
 	end
 	if section == "wpn_samopal" then
-		-- добавим патроны для самопала
+		-- РґРѕР±Р°РІРёРј РїР°С‚СЂРѕРЅС‹ РґР»СЏ СЃР°РјРѕРїР°Р»Р°
 		spawn_item_in_taynik("ammo_samopal", obj)
 	end
 end
@@ -401,11 +401,11 @@ function spawn_item_in_taynik(section, box)
 	level.client_spawn_manager():add(item.id, -1, fix_spawn_item_in_taynik, box)
 end
 function fix_spawn_item_in_taynik(box, id, item)
-	local online_box = level.object_by_id(box.id) -- к моменту выхода предмета в онлайн box уже в онлайне
+	local online_box = level.object_by_id(box.id) -- Рє РјРѕРјРµРЅС‚Сѓ РІС‹С…РѕРґР° РїСЂРµРґРјРµС‚Р° РІ РѕРЅР»Р°Р№РЅ box СѓР¶Рµ РІ РѕРЅР»Р°Р№РЅРµ
     online_box:transfer_item(item, online_box)
 end
 
-function vzn_done(vzn) -- удаление уникального хабара
+function vzn_done(vzn) -- СѓРґР°Р»РµРЅРёРµ СѓРЅРёРєР°Р»СЊРЅРѕРіРѕ С…Р°Р±Р°СЂР°
 	if     vzn == 1 then
 		inventory.out_items_all("vzn_venok")
 		inventory.out_items_all("vzn_lopata")
@@ -479,7 +479,7 @@ function vzn_taynik_stvol()
 		"wpn_mp5"
 	}
 	local i
-	-- Ищем неиспользованный ствол
+	-- РС‰РµРј РЅРµРёСЃРїРѕР»СЊР·РѕРІР°РЅРЅС‹Р№ СЃС‚РІРѕР»
 	repeat
 		i = math.random(#vzn_stvol)
 	until not has_alife_info("vzn_stvol"..tostring(i))
@@ -518,9 +518,9 @@ end
 function gg_monolit()
 	db.actor:set_character_community("monolith", 0, 0)
 end
--- Взносы end
+-- Р’Р·РЅРѕСЃС‹ end
 
--- рандомная выдача редких патронов qty раз
+-- СЂР°РЅРґРѕРјРЅР°СЏ РІС‹РґР°С‡Р° СЂРµРґРєРёС… РїР°С‚СЂРѕРЅРѕРІ qty СЂР°Р·
 function give_ammo(qty)
 	local ammo = {
 		"ammo_gauss",
@@ -549,7 +549,7 @@ function checking_taken_item63(obj)
 
 	if not has_alife_info("tm_find_all") then 
 		act:give_info_portion("tm_find_all")
-		news_manager.send_tip(act, "%c[255,160,160,160]ДРАГУНОВ:\\n%c[255,255,128,128]"..act:character_name()..", пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, Стрелок, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.", nil, nil, 30000)
+		news_manager.send_tip(act, "%c[255,160,160,160]Р”Р РђР“РЈРќРћР’:\\n%c[255,255,128,128]"..act:character_name()..", РїРѕРєР° С‚С‹ РёСЃРєР°Р» Р·Р°РїРёСЃРєРё, СЏ РґСѓРјР°Р» РЅР°Рґ С‚РѕР№ РЅР°РІРѕРґРєРѕР№, С‡С‚Рѕ РјРѕР¶РЅРѕ СЃРѕСЃС‚Р°РІРёС‚СЊ РёР· СЌС‚РёС… СЃР»РѕРІ. РЈ РјРµРЅСЏ РїРѕР»СѓС‡РёР»РѕСЃСЊ СЃР»РµРґСѓСЋС‰РµРµ:\\nРќРµР·С‹Р±Р»РµРјРѕРµ РџСЂРµРєСЂР°СЃРЅРѕРµ Р’РµС‡РЅРѕРµ РћР·Р°СЂСЏРµС‚ РќР°СЃ Р”Р°СЂРёС‚ РџРѕРєРѕР№ РЎС‡Р°СЃС‚СЊРµ РњРёСЂ РќР°Р№РґРё РџСѓС‚СЊ РЎС‚Р°РЅСЊ Р‘РµСЃСЃРјРµСЂС‚РЅС‹Рј\\nРћС‡РµРІРёРґРЅРѕ, С‡С‚Рѕ СЂРµС‡СЊ РёРґС‘С‚ РѕР± РСЃРїРѕР»РЅРёС‚РµР»Рµ Р–РµР»Р°РЅРёР№. РќРѕ РіРґРµ С‚Р°Рј С‚Р°Р№РЅРёРє? Р РµС‰С‘: РІ РЅР°РІРѕРґРєРµ РіРѕРІРѕСЂРёС‚СЃСЏ, С‡С‚Рѕ РЅСѓР¶РЅРѕ РЅР°Р№С‚Рё РїСѓС‚СЊ. РўР°Рє С‡С‚Рѕ, РЎС‚СЂРµР»РѕРє, РїРѕС…РѕР¶Рµ, СЌС‚Рѕ РЅРµ РІСЃС‘. РЇ РІРёР¶Сѓ РЅРѕРІС‹Р№ С‚РµР»РµРїРѕСЂС‚ РІ С†РµРЅС‚СЂРµ РЎР°СЂРєРѕС„Р°РіР°. Р”СѓРјР°СЋ, СЃС‚РѕРёС‚ РЅР°С‡Р°С‚СЊ СЃ РЅРµРіРѕ.", nil, nil, 30000)
 		this.tm_done1()
 		spawn_tm_taynik()
 		local se_obj = alife():create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
@@ -589,7 +589,7 @@ function tm_done1()
  	amk.remove_item_from_inventory_by_name("tm_docs12",db.actor)
  	amk.remove_item_from_inventory_by_name("tm_docs13",db.actor)
 end
--- перенесено в spawn_teleport.script
+-- РїРµСЂРµРЅРµСЃРµРЅРѕ РІ spawn_teleport.script
 function checking_taken_item64(obj)
 	if obj:section() == "tm_docs14" then
 		db.actor:give_info_portion("tm_find_done")
@@ -607,13 +607,13 @@ function remove_tm_taynik()
 	if obj then alife():release(obj, true) end
 end
 
--- универсальная процедура спавна телепортов
+-- СѓРЅРёРІРµСЂСЃР°Р»СЊРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° СЃРїР°РІРЅР° С‚РµР»РµРїРѕСЂС‚РѕРІ
 function create_teleport(section, pos, lv, gv)
     local se_obj = alife():create(section, pos, lv, gv)
 	xr_logic.pstor_store(db.actor, section, se_obj.id)
 	return se_obj
 end
--- универсальная процедура удаления телепортов
+-- СѓРЅРёРІРµСЂСЃР°Р»СЊРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° СѓРґР°Р»РµРЅРёСЏ С‚РµР»РµРїРѕСЂС‚РѕРІ
 function delete_teleport(section)
 	local se_obj = alife():object(xr_logic.pstor_retrieve(db.actor, section, -1, true))
 	if se_obj then
@@ -622,7 +622,7 @@ function delete_teleport(section)
 end
 
 -- Proper71 docs
--- Вниманию оптимизаторов: в разделе docs ничего не оптимизировать! Даже не трогать порядок выполнения команд! Из-за использования disable в поршнях и некоторых глюков из-за параллельного выполнения процессов в движке не все работает так, как кажется на первый взгляд. Поэтому ничего здесь не трогайте.
+-- Р’РЅРёРјР°РЅРёСЋ РѕРїС‚РёРјРёР·Р°С‚РѕСЂРѕРІ: РІ СЂР°Р·РґРµР»Рµ docs РЅРёС‡РµРіРѕ РЅРµ РѕРїС‚РёРјРёР·РёСЂРѕРІР°С‚СЊ! Р”Р°Р¶Рµ РЅРµ С‚СЂРѕРіР°С‚СЊ РїРѕСЂСЏРґРѕРє РІС‹РїРѕР»РЅРµРЅРёСЏ РєРѕРјР°РЅРґ! РР·-Р·Р° РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ disable РІ РїРѕСЂС€РЅСЏС… Рё РЅРµРєРѕС‚РѕСЂС‹С… РіР»СЋРєРѕРІ РёР·-Р·Р° РїР°СЂР°Р»Р»РµР»СЊРЅРѕРіРѕ РІС‹РїРѕР»РЅРµРЅРёСЏ РїСЂРѕС†РµСЃСЃРѕРІ РІ РґРІРёР¶РєРµ РЅРµ РІСЃРµ СЂР°Р±РѕС‚Р°РµС‚ С‚Р°Рє, РєР°Рє РєР°Р¶РµС‚СЃСЏ РЅР° РїРµСЂРІС‹Р№ РІР·РіР»СЏРґ. РџРѕСЌС‚РѕРјСѓ РЅРёС‡РµРіРѕ Р·РґРµСЃСЊ РЅРµ С‚СЂРѕРіР°Р№С‚Рµ.
 function checking_taken_item61(obj)
 	local sect = obj:section()
 	if string.find(sect,"zonedocs") then
@@ -660,7 +660,7 @@ function checking_taken_item61(obj)
 		end
 		
 		amk.remove_item_from_inventory(obj,db.actor)
-		-- удаляем дубликаты
+		-- СѓРґР°Р»СЏРµРј РґСѓР±Р»РёРєР°С‚С‹
 		local lname = level.name()
 		if  (sect=="zonedocs_26" and lname == "l03u_agr_underground") or 
 			(sect=="zonedocs_22" and (lname == "l06_rostok" or lname == "l05_bar"))
@@ -690,7 +690,7 @@ end
 
 function voronin_docs1_done()
 	inventory.out_items_all("zone_docs")
-	if not has_alife_info("voronin_docs1_have") then -- удаляем ненайденные части
+	if not has_alife_info("voronin_docs1_have") then -- СѓРґР°Р»СЏРµРј РЅРµРЅР°Р№РґРµРЅРЅС‹Рµ С‡Р°СЃС‚Рё
 		local sim = alife()
 		local sobj
 		for i = 1,65534 do
@@ -1817,23 +1817,23 @@ function doktor_lekar1_have()
 	cnt = cnt+1
 	
 	if cnt == 1 then
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ДОКТОР:".."\\n".."%c[255,255,128,128]Да, Меченый, именно так и нужно лечить людей - отдавая им аптечку. Носи всегда с собой запасные аптечки, чтобы ты мог помочь не только себе.".."".."\n", nil, nil, 30000)
-		-- Звуковое сопровождение
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."Р”РћРљРўРћР :".."\\n".."%c[255,255,128,128]Р”Р°, РњРµС‡РµРЅС‹Р№, РёРјРµРЅРЅРѕ С‚Р°Рє Рё РЅСѓР¶РЅРѕ Р»РµС‡РёС‚СЊ Р»СЋРґРµР№ - РѕС‚РґР°РІР°СЏ РёРј Р°РїС‚РµС‡РєСѓ. РќРѕСЃРё РІСЃРµРіРґР° СЃ СЃРѕР±РѕР№ Р·Р°РїР°СЃРЅС‹Рµ Р°РїС‚РµС‡РєРё, С‡С‚РѕР±С‹ С‚С‹ РјРѕРі РїРѕРјРѕС‡СЊ РЅРµ С‚РѕР»СЊРєРѕ СЃРµР±Рµ.".."".."\n", nil, nil, 30000)
+		-- Р—РІСѓРєРѕРІРѕРµ СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРµ
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 4 then
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ДОКТОР:".."\\n".."%c[255,255,128,128]Молодец, Меченый! Приятно видеть, что в Зоне есть добрые люди!".."".."\n", nil, nil, 30000)
-		-- Звуковое сопровождение
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."Р”РћРљРўРћР :".."\\n".."%c[255,255,128,128]РњРѕР»РѕРґРµС†, РњРµС‡РµРЅС‹Р№! РџСЂРёСЏС‚РЅРѕ РІРёРґРµС‚СЊ, С‡С‚Рѕ РІ Р—РѕРЅРµ РµСЃС‚СЊ РґРѕР±СЂС‹Рµ Р»СЋРґРё!".."".."\n", nil, nil, 30000)
+		-- Р—РІСѓРєРѕРІРѕРµ СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРµ
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 7 then
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ДОКТОР:".."\\n".."%c[255,255,128,128]Продолжай в том же духе, друг мой!".."".."\n", nil, nil, 30000)
-		-- Звуковое сопровождение
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."Р”РћРљРўРћР :".."\\n".."%c[255,255,128,128]РџСЂРѕРґРѕР»Р¶Р°Р№ РІ С‚РѕРј Р¶Рµ РґСѓС…Рµ, РґСЂСѓРі РјРѕР№!".."".."\n", nil, nil, 30000)
+		-- Р—РІСѓРєРѕРІРѕРµ СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРµ
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 10 then
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ДОКТОР:".."\\n".."%c[255,255,128,128]Меченый, ты справился с моим поручением и показал, что на тебя можно положиться. Жду тебя в гости, есть кое-что интересное.".."".."\n", nil, nil, 30000)
-		-- Звуковое сопровождение
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]".."Р”РћРљРўРћР :".."\\n".."%c[255,255,128,128]РњРµС‡РµРЅС‹Р№, С‚С‹ СЃРїСЂР°РІРёР»СЃСЏ СЃ РјРѕРёРј РїРѕСЂСѓС‡РµРЅРёРµРј Рё РїРѕРєР°Р·Р°Р», С‡С‚Рѕ РЅР° С‚РµР±СЏ РјРѕР¶РЅРѕ РїРѕР»РѕР¶РёС‚СЊСЃСЏ. Р–РґСѓ С‚РµР±СЏ РІ РіРѕСЃС‚Рё, РµСЃС‚СЊ РєРѕРµ-С‡С‚Рѕ РёРЅС‚РµСЂРµСЃРЅРѕРµ.".."".."\n", nil, nil, 30000)
+		-- Р—РІСѓРєРѕРІРѕРµ СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРµ
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 		db.actor:give_info_portion("doktor_lekar1_have")
@@ -1854,7 +1854,7 @@ function doktor_lekar1_money()
 	end
 end
 
--- Убийство контролеров в онлайне, чтобы не было зацикливания пения
+-- РЈР±РёР№СЃС‚РІРѕ РєРѕРЅС‚СЂРѕР»РµСЂРѕРІ РІ РѕРЅР»Р°Р№РЅРµ, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ Р·Р°С†РёРєР»РёРІР°РЅРёСЏ РїРµРЅРёСЏ
 function kill_online_kontroller()
 	local result = false
 	for id,obj in pairs(db.creatures) do
@@ -2006,7 +2006,7 @@ function spawn_s_teleport1_4()
 end
 function spawn_s_teleport1_5()
     local se_obj = alife():create("s_teleport1_5",vector():set(43.850486755371,11.828426361084,37.138198852539),155631,2225)
-	-- нигде не используется, лишний мусор в псторе
+	-- РЅРёРіРґРµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, Р»РёС€РЅРёР№ РјСѓСЃРѕСЂ РІ РїСЃС‚РѕСЂРµ
 	--xr_logic.pstor_store(db.actor, "s_teleport1_5", se_obj.id)		  
 end
 
@@ -2051,13 +2051,13 @@ function checking_taken_item59(obj)
   if string.find(obj_sect,"kostya_taynik_pda1_") then
 	db.actor:give_info_portion("kostya_taynik_pda_have_1_"..string.sub(obj_sect,string.find(obj_sect,"1_")+2))
 	if not has_alife_info("kostya_taynik_pda1_tele") then 
-	  news_manager.send_tip(db.actor, "На полях пометка: Чтобы не забыть - телепорт находится в комнате над гастрономом, в которую нельзя попасть по основной лестнице.", nil, nil, 30000)
+	  news_manager.send_tip(db.actor, "РќР° РїРѕР»СЏС… РїРѕРјРµС‚РєР°: Р§С‚РѕР±С‹ РЅРµ Р·Р°Р±С‹С‚СЊ - С‚РµР»РµРїРѕСЂС‚ РЅР°С…РѕРґРёС‚СЃСЏ РІ РєРѕРјРЅР°С‚Рµ РЅР°Рґ РіР°СЃС‚СЂРѕРЅРѕРјРѕРј, РІ РєРѕС‚РѕСЂСѓСЋ РЅРµР»СЊР·СЏ РїРѕРїР°СЃС‚СЊ РїРѕ РѕСЃРЅРѕРІРЅРѕР№ Р»РµСЃС‚РЅРёС†Рµ.", nil, nil, 30000)
 	  this.spawn_t_teleport1_1()
 	  db.actor:give_info_portion("kostya_taynik_pda1_tele")
 	end
 	if obj_sect=="kostya_taynik_pda1_2" then 
 	  if not has_alife_info("kostya_taynik_pda1_2_xvatit_spawn") then 
-	    news_manager.send_tip(db.actor, "Внизу примечание: Тайник на первом этаже - в одном из соседних домов.", nil, nil, 30000)
+	    news_manager.send_tip(db.actor, "Р’РЅРёР·Сѓ РїСЂРёРјРµС‡Р°РЅРёРµ: РўР°Р№РЅРёРє РЅР° РїРµСЂРІРѕРј СЌС‚Р°Р¶Рµ - РІ РѕРґРЅРѕРј РёР· СЃРѕСЃРµРґРЅРёС… РґРѕРјРѕРІ.", nil, nil, 30000)
 	    db.actor:give_info_portion("kostya_taynik_pda1_2_xvatit_spawn")
 	  end
 	end
@@ -2065,7 +2065,7 @@ function checking_taken_item59(obj)
 	  if not has_alife_info("kostya_taynik_pda1_have") then 
 	    this.delete_t_teleport1_1()
 	    this.spawn_t_teleport1_2()
-	    news_manager.send_tip(db.actor, "В углу надпись: Телепорт на крышу - на разрушенной лестнице в кинотеатре.", nil, nil, 30000)
+	    news_manager.send_tip(db.actor, "Р’ СѓРіР»Сѓ РЅР°РґРїРёСЃСЊ: РўРµР»РµРїРѕСЂС‚ РЅР° РєСЂС‹С€Сѓ - РЅР° СЂР°Р·СЂСѓС€РµРЅРЅРѕР№ Р»РµСЃС‚РЅРёС†Рµ РІ РєРёРЅРѕС‚РµР°С‚СЂРµ.", nil, nil, 30000)
         db.actor:give_info_portion("kostya_taynik_pda1_have")
 	  end
 	end
@@ -2100,7 +2100,7 @@ end
 function kostya_taynik_pda21_done(task, objective)
 	inventory.out_items("kostya_taynik_pda21",18)
 
-	-- спавним порталы и переходы
+	-- СЃРїР°РІРЅРёРј РїРѕСЂС‚Р°Р»С‹ Рё РїРµСЂРµС…РѕРґС‹
 	local obj, params
 	local portals = {
 		{eh={x=-95.833763122559,y=-20.12349319458,z=73.946479797363,gv=3838,lv=1098},
@@ -2151,18 +2151,18 @@ function kostya_taynik_pda21_done(task, objective)
 end
 
 function create_eh_lc(
-	p_story_id,	-- STORY_ID нового level_changer (понадобится нам позже)
+	p_story_id,	-- STORY_ID РЅРѕРІРѕРіРѕ level_changer (РїРѕРЅР°РґРѕР±РёС‚СЃСЏ РЅР°Рј РїРѕР·Р¶Рµ)
 	
-	p_position,	-- вектор, координаты точки, в которой будет располагаться центр нового level_changer
-	p_lvertex_id,	-- level_vertext_id  - идентифицируют уровень, на котором будет создан level_changer
+	p_position,	-- РІРµРєС‚РѕСЂ, РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё, РІ РєРѕС‚РѕСЂРѕР№ Р±СѓРґРµС‚ СЂР°СЃРїРѕР»Р°РіР°С‚СЊСЃСЏ С†РµРЅС‚СЂ РЅРѕРІРѕРіРѕ level_changer
+	p_lvertex_id,	-- level_vertext_id  - РёРґРµРЅС‚РёС„РёС†РёСЂСѓСЋС‚ СѓСЂРѕРІРµРЅСЊ, РЅР° РєРѕС‚РѕСЂРѕРј Р±СѓРґРµС‚ СЃРѕР·РґР°РЅ level_changer
 	p_gvertex_id,	-- game_vertext_id   	
  
-	p_dest_pos,	-- координаты точки, в которой на новом уровне окажется игрок
-	p_dest_lv,	-- level_vertex_id   - идентифицируют уровень, на который level_changer будет перебрасывать игрока 
+	p_dest_pos,	-- РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё, РІ РєРѕС‚РѕСЂРѕР№ РЅР° РЅРѕРІРѕРј СѓСЂРѕРІРЅРµ РѕРєР°Р¶РµС‚СЃСЏ РёРіСЂРѕРє
+	p_dest_lv,	-- level_vertex_id   - РёРґРµРЅС‚РёС„РёС†РёСЂСѓСЋС‚ СѓСЂРѕРІРµРЅСЊ, РЅР° РєРѕС‚РѕСЂС‹Р№ level_changer Р±СѓРґРµС‚ РїРµСЂРµР±СЂР°СЃС‹РІР°С‚СЊ РёРіСЂРѕРєР° 
 	p_dest_gv,	-- game_vertex_id
-	p_dest_dir,	-- направрение взгляда игрока
-	p_dest_level,	-- название уровня, например "L11_Pripyat"
-	p_silent	-- следует задать 1, чтобы подавить вопрос о смене уровня (автоматический переход)
+	p_dest_dir,	-- РЅР°РїСЂР°РІСЂРµРЅРёРµ РІР·РіР»СЏРґР° РёРіСЂРѕРєР°
+	p_dest_level,	-- РЅР°Р·РІР°РЅРёРµ СѓСЂРѕРІРЅСЏ, РЅР°РїСЂРёРјРµСЂ "L11_Pripyat"
+	p_silent	-- СЃР»РµРґСѓРµС‚ Р·Р°РґР°С‚СЊ 1, С‡С‚РѕР±С‹ РїРѕРґР°РІРёС‚СЊ РІРѕРїСЂРѕСЃ Рѕ СЃРјРµРЅРµ СѓСЂРѕРІРЅСЏ (Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РїРµСЂРµС…РѕРґ)
 )
 	local sim = alife()
 	local obj = sim:create("level_changer", p_position, p_lvertex_id, p_gvertex_id)
@@ -2170,7 +2170,7 @@ function create_eh_lc(
 	local packet = net_packet()
 	obj:STATE_Write(packet)
  
-	-- свойства cse_alife_object
+	-- СЃРІРѕР№СЃС‚РІР° cse_alife_object
 	local game_vertex_id 			= packet:r_u16()
 	local cse_alife_object__unk1_f32 	= packet:r_float()
 	local cse_alife_object__unk2_u32 	= packet:r_u32()
@@ -2180,7 +2180,7 @@ function create_eh_lc(
 	local story_id 				= packet:r_u32()
 	local spawn_story_id			= packet:r_u32()
  
-	-- свойства cse_shape
+	-- СЃРІРѕР№СЃС‚РІР° cse_shape
 	local shape_count 			= packet:r_u8()
 	for i=1,shape_count do
 		local shape_type 		= packet:r_u8()
@@ -2205,10 +2205,10 @@ function create_eh_lc(
 		end
 	end
  
-	-- свойства cse_alife_space_restrictor
+	-- СЃРІРѕР№СЃС‚РІР° cse_alife_space_restrictor
 	local restrictor_type 			= packet:r_u8()
  
-	-- свойства cse_level_changer
+	-- СЃРІРѕР№СЃС‚РІР° cse_level_changer
 	local dest_game_vertex_id		= packet:r_u16()  
 	local dest_level_vertex_id 		= packet:r_u32()  
 	local dest_position 			= packet:r_vec3()
@@ -2227,12 +2227,12 @@ function create_eh_lc(
 	packet:w_u32(p_story_id)			-- story_id
 	packet:w_u32(spawn_story_id)
  
-	packet:w_u8(1)			-- количество фигур
-		packet:w_u8(0)			-- тип фигуры: сфера
+	packet:w_u8(1)			-- РєРѕР»РёС‡РµСЃС‚РІРѕ С„РёРіСѓСЂ
+		packet:w_u8(0)			-- С‚РёРї С„РёРіСѓСЂС‹: СЃС„РµСЂР°
 		packet:w_vec3(vector():set(0, 0, 0))  -- sphere_center
 		packet:w_float(0.5)
 --[[
-	packet:w_u8(1)			-- тип фигуры: box
+	packet:w_u8(1)			-- С‚РёРї С„РёРіСѓСЂС‹: box
 	packet:w_float(2)	   -- axis_x_x
 	packet:w_float(0)	   -- axis_x_y
 	packet:w_float(0)	   -- axis_x_z
@@ -2251,7 +2251,7 @@ function create_eh_lc(
 	packet:w_u16(p_dest_gv)			-- destination game_vertex_id
 	packet:w_s32(p_dest_lv)			-- destination level_vertex_id
 	packet:w_vec3(p_dest_pos)		-- destination position
-	packet:w_vec3(p_dest_dir)		-- destination direction (направление взгляда)
+	packet:w_vec3(p_dest_dir)		-- destination direction (РЅР°РїСЂР°РІР»РµРЅРёРµ РІР·РіР»СЏРґР°)
 	packet:w_stringZ(p_dest_level)		-- destination level name
 	packet:w_stringZ("start_actor_02")	-- some string, always const
 	packet:w_u8(p_silent)			-- 1 for silent level changing
@@ -2430,7 +2430,7 @@ function kostya_taynik_pda11_have(task, objective)
 end
 function kostya_taynik_pda11_done(first_speaker, second_speaker)
   db.actor:give_info_portion("ktdt1")
---  news_manager.send_tip(db.actor, "Найдена информация.", nil, nil, 20000)
+--  news_manager.send_tip(db.actor, "РќР°Р№РґРµРЅР° РёРЅС„РѕСЂРјР°С†РёСЏ.", nil, nil, 20000)
   this.spawn_x_teleport1()
   dialogs.relocate_item_section(second_speaker, "kostya_taynik_pda11_1", "out")
   dialogs.relocate_item_section(second_speaker, "kostya_taynik_pda11_2", "out")
@@ -2450,13 +2450,13 @@ end
 end
 function spawn_t_teleport1_2()
     local se_obj = alife():create("t_teleport1_2",vector():set(23.953285217285,10.699913024902,162.15838623047),131398,2199)
-	-- нигде не используется, лишний мусор в псторе
+	-- РЅРёРіРґРµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, Р»РёС€РЅРёР№ РјСѓСЃРѕСЂ РІ РїСЃС‚РѕСЂРµ
 --	xr_logic.pstor_store(db.actor, "t_teleport1_2", se_obj.id)		  
 end
 
 function spawn_t_teleport4_1()
     local se_obj = alife():create("t_teleport4_1",vector():set(-50.95,-29.72,-139.41),796684,2897)
-	-- нигде не используется, лишний мусор в псторе
+	-- РЅРёРіРґРµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, Р»РёС€РЅРёР№ РјСѓСЃРѕСЂ РІ РїСЃС‚РѕСЂРµ
 --	xr_logic.pstor_store(db.actor, "t_teleport4_1", se_obj.id)		  
 end
 
@@ -2486,8 +2486,8 @@ end
 
 function taynik_kostya2_call()
     if has_alife_info("kostya_sacharov_done") and has_alife_info("sahar_sumka_done") and has_alife_info("kostya_biznes1_done") then 
-	  news_manager.send_tip(db.actor, "%c[255,160,160,160]КОСТЯ:\\n%c[255,255,128,128]Стрелок! Будешь в наших краях, заходи, есть кое-что интересное.", nil, nil, 30000)
-	  -- Звуковое сопровождение
+	  news_manager.send_tip(db.actor, "%c[255,160,160,160]РљРћРЎРўРЇ:\\n%c[255,255,128,128]РЎС‚СЂРµР»РѕРє! Р‘СѓРґРµС€СЊ РІ РЅР°С€РёС… РєСЂР°СЏС…, Р·Р°С…РѕРґРё, РµСЃС‚СЊ РєРѕРµ-С‡С‚Рѕ РёРЅС‚РµСЂРµСЃРЅРѕРµ.", nil, nil, 30000)
+	  -- Р—РІСѓРєРѕРІРѕРµ СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРµ
 	  local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
       snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	end
@@ -2622,7 +2622,7 @@ end
 
 function info_recieved() end
 
--- Вероятности появления фраз в диалогах
+-- Р’РµСЂРѕСЏС‚РЅРѕСЃС‚Рё РїРѕСЏРІР»РµРЅРёСЏ С„СЂР°Р· РІ РґРёР°Р»РѕРіР°С…
 function probability_05()
 	return math.random() <= 0.05
 end

@@ -1,27 +1,27 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- полет ГГ
-local vel = 24		-- скорость в м/с
-local delta = 40	-- интервал обновления в мс. не должен быть меньше 20 и произведение vel*delta должно быть не меньше 900, иначе картинка будет дергаться
+-- РїРѕР»РµС‚ Р“Р“
+local vel = 24		-- СЃРєРѕСЂРѕСЃС‚СЊ РІ Рј/СЃ
+local delta = 40	-- РёРЅС‚РµСЂРІР°Р» РѕР±РЅРѕРІР»РµРЅРёСЏ РІ РјСЃ. РЅРµ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РјРµРЅСЊС€Рµ 20 Рё РїСЂРѕРёР·РІРµРґРµРЅРёРµ vel*delta РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅРµ РјРµРЅСЊС€Рµ 900, РёРЅР°С‡Рµ РєР°СЂС‚РёРЅРєР° Р±СѓРґРµС‚ РґРµСЂРіР°С‚СЊСЃСЏ
 local time = time_global()
 local last_time = time
 local last_pos = db.actor:position()
 local dt = nil
 
 function start(obj)
-	-- новый полет
+	-- РЅРѕРІС‹Р№ РїРѕР»РµС‚
 	level.start_stop_menu(level.main_input_receiver(), true)
 
-	-- временный запрет полета - возвращаем предмет
+	-- РІСЂРµРјРµРЅРЅС‹Р№ Р·Р°РїСЂРµС‚ РїРѕР»РµС‚Р° - РІРѕР·РІСЂР°С‰Р°РµРј РїСЂРµРґРјРµС‚
 	if has_alife_info("no_gravigun") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
 		amk.spawn_item_in_inv("anom_egg", db.actor)
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Что-то не получается взлететь. Попробуй в другой раз.", nil, nil, 15000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]Р’РћР›РђР—РђР :\\n%c[255,255,128,128]Р§С‚Рѕ-С‚Рѕ РЅРµ РїРѕР»СѓС‡Р°РµС‚СЃСЏ РІР·Р»РµС‚РµС‚СЊ. РџРѕРїСЂРѕР±СѓР№ РІ РґСЂСѓРіРѕР№ СЂР°Р·.", nil, nil, 15000) 
 		return
 	end
 
 	if db.actor:item_in_slot( inventory_slots.OUTFIT ) or actor_active_item then
-		-- одета броня или не убран ствол
+		-- РѕРґРµС‚Р° Р±СЂРѕРЅСЏ РёР»Рё РЅРµ СѓР±СЂР°РЅ СЃС‚РІРѕР»
 		amk.spawn_item_in_inv("anom_egg", db.actor)
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Стрелок, чтобы взлететь, ты должен снять броню и убрать оружие.", nil, nil, 10000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]Р’РћР›РђР—РђР :\\n%c[255,255,128,128]РЎС‚СЂРµР»РѕРє, С‡С‚РѕР±С‹ РІР·Р»РµС‚РµС‚СЊ, С‚С‹ РґРѕР»Р¶РµРЅ СЃРЅСЏС‚СЊ Р±СЂРѕРЅСЋ Рё СѓР±СЂР°С‚СЊ РѕСЂСѓР¶РёРµ.", nil, nil, 10000) 
 		return
 	end
 	
@@ -37,11 +37,11 @@ function start(obj)
 end
 
 function update()
-	-- собственно полет
+	-- СЃРѕР±СЃС‚РІРµРЅРЅРѕ РїРѕР»РµС‚
 	if not has_alife_info("actor_fly") then return end
 
 	if db.actor:active_slot() == inventory_slots.BOLT or db.actor:item_in_slot( inventory_slots.OUTFIT ) then
-		-- достали болт или одели броню
+		-- РґРѕСЃС‚Р°Р»Рё Р±РѕР»С‚ РёР»Рё РѕРґРµР»Рё Р±СЂРѕРЅСЋ
 		stop()
 	end
 
@@ -55,7 +55,7 @@ function update()
 end
 
 function stop()
-	-- остановка полета
+	-- РѕСЃС‚Р°РЅРѕРІРєР° РїРѕР»РµС‚Р°
 	db.actor:disable_info_portion("actor_fly")
 	xr_s.unsubscribe( "update", this.update )
 	
@@ -66,13 +66,13 @@ end
 
 function wrong_fly()
 	if not has_alife_info("vol_info_temp") and not has_alife_info("sidor_delo_done") then
-		news_manager.send_tip(db.actor, "%c[255,160,160,160]ВОЛАЗАР:\\n%c[255,255,128,128]Стрелок, зря ты это сделал. Нормально можно летать только с помощью тех яиц, которые тебе дам я. Все остальные яйца крайне ядовиты, и сейчас ты умрёшь.", nil, nil, 20000) 
+		news_manager.send_tip(db.actor, "%c[255,160,160,160]Р’РћР›РђР—РђР :\\n%c[255,255,128,128]РЎС‚СЂРµР»РѕРє, Р·СЂСЏ С‚С‹ СЌС‚Рѕ СЃРґРµР»Р°Р». РќРѕСЂРјР°Р»СЊРЅРѕ РјРѕР¶РЅРѕ Р»РµС‚Р°С‚СЊ С‚РѕР»СЊРєРѕ СЃ РїРѕРјРѕС‰СЊСЋ С‚РµС… СЏРёС†, РєРѕС‚РѕСЂС‹Рµ С‚РµР±Рµ РґР°Рј СЏ. Р’СЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ СЏР№С†Р° РєСЂР°Р№РЅРµ СЏРґРѕРІРёС‚С‹, Рё СЃРµР№С‡Р°СЃ С‚С‹ СѓРјСЂС‘С€СЊ.", nil, nil, 20000) 
 		xr_timers.start_real_timer("zonedocs_gg_kill",13.0,0)
 		level.add_cam_effector("camera_effects\\radar_stop.anm", 2507, false, "")
 	end
 end
 
--- Ускоритель ГГ
+-- РЈСЃРєРѕСЂРёС‚РµР»СЊ Р“Р“
 function runner()
 	if not run_allowed() then
 		local obj = db.actor:object("runner_tele")
@@ -95,7 +95,7 @@ function do_run()
 	db.actor:set_actor_position( new_pos )
 	
 	local path = math.ceil( pos:distance_to(db.actor:position()) )
-	archievements.acv_count_event("acv_run", 30000, "Электровеник", path)
+	archievements.acv_count_event("acv_run", 30000, "Р­Р»РµРєС‚СЂРѕРІРµРЅРёРє", path)
 end
 
 local sended = false
@@ -103,17 +103,17 @@ function run_allowed()
 	if game_options.RunnerForever then return true end
 
 	if db.actor:get_inventory_weight() > 350 and not sended then
-		news_manager.send_tip(db.actor, "Большой вес! Возможен сбой.", nil, "nano", 15000)
+		news_manager.send_tip(db.actor, "Р‘РѕР»СЊС€РѕР№ РІРµСЃ! Р’РѕР·РјРѕР¶РµРЅ СЃР±РѕР№.", nil, "nano", 15000)
 		sended = true
 	else
 		sended = false
 	end
 
 	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "РўРµР»РµРїРѕСЂС‚Р°С†РёСЏ РёР· СЂР°Р№РѕРЅР° СЃРєРѕРїР»РµРЅРёСЏ РІСЂР°Р¶РµСЃРєРёС… СЃРёР» РЅРµРІРѕР·РјРѕР¶РЅР° РїРѕ С‚РµС…РЅРёС‡РµСЃРєРёРј РїСЂРёС‡РёРЅР°Рј. Р”Р»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚Рё СѓСЃС‚СЂР°РЅРёС‚Рµ СѓРіСЂРѕР·Сѓ.", nil, "nano", 5000)
 		return false
 	elseif has_alife_info("snp_proper7014_done") and not has_alife_info("snp_video_arhiv_done") then
-		news_manager.send_tip(db.actor, "Телепортация невозможна по техническим причинам.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "РўРµР»РµРїРѕСЂС‚Р°С†РёСЏ РЅРµРІРѕР·РјРѕР¶РЅР° РїРѕ С‚РµС…РЅРёС‡РµСЃРєРёРј РїСЂРёС‡РёРЅР°Рј.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
@@ -127,10 +127,10 @@ function run_allowed()
 	return true
 end
 
--- наличие опасности в зависимости от уровня сложности
+-- РЅР°Р»РёС‡РёРµ РѕРїР°СЃРЅРѕСЃС‚Рё РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СѓСЂРѕРІРЅСЏ СЃР»РѕР¶РЅРѕСЃС‚Рё
 function actor_is_in_danger()
 	local difficulty = level.get_game_difficulty()
-	local danger_text = "Телепортация при наличии вражеской угрозы невозможна по техническим причинам. Для восстановления функциональности устраните угрозу."
+	local danger_text = "РўРµР»РµРїРѕСЂС‚Р°С†РёСЏ РїСЂРё РЅР°Р»РёС‡РёРё РІСЂР°Р¶РµСЃРєРѕР№ СѓРіСЂРѕР·С‹ РЅРµРІРѕР·РјРѕР¶РЅР° РїРѕ С‚РµС…РЅРёС‡РµСЃРєРёРј РїСЂРёС‡РёРЅР°Рј. Р”Р»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚Рё СѓСЃС‚СЂР°РЅРёС‚Рµ СѓРіСЂРѕР·Сѓ."
 
 	if difficulty < 2 then
 		return false
@@ -139,20 +139,20 @@ function actor_is_in_danger()
 	end
 end
 
--- Возвращатель ГГ
+-- Р’РѕР·РІСЂР°С‰Р°С‚РµР»СЊ Р“Р“
 local single_click, double_click = nil, nil
 local click_timeout = 350
 local returner_pos, returner_temp_pos
 
 function returner()
 	if single_click then
-		-- второе нажатие
+		-- РІС‚РѕСЂРѕРµ РЅР°Р¶Р°С‚РёРµ
 		double_click = true
 		if set_pos_allowed() then
 			returner_set_pos()
 		end
 	else
-		-- первое нажатие
+		-- РїРµСЂРІРѕРµ РЅР°Р¶Р°С‚РёРµ
 		single_click = true
 		returner_temp_pos = db.actor:position()
 		xr_s.subscribe( "update", this.returner_update, { timeout = click_timeout, once = true } )
@@ -173,7 +173,7 @@ function returner_set_pos()
 	fly.stop()
 
 	returner_pos = db.actor:position()
-	news_manager.send_tip(db.actor, "Позиция сохранена.", nil, "nano")
+	news_manager.send_tip(db.actor, "РџРѕР·РёС†РёСЏ СЃРѕС…СЂР°РЅРµРЅР°.", nil, "nano")
 end
 
 function returner_clear_pos()
@@ -185,12 +185,12 @@ function set_pos_allowed()
 	if game_options.RunnerForever then return true end
 
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
-		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Р’РѕР·РІСЂР°С‰РµРЅРёРµ РёР· СЂР°Р№РѕРЅР° СЃРєРѕРїР»РµРЅРёСЏ РІСЂР°Р¶РµСЃРєРёС… СЃРёР» РЅРµРІРѕР·РјРѕР¶РЅРѕ РїРѕ С‚РµС…РЅРёС‡РµСЃРєРёРј РїСЂРёС‡РёРЅР°Рј. Р”Р»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚Рё СѓСЃС‚СЂР°РЅРёС‚Рµ СѓРіСЂРѕР·Сѓ.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif returner_temp_pos:distance_to(db.actor:position()) > 0.005 then 
-		news_manager.send_tip(db.actor, "Ошибка установки позиции. При задании позиции нельзя перемещаться.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "РћС€РёР±РєР° СѓСЃС‚Р°РЅРѕРІРєРё РїРѕР·РёС†РёРё. РџСЂРё Р·Р°РґР°РЅРёРё РїРѕР·РёС†РёРё РЅРµР»СЊР·СЏ РїРµСЂРµРјРµС‰Р°С‚СЊСЃСЏ.", nil, "nano", 5000)
 		return false
 	end
 	return true
@@ -212,23 +212,23 @@ end
 function returner_allowed()
 	if not returner_pos then
 		local key = hotkeys.dik2key( game_options.RunnerKey )
-		news_manager.send_tip(db.actor, "Не задана позиция возвращения. Для установки позиции нажмите дважды клавишу "..key..".", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "РќРµ Р·Р°РґР°РЅР° РїРѕР·РёС†РёСЏ РІРѕР·РІСЂР°С‰РµРЅРёСЏ. Р”Р»СЏ СѓСЃС‚Р°РЅРѕРІРєРё РїРѕР·РёС†РёРё РЅР°Р¶РјРёС‚Рµ РґРІР°Р¶РґС‹ РєР»Р°РІРёС€Сѓ "..key..".", nil, "nano", 5000)
 		return false
 	end
 
 	if game_options.RunnerForever then return true end
 
 	if has_alife_info("no_teleport_near_heli_btr") and not (has_alife_info("snpt_jupiter5_have3") and not has_alife_info("snpt_jupiter6_done")) then 
-		news_manager.send_tip(db.actor, "Возвращение из района скопления вражеских сил невозможно по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Р’РѕР·РІСЂР°С‰РµРЅРёРµ РёР· СЂР°Р№РѕРЅР° СЃРєРѕРїР»РµРЅРёСЏ РІСЂР°Р¶РµСЃРєРёС… СЃРёР» РЅРµРІРѕР·РјРѕР¶РЅРѕ РїРѕ С‚РµС…РЅРёС‡РµСЃРєРёРј РїСЂРёС‡РёРЅР°Рј. Р”Р»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚Рё СѓСЃС‚СЂР°РЅРёС‚Рµ СѓРіСЂРѕР·Сѓ.", nil, "nano", 5000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then
 		local key = hotkeys.dik2key( game_options.RunnerKey )
-		news_manager.send_tip(db.actor, "Возвращение невозможно из-за слишком большого расстояния. Для смены позиции нажмите дважды клавишу "..key..".", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "Р’РѕР·РІСЂР°С‰РµРЅРёРµ РЅРµРІРѕР·РјРѕР¶РЅРѕ РёР·-Р·Р° СЃР»РёС€РєРѕРј Р±РѕР»СЊС€РѕРіРѕ СЂР°СЃСЃС‚РѕСЏРЅРёСЏ. Р”Р»СЏ СЃРјРµРЅС‹ РїРѕР·РёС†РёРё РЅР°Р¶РјРёС‚Рµ РґРІР°Р¶РґС‹ РєР»Р°РІРёС€Сѓ "..key..".", nil, "nano", 5000)
 		return false
 	elseif returner_pos:distance_to(db.actor:position()) < 0.6 then 
-		news_manager.send_tip(db.actor, "Слишком малое расстояние между текущей и заданной позицией. Для выполнения возвращения нужно отойти подальше.", nil, "nano", 5000)
+		news_manager.send_tip(db.actor, "РЎР»РёС€РєРѕРј РјР°Р»РѕРµ СЂР°СЃСЃС‚РѕСЏРЅРёРµ РјРµР¶РґСѓ С‚РµРєСѓС‰РµР№ Рё Р·Р°РґР°РЅРЅРѕР№ РїРѕР·РёС†РёРµР№. Р”Р»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РІРѕР·РІСЂР°С‰РµРЅРёСЏ РЅСѓР¶РЅРѕ РѕС‚РѕР№С‚Рё РїРѕРґР°Р»СЊС€Рµ.", nil, "nano", 5000)
 		return false
 	end
 	return true

@@ -8,22 +8,22 @@ local get_string = game.translate_string
 local random_task = nil
 
 local parent_by_story = {
-  [003] = "trader",				-- Сидорович
-  [004] = "shustriy",			-- Шустрый
-  [006] = "wolf",				-- Волк
-  [032] = "bridge_commander",	-- Кузнецов
-  [500] = "barman",				-- Бармен
-  [504] = "hunter",				-- Охотник
-  [506] = "petrenko",			-- Полковник Петренко
-  [507] = "dolg",				-- Генерал Воронин
-  [510] = "drunk_dolg",			-- Бром
-  [515] = "mercenary",			-- Осведомтель
-  [518] = "zastava_commander",	-- Сержант Киценко
-  [607] = "lisiy",				-- Лысый
-  [707] = "freedom",			-- Лукаш
-  [902] = "ecolog",				-- Сахаров
-  [9613] = "green",				-- Захар
-  [9974] = "otshelnik"			-- Отшельник
+  [003] = "trader",				-- РЎРёРґРѕСЂРѕРІРёС‡
+  [004] = "shustriy",			-- РЁСѓСЃС‚СЂС‹Р№
+  [006] = "wolf",				-- Р’РѕР»Рє
+  [032] = "bridge_commander",	-- РљСѓР·РЅРµС†РѕРІ
+  [500] = "barman",				-- Р‘Р°СЂРјРµРЅ
+  [504] = "hunter",				-- РћС…РѕС‚РЅРёРє
+  [506] = "petrenko",			-- РџРѕР»РєРѕРІРЅРёРє РџРµС‚СЂРµРЅРєРѕ
+  [507] = "dolg",				-- Р“РµРЅРµСЂР°Р» Р’РѕСЂРѕРЅРёРЅ
+  [510] = "drunk_dolg",			-- Р‘СЂРѕРј
+  [515] = "mercenary",			-- РћСЃРІРµРґРѕРјС‚РµР»СЊ
+  [518] = "zastava_commander",	-- РЎРµСЂР¶Р°РЅС‚ РљРёС†РµРЅРєРѕ
+  [607] = "lisiy",				-- Р›С‹СЃС‹Р№
+  [707] = "freedom",			-- Р›СѓРєР°С€
+  [902] = "ecolog",				-- РЎР°С…Р°СЂРѕРІ
+  [9613] = "green",				-- Р—Р°С…Р°СЂ
+  [9974] = "otshelnik"			-- РћС‚С€РµР»СЊРЅРёРє
 }
 
 local story_by_parent = {
@@ -53,7 +53,7 @@ local return_task_by_type = {
   monster_part = "return_for_reward_bring",
   find_item = "return_for_reward_bring"}
 
--- типы циклических заданий для статистики
+-- С‚РёРїС‹ С†РёРєР»РёС‡РµСЃРєРёС… Р·Р°РґР°РЅРёР№ РґР»СЏ СЃС‚Р°С‚РёСЃС‚РёРєРё
 local cycle_task = {
 	["eliminate_lager"] = true,
 	["defend_lager"] = true,
@@ -67,7 +67,7 @@ local hash_to_id={}
 local id_to_hash={}
 local ct_to_hash={}
 local hash_to_ct={}
--- хэш функция для строки (посмотреть литературу, на предмет оптимальной)
+-- С…СЌС€ С„СѓРЅРєС†РёСЏ РґР»СЏ СЃС‚СЂРѕРєРё (РїРѕСЃРјРѕС‚СЂРµС‚СЊ Р»РёС‚РµСЂР°С‚СѓСЂСѓ, РЅР° РїСЂРµРґРјРµС‚ РѕРїС‚РёРјР°Р»СЊРЅРѕР№)
 function stringhash(str)
   local mpl=1
   local hash=0
@@ -82,18 +82,18 @@ end
 
 class "CRandomTask"
 function CRandomTask:__init()
-  --' На конструкторе вычитываем LTX и создаем заготовки квестов.
+  --' РќР° РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂРµ РІС‹С‡РёС‚С‹РІР°РµРј LTX Рё СЃРѕР·РґР°РµРј Р·Р°РіРѕС‚РѕРІРєРё РєРІРµСЃС‚РѕРІ.
   self.task_ini = ini_file("misc\\task_manager.ltx")
   self.task_phrase_id = 100
 
-  --' Итерируемся по всем настройкам фраз
+  --' РС‚РµСЂРёСЂСѓРµРјСЃСЏ РїРѕ РІСЃРµРј РЅР°СЃС‚СЂРѕР№РєР°Рј С„СЂР°Р·
   if not self.task_ini:section_exist("list") then
     abort("There is no section [list] in task_manager.ltx")
   end
   local n = self.task_ini:line_count("list")
   local result, id, value = "","",""
 
-  --' начальная установка
+  --' РЅР°С‡Р°Р»СЊРЅР°СЏ СѓСЃС‚Р°РЅРѕРІРєР°
   self.task_info = {}
   
   for i=0,n-1 do
@@ -154,8 +154,8 @@ function CRandomTask:__init()
 		end
 		curr_task_info.time				= self.task_ini:r_u32_ex(id, "time")
 
-		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", 24*60*60) --' Время между выдачами задания (в игровых секундах)
-		curr_task_info.prior			= self.task_ini:r_float_ex(id, "prior", 0) --' Приоритет квеста, выдаются доступные квесты с наименьшим приоритетом
+		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", 24*60*60) --' Р’СЂРµРјСЏ РјРµР¶РґСѓ РІС‹РґР°С‡Р°РјРё Р·Р°РґР°РЅРёСЏ (РІ РёРіСЂРѕРІС‹С… СЃРµРєСѓРЅРґР°С…)
+		curr_task_info.prior			= self.task_ini:r_float_ex(id, "prior", 0) --' РџСЂРёРѕСЂРёС‚РµС‚ РєРІРµСЃС‚Р°, РІС‹РґР°СЋС‚СЃСЏ РґРѕСЃС‚СѓРїРЅС‹Рµ РєРІРµСЃС‚С‹ СЃ РЅР°РёРјРµРЅСЊС€РёРј РїСЂРёРѕСЂРёС‚РµС‚РѕРј
 	
 		if self.task_ini:line_exist(id, "init_condition") then
 			curr_task_info.init_condition = xr_logic.parse_condlist(db.actor, "task_manager", "init_condition", self.task_ini:r_string(id, "init_condition"))
@@ -167,17 +167,17 @@ function CRandomTask:__init()
 		
 		curr_task_info.reward_money = self.task_ini:r_u32_ex(id, "reward_money", nil)		
 		curr_task_info.reward_script = self.task_ini:r_string_ex(id, "reward_script", nil)
-		-- Награда информацией
+		-- РќР°РіСЂР°РґР° РёРЅС„РѕСЂРјР°С†РёРµР№
 		-- amk.mylog("reward info read")
 		curr_task_info.reward_info = self.task_ini:r_string_ex(id, "reward_info", nil)
 		if curr_task_info.reward_info then
 			self:read_info_reward_section(curr_task_info)
 		end
 		-- amk.mylog("reward info read done")
-		-- Диалог для квестовой жертвы
+		-- Р”РёР°Р»РѕРі РґР»СЏ РєРІРµСЃС‚РѕРІРѕР№ Р¶РµСЂС‚РІС‹
 		curr_task_info.target_dialog = self.task_ini:r_string_ex(id, "target_dialog", nil)
 		----------------------
-        -- всё равно не используется
+        -- РІСЃС‘ СЂР°РІРЅРѕ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ
 		-- if self.task_ini:line_exist(id, "community") then
 			-- curr_task_info.community = self.task_ini:r_string(id, "community")
 		-- end		
@@ -196,17 +196,17 @@ function CRandomTask:__init()
 		curr_task_info.no_phrase_id			= self:gen_phrase_id()
 		curr_task_info.completed_phrase_id = self:gen_phrase_id()
 
-		--' По умолчанию квест доступен для выдачи
+		--' РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РєРІРµСЃС‚ РґРѕСЃС‚СѓРїРµРЅ РґР»СЏ РІС‹РґР°С‡Рё
 		curr_task_info.enabled				= true
-		--' Доступен ли квест по своим свойствам. По умолчанию всегда недоступен.
-		--' Этот параметр зависит от наличия целей для квестов и того срабатывает ли прекондишн квеста
+		--' Р”РѕСЃС‚СѓРїРµРЅ Р»Рё РєРІРµСЃС‚ РїРѕ СЃРІРѕРёРј СЃРІРѕР№СЃС‚РІР°Рј. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІСЃРµРіРґР° РЅРµРґРѕСЃС‚СѓРїРµРЅ.
+		--' Р­С‚РѕС‚ РїР°СЂР°РјРµС‚СЂ Р·Р°РІРёСЃРёС‚ РѕС‚ РЅР°Р»РёС‡РёСЏ С†РµР»РµР№ РґР»СЏ РєРІРµСЃС‚РѕРІ Рё С‚РѕРіРѕ СЃСЂР°Р±Р°С‚С‹РІР°РµС‚ Р»Рё РїСЂРµРєРѕРЅРґРёС€РЅ РєРІРµСЃС‚Р°
 		curr_task_info.enabled_props		= false
 
-		--' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
+		--' РЎС‚Р°С‚СѓСЃ РєРІРµСЃС‚Р°, РјРѕР¶РµС‚ Р±С‹С‚СЊ: "normal", "selected", "completed", "refused", "failed", "rewarded"
 		curr_task_info.status				= "normal"
 	end
 
-  --' Создание дополнительных ассоциативных таблиц для облегчения поиска
+  --' РЎРѕР·РґР°РЅРёРµ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… Р°СЃСЃРѕС†РёР°С‚РёРІРЅС‹С… С‚Р°Р±Р»РёС† РґР»СЏ РѕР±Р»РµРіС‡РµРЅРёСЏ РїРѕРёСЃРєР°
   self.task_id_by_type = {}
   self.task_id_by_parent = {}
   self.task_id_by_yes_phrase_id = {}
@@ -216,33 +216,33 @@ function CRandomTask:__init()
   self.active_task_by_type = {}
   self.task_id_self_inited = {}
   for k,v in pairs(self.task_info) do
-    --' По типу квеста
+    --' РџРѕ С‚РёРїСѓ РєРІРµСЃС‚Р°
     if self.task_id_by_type[v.type] == nil then
       self.task_id_by_type[v.type] = {}
     end
     self.task_id_by_type[v.type][#self.task_id_by_type[v.type]+1] = k
 
-    --' По типу вендора
+    --' РџРѕ С‚РёРїСѓ РІРµРЅРґРѕСЂР°
     if self.task_id_by_parent[v.parent] == nil then
       self.task_id_by_parent[v.parent] = {}
     end
     self.task_id_by_parent[v.parent][#self.task_id_by_parent[v.parent]+1] = k
 
-    --' По id фразы согласия на квест
+    --' РџРѕ id С„СЂР°Р·С‹ СЃРѕРіР»Р°СЃРёСЏ РЅР° РєРІРµСЃС‚
     self.task_id_by_yes_phrase_id[tostring(v.yes_phrase_id)] = k
     self.task_id_by_completed_phrase_id[v.completed_phrase_id] = k
     self.task_id_by_desc_phrase_id[v.desc_phrase_id] = k
 --    amk.mylog("task "..v.complex_type .. " id " .. v.completed_phrase_id)
-    --' По id фразы выдачи квеста.
+    --' РџРѕ id С„СЂР°Р·С‹ РІС‹РґР°С‡Рё РєРІРµСЃС‚Р°.
 		self.task_id_by_init_phrase_id[tostring(v.init_phrase_id)] = k
-    --' По самовыдаваемости
+    --' РџРѕ СЃР°РјРѕРІС‹РґР°РІР°РµРјРѕСЃС‚Рё
     if v.init_condition ~= nil then
       self.task_id_self_inited[#self.task_id_self_inited+1] = k
     end
   end
 end
 
---------- Награда информацией --------
+--------- РќР°РіСЂР°РґР° РёРЅС„РѕСЂРјР°С†РёРµР№ --------
 function CRandomTask:read_info_reward_section(tbl)
 --  amk.mylog("reading section "..sect)
 	if tbl.reward_info == nil then return false end
@@ -256,7 +256,7 @@ function CRandomTask:read_info_reward_section(tbl)
 	else
 		tbl.reward_info_portion = se_respawn.parse_names(rip)
 	end
-	-- проверим, может инфо уже выдано
+	-- РїСЂРѕРІРµСЂРёРј, РјРѕР¶РµС‚ РёРЅС„Рѕ СѓР¶Рµ РІС‹РґР°РЅРѕ
 	local n = 0
 	for i, v in ipairs(tbl.reward_info_portion) do
 		if has_alife_info(v) then
@@ -282,17 +282,17 @@ function CRandomTask:read_info_reward_section(tbl)
 	return true
 end
 --------------------------------------
---' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
--- Ну и замечательно. Запишем его числом. - семикратная экономия.
+--' РЎС‚Р°С‚СѓСЃ РєРІРµСЃС‚Р°, РјРѕР¶РµС‚ Р±С‹С‚СЊ: "normal", "selected", "completed", "refused", "failed", "rewarded"
+-- РќСѓ Рё Р·Р°РјРµС‡Р°С‚РµР»СЊРЅРѕ. Р—Р°РїРёС€РµРј РµРіРѕ С‡РёСЃР»РѕРј. - СЃРµРјРёРєСЂР°С‚РЅР°СЏ СЌРєРѕРЅРѕРјРёСЏ.
 local status_to_num={normal=0, selected=1, completed=2, refused=3, 
   failed=4, rewarded=5}
 local num_to_status={[0]="normal", [1]="selected", [2]="completed", [3]="refused", 
   [4]="failed", [5]="rewarded"}
 
--- Будем записывать не id задания а его хеш - семикратная экономия.
+-- Р‘СѓРґРµРј Р·Р°РїРёСЃС‹РІР°С‚СЊ РЅРµ id Р·Р°РґР°РЅРёСЏ Р° РµРіРѕ С…РµС€ - СЃРµРјРёРєСЂР°С‚РЅР°СЏ СЌРєРѕРЅРѕРјРёСЏ.
 function CRandomTask:save(p)
 --	log("^^^ SAVE")
-	--' Считаем количество записей
+	--' РЎС‡РёС‚Р°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ Р·Р°РїРёСЃРµР№
 	p:w_u8(table.size(self.task_info))
 	local f = 0
 	for k,v in pairs(self.task_info) do
@@ -315,7 +315,7 @@ function CRandomTask:save(p)
 		utils.w_CTime(p, v.last_task_time)
 	end
 
-	--' Та же самая процедура с активными тасками
+	--' РўР° Р¶Рµ СЃР°РјР°СЏ РїСЂРѕС†РµРґСѓСЂР° СЃ Р°РєС‚РёРІРЅС‹РјРё С‚Р°СЃРєР°РјРё
 	p:w_u8(table.size(self.active_task_by_type))
 	for k,v in pairs(self.active_task_by_type) do
 		if not ct_to_hash[k] then
@@ -329,10 +329,10 @@ function CRandomTask:save(p)
 	end
 end
 
---' Загрузка
+--' Р—Р°РіСЂСѓР·РєР°
 function CRandomTask:load(p)
 --	log("^^^ LOAD")
-	--' Считаем количество записей
+	--' РЎС‡РёС‚Р°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ Р·Р°РїРёСЃРµР№
 --	local rt0=p:r_tell()
 	local i = p:r_u8()
 --	log("tasks "..i)
@@ -357,7 +357,7 @@ function CRandomTask:load(p)
 		end
 		t.last_task_time = utils.r_CTime(p)
 	end
-	--' Та же самая процедура с активными тасками
+	--' РўР° Р¶Рµ СЃР°РјР°СЏ РїСЂРѕС†РµРґСѓСЂР° СЃ Р°РєС‚РёРІРЅС‹РјРё С‚Р°СЃРєР°РјРё
 	i = p:r_u8()  
 --	log("active "..i)
 	for k = 1,i do
@@ -370,12 +370,12 @@ function CRandomTask:load(p)
 	end
 --	log("size "..p:r_tell()-rt0)
 end
---' Генератор уникальных ID для фраз
+--' Р“РµРЅРµСЂР°С‚РѕСЂ СѓРЅРёРєР°Р»СЊРЅС‹С… ID РґР»СЏ С„СЂР°Р·
 function CRandomTask:gen_phrase_id()
 	self.task_phrase_id = self.task_phrase_id + 1
 	return tostring(self.task_phrase_id)
 end
---' Возвращает идентификатор вендора, с которым мы говорим
+--' Р’РѕР·РІСЂР°С‰Р°РµС‚ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РІРµРЅРґРѕСЂР°, СЃ РєРѕС‚РѕСЂС‹Рј РјС‹ РіРѕРІРѕСЂРёРј
 function CRandomTask:get_parent(npc)
   local story_id = npc:story_id()
   if parent_by_story[story_id] == nil then
@@ -383,7 +383,7 @@ function CRandomTask:get_parent(npc)
   end
   return parent_by_story[story_id]
 end
---' Может ли вендор выдать квест
+--' РњРѕР¶РµС‚ Р»Рё РІРµРЅРґРѕСЂ РІС‹РґР°С‚СЊ РєРІРµСЃС‚
 function CRandomTask:parent_can_task(actor, npc, p1, p2, p3)
   local parent = self:get_parent(npc)
   local avail = false
@@ -395,7 +395,7 @@ function CRandomTask:parent_can_task(actor, npc, p1, p2, p3)
   end
   return avail
 end
---' Есть ли у игрока хоть одно задание от данного вендора
+--' Р•СЃС‚СЊ Р»Рё Сѓ РёРіСЂРѕРєР° С…РѕС‚СЊ РѕРґРЅРѕ Р·Р°РґР°РЅРёРµ РѕС‚ РґР°РЅРЅРѕРіРѕ РІРµРЅРґРѕСЂР°
 function CRandomTask:active_parent_task(actor, npc)
   local parent = self:get_parent(npc)
   for k,v in pairs(self.active_task_by_type) do
@@ -412,7 +412,7 @@ function CRandomTask:active_parent_task(actor, npc)
   end
   return false
 end
---' Есть ли игрока завершенные задания (которые осталось только сдать)
+--' Р•СЃС‚СЊ Р»Рё РёРіСЂРѕРєР° Р·Р°РІРµСЂС€РµРЅРЅС‹Рµ Р·Р°РґР°РЅРёСЏ (РєРѕС‚РѕСЂС‹Рµ РѕСЃС‚Р°Р»РѕСЃСЊ С‚РѕР»СЊРєРѕ СЃРґР°С‚СЊ)
 function CRandomTask:have_completed_job(actor, npc)
 --  print_table(self.active_task_by_type)
   local parent = self:get_parent(npc)
@@ -429,7 +429,7 @@ function CRandomTask:have_completed_job(actor, npc)
   end
   return false
 end
---' Выдача квеста игроку
+--' Р’С‹РґР°С‡Р° РєРІРµСЃС‚Р° РёРіСЂРѕРєСѓ
 function CRandomTask:action_give_task(actor, npc, p1, p2)
   local task = CGameTask()
   
@@ -447,7 +447,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
   local objective = SGameTaskObjective(task,1)
   objective:set_description(task_desc.name)
 
-  --' Выбираем текущую цель квеста
+  --' Р’С‹Р±РёСЂР°РµРј С‚РµРєСѓС‰СѓСЋ С†РµР»СЊ РєРІРµСЃС‚Р°
   if task_desc.target_objects ~= nil then
     self.task_info[task_id].selected_target = table.random( task_desc.target_objects )
     -- printf("TARGET DEBUG INFO")
@@ -471,7 +471,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
     objective:set_map_hint(task_desc.text)
     objective:set_map_location("kill_stalker_location")
     objective:set_object_id(task_desc.selected_target)
-    -- Добавим id сталкера в список целей
+    -- Р”РѕР±Р°РІРёРј id СЃС‚Р°Р»РєРµСЂР° РІ СЃРїРёСЃРѕРє С†РµР»РµР№
     if task_desc.target_dialog then
       amk_add_target_id_to_kill_targets(task_desc.selected_target,task_desc.target_dialog,task_id)
     end
@@ -480,7 +480,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
     objective:set_map_hint(task_desc.text)
     objective:set_map_location("find_item_location")
     objective:set_object_id(task_desc.selected_target)
-  elseif task_desc.type == "artefact" then	-- выдадим описание артефакта, иначе неизвестно, что надо искать
+  elseif task_desc.type == "artefact" then	-- РІС‹РґР°РґРёРј РѕРїРёСЃР°РЅРёРµ Р°СЂС‚РµС„Р°РєС‚Р°, РёРЅР°С‡Рµ РЅРµРёР·РІРµСЃС‚РЅРѕ, С‡С‚Рѕ РЅР°РґРѕ РёСЃРєР°С‚СЊ
   	artefact_hunter.add_art_info(task_desc.target)
   end
   objective:add_complete_func("task_manager.task_complete")
@@ -493,7 +493,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
     objective:set_map_hint(return_task_by_type[task_desc.type])
     objective:set_map_location("blue_location")
     if not alife():story_object(tonumber(story_by_parent[task_desc.parent])) then
-    -- Квестодателя прибили.
+    -- РљРІРµСЃС‚РѕРґР°С‚РµР»СЏ РїСЂРёР±РёР»Рё.
       return 
     end
     objective:set_object_id(alife():story_object(tonumber(story_by_parent[task_desc.parent])).id)
@@ -505,13 +505,13 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
 	local title_time = game.CTime()
 	title_time:setHMS(0,0,task_desc.time)
 	title_time:add(game.get_game_time())
-	task:set_title(task:get_title().."\\n%c[255,150,150,180]до "..title_time:dateToString(game.CTime.DateToDay))
+	task:set_title(task:get_title().."\\n%c[255,150,150,180]РґРѕ "..title_time:dateToString(game.CTime.DateToDay))
 
     time = task_desc.time * 1000
   end
   db.actor:give_task(task,time,false)
 
-  --' дизаблим все остальные задания данного типа, так как игрок не может одновременно обладать двумя заданиями одного типа.
+  --' РґРёР·Р°Р±Р»РёРј РІСЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ Р·Р°РґР°РЅРёСЏ РґР°РЅРЅРѕРіРѕ С‚РёРїР°, С‚Р°Рє РєР°Рє РёРіСЂРѕРє РЅРµ РјРѕР¶РµС‚ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ РѕР±Р»Р°РґР°С‚СЊ РґРІСѓРјСЏ Р·Р°РґР°РЅРёСЏРјРё РѕРґРЅРѕРіРѕ С‚РёРїР°.
   self.task_info[self.task_id_by_yes_phrase_id[p2]].status = "selected"
   self.active_task_by_type[task_desc.complex_type] = self.task_id_by_yes_phrase_id[p2]
   for k,v in pairs(self.task_info) do
@@ -520,13 +520,13 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
     end
   end
 end
---' Отказ игроком от квеста
+--' РћС‚РєР°Р· РёРіСЂРѕРєРѕРј РѕС‚ РєРІРµСЃС‚Р°
 function CRandomTask:action_refuse_task(actor, npc, p1, p2)
   local task_desc = self.task_info[self.task_id_by_yes_phrase_id[p2]]
 
-  --' Делаем доступными все задания данного типа
+  --' Р”РµР»Р°РµРј РґРѕСЃС‚СѓРїРЅС‹РјРё РІСЃРµ Р·Р°РґР°РЅРёСЏ РґР°РЅРЅРѕРіРѕ С‚РёРїР°
   self.task_info[self.task_id_by_yes_phrase_id[p2]].status = "refused"
-  -- Удаляем цель из списка 
+  -- РЈРґР°Р»СЏРµРј С†РµР»СЊ РёР· СЃРїРёСЃРєР° 
   amk_remove_target_id_from_kill_targets(self.task_info[self.active_task_by_type[task_desc.complex_type]].selected_target)
   -------------------------
   self.task_info[self.active_task_by_type[task_desc.complex_type]].selected_target = nil
@@ -536,7 +536,7 @@ function CRandomTask:action_refuse_task(actor, npc, p1, p2)
     end
   end
 end
---' Проверяем, не выполнен ли таск
+--' РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РІС‹РїРѕР»РЅРµРЅ Р»Рё С‚Р°СЃРє
 function CRandomTask:task_complete(p1, p2)
   if db.actor == nil then
     return false
@@ -571,7 +571,7 @@ function CRandomTask:task_complete(p1, p2)
         return true
       end
     elseif sel_task.type ==	"defend_lager" then
-      --' Квест выполнен потому что рейд прекратился
+      --' РљРІРµСЃС‚ РІС‹РїРѕР»РЅРµРЅ РїРѕС‚РѕРјСѓ С‡С‚Рѕ СЂРµР№Рґ РїСЂРµРєСЂР°С‚РёР»СЃСЏ
       if xr_gulag.getGulagState(sel_task.defend_target) == 0 then
         self.task_info[self.active_task_by_type[p1]].status = "completed"
         return true
@@ -579,7 +579,7 @@ function CRandomTask:task_complete(p1, p2)
     elseif sel_task.type ==	"kill_stalker" then
       local oo = alife():object(sel_task.selected_target)
 
-      --' Проверка бага
+      --' РџСЂРѕРІРµСЂРєР° Р±Р°РіР°
       if oo == nil then
         printf("selected_target = %s", tostring(sel_task.selected_target))
         abort("OBJ = nil for task %s", tostring(self.active_task_by_type[p1]))
@@ -589,7 +589,7 @@ function CRandomTask:task_complete(p1, p2)
       end   
 
       if oo and oo:alive() == false then
-        -- Сталкер убит. Удаляем его ид из списка  целей
+        -- РЎС‚Р°Р»РєРµСЂ СѓР±РёС‚. РЈРґР°Р»СЏРµРј РµРіРѕ РёРґ РёР· СЃРїРёСЃРєР°  С†РµР»РµР№
         amk_remove_target_id_from_kill_targets(sel_task.selected_target)
         -------------------------------------------------
         self.task_info[self.active_task_by_type[p1]].status = "completed"
@@ -615,7 +615,7 @@ function CRandomTask:task_complete(p1, p2)
   
   return false
 end
---' Проверяем, не профейлен ли таск
+--' РџСЂРѕРІРµСЂСЏРµРј, РЅРµ РїСЂРѕС„РµР№Р»РµРЅ Р»Рё С‚Р°СЃРє
 function CRandomTask:task_fail(p1, p2)
   if p2 == 0 then
     local sel_task = self.task_info[self.active_task_by_type[p1]]
@@ -629,7 +629,7 @@ function CRandomTask:task_fail(p1, p2)
       return false
     end
 
-    --' Проверяем что жив, выдавший квест.
+    --' РџСЂРѕРІРµСЂСЏРµРј С‡С‚Рѕ Р¶РёРІ, РІС‹РґР°РІС€РёР№ РєРІРµСЃС‚.
     local parent = alife():story_object(story_by_parent[sel_task.parent])
     if parent == nil or (parent.alive ~= nil and not parent:alive()) then
       self.task_info[self.active_task_by_type[p1]].status = "failed"
@@ -651,7 +651,7 @@ function CRandomTask:task_fail(p1, p2)
   end
   return false
 end
---' Обнуление переменных при завершении или провале таска
+--' РћР±РЅСѓР»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅС‹С… РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё РёР»Рё РїСЂРѕРІР°Р»Рµ С‚Р°СЃРєР°
 function CRandomTask:task_callback(p1, p2, state)
   if p2 ~= 0 then
     return
@@ -661,7 +661,7 @@ function CRandomTask:task_callback(p1, p2, state)
     return
   end
 
-  -- Удаляем цель из списка
+  -- РЈРґР°Р»СЏРµРј С†РµР»СЊ РёР· СЃРїРёСЃРєР°
   local task_info=self.task_info[self.active_task_by_type[p1]]
   if task_info and task_info.selected_target then
     amk_remove_target_id_from_kill_targets(task_info.selected_target)
@@ -670,7 +670,7 @@ function CRandomTask:task_callback(p1, p2, state)
 
   if state == task.completed then
     self.task_info[self.active_task_by_type[p1]].status = "normal"
-    --' восстановление других заданий данного типа
+    --' РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ РґСЂСѓРіРёС… Р·Р°РґР°РЅРёР№ РґР°РЅРЅРѕРіРѕ С‚РёРїР°
     for k,v in pairs(self.task_info) do
       if v.complex_type == self.task_info[self.active_task_by_type[p1]].complex_type then
         v.enabled = true
@@ -681,7 +681,7 @@ function CRandomTask:task_callback(p1, p2, state)
   elseif state == task.fail then
     self.task_info[self.active_task_by_type[p1]].status = "normal"
 
-    --' восстановление других заданий данного типа
+    --' РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ РґСЂСѓРіРёС… Р·Р°РґР°РЅРёР№ РґР°РЅРЅРѕРіРѕ С‚РёРїР°
     for k,v in pairs(self.task_info) do
       if v.complex_type == self.task_info[self.active_task_by_type[p1]].complex_type then
         v.enabled = true
@@ -690,7 +690,7 @@ function CRandomTask:task_callback(p1, p2, state)
     self.active_task_by_type[p1] = nil  
   end
 end
---' Выводит список доступных квестов
+--' Р’С‹РІРѕРґРёС‚ СЃРїРёСЃРѕРє РґРѕСЃС‚СѓРїРЅС‹С… РєРІРµСЃС‚РѕРІ
 function CRandomTask:action_task_show(npc, actor)
   local parent = self:get_parent(npc) 
   for k,v in pairs(self.task_id_by_parent[parent]) do   
@@ -700,10 +700,10 @@ function CRandomTask:action_task_show(npc, actor)
     end
   end
 end
---' Проверка доступен ли текущий таск для выдачи
+--' РџСЂРѕРІРµСЂРєР° РґРѕСЃС‚СѓРїРµРЅ Р»Рё С‚РµРєСѓС‰РёР№ С‚Р°СЃРє РґР»СЏ РІС‹РґР°С‡Рё
 function CRandomTask:task_avail(actor, npc, p1, p2, p3, calculate)
   local task_desc = self.task_info[self.task_id_by_init_phrase_id[p3]]
-  --' Если calculate == true то нужно проверять check_task_props, инача просто вернуть значения.
+  --' Р•СЃР»Рё calculate == true С‚Рѕ РЅСѓР¶РЅРѕ РїСЂРѕРІРµСЂСЏС‚СЊ check_task_props, РёРЅР°С‡Р° РїСЂРѕСЃС‚Рѕ РІРµСЂРЅСѓС‚СЊ Р·РЅР°С‡РµРЅРёСЏ.
   if calculate == "reset" then    
     self.current_parent_type_prior = {}
     return
@@ -712,7 +712,7 @@ function CRandomTask:task_avail(actor, npc, p1, p2, p3, calculate)
 
     local t = task_desc.enabled and task_desc.enabled_props and task_desc.init_condition == nil
 
-    --' Устанавливать обрезания по приоритетам тут.
+    --' РЈСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РѕР±СЂРµР·Р°РЅРёСЏ РїРѕ РїСЂРёРѕСЂРёС‚РµС‚Р°Рј С‚СѓС‚.
     if t == true and (self.current_parent_type_prior[task_desc.complex_type] == nil or
        self.current_parent_type_prior[task_desc.complex_type] > task_desc.prior )
     then
@@ -738,21 +738,21 @@ function CRandomTask:task_avail(actor, npc, p1, p2, p3, calculate)
        task_desc.enabled_props and
        task_desc.init_condition == nil
 end
---' Проверка свойств таска
+--' РџСЂРѕРІРµСЂРєР° СЃРІРѕР№СЃС‚РІ С‚Р°СЃРєР°
 function CRandomTask:check_task_props(task_id)
-  --' Проверка по активным заданиям данного типа у вендора.
+  --' РџСЂРѕРІРµСЂРєР° РїРѕ Р°РєС‚РёРІРЅС‹Рј Р·Р°РґР°РЅРёСЏРј РґР°РЅРЅРѕРіРѕ С‚РёРїР° Сѓ РІРµРЅРґРѕСЂР°.
   if self.active_task_by_type[self.task_info[task_id].complex_type] ~= nil then
     self.task_info[task_id].enabled_props = false
     return
   end
 
-  --' Проверка по кондлисту
+  --' РџСЂРѕРІРµСЂРєР° РїРѕ РєРѕРЅРґР»РёСЃС‚Сѓ
   if xr_logic.pick_section_from_condlist(db.actor, db.actor, self.task_info[task_id].condlist) == nil then
     self.task_info[task_id].enabled_props = false
     return
   end
   
-  --' Проверка по таймауту
+  --' РџСЂРѕРІРµСЂРєР° РїРѕ С‚Р°Р№РјР°СѓС‚Сѓ
   if self.task_info[task_id].last_task_time ~= nil and
     game.get_game_time():diffSec(self.task_info[task_id].last_task_time) < self.task_info[task_id].idle_time
   then
@@ -760,7 +760,7 @@ function CRandomTask:check_task_props(task_id)
     return
   end
 
-  --' проверка по таргету
+  --' РїСЂРѕРІРµСЂРєР° РїРѕ С‚Р°СЂРіРµС‚Сѓ
   if self.task_info[task_id].type == "eliminate_lager" then
     if self.task_info[task_id].target_objects == nil then
       self.task_info[task_id].enabled_props = false
@@ -799,7 +799,7 @@ function CRandomTask:check_task_props(task_id)
     for k,v in pairs(self.task_info[task_id].target_objects) do
       local obj = alife():object(v)
     
-      --' Проверка бага
+      --' РџСЂРѕРІРµСЂРєР° Р±Р°РіР°
       if obj ~= nil and obj.alive == nil then 
         printf("OBJ.ALIVE = nil for task %s", task_id)
         print_table(self.task_info[task_id].target_objects)
@@ -825,12 +825,12 @@ function CRandomTask:check_task_props(task_id)
     for k,v in pairs(self.task_info[task_id].target_objects) do
       local obj = alife():object(v)
       if obj ~= nil then
-        --' Нужно игнорировать предметы, которые находяться у вендоров.
+        --' РќСѓР¶РЅРѕ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ РїСЂРµРґРјРµС‚С‹, РєРѕС‚РѕСЂС‹Рµ РЅР°С…РѕРґСЏС‚СЊСЃСЏ Сѓ РІРµРЅРґРѕСЂРѕРІ.
         if obj.parent_id ~= nil then
           for kk,vv in pairs(parent_by_story) do
             local parent = alife():story_object(kk)
             if parent ~= nil and obj.parent_id == parent.id then
-              --' Игнорим предмет
+              --' РРіРЅРѕСЂРёРј РїСЂРµРґРјРµС‚
               self.task_info[task_id].enabled_props = false
               return              
             end
@@ -848,7 +848,7 @@ function CRandomTask:check_task_props(task_id)
     return    
   end
 end
---' Проверяем можем ли мы сейчас выдать какой либо самоинициализующийся таск
+--' РџСЂРѕРІРµСЂСЏРµРј РјРѕР¶РµРј Р»Рё РјС‹ СЃРµР№С‡Р°СЃ РІС‹РґР°С‚СЊ РєР°РєРѕР№ Р»РёР±Рѕ СЃР°РјРѕРёРЅРёС†РёР°Р»РёР·СѓСЋС‰РёР№СЃСЏ С‚Р°СЃРє
 function CRandomTask:actor_update()
   for k,v in pairs(self.task_id_self_inited) do
     if self.task_info[v].status == "normal" then
@@ -857,13 +857,13 @@ function CRandomTask:actor_update()
          self.task_info[v].enabled == true and
          xr_logic.pick_section_from_condlist(db.actor, db.actor, self.task_info[v].init_condition) ~= nil
       then
-        --' Нужно автоматически выдать квест
+        --' РќСѓР¶РЅРѕ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РІС‹РґР°С‚СЊ РєРІРµСЃС‚
         self:action_give_task(db.actor, nil, nil, self.task_info[v].yes_phrase_id)
       end
     end
   end
 end
---' Проверяется является ли текущий таск выданным игроку
+--' РџСЂРѕРІРµСЂСЏРµС‚СЃСЏ СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РµРєСѓС‰РёР№ С‚Р°СЃРє РІС‹РґР°РЅРЅС‹Рј РёРіСЂРѕРєСѓ
 function CRandomTask:active_task(actor, npc, p1, p2, p3)
   return self.task_info[self.task_id_by_init_phrase_id[p3]].status == "selected" or
           self.task_info[self.task_id_by_init_phrase_id[p3]].status == "completed"
@@ -875,7 +875,7 @@ function CRandomTask:make_task_failed(task_id)
   end
 end
 
--- Проверяется наличие квестовых предметов
+-- РџСЂРѕРІРµСЂСЏРµС‚СЃСЏ РЅР°Р»РёС‡РёРµ РєРІРµСЃС‚РѕРІС‹С… РїСЂРµРґРјРµС‚РѕРІ
 function CRandomTask:completed_task(actor, npc, p1, p2, p3)
 --  amk.mylog("Checking quest items p1 "..tostring(p1).." p2 "..tostring(p2).." p3 "..tostring(p3))
 	if not p3 then return false end
@@ -906,7 +906,7 @@ function CRandomTask:completed_task(actor, npc, p1, p2, p3)
 	return can_finish
 end
 
---' Создается диалог актера, в котором будут выдаваться задания.
+--' РЎРѕР·РґР°РµС‚СЃСЏ РґРёР°Р»РѕРі Р°РєС‚РµСЂР°, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґСѓС‚ РІС‹РґР°РІР°С‚СЊСЃСЏ Р·Р°РґР°РЅРёСЏ.
 function CRandomTask:init_task_dialog(dlg, parent)
 	local phr = dlg:AddPhrase("tm_seek_new_job","0","",-10000)
 	local phrase_script = phr:GetPhraseScript()
@@ -938,7 +938,7 @@ function CRandomTask:init_task_dialog(dlg, parent)
 
 	dlg:AddPhrase("tm_seek_job_abandon","3","1",-10000)
 end
---' Функция, в которой будет выдаваться вещевая награда за выполненные квесты
+--' Р¤СѓРЅРєС†РёСЏ, РІ РєРѕС‚РѕСЂРѕР№ Р±СѓРґРµС‚ РІС‹РґР°РІР°С‚СЊСЃСЏ РІРµС‰РµРІР°СЏ РЅР°РіСЂР°РґР° Р·Р° РІС‹РїРѕР»РЅРµРЅРЅС‹Рµ РєРІРµСЃС‚С‹
 function CRandomTask:task_reward(npc, actor, p1, p2)
 --  amk.mylog("Rewarding p1 "..tostring(p1).." p2 "..tostring(p2))
 	local parent = self:get_parent(npc) 
@@ -947,7 +947,7 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
 
 	local task_desc = self.task_info[v]
     if task_desc.status == "completed" and task_desc.parent == parent then
-		--' Забираем у игрока квестовый предмет.
+		--' Р—Р°Р±РёСЂР°РµРј Сѓ РёРіСЂРѕРєР° РєРІРµСЃС‚РѕРІС‹Р№ РїСЂРµРґРјРµС‚.
 		local can_finish = true
 		if task_desc.is_unique_item then
 			local item= level.object_by_id(task_desc.selected_target)
@@ -1006,12 +1006,12 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
 					db.actor:give_info_portion("stat_"..task_desc.name)
 				end
 				actor_stats.add_points("quests", task_desc.name, 1, koef)
-				archievements.acv_count_3event("acv_ct", 500, "Наёмник", "acv_ct2", 1000, "Стаханов", "acv_ct3", 2000, "Папа Карло")
+				archievements.acv_count_3event("acv_ct", 500, "РќР°С‘РјРЅРёРє", "acv_ct2", 1000, "РЎС‚Р°С…Р°РЅРѕРІ", "acv_ct3", 2000, "РџР°РїР° РљР°СЂР»Рѕ")
 			end
 		end
 	end
 end
---' Функция, в которой будет выдаваться вещевая награда за выполненные сторилайновые квесты
+--' Р¤СѓРЅРєС†РёСЏ, РІ РєРѕС‚РѕСЂРѕР№ Р±СѓРґРµС‚ РІС‹РґР°РІР°С‚СЊСЃСЏ РІРµС‰РµРІР°СЏ РЅР°РіСЂР°РґР° Р·Р° РІС‹РїРѕР»РЅРµРЅРЅС‹Рµ СЃС‚РѕСЂРёР»Р°Р№РЅРѕРІС‹Рµ РєРІРµСЃС‚С‹
 function CRandomTask:task_reward_storyline(task)
   local task_desc = self.task_info[task:get_id()]
   if task_desc == nil or task_desc.type ~= "storyline" then
@@ -1033,7 +1033,7 @@ function CRandomTask:task_reward_storyline(task)
 	xr_statistic.add_actor_rank(task_desc.reward_rank*4)
   end
 end
---' Создается диалог актера, в котором будут приниматься задания
+--' РЎРѕР·РґР°РµС‚СЃСЏ РґРёР°Р»РѕРі Р°РєС‚РµСЂР°, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґСѓС‚ РїСЂРёРЅРёРјР°С‚СЊСЃСЏ Р·Р°РґР°РЅРёСЏ
 function CRandomTask:init_reward_dialog(dlg, parent)
 	local phr = dlg:AddPhrase("tm_reward_job","0","",-10000)
 	local phrase_script
@@ -1041,7 +1041,7 @@ function CRandomTask:init_reward_dialog(dlg, parent)
       
 	phr = dlg:AddPhrase("tm_"..parent.."_job_ask", "2", "0", -10000)
   
-  -- Список возможных квестов трейдера.
+  -- РЎРїРёСЃРѕРє РІРѕР·РјРѕР¶РЅС‹С… РєРІРµСЃС‚РѕРІ С‚СЂРµР№РґРµСЂР°.
   for k,v in pairs(self.task_id_by_parent[parent]) do
 		phr = dlg:AddPhrase(self.task_info[v].name, tostring(self.task_info[v].init_phrase_id), "2", -10000)
     phrase_script = phr:GetPhraseScript()   
@@ -1070,7 +1070,7 @@ function CRandomTask:init_reward_dialog(dlg, parent)
 			phrase_script:AddGiveInfo(self.task_info[v].reward_info_portion[i])
         end
       else
-      -- Добавляем фразу. на случай наличия инфопорции. Иначе вылетит.
+      -- Р”РѕР±Р°РІР»СЏРµРј С„СЂР°Р·Сѓ. РЅР° СЃР»СѓС‡Р°Р№ РЅР°Р»РёС‡РёСЏ РёРЅС„РѕРїРѕСЂС†РёРё. РРЅР°С‡Рµ РІС‹Р»РµС‚РёС‚.
         phr = dlg:AddPhrase("...",self:gen_phrase_id(),tostring(self.task_info[v].completed_phrase_id),-10000)
         phrase_script = phr:GetPhraseScript()
         --phrase_script:AddHasInfo(self.task_info[v].reward_info_portion)        
@@ -1080,7 +1080,7 @@ function CRandomTask:init_reward_dialog(dlg, parent)
         
         local prid=tostring(self.task_info[v].completed_phrase_id)
         local first=true
-      -- Добавляем диалог
+      -- Р”РѕР±Р°РІР»СЏРµРј РґРёР°Р»РѕРі
         for i,p in ipairs(self.task_info[v].reward_info_dialog) do
           local cid=self:gen_phrase_id()
           phr=dlg:AddPhrase(p,cid,prid,-10000)
@@ -1099,10 +1099,10 @@ function CRandomTask:init_reward_dialog(dlg, parent)
   end
 --  amk.mylog("Done")
 end
---' Регистрация целей для квестов.
+--' Р РµРіРёСЃС‚СЂР°С†РёСЏ С†РµР»РµР№ РґР»СЏ РєРІРµСЃС‚РѕРІ.
 function CRandomTask:register_target(obj)
   if IAmAStalker[obj:clsid()] then
-    --' Возможно регистрируется цель для квеста "убить сталкера"
+    --' Р’РѕР·РјРѕР¶РЅРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "СѓР±РёС‚СЊ СЃС‚Р°Р»РєРµСЂР°"
     if not (obj.alive ~= nil and obj:alive() == true) then
       return
     end
@@ -1119,7 +1119,7 @@ function CRandomTask:register_target(obj)
     end
 
   elseif obj:clsid() == clsid.smart_terrain then
-    --' Возможно регистрируется цель для квеста "вынести лагерь"
+    --' Р’РѕР·РјРѕР¶РЅРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "РІС‹РЅРµСЃС‚Рё Р»Р°РіРµСЂСЊ"
     local t
     for k,v in pairs(self.task_id_by_type["eliminate_lager"]) do
       t = self.task_info[v]
@@ -1130,11 +1130,11 @@ function CRandomTask:register_target(obj)
         t.target_objects[#t.target_objects+1] = obj.id
       end
     end
-    --' Либо регистрируется цель для квеста "защитить лагерь"
+    --' Р›РёР±Рѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "Р·Р°С‰РёС‚РёС‚СЊ Р»Р°РіРµСЂСЊ"
     for k,v in pairs(self.task_id_by_type["defend_lager"]) do
       t = self.task_info[v]
       if obj:name() == t.target then
-        --' Проверка что в кастом дате указано от кого защищать
+        --' РџСЂРѕРІРµСЂРєР° С‡С‚Рѕ РІ РєР°СЃС‚РѕРј РґР°С‚Рµ СѓРєР°Р·Р°РЅРѕ РѕС‚ РєРѕРіРѕ Р·Р°С‰РёС‰Р°С‚СЊ
         local sm_ini = obj:spawn_ini()
         local defend_target = utils.cfg_get_number(sm_ini, "random_task", "defend_target", nil, true)
         if t.target_objects == nil then
@@ -1145,7 +1145,7 @@ function CRandomTask:register_target(obj)
     end
 
   else
-    --' Возможно регистрируется цель для квеста "найти предмет"
+    --' Р’РѕР·РјРѕР¶РЅРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "РЅР°Р№С‚Рё РїСЂРµРґРјРµС‚"
     local t
     for k,v in pairs(self.task_id_by_type["find_item"]) do
       t =self.task_info[v]
@@ -1160,10 +1160,10 @@ function CRandomTask:register_target(obj)
     end
   end
 end
---' ОТРегистрация целей для квестов.
+--' РћРўР РµРіРёСЃС‚СЂР°С†РёСЏ С†РµР»РµР№ РґР»СЏ РєРІРµСЃС‚РѕРІ.
 function CRandomTask:unregister_target(obj)
   if IAmAStalker[obj:clsid()] then
-    --' Возможно регистрируется цель для квеста "убить сталкера"
+    --' Р’РѕР·РјРѕР¶РЅРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "СѓР±РёС‚СЊ СЃС‚Р°Р»РєРµСЂР°"
     for k,v in pairs(self.task_id_by_type["kill_stalker"]) do 
       if self.task_info[v].target_objects ~= nil then
         for kk,vv in pairs(self.task_info[v].target_objects) do
@@ -1175,7 +1175,7 @@ function CRandomTask:unregister_target(obj)
     end
   elseif obj:clsid() == clsid.smart_terrain then
   else
-    --' Возможно регистрируется цель для квеста "найти предмет"
+    --' Р’РѕР·РјРѕР¶РЅРѕ СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚СЃСЏ С†РµР»СЊ РґР»СЏ РєРІРµСЃС‚Р° "РЅР°Р№С‚Рё РїСЂРµРґРјРµС‚"
     for k,v in pairs(self.task_id_by_type["find_item"]) do
       if self.task_info[v].target_objects ~= nil then
         for kk,vv in pairs(self.task_info[v].target_objects) do
@@ -1187,7 +1187,7 @@ function CRandomTask:unregister_target(obj)
     end
   end
 end
---' Напоминания
+--' РќР°РїРѕРјРёРЅР°РЅРёСЏ
 function CRandomTask:remind()
   local parent, sid, task_desc, txt_desc
   local sms = {}
@@ -1205,7 +1205,7 @@ function CRandomTask:remind()
 		game_graph():vertex(parent.m_game_vertex_id):level_id() == alife():level_id()
 	  then
 		
-		-- формируем сообщение
+		-- С„РѕСЂРјРёСЂСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ
 		if not sms[sid] then 
 			sms[sid] = get_parent_name(parent, sid)
 		end
@@ -1222,7 +1222,7 @@ function CRandomTask:remind()
     end       
   end
   
-  -- Выдаем напоминания
+  -- Р’С‹РґР°РµРј РЅР°РїРѕРјРёРЅР°РЅРёСЏ
   if #str > 0 then
 	reminder.send_info(str)
 	return true
@@ -1451,23 +1451,23 @@ function show_reward(actor,npc,p1,p2)
 	
 	local reward_text = format_reward_text(task_details.reward_items)
 	local reward_money = task_details.reward_money
-	local f_phrase = "Я"
+	local f_phrase = "РЇ"
 	if task_details.time then
 		local tm = math.floor(task_details.time/3600)
 		local tmr
 		if tm > 48 then
 			tm = math.floor(tm/24)
-			tmr = declension(tm, " день", " дня", " дней")
+			tmr = declension(tm, " РґРµРЅСЊ", " РґРЅСЏ", " РґРЅРµР№")
 		else
-			tmr = declension(tm, " час", " часа", " часов")
+			tmr = declension(tm, " С‡Р°СЃ", " С‡Р°СЃР°", " С‡Р°СЃРѕРІ")
 		end
-		f_phrase = "Если уложишься за "..tostring(tm)..tmr..", то я"
+		f_phrase = "Р•СЃР»Рё СѓР»РѕР¶РёС€СЊСЃСЏ Р·Р° "..tostring(tm)..tmr..", С‚Рѕ СЏ"
 	end
 	
 	
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_find_item")
 	if reward_text ~= nil and reward_text ~= "" then
-		db.actor:give_talk_message(f_phrase.." тебе за это дам вот что:", "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
+		db.actor:give_talk_message(f_phrase.." С‚РµР±Рµ Р·Р° СЌС‚Рѕ РґР°Рј РІРѕС‚ С‡С‚Рѕ:", "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
 		db.actor:give_talk_message(reward_text, task_texture, task_rect,"iconed_trade_info")
 	end
 	
@@ -1480,7 +1480,7 @@ function show_reward(actor,npc,p1,p2)
 		end
 	end
 end
--- Склонение слова в зависимости от числа. Автор - Charsi
+-- РЎРєР»РѕРЅРµРЅРёРµ СЃР»РѕРІР° РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С‡РёСЃР»Р°. РђРІС‚РѕСЂ - Charsi
 function declension(num,a1,a2,a3)
 	return (num%10==1 and num%100~=11) and a1 or (num%10>=2 and num%10<=4 and (num%100 < 10 or num%100 >= 20) and a2 or a3)
 end
@@ -1538,16 +1538,16 @@ function parse_reward_items( str )
 	return ret
 end
 
--- имя вендора
+-- РёРјСЏ РІРµРЅРґРѕСЂР°
 function get_parent_name(obj, sid)
 	local trader_names = {
-		[3] = "Сидорович", 
-		[9511] = "Василий"
+		[3] = "РЎРёРґРѕСЂРѕРІРёС‡", 
+		[9511] = "Р’Р°СЃРёР»РёР№"
 	}
 	return trader_names[sid] or naxac_netpk.get_character_name(obj)
 end
 
--- функции наград
+-- С„СѓРЅРєС†РёРё РЅР°РіСЂР°Рґ
 function bad_day()
 	if not has_alife_info("bad_day_showed") then
 		db.actor:give_info_portion("bad_day_showed")

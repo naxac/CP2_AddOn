@@ -1,8 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local edibles = {}		-- всё съедобное, что можно положить в ячейку (секция = true), заполняется из конфига 'misc\inv_add.ltx'
-local slot2section = {}	-- то, что находится в ячейках (слот = секция), храним в псторе
-local section2slot = {}	-- то, что находится в ячейках (секция = слот)
-local slot2key = {}		-- клавиши использования предметов (слот = код клавиши)
+local edibles = {}		-- РІСЃС‘ СЃСЉРµРґРѕР±РЅРѕРµ, С‡С‚Рѕ РјРѕР¶РЅРѕ РїРѕР»РѕР¶РёС‚СЊ РІ СЏС‡РµР№РєСѓ (СЃРµРєС†РёСЏ = true), Р·Р°РїРѕР»РЅСЏРµС‚СЃСЏ РёР· РєРѕРЅС„РёРіР° 'misc\inv_add.ltx'
+local slot2section = {}	-- С‚Рѕ, С‡С‚Рѕ РЅР°С…РѕРґРёС‚СЃСЏ РІ СЏС‡РµР№РєР°С… (СЃР»РѕС‚ = СЃРµРєС†РёСЏ), С…СЂР°РЅРёРј РІ РїСЃС‚РѕСЂРµ
+local section2slot = {}	-- С‚Рѕ, С‡С‚Рѕ РЅР°С…РѕРґРёС‚СЃСЏ РІ СЏС‡РµР№РєР°С… (СЃРµРєС†РёСЏ = СЃР»РѕС‚)
+local slot2key = {}		-- РєР»Р°РІРёС€Рё РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ РїСЂРµРґРјРµС‚РѕРІ (СЃР»РѕС‚ = РєРѕРґ РєР»Р°РІРёС€Рё)
 local slot2bind = {
 	[1] = key_bindings.kUSE_MEDKIT,
 	[2] = key_bindings.kUSE_BANDAGE,
@@ -201,20 +201,20 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 		end
 	else
 		if self.quick_slot and edibles[section] then
-			-- Проверим, вдруг этот предмет уже есть в какой-то из ячеек
+			-- РџСЂРѕРІРµСЂРёРј, РІРґСЂСѓРі СЌС‚РѕС‚ РїСЂРµРґРјРµС‚ СѓР¶Рµ РµСЃС‚СЊ РІ РєР°РєРѕР№-С‚Рѕ РёР· СЏС‡РµРµРє
 			local n = section2slot[section]
 			if n then
-				if n == self.quick_slot then	-- в той же самой ячейке, ничего не делаем
+				if n == self.quick_slot then	-- РІ С‚РѕР№ Р¶Рµ СЃР°РјРѕР№ СЏС‡РµР№РєРµ, РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
 					return
 				end
-				-- не в той, над которой отпустили клавишу
-				-- очищаем слот
+				-- РЅРµ РІ С‚РѕР№, РЅР°Рґ РєРѕС‚РѕСЂРѕР№ РѕС‚РїСѓСЃС‚РёР»Рё РєР»Р°РІРёС€Сѓ
+				-- РѕС‡РёС‰Р°РµРј СЃР»РѕС‚
 				slot2section[n] = ""
 				self:DrawSlotIcon(n)
 			end
-			-- удаляем из таблицы старый предмет
+			-- СѓРґР°Р»СЏРµРј РёР· С‚Р°Р±Р»РёС†С‹ СЃС‚Р°СЂС‹Р№ РїСЂРµРґРјРµС‚
 			section2slot[slot2section[self.quick_slot]] = nil
-			-- Записываем новую секцию, обновляем иконку
+			-- Р—Р°РїРёСЃС‹РІР°РµРј РЅРѕРІСѓСЋ СЃРµРєС†РёСЋ, РѕР±РЅРѕРІР»СЏРµРј РёРєРѕРЅРєСѓ
 			section2slot[section] = self.quick_slot
 			slot2section[self.quick_slot] = section
 			self:DrawSlotIcon(self.quick_slot)
@@ -286,20 +286,20 @@ end
 ------------------------------------------------------------------------------------------
 function InvWnd:on_item_take(item)
 	local sect = item:section()
-	-- получили первый предмет из ячейки при открытом инвентаре
+	-- РїРѕР»СѓС‡РёР»Рё РїРµСЂРІС‹Р№ РїСЂРµРґРјРµС‚ РёР· СЏС‡РµР№РєРё РїСЂРё РѕС‚РєСЂС‹С‚РѕРј РёРЅРІРµРЅС‚Р°СЂРµ
 	if section2slot[sect] and inventory.search(sect, 2)==false then
 		self.slots[section2slot[sect]].icn:SetColor(GetARGB(255, 255, 255, 255))
 	end
 end
 function InvWnd:on_item_drop(item)
 	local sect = item:section()
-	-- использовали последний предмет из ячейки при открытом инвентаре
+	-- РёСЃРїРѕР»СЊР·РѕРІР°Р»Рё РїРѕСЃР»РµРґРЅРёР№ РїСЂРµРґРјРµС‚ РёР· СЏС‡РµР№РєРё РїСЂРё РѕС‚РєСЂС‹С‚РѕРј РёРЅРІРµРЅС‚Р°СЂРµ
 	if section2slot[sect] and inventory.search(sect)==false then
 		self.slots[section2slot[sect]].icn:SetColor(GetARGB(70, 200, 200, 200))
 	end
 end
 
--- Выделение предмета в инвентаре
+-- Р’С‹РґРµР»РµРЅРёРµ РїСЂРµРґРјРµС‚Р° РІ РёРЅРІРµРЅС‚Р°СЂРµ
 function InvWnd:on_item_select( item )
 	if db.actor:is_in_slot( item ) then
 		local sect = item:section()
@@ -324,7 +324,7 @@ function InvWnd:on_update( delta )
 end
 --------------------------------------------------------------------------------------------------
 
--- Чтобы не было глюков при продаже неписям
+-- Р§С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ РіР»СЋРєРѕРІ РїСЂРё РїСЂРѕРґР°Р¶Рµ РЅРµРїРёСЃСЏРј
 function restore_slot( item )
 	if isMagazinedWeapon( item ) and alife():object( item:id() ) then
 		local slot = item:get_slot()
@@ -341,14 +341,14 @@ function slot_fix( id, item )
 	db.actor:move_to_slot( item )
 end
 
--- Кастомная заливка предметов в слотах, как в старых билдах
--- + шкала состояния на иконках оружия и брони
+-- РљР°СЃС‚РѕРјРЅР°СЏ Р·Р°Р»РёРІРєР° РїСЂРµРґРјРµС‚РѕРІ РІ СЃР»РѕС‚Р°С…, РєР°Рє РІ СЃС‚Р°СЂС‹С… Р±РёР»РґР°С…
+-- + С€РєР°Р»Р° СЃРѕСЃС‚РѕСЏРЅРёСЏ РЅР° РёРєРѕРЅРєР°С… РѕСЂСѓР¶РёСЏ Рё Р±СЂРѕРЅРё
 local tex_name, tex_rect = get_texture_info( "ui_inventory_item_status_bar" )
 function on_create_cell_item( item )
 	local st = CUIFrameWindow():GetTitleStatic()
 	if not st then return end
 
-	-- рисуем шкалу состояния
+	-- СЂРёСЃСѓРµРј С€РєР°Р»Сѓ СЃРѕСЃС‚РѕСЏРЅРёСЏ
 	if need_show_condition(item) then
 		local x = 2
 		local y = 35 * sys_ini:r_u32(item:section(), "inv_grid_height") - 6
@@ -401,7 +401,7 @@ function charge_device( art, device )
 
 	local cond = device:condition()
 	if cond > 0.96 then
-		ui_inv_add.show_inv_msg("Прибор не требует зарядки")
+		ui_inv_add.show_inv_msg("РџСЂРёР±РѕСЂ РЅРµ С‚СЂРµР±СѓРµС‚ Р·Р°СЂСЏРґРєРё")
 		return
 	end
 
@@ -422,15 +422,15 @@ function charge_device( art, device )
 end
 ------------------------------------------------------------------------------------------
 function on_net_spawn()
-	-- Заполняем таблицы
-	-- съедобное - несъедобное
+	-- Р—Р°РїРѕР»РЅСЏРµРј С‚Р°Р±Р»РёС†С‹
+	-- СЃСЉРµРґРѕР±РЅРѕРµ - РЅРµСЃСЉРµРґРѕР±РЅРѕРµ
 	local ini = ini_file("misc\\inv_add.ltx")
 	local res,id,val
 	for i = 0, ini:line_count("edibles")-1 do
 		res,id,val = ini:r_line("edibles",i,"","")
 		edibles[id] = true
 	end
-	-- то, что в слотах
+	-- С‚Рѕ, С‡С‚Рѕ РІ СЃР»РѕС‚Р°С…
 	slot2section = amk.load_table("quick_slots")
 	if #slot2section==0 then
 		for i = 1, 4 do
@@ -440,7 +440,7 @@ function on_net_spawn()
 	for i,s in ipairs(slot2section) do
 		if s~="" then section2slot[s] = i end
 	end
-	-- клавиши
+	-- РєР»Р°РІРёС€Рё
 	for i, v in ipairs(slot2bind) do
 		slot2key[i] = bind_to_dik(v)
 	end

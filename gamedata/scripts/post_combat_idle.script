@@ -12,7 +12,7 @@ class "evaluator_post_combat_idle" (property_evaluator)
 function evaluator_post_combat_idle:__init(storage, npc, name) super(nil, name)
 	self.st = storage
 	self.dbst = db.storage[npc:id()]
-	--' Таймер ожидания выхода из боя
+	--' РўР°Р№РјРµСЂ РѕР¶РёРґР°РЅРёСЏ РІС‹С…РѕРґР° РёР· Р±РѕСЏ
 	self.st.timer = time_global()
 end
 function evaluator_post_combat_idle:evaluate()
@@ -23,14 +23,14 @@ function evaluator_post_combat_idle:evaluate()
 	local best_enemy = self.object:best_enemy()
 	local st = self.st
 
-	-- если появился враг - сбрасываем таймер
+	-- РµСЃР»Рё РїРѕСЏРІРёР»СЃСЏ РІСЂР°Рі - СЃР±СЂР°СЃС‹РІР°РµРј С‚Р°Р№РјРµСЂ
 	if best_enemy ~= nil and st.timer ~= nil and not best_enemy:is_wounded() then
 		st.last_best_enemy_id = best_enemy:id()
 		st.timer = nil
 		return false
 	end
 
-	-- если исчез враг - устанавливаем таймер
+	-- РµСЃР»Рё РёСЃС‡РµР· РІСЂР°Рі - СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј С‚Р°Р№РјРµСЂ
 	if st.timer == nil and ( best_enemy == nil or best_enemy:is_wounded() )
 	then
 		if st.override then
@@ -76,7 +76,7 @@ function action_post_combat_wait:initialize()
 	npc:set_mental_state(anim.danger)
 	npc:set_dest_level_vertex_id(npc:level_vertex_id())
 	npc:set_item(object.idle,rx_utils.item_is_fa(npc:active_item()) and npc:active_item() or npc:best_weapon())
-	self.play_relax_sound = rx_sound.set_sound_play(npc:id(),"post_combat_wait")	-- кто первым скажет, тот и главный
+	self.play_relax_sound = rx_sound.set_sound_play(npc:id(),"post_combat_wait")	-- РєС‚Рѕ РїРµСЂРІС‹Рј СЃРєР°Р¶РµС‚, С‚РѕС‚ Рё РіР»Р°РІРЅС‹Р№
 
 --	local wm = npc:get_wm(true)
 	local wm = rx_wmgr.get_wm(npc)
@@ -211,7 +211,7 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(evid_post_combat,true))
 	action:add_effect(world_property(evid_post_combat,false))
 	manager:add_action(actid_post_combat,action)
-	-- включение в планировщик
+	-- РІРєР»СЋС‡РµРЅРёРµ РІ РїР»Р°РЅРёСЂРѕРІС‰РёРє
 	for i,id in ipairs({stalker_ids.action_combat_planner,xr_actions_id.alife,xr_actions_id.stohe_meet_base+1}) do
 		action = manager:action(id)
 		action:add_precondition(world_property(evid_post_combat,false))

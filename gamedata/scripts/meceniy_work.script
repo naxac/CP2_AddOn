@@ -1,8 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
---Рабочий Скрипт Аддона Для Народной Солянки (Меченый(Стрелок). Используя наработки Из Another Story mod 0.2 (только сон и зомбирование), так же Наработки damirazo (но с изменениями)..)
+--Р Р°Р±РѕС‡РёР№ РЎРєСЂРёРїС‚ РђРґРґРѕРЅР° Р”Р»СЏ РќР°СЂРѕРґРЅРѕР№ РЎРѕР»СЏРЅРєРё (РњРµС‡РµРЅС‹Р№(РЎС‚СЂРµР»РѕРє). РСЃРїРѕР»СЊР·СѓСЏ РЅР°СЂР°Р±РѕС‚РєРё РР· Another Story mod 0.2 (С‚РѕР»СЊРєРѕ СЃРѕРЅ Рё Р·РѕРјР±РёСЂРѕРІР°РЅРёРµ), С‚Р°Рє Р¶Рµ РќР°СЂР°Р±РѕС‚РєРё damirazo (РЅРѕ СЃ РёР·РјРµРЅРµРЅРёСЏРјРё)..)
 
 -----------------------------------
---Спавн С Начала игы
+--РЎРїР°РІРЅ РЎ РќР°С‡Р°Р»Р° РёРіС‹
 -----------------------------------
 function main()
 	if has_alife_info( "new_game_start" ) then return end
@@ -28,7 +28,7 @@ function main()
 	db.actor:give_info_portion("new_game_start")
 end
 
---Зомбирование
+--Р—РѕРјР±РёСЂРѕРІР°РЅРёРµ
 
 local zombien = false
 local info_zombien = "zombien_already"
@@ -74,9 +74,9 @@ function mybrains()
 		db.actor:set_character_community(community_last, 0, 0)
 	end
 end
--- конец зомбирования
+-- РєРѕРЅРµС† Р·РѕРјР±РёСЂРѕРІР°РЅРёСЏ
 
---Невидимость В Костюме
+--РќРµРІРёРґРёРјРѕСЃС‚СЊ Р’ РљРѕСЃС‚СЋРјРµ
 local idle_time, game_time, outfit_act, prev_outfit_act, time_to_set_range
 local invisible = nil
 local warning90 = nil
@@ -110,7 +110,7 @@ function set_invisible()
 			time_to_set_range = nil
 		end
 		
-		-- апдейт невидимости для неписей
+		-- Р°РїРґРµР№С‚ РЅРµРІРёРґРёРјРѕСЃС‚Рё РґР»СЏ РЅРµРїРёСЃРµР№
 		if time_to_set_range and time_to_set_range <= time_global() then
 			set_range(true)
 			time_to_set_range = time_global()+1000
@@ -154,7 +154,7 @@ function invisible_on(v)
 	wnd:SetTextComplexMode(true)
 	local m = math.floor(idle_time)
 	local sec = math.floor((idle_time-m)*60)
-	wnd:SetText("%c[255,50,255,50]"..string.format("Маскировка включена на %d мин, %d сек.", m, sec))
+	wnd:SetText("%c[255,50,255,50]"..string.format("РњР°СЃРєРёСЂРѕРІРєР° РІРєР»СЋС‡РµРЅР° РЅР° %d РјРёРЅ, %d СЃРµРє.", m, sec))
 	st.m_endTime = time_global()/1000 + 4
 	
 	idle_time = idle_time * 60
@@ -197,19 +197,19 @@ end
 
 function make_meceniy_outfit_used(outfit)
 	if outfit~=nil and alife():object(outfit:id())~=nil then
-		local k = game.get_game_time():diffSec(game_time)/idle_time	 -- изнашиваем в зависимости от того, сколько прошло времени
+		local k = game.get_game_time():diffSec(game_time)/idle_time	 -- РёР·РЅР°С€РёРІР°РµРј РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С‚РѕРіРѕ, СЃРєРѕР»СЊРєРѕ РїСЂРѕС€Р»Рѕ РІСЂРµРјРµРЅРё
 		local cond = outfit:condition() - ( (0.06 + 0.04*level.get_game_difficulty()) * k )
 		outfit:set_condition( math.max(cond, 0) )
 		inventory.force_update(outfit:section())
 	end
 end
 
--- для диалогов: проверяем наличие любой экзы
+-- РґР»СЏ РґРёР°Р»РѕРіРѕРІ: РїСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ Р»СЋР±РѕР№ СЌРєР·С‹
 function have_meceniy_outfit()
 	return db.actor:object("meceniy_outfit_new") or db.actor:object("meceniy_outfit_used")
 end
 
--- для диалогов: отдаем экзу. если есть - отдаем использованную.
+-- РґР»СЏ РґРёР°Р»РѕРіРѕРІ: РѕС‚РґР°РµРј СЌРєР·Сѓ. РµСЃР»Рё РµСЃС‚СЊ - РѕС‚РґР°РµРј РёСЃРїРѕР»СЊР·РѕРІР°РЅРЅСѓСЋ.
 function give_meceniy_outfit()
 	if db.actor:object("meceniy_outfit_used") then
 		amk.remove_item_from_inventory_by_name("meceniy_outfit_used",db.actor)
@@ -222,7 +222,7 @@ end
 function prepare_for_work()
 	zombien = db.actor:has_info(info_zombien)
 	if zombien then
-		-- кем же был ГГ до зомбирования ?
+		-- РєРµРј Р¶Рµ Р±С‹Р» Р“Р“ РґРѕ Р·РѕРјР±РёСЂРѕРІР°РЅРёСЏ ?
 		community_last = amk.load_variable(zombied_community_last, "actor")
 	end
 end

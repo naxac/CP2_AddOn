@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- дополнительные функци для Главного Меню
+-- РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ С„СѓРЅРєС†Рё РґР»СЏ Р“Р»Р°РІРЅРѕРіРѕ РњРµРЅСЋ
 
--- чтение текста опций
+-- С‡С‚РµРЅРёРµ С‚РµРєСЃС‚Р° РѕРїС†РёР№
 function GetUserText(handler, option)
 	local flist = getFS():file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*."..option)
 	
@@ -14,7 +14,7 @@ function GetUserText(handler, option)
 	return handler:GetText()
 end
 
--- сохранение текста опций
+-- СЃРѕС…СЂР°РЅРµРЅРёРµ С‚РµРєСЃС‚Р° РѕРїС†РёР№
 function SetUserText(previous, new, option)
 	local f = getFS()
 --	local f1 = f:update_path("$fs_root$", "fsgame.ltx")
@@ -27,7 +27,7 @@ function SetUserText(previous, new, option)
 		end
 	end
 	
-	-- чистим все лишнее
+	-- С‡РёСЃС‚РёРј РІСЃРµ Р»РёС€РЅРµРµ
 	if new ~= "" then
 		local str = ""
 		for s in string.gfind(new, "[%w%-%._]+") do
@@ -41,7 +41,7 @@ function SetUserText(previous, new, option)
 	end
 end
 
--- покупка квестовых предметов
+-- РїРѕРєСѓРїРєР° РєРІРµСЃС‚РѕРІС‹С… РїСЂРµРґРјРµС‚РѕРІ
 function buy_quest_item()
 	local f = getFS()
 	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.buy")
@@ -52,11 +52,11 @@ function buy_quest_item()
 --	local buy_item = string.sub(fname, 1, -5)
 	
 	if not sys_ini:section_exist(buy_item) then
-		news_manager.send_tip(db.actor, "Предмет \""..buy_item.."\" не найден.", nil, "nano", 10000)
+		news_manager.send_tip(db.actor, "РџСЂРµРґРјРµС‚ \""..buy_item.."\" РЅРµ РЅР°Р№РґРµРЅ.", nil, "nano", 10000)
 	elseif db.actor:money() < 200000 then
-		news_manager.send_tip(db.actor, "Для покупки недостаточно денег.", nil, "nano", 10000)
+		news_manager.send_tip(db.actor, "Р”Р»СЏ РїРѕРєСѓРїРєРё РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґРµРЅРµРі.", nil, "nano", 10000)
 	elseif is_excluded_item(buy_item) then
-		news_manager.send_tip(db.actor, "Через меню игры можно покупать только квестовые предметы.", nil, "nano", 10000)
+		news_manager.send_tip(db.actor, "Р§РµСЂРµР· РјРµРЅСЋ РёРіСЂС‹ РјРѕР¶РЅРѕ РїРѕРєСѓРїР°С‚СЊ С‚РѕР»СЊРєРѕ РєРІРµСЃС‚РѕРІС‹Рµ РїСЂРµРґРјРµС‚С‹.", nil, "nano", 10000)
 	else
 		db.actor:disable_info_portion("mm_opt")
 		aem_manager.manage_money(200000, "out")
@@ -104,7 +104,7 @@ end
 local not_found_name = ""
 local found_name = ""
 
--- удаление проблемных объектов
+-- СѓРґР°Р»РµРЅРёРµ РїСЂРѕР±Р»РµРјРЅС‹С… РѕР±СЉРµРєС‚РѕРІ
 function del_bad_objects()
 	local f = getFS()
 	local flist = f:file_list_open_ex("$game_stats$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.del")
@@ -114,7 +114,7 @@ function del_bad_objects()
 	local se_obj
 	local sim = alife()
 
-	-- удаляем
+	-- СѓРґР°Р»СЏРµРј
 	for i, se_name in ipairs(bad_objects) do
 		se_obj = sim:object(se_name)
 		if se_obj == nil then
@@ -131,17 +131,17 @@ function del_bad_objects()
 	f:file_delete(f1)
 end
 
--- вывод информации об удаленных объектах
+-- РІС‹РІРѕРґ РёРЅС„РѕСЂРјР°С†РёРё РѕР± СѓРґР°Р»РµРЅРЅС‹С… РѕР±СЉРµРєС‚Р°С…
 function send_bad_objects_info()
-	-- есть ненайденный объект
+	-- РµСЃС‚СЊ РЅРµРЅР°Р№РґРµРЅРЅС‹Р№ РѕР±СЉРµРєС‚
 	if not_found_name~="" then
-		send_info("Не найдены проблемные объекты: "..not_found_name)
+		send_info("РќРµ РЅР°Р№РґРµРЅС‹ РїСЂРѕР±Р»РµРјРЅС‹Рµ РѕР±СЉРµРєС‚С‹: "..not_found_name)
 		not_found_name = ""
 	end
 	
 	if #found_name >0 then
-		send_info("Удалены проблемные объекты: "..found_name)
-		archievements.acv_count_event("acv_neud", 20, "Неудачник")
+		send_info("РЈРґР°Р»РµРЅС‹ РїСЂРѕР±Р»РµРјРЅС‹Рµ РѕР±СЉРµРєС‚С‹: "..found_name)
+		archievements.acv_count_event("acv_neud", 20, "РќРµСѓРґР°С‡РЅРёРє")
 		found_name = ""
 	end
 end
@@ -152,7 +152,7 @@ function send_info(text)
 --	get_console():execute("load ~~~ "..text)
 end
 
--- проверка допопций
+-- РїСЂРѕРІРµСЂРєР° РґРѕРїРѕРїС†РёР№
 function check_options()
 	local console = get_console()
 

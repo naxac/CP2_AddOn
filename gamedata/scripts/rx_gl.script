@@ -2,9 +2,9 @@
 ---- AI Additions ----
 ---- Rulix aka Bak ----
 ---- 8.5.2009,18.01.2016
--- создано на базе схемы метания гранат от   xStream  (xrs_grenade.script)
+-- СЃРѕР·РґР°РЅРѕ РЅР° Р±Р°Р·Рµ СЃС…РµРјС‹ РјРµС‚Р°РЅРёСЏ РіСЂР°РЅР°С‚ РѕС‚   xStream  (xrs_grenade.script)
 
-local launch_actions_permitted = {		-- экшены, с которых разрешено переключение на action_launch_grenade
+local launch_actions_permitted = {		-- СЌРєС€РµРЅС‹, СЃ РєРѕС‚РѕСЂС‹С… СЂР°Р·СЂРµС€РµРЅРѕ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ РЅР° action_launch_grenade
 [stalker_ids.action_combat_planner] = true,
 --[xr_actions_id.combat_zombied_base] = true,
 --[xr_actions_id.combat_zombied_base+1] = true,
@@ -13,7 +13,7 @@ local launch_actions_permitted = {		-- экшены, с которых разрешено переключение 
 [xr_actions_id.stohe_camper_base+1] = true,
 }
 
---local shell_mass = 10			-- масса модельки гранаты
+--local shell_mass = 10			-- РјР°СЃСЃР° РјРѕРґРµР»СЊРєРё РіСЂР°РЅР°С‚С‹
 local world_gravity = 2*9.81	--level.physics_world():gravity()
 local min_aim_time = 300
 
@@ -70,12 +70,12 @@ gl_sets.forbiddens.npcs = rx_utils.parse_list(gl_ini,"main","forbidden_npcs",tru
 gl_ini = nil
 
 
-class "evaluator_gl_ready" (property_evaluator)		-- определяет, есть ли занятие для схемы, запоминает цели для стрельбы
+class "evaluator_gl_ready" (property_evaluator)		-- РѕРїСЂРµРґРµР»СЏРµС‚, РµСЃС‚СЊ Р»Рё Р·Р°РЅСЏС‚РёРµ РґР»СЏ СЃС…РµРјС‹, Р·Р°РїРѕРјРёРЅР°РµС‚ С†РµР»Рё РґР»СЏ СЃС‚СЂРµР»СЊР±С‹
 function evaluator_gl_ready:__init(npc,name,storage) super (nil,name)
 	self.st = storage
 	self.check_time = 0
 	self.mem_time = 0
-	self.st.squad = string.format("%s-%s-%s",npc:team(),npc:squad(),npc:group())	-- не переопределяется при изменении сквада
+	self.st.squad = string.format("%s-%s-%s",npc:team(),npc:squad(),npc:group())	-- РЅРµ РїРµСЂРµРѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РїСЂРё РёР·РјРµРЅРµРЅРёРё СЃРєРІР°РґР°
 	rx_ai.subscribe_for_events(npc,self)
 end
 function evaluator_gl_ready:evaluate()
@@ -94,13 +94,13 @@ function evaluator_gl_ready:evaluate()
 	local res,ammo = check_ammo(npc)
 	stor.gl_ready = res
 	stor.can_fire = false
-	if res then	-- основное условие - наличие гранатомёта и гранат
+	if res then	-- РѕСЃРЅРѕРІРЅРѕРµ СѓСЃР»РѕРІРёРµ - РЅР°Р»РёС‡РёРµ РіСЂР°РЅР°С‚РѕРјС‘С‚Р° Рё РіСЂР°РЅР°С‚
 		stor.ammo = ammo
 		if stor.charged then
 			if be and not be:is_wounded() then
 				stor.can_fire = true
 			else
-				res = false	-- врагов нет - расходимся
+				res = false	-- РІСЂР°РіРѕРІ РЅРµС‚ - СЂР°СЃС…РѕРґРёРјСЃСЏ
 			end
 		end
 	else
@@ -117,7 +117,7 @@ function evaluator_gl_ready:hit_callback(amount,dir,who)
 		enemy_memory[self.st.squad][who:id()] = {who:position(),who:level_vertex_id(),time_global()+30000,who}
 	end
 end
--- удаление мусора из инвентаря при смерти
+-- СѓРґР°Р»РµРЅРёРµ РјСѓСЃРѕСЂР° РёР· РёРЅРІРµРЅС‚Р°СЂСЏ РїСЂРё СЃРјРµСЂС‚Рё
 function evaluator_gl_ready:death_callback()
 	local npc,sim = self.object,alife()
 	for i=0,npc:object_count()-1 do
@@ -164,7 +164,7 @@ function evaluator_launch_grenade:evaluate()
 			then
 				target = pick_visible_target(npc,be,get_shell_radius(stor.ammo))
 				if target then
-					-- все хорошо - пробуем
+					-- РІСЃРµ С…РѕСЂРѕС€Рѕ - РїСЂРѕР±СѓРµРј
 					stor.covert = false
 					stor.launch = true
 					stor.target = target:id()
@@ -174,7 +174,7 @@ function evaluator_launch_grenade:evaluate()
 				target,stor.target_lvid = pick_covert_target(npc,get_shell_radius(stor.ammo),stor.squad)
 				self.covert_time = tg+gl_sets.check_prd_c+math.random(1000)
 				if target then
-					-- все хорошо - пробуем
+					-- РІСЃРµ С…РѕСЂРѕС€Рѕ - РїСЂРѕР±СѓРµРј
 					stor.covert = true
 					stor.launch = true
 					stor.target = target
@@ -252,7 +252,7 @@ function action_launch_grenade:initialize()
 	if rx_wmgr then
 		rx_wmgr.get_wm(npc):disable(time_global()+10000)
 	end
-	-- предупреждение игрока
+	-- РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ РёРіСЂРѕРєР°
 	if (not st.covert) and st.target == 0 then
 		warn_actor(npc)
 	end
@@ -308,7 +308,7 @@ function action_launch_grenade:execute()
 			self.stage = 2
 		elseif self.stage == 2 then
 			if test_res[self.test_shell] == true then
-				do	-- анимация
+				do	-- Р°РЅРёРјР°С†РёСЏ
 					local anim
 					if npc:body_state() == move.crouch then
 						anim = "cr_torso_7_draw_0"
@@ -319,7 +319,7 @@ function action_launch_grenade:execute()
 					rx_utils.add_anim(npc,anim,true)
 					config_data[wpn:section()].sswitch:play(npc,npc:center())
 				end
-				-- предупреждение игрока
+				-- РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ РёРіСЂРѕРєР°
 				if self.target_point:distance_to(db.actor:position()) < get_shell_radius(st.ammo)+4 then
 					warn_actor(npc)
 				end
@@ -351,7 +351,7 @@ function action_launch_grenade:execute()
 			local target_lvid = target_obj:level_vertex_id()
 			local target_point = target_obj:position()
 			local dir = vector():sub(target_point,npc:center())
-			-- установка времени прицеливания
+			-- СѓСЃС‚Р°РЅРѕРІРєР° РІСЂРµРјРµРЅРё РїСЂРёС†РµР»РёРІР°РЅРёСЏ
 			if not self.target_lvid then
 				local dist = dir:magnitude()
 				if dist < 20 and IsMonster(target_obj) then
@@ -375,18 +375,18 @@ function action_launch_grenade:execute()
 					self.aim_time = time_global()+st.rs.aim*dist
 				end
 			end
-			-- определение направления взгляда
+			-- РѕРїСЂРµРґРµР»РµРЅРёРµ РЅР°РїСЂР°РІР»РµРЅРёСЏ РІР·РіР»СЏРґР°
 			local canfire,dir = TransferenceAndThrowVelToThrowDir(dir,config_data[wpn:section()].vel,world_gravity)
 			if canfire == 0 then
 			--	printf("act[%s]:cant reach target; vel = %s, dist = %s",npc:character_name(),config_data[wpn:section()].vel,target_point:distance_to(npc:center()))
 				self:cancel(9000)
 				return
 			end
-			-- проверка открытости цели
+			-- РїСЂРѕРІРµСЂРєР° РѕС‚РєСЂС‹С‚РѕСЃС‚Рё С†РµР»Рё
 			local is_graph_avail = not rx_utils.is_actor(target_obj) or level.vertex_position(target_lvid):distance_to_sqr(target_point) < 3
 			if not npc:see(target_obj) then
 				if level.cover_in_direction(npc:level_vertex_id(),dir) < 0.2 then
-					self:cancel(1000)	-- не стрелять, если зашёл за стену
+					self:cancel(1000)	-- РЅРµ СЃС‚СЂРµР»СЏС‚СЊ, РµСЃР»Рё Р·Р°С€С‘Р» Р·Р° СЃС‚РµРЅСѓ
 					return
 				elseif not is_graph_avail or level.cover_in_direction(target_lvid,vector():invert(dir)) < 0.2 then
 					self.aim_time = 0
@@ -402,11 +402,11 @@ function action_launch_grenade:execute()
 					rx_sound.set_sound_play(npc:id(),"gl_fire")
 				end
 			else
-				-- расчёт точки выстрела
+				-- СЂР°СЃС‡С‘С‚ С‚РѕС‡РєРё РІС‹СЃС‚СЂРµР»Р°
 				local vel = config_data[wpn:section()].vel
 				local dist = target_point:distance_to(npc:center())
 				if is_graph_avail then
-					-- взять упреждение
+					-- РІР·СЏС‚СЊ СѓРїСЂРµР¶РґРµРЅРёРµ
 					if self.target_lvid and target_lvid ~= self.target_lvid and dist > vel/2 then
 						local prvp = self.target_point	--level.vertex_position(self.target_lvid)
 						local adist = target_point:distance_to(prvp)	----
@@ -422,7 +422,7 @@ function action_launch_grenade:execute()
 							end
 						end
 					end
-					-- взять поправку по укрытости цели
+					-- РІР·СЏС‚СЊ РїРѕРїСЂР°РІРєСѓ РїРѕ СѓРєСЂС‹С‚РѕСЃС‚Рё С†РµР»Рё
 					local c_back = 1-level.cover_in_direction(target_lvid,dir)
 					if c_back > 0.75 and math.abs(vector():sub(target_point,npc:center()).y) < dist/6 then
 						local c_front = 1-level.cover_in_direction(target_lvid,vector():invert(dir))
@@ -430,7 +430,7 @@ function action_launch_grenade:execute()
 						target_point:add(vector():set(0,cor,0))
 					end
 				end
-				-- применить отклонение по точности
+				-- РїСЂРёРјРµРЅРёС‚СЊ РѕС‚РєР»РѕРЅРµРЅРёРµ РїРѕ С‚РѕС‡РЅРѕСЃС‚Рё
 				local dev = math.random() < 0.9 and dist*st.rs.dev or 0
 				if npc:movement_type() == move.run then
 					dev = dev + 140*dist
@@ -440,7 +440,7 @@ function action_launch_grenade:execute()
 				if dev > 0 then
 					target_point:add(vector():set(math.random(-dev,dev)/1000,0,math.random(-dev,dev)/1000))
 				end
-				-- к полёту готов
+				-- Рє РїРѕР»С‘С‚Сѓ РіРѕС‚РѕРІ
 				local launch_pos = npc:bone_position("bip01_head"):add(npc:direction():div(3))
 				set_to_launch(npc,self.fake_missile,target_point,launch_pos,vel,get_shell_radius(st.ammo),false,dist > 70 and 40)
 				run_shoot_effect(npc,wpn)
@@ -457,7 +457,7 @@ function action_launch_grenade:execute()
 		if self.relax_time > time_global() then
 		else
 			st.charged = false
-			self:cancel()	-- конец
+			self:cancel()	-- РєРѕРЅРµС†
 		end
 	end
 	self:set_direction()
@@ -489,7 +489,7 @@ function action_launch_grenade:finalize()
 		rx_wmgr.get_wm(npc):enable()
 	end
 	self:cancel()
-	npc:set_movement_type(move.walk)	-- фикс для горбатого экшена набегания на врага
+	npc:set_movement_type(move.walk)	-- С„РёРєСЃ РґР»СЏ РіРѕСЂР±Р°С‚РѕРіРѕ СЌРєС€РµРЅР° РЅР°Р±РµРіР°РЅРёСЏ РЅР° РІСЂР°РіР°
 	npc:clear_animations()
 	npc:set_sight(look.direction,npc:direction(),0)
 	npc:set_item(object.idle,npc:active_item())
@@ -499,7 +499,7 @@ function action_launch_grenade:finalize()
 	self.target_point = nil
 	self.target_lvid = nil
 end
-function action_launch_grenade:hit_callback()	-- при хите сразу пуляем и кончаем без задержки
+function action_launch_grenade:hit_callback()	-- РїСЂРё С…РёС‚Рµ СЃСЂР°Р·Сѓ РїСѓР»СЏРµРј Рё РєРѕРЅС‡Р°РµРј Р±РµР· Р·Р°РґРµСЂР¶РєРё
 	local npc = self.object
 	if self.st.launch and self.fake_missile and self.target_point then
 		self.target_point:add(vector():set(math.random(-500,500)/100,0,math.random(-500,500)/100))
@@ -605,7 +605,7 @@ function action_reload_gl:finalize()
 	if self.end_time <= time_global()+self.st.rs.reload/2 then
 		self.st.charged = true
 	end
-	npc:set_movement_type(move.walk)	-- фикс для горбатого экшена набегания на врага
+	npc:set_movement_type(move.walk)	-- С„РёРєСЃ РґР»СЏ РіРѕСЂР±Р°С‚РѕРіРѕ СЌРєС€РµРЅР° РЅР°Р±РµРіР°РЅРёСЏ РЅР° РІСЂР°РіР°
 	npc:clear_animations()
 	npc:set_sight(look.direction,npc:direction(),0)
 	state_mgr.set_state(npc,"idle")	-- ??
@@ -686,7 +686,7 @@ function safe_to_reload(npc,st)
 		if dist < 10
 			or ( enemy:see(npc)
 			and (dist < 30 or cover > 0.6 or dist*cover > dist-f*cover) )
-		then		-- чем дальше враг, тем меньше требуется прикрытия
+		then		-- С‡РµРј РґР°Р»СЊС€Рµ РІСЂР°Рі, С‚РµРј РјРµРЅСЊС€Рµ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРёРєСЂС‹С‚РёСЏ
 --			printf("safe_to_reload[%s]:enemy!(%s)[dist = %s,seez = %s,cover = %s]",npc:character_name(),enemy:name(),dist,enemy:see(npc),1-cover)
 			st.evn = false
 			st.wait = tg+2500
@@ -704,7 +704,7 @@ function get_shell_radius(sec)
 		local br = read_from_ini(nil,fake,"blast_r",10)
 		local fc = read_from_ini(nil,fake,"frags",5)
 		local fr = read_from_ini(nil,fake,"frags_r",15)
-		config_data[sec] = math.floor(math.max(br,math.min(fc^0.75,fr)))	-- если осколков мало, то бояться их особо не стоит
+		config_data[sec] = math.floor(math.max(br,math.min(fc^0.75,fr)))	-- РµСЃР»Рё РѕСЃРєРѕР»РєРѕРІ РјР°Р»Рѕ, С‚Рѕ Р±РѕСЏС‚СЊСЃСЏ РёС… РѕСЃРѕР±Рѕ РЅРµ СЃС‚РѕРёС‚
 --		printf("%s shell radius %s",sec,config_data[sec])
 	end
 	return config_data[sec]
@@ -746,7 +746,7 @@ function check_weapon(wpn)
 end
 
 local ready_mem = {}
-function check_ammo(npc)	-- проверить наличие оружия и патронов
+function check_ammo(npc)	-- РїСЂРѕРІРµСЂРёС‚СЊ РЅР°Р»РёС‡РёРµ РѕСЂСѓР¶РёСЏ Рё РїР°С‚СЂРѕРЅРѕРІ
 	local wpn = npc:active_item()
 	if not wpn then
 		return false, nil
@@ -759,7 +759,7 @@ function check_ammo(npc)	-- проверить наличие оружия и патронов
 		for k,v in ipairs(config_data[wpn:section()].shells) do
 			if npc:object(v) then
 				ready_mem[wpn:id()] = {ammo = v,t = time_global()+24000}
-				return true,v	-- выбрать патрон (первый попавшийся)
+				return true,v	-- РІС‹Р±СЂР°С‚СЊ РїР°С‚СЂРѕРЅ (РїРµСЂРІС‹Р№ РїРѕРїР°РІС€РёР№СЃСЏ)
 			end
 		end
 		if gl_sets.spawn_ammo then
@@ -772,7 +772,7 @@ function check_ammo(npc)	-- проверить наличие оружия и патронов
 	return false, nil
 end
 
-function check_victims(nid,pos,radius,want_enemy)	-- нет ли в радиусе поражения друзей; а враги есть?
+function check_victims(nid,pos,radius,want_enemy)	-- РЅРµС‚ Р»Рё РІ СЂР°РґРёСѓСЃРµ РїРѕСЂР°Р¶РµРЅРёСЏ РґСЂСѓР·РµР№; Р° РІСЂР°РіРё РµСЃС‚СЊ?
 	local npc = level.object_by_id(nid)
 	if not npc then
 		return false
@@ -819,7 +819,7 @@ function pick_visible_target(npc,enemy,radius)
 	local max_dist = gl_sets.max_dist
 	radius,min_dist,max_dist = radius*radius,min_dist*min_dist,max_dist*max_dist
 	local friends
-	if npc:see(enemy) then	-- сначала проверяем лучшего врага
+	if npc:see(enemy) then	-- СЃРЅР°С‡Р°Р»Р° РїСЂРѕРІРµСЂСЏРµРј Р»СѓС‡С€РµРіРѕ РІСЂР°РіР°
 		local en_pos = enemy:center()
 		local dist = npc_pos:distance_to_sqr(en_pos)
 		if dist > min_dist then
@@ -837,7 +837,7 @@ function pick_visible_target(npc,enemy,radius)
 				end
 			end
 		else
-			return nil -- если лучший враг виден и слишком близко для выстрела
+			return nil -- РµСЃР»Рё Р»СѓС‡С€РёР№ РІСЂР°Рі РІРёРґРµРЅ Рё СЃР»РёС€РєРѕРј Р±Р»РёР·РєРѕ РґР»СЏ РІС‹СЃС‚СЂРµР»Р°
 		end
 	end
 	if aim_be_only then
@@ -847,7 +847,7 @@ function pick_visible_target(npc,enemy,radius)
 	local tg,npc_id,be_id = time_global(),npc:id(),enemy:id()
 	local max_dist_monster = math.min(npc:max_ignore_monster_distance()^2,max_dist)
 --	local mem = enemy_memory[squad]
-	for o in npc:memory_visible_objects() do	-- затем всех в зоне видимости
+	for o in npc:memory_visible_objects() do	-- Р·Р°С‚РµРј РІСЃРµС… РІ Р·РѕРЅРµ РІРёРґРёРјРѕСЃС‚Рё
 		local obj = o:object()
 		if o.level_time == tg and obj and obj.clsid then
 			if obj:is_alive() and not obj:is_wounded() then
@@ -871,7 +871,7 @@ function pick_visible_target(npc,enemy,radius)
 					end
 				end
 --			elseif IsStalker(obj) then
---				mem[obj:id()] = nil		-- нужно забывать увиденные тушки
+--				mem[obj:id()] = nil		-- РЅСѓР¶РЅРѕ Р·Р°Р±С‹РІР°С‚СЊ СѓРІРёРґРµРЅРЅС‹Рµ С‚СѓС€РєРё
 			end
 		end
 	end
@@ -1046,7 +1046,7 @@ local function launch_shell(obj,data)
 	h.draftsman = obj
 	h.direction = dir
 	obj:hit(h)
-	return lgv	-- возващает начальную горизонтальную скорость
+	return lgv	-- РІРѕР·РІР°С‰Р°РµС‚ РЅР°С‡Р°Р»СЊРЅСѓСЋ РіРѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅСѓСЋ СЃРєРѕСЂРѕСЃС‚СЊ
 end
 
 local function test_result(data,pos)
@@ -1088,15 +1088,15 @@ local function correct_speed(obj,data)
 	ps:get_linear_vel(vel)
 	local vel_num = vel:magnitude()
 	if vel_num < 7 and not data.rel then
-		if data.ltime < time_global() then	-- если в течение полусекунды не взлетела, значит упёрлась в препятствие
-			data.time = 0					-- просто удаляем
+		if data.ltime < time_global() then	-- РµСЃР»Рё РІ С‚РµС‡РµРЅРёРµ РїРѕР»СѓСЃРµРєСѓРЅРґС‹ РЅРµ РІР·Р»РµС‚РµР»Р°, Р·РЅР°С‡РёС‚ СѓРїС‘СЂР»Р°СЃСЊ РІ РїСЂРµРїСЏС‚СЃС‚РІРёРµ
+			data.time = 0					-- РїСЂРѕСЃС‚Рѕ СѓРґР°Р»СЏРµРј
 		else
-			return false			-- снаряд ещё не запущен
+			return false			-- СЃРЅР°СЂСЏРґ РµС‰С‘ РЅРµ Р·Р°РїСѓС‰РµРЅ
 		end
 	end
 	if data.vel then
 		if vel.y == data.vel.y then
-			return false			-- скорость не обновилась
+			return false			-- СЃРєРѕСЂРѕСЃС‚СЊ РЅРµ РѕР±РЅРѕРІРёР»Р°СЃСЊ
 		end
 		local cos = data.vel and vector():set(vel):normalize():dotproduct(vector():set(data.vel):normalize())
 		if cos < 0.99 then
@@ -1116,7 +1116,7 @@ local function correct_speed(obj,data)
 	if vel_xz >= lgv then
 		return false
 	end
-	local ak = (lgv-vel_xz)/lgv	-- получаем потерю скорости
+	local ak = (lgv-vel_xz)/lgv	-- РїРѕР»СѓС‡Р°РµРј РїРѕС‚РµСЂСЋ СЃРєРѕСЂРѕСЃС‚Рё
 	local push = vector():mul(vel,ak)
 	local push_impulse = push:magnitude()*obj:mass()*1.5
 	local h = hit()
@@ -1159,7 +1159,7 @@ function trace_shell(obj)
 	end
 	return false
 end
--- Ссылка на объект остаётся, а самого объекта уже нет. Исправим.
+-- РЎСЃС‹Р»РєР° РЅР° РѕР±СЉРµРєС‚ РѕСЃС‚Р°С‘С‚СЃСЏ, Р° СЃР°РјРѕРіРѕ РѕР±СЉРµРєС‚Р° СѓР¶Рµ РЅРµС‚. РСЃРїСЂР°РІРёРј.
 function on_npc_go_offline(npc)
 	local npc_id = npc:id()
 	for s, t in pairs(enemy_memory) do
@@ -1235,7 +1235,7 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(evid_gl_reload,true))
 	action:add_effect(world_property(evid_gl_reload,false))
 	manager:add_action(actid_gl_reload,action)
-	-- включение в планировщик
+	-- РІРєР»СЋС‡РµРЅРёРµ РІ РїР»Р°РЅРёСЂРѕРІС‰РёРє
 	for i,id in ipairs({xr_actions_id.alife,stalker_ids.action_combat_planner,stalker_ids.action_danger_planner}) do
 		action = manager:action(id)
 		action:add_precondition(world_property(evid_gl_fire,false))

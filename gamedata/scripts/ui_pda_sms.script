@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 class "UIMsgWnd" (CUIScriptWnd)
 
-local cur = "_"	-- курсор
+local cur = "_"	-- РєСѓСЂСЃРѕСЂ
 
 function UIMsgWnd:__init(owner) super()
 	self.owner = owner
@@ -28,7 +28,7 @@ function UIMsgWnd:InitControls()
 	self.st = xml:InitStatic("msg_text", back)
 	self.st:SetText(cur)
 	self.cost_st = xml:InitStatic("cost", back)
-	self.cost_st:SetText("Стоимость: %c[green]0")
+	self.cost_st:SetText("РЎС‚РѕРёРјРѕСЃС‚СЊ: %c[green]0")
 	
 	self.btn_lang = xml:Init3tButton("btn_language", back)
 	self.btn_lang:SetText("RU")
@@ -63,7 +63,7 @@ end
 function UIMsgWnd:OnButtonSend()
 	if self.actor_money < self.cost then
 		self.message_box:Init("select_map")
-		self.message_box:SetText("Недостаточно средств для отправки сообщения!")
+		self.message_box:SetText("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РґР»СЏ РѕС‚РїСЂР°РІРєРё СЃРѕРѕР±С‰РµРЅРёСЏ!")
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	elseif #self.txt>1 then
 		local text = self.txt:gsub(cur, "")
@@ -74,7 +74,7 @@ function UIMsgWnd:OnButtonSend()
 		find_answer(text)
 	else
 		self.message_box:Init("select_map")
-		self.message_box:SetText("Текст сообщения отсутствует")
+		self.message_box:SetText("РўРµРєСЃС‚ СЃРѕРѕР±С‰РµРЅРёСЏ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚")
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	end
 end
@@ -108,9 +108,9 @@ function UIMsgWnd:ChangeText()
 end
 
 function UIMsgWnd:ChangeCost()
-	self.cost = (#self.txt-1) *2	-- руб/знак
+	self.cost = (#self.txt-1) *2	-- СЂСѓР±/Р·РЅР°Рє
 	local clr = (self.actor_money >= self.cost and "%c[green]") or "%c[red]"
-	self.cost_st:SetText("Стоимость:"..clr..string.format(" %d", self.cost))
+	self.cost_st:SetText("РЎС‚РѕРёРјРѕСЃС‚СЊ:"..clr..string.format(" %d", self.cost))
 end
 
 function UIMsgWnd:CursorMove(mode)
@@ -175,9 +175,9 @@ end
 
 function find_answer(text)
 	text = string.lower1(text)
-	-- вопрос про выброс
-	if string.find(text, "выброс") then
-		local ask = {"когда", "во сколько", "через сколько"}
+	-- РІРѕРїСЂРѕСЃ РїСЂРѕ РІС‹Р±СЂРѕСЃ
+	if string.find(text, "РІС‹Р±СЂРѕСЃ") then
+		local ask = {"РєРѕРіРґР°", "РІРѕ СЃРєРѕР»СЊРєРѕ", "С‡РµСЂРµР· СЃРєРѕР»СЊРєРѕ"}
 		for i, v in ipairs(ask) do
 			if string.find(text, v) then
 				this.do_blow_msg()
@@ -186,15 +186,15 @@ function find_answer(text)
 		end
 	end
 	
-	local ask = {"привет","здоров","здаров","драсьте","здравствуйте"}
+	local ask = {"РїСЂРёРІРµС‚","Р·РґРѕСЂРѕРІ","Р·РґР°СЂРѕРІ","РґСЂР°СЃСЊС‚Рµ","Р·РґСЂР°РІСЃС‚РІСѓР№С‚Рµ"}
 	for i, v in ipairs(ask) do
 		if string.find(text, v) then
 			local act_name = db.actor:character_name()
 			local t = {
-				"Здорово, коль не шутишь.",
-				"Приветствую. Как оно?",
-				"Чего эфир засоряешь, "..act_name.."?!",
-				"Доброго времени. Что, "..act_name..", тоже заняться нечем? Подруливай в Бар."
+				"Р—РґРѕСЂРѕРІРѕ, РєРѕР»СЊ РЅРµ С€СѓС‚РёС€СЊ.",
+				"РџСЂРёРІРµС‚СЃС‚РІСѓСЋ. РљР°Рє РѕРЅРѕ?",
+				"Р§РµРіРѕ СЌС„РёСЂ Р·Р°СЃРѕСЂСЏРµС€СЊ, "..act_name.."?!",
+				"Р”РѕР±СЂРѕРіРѕ РІСЂРµРјРµРЅРё. Р§С‚Рѕ, "..act_name..", С‚РѕР¶Рµ Р·Р°РЅСЏС‚СЊСЃСЏ РЅРµС‡РµРј? РџРѕРґСЂСѓР»РёРІР°Р№ РІ Р‘Р°СЂ."
 			}
 			local npc_name, comm = amk_names_lists.get_strings(true, "stalker", "dolg", "freedom")
 			amk.send_tip(table.random(t), npc_name, math.random(7,12), 10, comm)
@@ -213,39 +213,39 @@ function do_blow_msg()
 	
 --	log1("##do_blow_msg: days: "..d..", hours: "..h)
 	
-	local t = {'ожидается', 'будет', 'должен случиться'}
-	local msg = "следующий выброс "..table.random(t)
+	local t = {'РѕР¶РёРґР°РµС‚СЃСЏ', 'Р±СѓРґРµС‚', 'РґРѕР»Р¶РµРЅ СЃР»СѓС‡РёС‚СЊСЃСЏ'}
+	local msg = "СЃР»РµРґСѓСЋС‰РёР№ РІС‹Р±СЂРѕСЃ "..table.random(t)
 	
-	if d>1 then msg = msg.." не раньше, чем через пару дней."
-	elseif d==1 then msg = msg.." примерно через сутки."
+	if d>1 then msg = msg.." РЅРµ СЂР°РЅСЊС€Рµ, С‡РµРј С‡РµСЂРµР· РїР°СЂСѓ РґРЅРµР№."
+	elseif d==1 then msg = msg.." РїСЂРёРјРµСЂРЅРѕ С‡РµСЂРµР· СЃСѓС‚РєРё."
 	elseif h>=6 then
 		t = level.get_time_hours()+h
 		if t>24 then
 			t = t-24
-			if t>=18 then msg = msg.." завтра вечером."
-			elseif t>=12 then msg = msg.." завтра днём."
-			elseif t>=4 then msg = msg.." завтра утром."
-			else msg = msg.." ночью." end
-		elseif t>=18 then msg = msg.." сегодня вечером."
-		elseif t>=12 then  msg = msg.." сегодня днём."
-		else msg = msg.." утром." end
-	elseif h>=3 then msg = msg.." через несколько часов."
-	elseif h>=1 then msg = msg.." через час-два."
+			if t>=18 then msg = msg.." Р·Р°РІС‚СЂР° РІРµС‡РµСЂРѕРј."
+			elseif t>=12 then msg = msg.." Р·Р°РІС‚СЂР° РґРЅС‘Рј."
+			elseif t>=4 then msg = msg.." Р·Р°РІС‚СЂР° СѓС‚СЂРѕРј."
+			else msg = msg.." РЅРѕС‡СЊСЋ." end
+		elseif t>=18 then msg = msg.." СЃРµРіРѕРґРЅСЏ РІРµС‡РµСЂРѕРј."
+		elseif t>=12 then  msg = msg.." СЃРµРіРѕРґРЅСЏ РґРЅС‘Рј."
+		else msg = msg.." СѓС‚СЂРѕРј." end
+	elseif h>=3 then msg = msg.." С‡РµСЂРµР· РЅРµСЃРєРѕР»СЊРєРѕ С‡Р°СЃРѕРІ."
+	elseif h>=1 then msg = msg.." С‡РµСЂРµР· С‡Р°СЃ-РґРІР°."
 	else
-		msg = "выброс может начаться с минуты на минуту, советую подыскать укрытие."
+		msg = "РІС‹Р±СЂРѕСЃ РјРѕР¶РµС‚ РЅР°С‡Р°С‚СЊСЃСЏ СЃ РјРёРЅСѓС‚С‹ РЅР° РјРёРЅСѓС‚Сѓ, СЃРѕРІРµС‚СѓСЋ РїРѕРґС‹СЃРєР°С‚СЊ СѓРєСЂС‹С‚РёРµ."
 	end
 	
 	local icon, sender
 	local rnd =  math.random()
-	if act_name=="Стрелок" and rnd>0.8 then
-		msg = "Здравствуй, "..act_name..". Судя по всему, "..msg
-		icon, sender = "doctor", "Доктор"
+	if act_name=="РЎС‚СЂРµР»РѕРє" and rnd>0.8 then
+		msg = "Р—РґСЂР°РІСЃС‚РІСѓР№, "..act_name..". РЎСѓРґСЏ РїРѕ РІСЃРµРјСѓ, "..msg
+		icon, sender = "doctor", "Р”РѕРєС‚РѕСЂ"
 	elseif has_alife_info("agroprom_military_case_done") and rnd<0.4 then
-		msg = "Привет, "..act_name..". Наша аппаратура показывает, что "..msg
-		icon, sender = "docent", "Доцент"
+		msg = "РџСЂРёРІРµС‚, "..act_name..". РќР°С€Р° Р°РїРїР°СЂР°С‚СѓСЂР° РїРѕРєР°Р·С‹РІР°РµС‚, С‡С‚Рѕ "..msg
+		icon, sender = "docent", "Р”РѕС†РµРЅС‚"
 	else
-		msg = "Приветствую. Судя по показаниям приборов, "..msg
-		icon, sender = "saharov", "Сахаров"
+		msg = "РџСЂРёРІРµС‚СЃС‚РІСѓСЋ. РЎСѓРґСЏ РїРѕ РїРѕРєР°Р·Р°РЅРёСЏРј РїСЂРёР±РѕСЂРѕРІ, "..msg
+		icon, sender = "saharov", "РЎР°С…Р°СЂРѕРІ"
 	end
 	amk.send_tip(msg, sender, math.random(7,12), 10, icon)
 end

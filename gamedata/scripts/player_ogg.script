@@ -5,26 +5,26 @@ local snd_obj = nil
 local lost_id = -1
 local menu_show = false
 
-local slot_flash = {} 	-- флешки
-local rep_flash = {}	-- прослущанные треки (чтобы не повторялись при случайном выборе)
+local slot_flash = {} 	-- С„Р»РµС€РєРё
+local rep_flash = {}	-- РїСЂРѕСЃР»СѓС‰Р°РЅРЅС‹Рµ С‚СЂРµРєРё (С‡С‚РѕР±С‹ РЅРµ РїРѕРІС‚РѕСЂСЏР»РёСЃСЊ РїСЂРё СЃР»СѓС‡Р°Р№РЅРѕРј РІС‹Р±РѕСЂРµ)
 local played = {}
 for  i = 1,16 do
-	slot_flash[i]= 0	-- если 0 - флешки в слоте нет, 1 - флешка есть
+	slot_flash[i]= 0	-- РµСЃР»Рё 0 - С„Р»РµС€РєРё РІ СЃР»РѕС‚Рµ РЅРµС‚, 1 - С„Р»РµС€РєР° РµСЃС‚СЊ
 	rep_flash[i] = {}
 end
 
 
-local work_flash 		-- Рабочий слот: номер вставленной флешки. Если nil, то флешка не вставленна
-local work_trek = 0		-- Номер проигрываемого трекаю. Если 0, то либо ничего не играет, либо  иргает не с флешки (радио)
+local work_flash 		-- Р Р°Р±РѕС‡РёР№ СЃР»РѕС‚: РЅРѕРјРµСЂ РІСЃС‚Р°РІР»РµРЅРЅРѕР№ С„Р»РµС€РєРё. Р•СЃР»Рё nil, С‚Рѕ С„Р»РµС€РєР° РЅРµ РІСЃС‚Р°РІР»РµРЅРЅР°
+local work_trek = 0		-- РќРѕРјРµСЂ РїСЂРѕРёРіСЂС‹РІР°РµРјРѕРіРѕ С‚СЂРµРєР°СЋ. Р•СЃР»Рё 0, С‚Рѕ Р»РёР±Рѕ РЅРёС‡РµРіРѕ РЅРµ РёРіСЂР°РµС‚, Р»РёР±Рѕ  РёСЂРіР°РµС‚ РЅРµ СЃ С„Р»РµС€РєРё (СЂР°РґРёРѕ)
 local flash_id, spawn_flash = nil, nil
 
--- устанавливаю первоначальный уровень громкости
+-- СѓСЃС‚Р°РЅР°РІР»РёРІР°СЋ РїРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ РіСЂРѕРјРєРѕСЃС‚Рё
 local sound_vol = 0.4
--- устанавливаю первоначальное значение повтора
-local rpt = "on"	-- может быть 'on', 'off', 'one', 'rnd' или 'rnd2'
+-- СѓСЃС‚Р°РЅР°РІР»РёРІР°СЋ РїРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РїРѕРІС‚РѕСЂР°
+local rpt = "on"	-- РјРѕР¶РµС‚ Р±С‹С‚СЊ 'on', 'off', 'one', 'rnd' РёР»Рё 'rnd2'
 
 function set_rnd_track(rnd_flash)
-	if rnd_flash then	-- нужно загрузить рандомно из любой имеющейся флешки
+	if rnd_flash then	-- РЅСѓР¶РЅРѕ Р·Р°РіСЂСѓР·РёС‚СЊ СЂР°РЅРґРѕРјРЅРѕ РёР· Р»СЋР±РѕР№ РёРјРµСЋС‰РµР№СЃСЏ С„Р»РµС€РєРё
 		local t = {}
 		local has_actor = {}
 		for i = 1, 16 do
@@ -39,14 +39,14 @@ function set_rnd_track(rnd_flash)
 			end
 		end
 		local n = work_flash
-		if #t > 0 then	-- что-то непроигранное ещё есть
+		if #t > 0 then	-- С‡С‚Рѕ-С‚Рѕ РЅРµРїСЂРѕРёРіСЂР°РЅРЅРѕРµ РµС‰С‘ РµСЃС‚СЊ
 			set_show_flash(table.random(t))
 			ui_cheat_player.change_flash(n, work_flash)
-		else	-- треки кончились - сброс
+		else	-- С‚СЂРµРєРё РєРѕРЅС‡РёР»РёСЃСЊ - СЃР±СЂРѕСЃ
 			set_show_flash(table.random(has_actor))
 			for i = 1,16 do rep_flash[i] = {} end
 			ui_cheat_player.change_flash(n, work_flash)
-			set_rnd_track(false)		-- выбираем по-новой
+			set_rnd_track(false)		-- РІС‹Р±РёСЂР°РµРј РїРѕ-РЅРѕРІРѕР№
 			return
 		end
 	end
@@ -70,7 +70,7 @@ function set_rnd_track(rnd_flash)
 end
 
 function used_item(delta)
-	--Разбираемся с плеером
+	--Р Р°Р·Р±РёСЂР°РµРјСЃСЏ СЃ РїР»РµРµСЂРѕРј
 	if lost_id > 0 then
 		if not menu_show then
 			if alife():object(lost_id)==nil then
@@ -81,27 +81,27 @@ function used_item(delta)
 		end
 		lost_id = -1
 	end
-	--Разбираемся с флешками
+	--Р Р°Р·Р±РёСЂР°РµРјСЃСЏ СЃ С„Р»РµС€РєР°РјРё
 	if flash_id then
 		if alife():object(flash_id)==nil then
-			amk.spawn_item_in_inv("ogg_flash_"..spawn_flash)	--Флешку "съели" и восстанавливаем её в инвенторе
+			amk.spawn_item_in_inv("ogg_flash_"..spawn_flash)	--Р¤Р»РµС€РєСѓ "СЃСЉРµР»Рё" Рё РІРѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј РµС‘ РІ РёРЅРІРµРЅС‚РѕСЂРµ
 			if db.actor:object("player") then
 				s_stop(false)
 				set_show_flash(spawn_flash)
 				s_play("ogg_player\\flash_"..tostring(work_flash).."\\sound_1",1)
 			end
 		else
-			if spawn_flash == work_flash then	--выброшенная флешка в рабочем слоте плеера
-				work_flash = nil			-- в рабочем слоте ничего нет
-				s_stop(true)					-- отключается проигрываемый файл
-				rpt = "off"				-- отключаю воспроизведение по кругу
-				work_trek = 0			-- никакой трек не проигрывается
+			if spawn_flash == work_flash then	--РІС‹Р±СЂРѕС€РµРЅРЅР°СЏ С„Р»РµС€РєР° РІ СЂР°Р±РѕС‡РµРј СЃР»РѕС‚Рµ РїР»РµРµСЂР°
+				work_flash = nil			-- РІ СЂР°Р±РѕС‡РµРј СЃР»РѕС‚Рµ РЅРёС‡РµРіРѕ РЅРµС‚
+				s_stop(true)					-- РѕС‚РєР»СЋС‡Р°РµС‚СЃСЏ РїСЂРѕРёРіСЂС‹РІР°РµРјС‹Р№ С„Р°Р№Р»
+				rpt = "off"				-- РѕС‚РєР»СЋС‡Р°СЋ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµ РїРѕ РєСЂСѓРіСѓ
+				work_trek = 0			-- РЅРёРєР°РєРѕР№ С‚СЂРµРє РЅРµ РїСЂРѕРёРіСЂС‹РІР°РµС‚СЃСЏ
 			end
 		end
 		spawn_flash = nil
 		flash_id = nil	
 	end
-	-- Разбираемся с закольцовкой
+	-- Р Р°Р·Р±РёСЂР°РµРјСЃСЏ СЃ Р·Р°РєРѕР»СЊС†РѕРІРєРѕР№
 	if snd_obj then
 		if snd_obj:playing()==false then
 			play_next()
@@ -112,22 +112,22 @@ function used_item(delta)
 end
 
 function used_player()
-	-- Обрабатываю слоты флешек
+	-- РћР±СЂР°Р±Р°С‚С‹РІР°СЋ СЃР»РѕС‚С‹ С„Р»РµС€РµРє
 	get_flash()
-	--Открываю меню
+	--РћС‚РєСЂС‹РІР°СЋ РјРµРЅСЋ
 	set_menu_show(true)
 	local spwn=ui_cheat_player.UIPlayer(get_hud())
 	level.start_stop_menu(spwn,true)
 end
 
---потеря плеера
+--РїРѕС‚РµСЂСЏ РїР»РµРµСЂР°
 function lose_item(obj)
 	if _G['biznes_remove_special_item'] then return end
 	if not menu_show then
 		lost_id = obj:id()
 	end
 end
---Потеря флешек
+--РџРѕС‚РµСЂСЏ С„Р»РµС€РµРє
 function lose_flash(obj)
 	if _G['biznes_remove_special_item'] then return end
 	flash_id = obj:id()
@@ -137,13 +137,13 @@ end
 function play_next()
 	local tr = work_trek
 	if rpt ~= "off" and work_trek ~= 0 then
-		if rpt == "on" then		-- играем по кругу из этой флешки
+		if rpt == "on" then		-- РёРіСЂР°РµРј РїРѕ РєСЂСѓРіСѓ РёР· СЌС‚РѕР№ С„Р»РµС€РєРё
 			work_trek = work_trek+1
 			if work_trek > 12 then work_trek = 1 end
-	--	elseif rpt == "one" then	-- играем по кругу один трек
-		elseif rpt == "rnd" then	-- играем случайный трек с работающей флешки
+	--	elseif rpt == "one" then	-- РёРіСЂР°РµРј РїРѕ РєСЂСѓРіСѓ РѕРґРёРЅ С‚СЂРµРє
+		elseif rpt == "rnd" then	-- РёРіСЂР°РµРј СЃР»СѓС‡Р°Р№РЅС‹Р№ С‚СЂРµРє СЃ СЂР°Р±РѕС‚Р°СЋС‰РµР№ С„Р»РµС€РєРё
 			set_rnd_track(false)
-		elseif rpt == "rnd2" then	-- играем случайный трек со случайной флешки
+		elseif rpt == "rnd2" then	-- РёРіСЂР°РµРј СЃР»СѓС‡Р°Р№РЅС‹Р№ С‚СЂРµРє СЃРѕ СЃР»СѓС‡Р°Р№РЅРѕР№ С„Р»РµС€РєРё
 			set_rnd_track(true)
 		end
 		s_play("ogg_player\\flash_"..tostring(work_flash).."\\sound_"..tostring(work_trek),work_trek)
@@ -158,27 +158,27 @@ function set_menu_show(b)
 end
 
 function get_flash()
-	--Проверяю наличие флешек в мешке
+	--РџСЂРѕРІРµСЂСЏСЋ РЅР°Р»РёС‡РёРµ С„Р»РµС€РµРє РІ РјРµС€РєРµ
 	for i = 1,16 do
 		slot_flash[i] = db.actor:object("ogg_flash_"..i) and 1 or 0
 	end
 
-	-- Проверяю рабочий слот
-	if work_flash ~= nil then			----------------ставлю nil вместо 0
+	-- РџСЂРѕРІРµСЂСЏСЋ СЂР°Р±РѕС‡РёР№ СЃР»РѕС‚
+	if work_flash ~= nil then			----------------СЃС‚Р°РІР»СЋ nil РІРјРµСЃС‚Рѕ 0
 		slot_flash[work_flash] = 0
 	end
 end
 
 function return_slot(t)
 	if t == 0 then
-		-- Рабочий слот
+		-- Р Р°Р±РѕС‡РёР№ СЃР»РѕС‚
 		return work_flash
 	end
 	
 	return slot_flash[t]
 end
 
-function set_show_flash(n)			-- n - номер флешки. Закрывает иконку флешки и перемешает флешку в рабочий слот
+function set_show_flash(n)			-- n - РЅРѕРјРµСЂ С„Р»РµС€РєРё. Р—Р°РєСЂС‹РІР°РµС‚ РёРєРѕРЅРєСѓ С„Р»РµС€РєРё Рё РїРµСЂРµРјРµС€Р°РµС‚ С„Р»РµС€РєСѓ РІ СЂР°Р±РѕС‡РёР№ СЃР»РѕС‚
 	if work_flash then
 		slot_flash[work_flash] = 1
 	end
@@ -242,7 +242,7 @@ function s_play(path, trek)
 	ui_cheat_player.reset_timer()
 
 	if work_flash ~= nil and work_trek ~= 0 then
-		-- запомни проигрываемое для возврата
+		-- Р·Р°РїРѕРјРЅРё РїСЂРѕРёРіСЂС‹РІР°РµРјРѕРµ РґР»СЏ РІРѕР·РІСЂР°С‚Р°
 		local tmp = played[#played]
 		if tmp then
 			local f, t = unpack(tmp)
@@ -288,10 +288,10 @@ function start_pleer_post_save()
 				db.actor:disable_info_portion("u_6")
 				return
 			end
-			work_flash = t[1] 	-- Рабочий слот: номер вставленной флешки. 	
+			work_flash = t[1] 	-- Р Р°Р±РѕС‡РёР№ СЃР»РѕС‚: РЅРѕРјРµСЂ РІСЃС‚Р°РІР»РµРЅРЅРѕР№ С„Р»РµС€РєРё. 	
 			if work_flash then
 				if db.actor:object("ogg_flash_"..work_flash) then
-					work_trek = t[2]	-- Номер проигрываемого трека
+					work_trek = t[2]	-- РќРѕРјРµСЂ РїСЂРѕРёРіСЂС‹РІР°РµРјРѕРіРѕ С‚СЂРµРєР°
 					if work_trek ~= 0 then
 						set_show_flash(work_flash)
 						rpt = t[3] or "on"

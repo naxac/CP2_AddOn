@@ -1,16 +1,16 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- Настройки управления
-local move_shift = 5	-- кол-во пикселей, на которое перемещается карта за апдейт
-local move_delta = 3    -- сколько пикселей прибавляем/отнимаем от move_shift при нажатии Shift/Ctrl
-local min_zoom = nil	-- минимальный масштаб
-local max_zoom = 5		-- максимальный масштаб
-local zoom_shift = 0.4	-- изменение масштаба за один клик
-local zoom_shift_w = zoom_shift/2  -- изменение масштаба колесиком мыши
-local spot_size = 12        -- размер меток на аномалиях, пиксели
+-- РќР°СЃС‚СЂРѕР№РєРё СѓРїСЂР°РІР»РµРЅРёСЏ
+local move_shift = 5	-- РєРѕР»-РІРѕ РїРёРєСЃРµР»РµР№, РЅР° РєРѕС‚РѕСЂРѕРµ РїРµСЂРµРјРµС‰Р°РµС‚СЃСЏ РєР°СЂС‚Р° Р·Р° Р°РїРґРµР№С‚
+local move_delta = 3    -- СЃРєРѕР»СЊРєРѕ РїРёРєСЃРµР»РµР№ РїСЂРёР±Р°РІР»СЏРµРј/РѕС‚РЅРёРјР°РµРј РѕС‚ move_shift РїСЂРё РЅР°Р¶Р°С‚РёРё Shift/Ctrl
+local min_zoom = nil	-- РјРёРЅРёРјР°Р»СЊРЅС‹Р№ РјР°СЃС€С‚Р°Р±
+local max_zoom = 5		-- РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РјР°СЃС€С‚Р°Р±
+local zoom_shift = 0.4	-- РёР·РјРµРЅРµРЅРёРµ РјР°СЃС€С‚Р°Р±Р° Р·Р° РѕРґРёРЅ РєР»РёРє
+local zoom_shift_w = zoom_shift/2  -- РёР·РјРµРЅРµРЅРёРµ РјР°СЃС€С‚Р°Р±Р° РєРѕР»РµСЃРёРєРѕРј РјС‹С€Рё
+local spot_size = 12        -- СЂР°Р·РјРµСЂ РјРµС‚РѕРє РЅР° Р°РЅРѕРјР°Р»РёСЏС…, РїРёРєСЃРµР»Рё
 
-local map_st = {}           -- текущее положение карты
-local scale = 1             -- текущий масштаб
-local scale_show = 1.5      -- минимальный масштаб, при котором видно аномалии
+local map_st = {}           -- С‚РµРєСѓС‰РµРµ РїРѕР»РѕР¶РµРЅРёРµ РєР°СЂС‚С‹
+local scale = 1             -- С‚РµРєСѓС‰РёР№ РјР°СЃС€С‚Р°Р±
+local scale_show = 1.5      -- РјРёРЅРёРјР°Р»СЊРЅС‹Р№ РјР°СЃС€С‚Р°Р±, РїСЂРё РєРѕС‚РѕСЂРѕРј РІРёРґРЅРѕ Р°РЅРѕРјР°Р»РёРё
 
 local iniCache = {}
 
@@ -38,14 +38,14 @@ function UIPdaTeleport:__init(in_zone, cond) super()
 	
 	self.map_back = xml:InitStatic("map_static", self)
 	
-	-- рисуем карту
+	-- СЂРёСЃСѓРµРј РєР°СЂС‚Сѓ
 	self:DrawMap()
 	
-	-- рамка-ПДА
+	-- СЂР°РјРєР°-РџР”Рђ
 	xml:InitStatic("pda", self)
 	self.map_name = xml:InitStatic("map_name", self)
 
-	-- Кнопки навигации
+	-- РљРЅРѕРїРєРё РЅР°РІРёРіР°С†РёРё
 	xml:InitStatic("st_center", self)
 	self:Register(xml:InitButton("btn_left",self), "btn_left")
 	self:AddCallbackEx("btn_left", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 1 )
@@ -55,18 +55,18 @@ function UIPdaTeleport:__init(in_zone, cond) super()
 	self:AddCallbackEx("btn_up", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 3 )
 	self:Register(xml:InitButton("btn_down",self), "btn_down")
 	self:AddCallbackEx("btn_down", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 4 )
-	-- Зум
+	-- Р—СѓРј
 	self:Register(xml:InitButton("btn_zoom_plus",self), "zoom_plus")
 	self:AddCallbackEx("zoom_plus", ui_events.BUTTON_DOWN, self.ZoomAdd)
 	self:Register(xml:InitButton("btn_zoom_minus",self), "zoom_minus")
 	self:AddCallbackEx("zoom_minus", ui_events.BUTTON_DOWN, self.ZoomSub)
 	self:Register(xml:InitButton("btn_zoom_default",self), "zoom_default")
 	self:AddCallbackEx("zoom_default", ui_events.BUTTON_DOWN, self.ZoomDefault)
-	-- Кнопка выхода
+	-- РљРЅРѕРїРєР° РІС‹С…РѕРґР°
 	self:Register(xml:Init3tButton("btn_quit",self), "btn_quit")
 	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit)
 
-	-- Уровень заряда
+	-- РЈСЂРѕРІРµРЅСЊ Р·Р°СЂСЏРґР°
 	local back = xml:InitStatic( "charge", self )
 	local st = xml:InitStatic( "charge:scale", back )
 	st:SetWidth( st:GetWidth() * cond )
@@ -82,7 +82,7 @@ end
 
 function UIPdaTeleport:DrawMap()
 	local texture, rect
-	-- Глобальная карта
+	-- Р“Р»РѕР±Р°Р»СЊРЅР°СЏ РєР°СЂС‚Р°
 	rect = self:GetFrect("global_map", "bound_rect")
 	texture = self.ini:r_string("global_map", "texture")
 	
@@ -109,13 +109,13 @@ function UIPdaTeleport:DrawMap()
 
 	gMap:SetWndPos(map_st.x, map_st.y)
 	
-	-- Читаем из ini имена уровней
+	-- Р§РёС‚Р°РµРј РёР· ini РёРјРµРЅР° СѓСЂРѕРІРЅРµР№
 	local res, map, v
 	for i = 0, self.ini:line_count("level_maps_single")-1 do
 		res, map, v = self.ini:r_line("level_maps_single",i,"","")
 		self.level_maps[string.lower(map)] = true
 	end
-	-- Рисуем карты  уровней и места положения аномалий
+	-- Р РёСЃСѓРµРј РєР°СЂС‚С‹  СѓСЂРѕРІРЅРµР№ Рё РјРµСЃС‚Р° РїРѕР»РѕР¶РµРЅРёСЏ Р°РЅРѕРјР°Р»РёР№
 	local actor_pos = db.actor:position()
 	local level_name = level.name()
 	local show_anom = scale>scale_show
@@ -151,7 +151,7 @@ function UIPdaTeleport:DrawMap()
 			end
 		end
 	end
-	-- метка актера
+	-- РјРµС‚РєР° Р°РєС‚РµСЂР°
 	map = self.level_maps[ level_name ]
 	if map == nil then return end
 	rect = self:GetFrect( level_name, "bound_rect" )
@@ -236,7 +236,7 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 		start_small_timer(700, bind_subway.block_sms, false )
 	else
 		self.message_box:Init("select_map")
-		self.message_box:SetText("Недостаточно заряда для перемещения в данную точку: дозарядите сканер")
+		self.message_box:SetText("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ Р·Р°СЂСЏРґР° РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ РІ РґР°РЅРЅСѓСЋ С‚РѕС‡РєСѓ: РґРѕР·Р°СЂСЏРґРёС‚Рµ СЃРєР°РЅРµСЂ")
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	end
 end
@@ -427,7 +427,7 @@ function UIPdaTeleport:OnKeyboard(dik, keyboard_action)
 end
 
 function UIPdaTeleport:on_quit()
-	-- сохраняем масштаб и положение карты
+	-- СЃРѕС…СЂР°РЅСЏРµРј РјР°СЃС€С‚Р°Р± Рё РїРѕР»РѕР¶РµРЅРёРµ РєР°СЂС‚С‹
 	amk.save_table( "SS", { scale, map_st.x, map_st.y } )
 
 	xr_s.unsubscribe( "mouse_wheel", self.OnMouseWheel )

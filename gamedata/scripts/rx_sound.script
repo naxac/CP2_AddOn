@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --'-------------------------------------------------------------------------------------------------------------------
 --' ai additions
---' общая озвучка персонажей
+--' РѕР±С‰Р°СЏ РѕР·РІСѓС‡РєР° РїРµСЂСЃРѕРЅР°Р¶РµР№
 --' Rulix aka Bak
 --' 10.03.2016
 --'--------------------------------------------------------------------------------------------------------------------
@@ -65,9 +65,9 @@ end
 class "npc_sound_generic"
 function npc_sound_generic:__init(snd_ini,section)
 	self.section = section
-	--' Хранит параметры звука для каждого NPC
+	--' РҐСЂР°РЅРёС‚ РїР°СЂР°РјРµС‚СЂС‹ Р·РІСѓРєР° РґР»СЏ РєР°Р¶РґРѕРіРѕ NPC
 	self.npc = {}
-	--' Параметры вычитывания звука
+	--' РџР°СЂР°РјРµС‚СЂС‹ РІС‹С‡РёС‚С‹РІР°РЅРёСЏ Р·РІСѓРєР°
 	self.internal_type = stalker_ids[rx_utils.read_from_ini(snd_ini,section,"sound","_nil",1)]
 	if not self.internal_type then
 		self.prefix = rx_utils.read_from_ini(snd_ini,section,"npc_prefix",true,0)
@@ -78,11 +78,11 @@ function npc_sound_generic:__init(snd_ini,section)
 		self.type = snd_type[rx_utils.read_from_ini(snd_ini,section,"type","_nil",1)]
 	end
 	self.group_snd = rx_utils.read_from_ini(snd_ini,section,"group_snd",false,0) or nil
-	-- Время задержки начала отыгрывания звука
+	-- Р’СЂРµРјСЏ Р·Р°РґРµСЂР¶РєРё РЅР°С‡Р°Р»Р° РѕС‚С‹РіСЂС‹РІР°РЅРёСЏ Р·РІСѓРєР°
 	local delay = rx_utils.parse_list(snd_ini,section,"delay_sound",nil,true)
 	self.min_delay = delay[1] or 0
 	self.max_delay = delay[2] or self.min_delay
-	--' Интервал проигрывания звука
+	--' РРЅС‚РµСЂРІР°Р» РїСЂРѕРёРіСЂС‹РІР°РЅРёСЏ Р·РІСѓРєР°
 	local interval = rx_utils.parse_list(snd_ini,section,"idle")
 	self.min_idle = tonumber(interval[1])
 	self.max_idle = tonumber(interval[2])
@@ -159,15 +159,15 @@ function npc_sound_generic:play(npc_id)
 	if not npc_data then
 		return false
 	end
-	-- кто-то уже говорит групповой звук
+	-- РєС‚Рѕ-С‚Рѕ СѓР¶Рµ РіРѕРІРѕСЂРёС‚ РіСЂСѓРїРїРѕРІРѕР№ Р·РІСѓРє
 	if self.group_snd and not self.can_play_group_sound then
 		return false
 	end
-	-- не повезло сказать
+	-- РЅРµ РїРѕРІРµР·Р»Рѕ СЃРєР°Р·Р°С‚СЊ
 	if math.random() > self.rnd then
 		return false
 	end
-	-- время ещё не пришло
+	-- РІСЂРµРјСЏ РµС‰С‘ РЅРµ РїСЂРёС€Р»Рѕ
 	if npc_data.played_time and time_global()-npc_data.played_time < self.idle_time then
 		return false
 	end
@@ -175,20 +175,20 @@ function npc_sound_generic:play(npc_id)
 	if self.group_snd then
 		self.can_play_group_sound = false
 	end
-	-- если стандартный звук - команда играть
+	-- РµСЃР»Рё СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ Р·РІСѓРє - РєРѕРјР°РЅРґР° РёРіСЂР°С‚СЊ
 	if self.internal_type then
 		npc:play_sound(self.internal_type, self.max_delay, self.min_delay)
 		return true
 	end
-	--' Выбор звука, который играть.
+	--' Р’С‹Р±РѕСЂ Р·РІСѓРєР°, РєРѕС‚РѕСЂС‹Р№ РёРіСЂР°С‚СЊ.
 	self.played_id = self:select_next_sound(npc_data)
-	-- звуков нет, или последовательность уже отыграна
+	-- Р·РІСѓРєРѕРІ РЅРµС‚, РёР»Рё РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СѓР¶Рµ РѕС‚С‹РіСЂР°РЅР°
 	if self.played_id == -1 then
 		return false
 	end
 	-- play_sound (u32 internal_type, u32 max_start_time, u32 min_start_time, u32 max_stop_time, u32 min_stop_time, u32 id)
 	npc:play_sound(npc_data.id, self.max_delay, self.min_delay, 1, 0, self.played_id)
-	-- проверка на существование звука дублирующего основной по ПДА. Если он есть то играть и его.
+	-- РїСЂРѕРІРµСЂРєР° РЅР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ Р·РІСѓРєР° РґСѓР±Р»РёСЂСѓСЋС‰РµРіРѕ РѕСЃРЅРѕРІРЅРѕР№ РїРѕ РџР”Рђ. Р•СЃР»Рё РѕРЅ РµСЃС‚СЊ С‚Рѕ РёРіСЂР°С‚СЊ Рё РµРіРѕ.
 	if self.pda_snd then
 		local f = getFS()
 		local snd = npc_data.path[self.played_id+1]
@@ -270,7 +270,7 @@ function npc_sound_generic:reset(npc_id)
 	end
 end
 function npc_sound_generic:is_playing(obj)
---  Проверка играется ли сейчас звук у нпс
+--  РџСЂРѕРІРµСЂРєР° РёРіСЂР°РµС‚СЃСЏ Р»Рё СЃРµР№С‡Р°СЃ Р·РІСѓРє Сѓ РЅРїСЃ
 	return obj:active_sound_count() ~= 0 or (self.pda_snd_obj and self.pda_snd_obj:playing())
 end
 function npc_sound_generic:stop(obj_id)
@@ -282,7 +282,7 @@ function npc_sound_generic:stop(obj_id)
 	end
 end
 
---' Загрузка звуков НПС
+--' Р—Р°РіСЂСѓР·РєР° Р·РІСѓРєРѕРІ РќРџРЎ
 function init_npc_sound(npc)
 	if not mute_npcs[npc:name()] then
 		local comm = npc:character_community()
@@ -294,7 +294,7 @@ function init_npc_sound(npc)
 	end
 end
 
---' Для убирания звуков при переключении с боевых схем на комбат планнер
+--' Р”Р»СЏ СѓР±РёСЂР°РЅРёСЏ Р·РІСѓРєРѕРІ РїСЂРё РїРµСЂРµРєР»СЋС‡РµРЅРёРё СЃ Р±РѕРµРІС‹С… СЃС…РµРј РЅР° РєРѕРјР±Р°С‚ РїР»Р°РЅРЅРµСЂ
 function block_alarm_sound(npc)
 	if npc:best_enemy() then
 --		local st = db.storage[npc:id()]
@@ -321,7 +321,7 @@ function stop_sounds(obj)
 	return true
 end
 --'--------------------------------------------------------------------------------------------------------------------
---' класс для проигрывания звуков из конфига объекта
+--' РєР»Р°СЃСЃ РґР»СЏ РїСЂРѕРёРіСЂС‹РІР°РЅРёСЏ Р·РІСѓРєРѕРІ РёР· РєРѕРЅС„РёРіР° РѕР±СЉРµРєС‚Р°
 --'--------------------------------------------------------------------------------------------------------------------
 class "dihud_sound"
 function dihud_sound:__init(section,name,typ)

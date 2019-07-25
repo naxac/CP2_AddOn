@@ -118,7 +118,7 @@ function repair()
 end
 
 function after_credits()
-	-- не знаю, зачем это, но пусть будет
+	-- РЅРµ Р·РЅР°СЋ, Р·Р°С‡РµРј СЌС‚Рѕ, РЅРѕ РїСѓСЃС‚СЊ Р±СѓРґРµС‚
 	if not db.gameover_credits_started then return end
 	db.gameover_credits_started = nil
 
@@ -155,7 +155,7 @@ function after_credits()
 	end
 end
 function tele_to_escape()
-	u3_utils.savegame("Финал")
+	u3_utils.savegame("Р¤РёРЅР°Р»")
 	start_small_timer(3000, function () spawn_level_changer.jumpTo("exit_ao2") end)
 end
 
@@ -167,7 +167,7 @@ function treasure_sysh_spawn()
 		['medkit_scientic'] = 2,
 		['af_kol_4'] = 1
 	}
-	local hint = "%c[255,238,155,23]Тайник Сыча\\n%c[default]На флешке Сыча была информация о схроне в лаборатории X-10, надо бы его проверить."
+	local hint = "%c[255,238,155,23]РўР°Р№РЅРёРє РЎС‹С‡Р°\\n%c[default]РќР° С„Р»РµС€РєРµ РЎС‹С‡Р° Р±С‹Р»Р° РёРЅС„РѕСЂРјР°С†РёСЏ Рѕ СЃС…СЂРѕРЅРµ РІ Р»Р°Р±РѕСЂР°С‚РѕСЂРёРё X-10, РЅР°РґРѕ Р±С‹ РµРіРѕ РїСЂРѕРІРµСЂРёС‚СЊ."
 	naxac_test.create_treasure( vector():set(-1.9939445257187,-34.253723144531,27.17742729187),
 		4256, 2777, items, "treasure", hint)
 end
@@ -211,7 +211,7 @@ function del_ss_teleports()
 end
 
 function lc_question_add()
-	-- Припять - ЧАЭС
+	-- РџСЂРёРїСЏС‚СЊ - Р§РђР­РЎ
 	local obj = alife():object("exit_to_stancia_01")
 	if obj then
 		local t = { silent_mode = 0 }
@@ -232,7 +232,7 @@ end
 
 function add_spot_lc()
 	local obj = alife():story_object(130029)
-	level.map_add_object_spot_ser(obj.id, "level_changer2", "В Восточную Припять")
+	level.map_add_object_spot_ser(obj.id, "level_changer2", "Р’ Р’РѕСЃС‚РѕС‡РЅСѓСЋ РџСЂРёРїСЏС‚СЊ")
 end
 
 function rewrite_restr_logic( obj_name, logic )
@@ -268,34 +268,34 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 	ruck:use_ai_locations( false )
 
 	if mapspot then
-		level.map_add_object_spot_ser( id, mapspot, (hint or "Тайник") )
+		level.map_add_object_spot_ser( id, mapspot, (hint or "РўР°Р№РЅРёРє") )
 	end
 	return ruck
 end
 -----------------------------------------------------------------------------------------------
--- Изменение имени ГГ
+-- РР·РјРµРЅРµРЅРёРµ РёРјРµРЅРё Р“Р“
 local new_name = nil
 function hero_rename_start()
-	new_name = "Стрелок"
-	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
+	new_name = "РЎС‚СЂРµР»РѕРє"
+	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )	-- Р·Р°РїРёС€РµРј РЅРѕРІРѕРµ РёРјСЏ РІ СЃРµСЂРІРµСЂРЅС‹Р№ РѕР±СЉРµРєС‚ Р°РєС‚С‘СЂР°
 end
 function hero_rename( pk )
 	if not new_name then return end
-	-- запишем новое имя в клиентский объект актёра, смещение [39]
+	-- Р·Р°РїРёС€РµРј РЅРѕРІРѕРµ РёРјСЏ РІ РєР»РёРµРЅС‚СЃРєРёР№ РѕР±СЉРµРєС‚ Р°РєС‚С‘СЂР°, СЃРјРµС‰РµРЅРёРµ [39]
 	local t = {}
 	pk:r_seek(0)
-	table.insert( t, pk:r_u16() )		-- 2 байта
+	table.insert( t, pk:r_u16() )		-- 2 Р±Р°Р№С‚Р°
 	for i = 1,37 do
-		table.insert( t, pk:r_u8() )	-- + ещё 37 раз по 1
+		table.insert( t, pk:r_u8() )	-- + РµС‰С‘ 37 СЂР°Р· РїРѕ 1
 	end
-	local n = pk:r_stringZ()			-- читаем имя
+	local n = pk:r_stringZ()			-- С‡РёС‚Р°РµРј РёРјСЏ
 --	log( "old name of hero: [%s]", n )
-	table.insert( t, new_name )			-- сохраняем вместо старого новое
-	while not pk:r_eof() do				-- вычитываем остаток пакета побайтово
+	table.insert( t, new_name )			-- СЃРѕС…СЂР°РЅСЏРµРј РІРјРµСЃС‚Рѕ СЃС‚Р°СЂРѕРіРѕ РЅРѕРІРѕРµ
+	while not pk:r_eof() do				-- РІС‹С‡РёС‚С‹РІР°РµРј РѕСЃС‚Р°С‚РѕРє РїР°РєРµС‚Р° РїРѕР±Р°Р№С‚РѕРІРѕ
 		table.insert( t, pk:r_u8() )
 	end
 
-	pk:w_begin(t[1])					-- теперь записываем всё обратно
+	pk:w_begin(t[1])					-- С‚РµРїРµСЂСЊ Р·Р°РїРёСЃС‹РІР°РµРј РІСЃС‘ РѕР±СЂР°С‚РЅРѕ
 	for i = 2, #t, 1 do
 		n = t[i]
 		if type( n ) == "string" then

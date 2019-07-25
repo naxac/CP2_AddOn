@@ -36,19 +36,19 @@ function evaluator_bandage:evaluate()
 	if self.hitt > time_global() then
 		return false
 	end
-	if self.st.action then		-- пока работает экшн, нас ничего не интересует, кроме укрытия
+	if self.st.action then		-- РїРѕРєР° СЂР°Р±РѕС‚Р°РµС‚ СЌРєС€РЅ, РЅР°СЃ РЅРёС‡РµРіРѕ РЅРµ РёРЅС‚РµСЂРµСЃСѓРµС‚, РєСЂРѕРјРµ СѓРєСЂС‹С‚РёСЏ
 		if rx_utils.npc_in_cover(npc) then
 			return true
 		end
 		self.hitt = time_global()+1000
 		return false
-	elseif self.st.fin then		-- после завершения экшена отключаемся на время
+	elseif self.st.fin then		-- РїРѕСЃР»Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ СЌРєС€РµРЅР° РѕС‚РєР»СЋС‡Р°РµРјСЃСЏ РЅР° РІСЂРµРјСЏ
 		self.hitt = time_global()+5000
 		self.st.fin = nil
 		return false
 	end
 	local wound,bleed = npc.health < bandage_sets.max_h,npc:get_bleeding() > bandage_sets.min_b
-	if not (wound or bleed) then			-- если лечиться не нужно
+	if not (wound or bleed) then			-- РµСЃР»Рё Р»РµС‡РёС‚СЊСЃСЏ РЅРµ РЅСѓР¶РЅРѕ
 		self.hitt = time_global()+5000
 		return false
 	end
@@ -67,7 +67,7 @@ function evaluator_bandage:evaluate()
 	end
 	local medkit = self.st.medkit and npc:object(self.st.medkit)
 	if not medkit then
-		if wound then					-- в первую очередь смотрим аптечки
+		if wound then					-- РІ РїРµСЂРІСѓСЋ РѕС‡РµСЂРµРґСЊ СЃРјРѕС‚СЂРёРј Р°РїС‚РµС‡РєРё
 			for k,v in ipairs(bandage_sets.medkits) do
 				medkit = npc:object(v)
 				if medkit then
@@ -79,7 +79,7 @@ function evaluator_bandage:evaluate()
 				self.hitt = time_global()+6000
 			end
 		end
-		if (not medkit) and bleed then	-- если нет аптечки, но нужна перевязка - ищем бинты
+		if (not medkit) and bleed then	-- РµСЃР»Рё РЅРµС‚ Р°РїС‚РµС‡РєРё, РЅРѕ РЅСѓР¶РЅР° РїРµСЂРµРІСЏР·РєР° - РёС‰РµРј Р±РёРЅС‚С‹
 			for k,v in ipairs(bandage_sets.bandages) do
 				medkit = npc:object(v)
 				if medkit then
@@ -91,7 +91,7 @@ function evaluator_bandage:evaluate()
 				self.hitt = time_global()+4000
 			end
 		end
-		if not medkit then				-- если аптечка не найдена
+		if not medkit then				-- РµСЃР»Рё Р°РїС‚РµС‡РєР° РЅРµ РЅР°Р№РґРµРЅР°
 			self.st.medkit = nil
 			return false
 		end
@@ -105,7 +105,7 @@ function evaluator_bandage:evaluate()
 		alife():create("rx_attach_bandage",npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
 		return false
 	end
-	if not rx_utils.npc_in_cover(npc,true) then	-- ждём когда окажемся в укрытии
+	if not rx_utils.npc_in_cover(npc,true) then	-- Р¶РґС‘Рј РєРѕРіРґР° РѕРєР°Р¶РµРјСЃСЏ РІ СѓРєСЂС‹С‚РёРё
 		return false
 	end
 	return true
@@ -145,7 +145,7 @@ function action_bandage:execute()
 	else
 		npc:set_sight(look.direction,self.dir)
 	end
-	if not self.st.action then		-- цикл прошёл, но запущен снова без переключения
+	if not self.st.action then		-- С†РёРєР» РїСЂРѕС€С‘Р», РЅРѕ Р·Р°РїСѓС‰РµРЅ СЃРЅРѕРІР° Р±РµР· РїРµСЂРµРєР»СЋС‡РµРЅРёСЏ
 		self.st.action = true
 		self.timer = 0
 		self.animst = 0
@@ -203,15 +203,15 @@ function action_bandage:finalize()
 	end
 	rx_ai.unsubscribe_from_events(npc:id(),self)
 	npc:clear_animations()
-	npc:play_cycle("norm_torso_0_idle_1",true)	-- фикс залипания анимации
-	npc:set_sight(look.danger,npc:direction(),0)	-- удовлетворить стейт менеджер
-	npc:set_movement_type(move.walk)	-- фикс для горбатого экшена набегания на врага
+	npc:play_cycle("norm_torso_0_idle_1",true)	-- С„РёРєСЃ Р·Р°Р»РёРїР°РЅРёСЏ Р°РЅРёРјР°С†РёРё
+	npc:set_sight(look.danger,npc:direction(),0)	-- СѓРґРѕРІР»РµС‚РІРѕСЂРёС‚СЊ СЃС‚РµР№С‚ РјРµРЅРµРґР¶РµСЂ
+	npc:set_movement_type(move.walk)	-- С„РёРєСЃ РґР»СЏ РіРѕСЂР±Р°С‚РѕРіРѕ СЌРєС€РµРЅР° РЅР°Р±РµРіР°РЅРёСЏ РЅР° РІСЂР°РіР°
 	state_mgr.set_state(npc,"idle")
 	rx_sound.block_alarm_sound(npc)
 	self.st.action = nil
 	self.st.fin = true
 end
-function action_bandage:hit_callback(amount)	-- если бинт в руке, можно его выронить
+function action_bandage:hit_callback(amount)	-- РµСЃР»Рё Р±РёРЅС‚ РІ СЂСѓРєРµ, РјРѕР¶РЅРѕ РµРіРѕ РІС‹СЂРѕРЅРёС‚СЊ
 	local npc = self.object
 	if self.animst > 1 and math.random() < amount*3 and npc:alive() then
 		local ban = npc:object("bandage")
@@ -263,14 +263,14 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(evid_bandage,true))
 	action:add_effect(world_property(evid_bandage,false))
 	manager:add_action(actid_bandage,action)
-	-- включение в планировщик
+	-- РІРєР»СЋС‡РµРЅРёРµ РІ РїР»Р°РЅРёСЂРѕРІС‰РёРє
 	for i,id in ipairs({xr_actions_id.alife,stalker_ids.action_combat_planner,stalker_ids.action_danger_planner,xr_actions_id.stohe_meet_base+1}) do
 		action = manager:action(id)
 		if action then
 			action:add_precondition(world_property(evid_bandage,false))
 		end
 	end
-	-- необходимо добавить предусловие схеме собирательства и прочим низкоприоритетным общим схемам
+	-- РЅРµРѕР±С…РѕРґРёРјРѕ РґРѕР±Р°РІРёС‚СЊ РїСЂРµРґСѓСЃР»РѕРІРёРµ СЃС…РµРјРµ СЃРѕР±РёСЂР°С‚РµР»СЊСЃС‚РІР° Рё РїСЂРѕС‡РёРј РЅРёР·РєРѕРїСЂРёРѕСЂРёС‚РµС‚РЅС‹Рј РѕР±С‰РёРј СЃС…РµРјР°Рј
 	if watcher_act and watcher_act.actid_reach_item then
 		for i,id in ipairs({watcher_act.actid_reach_item,watcher_act.actid_grab_item,watcher_act.actid_grab_body}) do
 			action = manager:action(id)

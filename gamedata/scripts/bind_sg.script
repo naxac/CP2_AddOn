@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local unload_radius2 = nil -- квадрат рассотяния от актора, на к-ром разряжается
+local unload_radius2 = nil -- РєРІР°РґСЂР°С‚ СЂР°СЃСЃРѕС‚СЏРЅРёСЏ РѕС‚ Р°РєС‚РѕСЂР°, РЅР° Рє-СЂРѕРј СЂР°Р·СЂСЏР¶Р°РµС‚СЃСЏ
 
 function init(obj)
 	local new_binder = sg_class_binder(obj)
@@ -7,7 +7,7 @@ function init(obj)
 end
 
 ---------------------------------------------------------------------------------------------
--- Порядок загрузки:
+-- РџРѕСЂСЏРґРѕРє Р·Р°РіСЂСѓР·РєРё:
 -- reload
 -- reinit
 -- load
@@ -29,7 +29,7 @@ function sg_class_binder:reinit()
 	self.ammo_table = rx_utils.parse_list_new(nil, self.object:section(), "ammo_class")
 --	log1(self.object:section())
 --	table.print(self.ammo_table)
-	self.ammo_load = {} -- таблица к-ва патронов, инициализируем все типы нулями
+	self.ammo_load = {} -- С‚Р°Р±Р»РёС†Р° Рє-РІР° РїР°С‚СЂРѕРЅРѕРІ, РёРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј РІСЃРµ С‚РёРїС‹ РЅСѓР»СЏРјРё
 	for k,v in pairs (self.ammo_table) do
 		self.ammo_load[k] = 0
 	end
@@ -39,7 +39,7 @@ function sg_class_binder:reinit()
 	if not unload_radius2 then
 		local sd = sys_ini:r_float("alife","switch_distance")
 		local sf = sys_ini:r_float("alife","switch_factor")
-		local unload_radius = sd*(1-sf)*0.85 -- еще чуть меньше, чем онлайн-радиус
+		local unload_radius = sd*(1-sf)*0.85 -- РµС‰Рµ С‡СѓС‚СЊ РјРµРЅСЊС€Рµ, С‡РµРј РѕРЅР»Р°Р№РЅ-СЂР°РґРёСѓСЃ
 		unload_radius2 = unload_radius*unload_radius
 		--qqq("sd = "..sd)
 		--qqq("sf = "..sf)
@@ -55,25 +55,25 @@ end
 function sg_class_binder:save(packet)
 	object_binder.save(self, packet)
 	
-	-- ресет таблицы зарядки
+	-- СЂРµСЃРµС‚ С‚Р°Р±Р»РёС†С‹ Р·Р°СЂСЏРґРєРё
 	for k,v in pairs (self.ammo_load) do
 		self.ammo_load[k] = 0
 	end
 
-	-- номер текущего типа патронов в списке (начало с 1)
+	-- РЅРѕРјРµСЂ С‚РµРєСѓС‰РµРіРѕ С‚РёРїР° РїР°С‚СЂРѕРЅРѕРІ РІ СЃРїРёСЃРєРµ (РЅР°С‡Р°Р»Рѕ СЃ 1)
 	self.ammo_class_num = get_ammo_type(self.id) + 1
-	packet:w_u8(self.ammo_class_num) -- сразу пишем
+	packet:w_u8(self.ammo_class_num) -- СЃСЂР°Р·Сѓ РїРёС€РµРј
 	
 	self.load = self.object:get_ammo_in_magazine()
 	packet:w_u16(self.load)
 	
-	-- читаем update-пакет
+	-- С‡РёС‚Р°РµРј update-РїР°РєРµС‚
 	local t = get_ammo_ids( self.id )
 	for i, v in ipairs(t) do
-		table.add(self.ammo_load, v + 1) -- нашли патрон такого типа - прибавляем к сумме
+		table.add(self.ammo_load, v + 1) -- РЅР°С€Р»Рё РїР°С‚СЂРѕРЅ С‚Р°РєРѕРіРѕ С‚РёРїР° - РїСЂРёР±Р°РІР»СЏРµРј Рє СЃСѓРјРјРµ
 	end
 	
-	-- Пишем количества заряженных патронов
+	-- РџРёС€РµРј РєРѕР»РёС‡РµСЃС‚РІР° Р·Р°СЂСЏР¶РµРЅРЅС‹С… РїР°С‚СЂРѕРЅРѕРІ
 	for k,v in pairs (self.ammo_load) do
 		packet:w_u16(v)
 	end
@@ -83,7 +83,7 @@ end
 function sg_class_binder:load(reader)
 
 	self.check_ammo = true
-	-- ресет таблицы зарядки
+	-- СЂРµСЃРµС‚ С‚Р°Р±Р»РёС†С‹ Р·Р°СЂСЏРґРєРё
 	for k,v in pairs (self.ammo_load) do
 		self.ammo_load[k] = 0
 	end
@@ -124,15 +124,15 @@ function sg_class_binder:unload()
 		--qqq(k.." = "..v)
 --	end
 	if self.load ~= self.ammo_load[self.ammo_class_num] then
-	-- не все заряженные патроны были текущего типа
-		self.object:set_ammo_elapsed(0) -- ресет магазина
-		self.object:set_ammo_elapsed(self.ammo_load[self.ammo_class_num]) -- оставляем только патроны текущего типа
-		self.ammo_load[self.ammo_class_num] = 0 -- их возвращать не надо
+	-- РЅРµ РІСЃРµ Р·Р°СЂСЏР¶РµРЅРЅС‹Рµ РїР°С‚СЂРѕРЅС‹ Р±С‹Р»Рё С‚РµРєСѓС‰РµРіРѕ С‚РёРїР°
+		self.object:set_ammo_elapsed(0) -- СЂРµСЃРµС‚ РјР°РіР°Р·РёРЅР°
+		self.object:set_ammo_elapsed(self.ammo_load[self.ammo_class_num]) -- РѕСЃС‚Р°РІР»СЏРµРј С‚РѕР»СЊРєРѕ РїР°С‚СЂРѕРЅС‹ С‚РµРєСѓС‰РµРіРѕ С‚РёРїР°
+		self.ammo_load[self.ammo_class_num] = 0 -- РёС… РІРѕР·РІСЂР°С‰Р°С‚СЊ РЅРµ РЅР°РґРѕ
 	--qqq("self.ammo_load - return ammo")
 --	for k,v in pairs (self.ammo_load) do
 		--qqq(k.." = "..v)
 --	end
-		-- возврат остальных патронов
+		-- РІРѕР·РІСЂР°С‚ РѕСЃС‚Р°Р»СЊРЅС‹С… РїР°С‚СЂРѕРЅРѕРІ
 		local parent = self.object:parent()
 		if parent then
 			local pid = parent:id()
@@ -151,7 +151,7 @@ function sg_class_binder:unload()
 			end
 		end
 	end
-	-- ресет таблицы зарядки
+	-- СЂРµСЃРµС‚ С‚Р°Р±Р»РёС†С‹ Р·Р°СЂСЏРґРєРё
 	for k,v in pairs (self.ammo_load) do
 		self.ammo_load[k] = 0
 	end
@@ -171,17 +171,17 @@ function sg_class_binder:update(delta)
 	----qqq("dist2 = "..dist2)
 	if dist2 > unload_radius2 then
 		if not self.unloaded then
-			-- ресет таблицы зарядки
+			-- СЂРµСЃРµС‚ С‚Р°Р±Р»РёС†С‹ Р·Р°СЂСЏРґРєРё
 			for k,v in pairs (self.ammo_load) do
 				self.ammo_load[k] = 0
 			end
-			-- номер текущего типа патронов в списке (начало с 1)
+			-- РЅРѕРјРµСЂ С‚РµРєСѓС‰РµРіРѕ С‚РёРїР° РїР°С‚СЂРѕРЅРѕРІ РІ СЃРїРёСЃРєРµ (РЅР°С‡Р°Р»Рѕ СЃ 1)
 			self.ammo_class_num = get_ammo_type(self.id) + 1
 			--qqq("self.ammo_class_num = "..self.ammo_class_num)
 			self.load = self.object:get_ammo_in_magazine()
 			--qqq("self.load = "..self.load)
 			
-			-- читаем update-пакет
+			-- С‡РёС‚Р°РµРј update-РїР°РєРµС‚
 			local t = get_ammo_ids( self.id )
 			for i, v in ipairs(t) do
 				table.add(self.ammo_load, v + 1)

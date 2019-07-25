@@ -1,9 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --/amk_rel_1/
 --[[------------------------------------------------------------------------------------------------------------------
-автор: Диденко Руслан (Stohe)
+Р°РІС‚РѕСЂ: Р”РёРґРµРЅРєРѕ Р СѓСЃР»Р°РЅ (Stohe)
 
-порядок вызова методов биндера:
+РїРѕСЂСЏРґРѕРє РІС‹Р·РѕРІР° РјРµС‚РѕРґРѕРІ Р±РёРЅРґРµСЂР°:
 reload
 reinit
 load
@@ -24,7 +24,7 @@ function motivator_binder:__init (obj) super(obj)
 	self.particles = {}
 	self.rot_time = 65535
 
-	self.opened_doors = {} --Хранит таблицу дверей, открытых данным персонажем (чтобы потом закрыть)
+	self.opened_doors = {} --РҐСЂР°РЅРёС‚ С‚Р°Р±Р»РёС†Сѓ РґРІРµСЂРµР№, РѕС‚РєСЂС‹С‚С‹С… РґР°РЅРЅС‹Рј РїРµСЂСЃРѕРЅР°Р¶РµРј (С‡С‚РѕР±С‹ РїРѕС‚РѕРј Р·Р°РєСЂС‹С‚СЊ)
 end
 
 function motivator_binder:extrapolate_callback(cur_pt)
@@ -48,18 +48,18 @@ function motivator_binder:reinit()
 --	memusage.collect_info(self.object, "reinit_start")
 --	printf("motivator_binder:reinit(): self.object:name()='%s'", self.object:name())
 
---	КОЛЛБЕКИ ЗДЕСЬ СТАВИТЬ НЕЛЬЗЯ! Здесь еще неизвестна активная схема.
---	Ставьте коллбеки в методе update в отмеченном комментарием месте.
+--	РљРћР›Р›Р‘Р•РљР Р—Р”Р•РЎР¬ РЎРўРђР’РРўР¬ РќР•Р›Р¬Р—РЇ! Р—РґРµСЃСЊ РµС‰Рµ РЅРµРёР·РІРµСЃС‚РЅР° Р°РєС‚РёРІРЅР°СЏ СЃС…РµРјР°.
+--	РЎС‚Р°РІСЊС‚Рµ РєРѕР»Р»Р±РµРєРё РІ РјРµС‚РѕРґРµ update РІ РѕС‚РјРµС‡РµРЅРЅРѕРј РєРѕРјРјРµРЅС‚Р°СЂРёРµРј РјРµСЃС‚Рµ.
 
 	local char_ini = self.object:spawn_ini() or ini_file("scripts\\dummy.ltx")
 
 ----------------------------------------------------------------------------------------------
---	Общие скрипты
+--	РћР±С‰РёРµ СЃРєСЂРёРїС‚С‹
 ----------------------------------------------------------------------------------------------
 	db.storage[self.object:id()] = {  followers = {} }
 	self.st = db.storage[self.object:id()]
 
---'	Создание менеджера контроля положений тела
+--'	РЎРѕР·РґР°РЅРёРµ РјРµРЅРµРґР¶РµСЂР° РєРѕРЅС‚СЂРѕР»СЏ РїРѕР»РѕР¶РµРЅРёР№ С‚РµР»Р°
 --	memusage.collect_info(self.object, "before_statemgr")
 	self.st.state_mgr = state_mgr.bind_manager(self.object)
 
@@ -102,14 +102,14 @@ function motivator_binder:net_spawn(sobject)
 
 	db.add_obj(self.object)
 
---	Все CALLBACK-и ставить здесь:
+--	Р’СЃРµ CALLBACK-Рё СЃС‚Р°РІРёС‚СЊ Р·РґРµСЃСЊ:
 	self.object:set_patrol_extrapolate_callback(motivator_binder.extrapolate_callback, self)
 	self.object:set_callback(callback.hit, motivator_binder.hit_callback, self)
 	self.object:set_callback(callback.death, motivator_binder.death_callback, self)
 	self.object:set_callback(callback.use_object, motivator_binder.use_callback, self)
 --	memusage.collect_info(self.object, "after__callback")
 
---'	Загрузка историй для лагеря.
+--'	Р—Р°РіСЂСѓР·РєР° РёСЃС‚РѕСЂРёР№ РґР»СЏ Р»Р°РіРµСЂСЏ.
 	if self.loaded == false then
 		local char_ini = self.object:spawn_ini() or ini_file("scripts\\dummy.ltx")
 		xr_info.loadInfo(self.object, char_ini)
@@ -119,7 +119,7 @@ function motivator_binder:net_spawn(sobject)
 	manager:remove_evaluator  (stalker_ids.property_anomaly)
 	manager:add_evaluator   (stalker_ids.property_anomaly, property_evaluator_const(false))
 
---'	загрузка озвучки
+--'	Р·Р°РіСЂСѓР·РєР° РѕР·РІСѓС‡РєРё
 --	memusage.collect_info(self.object, "before_soundmgr")
 	xr_sound.load_sound(self.object)
 --	memusage.collect_info(self.object, "after_soundmgr_netspawn_end")
@@ -147,7 +147,7 @@ function motivator_binder:net_spawn(sobject)
 		end
 	end
 
---	сохранение отношений в Волне
+--	СЃРѕС…СЂР°РЅРµРЅРёРµ РѕС‚РЅРѕС€РµРЅРёР№ РІ Р’РѕР»РЅРµ
 	if level.name() == "zaton" then
 		self.npc_goodwill = self.object:goodwill(db.actor)
 		if 0 <= self.npc_goodwill and self.npc_goodwill <= 1000 then
@@ -195,20 +195,20 @@ function motivator_binder:net_destroy()
 	self:clear_callbacks()
 	self.object:set_callback(callback.use_object, nil)
 
-	-- труп исчез из-под носа гг. видимо, воскрес
+	-- С‚СЂСѓРї РёСЃС‡РµР· РёР·-РїРѕРґ РЅРѕСЃР° РіРі. РІРёРґРёРјРѕ, РІРѕСЃРєСЂРµСЃ
 	if self.rot_sound then
 		self.rot_sound = nil
 		db.rotting = db.rotting-1
 	end
 
-	-- АМК. Очистка рестрикторов
+	-- РђРњРљ. РћС‡РёСЃС‚РєР° СЂРµСЃС‚СЂРёРєС‚РѕСЂРѕРІ
 	object_binder.net_destroy(self)
 
 	local sobj=alife():object(id)
 	if sobj then
 		netpk:modify( sobj, { dynamic_in_restrictions = {} }, netpk.fState )
 	else
-		-- Выход из игры.
+		-- Р’С‹С…РѕРґ РёР· РёРіСЂС‹.
 	end
 	-- packet_table.clear_packet(self.object)
 end
@@ -230,8 +230,8 @@ function motivator_binder:hit_callback(obj, amount, local_direction, who, bone_i
 --	Akill begin
 	akill.on_npc_hit(self, obj, amount, local_direction, who, bone_index)
 --	Akill end
-	-- FIXME: коллбеки неплохо было бы регистрировать в общем storage, а не посхемно...
-	-- просто всегда ставить их при включении схемы и снимать при отключении.
+	-- FIXME: РєРѕР»Р»Р±РµРєРё РЅРµРїР»РѕС…Рѕ Р±С‹Р»Рѕ Р±С‹ СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊ РІ РѕР±С‰РµРј storage, Р° РЅРµ РїРѕСЃС…РµРјРЅРѕ...
+	-- РїСЂРѕСЃС‚Рѕ РІСЃРµРіРґР° СЃС‚Р°РІРёС‚СЊ РёС… РїСЂРё РІРєР»СЋС‡РµРЅРёРё СЃС…РµРјС‹ Рё СЃРЅРёРјР°С‚СЊ РїСЂРё РѕС‚РєР»СЋС‡РµРЅРёРё.
 
 	if self.st.active_section then
 		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "hit_callback", obj, amount, local_direction, who, bone_index)
@@ -295,7 +295,7 @@ function motivator_binder:death_callback(victim, who)
 
 	self:clear_callbacks()
 
---'	Наносим небольшой импульс вперед.
+--'	РќР°РЅРѕСЃРёРј РЅРµР±РѕР»СЊС€РѕР№ РёРјРїСѓР»СЊСЃ РІРїРµСЂРµРґ.
 	local h = hit()
 	h.draftsman = self.object
 	h.type = hit.fire_wound
@@ -424,7 +424,7 @@ function motivator_binder:update(delta)
 
     self.prev_ammo = wpn["ammo"] or 0
 
-	--' Апдейт менеджера состояний тела
+	--' РђРїРґРµР№С‚ РјРµРЅРµРґР¶РµСЂР° СЃРѕСЃС‚РѕСЏРЅРёР№ С‚РµР»Р°
 	if self.st.state_mgr then
 		if self.object:alive() then
 			self.st.state_mgr:update()
@@ -434,7 +434,7 @@ function motivator_binder:update(delta)
 	end
 
 	if self.object:alive() then
-		--' Апдейт саундменеджера
+		--' РђРїРґРµР№С‚ СЃР°СѓРЅРґРјРµРЅРµРґР¶РµСЂР°
 		xr_sound.update(self.object)
 
 		if self.object:is_talk_enabled() then
@@ -445,14 +445,14 @@ function motivator_binder:update(delta)
 		
 		local opened_doors = ph_door.try_to_open_door(self.object)
 		table.copy(self.opened_doors, opened_doors)
-		-- Закрываем двери
+		-- Р—Р°РєСЂС‹РІР°РµРј РґРІРµСЂРё
 		local closed_doors = ph_door.try_to_close_door(self.object, self.opened_doors)
 		for id,v in pairs(closed_doors) do
 			self.opened_doors[id] = nil
 		end
 	else
 		self.object:set_tip_text_default()
-		-- гниение
+		-- РіРЅРёРµРЅРёРµ
 		if self.rot then
 			self:rotting()
 		end
@@ -496,7 +496,7 @@ function motivator_binder:save(packet)
 	dialog_manager.save(self.object, packet)
 
 	if self.rot_time == 65535 and not self.object:alive() then
-	--	помер, либо гг нашел труп - выставляем время гниения
+	--	РїРѕРјРµСЂ, Р»РёР±Рѕ РіРі РЅР°С€РµР» С‚СЂСѓРї - РІС‹СЃС‚Р°РІР»СЏРµРј РІСЂРµРјСЏ РіРЅРёРµРЅРёСЏ
 		self.rot_time = amk.game_hours()+24
 	end
 	packet:w_u16(self.rot_time)
@@ -515,7 +515,7 @@ function motivator_binder:load(reader)
 --	printf("motivator_binder:object_binder.load(): self.object:name()='%s'", self.object:name())
 
 	if reader:r_eof() then
-		-- abort("Это сохранение повреждено - удалите его! motivator_binder:load "..self.object:name())
+		-- abort("Р­С‚Рѕ СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕРІСЂРµР¶РґРµРЅРѕ - СѓРґР°Р»РёС‚Рµ РµРіРѕ! motivator_binder:load "..self.object:name())
 		remove_zavis.remove_obj(self.object)
 		if not self.object then
 			return
@@ -548,7 +548,7 @@ function motivator_binder:rotting()
 		if self.rot_sound:playing() then 
 			self.rot_sound:set_position(self.pos)
 		else
-			-- мухи не летают в дождь, ночью и во время Выброса
+			-- РјСѓС…Рё РЅРµ Р»РµС‚Р°СЋС‚ РІ РґРѕР¶РґСЊ, РЅРѕС‡СЊСЋ Рё РІРѕ РІСЂРµРјСЏ Р’С‹Р±СЂРѕСЃР°
 			if level.rain_factor() < 0.05 and xr_conditions.is_day() and not amk.has_variable("blowout") then
 				self.rot_sound:play_at_pos(self.object, self.pos)
 			end
@@ -567,7 +567,7 @@ function AddToMotivator(npc)
 	end
 end
 
--- Эвалюаторы, которые имеют высший приоритет, и, соответственно, перебивают остальные скрипты собой
+-- Р­РІР°Р»СЋР°С‚РѕСЂС‹, РєРѕС‚РѕСЂС‹Рµ РёРјРµСЋС‚ РІС‹СЃС€РёР№ РїСЂРёРѕСЂРёС‚РµС‚, Рё, СЃРѕРѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕ, РїРµСЂРµР±РёРІР°СЋС‚ РѕСЃС‚Р°Р»СЊРЅС‹Рµ СЃРєСЂРёРїС‚С‹ СЃРѕР±РѕР№
 function addCommonPrecondition(action)
 --	action:add_precondition (world_property(xr_evaluators_id.reaction,false))
 	action:add_precondition (world_property(xr_evaluators_id.stohe_meet_base + 1,false))

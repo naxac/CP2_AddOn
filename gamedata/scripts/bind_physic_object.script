@@ -1,8 +1,8 @@
 ----------------------------------------------------------------------------------------------------
 -- Physic objects binding
 ----------------------------------------------------------------------------------------------------
--- Разработчик: Evgeniy Negrobov (Jon) jon@gsc-game.kiev.ua
--- Доработки: Andrey Fidrya (Zmey) af@svitonline.com
+-- Р Р°Р·СЂР°Р±РѕС‚С‡РёРє: Evgeniy Negrobov (Jon) jon@gsc-game.kiev.ua
+-- Р”РѕСЂР°Р±РѕС‚РєРё: Andrey Fidrya (Zmey) af@svitonline.com
 ----------------------------------------------------------------------------------------------------
 
 
@@ -15,7 +15,7 @@ function init(obj)
 --	printf("_bp: init(): name='%s'", obj:name())
 
 	----------------------------------------------------------------------------------------
-	-- Старые схемы
+	-- РЎС‚Р°СЂС‹Рµ СЃС…РµРјС‹
 	----------------------------------------------------------------------------------------
 
 	local ini = obj:spawn_ini()
@@ -27,12 +27,12 @@ function init(obj)
 	end
 
 	----------------------------------------------------------------------------------------
-	-- Новые схемы
+	-- РќРѕРІС‹Рµ СЃС…РµРјС‹
 	----------------------------------------------------------------------------------------
 
-	-- Биндить предмет нет смысла, если у него нет секции logic
+	-- Р‘РёРЅРґРёС‚СЊ РїСЂРµРґРјРµС‚ РЅРµС‚ СЃРјС‹СЃР»Р°, РµСЃР»Рё Сѓ РЅРµРіРѕ РЅРµС‚ СЃРµРєС†РёРё logic
 	if (not ini) or (not ini:section_exist("logic")) then
-		-- Прожектор нужно биндить даже без logic
+		-- РџСЂРѕР¶РµРєС‚РѕСЂ РЅСѓР¶РЅРѕ Р±РёРЅРґРёС‚СЊ РґР°Р¶Рµ Р±РµР· logic
 		if ini and not ini:section_exist("drop_box") then
 			if obj:clsid() ~= clsid.projector then
 				return
@@ -74,14 +74,14 @@ function generic_physics_binder:update(delta)
 		self.initialized = true
 		xr_logic.initialize_obj(self.object, self.st, self.loaded, db.actor, modules.stype_item)        
 
-        --' Запускаем ассоциированный с объектом партикл.
+        --' Р—Р°РїСѓСЃРєР°РµРј Р°СЃСЃРѕС†РёРёСЂРѕРІР°РЅРЅС‹Р№ СЃ РѕР±СЉРµРєС‚РѕРј РїР°СЂС‚РёРєР».
         local particle = utils.cfg_get_string(self.st.ini, self.st.section_logic, "particle", self.object, false, "", nil)
         if particle ~= nil then
             self.particle = particles_object(particle)
             self.particle:play_at_pos(self.object:position())
         end
 
-        --' Дизаблим ассоциированный с объектом граф
+        --' Р”РёР·Р°Р±Р»РёРј Р°СЃСЃРѕС†РёРёСЂРѕРІР°РЅРЅС‹Р№ СЃ РѕР±СЉРµРєС‚РѕРј РіСЂР°С„
         local graph_point_marker = utils.cfg_get_string(self.st.ini, self.st.section_logic, "graph_point_marker", self.object, false, "", nil)
         if graph_point_marker ~= nil then
             self.disable_graph_point = patrol(graph_point_marker):game_vertex_id(0)
@@ -103,7 +103,7 @@ function generic_physics_binder:update(delta)
 		self.object:set_callback(callback.death, self.death_callback, self)
 		self.object:set_callback(callback.use_object, self.use_callback, self)
 
-		-- для бтра hit_callback и death_callback не вызывается. заткнём эти дырки.
+		-- РґР»СЏ Р±С‚СЂР° hit_callback Рё death_callback РЅРµ РІС‹Р·С‹РІР°РµС‚СЃСЏ. Р·Р°С‚РєРЅС‘Рј СЌС‚Рё РґС‹СЂРєРё.
 		if self.health and (not self.nofixonhit) then
 		  local health=self.object:get_car() and self.object:get_car():GetfHealth()
 		  if health then
@@ -113,10 +113,10 @@ function generic_physics_binder:update(delta)
 				--get_console():execute("load ~~~ health: "..self.health)
 				--get_console():execute("load ~~~ health on hit: "..health)
 				if actor_active_item then
-					if weapon_immunity_btr(actor_active_item) then	-- Оружие, против которого у бтр иммунитет
+					if weapon_immunity_btr(actor_active_item) then	-- РћСЂСѓР¶РёРµ, РїСЂРѕС‚РёРІ РєРѕС‚РѕСЂРѕРіРѕ Сѓ Р±С‚СЂ РёРјРјСѓРЅРёС‚РµС‚
 						health = 1
 
-					elseif not weapon_against_btr(actor_active_item) then	-- Усиление бтр против всего, кроме отдельных стволов
+					elseif not weapon_against_btr(actor_active_item) then	-- РЈСЃРёР»РµРЅРёРµ Р±С‚СЂ РїСЂРѕС‚РёРІ РІСЃРµРіРѕ, РєСЂРѕРјРµ РѕС‚РґРµР»СЊРЅС‹С… СЃС‚РІРѕР»РѕРІ
 						if self.health-health > 0.1 then
 							health = self.health-0.1
 						end
@@ -280,7 +280,7 @@ function generic_physics_binder:btr_death_callback()
 	end
 end
 
--- Усиление БТР против всего, кроме рпг и РГ6 на время квеста по Сидору
+-- РЈСЃРёР»РµРЅРёРµ Р‘РўР  РїСЂРѕС‚РёРІ РІСЃРµРіРѕ, РєСЂРѕРјРµ СЂРїРі Рё Р Р“6 РЅР° РІСЂРµРјСЏ РєРІРµСЃС‚Р° РїРѕ РЎРёРґРѕСЂСѓ
 function weapon_against_btr(wpn)
 	return wpn:section() == "wpn_rpg7"
 		or
@@ -291,7 +291,7 @@ function weapon_against_btr(wpn)
 		wpn:section() == "wpn_rg-6")
 end
 
--- Оружие, против которого у бтр иммунитет
+-- РћСЂСѓР¶РёРµ, РїСЂРѕС‚РёРІ РєРѕС‚РѕСЂРѕРіРѕ Сѓ Р±С‚СЂ РёРјРјСѓРЅРёС‚РµС‚
 function weapon_immunity_btr(wpn)
 	local wpns = {
 		["wpn_kuvalda"] = true,

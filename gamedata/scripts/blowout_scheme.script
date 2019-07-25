@@ -162,10 +162,10 @@ function evaluator_outside:evaluate()
   local blowout=amk.load_variable("blowout",0)
   if blowout>=2 then
     if self.st.nohide then
-      -- Если укрытие невозможно найти, то игнорируем выброс
+      -- Р•СЃР»Рё СѓРєСЂС‹С‚РёРµ РЅРµРІРѕР·РјРѕР¶РЅРѕ РЅР°Р№С‚Рё, С‚Рѕ РёРіРЅРѕСЂРёСЂСѓРµРј РІС‹Р±СЂРѕСЃ
       return false
     end
-    -- Для фазы 2 разрешим неписям выбегать из укрытия если есть враг или опасность
+    -- Р”Р»СЏ С„Р°Р·С‹ 2 СЂР°Р·СЂРµС€РёРј РЅРµРїРёСЃСЏРј РІС‹Р±РµРіР°С‚СЊ РёР· СѓРєСЂС‹С‚РёСЏ РµСЃР»Рё РµСЃС‚СЊ РІСЂР°Рі РёР»Рё РѕРїР°СЃРЅРѕСЃС‚СЊ
     if npc:best_danger() and npc:best_danger():type()==danger_object.grenade then
       return false
     end
@@ -179,28 +179,28 @@ function evaluator_outside:evaluate()
       end
     end
     if self.prev and (not inhide) and (not retpt) then
-    -- Непись пытается вылезти из укрытия. Поставим точку возвращения
+    -- РќРµРїРёСЃСЊ РїС‹С‚Р°РµС‚СЃСЏ РІС‹Р»РµР·С‚Рё РёР· СѓРєСЂС‹С‚РёСЏ. РџРѕСЃС‚Р°РІРёРј С‚РѕС‡РєСѓ РІРѕР·РІСЂР°С‰РµРЅРёСЏ
       table.insert(ret_points,{pos=npc:position()})
     end
     self.prev=inhide
-    -- Непись считается вылезшим из укрытия если он снаружи или рядом с точкой возврата
+    -- РќРµРїРёСЃСЊ СЃС‡РёС‚Р°РµС‚СЃСЏ РІС‹Р»РµР·С€РёРј РёР· СѓРєСЂС‹С‚РёСЏ РµСЃР»Рё РѕРЅ СЃРЅР°СЂСѓР¶Рё РёР»Рё СЂСЏРґРѕРј СЃ С‚РѕС‡РєРѕР№ РІРѕР·РІСЂР°С‚Р°
     inhide=inhide and (not retpt)
     
-    -- Если непись зашёл в укрытие, то дадим ему ещё 1 сек чтобы зайти глубже
+    -- Р•СЃР»Рё РЅРµРїРёСЃСЊ Р·Р°С€С‘Р» РІ СѓРєСЂС‹С‚РёРµ, С‚Рѕ РґР°РґРёРј РµРјСѓ РµС‰С‘ 1 СЃРµРє С‡С‚РѕР±С‹ Р·Р°Р№С‚Рё РіР»СѓР±Р¶Рµ
     if inhide and self.uptime and self.uptime>time_global() then
-      -- Уже в укрытии, но секунда ещё не прошла
---      if npc:character_name()=="Волк" then amk.mylog(npc:character_name().." outside1") end
+      -- РЈР¶Рµ РІ СѓРєСЂС‹С‚РёРё, РЅРѕ СЃРµРєСѓРЅРґР° РµС‰С‘ РЅРµ РїСЂРѕС€Р»Р°
+--      if npc:character_name()=="Р’РѕР»Рє" then amk.mylog(npc:character_name().." outside1") end
       return true
     elseif inhide and self.uptime and self.uptime<=time_global() then
-      -- В укрытии. Секунда только что прошла - спрятался
+      -- Р’ СѓРєСЂС‹С‚РёРё. РЎРµРєСѓРЅРґР° С‚РѕР»СЊРєРѕ С‡С‚Рѕ РїСЂРѕС€Р»Р° - СЃРїСЂСЏС‚Р°Р»СЃСЏ
 	  self.st.hide.hidden = true
     elseif inhide and (not self.uptime) then
-      -- Только что зашёл в укрытие
+      -- РўРѕР»СЊРєРѕ С‡С‚Рѕ Р·Р°С€С‘Р» РІ СѓРєСЂС‹С‚РёРµ
       self.uptime=time_global()+1000
---      if npc:character_name()=="Волк" then amk.mylog(npc:character_name().." outside2") end
+--      if npc:character_name()=="Р’РѕР»Рє" then amk.mylog(npc:character_name().." outside2") end
       return true
     elseif not inhide then
-      -- Не в укрытии
+      -- РќРµ РІ СѓРєСЂС‹С‚РёРё
       self.uptime=nil
     end
     if inhide then 
@@ -259,9 +259,9 @@ function action_runtohide:initialize()
   npc:set_path_type(game_object.level_path)
   -- get_console():execute("load ~~~runtohide init "..npc:character_name())
   -- get_console():execute("flush")
-  -- Ищем ближайшее укрытие
+  -- РС‰РµРј Р±Р»РёР¶Р°Р№С€РµРµ СѓРєСЂС‹С‚РёРµ
   if not self.st.hidefound then
-    local hide,lvid=nearest_hide(npc) --  ищем укрытия без удаления рестрикторов
+    local hide,lvid=nearest_hide(npc) --  РёС‰РµРј СѓРєСЂС‹С‚РёСЏ Р±РµР· СѓРґР°Р»РµРЅРёСЏ СЂРµСЃС‚СЂРёРєС‚РѕСЂРѕРІ
     if not hide then
       if self.st.out_rest==nil then
         self.st.out_rest=npc:out_restrictions()
@@ -269,7 +269,7 @@ function action_runtohide:initialize()
 				npc:remove_restrictions(self.st.out_rest,"")
 --        npc:remove_all_restrictions()
       end
-      hide,lvid=nearest_hide(npc) -- ищем укрытие с удалёнными рестрикторами
+      hide,lvid=nearest_hide(npc) -- РёС‰РµРј СѓРєСЂС‹С‚РёРµ СЃ СѓРґР°Р»С‘РЅРЅС‹РјРё СЂРµСЃС‚СЂРёРєС‚РѕСЂР°РјРё
     end
     if hide==nil then
       self.st.nohide=true
@@ -382,7 +382,7 @@ function action_inhide:initialize()
   if self.st.hide.place==nil then self.st.hide.place={} end
   -- get_console():execute("load ~~~inhide init "..npc:character_name())
   -- get_console():execute("flush")
-  -- Выбираем точку внутри укрытия
+  -- Р’С‹Р±РёСЂР°РµРј С‚РѕС‡РєСѓ РІРЅСѓС‚СЂРё СѓРєСЂС‹С‚РёСЏ
   local ang0=math.random(0,360)
   local r0=math.random(1,15)
   local v0=vector():set(1,0,0)
@@ -477,7 +477,7 @@ function action_preblow:initialize()
   if npc:object("wpn_binoc") then
     self.state="binocular"
   end
-  -- Ищем открытое направление. Чтобы не смотрели в стену
+  -- РС‰РµРј РѕС‚РєСЂС‹С‚РѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ. Р§С‚РѕР±С‹ РЅРµ СЃРјРѕС‚СЂРµР»Рё РІ СЃС‚РµРЅСѓ
   local vec=vector():set(1,0.5,0)
   vec:normalize()
   local maxdist=0
@@ -555,18 +555,18 @@ end
 
 local cnt=0
 
---Задаем список неписей с игнором на выброс(например постовых, которые уже находятся в зоне укрытия и могут спокойно выполнять свою работу во время выброса)
+--Р—Р°РґР°РµРј СЃРїРёСЃРѕРє РЅРµРїРёСЃРµР№ СЃ РёРіРЅРѕСЂРѕРј РЅР° РІС‹Р±СЂРѕСЃ(РЅР°РїСЂРёРјРµСЂ РїРѕСЃС‚РѕРІС‹С…, РєРѕС‚РѕСЂС‹Рµ СѓР¶Рµ РЅР°С…РѕРґСЏС‚СЃСЏ РІ Р·РѕРЅРµ СѓРєСЂС‹С‚РёСЏ Рё РјРѕРіСѓС‚ СЃРїРѕРєРѕР№РЅРѕ РІС‹РїРѕР»РЅСЏС‚СЊ СЃРІРѕСЋ СЂР°Р±РѕС‚Сѓ РІРѕ РІСЂРµРјСЏ РІС‹Р±СЂРѕСЃР°)
 --[[------------------------------ ignor blowout -------------------------------]]
 local npcNameBlowoutIgnore = {
-    ["mil_stalker0012"]         = true, --Псих на АС
-    ["yantar_ecolog_general"]   = true, --Сахаров
-    ["mil_freedom_member0009"]  = true, --Охранник Лукаша
-    ["mil_freedom_member0012"]  = true, --Лукаш
-    ["mil_freedom_member0019"]  = true, --Охранник Лукаша
-    ["mil_freedom_member0021"]  = true, --Скряга
-    ["bar_bar_guard"]           = true, --Гарик в баре
-    ["bar_bar_osvedomitel"]     = true, --Информатор в баре
-    ["bar_bar_guard_2"]         = true, --Жорик в баре
+    ["mil_stalker0012"]         = true, --РџСЃРёС… РЅР° РђРЎ
+    ["yantar_ecolog_general"]   = true, --РЎР°С…Р°СЂРѕРІ
+    ["mil_freedom_member0009"]  = true, --РћС…СЂР°РЅРЅРёРє Р›СѓРєР°С€Р°
+    ["mil_freedom_member0012"]  = true, --Р›СѓРєР°С€
+    ["mil_freedom_member0019"]  = true, --РћС…СЂР°РЅРЅРёРє Р›СѓРєР°С€Р°
+    ["mil_freedom_member0021"]  = true, --РЎРєСЂСЏРіР°
+    ["bar_bar_guard"]           = true, --Р“Р°СЂРёРє РІ Р±Р°СЂРµ
+    ["bar_bar_osvedomitel"]     = true, --РРЅС„РѕСЂРјР°С‚РѕСЂ РІ Р±Р°СЂРµ
+    ["bar_bar_guard_2"]         = true, --Р–РѕСЂРёРє РІ Р±Р°СЂРµ
 }
 local npcCommunityBlowoutIgnore = {
     ["zombied"]     = true,
@@ -679,7 +679,7 @@ string.find(npc:name(), "aem_a")
     action:add_effect(world_property(evid_wounded, true))
     manager:add_action(actid_runtohide, action)
 
-    action = action_monolith_pray(storage) -- Фейковый экшн для невозможного случая outside=true blowout=false, который стал возможным вероятно из-за асинхронности hit_callback
+    action = action_monolith_pray(storage) -- Р¤РµР№РєРѕРІС‹Р№ СЌРєС€РЅ РґР»СЏ РЅРµРІРѕР·РјРѕР¶РЅРѕРіРѕ СЃР»СѓС‡Р°СЏ outside=true blowout=false, РєРѕС‚РѕСЂС‹Р№ СЃС‚Р°Р» РІРѕР·РјРѕР¶РЅС‹Рј РІРµСЂРѕСЏС‚РЅРѕ РёР·-Р·Р° Р°СЃРёРЅС…СЂРѕРЅРЅРѕСЃС‚Рё hit_callback
     action:add_precondition(world_property(stalker_ids.property_alive, true))
     action:add_precondition(world_property(evid_wounded, false))
     action:add_precondition(world_property(evid_anomaly, false))

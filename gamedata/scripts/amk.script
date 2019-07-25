@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- Idler: файл из мода 'Народная солянка 2.0'. Адаптирован для мода 'Метки с хабаром 2.1.2' 30.09.2008 0:08:52
--- добавлена fenechka by TAG
+-- Idler: С„Р°Р№Р» РёР· РјРѕРґР° 'РќР°СЂРѕРґРЅР°СЏ СЃРѕР»СЏРЅРєР° 2.0'. РђРґР°РїС‚РёСЂРѕРІР°РЅ РґР»СЏ РјРѕРґР° 'РњРµС‚РєРё СЃ С…Р°Р±Р°СЂРѕРј 2.1.2' 30.09.2008 0:08:52
+-- РґРѕР±Р°РІР»РµРЅР° fenechka by TAG
 
 local table_sort = table.sort
 local table_remove = table.remove
@@ -18,7 +18,7 @@ local string_rep = string.rep
 local string_gfind = string.gfind
 
 ----------------
-local npc_spawner={}  --служебный массив, работает автоматически - не трогать шаловливыми ручками
+local npc_spawner={}  --СЃР»СѓР¶РµР±РЅС‹Р№ РјР°СЃСЃРёРІ, СЂР°Р±РѕС‚Р°РµС‚ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё - РЅРµ С‚СЂРѕРіР°С‚СЊ С€Р°Р»РѕРІР»РёРІС‹РјРё СЂСѓС‡РєР°РјРё
 
 convert_npc={}
 g_kick=false
@@ -64,21 +64,21 @@ function mylog(msg)
 	end
 end
 
---переменные для типсов
+--РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ С‚РёРїСЃРѕРІ
 local tips_sounds = {
 	['news'] = xr_sound.get_safe_sound_object([[device\pda\pda_news]]),
 	['default'] = xr_sound.get_safe_sound_object([[device\pda\pda_tip]]),
 	['task'] = xr_sound.get_safe_sound_object([[device\pda\pda_objective]]),
 	['questman_death'] = xr_sound.get_safe_sound_object([[device\pda\pda_sos]])
 }
---показываем типс
+--РїРѕРєР°Р·С‹РІР°РµРј С‚РёРїСЃ
 function send_tip(news_text, header, timeout, showtime, sender, sound)
 	if news_text==nil then return false end
 	if header==nil then header=game.translate_string("st_tip") end
 	if timeout == nil then timeout = 0 end
 	if showtime == nil then showtime = 5 end
 
-	--' Играем дефолтный звук
+	--' РРіСЂР°РµРј РґРµС„РѕР»С‚РЅС‹Р№ Р·РІСѓРє
 	local player = tips_sounds[sound or 'default'] or tips_sounds['default']
 	player:play_no_feedback(db.actor, sound_object.s2d, timeout, vector(), 1.0)
 
@@ -96,10 +96,10 @@ function send_tip(news_text, header, timeout, showtime, sender, sound)
 end
 
 function add_spot_on_map(obj_id,type,text)
-  --возможные типы type смотри в ui\map_spots.xml 
+  --РІРѕР·РјРѕР¶РЅС‹Рµ С‚РёРїС‹ type СЃРјРѕС‚СЂРё РІ ui\map_spots.xml 
   if obj_id then
     if text==nil then text=" " end
-    -- Ставим метку на серверный объект чтобы её не пришлось обновлять
+    -- РЎС‚Р°РІРёРј РјРµС‚РєСѓ РЅР° СЃРµСЂРІРµСЂРЅС‹Р№ РѕР±СЉРµРєС‚ С‡С‚РѕР±С‹ РµС‘ РЅРµ РїСЂРёС€Р»РѕСЃСЊ РѕР±РЅРѕРІР»СЏС‚СЊ
     level.map_add_object_spot_ser(obj_id, type, text)
   end
 end
@@ -110,13 +110,13 @@ function remove_spot_from_map(obj_id,type)
   end
 end
 
---старт таймера в реальном времени
+--СЃС‚Р°СЂС‚ С‚Р°Р№РјРµСЂР° РІ СЂРµР°Р»СЊРЅРѕРј РІСЂРµРјРµРЅРё
 --function start_timer(name,delay,action)
 function start_timer(name, delay, parameters)
 	return xr_timers.start_real_timer(name, delay, parameters)
 end
 
---старт таймера в игровом времени
+--СЃС‚Р°СЂС‚ С‚Р°Р№РјРµСЂР° РІ РёРіСЂРѕРІРѕРј РІСЂРµРјРµРЅРё
 --function g_start_timer(name,delay_d,delay_h,delay_m,action)
 function g_start_timer(name, delay_d, delay_h, delay_m, parameters)
 	return xr_timers.start_game_timer(name, delay_d, delay_h, delay_m, parameters)
@@ -138,9 +138,9 @@ function has_g_timer(name)
 	return xr_timers.has_timer(name)
 end
 
--- Временное хранилище для переменных удалённых из pstor
+-- Р’СЂРµРјРµРЅРЅРѕРµ С…СЂР°РЅРёР»РёС‰Рµ РґР»СЏ РїРµСЂРµРјРµРЅРЅС‹С… СѓРґР°Р»С‘РЅРЅС‹С… РёР· pstor
 local emerg_store
--- Удаляем переменные из pstor. Чтобы не переполнить буфер
+-- РЈРґР°Р»СЏРµРј РїРµСЂРµРјРµРЅРЅС‹Рµ РёР· pstor. Р§С‚РѕР±С‹ РЅРµ РїРµСЂРµРїРѕР»РЅРёС‚СЊ Р±СѓС„РµСЂ
 function emergency_cleanup()
   emerg_store={}
   if load_variable("zombied",false) then
@@ -154,7 +154,7 @@ function emergency_cleanup()
   save_variable("emerg",true)
 end
 
--- Восстанавливаем удалённые переменные
+-- Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј СѓРґР°Р»С‘РЅРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ
 function emergency_restore()
 	if emerg_store.zombied then
 		save_table("zombied", emerg_store.zombied)
@@ -164,8 +164,8 @@ function emergency_restore()
 end
 --------------------------------------------------------------------------------------------------------------------
 
---спавним объекты на карту
---для спавна неписей смотрим config\creatures\spawn_sections.ltx - там написаны имена секций для разных типов неписей
+--СЃРїР°РІРЅРёРј РѕР±СЉРµРєС‚С‹ РЅР° РєР°СЂС‚Сѓ
+--РґР»СЏ СЃРїР°РІРЅР° РЅРµРїРёСЃРµР№ СЃРјРѕС‚СЂРёРј config\creatures\spawn_sections.ltx - С‚Р°Рј РЅР°РїРёСЃР°РЅС‹ РёРјРµРЅР° СЃРµРєС†РёР№ РґР»СЏ СЂР°Р·РЅС‹С… С‚РёРїРѕРІ РЅРµРїРёСЃРµР№
 function spawn_item(spawn_item, pos, gv, lv, no_ai )
 	if gv==nil then gv=db.actor:game_vertex_id() end
 	if lv==nil then lv=db.actor:level_vertex_id() end
@@ -177,7 +177,7 @@ function spawn_item(spawn_item, pos, gv, lv, no_ai )
 	return obj
 end
 
---для спавна патронов используем spawn_ammo_in_inv
+--РґР»СЏ СЃРїР°РІРЅР° РїР°С‚СЂРѕРЅРѕРІ РёСЃРїРѕР»СЊР·СѓРµРј spawn_ammo_in_inv
 function spawn_item_in_inv(spawn_item,npc)
 	if not npc then 
 		npc = db.actor 
@@ -189,8 +189,8 @@ function spawn_item_in_inv(spawn_item,npc)
 		npc:id())
 	
 	if npc:id() ~= 0 then
-		-- Фикс пропадания доспавненного предмета при сейв/лоаде
-		level.client_spawn_manager():add(item.id, -1, fix_spawn_item_in_inv, npc)  -- Калбек на выход item в онлайн
+		-- Р¤РёРєСЃ РїСЂРѕРїР°РґР°РЅРёСЏ РґРѕСЃРїР°РІРЅРµРЅРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р° РїСЂРё СЃРµР№РІ/Р»РѕР°РґРµ
+		level.client_spawn_manager():add(item.id, -1, fix_spawn_item_in_inv, npc)  -- РљР°Р»Р±РµРє РЅР° РІС‹С…РѕРґ item РІ РѕРЅР»Р°Р№РЅ
 	end
 
 	return item
@@ -200,7 +200,7 @@ function fix_spawn_item_in_inv(npc, id, item)
     npc:transfer_item(item, npc)
 end
 
---используем для спавна патронов
+--РёСЃРїРѕР»СЊР·СѓРµРј РґР»СЏ СЃРїР°РІРЅР° РїР°С‚СЂРѕРЅРѕРІ
 function spawn_ammo_in_inv(spawn_item,number,npc)
   if npc==nil then 
     npc=db.actor 
@@ -215,7 +215,7 @@ function spawn_ammo_in_inv(spawn_item,number,npc)
   end
 end
 
--- удаляем объект из игры
+-- СѓРґР°Р»СЏРµРј РѕР±СЉРµРєС‚ РёР· РёРіСЂС‹
 function remove_item(remove_item)
   if remove_item~=nil then
     alife():release(alife():object(remove_item:id()), true)
@@ -224,7 +224,7 @@ function remove_item(remove_item)
   return false
 end
 
--- выбрасываем объект из инвентаря, применимо к ГГ
+-- РІС‹Р±СЂР°СЃС‹РІР°РµРј РѕР±СЉРµРєС‚ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ, РїСЂРёРјРµРЅРёРјРѕ Рє Р“Р“
 function drop_item(npc,item)
   if item~=nil then
 --      npc:mark_item_dropped(item)
@@ -232,12 +232,12 @@ function drop_item(npc,item)
   end
 end
 
---убиваем непися
+--СѓР±РёРІР°РµРј РЅРµРїРёСЃСЏ
 function make_suicide(npc)
   npc:kill(npc)
 end
 
---узнаем отношение одного непися к другому
+--СѓР·РЅР°РµРј РѕС‚РЅРѕС€РµРЅРёРµ РѕРґРЅРѕРіРѕ РЅРµРїРёСЃСЏ Рє РґСЂСѓРіРѕРјСѓ
 function get_npc_relation(obj,target)
   local rel = obj:relation(target)
   local relation
@@ -253,7 +253,7 @@ function get_npc_relation(obj,target)
   return relation
 end
 
---задаем отношение одного непися к другому
+--Р·Р°РґР°РµРј РѕС‚РЅРѕС€РµРЅРёРµ РѕРґРЅРѕРіРѕ РЅРµРїРёСЃСЏ Рє РґСЂСѓРіРѕРјСѓ
 function set_npc_relation(obj,target,relation)
   local rel
   if relation=="neutral" then
@@ -269,23 +269,23 @@ function set_npc_relation(obj,target,relation)
   return true
 end
 
--- узнаем группировку непися, применимо к ГГ, только ОНЛАЙН
+-- СѓР·РЅР°РµРј РіСЂСѓРїРїРёСЂРѕРІРєСѓ РЅРµРїРёСЃСЏ, РїСЂРёРјРµРЅРёРјРѕ Рє Р“Р“, С‚РѕР»СЊРєРѕ РћРќР›РђР™Рќ
 function get_npc_community(npc)
   return npc:character_community()
 end
 
--- выставляем группировку непися, можно ГГ, только ОНЛАЙН
+-- РІС‹СЃС‚Р°РІР»СЏРµРј РіСЂСѓРїРїРёСЂРѕРІРєСѓ РЅРµРїРёСЃСЏ, РјРѕР¶РЅРѕ Р“Р“, С‚РѕР»СЊРєРѕ РћРќР›РђР™Рќ
 function set_npc_community(npc,community_string)
-  --значения для community_string можно узнать в config\creatures\game_relations.ltx
+  --Р·РЅР°С‡РµРЅРёСЏ РґР»СЏ community_string РјРѕР¶РЅРѕ СѓР·РЅР°С‚СЊ РІ config\creatures\game_relations.ltx
   return npc:set_character_community(community_string, 0, 0)
 end
 
---удаляем предмет из инвентаря по имени
+--СѓРґР°Р»СЏРµРј РїСЂРµРґРјРµС‚ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ РїРѕ РёРјРµРЅРё
 function remove_item_from_inventory_by_name(remove_item_name,npc)
   return remove_item_from_inventory(npc:object(remove_item_name),npc)
 end
 
---удаляем предмет из инвентаря
+--СѓРґР°Р»СЏРµРј РїСЂРµРґРјРµС‚ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ
 function remove_item_from_inventory(remove_item,npc)
   if npc==nil then npc=db.actor end
   if remove_item~=nil then
@@ -297,14 +297,14 @@ function remove_item_from_inventory(remove_item,npc)
   return false
 end
 
---создаем "ожидатели" для неписей нужно для корректной работы с объектами, созданными внутри скрипта
-function create_waiter_for_npc(npc,select_string)--неписи
+--СЃРѕР·РґР°РµРј "РѕР¶РёРґР°С‚РµР»Рё" РґР»СЏ РЅРµРїРёСЃРµР№ РЅСѓР¶РЅРѕ РґР»СЏ РєРѕСЂСЂРµРєС‚РЅРѕР№ СЂР°Р±РѕС‚С‹ СЃ РѕР±СЉРµРєС‚Р°РјРё, СЃРѕР·РґР°РЅРЅС‹РјРё РІРЅСѓС‚СЂРё СЃРєСЂРёРїС‚Р°
+function create_waiter_for_npc(npc,select_string)--РЅРµРїРёСЃРё
   npc_spawner[npc.id]=select_string
   save_table("x_npc_spawner",npc_spawner)
 end
 --
 
---очищаем инвентарь непися, можно ГГ, использует следующую фунцию для удаления предмета
+--РѕС‡РёС‰Р°РµРј РёРЅРІРµРЅС‚Р°СЂСЊ РЅРµРїРёСЃСЏ, РјРѕР¶РЅРѕ Р“Р“, РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР»РµРґСѓСЋС‰СѓСЋ С„СѓРЅС†РёСЋ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РїСЂРµРґРјРµС‚Р°
 function clear_npc_inventory(npc)
     npc:iterate_inventory(__del_item, npc)
 end
@@ -320,7 +320,7 @@ end
 
 ---------------------------
 
---проверка запущена ли игра
+--РїСЂРѕРІРµСЂРєР° Р·Р°РїСѓС‰РµРЅР° Р»Рё РёРіСЂР°
 function check_game()
   if level.present() and (db.actor ~= nil) and db.actor:alive() then
     return true
@@ -328,7 +328,7 @@ function check_game()
   return false
 end
 
---записываем переменную
+--Р·Р°РїРёСЃС‹РІР°РµРј РїРµСЂРµРјРµРЅРЅСѓСЋ
 function save_variable(variable_name, value)
   if value==nil then
     amk.mylog("saving nil into "..variable_name)
@@ -339,39 +339,39 @@ function save_variable(variable_name, value)
   end
 end
 
---загружаем переменную
+--Р·Р°РіСЂСѓР¶Р°РµРј РїРµСЂРµРјРµРЅРЅСѓСЋ
 function load_variable(variable_name, value_if_not_found)
   local vn=compress_name(variable_name)
   return xr_logic.pstor_retrieve(db.actor, vn, value_if_not_found)
 end
 
---есть ли переменная
+--РµСЃС‚СЊ Р»Рё РїРµСЂРµРјРµРЅРЅР°СЏ
 function has_variable(variable_name)
   local vn=compress_name(variable_name)
-  local npc_id = xr_logic.get_pda_id(vn,"проверяем")
+  local npc_id = xr_logic.get_pda_id(vn,"РїСЂРѕРІРµСЂСЏРµРј")
   return db.storage[npc_id].pstor[vn] ~= nil
 end
 
---удаляем переменную
+--СѓРґР°Р»СЏРµРј РїРµСЂРµРјРµРЅРЅСѓСЋ
 function del_variable(variable_name)
   local vn=compress_name(variable_name)
-  local npc_id = xr_logic.get_pda_id(vn,"удаляем")
+  local npc_id = xr_logic.get_pda_id(vn,"СѓРґР°Р»СЏРµРј")
     if db.storage[npc_id].pstor[vn] then
     db.storage[npc_id].pstor[vn] = nil
   end
 end
 
--- таблица компрессии имён
+-- С‚Р°Р±Р»РёС†Р° РєРѕРјРїСЂРµСЃСЃРёРё РёРјС‘РЅ
 local compress_table={
 }
 local checked=false
 
--- Преобразует имя переменной в короткое
+-- РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РёРјСЏ РїРµСЂРµРјРµРЅРЅРѕР№ РІ РєРѕСЂРѕС‚РєРѕРµ
 function compress_name(name)
   return name
 end
 
---определяем находится ли ГГ в определенной зоне
+--РѕРїСЂРµРґРµР»СЏРµРј РЅР°С…РѕРґРёС‚СЃСЏ Р»Рё Р“Р“ РІ РѕРїСЂРµРґРµР»РµРЅРЅРѕР№ Р·РѕРЅРµ
 function check_npc_in_box(npc, p1,p2,p3)
   local pos
   if npc.name then pos=npc:position() else pos=npc end
@@ -426,13 +426,13 @@ function sub(v1,v2)
 end
 ----------------------------
 
---инвентарное название объекта
+--РёРЅРІРµРЅС‚Р°СЂРЅРѕРµ РЅР°Р·РІР°РЅРёРµ РѕР±СЉРµРєС‚Р°
 function get_inv_name(section)
   --return sys_ini:r_string(section,"inv_name")
   return getIniValueString(section,"inv_name","",nil)
 end
 
--- Внимание! Строки в структуре не должны содержать символов с кодами 0-31.
+-- Р’РЅРёРјР°РЅРёРµ! РЎС‚СЂРѕРєРё РІ СЃС‚СЂСѓРєС‚СѓСЂРµ РЅРµ РґРѕР»Р¶РЅС‹ СЃРѕРґРµСЂР¶Р°С‚СЊ СЃРёРјРІРѕР»РѕРІ СЃ РєРѕРґР°РјРё 0-31.
 function pack_array_to_string(array)
   return string_char(1)..pack_new(array)
 end
@@ -441,10 +441,10 @@ function unpack_array_from_string(str)
   if str==nil or str=="" then return {} end
   --get_console():execute("load ~~~ unpack_array_from_string: "..str)
   if string_sub(str,1,1)~=string_char(1) then
-    -- Старый формат упаковки
+    -- РЎС‚Р°СЂС‹Р№ С„РѕСЂРјР°С‚ СѓРїР°РєРѕРІРєРё
     return _parse(str)
   else
-    -- новый формат упаковки тэгирован символом c кодом 1.
+    -- РЅРѕРІС‹Р№ С„РѕСЂРјР°С‚ СѓРїР°РєРѕРІРєРё С‚СЌРіРёСЂРѕРІР°РЅ СЃРёРјРІРѕР»РѕРј c РєРѕРґРѕРј 1.
     return parse_new(string_sub(str,2,-1))
   end
 end
@@ -464,7 +464,7 @@ local pack_type_bool=3
 local pack_type_table=4
 local pack_val_endtable=5
 
--- Новый формат упаковки: 
+-- РќРѕРІС‹Р№ С„РѕСЂРјР°С‚ СѓРїР°РєРѕРІРєРё: 
 -- table ::= subtable
 -- subtable ::= keytype key valuetype ( value | subtable 0x5 )
 -- keytype ::= ( 0x1 | 0x2 | 0x3 | 0x4 )
@@ -485,7 +485,7 @@ function pack_new(tbl)
     elseif type(v)=="string" then
       ret=ret..string_char(pack_type_string)..v
     elseif type(v)=="boolean" then
-		--get_console():execute("load ~#I#:"..string.format(" !Пакуем булев тип: "..tostring(v)))
+		--get_console():execute("load ~#I#:"..string.format(" !РџР°РєСѓРµРј Р±СѓР»РµРІ С‚РёРї: "..tostring(v)))
 		if v then
 			ret=ret..string_char(pack_type_bool).."1"
 		else
@@ -565,16 +565,16 @@ function _parse(str)
     str=string_sub(str,i2+1)
     i1,i2,val=string_find(str,'"(.-)"|')
     if val and i1==1 then
-      -- строка
+      -- СЃС‚СЂРѕРєР°
       _assign(ret,key,val)
     else
       i1,i2,val=string_find(str,'(%b{})|')
       if val and i1==1 then
-        -- таблица
+        -- С‚Р°Р±Р»РёС†Р°
         _assign(ret,key,_parse(string_sub(val,2,-2)))
       else
         i1,i2,val=string_find(str,'(.-)|')
-        -- число или булево значение
+        -- С‡РёСЃР»Рѕ РёР»Рё Р±СѓР»РµРІРѕ Р·РЅР°С‡РµРЅРёРµ
         if val=="true" then
           _assign(ret,key,true)
         elseif val=="false" then
@@ -592,14 +592,14 @@ end
 --callback section
 ---------------------------------------------
 
---колбэк на получение инфопоршена
+--РєРѕР»Р±СЌРє РЅР° РїРѕР»СѓС‡РµРЅРёРµ РёРЅС„РѕРїРѕСЂС€РµРЅР°
 function on_info(npc, info_id)
 	if (news_main and news_main.on_info) then
 		news_main.on_info(info_id)
 	end
 end
 
---колбэк на взятие предмета в инвентарь ГГ из ящика
+--РєРѕР»Р±СЌРє РЅР° РІР·СЏС‚РёРµ РїСЂРµРґРјРµС‚Р° РІ РёРЅРІРµРЅС‚Р°СЂСЊ Р“Р“ РёР· СЏС‰РёРєР°
 function on_item_take_from_box(obj, item)
 remove_spot_from_map(obj:id(),"crlc_big")
 
@@ -607,7 +607,7 @@ gps_habar.on_item_take_from_box(obj, item) --idler++--
 
 end
 
---колбэк на потерю предмета из инвентаря ГГ
+--РєРѕР»Р±СЌРє РЅР° РїРѕС‚РµСЂСЋ РїСЂРµРґРјРµС‚Р° РёР· РёРЅРІРµРЅС‚Р°СЂСЏ Р“Р“
 function on_item_drop(obj)
 	gps_habar.on_item_drop(obj) --idler++--
 	amk_mod.check_for_af_drop(obj)
@@ -617,7 +617,7 @@ end
 local prev_health=0
 local gg_kick = game_options.GGKick
 
---колбэк на апдейт ГГ (удобно для проверки условий, так как вызывается постоянно, нельзя перегружать, а то будут лаги)
+--РєРѕР»Р±СЌРє РЅР° Р°РїРґРµР№С‚ Р“Р“ (СѓРґРѕР±РЅРѕ РґР»СЏ РїСЂРѕРІРµСЂРєРё СѓСЃР»РѕРІРёР№, С‚Р°Рє РєР°Рє РІС‹Р·С‹РІР°РµС‚СЃСЏ РїРѕСЃС‚РѕСЏРЅРЅРѕ, РЅРµР»СЊР·СЏ РїРµСЂРµРіСЂСѓР¶Р°С‚СЊ, Р° С‚Рѕ Р±СѓРґСѓС‚ Р»Р°РіРё)
 function on_actor_update(delta)
 	oau_watchdog=100
 	amk_mod.check_metka()
@@ -637,11 +637,11 @@ function on_actor_update(delta)
 				switch_online(k)
 			elseif obj and v==false then
 				convert_npc[k]=nil
-			elseif v==1 and obj then -- тайник не перешёл в оффлайн попытаемся его туда запихнуть.
+			elseif v==1 and obj then -- С‚Р°Р№РЅРёРє РЅРµ РїРµСЂРµС€С‘Р» РІ РѕС„С„Р»Р°Р№РЅ РїРѕРїС‹С‚Р°РµРјСЃСЏ РµРіРѕ С‚СѓРґР° Р·Р°РїРёС…РЅСѓС‚СЊ.
 				sim:set_switch_online(k, false)
 				sim:set_switch_offline(k, true)
 				convert_npc[k]=true
-			elseif v==1 then -- тайник в оффлайне. выталкиваем.
+			elseif v==1 then -- С‚Р°Р№РЅРёРє РІ РѕС„С„Р»Р°Р№РЅРµ. РІС‹С‚Р°Р»РєРёРІР°РµРј.
 				convert_npc[k]=nil
 				switch_online(k)      
 			else
@@ -699,12 +699,12 @@ function on_actor_update(delta)
 --	oau_reason=""
 end
 
---колбэк на создание непися (точнее на его переход в онлайн), использует следующую за ним функцию для выбора действия
-local gulag_names_not_for_news = {	-- имена смартов, про неписей из них не пишутся новости типа "увидел недавно кучу вояк на военном блокпосте"
-	["amk_embankment"] = true,		-- вояки на наспи на Кордоне
-	["esc_bridge"] = true,			-- вояки под мостом на Кордоне
-	["esc_blokpost"] = true,		-- вояки на блокпосту на Кордоне
-	["val_lager_bandits"] = true	-- база бандитов в ТД
+--РєРѕР»Р±СЌРє РЅР° СЃРѕР·РґР°РЅРёРµ РЅРµРїРёСЃСЏ (С‚РѕС‡РЅРµРµ РЅР° РµРіРѕ РїРµСЂРµС…РѕРґ РІ РѕРЅР»Р°Р№РЅ), РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР»РµРґСѓСЋС‰СѓСЋ Р·Р° РЅРёРј С„СѓРЅРєС†РёСЋ РґР»СЏ РІС‹Р±РѕСЂР° РґРµР№СЃС‚РІРёСЏ
+local gulag_names_not_for_news = {	-- РёРјРµРЅР° СЃРјР°СЂС‚РѕРІ, РїСЂРѕ РЅРµРїРёСЃРµР№ РёР· РЅРёС… РЅРµ РїРёС€СѓС‚СЃСЏ РЅРѕРІРѕСЃС‚Рё С‚РёРїР° "СѓРІРёРґРµР» РЅРµРґР°РІРЅРѕ РєСѓС‡Сѓ РІРѕСЏРє РЅР° РІРѕРµРЅРЅРѕРј Р±Р»РѕРєРїРѕСЃС‚Рµ"
+	["amk_embankment"] = true,		-- РІРѕСЏРєРё РЅР° РЅР°СЃРїРё РЅР° РљРѕСЂРґРѕРЅРµ
+	["esc_bridge"] = true,			-- РІРѕСЏРєРё РїРѕРґ РјРѕСЃС‚РѕРј РЅР° РљРѕСЂРґРѕРЅРµ
+	["esc_blokpost"] = true,		-- РІРѕСЏРєРё РЅР° Р±Р»РѕРєРїРѕСЃС‚Сѓ РЅР° РљРѕСЂРґРѕРЅРµ
+	["val_lager_bandits"] = true	-- Р±Р°Р·Р° Р±Р°РЅРґРёС‚РѕРІ РІ РўР”
 }
 
 function on_npc_spawn(npc)
@@ -726,11 +726,11 @@ function on_npc_spawn(npc)
 end
 function __npc_spawn_case(npc,select_string)
 
---  здесь описываем вызовы, оформялять в виде
+--  Р·РґРµСЃСЊ РѕРїРёСЃС‹РІР°РµРј РІС‹Р·РѕРІС‹, РѕС„РѕСЂРјСЏР»СЏС‚СЊ РІ РІРёРґРµ
 
---  if select_string=="название условия" then
---    <вызов сторонних функций>
---    -- можно передавать npc как параметр
+--  if select_string=="РЅР°Р·РІР°РЅРёРµ СѓСЃР»РѕРІРёСЏ" then
+--    <РІС‹Р·РѕРІ СЃС‚РѕСЂРѕРЅРЅРёС… С„СѓРЅРєС†РёР№>
+--    -- РјРѕР¶РЅРѕ РїРµСЂРµРґР°РІР°С‚СЊ npc РєР°Рє РїР°СЂР°РјРµС‚СЂ
 --  end
 
 --user area 
@@ -741,7 +741,7 @@ function on_net_spawn(obj)
 	amk_mod.build_btrs_table(obj)
 end
 
---колбэк на удаление непися (точнее на его переход в оффлайн), использует следующую за ним функцию для выбора действия
+--РєРѕР»Р±СЌРє РЅР° СѓРґР°Р»РµРЅРёРµ РЅРµРїРёСЃСЏ (С‚РѕС‡РЅРµРµ РЅР° РµРіРѕ РїРµСЂРµС…РѕРґ РІ РѕС„С„Р»Р°Р№РЅ), РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР»РµРґСѓСЋС‰СѓСЋ Р·Р° РЅРёРј С„СѓРЅРєС†РёСЋ РґР»СЏ РІС‹Р±РѕСЂР° РґРµР№СЃС‚РІРёСЏ
 function on_npc_go_offline(npc)
 	amk_anoms.unreg_in_anom_manager(npc)
 	if amk_target then
@@ -765,7 +765,7 @@ function on_monster_go_offline(npc)
 end
 -----------------------
 
---колбэк на юзание объекта (npc)
+--РєРѕР»Р±СЌРє РЅР° СЋР·Р°РЅРёРµ РѕР±СЉРµРєС‚Р° (npc)
 function on_use(victim, who)
 	if who and who:id()==0 then
 		if IAmAStalker[victim:clsid()]==nil then return end
@@ -790,7 +790,7 @@ function on_use(victim, who)
 	end
 end
 
---колбэк на смерть непися
+--РєРѕР»Р±СЌРє РЅР° СЃРјРµСЂС‚СЊ РЅРµРїРёСЃСЏ
 function on_death(victim, who)
 	if (news_main and news_main.on_death) then
 		news_main.on_death(victim, who)
@@ -818,7 +818,7 @@ end
 function on_ph_obj_hit(obj, amount, local_direction, who, bone_index)
 end
 
--- проверка на видимость производится раз в секунду
+-- РїСЂРѕРІРµСЂРєР° РЅР° РІРёРґРёРјРѕСЃС‚СЊ РїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ СЂР°Р· РІ СЃРµРєСѓРЅРґСѓ
 function enemy_see_actor(obj,typ)
 	if protected_items.is_monster_friend(obj:section()) then return end
 	
@@ -838,12 +838,12 @@ function actor_see_enemy(obj,typ)
 	mod_call("calc_adrenaline","actor_see_enemy",obj,typ)
 end
 
--- непись стрелял в гг
+-- РЅРµРїРёСЃСЊ СЃС‚СЂРµР»СЏР» РІ РіРі
 function npc_shot_actor(obj) 
 	mod_call("calc_adrenaline","enemy_hit_actor",obj,"npc")
 end
 
---загружаем все переменные, которые нужно, вызывается загрузке игры, автоматически; вручную не вызывать
+--Р·Р°РіСЂСѓР¶Р°РµРј РІСЃРµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РЅСѓР¶РЅРѕ, РІС‹Р·С‹РІР°РµС‚СЃСЏ Р·Р°РіСЂСѓР·РєРµ РёРіСЂС‹, Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё; РІСЂСѓС‡РЅСѓСЋ РЅРµ РІС‹Р·С‹РІР°С‚СЊ
 function on_game_load()
 	if db.storage[db.actor:id()].pstor == nil then
 		db.storage[db.actor:id()].pstor = {}
@@ -861,7 +861,7 @@ function on_game_load()
 	end
 end
 
---записываем все переменные, которые нужно, вызывается присохранении игры, автоматически; вручную не вызывать
+--Р·Р°РїРёСЃС‹РІР°РµРј РІСЃРµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РЅСѓР¶РЅРѕ, РІС‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРёСЃРѕС…СЂР°РЅРµРЅРёРё РёРіСЂС‹, Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё; РІСЂСѓС‡РЅСѓСЋ РЅРµ РІС‹Р·С‹РІР°С‚СЊ
 function on_game_save() 
 
 end

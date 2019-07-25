@@ -15,7 +15,7 @@ function generic_object_binder:__init(obj) super(obj)
 	self.loaded = false 
 	self.last_update = 0 
 	self.particles = {} 
---	Обработчик мутантов
+--	РћР±СЂР°Р±РѕС‚С‡РёРє РјСѓС‚Р°РЅС‚РѕРІ
 	if obj:alive()
 		and obj:clsid() == clsid.bloodsucker_s
 		and string.find(obj:section(), "suck")
@@ -73,7 +73,7 @@ function generic_object_binder:update(delta)
 						h.impulse = 0
 						h.draftsman = vv.target
 						h.direction = vv.dir
-						h:bone("bip01_spine") -- чтобы учитывалась броня
+						h:bone("bip01_spine") -- С‡С‚РѕР±С‹ СѓС‡РёС‚С‹РІР°Р»Р°СЃСЊ Р±СЂРѕРЅСЏ
 						h.power = math.random(10,50)/100
 						h.type = hit.strike --chemical_burn
 						vv.target:hit(h)
@@ -92,11 +92,11 @@ function generic_object_binder:update(delta)
 --		self.object:name(), _time)
 
 	if self.object:alive() then 
-		if not has_alife_info("volna_goodwill") then -- в Волне все эффекты отключаем 
-			--/#+# 'засос кровососа боксёра' --------------------------------------------------
+		if not has_alife_info("volna_goodwill") then -- РІ Р’РѕР»РЅРµ РІСЃРµ СЌС„С„РµРєС‚С‹ РѕС‚РєР»СЋС‡Р°РµРј 
+			--/#+# 'Р·Р°СЃРѕСЃ РєСЂРѕРІРѕСЃРѕСЃР° Р±РѕРєСЃС‘СЂР°' --------------------------------------------------
 			if cls == clsid.bloodsucker_s and self.MonsterEffector then
 				self.MonsterEffector:update(_time)
-			-- Удар контролёра руками из Зова Припяти (Автор: demover123)
+			-- РЈРґР°СЂ РєРѕРЅС‚СЂРѕР»С‘СЂР° СЂСѓРєР°РјРё РёР· Р—РѕРІР° РџСЂРёРїСЏС‚Рё (РђРІС‚РѕСЂ: demover123)
 			elseif cls == clsid.controller_s then
 				monster_effects.ef_controller(self)
 			--Psy-Dog SoC 
@@ -154,7 +154,7 @@ function generic_object_binder:update(delta)
 	local blowout=amk.load_variable("blowout",0) 
 	if blowout==3 and (not self.control_override) then 
 		if not self.object:action() then 
-			-- Захватываем зверушку
+			-- Р—Р°С…РІР°С‚С‹РІР°РµРј Р·РІРµСЂСѓС€РєСѓ
 			xr_logic.mob_capture(self.object,true) 
 			self.control_override=true 
 		end 
@@ -164,7 +164,7 @@ function generic_object_binder:update(delta)
 			action(self.object, anim(anim.lie_idle, 0), sound(table.random(snds)), cond(cond.sound_end)) 
 		end 
 	elseif self.control_override and blowout~=3 then 
-		-- отпускаем зверушку
+		-- РѕС‚РїСѓСЃРєР°РµРј Р·РІРµСЂСѓС€РєСѓ
 		self.control_override=nil 
 		xr_logic.mob_release(self.object) 
 	elseif self.st.active_section ~= nil then 
@@ -176,7 +176,7 @@ end
 
 function generic_object_binder:anomaly_evade() 
 	local npc=self.object 
-	if npc:story_id()==29 then return end -- учебная плоть блин
+	if npc:story_id()==29 then return end -- СѓС‡РµР±РЅР°СЏ РїР»РѕС‚СЊ Р±Р»РёРЅ
 	if not self.prev_pos then 
 		self.prev_pos=vector():set(0,-100,0) 
 	end 
@@ -220,7 +220,7 @@ function generic_object_binder:death_callback(victim, who)
 
 	monster_effects.stop_effects(self, who)
 
-	db.del_monster(self.object) -- убираем из онлайн-живых
+	db.del_monster(self.object) -- СѓР±РёСЂР°РµРј РёР· РѕРЅР»Р°Р№РЅ-Р¶РёРІС‹С…
 	if who:id() == db.actor:id() then 
 		kostya_dialog.kuv_hit()
 		
@@ -243,7 +243,7 @@ function generic_object_binder:death_callback(victim, who)
      
 	smart_terrain.on_death( self.object:id() ) 
         
-	--' Наносим небольшой импульс вперед.
+	--' РќР°РЅРѕСЃРёРј РЅРµР±РѕР»СЊС€РѕР№ РёРјРїСѓР»СЊСЃ РІРїРµСЂРµРґ.
 	local h = hit() 
 	h.draftsman = self.object 
 	h.type = hit.fire_wound 
@@ -363,7 +363,7 @@ function generic_object_binder:net_spawn(sobject)
 		 
 	db.add_obj(self.object) 
 	if self.object:alive() then
-		db.add_monster(self.object) -- добавляем в онлайн-живых
+		db.add_monster(self.object) -- РґРѕР±Р°РІР»СЏРµРј РІ РѕРЅР»Р°Р№РЅ-Р¶РёРІС‹С…
 	end
    
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
@@ -420,17 +420,17 @@ function generic_object_binder:net_destroy()
 	db.del_obj(self.object)
 	
 	if self.object:alive() then
-		db.del_monster(self.object) -- убираем из онлайн-живых
+		db.del_monster(self.object) -- СѓР±РёСЂР°РµРј РёР· РѕРЅР»Р°Р№РЅ-Р¶РёРІС‹С…
 	end
 
 	object_binder.net_destroy(self)
 	
-	-- АМК. Очистка рестрикторов
+	-- РђРњРљ. РћС‡РёСЃС‚РєР° СЂРµСЃС‚СЂРёРєС‚РѕСЂРѕРІ
 	local sobj=alife():object(id)          
 	if sobj and IAmAMonster[sobj:clsid()] then
 		netpk:modify( sobj, { dynamic_in_restrictions = {} }, netpk.fState )
 	else 
-		-- Выход из игры.
+		-- Р’С‹С…РѕРґ РёР· РёРіСЂС‹.
 	end
 end 
 
@@ -458,9 +458,9 @@ function generic_object_binder:load(reader)
 	object_binder.load(self, reader) 
 
 	if reader:r_eof() then 
-		if self.object:section() == "dogfrend" then	return end -- фикс правки Дружка без НИ
+		if self.object:section() == "dogfrend" then	return end -- С„РёРєСЃ РїСЂР°РІРєРё Р”СЂСѓР¶РєР° Р±РµР· РќР
 
-		--abort("Это сохранение повреждено - удалите его! generic_object_binder:load "..self.object:name())
+		--abort("Р­С‚Рѕ СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕРІСЂРµР¶РґРµРЅРѕ - СѓРґР°Р»РёС‚Рµ РµРіРѕ! generic_object_binder:load "..self.object:name())
 		remove_zavis.remove_obj(self.object)
 		if not self.object then
 			return
@@ -470,7 +470,7 @@ function generic_object_binder:load(reader)
 	xr_logic.load_obj(self.object, reader)
 end
 
--- ОП-2: Добавлен калбек на юзанье монстра, а также для всех монстров подключена схема on_use
+-- РћРџ-2: Р”РѕР±Р°РІР»РµРЅ РєР°Р»Р±РµРє РЅР° СЋР·Р°РЅСЊРµ РјРѕРЅСЃС‚СЂР°, Р° С‚Р°РєР¶Рµ РґР»СЏ РІСЃРµС… РјРѕРЅСЃС‚СЂРѕРІ РїРѕРґРєР»СЋС‡РµРЅР° СЃС…РµРјР° on_use
 function generic_object_binder:use_callback(obj, who)
 	fly.returner_clear_pos()
 	if self.object == nil then return end
@@ -482,8 +482,8 @@ function generic_object_binder:use_callback(obj, who)
 		  xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "use_callback", obj, who)
 		end
 	else
-		monster_parts.on_monster_use(obj, who) -- обыск трупа
-		-- автообыск трупа
+		monster_parts.on_monster_use(obj, who) -- РѕР±С‹СЃРє С‚СЂСѓРїР°
+		-- Р°РІС‚РѕРѕР±С‹СЃРє С‚СЂСѓРїР°
 		if game_options.AutoGrab then
 			start_transfer_all_desired(obj)
 		end

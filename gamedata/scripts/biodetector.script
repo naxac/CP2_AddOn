@@ -1,10 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -------------------------------------------------------------------------
--- Динамический биорадар с локатором, затуханием и универсальным худом --
+-- Р”РёРЅР°РјРёС‡РµСЃРєРёР№ Р±РёРѕСЂР°РґР°СЂ СЃ Р»РѕРєР°С‚РѕСЂРѕРј, Р·Р°С‚СѓС…Р°РЅРёРµРј Рё СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Рј С…СѓРґРѕРј --
 -------------------------------------------------------------------------
-local dynBio = ( game_options.DynBio > 0 )    -- вращающийсЯ локатор
-local fading = ( game_options.DynBio > 1 )    -- затухание
-local hardBio = ( game_options.DynBio > 2 )   -- ухардкоренный биорадар
+local dynBio = ( game_options.DynBio > 0 )    -- РІСЂР°С‰Р°СЋС‰РёР№СЃРЇ Р»РѕРєР°С‚РѕСЂ
+local fading = ( game_options.DynBio > 1 )    -- Р·Р°С‚СѓС…Р°РЅРёРµ
+local hardBio = ( game_options.DynBio > 2 )   -- СѓС…Р°СЂРґРєРѕСЂРµРЅРЅС‹Р№ Р±РёРѕСЂР°РґР°СЂ
 
 
 local need_update = false
@@ -12,28 +12,28 @@ local need_update = false
 local level_object = level.object_by_id
 local trader_clsid = clsid.script_trader
 
-local max_count = 100	-- количество отображаемых объектов
+local max_count = 100	-- РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚РѕР±СЂР°Р¶Р°РµРјС‹С… РѕР±СЉРµРєС‚РѕРІ
 local max_dist = 60
 local screen_max_dist = 100
 local max_dist_rel = screen_max_dist/max_dist
-local biomap_x_offset = 2	-- смещение начала рисунка от правого края текстуры
-local biomap_y_offset = 16	-- смещение начала рисунка от верхнего края текстуры
--- все координаты и размеры должны совпадать с указанными в конфиге текстуры
+local biomap_x_offset = 2	-- СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° СЂРёСЃСѓРЅРєР° РѕС‚ РїСЂР°РІРѕРіРѕ РєСЂР°СЏ С‚РµРєСЃС‚СѓСЂС‹
+local biomap_y_offset = 16	-- СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° СЂРёСЃСѓРЅРєР° РѕС‚ РІРµСЂС…РЅРµРіРѕ РєСЂР°СЏ С‚РµРєСЃС‚СѓСЂС‹
+-- РІСЃРµ РєРѕРѕСЂРґРёРЅР°С‚С‹ Рё СЂР°Р·РјРµСЂС‹ РґРѕР»Р¶РЅС‹ СЃРѕРІРїР°РґР°С‚СЊ СЃ СѓРєР°Р·Р°РЅРЅС‹РјРё РІ РєРѕРЅС„РёРіРµ С‚РµРєСЃС‚СѓСЂС‹
 local biomap_width = 256									
 local biomap_heigth = 256
--- верхний левый угол окна
+-- РІРµСЂС…РЅРёР№ Р»РµРІС‹Р№ СѓРіРѕР» РѕРєРЅР°
 local biomap_y = -biomap_y_offset
 local center_y = biomap_y+biomap_heigth/2
--- подстройка под разрешение экрана
+-- РїРѕРґСЃС‚СЂРѕР№РєР° РїРѕРґ СЂР°Р·СЂРµС€РµРЅРёРµ СЌРєСЂР°РЅР°
 local koef_x = ( device().height/device().width )/( 768/1024 )
--- привязываем к правому краю экрана
+-- РїСЂРёРІСЏР·С‹РІР°РµРј Рє РїСЂР°РІРѕРјСѓ РєСЂР°СЋ СЌРєСЂР°РЅР°
 local delta_x = 0
-if koef_x > 1 then												-- 1280*1024 (чуть вытянуто по Y)
+if koef_x > 1 then												-- 1280*1024 (С‡СѓС‚СЊ РІС‹С‚СЏРЅСѓС‚Рѕ РїРѕ Y)
 	delta_x = 2
-elseif koef_x < 1 then											-- широкоформат
+elseif koef_x < 1 then											-- С€РёСЂРѕРєРѕС„РѕСЂРјР°С‚
 	delta_x = 20
 end
-local biomap_x = 1024-biomap_width+biomap_x_offset+delta_x			-- 770 без дельты - базовое расширение движка
+local biomap_x = 1024-biomap_width+biomap_x_offset+delta_x			-- 770 Р±РµР· РґРµР»СЊС‚С‹ - Р±Р°Р·РѕРІРѕРµ СЂР°СЃС€РёСЂРµРЅРёРµ РґРІРёР¶РєР°
 local center_x = biomap_x+biomap_width/2
 
 local hud = get_hud()
@@ -45,11 +45,11 @@ local detectorShowed = false
 
 local math_pi_180 = 180/math.pi
 local two_pi = 2*math.pi
-local biomap			 -- худ, окно вращающегося локатора
-local angle = 0			 -- текущий угол локатора в радианах
-local step_angle = 1.5/math_pi_180 -- шаг за апдейт в радианах (скорость поворота)
-local alpha = 255			-- степень затухания
-local min_alpha = 0.2		-- % от полной яркости в самом темном участке (интенсивность затухания)
+local biomap			 -- С…СѓРґ, РѕРєРЅРѕ РІСЂР°С‰Р°СЋС‰РµРіРѕСЃСЏ Р»РѕРєР°С‚РѕСЂР°
+local angle = 0			 -- С‚РµРєСѓС‰РёР№ СѓРіРѕР» Р»РѕРєР°С‚РѕСЂР° РІ СЂР°РґРёР°РЅР°С…
+local step_angle = 1.5/math_pi_180 -- С€Р°Рі Р·Р° Р°РїРґРµР№С‚ РІ СЂР°РґРёР°РЅР°С… (СЃРєРѕСЂРѕСЃС‚СЊ РїРѕРІРѕСЂРѕС‚Р°)
+local alpha = 255			-- СЃС‚РµРїРµРЅСЊ Р·Р°С‚СѓС…Р°РЅРёСЏ
+local min_alpha = 0.2		-- % РѕС‚ РїРѕР»РЅРѕР№ СЏСЂРєРѕСЃС‚Рё РІ СЃР°РјРѕРј С‚РµРјРЅРѕРј СѓС‡Р°СЃС‚РєРµ (РёРЅС‚РµРЅСЃРёРІРЅРѕСЃС‚СЊ Р·Р°С‚СѓС…Р°РЅРёСЏ)
 
 local colors = {
 	["npcs"] = {
@@ -277,7 +277,7 @@ end
 
 local upd_shift, upd_num = 10, 0
 function update(delta)
-	-- для равномерности вращения локатора при разных значениях FPS
+	-- РґР»СЏ СЂР°РІРЅРѕРјРµСЂРЅРѕСЃС‚Рё РІСЂР°С‰РµРЅРёСЏ Р»РѕРєР°С‚РѕСЂР° РїСЂРё СЂР°Р·РЅС‹С… Р·РЅР°С‡РµРЅРёСЏС… FPS
 	if delta < upd_shift then
 		if upd_num < upd_shift then
 			upd_num = upd_num + delta
@@ -314,13 +314,13 @@ function update(delta)
 			sdir = device().cam_dir
 	--	end
 		
-		-- вращение локатора. угол от 0 до 2Пи
+		-- РІСЂР°С‰РµРЅРёРµ Р»РѕРєР°С‚РѕСЂР°. СѓРіРѕР» РѕС‚ 0 РґРѕ 2РџРё
 		if dynBio then
 			angle=angle-step_angle
 			if angle < 0 then
 				angle = angle+two_pi
 			end
-			biomap:SetHeading(angle) -- поворачиваем локатор
+			biomap:SetHeading(angle) -- РїРѕРІРѕСЂР°С‡РёРІР°РµРј Р»РѕРєР°С‚РѕСЂ
 		end
 
 		amk.oau_watchdog = 18102
@@ -338,36 +338,36 @@ function update(delta)
 				or IAmAMonster[cls]
 				or cls == trader_clsid )
 			then
-				-- определяем цвет
+				-- РѕРїСЂРµРґРµР»СЏРµРј С†РІРµС‚
 				color = getColor(obj,cls)
-				if color then -- есть цвет - рисуем
-					-- получаем координаты точки
+				if color then -- РµСЃС‚СЊ С†РІРµС‚ - СЂРёСЃСѓРµРј
+					-- РїРѕР»СѓС‡Р°РµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё
 					dir = objPos:sub(actorPos)
 					vect = vector_rotate_y(vector():set(dir.x*max_dist_rel, 0, -dir.z*max_dist_rel), math.atan2(-sdir.x, sdir.z)*math_pi_180)
-					-- абсолютные координаты точки
+					-- Р°Р±СЃРѕР»СЋС‚РЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё
 					x = vect.x*math.sqrt(koef_x)
 					y = vect.z
 					
-					-- вычисляем альфу
+					-- РІС‹С‡РёСЃР»СЏРµРј Р°Р»СЊС„Сѓ
 					alpha = 255
-					if fading and id ~= actor_id then			-- актор в центре не затухает
-						-- затухание в зависимости о углового расстояния до локатора. все переводим в диапазон от 0 до 2Пи иначе глючит
+					if fading and id ~= actor_id then			-- Р°РєС‚РѕСЂ РІ С†РµРЅС‚СЂРµ РЅРµ Р·Р°С‚СѓС…Р°РµС‚
+						-- Р·Р°С‚СѓС…Р°РЅРёРµ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё Рѕ СѓРіР»РѕРІРѕРіРѕ СЂР°СЃСЃС‚РѕСЏРЅРёСЏ РґРѕ Р»РѕРєР°С‚РѕСЂР°. РІСЃРµ РїРµСЂРµРІРѕРґРёРј РІ РґРёР°РїР°Р·РѕРЅ РѕС‚ 0 РґРѕ 2РџРё РёРЅР°С‡Рµ РіР»СЋС‡РёС‚
 						corner = math.atan2(x, y) - angle + math.pi/2
 						while corner < 0 do
 							corner = corner + two_pi
 						end
 						
-						alpha = ( 1-corner/(two_pi) )					-- % затухания
-						alpha = 255*( alpha+min_alpha*(1-alpha) )		-- интенсивность
+						alpha = ( 1-corner/(two_pi) )					-- % Р·Р°С‚СѓС…Р°РЅРёСЏ
+						alpha = 255*( alpha+min_alpha*(1-alpha) )		-- РёРЅС‚РµРЅСЃРёРІРЅРѕСЃС‚СЊ
 					end
 					color = GetARGB( alpha, unpack(color) )
 					
-					-- координаты точки относительно биорадара
+					-- РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ Р±РёРѕСЂР°РґР°СЂР°
 					x = x+center_x
 					y = y+center_y
 					--log("dot created, x: %s, y: %s", x, y)
 
-					-- рисуем точку
+					-- СЂРёСЃСѓРµРј С‚РѕС‡РєСѓ
 					dotName = nil
 					if id2dots[id] == nil then
 						for i = 1, max_count do
@@ -414,7 +414,7 @@ function biodetectorRemove()
 	detectorShowed = false
 	if hud:GetCustomStatic("biomap") then
 		hud:RemoveCustomStatic("biomap")
-		-- убираем вращающийся локатор
+		-- СѓР±РёСЂР°РµРј РІСЂР°С‰Р°СЋС‰РёР№СЃСЏ Р»РѕРєР°С‚РѕСЂ
 		if hud:GetCustomStatic("biomap_sweep") then
 			hud:RemoveCustomStatic("biomap_sweep")
 		end

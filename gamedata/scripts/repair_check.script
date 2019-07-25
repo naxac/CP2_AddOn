@@ -1,35 +1,35 @@
 --[[-----------------------------------------------------------
------------------- Новый универcальный ремонт -----------------
+------------------ РќРѕРІС‹Р№ СѓРЅРёРІРµСЂcР°Р»СЊРЅС‹Р№ СЂРµРјРѕРЅС‚ -----------------
 ---------------------------------------------------------------
-Реализовано:
-Ремонт без ремъящика - ремкомплекты в инвентаре для не сильно убитых вещей
-Единый диалог и механизм всем ремонтникам
-Механизм ремонта ремкомплектами:
-Ремонтируется текущий активный ствол (который в руках) или одетая броня.
-Механизм ремонта ремонтником: 
-Ремонтируется ствол в выбранном слоте/одетая броня. Для ремонта ствола нужен ствол того же калибра (проверка по используемым патронам),
-выбирается первый попавшийся в рюкзаке+предметы+деньги. Для ремонта брони предметы+деньги. 
-Для сильно убитых вещей требуется двойной комплект предметов.
+Р РµР°Р»РёР·РѕРІР°РЅРѕ:
+Р РµРјРѕРЅС‚ Р±РµР· СЂРµРјСЉСЏС‰РёРєР° - СЂРµРјРєРѕРјРїР»РµРєС‚С‹ РІ РёРЅРІРµРЅС‚Р°СЂРµ РґР»СЏ РЅРµ СЃРёР»СЊРЅРѕ СѓР±РёС‚С‹С… РІРµС‰РµР№
+Р•РґРёРЅС‹Р№ РґРёР°Р»РѕРі Рё РјРµС…Р°РЅРёР·Рј РІСЃРµРј СЂРµРјРѕРЅС‚РЅРёРєР°Рј
+РњРµС…Р°РЅРёР·Рј СЂРµРјРѕРЅС‚Р° СЂРµРјРєРѕРјРїР»РµРєС‚Р°РјРё:
+Р РµРјРѕРЅС‚РёСЂСѓРµС‚СЃСЏ С‚РµРєСѓС‰РёР№ Р°РєС‚РёРІРЅС‹Р№ СЃС‚РІРѕР» (РєРѕС‚РѕСЂС‹Р№ РІ СЂСѓРєР°С…) РёР»Рё РѕРґРµС‚Р°СЏ Р±СЂРѕРЅСЏ.
+РњРµС…Р°РЅРёР·Рј СЂРµРјРѕРЅС‚Р° СЂРµРјРѕРЅС‚РЅРёРєРѕРј: 
+Р РµРјРѕРЅС‚РёСЂСѓРµС‚СЃСЏ СЃС‚РІРѕР» РІ РІС‹Р±СЂР°РЅРЅРѕРј СЃР»РѕС‚Рµ/РѕРґРµС‚Р°СЏ Р±СЂРѕРЅСЏ. Р”Р»СЏ СЂРµРјРѕРЅС‚Р° СЃС‚РІРѕР»Р° РЅСѓР¶РµРЅ СЃС‚РІРѕР» С‚РѕРіРѕ Р¶Рµ РєР°Р»РёР±СЂР° (РїСЂРѕРІРµСЂРєР° РїРѕ РёСЃРїРѕР»СЊР·СѓРµРјС‹Рј РїР°С‚СЂРѕРЅР°Рј),
+РІС‹Р±РёСЂР°РµС‚СЃСЏ РїРµСЂРІС‹Р№ РїРѕРїР°РІС€РёР№СЃСЏ РІ СЂСЋРєР·Р°РєРµ+РїСЂРµРґРјРµС‚С‹+РґРµРЅСЊРіРё. Р”Р»СЏ СЂРµРјРѕРЅС‚Р° Р±СЂРѕРЅРё РїСЂРµРґРјРµС‚С‹+РґРµРЅСЊРіРё. 
+Р”Р»СЏ СЃРёР»СЊРЅРѕ СѓР±РёС‚С‹С… РІРµС‰РµР№ С‚СЂРµР±СѓРµС‚СЃСЏ РґРІРѕР№РЅРѕР№ РєРѕРјРїР»РµРєС‚ РїСЂРµРґРјРµС‚РѕРІ.
 ]]
 
--- износ (состояние) задается в диапазоне: 0=полностью убитый, 1=полностью исправный
-local rep_cond_wpn = 0.7			-- минимальное состояние ствола, которое чинится ремкомплектом
-local rep_cond_armor = 0.75			-- минимальное состояние брони, которое чинится ремкомплектом
-local min_cond_item = 0.2			-- минимальное состояние предмета, который может починить ремонтник (ниже не ремонтируется)
-local min_cond_parts = 0.1			-- минимальное состояние ствола на запчасти (ниже не принимается)
-local cond_ok = 0.99				-- минимальное состояние исправного предмета
-local cond_double = 0.4				-- минимальное состояние предмета, ниже которого требуется двойной комплект предметов, стволов и денег
-local rep_percent = 0.1				-- на сколько чинится предмет одним ремкомплектом
-local money_koef = 0.5				-- множитель денег на ремонт
+-- РёР·РЅРѕСЃ (СЃРѕСЃС‚РѕСЏРЅРёРµ) Р·Р°РґР°РµС‚СЃСЏ РІ РґРёР°РїР°Р·РѕРЅРµ: 0=РїРѕР»РЅРѕСЃС‚СЊСЋ СѓР±РёС‚С‹Р№, 1=РїРѕР»РЅРѕСЃС‚СЊСЋ РёСЃРїСЂР°РІРЅС‹Р№
+local rep_cond_wpn = 0.7			-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ СЃС‚РІРѕР»Р°, РєРѕС‚РѕСЂРѕРµ С‡РёРЅРёС‚СЃСЏ СЂРµРјРєРѕРјРїР»РµРєС‚РѕРј
+local rep_cond_armor = 0.75			-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ Р±СЂРѕРЅРё, РєРѕС‚РѕСЂРѕРµ С‡РёРЅРёС‚СЃСЏ СЂРµРјРєРѕРјРїР»РµРєС‚РѕРј
+local min_cond_item = 0.2			-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРµРґРјРµС‚Р°, РєРѕС‚РѕСЂС‹Р№ РјРѕР¶РµС‚ РїРѕС‡РёРЅРёС‚СЊ СЂРµРјРѕРЅС‚РЅРёРє (РЅРёР¶Рµ РЅРµ СЂРµРјРѕРЅС‚РёСЂСѓРµС‚СЃСЏ)
+local min_cond_parts = 0.1			-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё (РЅРёР¶Рµ РЅРµ РїСЂРёРЅРёРјР°РµС‚СЃСЏ)
+local cond_ok = 0.99				-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РёСЃРїСЂР°РІРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р°
+local cond_double = 0.4				-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРµРґРјРµС‚Р°, РЅРёР¶Рµ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РґРІРѕР№РЅРѕР№ РєРѕРјРїР»РµРєС‚ РїСЂРµРґРјРµС‚РѕРІ, СЃС‚РІРѕР»РѕРІ Рё РґРµРЅРµРі
+local rep_percent = 0.1				-- РЅР° СЃРєРѕР»СЊРєРѕ С‡РёРЅРёС‚СЃСЏ РїСЂРµРґРјРµС‚ РѕРґРЅРёРј СЂРµРјРєРѕРјРїР»РµРєС‚РѕРј
+local money_koef = 0.5				-- РјРЅРѕР¶РёС‚РµР»СЊ РґРµРЅРµРі РЅР° СЂРµРјРѕРЅС‚
 local ammo, item, cond, count, have, slot, parts, pay = "", 0, 0, 0, 0, 0, {}, 0
 
--- предметы, нужные для ремонта ствола и брони
+-- РїСЂРµРґРјРµС‚С‹, РЅСѓР¶РЅС‹Рµ РґР»СЏ СЂРµРјРѕРЅС‚Р° СЃС‚РІРѕР»Р° Рё Р±СЂРѕРЅРё
 local parts_wpn = {"art_acumm"}
 local parts_armor = {"art_acumm"}
 
--- мелкий ремонт с помощью ремкомплекта
+-- РјРµР»РєРёР№ СЂРµРјРѕРЅС‚ СЃ РїРѕРјРѕС‰СЊСЋ СЂРµРјРєРѕРјРїР»РµРєС‚Р°
 function repair_repkit(repkit, item)
-	if not danger.actor_not_in_danger("Какой ремонт? Враг рядом!", "Какой ремонт? Враг рядом!") then
+	if not danger.actor_not_in_danger("РљР°РєРѕР№ СЂРµРјРѕРЅС‚? Р’СЂР°Рі СЂСЏРґРѕРј!", "РљР°РєРѕР№ СЂРµРјРѕРЅС‚? Р’СЂР°Рі СЂСЏРґРѕРј!") then
 		return
 	end
 
@@ -38,22 +38,22 @@ function repair_repkit(repkit, item)
 	local item_name = game.translate_string( get_inv_name( item:section() ) )
 	if repkit_sect == "repair_item_outfit" then
 		if cnd > cond_ok then
-			ui_inv_add.show_inv_msg(item_name.." не нуждается в ремонте")
+			ui_inv_add.show_inv_msg(item_name.." РЅРµ РЅСѓР¶РґР°РµС‚СЃСЏ РІ СЂРµРјРѕРЅС‚Рµ")
 			return
 		elseif cnd < rep_cond_armor then
-			ui_inv_add.show_inv_msg(item_name.." в слишком плохом состоянии. Ремкомплектом не починить")
+			ui_inv_add.show_inv_msg(item_name.." РІ СЃР»РёС€РєРѕРј РїР»РѕС…РѕРј СЃРѕСЃС‚РѕСЏРЅРёРё. Р РµРјРєРѕРјРїР»РµРєС‚РѕРј РЅРµ РїРѕС‡РёРЅРёС‚СЊ")
 			return
 		end
 	elseif repkit_sect == "repair_item_weapon" then
 		if item:get_slot() > 2 then return end		-- 0, 1, 2
 		if item:section() == "wpn_kolbasa" then
-			ui_inv_add.show_inv_msg("Это же колбаса - её нельзя починить :)")
+			ui_inv_add.show_inv_msg("Р­С‚Рѕ Р¶Рµ РєРѕР»Р±Р°СЃР° - РµС‘ РЅРµР»СЊР·СЏ РїРѕС‡РёРЅРёС‚СЊ :)")
 			return
 		elseif cnd > cond_ok then
-			ui_inv_add.show_inv_msg(item_name.." не требует ремонта")
+			ui_inv_add.show_inv_msg(item_name.." РЅРµ С‚СЂРµР±СѓРµС‚ СЂРµРјРѕРЅС‚Р°")
 			return
 		elseif cnd < rep_cond_wpn then
-			ui_inv_add.show_inv_msg(item_name.." в слишком плохом состоянии. Ремкомплектом не починить")
+			ui_inv_add.show_inv_msg(item_name.." РІ СЃР»РёС€РєРѕРј РїР»РѕС…РѕРј СЃРѕСЃС‚РѕСЏРЅРёРё. Р РµРјРєРѕРјРїР»РµРєС‚РѕРј РЅРµ РїРѕС‡РёРЅРёС‚СЊ")
 			return
 		end
 	end
@@ -64,21 +64,21 @@ function repair_repkit(repkit, item)
 	zvuki.use_snd(repkit_sect)
 	inventory.force_update( item:section() )
 end
-------------- Функции для диалога ---------------
+------------- Р¤СѓРЅРєС†РёРё РґР»СЏ РґРёР°Р»РѕРіР° ---------------
 
--- главный прекондишн: может ли непись ремонтировать? 
+-- РіР»Р°РІРЅС‹Р№ РїСЂРµРєРѕРЅРґРёС€РЅ: РјРѕР¶РµС‚ Р»Рё РЅРµРїРёСЃСЊ СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ? 
 function can_repair(first_speaker, second_speaker)
-	-- Общие поршни
+	-- РћР±С‰РёРµ РїРѕСЂС€РЅРё
 	if not has_alife_info("tutorial_end") then
 		return false
 	end
 	
-	-- Поршни по неписям. 
-	-- Сяк на Радаре
+	-- РџРѕСЂС€РЅРё РїРѕ РЅРµРїРёСЃСЏРј. 
+	-- РЎСЏРє РЅР° Р Р°РґР°СЂРµ
 	if second_speaker:profile_name() == "Sak" and not has_alife_info("sak_repair_box_done") then 
 		return false
 	end
-	-- Долговязый
+	-- Р”РѕР»РіРѕРІСЏР·С‹Р№
 	if second_speaker:profile_name() == "dolgovazyi" and not has_alife_info("dolgovazyi_toolkit_done") then 
 		return false
 	end
@@ -86,7 +86,7 @@ function can_repair(first_speaker, second_speaker)
 	return true
 end
 
--- есть ли предмет в слоте?
+-- РµСЃС‚СЊ Р»Рё РїСЂРµРґРјРµС‚ РІ СЃР»РѕС‚Рµ?
 function is_item(slt)
 	return db.actor:item_in_slot(slt)
 end
@@ -94,7 +94,7 @@ function is_item1()	return is_item( inventory_slots.PISTOL ) end
 function is_item2()	return is_item( inventory_slots.RIFLE ) end
 function is_item6()	return is_item( inventory_slots.OUTFIT ) end
 
--- слишком убитый предмет?
+-- СЃР»РёС€РєРѕРј СѓР±РёС‚С‹Р№ РїСЂРµРґРјРµС‚?
 function too_bad_item(slt)
 	return db.actor:item_in_slot(slt):condition() < min_cond_item
 end
@@ -102,7 +102,7 @@ function too_bad_item1() return too_bad_item( inventory_slots.PISTOL ) end
 function too_bad_item2() return too_bad_item( inventory_slots.RIFLE ) end
 function too_bad_item6() return too_bad_item( inventory_slots.OUTFIT ) end
 
--- полностью исправный предмет?
+-- РїРѕР»РЅРѕСЃС‚СЊСЋ РёСЃРїСЂР°РІРЅС‹Р№ РїСЂРµРґРјРµС‚?
 function ok(slt)
 	return db.actor:item_in_slot(slt):condition() > cond_ok
 end
@@ -110,7 +110,7 @@ function ok1() return ok( inventory_slots.PISTOL ) end
 function ok2() return ok( inventory_slots.RIFLE ) end
 function ok6() return ok( inventory_slots.OUTFIT ) end
 
--- нужен ли ремонт?
+-- РЅСѓР¶РµРЅ Р»Рё СЂРµРјРѕРЅС‚?
 function need(slt)
 	return not too_bad_item(slt) and not ok(slt)
 end
@@ -118,7 +118,7 @@ function need1() return need( inventory_slots.PISTOL ) end
 function need2() return need( inventory_slots.RIFLE ) end
 function need6() return need( inventory_slots.OUTFIT ) end
 
--- что нужно для ремонта?
+-- С‡С‚Рѕ РЅСѓР¶РЅРѕ РґР»СЏ СЂРµРјРѕРЅС‚Р°?
 function talk_parts(slt)
 	slot = slt
 	item = db.actor:item_in_slot(slot)
@@ -128,17 +128,17 @@ function talk_parts(slt)
 
 	if slot == 6 then
 		if cond > cond_double then
-			text = "Для ремонта брони мне нужно "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "Р”Р»СЏ СЂРµРјРѕРЅС‚Р° Р±СЂРѕРЅРё РјРЅРµ РЅСѓР¶РЅРѕ "..parts_list().." Рё "..tostring(parts_money()).." СЂСѓР±Р»РµР№. Р‘СѓРґРµРј СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊСЃСЏ?"
 		else
 			count = 2
-			text = "Броня сильно потрепана, поэтому для ремонта мне нужно два артефакта "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "Р‘СЂРѕРЅСЏ СЃРёР»СЊРЅРѕ РїРѕС‚СЂРµРїР°РЅР°, РїРѕСЌС‚РѕРјСѓ РґР»СЏ СЂРµРјРѕРЅС‚Р° РјРЅРµ РЅСѓР¶РЅРѕ РґРІР° Р°СЂС‚РµС„Р°РєС‚Р° "..parts_list().." Рё "..tostring(parts_money()).." СЂСѓР±Р»РµР№. Р‘СѓРґРµРј СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊСЃСЏ?"
 		end
 	else
 		if cond > cond_double then
-			text = "Для ремонта мне нужен любой ствол такого же калибра на запчасти, "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "Р”Р»СЏ СЂРµРјРѕРЅС‚Р° РјРЅРµ РЅСѓР¶РµРЅ Р»СЋР±РѕР№ СЃС‚РІРѕР» С‚Р°РєРѕРіРѕ Р¶Рµ РєР°Р»РёР±СЂР° РЅР° Р·Р°РїС‡Р°СЃС‚Рё, "..parts_list().." Рё "..tostring(parts_money()).." СЂСѓР±Р»РµР№. Р‘СѓРґРµРј СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊСЃСЏ?"
 		else
 			count = 2
-			text = "Этот ствол изрядно потрепан. Поэтому мне нужно два любых ствола такого же калибра на запчасти, два артефакта "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "Р­С‚РѕС‚ СЃС‚РІРѕР» РёР·СЂСЏРґРЅРѕ РїРѕС‚СЂРµРїР°РЅ. РџРѕСЌС‚РѕРјСѓ РјРЅРµ РЅСѓР¶РЅРѕ РґРІР° Р»СЋР±С‹С… СЃС‚РІРѕР»Р° С‚Р°РєРѕРіРѕ Р¶Рµ РєР°Р»РёР±СЂР° РЅР° Р·Р°РїС‡Р°СЃС‚Рё, РґРІР° Р°СЂС‚РµС„Р°РєС‚Р° "..parts_list().." Рё "..tostring(parts_money()).." СЂСѓР±Р»РµР№. Р‘СѓРґРµРј СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊСЃСЏ?"
 		end
 	end
 
@@ -149,7 +149,7 @@ function talk_parts1() return talk_parts( inventory_slots.PISTOL ) end
 function talk_parts2() return talk_parts( inventory_slots.RIFLE ) end
 function talk_parts6() return talk_parts( inventory_slots.OUTFIT ) end
 
--- список предметов для ремонта
+-- СЃРїРёСЃРѕРє РїСЂРµРґРјРµС‚РѕРІ РґР»СЏ СЂРµРјРѕРЅС‚Р°
 function parts_list()
 	local text = ""
 	
@@ -170,13 +170,13 @@ function parts_list()
 	return text
 end
 
--- деньги на ремонт
+-- РґРµРЅСЊРіРё РЅР° СЂРµРјРѕРЅС‚
 function parts_money()
 	pay = math.floor(item:cost()*(1-item:condition())*money_koef*count)
 	return pay
 end
 
--- все ли есть для ремонта?
+-- РІСЃРµ Р»Рё РµСЃС‚СЊ РґР»СЏ СЂРµРјРѕРЅС‚Р°?
 function kalibr_count(actor, itm)
 	if  (not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
 		(not db.actor:item_in_slot( inventory_slots.RIFLE ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.RIFLE ):id()) and
@@ -187,19 +187,19 @@ function kalibr_count(actor, itm)
 	end
 end
 function have_all()
-	-- деньги
+	-- РґРµРЅСЊРіРё
 	if db.actor:money() < pay then
 		return false
 	end
 	
-	-- предметы
+	-- РїСЂРµРґРјРµС‚С‹
 	for i=1,#parts do
 		if not inventory.search(parts[i], count) then
 			return false
 		end
 	end
 
-	-- стволы по калибру, проверка по патронам
+	-- СЃС‚РІРѕР»С‹ РїРѕ РєР°Р»РёР±СЂСѓ, РїСЂРѕРІРµСЂРєР° РїРѕ РїР°С‚СЂРѕРЅР°Рј
 	if slot ~= 6 then
 		ammo = rx_utils.parse_list_new(nil, item:section(), "ammo_class")[1]
 		have = 0
@@ -214,7 +214,7 @@ function have_all()
 end
 function not_have_all() return not have_all() end
 
--- Ремонт предмета ремонтником. Все данные к этому моменту уже проверены и заполнены
+-- Р РµРјРѕРЅС‚ РїСЂРµРґРјРµС‚Р° СЂРµРјРѕРЅС‚РЅРёРєРѕРј. Р’СЃРµ РґР°РЅРЅС‹Рµ Рє СЌС‚РѕРјСѓ РјРѕРјРµРЅС‚Сѓ СѓР¶Рµ РїСЂРѕРІРµСЂРµРЅС‹ Рё Р·Р°РїРѕР»РЅРµРЅС‹
 function kalibr_remove(actor, itm)
 	if have < count and
 		(not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
@@ -228,13 +228,13 @@ function kalibr_remove(actor, itm)
 	end
 end
 function npc_repair(first_speaker, second_speaker)
-	-- отбираем все, что нужно
+	-- РѕС‚Р±РёСЂР°РµРј РІСЃРµ, С‡С‚Рѕ РЅСѓР¶РЅРѕ
 	dialogs.relocate_money(second_speaker, pay, "out")
 	for i=1,#parts do
 		inventory.out_items(parts[i], count)
 	end
 
-	-- отбираем стволы и ремонтируем
+	-- РѕС‚Р±РёСЂР°РµРј СЃС‚РІРѕР»С‹ Рё СЂРµРјРѕРЅС‚РёСЂСѓРµРј
 	if slot ~= 6 then
 		have = 0
 		db.actor:iterate_inventory(kalibr_remove,db.actor)
@@ -245,7 +245,7 @@ function npc_repair(first_speaker, second_speaker)
 	end
 end
 
--- проверка калибра
+-- РїСЂРѕРІРµСЂРєР° РєР°Р»РёР±СЂР°
 function kalibr_ok(itm)
 	local ammos = rx_utils.parse_list_new(nil, itm:section(), "ammo_class")
 	
@@ -258,14 +258,14 @@ function kalibr_ok(itm)
 	return false
 end
 
--- В ОП-2 старый ремонт не используется, только апгрейд стволов
+-- Р’ РћРџ-2 СЃС‚Р°СЂС‹Р№ СЂРµРјРѕРЅС‚ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ, С‚РѕР»СЊРєРѕ Р°РїРіСЂРµР№Рґ СЃС‚РІРѕР»РѕРІ
 
 -- Advanced Trader Weapon Repair v.1.1
 
 -- Basic functions by AMK Team, advanced functions by Black 777 Team (Wlad777 and BlackyBPG)
 --------------------------------------------------------------------------------------------------------
 
--- переписано и добавлено до хрена by RAY
+-- РїРµСЂРµРїРёСЃР°РЅРѕ Рё РґРѕР±Р°РІР»РµРЅРѕ РґРѕ С…СЂРµРЅР° by RAY
 
 local weapon_profit_margin = 4
 local armor_profit_margin = 4
@@ -275,13 +275,13 @@ local rem_ubit_stvol_2 = 0
 local is_perv = 0
 local is_vtor = 0
 
-local is_upgr_kalibr = false          -- оружие доступно для смены калибра
-local is_upgr_otdaca = false   -- оружие доступно для апгрейда отдачи
-local is_upgr_ves = false   -- оружие доступно для снижения веса
+local is_upgr_kalibr = false          -- РѕСЂСѓР¶РёРµ РґРѕСЃС‚СѓРїРЅРѕ РґР»СЏ СЃРјРµРЅС‹ РєР°Р»РёР±СЂР°
+local is_upgr_otdaca = false   -- РѕСЂСѓР¶РёРµ РґРѕСЃС‚СѓРїРЅРѕ РґР»СЏ Р°РїРіСЂРµР№РґР° РѕС‚РґР°С‡Рё
+local is_upgr_ves = false   -- РѕСЂСѓР¶РёРµ РґРѕСЃС‚СѓРїРЅРѕ РґР»СЏ СЃРЅРёР¶РµРЅРёСЏ РІРµСЃР°
 local nomer_massiva = 0
 
 
--- массив "сравнимых" стволов, правим под себя, сделан от балды для тестов
+-- РјР°СЃСЃРёРІ "СЃСЂР°РІРЅРёРјС‹С…" СЃС‚РІРѕР»РѕРІ, РїСЂР°РІРёРј РїРѕРґ СЃРµР±СЏ, СЃРґРµР»Р°РЅ РѕС‚ Р±Р°Р»РґС‹ РґР»СЏ С‚РµСЃС‚РѕРІ
 
 local wpnA = { "wpn_val", "wpn_val_m1", "wpn_val_m2", "wpn_val_voron", "wpn_vintorez", "wpn_vintorez_m1", "wpn_sr3t", "wpn_vsk94", "wpn_ak9", "wpn_20w_vintorez" }
 local wpnB = { "wpn_spas", "wpn_wincheaster1300", "wpn_winchester_m1", "wpn_winch1887", "wpn_m4super90", "wpn_mossberg590", "wpn_rem870_magnum", "wpn_rem870short", "wpn_protecta", "wpn_protecta_col", "wpn_usas12", "wpn_browningauto5", "wpn_ba5short", "wpn_benelli_m3_short", "wpn_benelli_m3", "wpn_benelli_m3_tactik" }
@@ -301,7 +301,7 @@ local wpnO = { "wpn_lr300", "wpn_m16a2_sk1", "wpn_m16a2", "wpn_m4", "wpn_sbr", "
 local wpnP = { "wpn_sig550", "wpn_sig_m1", "wpn_sig_m2", "wpn_sg552_sk1", "wpn_sig552camo", "wpn_sg550_sr" }
 local wpnQ = { "wpn_saiga12c", "wpn_sayga12_sk1", "wpn_sayga12k", "wpn_vepr12", "wpn_vepr", "wpn_vepr12_col", "wpn_vepr12_20", "wpn_vepr12_m1", "wpn_aa12" }
 local wpnR = { "wpn_ppsh41_sk2", "wpn_pps43", "wpn_ak203", "wpn_akm203_pso" }
-local wpnS = { "wpn_mp5", "wpn_mp5_m1", "wpn_mp5_m2", "wpn_mp5_m3", "wpn_mp5_m4", "wpn_mp5_m5", "wpn_mp7", "wpn_mp5k", "wpn_hk53_a3", "wpn_uzi", "wpn_scorpion", "wpn_mp40", "wpn_mp5sd", "wpn_mp5k_pdw", "wpn_mp5pdw" } -- Proper71 bisnes добавлена гадюка Борова
+local wpnS = { "wpn_mp5", "wpn_mp5_m1", "wpn_mp5_m2", "wpn_mp5_m3", "wpn_mp5_m4", "wpn_mp5_m5", "wpn_mp7", "wpn_mp5k", "wpn_hk53_a3", "wpn_uzi", "wpn_scorpion", "wpn_mp40", "wpn_mp5sd", "wpn_mp5k_pdw", "wpn_mp5pdw" } -- Proper71 bisnes РґРѕР±Р°РІР»РµРЅР° РіР°РґСЋРєР° Р‘РѕСЂРѕРІР°
 local wpnT = { "wpn_svd", "wpn_svd_m1", "wpn_svd_m2", "wpn_svd_m3", "wpn_svu", "wpn_awm", "wpn_b94", "wpn_m1891_30_scope", "wpn_k98", "wpn_walther_wa2000", "wpn_obrez_m1891", "wpn_vihlop", "wpn_awp", "wpn_awp_m1", "wpn_cz550", "wpn_sv98", "wpn_svt40", "wpn_zastava_m76", "wpn_zastava_m77" }
 local wpnU = { "wpn_flame", "wpn_ognemet" }
 local wpnV = { "wpn_gungauss", "wpn_gauss", "wpn_dark_gauss", "wpn_gauss2b", "wpn_gauss_krayzis" }
@@ -317,43 +317,43 @@ local wpn_temp
 
 
 
--- Первоначальные (исходные стволы). Доступны для смены калибра
+-- РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Рµ (РёСЃС…РѕРґРЅС‹Рµ СЃС‚РІРѕР»С‹). Р”РѕСЃС‚СѓРїРЅС‹ РґР»СЏ СЃРјРµРЅС‹ РєР°Р»РёР±СЂР°
 local wpn_to_upgrade_kalibr_5_45 = {"wpn_ak74", "wpn_aks74m", "wpn_ak74u", "wpn_abakan"}
 local wpn_to_upgrade_kalibr_9_18 = {"wpn_bizon", "wpn_scorpion"}
 local wpn_to_upgrade_kalibr_9_19 = {"wpn_mp5", "wpn_mp7a3", "wpn_uzi"}
 local wpn_to_upgrade_kalibr_5_56 = {"wpn_fn2000", "wpn_g36", "wpn_lr300", "wpn_sig550", "wpn_sg552_sk1", "wpn_l85", "wpn_famas_p3_sk1", "wpn_m16a2_sk1", "wpn_tavor", "wpn_m4", "wpn_mp5k"}
 
--- Стволы с измененным калибром
+-- РЎС‚РІРѕР»С‹ СЃ РёР·РјРµРЅРµРЅРЅС‹Рј РєР°Р»РёР±СЂРѕРј
 local wpn_with_upgrade_kalibr_5_45 = {"wpn_ak74_kalibr", "wpn_aks74m_kalibr", "wpn_ak74u_kalibr", "wpn_abakan_kalibr"}
 local wpn_with_upgrade_kalibr_9_18 = {"wpn_bizon_kalibr", "wpn_scorpion_kalibr"}
 local wpn_with_upgrade_kalibr_9_19 = {"wpn_mp5_kalibr", "wpn_mp7a3_kalibr", "wpn_uzi_kalibr", "wpn_mp5k_kalibr"}
 local wpn_with_upgrade_kalibr_5_56 = {"wpn_fn2000_kalibr", "wpn_g36_kalibr", "wpn_lr300_kalibr", "wpn_sig550_kalibr", "wpn_sg552_sk1_kalibr", "wpn_l85_kalibr", "wpn_famas_p3_sk1_kalibr", "wpn_m16a2_sk1_kalibr", "wpn_tavor_kalibr", "wpn_m4_kalibr"}
 
--- Первоначальные (исходные стволы). Доступны для снижения отдачи.
+-- РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Рµ (РёСЃС…РѕРґРЅС‹Рµ СЃС‚РІРѕР»С‹). Р”РѕСЃС‚СѓРїРЅС‹ РґР»СЏ СЃРЅРёР¶РµРЅРёСЏ РѕС‚РґР°С‡Рё.
 local wpn_to_upgrade_otdaca = {"wpn_ak74", "wpn_aks74m", "wpn_ak74u", "wpn_abakan", "wpn_bizon", "wpn_mp5", "wpn_mp7a3", "wpn_uzi", "wpn_fn2000", "wpn_g36", "wpn_lr300", "wpn_sig550", "wpn_sg552_sk1", "wpn_l85", "wpn_famas_p3_sk1", "wpn_m16a2_sk1", "wpn_tavor", "wpn_ak47", "wpn_hk417_sk1", "wpn_sr25_mk11_mod0_sk1", "wpn_m4", "wpn_mp5k", "wpn_scorpion" }
 
--- Стволы со сниженной отдачей (законченный апгрейд)
+-- РЎС‚РІРѕР»С‹ СЃРѕ СЃРЅРёР¶РµРЅРЅРѕР№ РѕС‚РґР°С‡РµР№ (Р·Р°РєРѕРЅС‡РµРЅРЅС‹Р№ Р°РїРіСЂРµР№Рґ)
 local wpn_with_upgrade_otdaca = {"wpn_ak74_otdaca", "wpn_aks74m_otdaca", "wpn_ak74u_otdaca", "wpn_abakan_otdaca", "wpn_bizon_otdaca", "wpn_mp5_otdaca", "wpn_mp7a3_otdaca", "wpn_uzi_otdaca", "wpn_fn2000_otdaca", "wpn_g36_otdaca", "wpn_lr300_otdaca", "wpn_sig550_otdaca", "wpn_sg552_sk1_otdaca", "wpn_l85_otdaca", "wpn_famas_p3_sk1_otdaca", "wpn_m16a2_sk1_otdaca", "wpn_tavor_otdaca", "wpn_ak47_otdaca", "wpn_hk417_sk1_otdaca", "wpn_sr25_mk11_mod0_sk1_otdaca", "wpn_m4_otdaca", "wpn_mp5k_otdaca", "wpn_scorpion_otdaca"}
 
--- Первоначальные (исходные стволы). Доступны для снижения веса 
+-- РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Рµ (РёСЃС…РѕРґРЅС‹Рµ СЃС‚РІРѕР»С‹). Р”РѕСЃС‚СѓРїРЅС‹ РґР»СЏ СЃРЅРёР¶РµРЅРёСЏ РІРµСЃР° 
 local wpn_to_upgrade_ves = {"wpn_ak74_kalibr", "wpn_aks74m_kalibr", "wpn_ak74u_kalibr", "wpn_abakan_kalibr", "wpn_bizon_kalibr", "wpn_mp5_kalibr", "wpn_mp7a3_kalibr", "wpn_uzi_kalibr", "wpn_fn2000_kalibr", "wpn_g36_kalibr", "wpn_lr300_kalibr", "wpn_sig550_kalibr", "wpn_sg552_sk1_kalibr", "wpn_l85_kalibr", "wpn_famas_p3_sk1_kalibr", "wpn_m16a2_sk1_kalibr", "wpn_tavor_kalibr", "wpn_ak74_otdaca", "wpn_aks74m_otdaca", "wpn_ak74u_otdaca", "wpn_abakan_otdaca", "wpn_bizon_otdaca", "wpn_mp5_otdaca", "wpn_mp7a3_otdaca", "wpn_uzi_otdaca", "wpn_fn2000_otdaca", "wpn_g36_otdaca", "wpn_lr300_otdaca", "wpn_sig550_otdaca", "wpn_sg552_sk1_otdaca", "wpn_l85_otdaca", "wpn_famas_p3_sk1_otdaca", "wpn_m16a2_sk1_otdaca", "wpn_tavor_otdaca", "wpn_ak47_otdaca", "wpn_hk417_sk1_otdaca", "wpn_sr25_mk11_mod0_sk1_otdaca", "wpn_ak74", "wpn_ak74u", "wpn_abakan", "wpn_bizon", "wpn_mp5", "wpn_mp7a3", "wpn_uzi", "wpn_fn2000", "wpn_g36", "wpn_lr300", "wpn_sig550", "wpn_sg552_sk1", "wpn_l85", "wpn_famas_p3_sk1", "wpn_m16a2_sk1", "wpn_tavor", "wpn_ak47", "wpn_hk417_sk1", "wpn_sr25_mk11_mod0_sk1", "wpn_groza", "wpn_val", "wpn_svd", "wpn_svu", "wpn_m1891_30_scope", "wpn_vintorez", "wpn_b94", "wpn_awm", "wpn_saiga12c", "wpn_spas12", "wpn_wincheaster1300", "wpn_bm16", "wpn_toz34", "wpn_ppsh41_sk2", "wpn_kriss_super_v", "wpn_p90", "wpn_pkm", "wpn_m4", "wpn_m4_kalibr", "wpn_m4_otdaca", "wpn_m4super90", "wpn_m79", "wpn_mp5k", "wpn_mp5k_kalibr", "wpn_mp5k_otdaca", "wpn_protecta", "wpn_scorpion", "wpn_scorpion_kalibr", "wpn_scorpion_otdaca", "wpn_aks74m"}
 
--- Стволы со сниженной отдачей (законченный апгрейд)
+-- РЎС‚РІРѕР»С‹ СЃРѕ СЃРЅРёР¶РµРЅРЅРѕР№ РѕС‚РґР°С‡РµР№ (Р·Р°РєРѕРЅС‡РµРЅРЅС‹Р№ Р°РїРіСЂРµР№Рґ)
 local wpn_with_upgrade_ves = {"wpn_ak74_kalibr_ves", "wpn_aks74m_kalibr_ves", "wpn_ak74u_kalibr_ves", "wpn_abakan_kalibr_ves", "wpn_bizon_kalibr_ves", "wpn_mp5_kalibr_ves", "wpn_mp7a3_kalibr_ves", "wpn_uzi_kalibr_ves", "wpn_fn2000_kalibr_ves", "wpn_g36_kalibr_ves", "wpn_lr300_kalibr_ves", "wpn_sig550_kalibr_ves", "wpn_sg552_sk1_kalibr_ves", "wpn_l85_kalibr_ves", "wpn_famas_p3_sk1_kalibr_ves", "wpn_m16a2_sk1_kalibr_ves", "wpn_tavor_kalibr_ves", "wpn_ak74_otdaca_ves", "wpn_aks74m_otdaca_ves", "wpn_ak74u_otdaca_ves", "wpn_abakan_otdaca_ves", "wpn_bizon_otdaca_ves", "wpn_mp5_otdaca_ves", "wpn_mp7a3_otdaca_ves", "wpn_uzi_otdaca_ves", "wpn_fn2000_otdaca_ves", "wpn_g36_otdaca_ves", "wpn_lr300_otdaca_ves", "wpn_sig550_otdaca_ves", "wpn_sg552_sk1_otdaca_ves", "wpn_l85_otdaca_ves", "wpn_famas_p3_sk1_otdaca_ves", "wpn_m16a2_sk1_otdaca_ves", "wpn_tavor_otdaca_ves", "wpn_ak47_otdaca_ves", "wpn_hk417_sk1_otdaca_ves", "wpn_sr25_mk11_mod0_sk1_otdaca_ves", "wpn_ak74_ves", "wpn_ak74u_ves", "wpn_abakan_ves", "wpn_bizon_ves", "wpn_mp5_ves", "wpn_mp7a3_ves", "wpn_uzi_ves", "wpn_fn2000_ves", "wpn_g36_ves", "wpn_lr300_ves", "wpn_sig550_ves", "wpn_sg552_sk1_ves", "wpn_l85_ves", "wpn_famas_p3_sk1_ves", "wpn_m16a2_sk1_ves", "wpn_tavor_ves", "wpn_ak47_ves", "wpn_hk417_sk1_ves", "wpn_sr25_mk11_mod0_sk1_ves", "wpn_groza_ves", "wpn_val_ves", "wpn_svd_ves", "wpn_svu_ves", "wpn_m1891_30_scope_ves", "wpn_vintorez_ves", "wpn_b94_ves", "wpn_awm_ves", "wpn_saiga12c_ves", "wpn_spas12_ves", "wpn_wincheaster1300_ves", "wpn_bm16_ves", "wpn_toz34_ves", "wpn_ppsh41_sk2_ves", "wpn_kriss_super_v_ves", "wpn_p90_ves", "wpn_pkm_ves", "wpn_m4_ves", "wpn_m4_kalibr_ves", "wpn_m4_otdaca_ves", "wpn_m4super90_ves", "wpn_m79_ves", "wpn_mp5k_ves", "wpn_mp5k_kalibr_ves", "wpn_mp5k_otdaca_ves", "wpn_protecta_ves", "wpn_scorpion_ves", "wpn_scorpion_kalibr_ves", "wpn_scorpion_otdaca_ves", "wpn_aks74m_ves"}
 
 
  
 
--- имя ремонтника в смс
+-- РёРјСЏ СЂРµРјРѕРЅС‚РЅРёРєР° РІ СЃРјСЃ
 
 repairmaster = {
-		hnd_weap_01  = { "Сидорович" },
-		hnd_weap_02  = { "Дэн" },
-		hnd_weap_03  = { "Сяк" },
-		hnd_weap_04  = { "Долговязый" },
-		hnd_weap_05  = { "Бармэн" },
-		hnd_weap_06  = { "Василий" },
-		hnd_weap_07  = { "Сахаров" }
+		hnd_weap_01  = { "РЎРёРґРѕСЂРѕРІРёС‡" },
+		hnd_weap_02  = { "Р”СЌРЅ" },
+		hnd_weap_03  = { "РЎСЏРє" },
+		hnd_weap_04  = { "Р”РѕР»РіРѕРІСЏР·С‹Р№" },
+		hnd_weap_05  = { "Р‘Р°СЂРјСЌРЅ" },
+		hnd_weap_06  = { "Р’Р°СЃРёР»РёР№" },
+		hnd_weap_07  = { "РЎР°С…Р°СЂРѕРІ" }
 }
 
 local wpnsec=nil
@@ -364,7 +364,7 @@ local recheck
 local tt = 0.5
 
 
--- ремонтники и коофициенты "навара" 1=Variablenname; 2=weapon_profit_margin; 3=armor_profit_margin
+-- СЂРµРјРѕРЅС‚РЅРёРєРё Рё РєРѕРѕС„РёС†РёРµРЅС‚С‹ "РЅР°РІР°СЂР°" 1=Variablenname; 2=weapon_profit_margin; 3=armor_profit_margin
 
 local repairmasterlist = {
 	escape_trader			= {"hnd_weap_01",2.2,3.0},
@@ -382,7 +382,7 @@ local repairmasterlist = {
 
 
 
--- а возможен ли апгрейд?
+-- Р° РІРѕР·РјРѕР¶РµРЅ Р»Рё Р°РїРіСЂРµР№Рґ?
 
 function trader_upgrade_precond(actor, trader)
 	nomer_massiva = 0
@@ -415,7 +415,7 @@ function trader_upgrade_precond(actor, trader)
 --	end	 
 end
 
--- можно ли оружию сменить калибр
+-- РјРѕР¶РЅРѕ Р»Рё РѕСЂСѓР¶РёСЋ СЃРјРµРЅРёС‚СЊ РєР°Р»РёР±СЂ
 
 function is_upgrade_kalibr(wpn)
 	nomer_massiva = 0
@@ -450,7 +450,7 @@ function is_upgrade_kalibr(wpn)
 	return nil
 end
 
--- можно ли оружию увеличить кучность
+-- РјРѕР¶РЅРѕ Р»Рё РѕСЂСѓР¶РёСЋ СѓРІРµР»РёС‡РёС‚СЊ РєСѓС‡РЅРѕСЃС‚СЊ
 
 function is_upgrade_otdaca(wpn)
 	 j=table.getn(wpn_to_upgrade_otdaca) 
@@ -462,7 +462,7 @@ function is_upgrade_otdaca(wpn)
 	return nil
 end
 
--- можно ли оружию снизить вес
+-- РјРѕР¶РЅРѕ Р»Рё РѕСЂСѓР¶РёСЋ СЃРЅРёР·РёС‚СЊ РІРµСЃ
 
 function is_upgrade_ves(wpn)
 	 j=table.getn(wpn_to_upgrade_ves) 
@@ -578,7 +578,7 @@ function is_upgrade_2st_stvol_all_precond(actor, trader)
 	return false
 end
 
--- показываем ГГ варианты и стоимость апгрейда
+-- РїРѕРєР°Р·С‹РІР°РµРј Р“Р“ РІР°СЂРёР°РЅС‚С‹ Рё СЃС‚РѕРёРјРѕСЃС‚СЊ Р°РїРіСЂРµР№РґР°
 
 function upgrade_costs(trader, actor, first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
@@ -599,39 +599,39 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 			local name1 = get_inv_name(item_in_slot_1:section())
 			
 			if wep_1 == nil and wep_2 == nil and wep_3 == nil then
-				db.actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
+				db.actor:give_talk_message("РўР°Рє, РїРµСЂРІС‹Р№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name1)..". Р”Р»СЏ РЅРµРіРѕ РЅРёС‡РµРіРѕ РЅРµ РјРѕРіСѓ РїСЂРµРґР»РѕР¶РёС‚СЊ."   , task_texture, task_rect, "simple_answer_item")
 			elseif (0.96 >= item_in_slot_1:condition() + 0.01) then
-				db.actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
+				db.actor:give_talk_message("РўР°Рє, РїРµСЂРІС‹Р№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name1)..". РћРЅ Сѓ С‚РµР±СЏ РґРѕРІРѕР»СЊРЅРѕ РёР·РЅРѕС€РµРЅ - Р·Р° Р°РїРіСЂРµР№Рґ СЏ РЅРµ РІРѕР·СЊРјСѓСЃСЊ. РџРѕС‡РёРЅРё РµРіРѕ СЃРЅР°С‡Р°Р»Р°, Р° РїРѕС‚РѕРј СЏ СЃРјРѕРіСѓ РµРіРѕ РјРѕРґРµСЂРЅРёР·РёСЂРѕРІР°С‚СЊ." , task_texture, task_rect, "simple_answer_item")
 			else
-				str_text_1 = "Так, первый ствол у нас это "..game.translate_string(name1)..". Для него могу предложить следующие варианты:"
+				str_text_1 = "РўР°Рє, РїРµСЂРІС‹Р№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name1)..". Р”Р»СЏ РЅРµРіРѕ РјРѕРіСѓ РїСЂРµРґР»РѕР¶РёС‚СЊ СЃР»РµРґСѓСЋС‰РёРµ РІР°СЂРёР°РЅС‚С‹:"
 				if wep_1 ~= nil then
 					if (nomer_massiva == 1) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.45С…39 РЅР° 5.56x45. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 1) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.45С…39 РЅР° 5.56x45. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 2) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…18 РЅР° 9С…19. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 2) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…18 РЅР° 9С…19. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 3) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…19 РЅР° 9С…18. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 3) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…19 РЅР° 9С…18. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 4) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.56x45 РЅР° 5.45С…39. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 4) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+						str_text_1 = str_text_1.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.56x45 РЅР° 5.45С…39. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					end
 				end
 				if (wep_2 ~= nil) and (money >= item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+					str_text_1 = str_text_1.."\\n   - СѓРІРµР»РёС‡РµРЅРёРµ РєСѓС‡РЅРѕСЃС‚Рё. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ %c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 				elseif (wep_2 ~= nil) and (money < item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+					str_text_1 = str_text_1.."\\n   - СѓРІРµР»РёС‡РµРЅРёРµ РєСѓС‡РЅРѕСЃС‚Рё. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				end
 				if (wep_3 ~= nil) and (money >= item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+					str_text_1 = str_text_1.."\\n   - cРЅРёР¶РµРЅРёРµ РІРµСЃР°. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ %c[255,238,155,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default]."
 				elseif (wep_3 ~= nil) and (money < item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+					str_text_1 = str_text_1.."\\n   - cРЅРёР¶РµРЅРёРµ РІРµСЃР°. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				end
 			end
 
@@ -647,41 +647,41 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 			local name2 = get_inv_name(item_in_slot_2:section())
 			
 			if wep_1 == nil and wep_2 == nil and wep_3 == nil then
---				get_console():execute("1") -- закомментено в ОП-2
+--				get_console():execute("1") -- Р·Р°РєРѕРјРјРµРЅС‚РµРЅРѕ РІ РћРџ-2
 
-				db.actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
+				db.actor:give_talk_message("РђРіР°, РІС‚РѕСЂРѕР№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name2)..". Р”Р»СЏ РЅРµРіРѕ РЅРёС‡РµРіРѕ РЅРµ РјРѕРіСѓ РїСЂРµРґР»РѕР¶РёС‚СЊ."   , task_texture, task_rect, "simple_answer_item")
 			elseif (0.96 >= item_in_slot_2:condition() + 0.01) then
-				db.actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
+				db.actor:give_talk_message("РђРіР°, РІС‚РѕСЂРѕР№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name2)..". РћРЅ Сѓ С‚РµР±СЏ РґРѕРІРѕР»СЊРЅРѕ РёР·РЅРѕС€РµРЅ - Р·Р° Р°РїРіСЂРµР№Рґ СЏ РЅРµ РІРѕР·СЊРјСѓСЃСЊ. РџРѕС‡РёРЅРё РµРіРѕ СЃРЅР°С‡Р°Р»Р°, Р° РїРѕС‚РѕРј СЏ СЃРјРѕРіСѓ РµРіРѕ РјРѕРґРµСЂРЅРёР·РёСЂРѕРІР°С‚СЊ." , task_texture, task_rect, "simple_answer_item")
 			else
-				str_text_2 = "Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него могу предложить следующие варианты:"
+				str_text_2 = "РђРіР°, РІС‚РѕСЂРѕР№ СЃС‚РІРѕР» Сѓ РЅР°СЃ СЌС‚Рѕ "..game.translate_string(name2)..". Р”Р»СЏ РЅРµРіРѕ РјРѕРіСѓ РїСЂРµРґР»РѕР¶РёС‚СЊ СЃР»РµРґСѓСЋС‰РёРµ РІР°СЂРёР°РЅС‚С‹:"
 				if wep_1 ~= nil then
 					if (nomer_massiva == 1) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.45С…39 РЅР° 5.56x45. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 1) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.45С…39 РЅР° 5.56x45. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 2) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…18 РЅР° 9С…19. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 2) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…18 РЅР° 9С…19. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 3) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…19 РЅР° 9С…18. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 3) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 9С…19 РЅР° 9С…18. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					elseif (nomer_massiva == 4) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+						str_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.56x45 РЅР° 5.45С…39. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ \\n%c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 					elseif (nomer_massiva == 4) and (money < item_upgr_cost2) then
-						dstr_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+						dstr_text_2 = str_text_2.."\\n   - РёР·РјРµРЅРµРЅРёРµ РєР°Р»РёР±СЂР° СЃ 5.56x45 РЅР° 5.45С…39. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 					end
 				end
 				if (wep_2 ~= nil) and (money >= item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+					str_text_2 = str_text_2.."\\n   - СѓРІРµР»РёС‡РµРЅРёРµ РєСѓС‡РЅРѕСЃС‚Рё. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ %c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 				elseif (wep_2 ~= nil) and (money < item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+					str_text_2 = str_text_2.."\\n   - СѓРІРµР»РёС‡РµРЅРёРµ РєСѓС‡РЅРѕСЃС‚Рё. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				end
 				if (wep_3 ~= nil) and (money >= item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+					str_text_2 = str_text_2.."\\n   - cРЅРёР¶РµРЅРёРµ РІРµСЃР°. Р­С‚Рѕ Р±СѓРґРµС‚ СЃС‚РѕРёС‚СЊ %c[255,238,155,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default]."
 				elseif (wep_3 ~= nil) and (money < item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+					str_text_2 = str_text_2.."\\n   - cРЅРёР¶РµРЅРёРµ РІРµСЃР°. Р­С‚Рѕ РѕР±РѕС€Р»РѕСЃСЊ Р±С‹ С‚РµР±Рµ РІ \\n%c[255,255,32,23]"..item_upgr_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				end
 			end
 
@@ -694,7 +694,7 @@ end
 
 
 
--- а есть ли бабло на апгрейд
+-- Р° РµСЃС‚СЊ Р»Рё Р±Р°Р±Р»Рѕ РЅР° Р°РїРіСЂРµР№Рґ
 
 function trader_check_money_upgr_s1(actor, trader)
 	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
@@ -723,7 +723,7 @@ function trader_check_money_upgr_s2(actor, trader)
 end
 
 
--- забираем бабло, стартуем таймер апгрейда
+-- Р·Р°Р±РёСЂР°РµРј Р±Р°Р±Р»Рѕ, СЃС‚Р°СЂС‚СѓРµРј С‚Р°Р№РјРµСЂ Р°РїРіСЂРµР№РґР°
 
 function trader_upgrade_weapon_s1_kalibr(actor, trader)
 	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
@@ -842,7 +842,7 @@ function trader_upgrade_weapon_s2_ves(actor, trader)
 end
 
 
--- забираем ствол на апгрейд
+-- Р·Р°Р±РёСЂР°РµРј СЃС‚РІРѕР» РЅР° Р°РїРіСЂРµР№Рґ
 
 function remove_repairitem_to_upgrade(slt)
 	if slt ~= nil then
@@ -859,7 +859,7 @@ end
 
 
 
--- а нужен ли ремонт?
+-- Р° РЅСѓР¶РµРЅ Р»Рё СЂРµРјРѕРЅС‚?
 
 function trader_repair_precond(actor, trader)
 	rem_ubit_stvol_1 = 0
@@ -885,7 +885,7 @@ function trader_repair_precond(actor, trader)
 	end	 
 end
 
--- а есть ли бабло на ремонт?
+-- Р° РµСЃС‚СЊ Р»Рё Р±Р°Р±Р»Рѕ РЅР° СЂРµРјРѕРЅС‚?
 
 function trader_check_money_s1(actor, trader)
 	rem_ubit_stvol_1  = 0
@@ -974,7 +974,7 @@ function trader_check_money_s6(actor, trader)
 	return false
 end
 
--- забираем бабло, стартуем таймер ремонта. время ремонтов правим под себя
+-- Р·Р°Р±РёСЂР°РµРј Р±Р°Р±Р»Рѕ, СЃС‚Р°СЂС‚СѓРµРј С‚Р°Р№РјРµСЂ СЂРµРјРѕРЅС‚Р°. РІСЂРµРјСЏ СЂРµРјРѕРЅС‚РѕРІ РїСЂР°РІРёРј РїРѕРґ СЃРµР±СЏ
 
 function trader_repiar_weapon_s1(actor, trader)
 	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
@@ -1017,7 +1017,7 @@ function trader_repiar_weapon_s1(actor, trader)
 		is_perv = 1
 		remove_repairitem( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..wpn))
-		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
+		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-С„СѓРЅРєС†РёСЏ РґР»СЏ С‚РµСЃС‚РѕРІ, СЂРµРјРѕРЅС‚ РґР»РёС‚СЃСЏ 3 СЃРµРє.
 		xr_timers.start_game_timer(var,0,tt,0)
 	end
 end
@@ -1063,7 +1063,7 @@ function trader_repiar_weapon_s2(actor, trader)
 		is_vtor = 1
 		remove_repairitem( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..wpn))
-		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-функция для тестов, ремонт длится 3 сек.
+		-- xr_timers.start_game_timer(var,0,0,3)    -- DEBUG-С„СѓРЅРєС†РёСЏ РґР»СЏ С‚РµСЃС‚РѕРІ, СЂРµРјРѕРЅС‚ РґР»РёС‚СЃСЏ 3 СЃРµРє.
 		xr_timers.start_game_timer(var,0,tt,0)
 	end
 end
@@ -1095,7 +1095,7 @@ function trader_repiar_armor_s6(actor, trader)
 	end	
 end
 
--- забираем ствол на апгрейд
+-- Р·Р°Р±РёСЂР°РµРј СЃС‚РІРѕР» РЅР° Р°РїРіСЂРµР№Рґ
 
 function remove_repair_bronik_item(slt)
 	if slt ~= nil then
@@ -1109,7 +1109,7 @@ function remove_repair_bronik_item(slt)
 end
 
 
--- проверям наличие подходящего ствола, который пойдёт на запчасти. правим под себя, в соответствии с массивом "сравнимых" стволов
+-- РїСЂРѕРІРµСЂСЏРј РЅР°Р»РёС‡РёРµ РїРѕРґС…РѕРґСЏС‰РµРіРѕ СЃС‚РІРѕР»Р°, РєРѕС‚РѕСЂС‹Р№ РїРѕР№РґС‘С‚ РЅР° Р·Р°РїС‡Р°СЃС‚Рё. РїСЂР°РІРёРј РїРѕРґ СЃРµР±СЏ, РІ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРё СЃ РјР°СЃСЃРёРІРѕРј "СЃСЂР°РІРЅРёРјС‹С…" СЃС‚РІРѕР»РѕРІ
 
 function check_secondary(wpn)
 if wpn ~= nil then
@@ -1388,7 +1388,7 @@ wpn_temp = wpn3
 	return false
 end
 
--- забираем ствол на ремонт 
+-- Р·Р°Р±РёСЂР°РµРј СЃС‚РІРѕР» РЅР° СЂРµРјРѕРЅС‚ 
 
 function remove_repairitem(slt)
 	if slt ~= nil then
@@ -1408,7 +1408,7 @@ function remove_repairitem(slt)
 	end
 end
 
--- забираем ствол, который пойдёт на запчасти, в соответствии с массивом "сравнимых" стволов
+-- Р·Р°Р±РёСЂР°РµРј СЃС‚РІРѕР», РєРѕС‚РѕСЂС‹Р№ РїРѕР№РґС‘С‚ РЅР° Р·Р°РїС‡Р°СЃС‚Рё, РІ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРё СЃ РјР°СЃСЃРёРІРѕРј "СЃСЂР°РІРЅРёРјС‹С…" СЃС‚РІРѕР»РѕРІ
 
 function remove_secondary(item,checker)
 	local j = 0
@@ -1433,7 +1433,7 @@ function remove_secondary(item,checker)
 	end
 end
 
--- ремонт закончен, шлём смс
+-- СЂРµРјРѕРЅС‚ Р·Р°РєРѕРЅС‡РµРЅ, С€Р»С‘Рј СЃРјСЃ
 
 function do_release_action(par)
 	if par ~= nil then
@@ -1443,13 +1443,13 @@ function do_release_action(par)
 		amk.save_variable(par,("2"..wpnsec))
 		local name = get_inv_name(wpnsec)
 		local repmas = repairmaster[par][1]
-		local sms = "Привет, воин. Это "..tostring(repmas)..".\\n Про хлам не забыл, который мне отдавал? "
+		local sms = "РџСЂРёРІРµС‚, РІРѕРёРЅ. Р­С‚Рѕ "..tostring(repmas)..".\\n РџСЂРѕ С…Р»Р°Рј РЅРµ Р·Р°Р±С‹Р», РєРѕС‚РѕСЂС‹Р№ РјРЅРµ РѕС‚РґР°РІР°Р»? "
 		if name ~= nil then
 			sms = sms..game.translate_string(name)
 		else
-			sms = sms.."Твой ствол"
+			sms = sms.."РўРІРѕР№ СЃС‚РІРѕР»"
 		end
-		sms = sms.." готов. Можешь забирать. Советую крупными скачками семенить в мою сторону. Ге-ге-ге..."
+		sms = sms.." РіРѕС‚РѕРІ. РњРѕР¶РµС€СЊ Р·Р°Р±РёСЂР°С‚СЊ. РЎРѕРІРµС‚СѓСЋ РєСЂСѓРїРЅС‹РјРё СЃРєР°С‡РєР°РјРё СЃРµРјРµРЅРёС‚СЊ РІ РјРѕСЋ СЃС‚РѕСЂРѕРЅСѓ. Р“Рµ-РіРµ-РіРµ..."
 		news_manager.send_tip(db.actor, sms, nil, "weaprep", 35000)
 	end
 end
@@ -1463,7 +1463,7 @@ function can_give_weapon(actor, trader)
 	return false
 end
 
--- снимаем аддоны перед ремонтом, разряжаем стволы
+-- СЃРЅРёРјР°РµРј Р°РґРґРѕРЅС‹ РїРµСЂРµРґ СЂРµРјРѕРЅС‚РѕРј, СЂР°Р·СЂСЏР¶Р°РµРј СЃС‚РІРѕР»С‹
 
 function release_addons(sobj,wpn,obj)
 	if sobj ~= nil then
@@ -1511,7 +1511,7 @@ function release_addons(sobj,wpn,obj)
 	end
 end
 
---отдаём починеный ствол ГГ, без патронов
+--РѕС‚РґР°С‘Рј РїРѕС‡РёРЅРµРЅС‹Р№ СЃС‚РІРѕР» Р“Р“, Р±РµР· РїР°С‚СЂРѕРЅРѕРІ
 
 function give_weapon_to_player(trader, actor)
 	rem_ubit_stvol_1 = 0
@@ -1541,7 +1541,7 @@ function weapon_unload(objid)
 	end
 end
 ]]
--- таймеры
+-- С‚Р°Р№РјРµСЂС‹
 
 function show_timer1(actor,trader)
 	if tt == 0.5 then return true end
@@ -1614,7 +1614,7 @@ function show_timer_b6(actor,trader)
 end
 
 
--- показываем ГГ условия и стоимость ремонта
+-- РїРѕРєР°Р·С‹РІР°РµРј Р“Р“ СѓСЃР»РѕРІРёСЏ Рё СЃС‚РѕРёРјРѕСЃС‚СЊ СЂРµРјРѕРЅС‚Р°
 
 function repair_costs(trader, actor, first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
@@ -1650,27 +1650,27 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 			if (item_repair_cost1 > 0)  and (0.96 > item_in_slot_1:condition() + 0.01) then
 				if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
 					is_upgr = 0
-					item_name_and_price1 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
+					item_name_and_price1 = "Р§С‚Рѕ СЌС‚Рѕ Сѓ С‚РµР±СЏ Р·Р° СЃС‚РІРѕР» СЃС‚СЂР°РЅРЅС‹Р№ С‚Р°РєРѕР№? Р­С‚Рѕ С‚РµР±Рµ СЌС‚РѕС‚ Р±РѕС‚Р°РЅ Р”РѕР»РіРѕРІСЏР·С‹Р№ СЃРґРµР»Р°Р»?\n РЇ Р·Р° СЂРµРјРѕРЅС‚ С‚Р°РєРѕРіРѕ РѕСЂСѓР¶РёСЏ РґР°Р¶Рµ Р±СЂР°С‚СЊСЃСЏ Р±РѕСЋСЃСЊ. РҐРѕС‡РµС€СЊ РѕС‚СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ - С‡РµС€Рё Рє СЌС‚РѕРјСѓ СЃРїРµС†Сѓ РІ Р‘Р°СЂ Рё СЂРµРјРѕРЅС‚РёСЂСѓР№.\n РҐРј, РѕРЅ Р±С‹ РµС‰Рµ РїРµРґР°Р»Рё Рє РѕСЂСѓР¶РёСЋ РїСЂРёРґРµР»Р°Р»."
 				elseif (money >= item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." плати мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд и\n давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price1 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name1).." РїР»Р°С‚Рё РјРЅРµ %c[255,238,155,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default] РІРїРµСЂС‘Рґ Рё\n РґР°РІР°Р№ РїРѕС…РѕР¶РёР№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё. Р”Р° СЃРјРѕС‚СЂРё РЅРµ РѕС‚РґР°Р№ РґР»СЏ СЌС‚РёС… С†РµР»РµР№ Р±РѕР»РµРµ РєСЂСѓС‚СѓСЋ РїСѓС€РєСѓ - Р° С‚Рѕ РїРѕР¶Р°Р»РµРµС€СЊ РїРѕС‚РѕРј.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money < item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price1 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name1).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default] Рё\n СЃСЂР°РІРЅРёРјС‹Р№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё, РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money >= item_repair_cost1) and (checksec1==false) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя нету похожего ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price1 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name1).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ\n С‚РµР±СЏ РЅРµС‚Сѓ РїРѕС…РѕР¶РµРіРѕ СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money < item_repair_cost1) and (checksec1==false) and (0.1 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price1 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name1).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ Сѓ\n С‚РµР±СЏ РЅРё РґРµРЅРµРі СЃС‚РѕР»СЊРєРѕ РЅРµС‚Сѓ, РЅРё СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 
 				elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Отремонтировать "..game.translate_string(name1).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_1:cost()*0.05).."рублей) и\n избавлю тебя от неё."
+					item_name_and_price1 = "РћС‚СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ "..game.translate_string(name1).." СЏ СѓР¶Рµ РЅРµ СЃРјРѕРіСѓ. РЎР»РёС€РєРѕРј С‚С‹ СЌС‚РѕС‚ СЃС‚РІРѕР» СѓС€Р°С‚Р°Р».\n Р•СЃР»Рё С…РѕС‡РµС€СЊ, СЏ С‚РµР±Рµ РґР°Рј Р·Р° СЌС‚Сѓ Р¶РµР»РµР·РєСѓ СЃРєР°Р¶РµРј... 5 РїСЂРѕС†РµРЅС‚РѕРІ РѕС‚ СЃС‚РѕРёРјРѕСЃС‚Рё ("..math.floor(item_in_slot_1:cost()*0.05).."СЂСѓР±Р»РµР№) Рё\n РёР·Р±Р°РІР»СЋ С‚РµР±СЏ РѕС‚ РЅРµС‘."
 				
 				elseif (rem_name == "hnd_weap_04") and (0.1 >= item_in_slot_1:condition() + 0.01)  and (checksec1==true) and (money >= item_repair_cost1) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти."
+					item_name_and_price1 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name1).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј.\n Р›Р°РґРЅРѕ, РїРѕСЃРјРѕС‚СЂРёРј С‡С‚Рѕ РјРѕР¶РЅРѕ СЃРґРµР»Р°С‚СЊ.\n Р”Р°РІР°Р№ РјРЅРµ %c[255,238,155,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default] РІРїРµСЂС‘Рґ\n Рё РґР°РІР°Р№ РїРѕС…РѕР¶РёР№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				elseif (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01)  and (checksec1==false) and (money >= item_repair_cost1) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. Я бы взял за ремонт %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
+					item_name_and_price1 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name1).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј.\n РќРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ. РЇ Р±С‹ РІР·СЏР» Р·Р° СЂРµРјРѕРЅС‚ %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРµС‚Сѓ РїРѕС…РѕР¶РµРіРѕ СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==true) and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету."
+					item_name_and_price1 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name1).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј.\n РќРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ. Р—Р° СЂРµРјРѕРЅС‚ СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default] Рё\n СЃСЂР°РІРЅРёРјС‹Р№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё, РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==false) and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
+					item_name_and_price1 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name1).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј.\n РќРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ. Р—Р° СЂРµРјРѕРЅС‚ СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost1.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРё РґРµРЅРµРі СЃС‚РѕР»СЊРєРѕ РЅРµС‚Сѓ, РЅРё СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				end
 				if item_name_and_price1 ~= nil then
 					db.actor:give_talk_message(item_name_and_price1, task_texture, task_rect, "simple_answer_item")
@@ -1698,27 +1698,27 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 			if (item_repair_cost2 > 0)  and (0.96 > item_in_slot_2:condition() + 0.01) then
 				if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
 					is_upgr = 0
-					item_name_and_price2 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
+					item_name_and_price2 = "Р§С‚Рѕ СЌС‚Рѕ Сѓ С‚РµР±СЏ Р·Р° СЃС‚РІРѕР» СЃС‚СЂР°РЅРЅС‹Р№ С‚Р°РєРѕР№? Р­С‚Рѕ С‚РµР±Рµ СЌС‚РѕС‚ Р±РѕС‚Р°РЅ Р”РѕР»РіРѕРІСЏР·С‹Р№ СЃРґРµР»Р°Р»?\n РЇ Р·Р° СЂРµРјРѕРЅС‚ С‚Р°РєРѕРіРѕ РѕСЂСѓР¶РёСЏ РґР°Р¶Рµ Р±СЂР°С‚СЊСЃСЏ Р±РѕСЋСЃСЊ. РҐРѕС‡РµС€СЊ РѕС‚СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ - С‡РµС€Рё Рє СЌС‚РѕРјСѓ СЃРїРµС†Сѓ РІ Р‘Р°СЂ Рё СЂРµРјРѕРЅС‚РёСЂСѓР№.\n РҐРј, РѕРЅ Р±С‹ РµС‰Рµ РїРµРґР°Р»Рё Рє РѕСЂСѓР¶РёСЋ РїСЂРёРґРµР»Р°Р»."
 				elseif (money >= item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." плати мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price2 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name2).." РїР»Р°С‚Рё РјРЅРµ %c[255,238,155,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default] РІРїРµСЂС‘Рґ\n Рё РґР°РІР°Р№ РїРѕС…РѕР¶РёР№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё. Р”Р° СЃРјРѕС‚СЂРё РЅРµ РѕС‚РґР°Р№ РґР»СЏ СЌС‚РёС… С†РµР»РµР№ Р±РѕР»РµРµ РєСЂСѓС‚СѓСЋ РїСѓС€РєСѓ - Р° С‚Рѕ РїРѕР¶Р°Р»РµРµС€СЊ РїРѕС‚РѕРј.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money < item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price2 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name2).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default] Рё\n СЃСЂР°РІРЅРёРјС‹Р№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё, РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money >= item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету сравнимого ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price2 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name2).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРµС‚Сѓ СЃСЂР°РІРЅРёРјРѕРіРѕ СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 				elseif (money < item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+					item_name_and_price2 = "Р—Р° СЂРµРјРѕРЅС‚ "..game.translate_string(name2).." СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРё РґРµРЅРµРі СЃС‚РѕР»СЊРєРѕ РЅРµС‚Сѓ, РЅРё СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё.\n РљСЃС‚Р°С‚Рё, СЃС‚РІРѕР» СѓР±РёС‚ РіРґРµ-С‚Рѕ РїСЂРѕС†РµРЅС‚РѕРІ РЅР° "..iznos.."."
 
 				elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Отремонтировать "..game.translate_string(name2).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_2:cost()*0.05).." рублей) и избавлю тебя от неё."
+					item_name_and_price2 = "РћС‚СЂРµРјРѕРЅС‚РёСЂРѕРІР°С‚СЊ "..game.translate_string(name2).." СЏ СѓР¶Рµ РЅРµ СЃРјРѕРіСѓ. РЎР»РёС€РєРѕРј С‚С‹ СЌС‚РѕС‚ СЃС‚РІРѕР» СѓС€Р°С‚Р°Р».\n Р•СЃР»Рё С…РѕС‡РµС€СЊ, СЏ С‚РµР±Рµ РґР°Рј Р·Р° СЌС‚Сѓ Р¶РµР»РµР·РєСѓ СЃРєР°Р¶РµРј... 5 РїСЂРѕС†РµРЅС‚РѕРІ РѕС‚ СЃС‚РѕРёРјРѕСЃС‚Рё ("..math.floor(item_in_slot_2:cost()*0.05).." СЂСѓР±Р»РµР№) Рё РёР·Р±Р°РІР»СЋ С‚РµР±СЏ РѕС‚ РЅРµС‘."
 
 				elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==true) and (money >= item_repair_cost2) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд и\n похожий ствол на запчасти."
+					item_name_and_price2 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name2).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј.\n Р›Р°РґРЅРѕ, РїРѕСЃРјРѕС‚СЂРёРј С‡С‚Рѕ РјРѕР¶РЅРѕ СЃРґРµР»Р°С‚СЊ.\n Р”Р°РІР°Р№ РјРЅРµ %c[255,238,155,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default] РІРїРµСЂС‘Рґ Рё\n РїРѕС…РѕР¶РёР№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==false) and (money >= item_repair_cost2) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n Я бы взял за ремонт  %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
+					item_name_and_price2 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name2).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј,\n РЅРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ.\n РЇ Р±С‹ РІР·СЏР» Р·Р° СЂРµРјРѕРЅС‚  %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРµС‚Сѓ РїРѕС…РѕР¶РµРіРѕ СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==true) and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и сравнимый ствол на запчасти,\n но у тебя столько денег нету."
+					item_name_and_price2 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name2).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј,\n РЅРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ.\n Р—Р° СЂРµРјРѕРЅС‚ СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default] Рё СЃСЂР°РІРЅРёРјС‹Р№ СЃС‚РІРѕР» РЅР° Р·Р°РїС‡Р°СЃС‚Рё,\n РЅРѕ Сѓ С‚РµР±СЏ СЃС‚РѕР»СЊРєРѕ РґРµРЅРµРі РЅРµС‚Сѓ."
 				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==false) and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт  я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
+					item_name_and_price2 = "Р”Р°, СѓР±РёР» С‚С‹ "..game.translate_string(name2).." РїСЂРѕСЃС‚Рѕ РІ С…Р»Р°Рј,\n РЅРѕ СЃРґРµР»Р°С‚СЊ РєРѕРµ-С‡С‚Рѕ РјРѕР¶РЅРѕ.\n Р—Р° СЂРµРјРѕРЅС‚  СЏ Р±С‹ РІР·СЏР» %c[255,255,32,23]"..item_repair_cost2.." СЂСѓР±Р»РµР№%c[default], РЅРѕ\n Сѓ С‚РµР±СЏ РЅРё РґРµРЅРµРі СЃС‚РѕР»СЊРєРѕ РЅРµС‚Сѓ, РЅРё СЃС‚РІРѕР»Р° РЅР° Р·Р°РїС‡Р°СЃС‚Рё."
 				end
 				if item_name_and_price2 ~= nil then
 					db.actor:give_talk_message(item_name_and_price2, task_texture, task_rect, "simple_answer_item")
@@ -1737,13 +1737,13 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 			iznos = math.floor(100*(1-item_in_slot_6:condition()))
 
 			if (item_repair_cost > 0) and (money >= item_repair_cost) and (item_in_slot_6:condition()) < 0.95 then
-						-- list_trader_repair_2 это Стоимость починки брони:
-				local item_name_and_price = "Износ брони: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]. Согласен?"
+						-- list_trader_repair_2 СЌС‚Рѕ РЎС‚РѕРёРјРѕСЃС‚СЊ РїРѕС‡РёРЅРєРё Р±СЂРѕРЅРё:
+				local item_name_and_price = "РР·РЅРѕСЃ Р±СЂРѕРЅРё: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,238,155,23]"..item_repair_cost.." СЂСѓР±Р»РµР№%c[default]. РЎРѕРіР»Р°СЃРµРЅ?"
 				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
 
 			elseif (item_repair_cost > 0) and (money < item_repair_cost) then
-						-- list_trader_repair_2 это Стоимость починки брони:
-				local item_name_and_price = "Износ брони: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,255,32,23]"..item_repair_cost.." рублей%c[default]. Зайди попозже - сейчас у тебя денег столько нету."
+						-- list_trader_repair_2 СЌС‚Рѕ РЎС‚РѕРёРјРѕСЃС‚СЊ РїРѕС‡РёРЅРєРё Р±СЂРѕРЅРё:
+				local item_name_and_price = "РР·РЅРѕСЃ Р±СЂРѕРЅРё: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,255,32,23]"..item_repair_cost.." СЂСѓР±Р»РµР№%c[default]. Р—Р°Р№РґРё РїРѕРїРѕР·Р¶Рµ - СЃРµР№С‡Р°СЃ Сѓ С‚РµР±СЏ РґРµРЅРµРі СЃС‚РѕР»СЊРєРѕ РЅРµС‚Сѓ."
 				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
 			end
 		end
@@ -1751,7 +1751,7 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 	end
 end
 
--- проверяем, не забиты ли стволы в хлам
+-- РїСЂРѕРІРµСЂСЏРµРј, РЅРµ Р·Р°Р±РёС‚С‹ Р»Рё СЃС‚РІРѕР»С‹ РІ С…Р»Р°Рј
 
 function check_damaged1(actor, trader)
 	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
@@ -1769,7 +1769,7 @@ function check_damaged2(actor, trader)
 	return false
 end
 
--- чинить хлам безполезно, дам тебе за него пирожок и иди с ТНБ
+-- С‡РёРЅРёС‚СЊ С…Р»Р°Рј Р±РµР·РїРѕР»РµР·РЅРѕ, РґР°Рј С‚РµР±Рµ Р·Р° РЅРµРіРѕ РїРёСЂРѕР¶РѕРє Рё РёРґРё СЃ РўРќР‘
 
 function pay_damaged1(actor, trader)
 	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)

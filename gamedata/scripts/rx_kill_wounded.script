@@ -41,9 +41,9 @@ function evaluator_enemy_wounded:evaluate()
 		and not (self.stc.active_scheme == "camper"
 		and self.stc.camper.close_combat ~= true)
 	then
-		-- странный баг: best_enemy выдаёт неправильного врага (может отличаться от движкового)
-		-- нужно удостовериться, что здорового врага нет
-		-- будем проверять денжер, а также память раз в секунду
+		-- СЃС‚СЂР°РЅРЅС‹Р№ Р±Р°Рі: best_enemy РІС‹РґР°С‘С‚ РЅРµРїСЂР°РІРёР»СЊРЅРѕРіРѕ РІСЂР°РіР° (РјРѕР¶РµС‚ РѕС‚Р»РёС‡Р°С‚СЊСЃСЏ РѕС‚ РґРІРёР¶РєРѕРІРѕРіРѕ)
+		-- РЅСѓР¶РЅРѕ СѓРґРѕСЃС‚РѕРІРµСЂРёС‚СЊСЃСЏ, С‡С‚Рѕ Р·РґРѕСЂРѕРІРѕРіРѕ РІСЂР°РіР° РЅРµС‚
+		-- Р±СѓРґРµРј РїСЂРѕРІРµСЂСЏС‚СЊ РґРµРЅР¶РµСЂ, Р° С‚Р°РєР¶Рµ РїР°РјСЏС‚СЊ СЂР°Р· РІ СЃРµРєСѓРЅРґСѓ
 		res = true
 		local npc = self.object
 		local function check_for_enemy(obj)
@@ -75,7 +75,7 @@ function evaluator_enemy_wounded:evaluate()
 			end
 		end
 	end
-	self.storage:set_property(evid_enemy_wounded,res)	-- само не ставится?
+	self.storage:set_property(evid_enemy_wounded,res)	-- СЃР°РјРѕ РЅРµ СЃС‚Р°РІРёС‚СЃСЏ?
 	return res
 end
 
@@ -309,8 +309,8 @@ function action_kill_wounded:finalize()
 	if not npc:alive() then
 		return
 	end
-	npc:set_movement_type(move.walk)	-- фикс для горбатого экшена sudden_attack
-	npc:set_mental_state(anim.danger)	-- для post_combat_idle (движкового)
+	npc:set_movement_type(move.walk)	-- С„РёРєСЃ РґР»СЏ РіРѕСЂР±Р°С‚РѕРіРѕ СЌРєС€РµРЅР° sudden_attack
+	npc:set_mental_state(anim.danger)	-- РґР»СЏ post_combat_idle (РґРІРёР¶РєРѕРІРѕРіРѕ)
 	npc:set_item(object.idle,npc:active_item())
 	local target = self.target_id and level.object_by_id(self.target_id)
 	if target and not target:alive() then
@@ -474,10 +474,10 @@ function add_to_binder(npc,ini,scheme,section,storage)
 	action:add_precondition(world_property(evid_enemy_wounded,true))
 	action:add_effect(world_property(evid_enemy_wounded,false))
 	manager:add_action(ectid_kill_wounded,action)
-	-- включение в планировщик
+	-- РІРєР»СЋС‡РµРЅРёРµ РІ РїР»Р°РЅРёСЂРѕРІС‰РёРє
 	action = manager:action(stalker_ids.action_combat_planner)
 	action:add_precondition(world_property(evid_enemy_wounded,false))
-	-- отключение добивания гранатой
+	-- РѕС‚РєР»СЋС‡РµРЅРёРµ РґРѕР±РёРІР°РЅРёСЏ РіСЂР°РЅР°С‚РѕР№
 	if xrs_grenade then
 		action = manager:action(xrs_grenade.actid_crazy_fire_in_the_hole)
 		if action then

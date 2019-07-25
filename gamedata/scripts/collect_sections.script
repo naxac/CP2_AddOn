@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -----------------------------------------------------------------------------------------
 -- File           : collect_sections.script
--- Description    : Извлечение секций игровых объектов из кофигов
+-- Description    : РР·РІР»РµС‡РµРЅРёРµ СЃРµРєС†РёР№ РёРіСЂРѕРІС‹С… РѕР±СЉРµРєС‚РѕРІ РёР· РєРѕС„РёРіРѕРІ
 -- Created        : 11.05.2014
 -- Last update    : 08.10.2018
 -- Author         : naxac
@@ -131,8 +131,8 @@ local classes = {
 	others = {},
 	junk = {}
 }
--- В эту таблицу внести новые классы, если они добавлены в мод (см. скрипт class_registrator)
--- Добавлены некоторые классы из ЗП, модов "Народнвя Солянка" (ТЧ), "Lost Alpha" (ТЧ) и ОП-2.1 (ТЧ)
+-- Р’ СЌС‚Сѓ С‚Р°Р±Р»РёС†Сѓ РІРЅРµСЃС‚Рё РЅРѕРІС‹Рµ РєР»Р°СЃСЃС‹, РµСЃР»Рё РѕРЅРё РґРѕР±Р°РІР»РµРЅС‹ РІ РјРѕРґ (СЃРј. СЃРєСЂРёРїС‚ class_registrator)
+-- Р”РѕР±Р°РІР»РµРЅС‹ РЅРµРєРѕС‚РѕСЂС‹Рµ РєР»Р°СЃСЃС‹ РёР· Р—Рџ, РјРѕРґРѕРІ "РќР°СЂРѕРґРЅРІСЏ РЎРѕР»СЏРЅРєР°" (РўР§), "Lost Alpha" (РўР§) Рё РћРџ-2.1 (РўР§)
 local new_clsids = {
 	weapons = {'wpn_auto_shotgun_s','wpn_zoom_s','wpn_magazined_s'},
 	addons = {'wpn_scope_s','wpn_silencer_s','wpn_grenade_launcher_s'},
@@ -154,7 +154,7 @@ function main( rewrite )
 		if _G.cheat_base == nil then _G.cheat_base = {} end
 		_G.cheat_base.list_sections = sections
 		_G.cheat_base.npc_list = {}
-		-- добавим в таблицу новые классы, если они есть
+		-- РґРѕР±Р°РІРёРј РІ С‚Р°Р±Р»РёС†Сѓ РЅРѕРІС‹Рµ РєР»Р°СЃСЃС‹, РµСЃР»Рё РѕРЅРё РµСЃС‚СЊ
 		for k, t in pairs( new_clsids ) do
 			for _,v in ipairs( t ) do
 				if clsid[ v ] then
@@ -188,9 +188,9 @@ function main( rewrite )
 	end
 end
 
--- Ищем секции и инклуды в файле
+-- РС‰РµРј СЃРµРєС†РёРё Рё РёРЅРєР»СѓРґС‹ РІ С„Р°Р№Р»Рµ
 function find_somewhat( file, path )
-	-- если путь многоуровневый, то сформируем путь для инклуда
+	-- РµСЃР»Рё РїСѓС‚СЊ РјРЅРѕРіРѕСѓСЂРѕРІРЅРµРІС‹Р№, С‚Рѕ СЃС„РѕСЂРјРёСЂСѓРµРј РїСѓС‚СЊ РґР»СЏ РёРЅРєР»СѓРґР°
 	local do_path = nil
 	if path:find( "\\" ) then
 		do_path = ""
@@ -204,12 +204,12 @@ function find_somewhat( file, path )
 	for line in string.gmatch( file, "[^\n]+" ) do
 		sect = string.match( line, "^(%b[])" )
 		path = string.match( line, '^#include%s+(%b"")' )
-		if sect then	-- нашли секцию
+		if sect then	-- РЅР°С€Р»Рё СЃРµРєС†РёСЋ
 			sect = sect:sub( 2, -2 )
 			if check_section( sect ) then
 			--	log( "- collect_sections: section found [%s]", sect )
 			end
-		elseif path then		-- нашли инклуд
+		elseif path then		-- РЅР°С€Р»Рё РёРЅРєР»СѓРґ
 			path = path:sub( 2, -2 )
 			if do_path then path = do_path..path end
 		--	log( "- collect_sections: include file found '%s'", path )
@@ -218,7 +218,7 @@ function find_somewhat( file, path )
 	end
 end
 
--- Записываем найденные секции в таблицу по группам
+-- Р—Р°РїРёСЃС‹РІР°РµРј РЅР°Р№РґРµРЅРЅС‹Рµ СЃРµРєС†РёРё РІ С‚Р°Р±Р»РёС†Сѓ РїРѕ РіСЂСѓРїРїР°Рј
 function check_section( sect )
 	if not ( sys_ini:section_exist( sect ) and sys_ini:line_exist( sect, "class" ) ) then return false end
 

@@ -1,8 +1,8 @@
 ----------------------------------------------------------------------------------------------------------------------
---'	Сумасшедший придурок швыряется гранатами
+--'	РЎСѓРјР°СЃС€РµРґС€РёР№ РїСЂРёРґСѓСЂРѕРє С€РІС‹СЂСЏРµС‚СЃСЏ РіСЂР°РЅР°С‚Р°РјРё
 --' ver: 2.0
---'	автор: xStream
---'	переработка, доработки алгоритма: KamikaZze, naxac
+--'	Р°РІС‚РѕСЂ: xStream
+--'	РїРµСЂРµСЂР°Р±РѕС‚РєР°, РґРѕСЂР°Р±РѕС‚РєРё Р°Р»РіРѕСЂРёС‚РјР°: KamikaZze, naxac
 ----------------------------------------------------------------------------------------------------------------------
 gr_types={"grenade_f1","grenade_rgd5","grenade_flash","grenade_gd-05","grenade_m61"}
 
@@ -209,7 +209,7 @@ function evaluator_crazy_grenadier:evaluate()
 			end
 			if curr_gr==nil then return false end
 
-			--можно швыряться - вероятность никого не задеть (кроме врагов) достаточно велика
+			--РјРѕР¶РЅРѕ С€РІС‹СЂСЏС‚СЊСЃСЏ - РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РЅРёРєРѕРіРѕ РЅРµ Р·Р°РґРµС‚СЊ (РєСЂРѕРјРµ РІСЂР°РіРѕРІ) РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РІРµР»РёРєР°
 			self.a.from_vert = npc:level_vertex_id()
 			self.a.from_pos = npc:position()
 			self.a.target_point = be:position():add(vector_rotate_y(be:position():sub(npc:position()),90):normalize():mul(2))
@@ -240,19 +240,19 @@ function evaluator_crazy_grenadier:check_grenade(section, be)
 	local bp = be:position()
 	local np = npc:position()
 	local throw_dist=np:distance_to(bp)
-	--далеко кидать никак, мы ж не атлеты...
+	--РґР°Р»РµРєРѕ РєРёРґР°С‚СЊ РЅРёРєР°Рє, РјС‹ Р¶ РЅРµ Р°С‚Р»РµС‚С‹...
 	if throw_dist>grenade_max_dist then return false end
 	
 --	local throw_dir=bp:sub(np)
-	-- если накроет взрывом - не будем кидать
+	-- РµСЃР»Рё РЅР°РєСЂРѕРµС‚ РІР·СЂС‹РІРѕРј - РЅРµ Р±СѓРґРµРј РєРёРґР°С‚СЊ
 	if throw_dist<self.a.grenades[section].radius then return false
-	-- Светошумовые гранаты нет смысла кидать в кого-либо кроме актера
+	-- РЎРІРµС‚РѕС€СѓРјРѕРІС‹Рµ РіСЂР°РЅР°С‚С‹ РЅРµС‚ СЃРјС‹СЃР»Р° РєРёРґР°С‚СЊ РІ РєРѕРіРѕ-Р»РёР±Рѕ РєСЂРѕРјРµ Р°РєС‚РµСЂР°
 	elseif section=="grenade_flash" and be:id()~= 0 then return false
-	-- Дымовые гранаты нет смысла кидать в мутантов
+	-- Р”С‹РјРѕРІС‹Рµ РіСЂР°РЅР°С‚С‹ РЅРµС‚ СЃРјС‹СЃР»Р° РєРёРґР°С‚СЊ РІ РјСѓС‚Р°РЅС‚РѕРІ
 	elseif section=="grenade_gd-05" and IAmAMonster[be:clsid()] then return false
 	end
 
-	--теперь проверим, чтоб не задеть своих и нейтралов
+	--С‚РµРїРµСЂСЊ РїСЂРѕРІРµСЂРёРј, С‡С‚РѕР± РЅРµ Р·Р°РґРµС‚СЊ СЃРІРѕРёС… Рё РЅРµР№С‚СЂР°Р»РѕРІ
 --[[
 	local function check_item(obj)
 		obj=obj:object()
@@ -272,7 +272,7 @@ function evaluator_crazy_grenadier:check_grenade(section, be)
 		if check_item(o) then return false end
 	end
 ]]
-	--можно использовать эту гранату....
+	--РјРѕР¶РЅРѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ СЌС‚Сѓ РіСЂР°РЅР°С‚Сѓ....
 	return true
 end
 
@@ -546,7 +546,7 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 function add_to_binder(object, ini, scheme, section, storage)
   		
-	-- вообще не пользуем схемы
+	-- РІРѕРѕР±С‰Рµ РЅРµ РїРѕР»СЊР·СѓРµРј СЃС…РµРјС‹
 	local name = object:name()
 	local no_grenade = false
 	for k,v in pairs(excluded_npcs) do
@@ -732,7 +732,7 @@ function check_enemy(npc,be)
 		and ( IAmAStalker[be:clsid()]
 		or IAmAMonster[be:clsid()] )
 		and be:alive() and npc:see(be)
-		and be:position():distance_to(level.vertex_position(be:level_vertex_id()))<2 --из-за глюков движка кидать будем только в объекты, недалеко от аи сетки
+		and be:position():distance_to(level.vertex_position(be:level_vertex_id()))<2 --РёР·-Р·Р° РіР»СЋРєРѕРІ РґРІРёР¶РєР° РєРёРґР°С‚СЊ Р±СѓРґРµРј С‚РѕР»СЊРєРѕ РІ РѕР±СЉРµРєС‚С‹, РЅРµРґР°Р»РµРєРѕ РѕС‚ Р°Рё СЃРµС‚РєРё
 end
 
 function npc_update(binder)
@@ -758,7 +758,7 @@ function npc_update(binder)
 				local curr_gr = npc:object(v)
 				if curr_gr == nil then 
 					if math.random()<prb then
-					--	log1( "Спавним гранату: "..v.."\nНеписю: "..npc:name().."\n" )
+					--	log1( "РЎРїР°РІРЅРёРј РіСЂР°РЅР°С‚Сѓ: "..v.."\nРќРµРїРёСЃСЋ: "..npc:name().."\n" )
 						alife():create(v, npc:position(), npc:level_vertex_id(),
 							npc:game_vertex_id(), npc:id())
 					end

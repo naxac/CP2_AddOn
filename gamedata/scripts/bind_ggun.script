@@ -56,36 +56,36 @@ function ggun_binder:update(delta)
 	object_binder.update(self, delta)
 
 	if has_alife_info("no_gravigun") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
-		-- запрет на использование - все отпускаем
-		if self.last_in_slot then -- только убрали
+		-- Р·Р°РїСЂРµС‚ РЅР° РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ - РІСЃРµ РѕС‚РїСѓСЃРєР°РµРј
+		if self.last_in_slot then -- С‚РѕР»СЊРєРѕ СѓР±СЂР°Р»Рё
 			self.last_in_slot = false
 			self:OnRemove()
 		end
 		return
 	end
 
-	--позиция партиклов и звуков
+	--РїРѕР·РёС†РёСЏ РїР°СЂС‚РёРєР»РѕРІ Рё Р·РІСѓРєРѕРІ
 	local pos = vector()
 	pos:mad(device().cam_pos,device().cam_dir,0.75)
 	pos:mad(pos,device().cam_top,-0.3)
 	pos:mad(pos,device().cam_right,0.3)
 	self.gun_end_pos = vector():set(pos.x,pos.y,pos.z)
 	
-	-- генерируем события взятия в руки и убирания
+	-- РіРµРЅРµСЂРёСЂСѓРµРј СЃРѕР±С‹С‚РёСЏ РІР·СЏС‚РёСЏ РІ СЂСѓРєРё Рё СѓР±РёСЂР°РЅРёСЏ
 	local qwerty = actor_active_item and (self.object:id() == actor_active_item:id())
 	if qwerty then 
-		if not self.last_in_slot then -- только взяли
+		if not self.last_in_slot then -- С‚РѕР»СЊРєРѕ РІР·СЏР»Рё
 			self.last_in_slot = true
 			self:OnTake()
-		else -- просто держим
+		else -- РїСЂРѕСЃС‚Рѕ РґРµСЂР¶РёРј
 			self:OnHold(delta)
 		end
 	else
-		if self.last_in_slot then -- только убрали
+		if self.last_in_slot then -- С‚РѕР»СЊРєРѕ СѓР±СЂР°Р»Рё
 			self.last_in_slot = false
 			self:OnRemove()
 		end
-		return -- больше ничего не делаем
+		return -- Р±РѕР»СЊС€Рµ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
 	end
 
 	if self.rbutton_pressed then
@@ -95,10 +95,10 @@ function ggun_binder:update(delta)
 --		self:OnLButtonHold(delta)
 --	end
 
-	-- отслеживаем положение партиклов в fastcall-е, update отработать не успевает
+	-- РѕС‚СЃР»РµР¶РёРІР°РµРј РїРѕР»РѕР¶РµРЅРёРµ РїР°СЂС‚РёРєР»РѕРІ РІ fastcall-Рµ, update РѕС‚СЂР°Р±РѕС‚Р°С‚СЊ РЅРµ СѓСЃРїРµРІР°РµС‚
 	self.object:set_fastcall( self.sound_particle_fastcall, self )
 
-	--отслеживаем судьбу брошенного из захвата объекта
+	--РѕС‚СЃР»РµР¶РёРІР°РµРј СЃСѓРґСЊР±Сѓ Р±СЂРѕС€РµРЅРЅРѕРіРѕ РёР· Р·Р°С…РІР°С‚Р° РѕР±СЉРµРєС‚Р°
 	if self.thrown then
 		self:track_thrown()
 	end
@@ -203,7 +203,7 @@ function ggun_binder:OnRButtonDown(no_sound)
 end
 
 function ggun_binder:capture(dist)
-	if not dist then dist = 13 end -- дистанция захвата
+	if not dist then dist = 13 end -- РґРёСЃС‚Р°РЅС†РёСЏ Р·Р°С…РІР°С‚Р°
 
 	local capt_id = nil
 	local capt_obj = nil
@@ -216,9 +216,9 @@ function ggun_binder:capture(dist)
 		end
 	end
 
-	if capt_id and capt_obj then -- если выбрали подходящий объект для захвата
-		self.target = capt_obj -- запомнили
-		self.target_id = capt_id -- запомнили id
+	if capt_id and capt_obj then -- РµСЃР»Рё РІС‹Р±СЂР°Р»Рё РїРѕРґС…РѕРґСЏС‰РёР№ РѕР±СЉРµРєС‚ РґР»СЏ Р·Р°С…РІР°С‚Р°
+		self.target = capt_obj -- Р·Р°РїРѕРјРЅРёР»Рё
+		self.target_id = capt_id -- Р·Р°РїРѕРјРЅРёР»Рё id
 		self.capture_nomove_counter = 3
 		capt_obj:set_const_force(vector():set(0,1,0), capt_obj:mass()*19.62, 65535*65535)
 	else
@@ -250,19 +250,19 @@ function ggun_binder:OnRButtonHold(delta)
 	
 	if self.target then
 		if not level.object_by_id(self.target_id) then
-			-- Защита от зависания биндера при исчезновении захваченного грави-пушкой объекта 
-			-- (взорвавшаяся бочка, исчезнувший от времени обломок ящика и т.п.)
+			-- Р—Р°С‰РёС‚Р° РѕС‚ Р·Р°РІРёСЃР°РЅРёСЏ Р±РёРЅРґРµСЂР° РїСЂРё РёСЃС‡РµР·РЅРѕРІРµРЅРёРё Р·Р°С…РІР°С‡РµРЅРЅРѕРіРѕ РіСЂР°РІРё-РїСѓС€РєРѕР№ РѕР±СЉРµРєС‚Р° 
+			-- (РІР·РѕСЂРІР°РІС€Р°СЏСЃСЏ Р±РѕС‡РєР°, РёСЃС‡РµР·РЅСѓРІС€РёР№ РѕС‚ РІСЂРµРјРµРЅРё РѕР±Р»РѕРјРѕРє СЏС‰РёРєР° Рё С‚.Рї.)
 			self.target = nil
 			self.target_id = nil
 			return
 		end
 		local ps = self.target:get_physics_shell()
-		if not ps then -- защита от вылета при взятии захваченного предмета в инвентарь ГГ
+		if not ps then -- Р·Р°С‰РёС‚Р° РѕС‚ РІС‹Р»РµС‚Р° РїСЂРё РІР·СЏС‚РёРё Р·Р°С…РІР°С‡РµРЅРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р° РІ РёРЅРІРµРЅС‚Р°СЂСЊ Р“Р“
 			self:OnRButtonUp() 
 			return
 		end
 		if vector():set(0,-1,0):dotproduct(device().cam_dir) > 0.96 then
-			-- Защита от приподнимания объектом
+			-- Р—Р°С‰РёС‚Р° РѕС‚ РїСЂРёРїРѕРґРЅРёРјР°РЅРёСЏ РѕР±СЉРµРєС‚РѕРј
 			self:OnRButtonUp() 
 			return
 		end
@@ -273,56 +273,56 @@ function ggun_binder:OnRButtonHold(delta)
 		end
 		local current_velocity = vector()
 		ps:get_linear_vel(current_velocity)
-		-- сейчас моделируем ситуацию близкого захвата, когда предмет должен бузусловно
-		-- находится в "фокусе" гравипушки
-		--local desired_height = device().cam_pos.y -- высота, на которой будет парить предмет
-		local aim_pos = device().cam_pos:mad(device().cam_dir, 2.0) -- точка назначения
-		local rvec = aim_pos:sub(self.target:center()) -- вектор от текущей позиции к точке назначения
-		local r = rvec:magnitude() -- его длина
-		if not self.captured and (r < 0.5 or device().cam_pos:distance_to_sqr(self.target:center()) < 5) then -- если объект в первый раз подошел к точке удержания, считаем его захваченным 
+		-- СЃРµР№С‡Р°СЃ РјРѕРґРµР»РёСЂСѓРµРј СЃРёС‚СѓР°С†РёСЋ Р±Р»РёР·РєРѕРіРѕ Р·Р°С…РІР°С‚Р°, РєРѕРіРґР° РїСЂРµРґРјРµС‚ РґРѕР»Р¶РµРЅ Р±СѓР·СѓСЃР»РѕРІРЅРѕ
+		-- РЅР°С…РѕРґРёС‚СЃСЏ РІ "С„РѕРєСѓСЃРµ" РіСЂР°РІРёРїСѓС€РєРё
+		--local desired_height = device().cam_pos.y -- РІС‹СЃРѕС‚Р°, РЅР° РєРѕС‚РѕСЂРѕР№ Р±СѓРґРµС‚ РїР°СЂРёС‚СЊ РїСЂРµРґРјРµС‚
+		local aim_pos = device().cam_pos:mad(device().cam_dir, 2.0) -- С‚РѕС‡РєР° РЅР°Р·РЅР°С‡РµРЅРёСЏ
+		local rvec = aim_pos:sub(self.target:center()) -- РІРµРєС‚РѕСЂ РѕС‚ С‚РµРєСѓС‰РµР№ РїРѕР·РёС†РёРё Рє С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ
+		local r = rvec:magnitude() -- РµРіРѕ РґР»РёРЅР°
+		if not self.captured and (r < 0.5 or device().cam_pos:distance_to_sqr(self.target:center()) < 5) then -- РµСЃР»Рё РѕР±СЉРµРєС‚ РІ РїРµСЂРІС‹Р№ СЂР°Р· РїРѕРґРѕС€РµР» Рє С‚РѕС‡РєРµ СѓРґРµСЂР¶Р°РЅРёСЏ, СЃС‡РёС‚Р°РµРј РµРіРѕ Р·Р°С…РІР°С‡РµРЅРЅС‹Рј 
 			self.captured = true
 			if not self.sound_pickup:playing() then
 				self.sound_pickup:play_at_pos(db.actor, self.gun_end_pos)
 			end
 		end
-		-- надо дать такой пинок, чтобы при следуюшем апдейте объект очутился в точке назначения
-		-- может стоит ограничить скорость. Посмотрим...
-		-- скорость, которую даёт пинок считаем по формуле
-		-- V = <импульс>/<масса>
-		-- с другой стороны скорость должна быть равна
+		-- РЅР°РґРѕ РґР°С‚СЊ С‚Р°РєРѕР№ РїРёРЅРѕРє, С‡С‚РѕР±С‹ РїСЂРё СЃР»РµРґСѓСЋС€РµРј Р°РїРґРµР№С‚Рµ РѕР±СЉРµРєС‚ РѕС‡СѓС‚РёР»СЃСЏ РІ С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ
+		-- РјРѕР¶РµС‚ СЃС‚РѕРёС‚ РѕРіСЂР°РЅРёС‡РёС‚СЊ СЃРєРѕСЂРѕСЃС‚СЊ. РџРѕСЃРјРѕС‚СЂРёРј...
+		-- СЃРєРѕСЂРѕСЃС‚СЊ, РєРѕС‚РѕСЂСѓСЋ РґР°С‘С‚ РїРёРЅРѕРє СЃС‡РёС‚Р°РµРј РїРѕ С„РѕСЂРјСѓР»Рµ
+		-- V = <РёРјРїСѓР»СЊСЃ>/<РјР°СЃСЃР°>
+		-- СЃ РґСЂСѓРіРѕР№ СЃС‚РѕСЂРѕРЅС‹ СЃРєРѕСЂРѕСЃС‚СЊ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ СЂР°РІРЅР°
 		-- V = r / dt
-		-- здесь r - вектор перемещения
-		-- dt - время. Приравняем его к интервалу апдейта
-		-- <импульс>/<масса> = r / dt    ==>     <импульс> = <масса> * r / dt
-		-- даём небольшую инерционность - запас на погрешность временного шага
+		-- Р·РґРµСЃСЊ r - РІРµРєС‚РѕСЂ РїРµСЂРµРјРµС‰РµРЅРёСЏ
+		-- dt - РІСЂРµРјСЏ. РџСЂРёСЂР°РІРЅСЏРµРј РµРіРѕ Рє РёРЅС‚РµСЂРІР°Р»Сѓ Р°РїРґРµР№С‚Р°
+		-- <РёРјРїСѓР»СЊСЃ>/<РјР°СЃСЃР°> = r / dt    ==>     <РёРјРїСѓР»СЊСЃ> = <РјР°СЃСЃР°> * r / dt
+		-- РґР°С‘Рј РЅРµР±РѕР»СЊС€СѓСЋ РёРЅРµСЂС†РёРѕРЅРЅРѕСЃС‚СЊ - Р·Р°РїР°СЃ РЅР° РїРѕРіСЂРµС€РЅРѕСЃС‚СЊ РІСЂРµРјРµРЅРЅРѕРіРѕ С€Р°РіР°
 		local impulse = rvec:mul(0.7*self.target:mass() / (1e-3*delta))
-		-- теперь надо рассчитать текущий импульс
+		-- С‚РµРїРµСЂСЊ РЅР°РґРѕ СЂР°СЃСЃС‡РёС‚Р°С‚СЊ С‚РµРєСѓС‰РёР№ РёРјРїСѓР»СЊСЃ
 		local current_impulse = current_velocity:mul(self.target:mass())
-		-- результирующий импульс будет разницей между нужным и текущим
+		-- СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰РёР№ РёРјРїСѓР»СЊСЃ Р±СѓРґРµС‚ СЂР°Р·РЅРёС†РµР№ РјРµР¶РґСѓ РЅСѓР¶РЅС‹Рј Рё С‚РµРєСѓС‰РёРј
 		local result_impulse = impulse:sub(current_impulse):mul(100)
 		local imp = result_impulse:magnitude()
 		local imp_cap = self.impulse_max*r*self.target:mass()/100
-		--if r > 5 then imp_cap = imp_cap*0.75 end -- ослабление притяжения вдали
-		if not self.captured then -- если объект еще не захвачен, подтягиваем осторожно, чтобы не получить им по башке
+		--if r > 5 then imp_cap = imp_cap*0.75 end -- РѕСЃР»Р°Р±Р»РµРЅРёРµ РїСЂРёС‚СЏР¶РµРЅРёСЏ РІРґР°Р»Рё
+		if not self.captured then -- РµСЃР»Рё РѕР±СЉРµРєС‚ РµС‰Рµ РЅРµ Р·Р°С…РІР°С‡РµРЅ, РїРѕРґС‚СЏРіРёРІР°РµРј РѕСЃС‚РѕСЂРѕР¶РЅРѕ, С‡С‚РѕР±С‹ РЅРµ РїРѕР»СѓС‡РёС‚СЊ РёРј РїРѕ Р±Р°С€РєРµ
 			local vel = vector()
 			ps:get_linear_vel(vel)
 			local vm = vel:magnitude()
 			local vel_n = vector():set(vel.x,vel.y,vel.z):dotproduct(device().cam_dir)
-			-- проверка на скорость:  если цель не в фокусе захвата
-			if imp > imp_cap then -- ускоряем, но аккуратно
+			-- РїСЂРѕРІРµСЂРєР° РЅР° СЃРєРѕСЂРѕСЃС‚СЊ:  РµСЃР»Рё С†РµР»СЊ РЅРµ РІ С„РѕРєСѓСЃРµ Р·Р°С…РІР°С‚Р°
+			if imp > imp_cap then -- СѓСЃРєРѕСЂСЏРµРј, РЅРѕ Р°РєРєСѓСЂР°С‚РЅРѕ
 				result_impulse:set_length(imp_cap)
 			end
-			if vel_n < -15 then -- ограничение скорости во избежание самовыноса захваченным объектом
+			if vel_n < -15 then -- РѕРіСЂР°РЅРёС‡РµРЅРёРµ СЃРєРѕСЂРѕСЃС‚Рё РІРѕ РёР·Р±РµР¶Р°РЅРёРµ СЃР°РјРѕРІС‹РЅРѕСЃР° Р·Р°С…РІР°С‡РµРЅРЅС‹Рј РѕР±СЉРµРєС‚РѕРј
 				local break_impulse = device().cam_dir:mul(-1*vel_n*result_impulse:magnitude()/vm)
 				result_impulse:add(break_impulse)
 			end
-			-- проверка на неподвижность: если цель не в фокусе захвата и почти неподвижна, значит, во что-то уперлась.
+			-- РїСЂРѕРІРµСЂРєР° РЅР° РЅРµРїРѕРґРІРёР¶РЅРѕСЃС‚СЊ: РµСЃР»Рё С†РµР»СЊ РЅРµ РІ С„РѕРєСѓСЃРµ Р·Р°С…РІР°С‚Р° Рё РїРѕС‡С‚Рё РЅРµРїРѕРґРІРёР¶РЅР°, Р·РЅР°С‡РёС‚, РІРѕ С‡С‚Рѕ-С‚Рѕ СѓРїРµСЂР»Р°СЃСЊ.
 			if vm < 0.5 then
 				self.capture_nomove_counter = self.capture_nomove_counter - 1
 			else
 				self.capture_nomove_counter = 3
 			end
-			-- проверка на срыв захвата: если не захваченная до конца цель уперлась, и давно - сбросить захват
+			-- РїСЂРѕРІРµСЂРєР° РЅР° СЃСЂС‹РІ Р·Р°С…РІР°С‚Р°: РµСЃР»Рё РЅРµ Р·Р°С…РІР°С‡РµРЅРЅР°СЏ РґРѕ РєРѕРЅС†Р° С†РµР»СЊ СѓРїРµСЂР»Р°СЃСЊ, Рё РґР°РІРЅРѕ - СЃР±СЂРѕСЃРёС‚СЊ Р·Р°С…РІР°С‚
 			if self.capture_nomove_counter == 0 then
 				self.target:set_const_force(vector():set(0,1,0), -self.target:mass()*19.62, 65535*65535)
 				self.target = nil
@@ -355,10 +355,10 @@ function ggun_binder:OnRButtonUp() -- was L
 		end
 	end
 	
-	if self.target then -- если при отпускании есть что отпускать
-		-- вернули силу тяжести, не забыть потом ввести флажок включённости с.т.
-		-- поскольку цель может и быть захвачена, но сила тяжести будет включаться
-		-- только с определённого расстояния
+	if self.target then -- РµСЃР»Рё РїСЂРё РѕС‚РїСѓСЃРєР°РЅРёРё РµСЃС‚СЊ С‡С‚Рѕ РѕС‚РїСѓСЃРєР°С‚СЊ
+		-- РІРµСЂРЅСѓР»Рё СЃРёР»Сѓ С‚СЏР¶РµСЃС‚Рё, РЅРµ Р·Р°Р±С‹С‚СЊ РїРѕС‚РѕРј РІРІРµСЃС‚Рё С„Р»Р°Р¶РѕРє РІРєР»СЋС‡С‘РЅРЅРѕСЃС‚Рё СЃ.С‚.
+		-- РїРѕСЃРєРѕР»СЊРєСѓ С†РµР»СЊ РјРѕР¶РµС‚ Рё Р±С‹С‚СЊ Р·Р°С…РІР°С‡РµРЅР°, РЅРѕ СЃРёР»Р° С‚СЏР¶РµСЃС‚Рё Р±СѓРґРµС‚ РІРєР»СЋС‡Р°С‚СЊСЃСЏ
+		-- С‚РѕР»СЊРєРѕ СЃ РѕРїСЂРµРґРµР»С‘РЅРЅРѕРіРѕ СЂР°СЃСЃС‚РѕСЏРЅРёСЏ
 		self.target:set_const_force(vector():set(0,1,0), -self.target:mass()*19.62, 65535*65535)
 		self.target = nil
 	end
@@ -437,7 +437,7 @@ function ggun_binder:OnTake()
 end
 
 function ggun_binder:OnHold(delta)
-	-- разные проверки
+	-- СЂР°Р·РЅС‹Рµ РїСЂРѕРІРµСЂРєРё
 	if has_alife_info("snp_fenrir14_done") and
 		not has_alife_info("snp_kamen_udachy_have") and
 		level.name() == "zaton" and
@@ -470,15 +470,15 @@ function ggun_binder:track_thrown()
 		if obj then
 			local pos = obj:position()
 			local dist = pos:distance_to(device().cam_pos)
-			if not check_on_level(pos) then -- Если объект улетел за пределы уровня,
-				alife():release(alife():object(self.thrown),true) -- удаляем его от греха подальше
+			if not check_on_level(pos) then -- Р•СЃР»Рё РѕР±СЉРµРєС‚ СѓР»РµС‚РµР» Р·Р° РїСЂРµРґРµР»С‹ СѓСЂРѕРІРЅСЏ,
+				alife():release(alife():object(self.thrown),true) -- СѓРґР°Р»СЏРµРј РµРіРѕ РѕС‚ РіСЂРµС…Р° РїРѕРґР°Р»СЊС€Рµ
 			end
 			local ps = obj:get_physics_shell()
 			if ps then
 				if self.throw_time and (time_global() > self.throw_time + 500) then
 					self.throw_time = nil
 					if not string.find(obj:section(),"explosive") and not string.find(obj:section(),"af_") then 
-					-- если при ударе ничего особенного не должно происходить,то и следить за предметом дальше незачем
+					-- РµСЃР»Рё РїСЂРё СѓРґР°СЂРµ РЅРёС‡РµРіРѕ РѕСЃРѕР±РµРЅРЅРѕРіРѕ РЅРµ РґРѕР»Р¶РЅРѕ РїСЂРѕРёСЃС…РѕРґРёС‚СЊ,С‚Рѕ Рё СЃР»РµРґРёС‚СЊ Р·Р° РїСЂРµРґРјРµС‚РѕРј РґР°Р»СЊС€Рµ РЅРµР·Р°С‡РµРј
 						self.thrown = nil
 						self.throw_time = nil
 						self.last_lvel = nil
@@ -507,12 +507,12 @@ function ggun_binder:track_thrown()
 				local last_avel_norm = vector():set(self.last_avel.x, self.last_avel.y, self.last_avel.z):normalize()
 				local cos_l = lvel_norm:dotproduct(last_lvel_norm)
 				local cos_a = avel_norm:dotproduct(last_avel_norm)
-				-- ловим удар брошенного предмета обо что-либо.
-				if cos_l < 0.86 or (cos_l < 0.99 and dist > 3) then -- основной показатель удара - изменение направления вектора линейной скорости
+				-- Р»РѕРІРёРј СѓРґР°СЂ Р±СЂРѕС€РµРЅРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р° РѕР±Рѕ С‡С‚Рѕ-Р»РёР±Рѕ.
+				if cos_l < 0.86 or (cos_l < 0.99 and dist > 3) then -- РѕСЃРЅРѕРІРЅРѕР№ РїРѕРєР°Р·Р°С‚РµР»СЊ СѓРґР°СЂР° - РёР·РјРµРЅРµРЅРёРµ РЅР°РїСЂР°РІР»РµРЅРёСЏ РІРµРєС‚РѕСЂР° Р»РёРЅРµР№РЅРѕР№ СЃРєРѕСЂРѕСЃС‚Рё
 					if (cos_a < 0.99 and last_avel_mag ~= 0 and avel_mag ~= 0) or	(last_avel_mag == 0 and avel_mag ~= 0) then
-						-- предохранитель от ложного срабатывания: в верхней точке крутой навесной траектории  направление линейной скорости сильно меняется без удара
-						-- отслеживаем изменения угловой скорости. Либо врашения объекта не было (угловая скорость = 0), но оно появилось
-						-- либо направление угловой скорости заметно изменилось за короткое время ( cos угла между старым вектором угловой скорости и новым  < 0.99)
+						-- РїСЂРµРґРѕС…СЂР°РЅРёС‚РµР»СЊ РѕС‚ Р»РѕР¶РЅРѕРіРѕ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёСЏ: РІ РІРµСЂС…РЅРµР№ С‚РѕС‡РєРµ РєСЂСѓС‚РѕР№ РЅР°РІРµСЃРЅРѕР№ С‚СЂР°РµРєС‚РѕСЂРёРё  РЅР°РїСЂР°РІР»РµРЅРёРµ Р»РёРЅРµР№РЅРѕР№ СЃРєРѕСЂРѕСЃС‚Рё СЃРёР»СЊРЅРѕ РјРµРЅСЏРµС‚СЃСЏ Р±РµР· СѓРґР°СЂР°
+						-- РѕС‚СЃР»РµР¶РёРІР°РµРј РёР·РјРµРЅРµРЅРёСЏ СѓРіР»РѕРІРѕР№ СЃРєРѕСЂРѕСЃС‚Рё. Р›РёР±Рѕ РІСЂР°С€РµРЅРёСЏ РѕР±СЉРµРєС‚Р° РЅРµ Р±С‹Р»Рѕ (СѓРіР»РѕРІР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ = 0), РЅРѕ РѕРЅРѕ РїРѕСЏРІРёР»РѕСЃСЊ
+						-- Р»РёР±Рѕ РЅР°РїСЂР°РІР»РµРЅРёРµ СѓРіР»РѕРІРѕР№ СЃРєРѕСЂРѕСЃС‚Рё Р·Р°РјРµС‚РЅРѕ РёР·РјРµРЅРёР»РѕСЃСЊ Р·Р° РєРѕСЂРѕС‚РєРѕРµ РІСЂРµРјСЏ ( cos СѓРіР»Р° РјРµР¶РґСѓ СЃС‚Р°СЂС‹Рј РІРµРєС‚РѕСЂРѕРј СѓРіР»РѕРІРѕР№ СЃРєРѕСЂРѕСЃС‚Рё Рё РЅРѕРІС‹Рј  < 0.99)
 						if obj:clsid() == clsid.obj_explosive then
 							obj:explode()
 						elseif obj:is_artefact() then
@@ -577,7 +577,7 @@ function ggun_binder:HideCrosshair()
 	end
 end
 
------------------------------ АКТИВАЦИЯ АРТОВ ГРАВИ-ПУШКОЙ
+----------------------------- РђРљРўРР’РђР¦РРЇ РђР РўРћР’ Р“Р РђР’Р-РџРЈРЁРљРћР™
 
 function af_activate(sect,pos,id)
 	if not sys_ini:line_exist("wpn_gravigun", sect) then return end
@@ -599,7 +599,7 @@ function af_activate(sect,pos,id)
 	alife():release(alife():object(id),true)
 end
 
--- Не со всеми аномалиями работает 100% корректно, давно приватизировал с АМК форума...
+-- РќРµ СЃРѕ РІСЃРµРјРё Р°РЅРѕРјР°Р»РёСЏРјРё СЂР°Р±РѕС‚Р°РµС‚ 100% РєРѕСЂСЂРµРєС‚РЅРѕ, РґР°РІРЅРѕ РїСЂРёРІР°С‚РёР·РёСЂРѕРІР°Р» СЃ РђРњРљ С„РѕСЂСѓРјР°...
 function an_spawn(anom_name,plosh,position,level_vertex_id,game_vertex_id,powers_a,time_dangeros)
 	local obj = alife():create(anom_name,position,level_vertex_id,game_vertex_id)
 	local t = {}

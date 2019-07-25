@@ -2,29 +2,29 @@
 
 -- Developed by AMK-Team
 -- File:  amkii_transmutator.script
--- Copyright:  ©  AMK-Team 2009
+-- Copyright:  В©  AMK-Team 2009
 -- Author: Refresh
 -- Since: 14.01.2009 1:04
 
 local dbug = true
 
 oDevice = nil
-local aArtsInfo = nil		-- table данные артов в инвентаре
-local aArtsInventory = nil  -- table список объектов артов в инвентаре
-local aInterval = nil		-- integer кол-во ячеек в инв. скролле
-local aRecInterval = nil	-- integer кол-во ячеек в рецептном скролле
-local aAnomaly = nil		-- string секция аномалии вблизи
-local anomaly_name = nil	-- string название аномалии
-local txtNotkomp = ""		-- string название недостающих компонентов
-local txtVremya = ""		-- string время варки
-local aRecipts = nil		-- table все рецепты для аномалии
-local aReciptsHave = nil	-- table имеющиеся у ГГ рецепты для аномалии
-local aRecsInfo = nil		-- table данные результатов варки для рецептного скролла
-local aRecSections = nil	-- table список секций артов в рецептном скролле
-local aAnomId = nil			-- integer id аномалии вблизи
-local iInfo = nil			-- string название инфопоршня рецепта
+local aArtsInfo = nil		-- table РґР°РЅРЅС‹Рµ Р°СЂС‚РѕРІ РІ РёРЅРІРµРЅС‚Р°СЂРµ
+local aArtsInventory = nil  -- table СЃРїРёСЃРѕРє РѕР±СЉРµРєС‚РѕРІ Р°СЂС‚РѕРІ РІ РёРЅРІРµРЅС‚Р°СЂРµ
+local aInterval = nil		-- integer РєРѕР»-РІРѕ СЏС‡РµРµРє РІ РёРЅРІ. СЃРєСЂРѕР»Р»Рµ
+local aRecInterval = nil	-- integer РєРѕР»-РІРѕ СЏС‡РµРµРє РІ СЂРµС†РµРїС‚РЅРѕРј СЃРєСЂРѕР»Р»Рµ
+local aAnomaly = nil		-- string СЃРµРєС†РёСЏ Р°РЅРѕРјР°Р»РёРё РІР±Р»РёР·Рё
+local anomaly_name = nil	-- string РЅР°Р·РІР°РЅРёРµ Р°РЅРѕРјР°Р»РёРё
+local txtNotkomp = ""		-- string РЅР°Р·РІР°РЅРёРµ РЅРµРґРѕСЃС‚Р°СЋС‰РёС… РєРѕРјРїРѕРЅРµРЅС‚РѕРІ
+local txtVremya = ""		-- string РІСЂРµРјСЏ РІР°СЂРєРё
+local aRecipts = nil		-- table РІСЃРµ СЂРµС†РµРїС‚С‹ РґР»СЏ Р°РЅРѕРјР°Р»РёРё
+local aReciptsHave = nil	-- table РёРјРµСЋС‰РёРµСЃСЏ Сѓ Р“Р“ СЂРµС†РµРїС‚С‹ РґР»СЏ Р°РЅРѕРјР°Р»РёРё
+local aRecsInfo = nil		-- table РґР°РЅРЅС‹Рµ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РІР°СЂРєРё РґР»СЏ СЂРµС†РµРїС‚РЅРѕРіРѕ СЃРєСЂРѕР»Р»Р°
+local aRecSections = nil	-- table СЃРїРёСЃРѕРє СЃРµРєС†РёР№ Р°СЂС‚РѕРІ РІ СЂРµС†РµРїС‚РЅРѕРј СЃРєСЂРѕР»Р»Рµ
+local aAnomId = nil			-- integer id Р°РЅРѕРјР°Р»РёРё РІР±Р»РёР·Рё
+local iInfo = nil			-- string РЅР°Р·РІР°РЅРёРµ РёРЅС„РѕРїРѕСЂС€РЅСЏ СЂРµС†РµРїС‚Р°
 
---	Инфа для кнопок на скроллбаре.
+--	РРЅС„Р° РґР»СЏ РєРЅРѕРїРѕРє РЅР° СЃРєСЂРѕР»Р»Р±Р°СЂРµ.
 local aScrollBar = {
 	{x =  73, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 128, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -34,7 +34,7 @@ local aScrollBar = {
 	{x = 348, y = 155,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil}
 }
 
---	Инфа для кнопок на панели артефактов.
+--	РРЅС„Р° РґР»СЏ РєРЅРѕРїРѕРє РЅР° РїР°РЅРµР»Рё Р°СЂС‚РµС„Р°РєС‚РѕРІ.
 local aCmpnSlots = {
 	{x =  73, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 128, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -43,7 +43,7 @@ local aCmpnSlots = {
 	{x = 293, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
 	{x = 348, y = 58,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil}
 }
---	Инфа для кнопок на рецептбаре.
+--	РРЅС„Р° РґР»СЏ РєРЅРѕРїРѕРє РЅР° СЂРµС†РµРїС‚Р±Р°СЂРµ.
 local aRecBar = {
     {x =  92,  y = 235,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
     {x = 171,  y = 235,  wt = 50, hg = 50, oSlot = nil, iSectIndex = nil},
@@ -84,8 +84,8 @@ function dump_table(tbl)
   --get_console():execute("flush")
 end
 
--- 	Заспавнить предмет в инвентарь к актору.
--- 	@param     	string           sItemSection     	Секция предмета который нужно заспавнить.
+-- 	Р—Р°СЃРїР°РІРЅРёС‚СЊ РїСЂРµРґРјРµС‚ РІ РёРЅРІРµРЅС‚Р°СЂСЊ Рє Р°РєС‚РѕСЂСѓ.
+-- 	@param     	string           sItemSection     	РЎРµРєС†РёСЏ РїСЂРµРґРјРµС‚Р° РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ Р·Р°СЃРїР°РІРЅРёС‚СЊ.
 function amkCreateItemActor(sItemSection)
 	if alife() and sItemSection then
 		return alife():create(sItemSection, db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
@@ -103,8 +103,8 @@ function amkDelObj(iId)
 end	
 
 
---	Включить девайс...
---	@param	integer	iLevelDevice	Уровень девайса. (нужно для апгрейда)
+--	Р’РєР»СЋС‡РёС‚СЊ РґРµРІР°Р№СЃ...
+--	@param	integer	iLevelDevice	РЈСЂРѕРІРµРЅСЊ РґРµРІР°Р№СЃР°. (РЅСѓР¶РЅРѕ РґР»СЏ Р°РїРіСЂРµР№РґР°)
 function amkEnableDevice(iLevelDevice)
 	if oDevice or db.actor==nil or db.actor:alive()~=true then return end
 	amkCreateItemActor("amk_transmutator")
@@ -123,16 +123,16 @@ function amkEnableDevice(iLevelDevice)
 			aAnomId = aid
 		end	
 	end
-	-- если вблизи есть аномалия, заполняем таблицу с рецептами
+	-- РµСЃР»Рё РІР±Р»РёР·Рё РµСЃС‚СЊ Р°РЅРѕРјР°Р»РёСЏ, Р·Р°РїРѕР»РЅСЏРµРј С‚Р°Р±Р»РёС†Сѓ СЃ СЂРµС†РµРїС‚Р°РјРё
 	if aAnomaly then
 		aRecipts,anomaly_name = amk_mod.fill_recepti_est(aAnomaly)
 		aReciptsHave = {}
 		if type(aRecipts)=="table" then
 			-- dump_table(aRecipts)	
 			for info, recept in pairs(aRecipts) do
-				if db.actor:has_info(info) then -- у ГГ есть такой рецепт: заносим в таблицу
+				if db.actor:has_info(info) then -- Сѓ Р“Р“ РµСЃС‚СЊ С‚Р°РєРѕР№ СЂРµС†РµРїС‚: Р·Р°РЅРѕСЃРёРј РІ С‚Р°Р±Р»РёС†Сѓ
 					aReciptsHave[info] = {}
-					for k, v in pairs(recept) do -- копируем рецепт
+					for k, v in pairs(recept) do -- РєРѕРїРёСЂСѓРµРј СЂРµС†РµРїС‚
 						if type(v) == "table" then
 							aReciptsHave[info][k] = {}
 							for i, j in pairs(v) do
@@ -166,7 +166,7 @@ function amkEnableDevice(iLevelDevice)
 	level.start_stop_menu(oDevice, true)
 end
 
---	Выключить девайс...
+--	Р’С‹РєР»СЋС‡РёС‚СЊ РґРµРІР°Р№СЃ...
 function amkDisableDevice()	
 	if oRes then oDevice:DetachChild(oRes) end
 	if oNotkomp then oDevice:DetachChild(oNotkomp) end
@@ -205,7 +205,7 @@ function amkUseTransmutator(oItem)
 end
 
 function get_anom_name(str)
-	return anomaly_name or "Неизвестно"
+	return anomaly_name or "РќРµРёР·РІРµСЃС‚РЅРѕ"
 end
 
 --* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -223,7 +223,7 @@ function CAmkMergerArtefact:__init()
 	end
 end
 
---	Итерация по инвентарю актора и поиск в нем артов.
+--	РС‚РµСЂР°С†РёСЏ РїРѕ РёРЅРІРµРЅС‚Р°СЂСЋ Р°РєС‚РѕСЂР° Рё РїРѕРёСЃРє РІ РЅРµРј Р°СЂС‚РѕРІ.
 function CAmkMergerArtefact:IterateInventory()
 	db.actor:iterate_inventory(function(npc, item)
 		-- if (item:clsid() == clsid.artefact or item:clsid() == clsid.artefact_s or amk_mod.is_komponent(item:section())) and not string.find(item:section(), "cocoon") then
@@ -233,8 +233,8 @@ function CAmkMergerArtefact:IterateInventory()
 	end, db.actor)
 end
 
---	Собираем и сохраняем в нужном нам виде информацию об артах и рецептах.
---	@param	string	iBarName		Тип скролла для сохранения (инвентарный - "Inv" / рецептный - "Rec").
+--	РЎРѕР±РёСЂР°РµРј Рё СЃРѕС…СЂР°РЅСЏРµРј РІ РЅСѓР¶РЅРѕРј РЅР°Рј РІРёРґРµ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± Р°СЂС‚Р°С… Рё СЂРµС†РµРїС‚Р°С….
+--	@param	string	iBarName		РўРёРї СЃРєСЂРѕР»Р»Р° РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ (РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ - "Inv" / СЂРµС†РµРїС‚РЅС‹Р№ - "Rec").
 function CAmkMergerArtefact:SaveInfo(iBarName)
 	local aTmpTbl = {}	
 --	_log("*****   Search Artefacts   *****")
@@ -301,10 +301,10 @@ end
 function CAmkDeviceTransmutator:__finalize() 
 end
 
---	Инициализация окна и статических элементов управления.
+--	РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РѕРєРЅР° Рё СЃС‚Р°С‚РёС‡РµСЃРєРёС… СЌР»РµРјРµРЅС‚РѕРІ СѓРїСЂР°РІР»РµРЅРёСЏ.
 function CAmkDeviceTransmutator:InitInterface()	
 	self:Init(50,50,531,359)
-	--	Прикрепляем статический элемент 'фон'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј СЃС‚Р°С‚РёС‡РµСЃРєРёР№ СЌР»РµРјРµРЅС‚ 'С„РѕРЅ'.
 	self.oBackGround = CUIStatic()
     self.oBackGround:SetWindowName("oBackGround") 
     self.oBackGround:SetAutoDelete(true)
@@ -312,7 +312,7 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oBackGround:SetOriginalRect(3,7,531,359)  
     self.oBackGround:Init(3,7,531,359) 
     self:AttachChild(self.oBackGround)
-	--	Прикрепляем кнопку очистки панели компонентов для варки.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ РѕС‡РёСЃС‚РєРё РїР°РЅРµР»Рё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ РґР»СЏ РІР°СЂРєРё.
 	self.oButtonClear = CUIButton()
 	self.oButtonClear:SetWindowName("oButtonClear")  
 	self.oButtonClear:SetAutoDelete(true)
@@ -321,7 +321,7 @@ function CAmkDeviceTransmutator:InitInterface()
     self.oButtonClear:Init(420,62,23,39)
     self:AttachChild(self.oButtonClear)
     self:AddCallbackEx("oButtonClear", ui_events.BUTTON_CLICKED, self.ClearSlots)
-	--	Прикрепляем текстовый индикатор аномалии.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј С‚РµРєСЃС‚РѕРІС‹Р№ РёРЅРґРёРєР°С‚РѕСЂ Р°РЅРѕРјР°Р»РёРё.
 	self.oaAnomaly = CUIStatic()
 	self.oaAnomaly:SetWindowName("oaAnomaly")
 	self.oaAnomaly:SetAutoDelete(true)
@@ -334,32 +334,32 @@ function CAmkDeviceTransmutator:InitInterface()
 	self.oaAnomaly:SetFont(GetFontGraffiti22Russian())	 		
     self.oaAnomaly:Init(30,306,1200,25)
     self:AttachChild(self.oaAnomaly)
-	--	Прикрепляем кнопку завершения работы'выход'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ Р·Р°РІРµСЂС€РµРЅРёСЏ СЂР°Р±РѕС‚С‹'РІС‹С…РѕРґ'.
 	self.oButtonQuit = CUIButton()
 	self.oButtonQuit:SetWindowName("oButtonQuit")  
 	self.oButtonQuit:SetAutoDelete(true)
 	self.oButtonQuit:InitTexture("ui\\amk_transmutator")
 	self.oButtonQuit:SetOriginalRect(124,393,92,25)
-	self.oButtonQuit:SetText("Выход")
+	self.oButtonQuit:SetText("Р’С‹С…РѕРґ")
 	self.oButtonQuit:SetTextColor(255,238,153,26)
 	self.oButtonQuit:SetFont(GetFontGraffiti19Russian())
 	self.oButtonQuit:Init(406,302,92,25)
     self:AttachChild(self.oButtonQuit)
     self:AddCallbackEx("oButtonQuit", ui_events.BUTTON_CLICKED, self.Quit)
 	
-	--	Прикрепляем кнопку на старт трансмутации'старт'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ РЅР° СЃС‚Р°СЂС‚ С‚СЂР°РЅСЃРјСѓС‚Р°С†РёРё'СЃС‚Р°СЂС‚'.
 	self.oButtonStart = CUIButton()
 	self.oButtonStart:SetWindowName("oButtonStart")  
 	self.oButtonStart:SetAutoDelete(true)
 	self.oButtonStart:InitTexture("ui\\amk_transmutator")
 	self.oButtonStart:SetOriginalRect(124,393,92,25)		
-	self.oButtonStart:SetText("Запуск")
+	self.oButtonStart:SetText("Р—Р°РїСѓСЃРє")
 	self.oButtonStart:SetTextColor(255,238,153,26)
 	self.oButtonStart:SetFont(GetFontGraffiti19Russian())
     self.oButtonStart:Init(189,302,92,25)	
     self:AttachChild(self.oButtonStart)
     self:AddCallbackEx("oButtonStart", ui_events.BUTTON_CLICKED, self.Start)
-	--	Прикрепляем кнопку управления СкроллБаром 'налево'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ СѓРїСЂР°РІР»РµРЅРёСЏ РЎРєСЂРѕР»Р»Р‘Р°СЂРѕРј 'РЅР°Р»РµРІРѕ'.
 	self.oButtonPrevLeft = CUIButton()
 	self.oButtonPrevLeft:SetWindowName("oButtonPrevLeft")  
 	self.oButtonPrevLeft:SetAutoDelete(true)
@@ -368,7 +368,7 @@ function CAmkDeviceTransmutator:InitInterface()
     self.oButtonPrevLeft:Init(24,167,39,23)	
     self:AttachChild(self.oButtonPrevLeft)
     self:AddCallbackEx("oButtonPrevLeft", ui_events.BUTTON_CLICKED, self.PreviewScrollLeft)
-	--	Прикрепляем кнопку управления СкроллБаром 'направо'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ СѓРїСЂР°РІР»РµРЅРёСЏ РЎРєСЂРѕР»Р»Р‘Р°СЂРѕРј 'РЅР°РїСЂР°РІРѕ'.
 	self.oButtonPrevRight = CUIButton()
 	self.oButtonPrevRight:SetWindowName("oButtonPrevRight")  
 	self.oButtonPrevRight:SetAutoDelete(true)
@@ -377,7 +377,7 @@ function CAmkDeviceTransmutator:InitInterface()
     self.oButtonPrevRight:Init(404,167,39,23)	
     self:AttachChild(self.oButtonPrevRight)
     self:AddCallbackEx("oButtonPrevRight", ui_events.BUTTON_CLICKED, self.PreviewScrollRight)
-	--	Прикрепляем кнопку управления РецептБаром 'налево'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ СѓРїСЂР°РІР»РµРЅРёСЏ Р РµС†РµРїС‚Р‘Р°СЂРѕРј 'РЅР°Р»РµРІРѕ'.
 	self.oButtonRecLeft = CUIButton()
 	self.oButtonRecLeft:SetWindowName("oButtonRecLeft")  
 	self.oButtonRecLeft:SetAutoDelete(true)
@@ -386,7 +386,7 @@ function CAmkDeviceTransmutator:InitInterface()
     self.oButtonRecLeft:Init(24,246,39,23)	
     self:AttachChild(self.oButtonRecLeft)
     self:AddCallbackEx("oButtonRecLeft", ui_events.BUTTON_CLICKED, self.ReceptScrollLeft)
-	--	Прикрепляем кнопку управления РецептБаром 'направо'.
+	--	РџСЂРёРєСЂРµРїР»СЏРµРј РєРЅРѕРїРєСѓ СѓРїСЂР°РІР»РµРЅРёСЏ Р РµС†РµРїС‚Р‘Р°СЂРѕРј 'РЅР°РїСЂР°РІРѕ'.
 	self.oButtonRecRight = CUIButton()
 	self.oButtonRecRight:SetWindowName("oButtonRecRight")  
 	self.oButtonRecRight:SetAutoDelete(true)
@@ -397,10 +397,10 @@ function CAmkDeviceTransmutator:InitInterface()
     self:AddCallbackEx("oButtonRecRight", ui_events.BUTTON_CLICKED, self.ReceptScrollRight)
 end
 
---	Инициализируем элементы нашего псевдо СкроллБара.
---	@param	integer	iStartIndex	Стартовый индекс для таблицы артефактов.
---	@param	integer	iFinalIndex	Финальный индекс для таблицы артефактов.
---	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
+--	РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј СЌР»РµРјРµРЅС‚С‹ РЅР°С€РµРіРѕ РїСЃРµРІРґРѕ РЎРєСЂРѕР»Р»Р‘Р°СЂР°.
+--	@param	integer	iStartIndex	РЎС‚Р°СЂС‚РѕРІС‹Р№ РёРЅРґРµРєСЃ РґР»СЏ С‚Р°Р±Р»РёС†С‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ.
+--	@param	integer	iFinalIndex	Р¤РёРЅР°Р»СЊРЅС‹Р№ РёРЅРґРµРєСЃ РґР»СЏ С‚Р°Р±Р»РёС†С‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ.
+--	@param	string	iBarName		РўРёРї СЃРєСЂРѕР»Р»Р° РґР»СЏ Р°РїРґРµР№С‚Р° (РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ - "Inv" / СЂРµС†РµРїС‚РЅС‹Р№ - "Rec").
 function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 	local iCurrentButton = 0
 	for iSectIndex = iStartIndex, iFinalIndex do
@@ -414,25 +414,25 @@ function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 			aSectInfo = aRecsInfo[iSectIndex]
 		end
 
-		--	Очищаем обьект кнопки из таблицы видимых элементов.
+		--	РћС‡РёС‰Р°РµРј РѕР±СЊРµРєС‚ РєРЅРѕРїРєРё РёР· С‚Р°Р±Р»РёС†С‹ РІРёРґРёРјС‹С… СЌР»РµРјРµРЅС‚РѕРІ.
 		if aButton.oSlot then
 			self:DetachChild(aButton.oSlot)
 			aButton.oSlot = nil
 		end
 
-		--	Завершаем апдейт скролла если уже нет
-		--	элементов для инициализации.
+		--	Р—Р°РІРµСЂС€Р°РµРј Р°РїРґРµР№С‚ СЃРєСЂРѕР»Р»Р° РµСЃР»Рё СѓР¶Рµ РЅРµС‚
+		--	СЌР»РµРјРµРЅС‚РѕРІ РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.
 		if not aSectInfo then
 			return
 		end
 
-		--	Получаем позицию иконки.
+		--	РџРѕР»СѓС‡Р°РµРј РїРѕР·РёС†РёСЋ РёРєРѕРЅРєРё.
 		local x = aSectInfo.x
 		local y = aSectInfo.y
 		local w = aSectInfo.w
 		local h = aSectInfo.h
 
-		--	Создаем псевдо слот для арта.
+		--	РЎРѕР·РґР°РµРј РїСЃРµРІРґРѕ СЃР»РѕС‚ РґР»СЏ Р°СЂС‚Р°.
 		local oScrollButton = CUIButton()
 		oScrollButton:SetWindowName("oScrollButton"..iSectIndex..iBarName)
 		oScrollButton:SetAutoDelete(true)	
@@ -456,7 +456,7 @@ function CAmkDeviceTransmutator:UpdScrollBar(iStartIndex, iFinalIndex, iBarName)
 	end
 end
 
---	Полистать СкроллБар влево.
+--	РџРѕР»РёСЃС‚Р°С‚СЊ РЎРєСЂРѕР»Р»Р‘Р°СЂ РІР»РµРІРѕ.
 function CAmkDeviceTransmutator:PreviewScrollLeft()
 	if aArtsInfo[aInterval[1] - 1] and aArtsInfo[aInterval[2] - 1] then
 		aInterval = {aInterval[1] - 1, aInterval[2] - 1}
@@ -464,7 +464,7 @@ function CAmkDeviceTransmutator:PreviewScrollLeft()
 	end
 end
 
---	Полистать СкроллБар вправо.
+--	РџРѕР»РёСЃС‚Р°С‚СЊ РЎРєСЂРѕР»Р»Р‘Р°СЂ РІРїСЂР°РІРѕ.
 function CAmkDeviceTransmutator:PreviewScrollRight()
 	if aArtsInfo[aInterval[1] + 1] and aArtsInfo[aInterval[2] + 1] then
 		aInterval = {aInterval[1] + 1, aInterval[2] + 1}
@@ -472,7 +472,7 @@ function CAmkDeviceTransmutator:PreviewScrollRight()
 	end
 end
 
---	Полистать РецептБар влево.
+--	РџРѕР»РёСЃС‚Р°С‚СЊ Р РµС†РµРїС‚Р‘Р°СЂ РІР»РµРІРѕ.
 function CAmkDeviceTransmutator:ReceptScrollLeft()
 	if aRecsInfo[aRecInterval[1] - 1] and aRecsInfo[aRecInterval[2] - 1] then
 		aRecInterval = {aRecInterval[1] - 1, aRecInterval[2] - 1}
@@ -480,7 +480,7 @@ function CAmkDeviceTransmutator:ReceptScrollLeft()
 	end
 end
 
---	Полистать РецептБар вправо.
+--	РџРѕР»РёСЃС‚Р°С‚СЊ Р РµС†РµРїС‚Р‘Р°СЂ РІРїСЂР°РІРѕ.
 function CAmkDeviceTransmutator:ReceptScrollRight()
 	if aRecsInfo[aRecInterval[1] + 1] and aRecsInfo[aRecInterval[2] + 1] then
 		aRecInterval = {aRecInterval[1] + 1, aRecInterval[2] + 1}
@@ -489,7 +489,7 @@ function CAmkDeviceTransmutator:ReceptScrollRight()
 end
 
 
---	Биндим клавиши для управления.
+--	Р‘РёРЅРґРёРј РєР»Р°РІРёС€Рё РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ.
 function CAmkDeviceTransmutator:OnKeyboard(DIK, KeyboardAction)
 	CUIScriptWnd.OnKeyboard(self, DIK, KeyboardAction)
 	if KeyboardAction == ui_events.WINDOW_KEY_PRESSED then
@@ -501,13 +501,13 @@ function CAmkDeviceTransmutator:OnKeyboard(DIK, KeyboardAction)
 end
 
 
---	Инициализация слота для результата трансмутации.
---	@param	string	sArtSection	Секция артефакта, результата трансмутации.
+--	РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃР»РѕС‚Р° РґР»СЏ СЂРµР·СѓР»СЊС‚Р°С‚Р° С‚СЂР°РЅСЃРјСѓС‚Р°С†РёРё.
+--	@param	string	sArtSection	РЎРµРєС†РёСЏ Р°СЂС‚РµС„Р°РєС‚Р°, СЂРµР·СѓР»СЊС‚Р°С‚Р° С‚СЂР°РЅСЃРјСѓС‚Р°С†РёРё.
 function CAmkDeviceTransmutator:InitResultButton(sArtSection)
 	if sys_ini:section_exist(sArtSection) then
-		--	Получаем координаты для иконки.
+		--	РџРѕР»СѓС‡Р°РµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ РґР»СЏ РёРєРѕРЅРєРё.
 		local t = GetIconParams(sArtSection)
-		--	Инициализация слота.
+		--	РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃР»РѕС‚Р°.
 		oRes = CUIButton()	
 		oRes:SetWindowName("oButtonResult")  
 		oRes:SetAutoDelete(true)	
@@ -563,9 +563,9 @@ function CAmkDeviceTransmutator:UpdateDevice()
 end
 
 
---	Добавить артефакт на панель активных компонентов.
---	@param	integer	iSectIndex	Индекс секции артефакта который нужно добавить в слот.
---	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
+--	Р”РѕР±Р°РІРёС‚СЊ Р°СЂС‚РµС„Р°РєС‚ РЅР° РїР°РЅРµР»СЊ Р°РєС‚РёРІРЅС‹С… РєРѕРјРїРѕРЅРµРЅС‚РѕРІ.
+--	@param	integer	iSectIndex	РРЅРґРµРєСЃ СЃРµРєС†РёРё Р°СЂС‚РµС„Р°РєС‚Р° РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ РІ СЃР»РѕС‚.
+--	@param	string	iBarName		РўРёРї СЃРєСЂРѕР»Р»Р° РґР»СЏ Р°РїРґРµР№С‚Р° (РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ - "Inv" / СЂРµС†РµРїС‚РЅС‹Р№ - "Rec").
 function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)	
 	if oRes ~= nil then
 		self:UpdateDevice()
@@ -585,17 +585,17 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 	if aSectInfo.iCount == 0 then
 		return
 	end
-	--	Итерируем по панели компонентов и ищем свободный слот.
+	--	РС‚РµСЂРёСЂСѓРµРј РїРѕ РїР°РЅРµР»Рё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ Рё РёС‰РµРј СЃРІРѕР±РѕРґРЅС‹Р№ СЃР»РѕС‚.
 	if iBarName == "Inv" then
 		for iKey, aButton in pairs(aCmpnSlots) do
 			if aButton.oSlot == nil then
 				aSectInfo.iCount = aSectInfo.iCount - 1
-				--	Получаем координаты иконки.
+				--	РџРѕР»СѓС‡Р°РµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ РёРєРѕРЅРєРё.
 				local x = aSectInfo.x
 				local y = aSectInfo.y
 				local w = aSectInfo.w
 				local h = aSectInfo.h
-				--	Инициализируем псевдо слот. (кнопку)
+				--	РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј РїСЃРµРІРґРѕ СЃР»РѕС‚. (РєРЅРѕРїРєСѓ)
 				local oCmpnSlot = CUIButton()
 				oCmpnSlot:SetWindowName("oCmpnSlot"..iKey)  
 				oCmpnSlot:SetAutoDelete(true)		
@@ -609,10 +609,10 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 				local sFuncString = "amkii_transmutator.oDevice:DelArtefact("..iKey..")"
 				self:AddCallbackEx("oCmpnSlot"..iKey, ui_events.BUTTON_CLICKED, loadstring(sFuncString), self)
 	--			_log("... Init oCmpnSlot"..iKey)
-				--	Сохраняем данные.
+				--	РЎРѕС…СЂР°РЅСЏРµРј РґР°РЅРЅС‹Рµ.
 				aButton.oSlot = oCmpnSlot
 				aButton.iSectIndex = iSectIndex
-				--	Апдейтим СкроллБар.
+				--	РђРїРґРµР№С‚РёРј РЎРєСЂРѕР»Р»Р‘Р°СЂ.
 				self:UpdScrollBar(aInterval[1], aInterval[2], "Inv")				
 				break
 			end
@@ -640,18 +640,18 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 						table.insert(tblNotKomp, game.translate_string(amk.get_inv_name(cSect)))
 					end
 				end
-				if CountLostKomp == 0 then -- есть все компоненты и есть рецепт, смотрим время варки
+				if CountLostKomp == 0 then -- РµСЃС‚СЊ РІСЃРµ РєРѕРјРїРѕРЅРµРЅС‚С‹ Рё РµСЃС‚СЊ СЂРµС†РµРїС‚, СЃРјРѕС‚СЂРёРј РІСЂРµРјСЏ РІР°СЂРєРё
 					local txTime = ""
 					local time_var = amk_mod.get_af_transform_param("vremya", aReciptsHave[info], aReciptsHave)
 					if type(time_var) == "table" then
 						if time_var[1] ~= 0 then
-							txTime = time_var[1].." дн "
+							txTime = time_var[1].." РґРЅ "
 						end
 						if time_var[2] ~= 0 then
-							txTime = txTime.." "..time_var[2].." час "
+							txTime = txTime.." "..time_var[2].." С‡Р°СЃ "
 						end
 						if time_var[3] ~= 0 then
-							txTime = txTime.." "..time_var[3].." мин"
+							txTime = txTime.." "..time_var[3].." РјРёРЅ"
 						end
 					end
 					txtVremya = txTime
@@ -661,24 +661,24 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 				end
 			end
 		end
-		-- показываем строку недостающих компонентов
+		-- РїРѕРєР°Р·С‹РІР°РµРј СЃС‚СЂРѕРєСѓ РЅРµРґРѕСЃС‚Р°СЋС‰РёС… РєРѕРјРїРѕРЅРµРЅС‚РѕРІ
 		if string.len(txtNotkomp) > 0 then
 			oNotkomp = CUIStatic()
 			oNotkomp:SetWindowName("oNotkomp")
 			oNotkomp:SetAutoDelete(true)
-			oNotkomp:SetText("Не хватает компонентов: "..tostring(txtNotkomp))
-			oNotkomp:SetText("Для варки не хватает компонентов")
+			oNotkomp:SetText("РќРµ С…РІР°С‚Р°РµС‚ РєРѕРјРїРѕРЅРµРЅС‚РѕРІ: "..tostring(txtNotkomp))
+			oNotkomp:SetText("Р”Р»СЏ РІР°СЂРєРё РЅРµ С…РІР°С‚Р°РµС‚ РєРѕРјРїРѕРЅРµРЅС‚РѕРІ")
 			oNotkomp:SetTextColor(255,255,0,0)
 			oNotkomp:SetFont(GetFontGraffiti19Russian())
 			oNotkomp:Init(83,122,470,20)
 			self:AttachChild(oNotkomp)			
 			-- sound_object("device\pda\pda_sos"):play_at_pos(db.actor, db.actor:position())
-		-- показываем строку времени варки по рецепту
+		-- РїРѕРєР°Р·С‹РІР°РµРј СЃС‚СЂРѕРєСѓ РІСЂРµРјРµРЅРё РІР°СЂРєРё РїРѕ СЂРµС†РµРїС‚Сѓ
 		elseif string.len(txtVremya) > 0 then
 			oNotkomp = CUIStatic()
 			oNotkomp:SetWindowName("oNotkomp")
 			oNotkomp:SetAutoDelete(true)
-			oNotkomp:SetText("Время варки: "..tostring(txtVremya))
+			oNotkomp:SetText("Р’СЂРµРјСЏ РІР°СЂРєРё: "..tostring(txtVremya))
 			oNotkomp:SetTextColor(255,238,153,26)
 			oNotkomp:SetFont(GetFontGraffiti19Russian())
 			oNotkomp:Init(140,122,470,20)
@@ -687,7 +687,7 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 	end
 end
 
---	Очистка панели компонентов для варки.
+--	РћС‡РёСЃС‚РєР° РїР°РЅРµР»Рё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ РґР»СЏ РІР°СЂРєРё.
 function CAmkDeviceTransmutator:ClearSlots()
 	for iKey, aButton in pairs(aCmpnSlots) do
 		if aCmpnSlots[iKey] ~=nil then
@@ -697,13 +697,13 @@ function CAmkDeviceTransmutator:ClearSlots()
 end
 
 
---	Удалить артефакт из панели компонентов.
---	@param	integer	iSectIndex	Индекс слота панели компонентов.
---	@param	string	iBarName		Тип скролла для апдейта (инвентарный - "Inv" / рецептный - "Rec").
+--	РЈРґР°Р»РёС‚СЊ Р°СЂС‚РµС„Р°РєС‚ РёР· РїР°РЅРµР»Рё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ.
+--	@param	integer	iSectIndex	РРЅРґРµРєСЃ СЃР»РѕС‚Р° РїР°РЅРµР»Рё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ.
+--	@param	string	iBarName		РўРёРї СЃРєСЂРѕР»Р»Р° РґР»СЏ Р°РїРґРµР№С‚Р° (РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ - "Inv" / СЂРµС†РµРїС‚РЅС‹Р№ - "Rec").
 function CAmkDeviceTransmutator:DelArtefact(iCmpnSlotIndex)
 	aButton = aCmpnSlots[iCmpnSlotIndex]
 	aSectInfo = aArtsInfo[aButton.iSectIndex]
-	--	Если слот активный, то отключаем его.
+	--	Р•СЃР»Рё СЃР»РѕС‚ Р°РєС‚РёРІРЅС‹Р№, С‚Рѕ РѕС‚РєР»СЋС‡Р°РµРј РµРіРѕ.
 	if aButton.oSlot then
 		self:DetachChild(aButton.oSlot)
 		aSectInfo.iCount = aSectInfo.iCount + 1
@@ -720,7 +720,7 @@ function CAmkDeviceTransmutator:DelArtefact(iCmpnSlotIndex)
 end
 
 
---	Выход.
+--	Р’С‹С…РѕРґ.
 function CAmkDeviceTransmutator:Quit()
 	amkDisableDevice()
 	self:ClearCallbacks()
@@ -729,9 +729,9 @@ function CAmkDeviceTransmutator:Quit()
 end
 
 
---	Старт трансмутации.
+--	РЎС‚Р°СЂС‚ С‚СЂР°РЅСЃРјСѓС‚Р°С†РёРё.
 function CAmkDeviceTransmutator:Start()
-	-- с пустыми слотами компонентов и вне аномалии не стартуем
+	-- СЃ РїСѓСЃС‚С‹РјРё СЃР»РѕС‚Р°РјРё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ Рё РІРЅРµ Р°РЅРѕРјР°Р»РёРё РЅРµ СЃС‚Р°СЂС‚СѓРµРј
 	if not aAnomaly then return end
 	local count = 0
 	for i=1, table.getn(aCmpnSlots) do
@@ -740,7 +740,7 @@ function CAmkDeviceTransmutator:Start()
 		end
 	end
 	if count == 0 then return end
-	--	Попытаться трансмутировать артефакты.
+	--	РџРѕРїС‹С‚Р°С‚СЊСЃСЏ С‚СЂР°РЅСЃРјСѓС‚РёСЂРѕРІР°С‚СЊ Р°СЂС‚РµС„Р°РєС‚С‹.
 	CAmkTransmutacion()
 end
 
@@ -751,19 +751,19 @@ end
 
 class "CAmkTransmutacion"
 
---	Конструктор класса.
+--	РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РєР»Р°СЃСЃР°.
 function CAmkTransmutacion:__init()
 --	_log("*****   Transmutacion   *****")
 	self.sTransmutants = self:SearchSchemes()
 	if self.sTransmutants ~= nil then
 		self:CreateAtrefact()
 	else
--- долбим :)
+-- РґРѕР»Р±РёРј :)
 		self:Shooting()
 	end
 end
 
---	Поиск подходящей схемы трансмутации.
+--	РџРѕРёСЃРє РїРѕРґС…РѕРґСЏС‰РµР№ СЃС…РµРјС‹ С‚СЂР°РЅСЃРјСѓС‚Р°С†РёРё.
 function CAmkTransmutacion:SearchSchemes()
 	local sTransmutants
 	local aCmpnSects = {}
@@ -777,7 +777,7 @@ function CAmkTransmutacion:SearchSchemes()
 	for info, recept in pairs(aRecipts) do
 		local count = 0
 		for k,v in pairs(aRecipts[info]["komp"]) do
-			-- считаем ,сколько компонентов в рецепте
+			-- СЃС‡РёС‚Р°РµРј ,СЃРєРѕР»СЊРєРѕ РєРѕРјРїРѕРЅРµРЅС‚РѕРІ РІ СЂРµС†РµРїС‚Рµ
 			count = count + 1
 		end
 		if count == numArts then
@@ -787,7 +787,7 @@ function CAmkTransmutacion:SearchSchemes()
 					break
 				end
 				if i == count then 
-					sTransmutants = aRecipts[info]["cel"] --перебрали все арты и есть результат
+					sTransmutants = aRecipts[info]["cel"] --РїРµСЂРµР±СЂР°Р»Рё РІСЃРµ Р°СЂС‚С‹ Рё РµСЃС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚
 					-- dump_table(sTransmutants)
 					iInfo = info
 				end
@@ -797,9 +797,9 @@ function CAmkTransmutacion:SearchSchemes()
 	return sTransmutants
 end
 
---	Создание артефакта трансмутанта.
+--	РЎРѕР·РґР°РЅРёРµ Р°СЂС‚РµС„Р°РєС‚Р° С‚СЂР°РЅСЃРјСѓС‚Р°РЅС‚Р°.
 function CAmkTransmutacion:CreateAtrefact()
-	-- собираем табличку подготовленных для варки компонентов
+	-- СЃРѕР±РёСЂР°РµРј С‚Р°Р±Р»РёС‡РєСѓ РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹С… РґР»СЏ РІР°СЂРєРё РєРѕРјРїРѕРЅРµРЅС‚РѕРІ
 	local komp = {}
 	local cel = {}
 	
@@ -808,11 +808,11 @@ function CAmkTransmutacion:CreateAtrefact()
 		if aCmpnSlots[i].iSectIndex ~= nil then
 			local aButton = aCmpnSlots[i]
 			local aArtInfo = aArtsInfo[aButton.iSectIndex]
-			--	Вытащить артефакт из базы компонентов.
+			--	Р’С‹С‚Р°С‰РёС‚СЊ Р°СЂС‚РµС„Р°РєС‚ РёР· Р±Р°Р·С‹ РєРѕРјРїРѕРЅРµРЅС‚РѕРІ.
 			local oObject = aArtInfo.aArts[table.getn(aArtInfo.aArts)]
 			local obj_sect = oObject:section()
 			table.remove(aArtInfo.aArts, table.getn(aArtInfo.aArts))
-			--	Удалить артефакт и очистить слот.
+			--	РЈРґР°Р»РёС‚СЊ Р°СЂС‚РµС„Р°РєС‚ Рё РѕС‡РёСЃС‚РёС‚СЊ СЃР»РѕС‚.
 			amkDelObj(oObject:id())
 			oDevice:DetachChild(aButton.oSlot)
 			aCmpnSlots[i].iSectIndex = nil
@@ -840,11 +840,11 @@ function CAmkTransmutacion:CreateAtrefact()
 		or virogd == nil or vremya == nil or remove_anomaly == nil 
 		or cel == nil and remove_anomaly == false
 		or v_udachi + v_virogd > 100 then		
-		-- кривой рецепт  - выходим
+		-- РєСЂРёРІРѕР№ СЂРµС†РµРїС‚  - РІС‹С…РѕРґРёРј
 		oDevice:Quit()
 	end
 
-	-- неудача
+	-- РЅРµСѓРґР°С‡Р°
 	if udacha == false then
 		remove_anomaly = false
 		info = nil
@@ -853,7 +853,7 @@ function CAmkTransmutacion:CreateAtrefact()
 
 	amk_mod.as_start_universal_transform_timer(iInfo, result, udacha, pos, vremya, gv, lv, info, remove_anomaly_id)
 	
-	-- на случай если захотим сварить такой же арт (для корректной строки недостающих компонентов)
+	-- РЅР° СЃР»СѓС‡Р°Р№ РµСЃР»Рё Р·Р°С…РѕС‚РёРј СЃРІР°СЂРёС‚СЊ С‚Р°РєРѕР№ Р¶Рµ Р°СЂС‚ (РґР»СЏ РєРѕСЂСЂРµРєС‚РЅРѕР№ СЃС‚СЂРѕРєРё РЅРµРґРѕСЃС‚Р°СЋС‰РёС… РєРѕРјРїРѕРЅРµРЅС‚РѕРІ)
 	if aReciptsHave[iInfo] then
 		for cSect, m in pairs(aReciptsHave[iInfo]["komp"]) do
 			if aReciptsHave[iInfo]["komp"][cSect] == "added" then
@@ -863,7 +863,7 @@ function CAmkTransmutacion:CreateAtrefact()
 	end
 end
 
---	Долбонуть актора из-за того что пихает в девайс все, что попало.
+--	Р”РѕР»Р±РѕРЅСѓС‚СЊ Р°РєС‚РѕСЂР° РёР·-Р·Р° С‚РѕРіРѕ С‡С‚Рѕ РїРёС…Р°РµС‚ РІ РґРµРІР°Р№СЃ РІСЃРµ, С‡С‚Рѕ РїРѕРїР°Р»Рѕ.
 function CAmkTransmutacion:Shooting()
 --	_log("Shemes not Found")
 	oDevice:Quit()

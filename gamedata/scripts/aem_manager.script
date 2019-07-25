@@ -1,23 +1,23 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local time_open = 22	-- время (час) открытия арены, min = 0, max = 23
-local time_close = 7	-- время (час) закрытия, min = 0, max = 23
-local delay_min = 0		-- минимальное количество полных дней (суток) между закрытием и открытием арены, min = 0
-local delay_max = 2		-- максимальное количество полных дней (суток) между закрытием и открытием арены, min = 1
-local delay_mut = 4		-- количество полных дней (суток) до открытия полного списка мутантов, min = 0
-local stake1 = 500		-- ставка №1 в тотализаторе (руб.)
-local stake2 = 1000		-- ставка №2 в тотализаторе (руб.)
-local stake3 = 2000		-- ставка №3 в тотализаторе (руб.)
-local perc_min = 30		-- минимальный процент дохода с суммы ставки
-local perc_max = 100	-- максимальный процент дохода с суммы ставки
-local aem_only = false	-- (!!!МЕНЯТЬ ТОЛЬКО ОДИН РАЗ!!!) false - мод активируется после прохождения оригинальной арены / true - мод активируется сразу.
+local time_open = 22	-- РІСЂРµРјСЏ (С‡Р°СЃ) РѕС‚РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹, min = 0, max = 23
+local time_close = 7	-- РІСЂРµРјСЏ (С‡Р°СЃ) Р·Р°РєСЂС‹С‚РёСЏ, min = 0, max = 23
+local delay_min = 0		-- РјРёРЅРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»РЅС‹С… РґРЅРµР№ (СЃСѓС‚РѕРє) РјРµР¶РґСѓ Р·Р°РєСЂС‹С‚РёРµРј Рё РѕС‚РєСЂС‹С‚РёРµРј Р°СЂРµРЅС‹, min = 0
+local delay_max = 2		-- РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»РЅС‹С… РґРЅРµР№ (СЃСѓС‚РѕРє) РјРµР¶РґСѓ Р·Р°РєСЂС‹С‚РёРµРј Рё РѕС‚РєСЂС‹С‚РёРµРј Р°СЂРµРЅС‹, min = 1
+local delay_mut = 4		-- РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»РЅС‹С… РґРЅРµР№ (СЃСѓС‚РѕРє) РґРѕ РѕС‚РєСЂС‹С‚РёСЏ РїРѕР»РЅРѕРіРѕ СЃРїРёСЃРєР° РјСѓС‚Р°РЅС‚РѕРІ, min = 0
+local stake1 = 500		-- СЃС‚Р°РІРєР° в„–1 РІ С‚РѕС‚Р°Р»РёР·Р°С‚РѕСЂРµ (СЂСѓР±.)
+local stake2 = 1000		-- СЃС‚Р°РІРєР° в„–2 РІ С‚РѕС‚Р°Р»РёР·Р°С‚РѕСЂРµ (СЂСѓР±.)
+local stake3 = 2000		-- СЃС‚Р°РІРєР° в„–3 РІ С‚РѕС‚Р°Р»РёР·Р°С‚РѕСЂРµ (СЂСѓР±.)
+local perc_min = 30		-- РјРёРЅРёРјР°Р»СЊРЅС‹Р№ РїСЂРѕС†РµРЅС‚ РґРѕС…РѕРґР° СЃ СЃСѓРјРјС‹ СЃС‚Р°РІРєРё
+local perc_max = 100	-- РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РїСЂРѕС†РµРЅС‚ РґРѕС…РѕРґР° СЃ СЃСѓРјРјС‹ СЃС‚Р°РІРєРё
+local aem_only = false	-- (!!!РњР•РќРЇРўР¬ РўРћР›Р¬РљРћ РћР”РРќ Р РђР—!!!) false - РјРѕРґ Р°РєС‚РёРІРёСЂСѓРµС‚СЃСЏ РїРѕСЃР»Рµ РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РѕСЂРёРіРёРЅР°Р»СЊРЅРѕР№ Р°СЂРµРЅС‹ / true - РјРѕРґ Р°РєС‚РёРІРёСЂСѓРµС‚СЃСЏ СЃСЂР°Р·Сѓ.
 ---------------------------------------------------------------------------------------------------
-local arenaext = nil	-- объект manager
-local time_def = nil	-- время в мире на момент начала игры (CTime)
+local arenaext = nil	-- РѕР±СЉРµРєС‚ manager
+local time_def = nil	-- РІСЂРµРјСЏ РІ РјРёСЂРµ РЅР° РјРѕРјРµРЅС‚ РЅР°С‡Р°Р»Р° РёРіСЂС‹ (CTime)
 local update_time = game.CTime()
 local actor = db.actor
 local sim = alife()
 ---------------------------------------------------------------------------------------------------
--- вывод отладочной информации
+-- РІС‹РІРѕРґ РѕС‚Р»Р°РґРѕС‡РЅРѕР№ РёРЅС„РѕСЂРјР°С†РёРё
 ---------------------------------------------------------------------------------------------------
 
 function printf(fmt, ...)
@@ -27,7 +27,7 @@ function printf(fmt, ...)
 end
 
 ---------------------------------------------------------------------------------------------------
--- функции для работы с ltx
+-- С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ ltx
 ---------------------------------------------------------------------------------------------------
 
 function read_string(ini, section, field, candef, def)
@@ -164,7 +164,7 @@ function load_fight(ini, section, group)
 end
 
 ---------------------------------------------------------------------------------------------------
--- собственно аренный manager
+-- СЃРѕР±СЃС‚РІРµРЅРЅРѕ Р°СЂРµРЅРЅС‹Р№ manager
 ---------------------------------------------------------------------------------------------------
 
 class "CArenaext"
@@ -174,23 +174,23 @@ function CArenaext:__init()
 
 	time_def = time_get_start()
 
-	-- время последнего обновления (update)
+	-- РІСЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ РѕР±РЅРѕРІР»РµРЅРёСЏ (update)
 	self.lt = xr_logic.pstor_retrieve(actor, "aem_lt", 0)
-	-- время последнего/следующего открытия арены
+	-- РІСЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ/СЃР»РµРґСѓСЋС‰РµРіРѕ РѕС‚РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹
 	self.nt = xr_logic.pstor_retrieve(actor, "aem_nt", 0)
-	-- время последней реальной активации (reinit)
+	-- РІСЂРµРјСЏ РїРѕСЃР»РµРґРЅРµР№ СЂРµР°Р»СЊРЅРѕР№ Р°РєС‚РёРІР°С†РёРё (reinit)
 	self.it = xr_logic.pstor_retrieve(actor, "aem_it", 0)
-	-- время последнего сражения с монстрами
+	-- РІСЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ СЃСЂР°Р¶РµРЅРёСЏ СЃ РјРѕРЅСЃС‚СЂР°РјРё
 	self.mt = xr_logic.pstor_retrieve(actor, "aem_mt", 0)
 
-	-- битовая маска уничтоженных группировок
+	-- Р±РёС‚РѕРІР°СЏ РјР°СЃРєР° СѓРЅРёС‡С‚РѕР¶РµРЅРЅС‹С… РіСЂСѓРїРїРёСЂРѕРІРѕРє
 	self.mk = xr_logic.pstor_retrieve(actor, "aem_mk", 0)
 	self.mk_all = 0
 
-	-- чтение LTX
+	-- С‡С‚РµРЅРёРµ LTX
 	local ini = ini_file("misc\\aem_manager.ltx")
 
-	-- вещи, которые нельзя выносить с арены (удаляются при выходе с арены)
+	-- РІРµС‰Рё, РєРѕС‚РѕСЂС‹Рµ РЅРµР»СЊР·СЏ РІС‹РЅРѕСЃРёС‚СЊ СЃ Р°СЂРµРЅС‹ (СѓРґР°Р»СЏСЋС‚СЃСЏ РїСЂРё РІС‹С…РѕРґРµ СЃ Р°СЂРµРЅС‹)
 	self.arena_items = {}
 	if ini:section_exist("arena_items") then
 		n = ini:line_count("arena_items")
@@ -201,7 +201,7 @@ function CArenaext:__init()
 		end
 	end
 
-	-- запрещённые для боя на арене вещи
+	-- Р·Р°РїСЂРµС‰С‘РЅРЅС‹Рµ РґР»СЏ Р±РѕСЏ РЅР° Р°СЂРµРЅРµ РІРµС‰Рё
 	self.remove_items = {}
 	if ini:section_exist("remove_items") then
 		n = ini:line_count("remove_items")
@@ -212,7 +212,7 @@ function CArenaext:__init()
 		end
 	end
 
-	-- вещи оставляемые ГГ во время тотализатора
+	-- РІРµС‰Рё РѕСЃС‚Р°РІР»СЏРµРјС‹Рµ Р“Р“ РІРѕ РІСЂРµРјСЏ С‚РѕС‚Р°Р»РёР·Р°С‚РѕСЂР°
 	self.keep_items = {}
 	if ini:section_exist("keep_items") then
 		n = ini:line_count("keep_items")
@@ -223,7 +223,7 @@ function CArenaext:__init()
 		end
 	end
 
-	-- чтение списка стартовых позиций
+	-- С‡С‚РµРЅРёРµ СЃРїРёСЃРєР° СЃС‚Р°СЂС‚РѕРІС‹С… РїРѕР·РёС†РёР№
 	if not ini:section_exist("places") then
 		abort("no section [places] in aem_manager.ltx")
 	end
@@ -235,7 +235,7 @@ function CArenaext:__init()
 		self.places[id] = parse_place(value)
 	end
 
-	-- чтение команд
+	-- С‡С‚РµРЅРёРµ РєРѕРјР°РЅРґ
 	if not ini:section_exist("teams") then
 		abort("no section [teams] in aem_manager.ltx")
 	end
@@ -247,7 +247,7 @@ function CArenaext:__init()
 		self.teams[id] = load_team(ini, id)
 	end
 
-	-- чтение груп и боёв
+	-- С‡С‚РµРЅРёРµ РіСЂСѓРї Рё Р±РѕС‘РІ
 	if not ini:section_exist("groups") then
 		abort("no section [groups] in aem_manager.ltx")
 	end
@@ -273,7 +273,7 @@ function CArenaext:__init()
 		end
 	end
 
-	-- чтение 'stakes'
+	-- С‡С‚РµРЅРёРµ 'stakes'
 	id = "stakes"
 	self.groups[id] = load_group(ini, id)
 	n2 = table.getn(self.groups[id].fights)
@@ -282,7 +282,7 @@ function CArenaext:__init()
 		self.fights[id2] = load_fight(ini, id2, id)
 	end
 
-	-- чтение 'turnament'
+	-- С‡С‚РµРЅРёРµ 'turnament'
 	id = "turnament"
 	self.groups[id] = load_group(ini, id)
 	n2 = table.getn(self.groups[id].fights)
@@ -291,20 +291,20 @@ function CArenaext:__init()
 		self.fights[id2] = load_fight(ini, id2, id)
 	end
 
-	-- настройка id фраз диалога
+	-- РЅР°СЃС‚СЂРѕР№РєР° id С„СЂР°Р· РґРёР°Р»РѕРіР°
 	local dlg_id = 100
-	-- для групп
+	-- РґР»СЏ РіСЂСѓРїРї
 	for id,value in pairs(self.groups) do
 		self.groups[id].dlg_id = dlg_id
 		dlg_id = dlg_id + self.groups[id].dlg_size
 	end
-	-- для боёв
+	-- РґР»СЏ Р±РѕС‘РІ
 	for id,value in pairs(self.fights) do
 		self.fights[id].dlg_id = dlg_id
 		dlg_id = dlg_id + self.fights[id].dlg_size
 	end
 
-	-- вспомогательные таблицы для поиска id фраз диалога
+	-- РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ С‚Р°Р±Р»РёС†С‹ РґР»СЏ РїРѕРёСЃРєР° id С„СЂР°Р· РґРёР°Р»РѕРіР°
 	self.stakes_phrase = {}
 	self.turnament_phrase = {}
 
@@ -333,21 +333,21 @@ function CArenaext:__init()
 end
 
 -------
--- возвращает имя текущего боя
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ РёРјСЏ С‚РµРєСѓС‰РµРіРѕ Р±РѕСЏ
 -------
 function CArenaext:current()
 	return xr_logic.pstor_retrieve(actor, "aem_cr")
 end
 
 -------
--- возвращает описание боя с указанным именем
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ РѕРїРёСЃР°РЅРёРµ Р±РѕСЏ СЃ СѓРєР°Р·Р°РЅРЅС‹Рј РёРјРµРЅРµРј
 -------
 function CArenaext:description(name)
 	return self.fights[name]
 end
 
 -------
--- является ли текущий бой ставочным
+-- СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РµРєСѓС‰РёР№ Р±РѕР№ СЃС‚Р°РІРѕС‡РЅС‹Рј
 -------
 function CArenaext:is_stake()
 	local info = self:description(self:current())
@@ -355,7 +355,7 @@ function CArenaext:is_stake()
 end
 
 -------
--- выиграла ли ставка
+-- РІС‹РёРіСЂР°Р»Р° Р»Рё СЃС‚Р°РІРєР°
 -------
 function CArenaext:is_stake_win()
 	return	((actor:has_info("aem_stake_team1") and xr_logic.pstor_retrieve(actor, "aem_team1") > 0) or
@@ -363,21 +363,21 @@ function CArenaext:is_stake_win()
 end
 
 -------
--- сколько времени (часов) прошло после последнего боя с мутантами
+-- СЃРєРѕР»СЊРєРѕ РІСЂРµРјРµРЅРё (С‡Р°СЃРѕРІ) РїСЂРѕС€Р»Рѕ РїРѕСЃР»Рµ РїРѕСЃР»РµРґРЅРµРіРѕ Р±РѕСЏ СЃ РјСѓС‚Р°РЅС‚Р°РјРё
 -------
 function CArenaext:get_mutants_time()
 	return (time_get_curr() - self.mt)
 end
 
 -------
--- были ли все группировки уничтожены Меченым хотябы по одному разу
+-- Р±С‹Р»Рё Р»Рё РІСЃРµ РіСЂСѓРїРїРёСЂРѕРІРєРё СѓРЅРёС‡С‚РѕР¶РµРЅС‹ РњРµС‡РµРЅС‹Рј С…РѕС‚СЏР±С‹ РїРѕ РѕРґРЅРѕРјСѓ СЂР°Р·Сѓ
 -------
 function CArenaext:is_stalkers_evil()
 	return (bit_and(self.mk, self.mk_all) == self.mk_all)
 end
 
 -------
--- проверяет группу текущего боя
+-- РїСЂРѕРІРµСЂСЏРµС‚ РіСЂСѓРїРїСѓ С‚РµРєСѓС‰РµРіРѕ Р±РѕСЏ
 -------
 function CArenaext:is_group_name(name)
 	local info = self:description(self:current())
@@ -385,7 +385,7 @@ function CArenaext:is_group_name(name)
 end
 
 -------
--- проверяет начальную озвучку текущего боя
+-- РїСЂРѕРІРµСЂСЏРµС‚ РЅР°С‡Р°Р»СЊРЅСѓСЋ РѕР·РІСѓС‡РєСѓ С‚РµРєСѓС‰РµРіРѕ Р±РѕСЏ
 -------
 function CArenaext:is_intro_name(name)
 	local info = self:description(self:current())
@@ -393,14 +393,14 @@ function CArenaext:is_intro_name(name)
 end
 
 -------
--- проверяет конечную озвучку текущего боя
+-- РїСЂРѕРІРµСЂСЏРµС‚ РєРѕРЅРµС‡РЅСѓСЋ РѕР·РІСѓС‡РєСѓ С‚РµРєСѓС‰РµРіРѕ Р±РѕСЏ
 -------
 function CArenaext:is_extro_name(name)
 	local info = self:description(self:current())
 	if info.extro ~= nil then
 		return info.extro == name
 	end
-	-- для тотализатора две озвучки, в зависимости от результата
+	-- РґР»СЏ С‚РѕС‚Р°Р»РёР·Р°С‚РѕСЂР° РґРІРµ РѕР·РІСѓС‡РєРё, РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЂРµР·СѓР»СЊС‚Р°С‚Р°
 	if info.group == "stakes" or info.group == "turnament" then
 		if xr_logic.pstor_retrieve(actor, "aem_team1") > 0 then
 			local team = xr_logic.pstor_retrieve(actor, info.team2, "")
@@ -412,12 +412,12 @@ function CArenaext:is_extro_name(name)
 			return self.teams[team].extro == name
 		end
 	end
-	-- озвучка не найдена
+	-- РѕР·РІСѓС‡РєР° РЅРµ РЅР°Р№РґРµРЅР°
 	return false
 end
 
 -------
--- вызывается в случае смерти каждого участника боя
+-- РІС‹Р·С‹РІР°РµС‚СЃСЏ РІ СЃР»СѓС‡Р°Рµ СЃРјРµСЂС‚Рё РєР°Р¶РґРѕРіРѕ СѓС‡Р°СЃС‚РЅРёРєР° Р±РѕСЏ
 -------
 function CArenaext:on_death(npc, team)
 	--printf("CArenaext:on_death('%s'-'%s')", team, npc:section())
@@ -426,7 +426,7 @@ function CArenaext:on_death(npc, team)
 		abort("CArenaext:on_death('invalid team')")
 	end
 
-	-- уменьшаем счётчик команды
+	-- СѓРјРµРЅСЊС€Р°РµРј СЃС‡С‘С‚С‡РёРє РєРѕРјР°РЅРґС‹
 	local cnt = xr_logic.pstor_retrieve(actor, "aem_" .. team, 0)
 	if cnt > 0 then
 		cnt = cnt - 1
@@ -434,12 +434,12 @@ function CArenaext:on_death(npc, team)
 	end
 
 	if actor:has_info("aem_timeover") then
-		-- убийство по истечению времени наказуемо
+		-- СѓР±РёР№СЃС‚РІРѕ РїРѕ РёСЃС‚РµС‡РµРЅРёСЋ РІСЂРµРјРµРЅРё РЅР°РєР°Р·СѓРµРјРѕ
 		actor:give_info_portion("aem_fight_foul")
 	elseif cnt == 0 and actor:dont_has_info("aem_fight_done") then
-		-- команда уничтожена, необходимо закончить бой
+		-- РєРѕРјР°РЅРґР° СѓРЅРёС‡С‚РѕР¶РµРЅР°, РЅРµРѕР±С…РѕРґРёРјРѕ Р·Р°РєРѕРЅС‡РёС‚СЊ Р±РѕР№
 		actor:give_info_portion("aem_fight_done")
-		-- мигалки для ставочных боёв
+		-- РјРёРіР°Р»РєРё РґР»СЏ СЃС‚Р°РІРѕС‡РЅС‹С… Р±РѕС‘РІ
 		local info = self:description(self:current())
 		if info.group ~= "turnament" and info.group ~= "stakes" then
 			aem_lights.win()
@@ -448,20 +448,20 @@ function CArenaext:on_death(npc, team)
 end
 
 -------
--- вызывается при выходе с арены
+-- РІС‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРё РІС‹С…РѕРґРµ СЃ Р°СЂРµРЅС‹
 -------
 function CArenaext:on_done_fight()
 	local name = self:current()
 	--printf("CArenaext:on_done_fight('%s')", name)
 	local info = self:description(name)
 
-	-- запрещаем бой для диалога
+	-- Р·Р°РїСЂРµС‰Р°РµРј Р±РѕР№ РґР»СЏ РґРёР°Р»РѕРіР°
 	actor:give_info_portion(info.done)
 
 	local cnt_t1 = xr_logic.pstor_retrieve(actor, "aem_team1")
 	local cnt_t2 = xr_logic.pstor_retrieve(actor, "aem_team2")
 
-	-- выход в следующий круг для турнира
+	-- РІС‹С…РѕРґ РІ СЃР»РµРґСѓСЋС‰РёР№ РєСЂСѓРі РґР»СЏ С‚СѓСЂРЅРёСЂР°
 	if info.group == "turnament" then
 		if info.winer ~= nil and info.winer ~= "" then
 			local winer
@@ -470,22 +470,22 @@ function CArenaext:on_done_fight()
 			elseif cnt_t2 > 0 then
 				winer = xr_logic.pstor_retrieve(actor, info.team2, "")
 			else
-				-- !!! ничья, что будем делать?
+				-- !!! РЅРёС‡СЊСЏ, С‡С‚Рѕ Р±СѓРґРµРј РґРµР»Р°С‚СЊ?
 				winer = xr_logic.pstor_retrieve(actor, info.team1, "")
 			end
 			xr_logic.pstor_store(actor, info.winer, winer)
 		end
 	end
 
-	-- условия для организации специальных боёв
-	-- только если противник реально изничтожен, а не таймаут
+	-- СѓСЃР»РѕРІРёСЏ РґР»СЏ РѕСЂРіР°РЅРёР·Р°С†РёРё СЃРїРµС†РёР°Р»СЊРЅС‹С… Р±РѕС‘РІ
+	-- С‚РѕР»СЊРєРѕ РµСЃР»Рё РїСЂРѕС‚РёРІРЅРёРє СЂРµР°Р»СЊРЅРѕ РёР·РЅРёС‡С‚РѕР¶РµРЅ, Р° РЅРµ С‚Р°Р№РјР°СѓС‚
 	if cnt_t1 == 0 then
 		if info.group == "mutants" then
-			-- запоминаем дату последнего уничтожения мутантов
+			-- Р·Р°РїРѕРјРёРЅР°РµРј РґР°С‚Сѓ РїРѕСЃР»РµРґРЅРµРіРѕ СѓРЅРёС‡С‚РѕР¶РµРЅРёСЏ РјСѓС‚Р°РЅС‚РѕРІ
 			self.mt = time_get_curr()
 			xr_logic.pstor_store(actor, "aem_mt", self.mt)
 		else
-			-- запоминаем уничтоженние актёром крупных команд группировок
+			-- Р·Р°РїРѕРјРёРЅР°РµРј СѓРЅРёС‡С‚РѕР¶РµРЅРЅРёРµ Р°РєС‚С‘СЂРѕРј РєСЂСѓРїРЅС‹С… РєРѕРјР°РЅРґ РіСЂСѓРїРїРёСЂРѕРІРѕРє
 			local group = self.groups[info.group]
 			if group.mk ~= nil then
 				if table.getn(info.spawn) == 6 then
@@ -497,7 +497,7 @@ function CArenaext:on_done_fight()
 		end
 	end
 
-	-- проверим всю группу, которой принадлежит бой, на предмет завершения
+	-- РїСЂРѕРІРµСЂРёРј РІСЃСЋ РіСЂСѓРїРїСѓ, РєРѕС‚РѕСЂРѕР№ РїСЂРёРЅР°РґР»РµР¶РёС‚ Р±РѕР№, РЅР° РїСЂРµРґРјРµС‚ Р·Р°РІРµСЂС€РµРЅРёСЏ
 	local t = self.groups[info.group].fights
 	local cnt = table.getn(t)
 	local done = true
@@ -507,23 +507,23 @@ function CArenaext:on_done_fight()
 			break
 		end
 	end
-	-- все бои данной группы завершены
+	-- РІСЃРµ Р±РѕРё РґР°РЅРЅРѕР№ РіСЂСѓРїРїС‹ Р·Р°РІРµСЂС€РµРЅС‹
 	if done == true then
 		self:on_done_group(info.group)
 	end
 end
 
 -------
--- вызывается в случае завершения группы боёв
+-- РІС‹Р·С‹РІР°РµС‚СЃСЏ РІ СЃР»СѓС‡Р°Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ РіСЂСѓРїРїС‹ Р±РѕС‘РІ
 -------
 function CArenaext:on_done_group(name)
 	--printf("CArenaext:on_done_group('%s')", name)
 	local info = self.groups[name]
 
-	-- запрещаем группу для диалога
+	-- Р·Р°РїСЂРµС‰Р°РµРј РіСЂСѓРїРїСѓ РґР»СЏ РґРёР°Р»РѕРіР°
 	actor:give_info_portion(info.done)
 
-	-- проверим все группы, может уже все закончены?
+	-- РїСЂРѕРІРµСЂРёРј РІСЃРµ РіСЂСѓРїРїС‹, РјРѕР¶РµС‚ СѓР¶Рµ РІСЃРµ Р·Р°РєРѕРЅС‡РµРЅС‹?
 	local done = true
 	for id, info in pairs(self.groups) do
 		if actor:dont_has_info(info.done) then
@@ -531,14 +531,14 @@ function CArenaext:on_done_group(name)
 			break
 		end
 	end
-	-- все бои завершены, арена пройдена
+	-- РІСЃРµ Р±РѕРё Р·Р°РІРµСЂС€РµРЅС‹, Р°СЂРµРЅР° РїСЂРѕР№РґРµРЅР°
 	if done == true then
 		self:on_done_all()
 	end
 end
 
 -------
--- вызывается в случае завершения всех боёв арены
+-- РІС‹Р·С‹РІР°РµС‚СЃСЏ РІ СЃР»СѓС‡Р°Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ РІСЃРµС… Р±РѕС‘РІ Р°СЂРµРЅС‹
 -------
 function CArenaext:on_done_all()
 	--printf("CArenaext:on_done_all()")
@@ -546,7 +546,7 @@ function CArenaext:on_done_all()
 end
 
 -------
--- инициализация мода
+-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґР°
 -------
 function CArenaext:startup()
 	--printf("CArenaext:startup()")
@@ -557,7 +557,7 @@ function CArenaext:startup()
 		local ct = level.get_time_minutes()
 		xr_logic.pstor_store(actor, "aem_ct", ct)
 		
-		-- очистка ящичка
+		-- РѕС‡РёСЃС‚РєР° СЏС‰РёС‡РєР°
 		local box = level_object_by_sid(574)
 		if box ~= nil then
 			clear_box(box)
@@ -565,13 +565,13 @@ function CArenaext:startup()
 			clear_offline_box(574)
 		end
 		
-		-- удаление 'деревянного' долговца
+		-- СѓРґР°Р»РµРЅРёРµ 'РґРµСЂРµРІСЏРЅРЅРѕРіРѕ' РґРѕР»РіРѕРІС†Р°
 		local obj = sim:object("level_prefix_physic_object_0004")
 		if obj ~= nil then
 			sim:release(obj)
 		end
 		
-		-- освободим место в баре, если оно занято
+		-- РѕСЃРІРѕР±РѕРґРёРј РјРµСЃС‚Рѕ РІ Р±Р°СЂРµ, РµСЃР»Рё РѕРЅРѕ Р·Р°РЅСЏС‚Рѕ
 		local obj = sim:object("bar_bar_visitors_1_2")
 		if obj ~= nil then
 			sim:release(obj)
@@ -582,7 +582,7 @@ end
 
 function CArenaext:timeup()
 	self.lt = time_get_curr()
-	self.nt = time_get_next(self.lt + 12)	-- хотя бы 12 часов обождать
+	self.nt = time_get_next(self.lt + 12)	-- С…РѕС‚СЏ Р±С‹ 12 С‡Р°СЃРѕРІ РѕР±РѕР¶РґР°С‚СЊ
 	if aem_only == true then
 		self.it = self.nt
 	else
@@ -592,24 +592,24 @@ function CArenaext:timeup()
 	self.mk = 0
 	actor:give_info_portion(self.groups["special"].done)
 	
--- тест первой инициализации, что бы не ждать долго
+-- С‚РµСЃС‚ РїРµСЂРІРѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё, С‡С‚Рѕ Р±С‹ РЅРµ Р¶РґР°С‚СЊ РґРѕР»РіРѕ
 --	self.nt = time_get_next(self.lt - 3)
 
--- тест повторной инициализации
+-- С‚РµСЃС‚ РїРѕРІС‚РѕСЂРЅРѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
 --	self.nt = time_get_next(self.lt - 3)
 --	self.it = self.nt
 
--- тест всех монстров
+-- С‚РµСЃС‚ РІСЃРµС… РјРѕРЅСЃС‚СЂРѕРІ
 --	self.nt = time_get_next(self.lt - 3)
 --	self.it = self.nt
 --	self.mt = 0
 
--- тест сборной
+-- С‚РµСЃС‚ СЃР±РѕСЂРЅРѕР№
 --	self.nt = time_get_next(self.lt - 3)
 --	self.it = self.nt
 --	self.mk = self.mk_all
 
--- тест сборной, перешедшей в следующую активацию
+-- С‚РµСЃС‚ СЃР±РѕСЂРЅРѕР№, РїРµСЂРµС€РµРґС€РµР№ РІ СЃР»РµРґСѓСЋС‰СѓСЋ Р°РєС‚РёРІР°С†РёСЋ
 --	self.nt = time_get_next(self.lt - 3)
 --	self.it = self.nt
 --	actor:disable_info_portion(self.groups["special"].done)
@@ -622,20 +622,20 @@ function CArenaext:timeup()
 end
 
 -------
--- удаление мода
+-- СѓРґР°Р»РµРЅРёРµ РјРѕРґР°
 -------
 function CArenaext:cleanup()
 	local i, n, result, id, value, obj, section
 	--printf("CArenaext:cleanup()")
 	
-	-- чтение LTX
+	-- С‡С‚РµРЅРёРµ LTX
 	local ini = ini_file("misc\\aem_manager.ltx")
 	
-	-- возврат стандартного освещения на арене
+	-- РІРѕР·РІСЂР°С‚ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ РѕСЃРІРµС‰РµРЅРёСЏ РЅР° Р°СЂРµРЅРµ
 	aem_lights.remove_all_aem_lamps()
 	aem_lights.turn_arena_lamps_on()
 	
-	-- создание списка удаляемых инфопоршинов
+	-- СЃРѕР·РґР°РЅРёРµ СЃРїРёСЃРєР° СѓРґР°Р»СЏРµРјС‹С… РёРЅС„РѕРїРѕСЂС€РёРЅРѕРІ
 	local info = {}
 	if ini:section_exist("info") then
 		n = ini:line_count("info")
@@ -651,7 +651,7 @@ function CArenaext:cleanup()
 		table.insert(info, value.done)
 	end
 	
-	-- создание списка удаляемых переменных
+	-- СЃРѕР·РґР°РЅРёРµ СЃРїРёСЃРєР° СѓРґР°Р»СЏРµРјС‹С… РїРµСЂРµРјРµРЅРЅС‹С…
 	local pstor = {}
 	if ini:section_exist("pstor") then
 		n = ini:line_count("pstor")
@@ -669,19 +669,19 @@ function CArenaext:cleanup()
 	
 	local storage = db.storage[actor:id()].pstor
 	
-	-- удаление инфопоршинов
+	-- СѓРґР°Р»РµРЅРёРµ РёРЅС„РѕРїРѕСЂС€РёРЅРѕРІ
 	for id, value in pairs(info) do
 		actor:disable_info_portion(value)
 	end
 	
-	-- удаление переменных
+	-- СѓРґР°Р»РµРЅРёРµ РїРµСЂРµРјРµРЅРЅС‹С…
 	for id, value in pairs(pstor) do
 		if storage[value] ~= nil then
 			storage[value] = nil
 		end
 	end
 
-	-- удаление объектов
+	-- СѓРґР°Р»РµРЅРёРµ РѕР±СЉРµРєС‚РѕРІ
 	for id=0, 65535 do
 		obj = sim:object(id)
 		if obj ~= nil then
@@ -690,37 +690,37 @@ function CArenaext:cleanup()
 			end
 		end
 	end
---	news_manager.send_tip(db.actor, "%c[25,240,25,25]МОД УДАЛЁН", nil, nil, 30000)
+--	news_manager.send_tip(db.actor, "%c[25,240,25,25]РњРћР” РЈР”РђР›РЃРќ", nil, nil, 30000)
 end
 
 -------
--- сгенерить доступные бои
+-- СЃРіРµРЅРµСЂРёС‚СЊ РґРѕСЃС‚СѓРїРЅС‹Рµ Р±РѕРё
 -------
 function CArenaext:reinit()
 	--printf("CArenaext:reinit()")
 	local name, info, t, tt, i, j, n, nn, cnt, rnd, fight
 
-	---- именно здесь, до установки info_portion-ов
+	---- РёРјРµРЅРЅРѕ Р·РґРµСЃСЊ, РґРѕ СѓСЃС‚Р°РЅРѕРІРєРё info_portion-РѕРІ
 	local special = self:is_stalkers_evil() or actor:dont_has_info(self.groups["special"].done)
 
-	-- запрещаем все группы
+	-- Р·Р°РїСЂРµС‰Р°РµРј РІСЃРµ РіСЂСѓРїРїС‹
 	for name, info in pairs(self.groups) do
 		actor:give_info_portion(info.done)
 	end
 
-	-- запрещаем все бои
+	-- Р·Р°РїСЂРµС‰Р°РµРј РІСЃРµ Р±РѕРё
 	for name, info in pairs(self.fights) do
 		actor:give_info_portion(info.done)
 	end
 
-	-- мутанты
+	-- РјСѓС‚Р°РЅС‚С‹
 	info = self.groups["mutants"]
-	actor:disable_info_portion(info.done)	-- разрешаем группу мутантов
-	if is_init_mutants() then			-- разрешаем все бои
+	actor:disable_info_portion(info.done)	-- СЂР°Р·СЂРµС€Р°РµРј РіСЂСѓРїРїСѓ РјСѓС‚Р°РЅС‚РѕРІ
+	if is_init_mutants() then			-- СЂР°Р·СЂРµС€Р°РµРј РІСЃРµ Р±РѕРё
 		for i, name in pairs(info.fights) do
 			actor:disable_info_portion(self.fights[name].done)
 		end
-	else						-- разрешаем 3-4 случайных боя
+	else						-- СЂР°Р·СЂРµС€Р°РµРј 3-4 СЃР»СѓС‡Р°Р№РЅС‹С… Р±РѕСЏ
 		t = {}
 		for i, name in pairs(info.fights) do
 			table.insert(t, name)
@@ -734,7 +734,7 @@ function CArenaext:reinit()
 		end
 	end
 
-	-- инициализация stakes
+	-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ stakes
 	t = {}
 	tt = {}
 	info = self.groups["stakes"]
@@ -767,7 +767,7 @@ function CArenaext:reinit()
 		end
 	end
 
-	-- инициализация turnament
+	-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ turnament
 	t = {}
 	info = self.groups["turnament"]
 	actor:disable_info_portion(info.done)
@@ -790,15 +790,15 @@ function CArenaext:reinit()
 	xr_logic.pstor_store(actor, fight.team2, "")
 	actor:disable_info_portion(fight.done)
 
-	-- инициализация остальных групп и боёв
-	if special then						-- бой со сборной
+	-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РѕСЃС‚Р°Р»СЊРЅС‹С… РіСЂСѓРїРї Рё Р±РѕС‘РІ
+	if special then						-- Р±РѕР№ СЃРѕ СЃР±РѕСЂРЅРѕР№
 		info = self.groups["special"]
 		actor:disable_info_portion(info.done)
 		for i, name in pairs(info.fights) do
 			actor:disable_info_portion(self.fights[name].done)
 		end
-		-- сброс статистики, что бы фраза не появлялась в диалоге больше одного раза
-		-- если бой не завершить, то он перейдёт в следующую активацию по info_portion
+		-- СЃР±СЂРѕСЃ СЃС‚Р°С‚РёСЃС‚РёРєРё, С‡С‚Рѕ Р±С‹ С„СЂР°Р·Р° РЅРµ РїРѕСЏРІР»СЏР»Р°СЃСЊ РІ РґРёР°Р»РѕРіРµ Р±РѕР»СЊС€Рµ РѕРґРЅРѕРіРѕ СЂР°Р·Р°
+		-- РµСЃР»Рё Р±РѕР№ РЅРµ Р·Р°РІРµСЂС€РёС‚СЊ, С‚Рѕ РѕРЅ РїРµСЂРµР№РґС‘С‚ РІ СЃР»РµРґСѓСЋС‰СѓСЋ Р°РєС‚РёРІР°С†РёСЋ РїРѕ info_portion
 		self.mk = 0
 	else
 		t = {}
@@ -810,7 +810,7 @@ function CArenaext:reinit()
 			end
 		end
 		
-		n = math.random(3, 4)  -- колличество случайных групп
+		n = math.random(3, 4)  -- РєРѕР»Р»РёС‡РµСЃС‚РІРѕ СЃР»СѓС‡Р°Р№РЅС‹С… РіСЂСѓРїРї
 		for i=1, n do
 			cnt = table.getn(t)
 			rnd = math.random(cnt)
@@ -819,10 +819,10 @@ function CArenaext:reinit()
 			actor:disable_info_portion(info.done)
 			
 			tt = {}
-			for j, name in pairs(info.fights) do  -- составление 'таблиц' боёв для каждой группы
+			for j, name in pairs(info.fights) do  -- СЃРѕСЃС‚Р°РІР»РµРЅРёРµ 'С‚Р°Р±Р»РёС†' Р±РѕС‘РІ РґР»СЏ РєР°Р¶РґРѕР№ РіСЂСѓРїРїС‹
 				table.insert(tt, name)
 			end
-			nn = math.random(1, 4)  -- колличество разрешаемых боёв
+			nn = math.random(1, 4)  -- РєРѕР»Р»РёС‡РµСЃС‚РІРѕ СЂР°Р·СЂРµС€Р°РµРјС‹С… Р±РѕС‘РІ
 			for j=1, nn do
 				cnt = table.getn(tt)
 				rnd = math.random(cnt)
@@ -832,7 +832,7 @@ function CArenaext:reinit()
 		end
 	end
 	
-	-- обновляем рестрикты каждый раз при начале новой арены
+	-- РѕР±РЅРѕРІР»СЏРµРј СЂРµСЃС‚СЂРёРєС‚С‹ РєР°Р¶РґС‹Р№ СЂР°Р· РїСЂРё РЅР°С‡Р°Р»Рµ РЅРѕРІРѕР№ Р°СЂРµРЅС‹
 	for id=0, 65535 do
 		obj = level.object_by_id(id)
 		if obj ~= nil then
@@ -843,10 +843,10 @@ function CArenaext:reinit()
 		end
 	end
 	
-	-- рестриктор, который будет выполнять озвучку и выход с арены
+	-- СЂРµСЃС‚СЂРёРєС‚РѕСЂ, РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕР·РІСѓС‡РєСѓ Рё РІС‹С…РѕРґ СЃ Р°СЂРµРЅС‹
 	sim:create("aem_sound", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
 	
-	-- рестриктор, который будет выполнять функции таймера, при сражениях на время
+	-- СЂРµСЃС‚СЂРёРєС‚РѕСЂ, РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ С„СѓРЅРєС†РёРё С‚Р°Р№РјРµСЂР°, РїСЂРё СЃСЂР°Р¶РµРЅРёСЏС… РЅР° РІСЂРµРјСЏ
 	sim:create("aem_timer", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
 	
 	self.it = self.nt
@@ -855,7 +855,7 @@ function CArenaext:reinit()
 end
 
 -------
--- вызывается из "bind_stalker.script" <actor_binder:update(delta)>
+-- РІС‹Р·С‹РІР°РµС‚СЃСЏ РёР· "bind_stalker.script" <actor_binder:update(delta)>
 -------
 function CArenaext:update()
 	local curr = time_get_curr()
@@ -871,20 +871,20 @@ function CArenaext:update()
 	
 	id = xr_logic.pstor_retrieve(actor, "aem_id", 0)
 
-	-- удаляем Арни и создаём его клона
+	-- СѓРґР°Р»СЏРµРј РђСЂРЅРё Рё СЃРѕР·РґР°С‘Рј РµРіРѕ РєР»РѕРЅР°
 	if id == 0 then
 		npc = sim:object("bar_arena_man")
 		if npc ~= nil then
 			sim:release(npc)
-		--	if npc:alive() ~= true then	-- вы ж его удалили, какого хрена проверять? Неудивительно, что при старте новой игры всякая херь временами бывает...
-				-- мёртвый
+		--	if npc:alive() ~= true then	-- РІС‹ Р¶ РµРіРѕ СѓРґР°Р»РёР»Рё, РєР°РєРѕРіРѕ С…СЂРµРЅР° РїСЂРѕРІРµСЂСЏС‚СЊ? РќРµСѓРґРёРІРёС‚РµР»СЊРЅРѕ, С‡С‚Рѕ РїСЂРё СЃС‚Р°СЂС‚Рµ РЅРѕРІРѕР№ РёРіСЂС‹ РІСЃСЏРєР°СЏ С…РµСЂСЊ РІСЂРµРјРµРЅР°РјРё Р±С‹РІР°РµС‚...
+				-- РјС‘СЂС‚РІС‹Р№
 		--		actor:give_info_portion("aem_arny_dead")
 		--		actor:give_info_portion("aem_arny_dis_1")
 		--		admin_dead()
 		--	else
-				-- живой
+				-- Р¶РёРІРѕР№
 				local obj = sim:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
-				-- сохранение id
+				-- СЃРѕС…СЂР°РЅРµРЅРёРµ id
 				id = obj.id
 				xr_logic.pstor_store(actor, "aem_id", id)
 		--	end
@@ -895,7 +895,7 @@ function CArenaext:update()
 		end
 	end
 	
-	-- проверка Арни(админа) по сохранённому id: мёртв или уничтожен	
+	-- РїСЂРѕРІРµСЂРєР° РђСЂРЅРё(Р°РґРјРёРЅР°) РїРѕ СЃРѕС…СЂР°РЅС‘РЅРЅРѕРјСѓ id: РјС‘СЂС‚РІ РёР»Рё СѓРЅРёС‡С‚РѕР¶РµРЅ	
 	if  update_time < game.get_game_time() then
 		local idle_time = game.CTime()
 		idle_time:setHMSms(0, 5, 0, 0)
@@ -906,14 +906,14 @@ function CArenaext:update()
 			npc = sim:object(id)
 			if npc ~= nil and npc:clsid() == clsid.script_stalker then
 				if npc:alive() ~= true then
-					-- мёртвый
+					-- РјС‘СЂС‚РІС‹Р№
 					if npc:profile_name() == "aem_arny" then
 						actor:give_info_portion("aem_arny_dead")
 						actor:give_info_portion("aem_arny_dis_1")
 					elseif string.find(npc:name(), "aem_admin") then
 						actor:give_info_portion("aem_admin_dead")
 					else
-						-- Арни(админа) порвало -> заспавнился левый id -> левый умер -> update
+						-- РђСЂРЅРё(Р°РґРјРёРЅР°) РїРѕСЂРІР°Р»Рѕ -> Р·Р°СЃРїР°РІРЅРёР»СЃСЏ Р»РµРІС‹Р№ id -> Р»РµРІС‹Р№ СѓРјРµСЂ -> update
 						if actor:dont_has_info("aem_arny_dis_1") and actor:dont_has_info("aem_arny_dis_2") then
 							actor:give_info_portion("aem_arny_spread_out")
 							actor:give_info_portion("aem_arny_dis_2")
@@ -923,9 +923,9 @@ function CArenaext:update()
 					end
 					admin_dead()
 				else
-					-- живой
+					-- Р¶РёРІРѕР№
 					if npc:profile_name() ~= "aem_arny" and not string.find(npc:name(), "aem_admin") then
-						-- уничтожен (порвало в аномалии)
+						-- СѓРЅРёС‡С‚РѕР¶РµРЅ (РїРѕСЂРІР°Р»Рѕ РІ Р°РЅРѕРјР°Р»РёРё)
 						if actor:dont_has_info("aem_arny_dis_1") and actor:dont_has_info("aem_arny_dis_2") then
 							actor:give_info_portion("aem_arny_spread_out")
 							actor:give_info_portion("aem_arny_dis_2")
@@ -936,7 +936,7 @@ function CArenaext:update()
 					end
 				end
 			else
-				-- уничтожен (порвало в аномалии)
+				-- СѓРЅРёС‡С‚РѕР¶РµРЅ (РїРѕСЂРІР°Р»Рѕ РІ Р°РЅРѕРјР°Р»РёРё)
 				if actor:dont_has_info("aem_arny_dis_1") and actor:dont_has_info("aem_arny_dis_2") then
 					actor:give_info_portion("aem_arny_spread_out")
 					actor:give_info_portion("aem_arny_dis_2")
@@ -948,8 +948,8 @@ function CArenaext:update()
 		end
 	end
 
-	-- выдача сообщения о восстановлении работы арены
-	-- инициализация спавна админа
+	-- РІС‹РґР°С‡Р° СЃРѕРѕР±С‰РµРЅРёСЏ Рѕ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРё СЂР°Р±РѕС‚С‹ Р°СЂРµРЅС‹
+	-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃРїР°РІРЅР° Р°РґРјРёРЅР°
 	rt = xr_logic.pstor_retrieve(actor, "aem_rt")
 	if rt ~= nil then
 		if (curr + rt >= self.nt) and (self.lt + rt < self.nt) then
@@ -964,7 +964,7 @@ function CArenaext:update()
 		end
 	end
 
-	-- 5 мин. после закрытия арены: сообщение + info для смены рестрикта
+	-- 5 РјРёРЅ. РїРѕСЃР»Рµ Р·Р°РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹: СЃРѕРѕР±С‰РµРЅРёРµ + info РґР»СЏ СЃРјРµРЅС‹ СЂРµСЃС‚СЂРёРєС‚Р°
 	ct = xr_logic.pstor_retrieve(actor, "aem_ct")
 	if ct ~= nil then
 		ctm = level.get_time_minutes()
@@ -991,7 +991,7 @@ function CArenaext:update()
 		if actor:has_info("aem_open") then
 			if actor:has_info("aem_done") then
 				--printf("CArenaext:update(~aem_open)")
-				self.nt = time_get_next(curr + 1) -- хотя бы часовой перерыв
+				self.nt = time_get_next(curr + 1) -- С…РѕС‚СЏ Р±С‹ С‡Р°СЃРѕРІРѕР№ РїРµСЂРµСЂС‹РІ
 				xr_logic.pstor_store(actor, "aem_nt", self.nt)
 				actor:disable_info_portion("aem_done")
 				actor:disable_info_portion("aem_open")
@@ -999,10 +999,10 @@ function CArenaext:update()
 				if actor:has_info("aem_spam") then
 					msg("aem_msg_done")
 				end
-				-- отключение мегафона и освещения щита "Арена"
+				-- РѕС‚РєР»СЋС‡РµРЅРёРµ РјРµРіР°С„РѕРЅР° Рё РѕСЃРІРµС‰РµРЅРёСЏ С‰РёС‚Р° "РђСЂРµРЅР°"
 				actor:disable_info_portion("aem_megafone")
 				--aem_lights.shield_off()
-				-- запомним время закрытия арены
+				-- Р·Р°РїРѕРјРЅРёРј РІСЂРµРјСЏ Р·Р°РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹
 				local ct = level.get_time_minutes()
 				xr_logic.pstor_store(actor, "aem_ct", ct)
 			elseif time_need_close(curr, self.nt) and
@@ -1010,17 +1010,17 @@ function CArenaext:update()
 				actor:dont_has_info("aem_fight_wait")
 			then
 				--printf("CArenaext:update(~aem_open)")
-				self.nt = time_get_next(curr + 1) -- хотя бы часовой перерыв
+				self.nt = time_get_next(curr + 1) -- С…РѕС‚СЏ Р±С‹ С‡Р°СЃРѕРІРѕР№ РїРµСЂРµСЂС‹РІ
 				xr_logic.pstor_store(actor, "aem_nt", self.nt)
 				actor:disable_info_portion("aem_open")
 				actor:disable_info_portion("aem_ready")
 				if actor:has_info("aem_spam") then
 					msg("aem_msg_close")
 				end
-				-- отключение мегафона и освещения щита "Арена"
+				-- РѕС‚РєР»СЋС‡РµРЅРёРµ РјРµРіР°С„РѕРЅР° Рё РѕСЃРІРµС‰РµРЅРёСЏ С‰РёС‚Р° "РђСЂРµРЅР°"
 				actor:disable_info_portion("aem_megafone")
 				--aem_lights.shield_off()
-				-- запомним время закрытия арены
+				-- Р·Р°РїРѕРјРЅРёРј РІСЂРµРјСЏ Р·Р°РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹
 				local ct = level.get_time_minutes()
 				xr_logic.pstor_store(actor, "aem_ct", ct)
 			end
@@ -1030,7 +1030,7 @@ function CArenaext:update()
 				actor:give_info_portion("aem_open")
 				actor:disable_info_portion("aem_go_bar")
 			elseif (curr + 3 >= self.nt) and (self.lt + 3 < self.nt) then
-				-- включение мегафона и освещения щита "Арена"
+				-- РІРєР»СЋС‡РµРЅРёРµ РјРµРіР°С„РѕРЅР° Рё РѕСЃРІРµС‰РµРЅРёСЏ С‰РёС‚Р° "РђСЂРµРЅР°"
 				actor:give_info_portion("aem_megafone")
 				--aem_lights.shield_on()
 				actor:disable_info_portion("aem_go_bar")
@@ -1056,7 +1056,7 @@ function CArenaext:update()
 			end
 		end
 		
-		-- проверка на разрыв диалога после передачи денег для ставки
+		-- РїСЂРѕРІРµСЂРєР° РЅР° СЂР°Р·СЂС‹РІ РґРёР°Р»РѕРіР° РїРѕСЃР»Рµ РїРµСЂРµРґР°С‡Рё РґРµРЅРµРі РґР»СЏ СЃС‚Р°РІРєРё
 		if not actor:is_talking() and actor:has_info("aem_fight_wait") then
 			self:start_stake()		
 		end
@@ -1074,23 +1074,23 @@ function CArenaext:update()
 end
 
 -------
--- начать бой
+-- РЅР°С‡Р°С‚СЊ Р±РѕР№
 -------
 function CArenaext:start(phr_id)
 	local name = self:fight_by_phrase(phr_id)
 	--printf("CArenaext:start('%s')", name)
 
-	-- запоминаем имя боя
+	-- Р·Р°РїРѕРјРёРЅР°РµРј РёРјСЏ Р±РѕСЏ
 	xr_logic.pstor_store(actor, "aem_cr", name)
 
-	-- запомним группировку ГГ
+	-- Р·Р°РїРѕРјРЅРёРј РіСЂСѓРїРїРёСЂРѕРІРєСѓ Р“Р“
 	xr_logic.pstor_store(actor, "aem_cm", actor:character_community())
 
 	local info = self.fights[name]
 
 	if info.group == "stakes" then
 		
-		-- спавн первой команды - мутанты
+		-- СЃРїР°РІРЅ РїРµСЂРІРѕР№ РєРѕРјР°РЅРґС‹ - РјСѓС‚Р°РЅС‚С‹
 		local team1 = self.teams[xr_logic.pstor_retrieve(actor, info.team1, "")]
 		local a1 = team1.mutants_min
 		local b1 = team1.mutants_max
@@ -1103,7 +1103,7 @@ function CArenaext:start(phr_id)
 			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
-		-- спавн второй команды - люди
+		-- СЃРїР°РІРЅ РІС‚РѕСЂРѕР№ РєРѕРјР°РЅРґС‹ - Р»СЋРґРё
 		local team2 = self.teams[xr_logic.pstor_retrieve(actor, info.team2, "")]
 		local a2 = team1.humans_min
 		local b2 = team1.humans_max
@@ -1116,7 +1116,7 @@ function CArenaext:start(phr_id)
 			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
-		-- ставка
+		-- СЃС‚Р°РІРєР°
 		if actor:has_info("aem_stake1") then
 			manage_money(stake1, "out")
 		elseif actor:has_info("aem_stake2") then
@@ -1125,12 +1125,12 @@ function CArenaext:start(phr_id)
 			manage_money(stake3, "out")
 		end
 		
-		-- отложенный старт 
+		-- РѕС‚Р»РѕР¶РµРЅРЅС‹Р№ СЃС‚Р°СЂС‚ 
 		actor:give_info_portion("aem_fight_wait")
 		
 	elseif info.group == "turnament" then
 		
-		-- спавн первой команды
+		-- СЃРїР°РІРЅ РїРµСЂРІРѕР№ РєРѕРјР°РЅРґС‹
 		local team1 = self.teams[xr_logic.pstor_retrieve(actor, info.team1, "")]
 		local n1 = table.getn(team1.spawn1)
 		xr_logic.pstor_store(actor, "aem_team1", n1)
@@ -1140,7 +1140,7 @@ function CArenaext:start(phr_id)
 			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
-		-- спавн второй команды
+		-- СЃРїР°РІРЅ РІС‚РѕСЂРѕР№ РєРѕРјР°РЅРґС‹
 		local team2 = self.teams[xr_logic.pstor_retrieve(actor, info.team2, "")]
 		local n2 = table.getn(team2.spawn2)
 		xr_logic.pstor_store(actor, "aem_team2", n2)
@@ -1150,7 +1150,7 @@ function CArenaext:start(phr_id)
 			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
-		-- ставка 
+		-- СЃС‚Р°РІРєР° 
 		if actor:has_info("aem_stake1") then
 			manage_money(stake1, "out")
 		elseif actor:has_info("aem_stake2") then
@@ -1159,12 +1159,12 @@ function CArenaext:start(phr_id)
 			manage_money(stake3, "out")
 		end
 		
-		-- отложенный старт 
+		-- РѕС‚Р»РѕР¶РµРЅРЅС‹Р№ СЃС‚Р°СЂС‚ 
 		actor:give_info_portion("aem_fight_wait")
 		
 	else
 		
-		-- спавн участников
+		-- СЃРїР°РІРЅ СѓС‡Р°СЃС‚РЅРёРєРѕРІ
 		local n = table.getn(info.spawn)
 		xr_logic.pstor_store(actor, "aem_team1", n)
 		for i=1, n do
@@ -1173,46 +1173,46 @@ function CArenaext:start(phr_id)
 			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
-		-- 'волшебный' ящичек
+		-- 'РІРѕР»С€РµР±РЅС‹Р№' СЏС‰РёС‡РµРє
 		local box = level_object_by_sid(574)
-		-- отнимем у ГГ опасные вещи
+		-- РѕС‚РЅРёРјРµРј Сѓ Р“Р“ РѕРїР°СЃРЅС‹Рµ РІРµС‰Рё
 		put_items_to_box(box, self.remove_items)
 		
 		-- ???
 		self.grenads = aem_grenade.unload1()
 		
-		-- запускаем кучу логики, завязанную на этот info_portion
+		-- Р·Р°РїСѓСЃРєР°РµРј РєСѓС‡Сѓ Р»РѕРіРёРєРё, Р·Р°РІСЏР·Р°РЅРЅСѓСЋ РЅР° СЌС‚РѕС‚ info_portion
 		actor:give_info_portion("bar_arena_fight")
 		
 	end
 end
 
 -------
--- начать отложенный бой
+-- РЅР°С‡Р°С‚СЊ РѕС‚Р»РѕР¶РµРЅРЅС‹Р№ Р±РѕР№
 -------
 function CArenaext:start_stake()
-	-- отключаем отложенный старт 
+	-- РѕС‚РєР»СЋС‡Р°РµРј РѕС‚Р»РѕР¶РµРЅРЅС‹Р№ СЃС‚Р°СЂС‚ 
 	actor:disable_info_portion("aem_fight_wait")
 
-	-- 'волшебный' ящичек
+	-- 'РІРѕР»С€РµР±РЅС‹Р№' СЏС‰РёС‡РµРє
 	local box = level_object_by_sid(574)
-	-- отнимем у ГГ всё, кроме самого необходимого, дабы он не вмешивался в ход боя
+	-- РѕС‚РЅРёРјРµРј Сѓ Р“Р“ РІСЃС‘, РєСЂРѕРјРµ СЃР°РјРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕРіРѕ, РґР°Р±С‹ РѕРЅ РЅРµ РІРјРµС€РёРІР°Р»СЃСЏ РІ С…РѕРґ Р±РѕСЏ
 	put_items_to_box_exept(box, self.keep_items)
 
-	-- ГГ временно пополняет ряды торговцев
+	-- Р“Р“ РІСЂРµРјРµРЅРЅРѕ РїРѕРїРѕР»РЅСЏРµС‚ СЂСЏРґС‹ С‚РѕСЂРіРѕРІС†РµРІ
 	actor:set_character_community("trader",0,0)
 
-	-- телепортация к зрителям
+	-- С‚РµР»РµРїРѕСЂС‚Р°С†РёСЏ Рє Р·СЂРёС‚РµР»СЏРј
 --	db.actor:give_info_portion("teleport_started")
 	level.add_pp_effector ("teleport.ppe", 2006, false)
 	actor:set_actor_position(vector():set(140.05,-13.387,108.039))
 	actor:set_actor_direction(1.57)
 --	db.actor:give_info_portion("teleport_finished")
 
-	-- запускаем кучу логики, завязанную на этот info_portion 
+	-- Р·Р°РїСѓСЃРєР°РµРј РєСѓС‡Сѓ Р»РѕРіРёРєРё, Р·Р°РІСЏР·Р°РЅРЅСѓСЋ РЅР° СЌС‚РѕС‚ info_portion 
 	actor:give_info_portion("bar_arena_fight")
 	
-	-- смена группировки для team2
+	-- СЃРјРµРЅР° РіСЂСѓРїРїРёСЂРѕРІРєРё РґР»СЏ team2
 	local npc
 	for id=0, 65535 do
 		npc = level.object_by_id(id)
@@ -1223,17 +1223,17 @@ function CArenaext:start_stake()
 end
 
 -------
--- выход с арены после финальной озвучки
+-- РІС‹С…РѕРґ СЃ Р°СЂРµРЅС‹ РїРѕСЃР»Рµ С„РёРЅР°Р»СЊРЅРѕР№ РѕР·РІСѓС‡РєРё
 -------
 function CArenaext:finish()
 	local name = self:current()
 	--printf("CArenaext:finish('%s')", name)
 	local info = self.fights[name]
 
-	-- бой окончен, пометим это и кое-что ещё
+	-- Р±РѕР№ РѕРєРѕРЅС‡РµРЅ, РїРѕРјРµС‚РёРј СЌС‚Рѕ Рё РєРѕРµ-С‡С‚Рѕ РµС‰С‘
 	self:on_done_fight()
 
-	-- телепортация к Арни
+	-- С‚РµР»РµРїРѕСЂС‚Р°С†РёСЏ Рє РђСЂРЅРё
 --	db.actor:give_info_portion("teleport_started")
 	level.add_pp_effector ("blink.ppe", 234, false)
 	actor:set_actor_position(patrol("t_walk_2"):point(0))
@@ -1241,26 +1241,26 @@ function CArenaext:finish()
 	actor:set_actor_direction(-dir:getH())
 --	db.actor:give_info_portion("teleport_finished")
 
-	-- ГГ покидает ряды торговцев
+	-- Р“Р“ РїРѕРєРёРґР°РµС‚ СЂСЏРґС‹ С‚РѕСЂРіРѕРІС†РµРІ
 	local community = xr_logic.pstor_retrieve(actor, "aem_cm")
 	actor:set_character_community(community,0,0)
 	db.storage[db.actor:id()].pstor["aem_cm"] = nil
 
-	-- удаление оружия, незаконно вынесеного с арены
+	-- СѓРґР°Р»РµРЅРёРµ РѕСЂСѓР¶РёСЏ, РЅРµР·Р°РєРѕРЅРЅРѕ РІС‹РЅРµСЃРµРЅРѕРіРѕ СЃ Р°СЂРµРЅС‹
 	if info.group ~= "turnament" or info.group ~= "stakes" then
 		clear_items(self.arena_items)
 	end
 
-	-- 'волшебный' ящичек
+	-- 'РІРѕР»С€РµР±РЅС‹Р№' СЏС‰РёС‡РµРє
 	local box = level_object_by_sid(574)
-	-- возврат ГГ ранее отобранных вещей
+	-- РІРѕР·РІСЂР°С‚ Р“Р“ СЂР°РЅРµРµ РѕС‚РѕР±СЂР°РЅРЅС‹С… РІРµС‰РµР№
 	get_items_from_box(box)
 
-	-- перезапуск логики рестриктов
+	-- РїРµСЂРµР·Р°РїСѓСЃРє Р»РѕРіРёРєРё СЂРµСЃС‚СЂРёРєС‚РѕРІ
 	actor:disable_info_portion("bar_arena_fight")
 	actor:disable_info_portion("bar_arena_fight_begin")
 
-	-- массовое убийство врагов, оставшихся на арене после выхода ГГ
+	-- РјР°СЃСЃРѕРІРѕРµ СѓР±РёР№СЃС‚РІРѕ РІСЂР°РіРѕРІ, РѕСЃС‚Р°РІС€РёС…СЃСЏ РЅР° Р°СЂРµРЅРµ РїРѕСЃР»Рµ РІС‹С…РѕРґР° Р“Р“
 	local bot
 	for id=0, 65535 do
 		bot = level.object_by_id(id)
@@ -1273,7 +1273,7 @@ function CArenaext:finish()
 end
 
 -------
--- получить награду и почистить инфу о бое, чтобы можно было приступить к следующему
+-- РїРѕР»СѓС‡РёС‚СЊ РЅР°РіСЂР°РґСѓ Рё РїРѕС‡РёСЃС‚РёС‚СЊ РёРЅС„Сѓ Рѕ Р±РѕРµ, С‡С‚РѕР±С‹ РјРѕР¶РЅРѕ Р±С‹Р»Рѕ РїСЂРёСЃС‚СѓРїРёС‚СЊ Рє СЃР»РµРґСѓСЋС‰РµРјСѓ
 -------
 function CArenaext:close()
 	local name = self:current()
@@ -1347,9 +1347,9 @@ function CArenaext:close()
 		actor:disable_info_portion("aem_fight_foul")
 	end
 
-	-- чистка арены (если делать в finish, то есть глюки)
+	-- С‡РёСЃС‚РєР° Р°СЂРµРЅС‹ (РµСЃР»Рё РґРµР»Р°С‚СЊ РІ finish, С‚Рѕ РµСЃС‚СЊ РіР»СЋРєРё)
 	xr_zones.purge_arena_items("bar_arena")
-	-- сброс освещения после боя
+	-- СЃР±СЂРѕСЃ РѕСЃРІРµС‰РµРЅРёСЏ РїРѕСЃР»Рµ Р±РѕСЏ
 	--aem_lights.lights_reset()
 	aem_lights.remove_all_aem_lamps()
 	
@@ -1361,59 +1361,59 @@ function CArenaext:close()
 end
 
 ---------------------------------------------------------------------------------------------------
--- функции для работы с динамическим диалогом
+-- С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РґРёРЅР°РјРёС‡РµСЃРєРёРј РґРёР°Р»РѕРіРѕРј
 ---------------------------------------------------------------------------------------------------
 --
--- Есть какие бои, Арни?
---   На сегодня всё, арена закрыта.
---   Выбирай...
+-- Р•СЃС‚СЊ РєР°РєРёРµ Р±РѕРё, РђСЂРЅРё?
+--   РќР° СЃРµРіРѕРґРЅСЏ РІСЃС‘, Р°СЂРµРЅР° Р·Р°РєСЂС‹С‚Р°.
+--   Р’С‹Р±РёСЂР°Р№...
 --     <group1>
 --     <group2>
 --     ...
 --     ret
 --
 -- <single>
--- Должане
---   В каком колличестве?
---     Один
---       Сколько времени тебе понадобится?
---         10 секунд
---         20 секунд
---         30 секунд
---         40 секунд
+-- Р”РѕР»Р¶Р°РЅРµ
+--   Р’ РєР°РєРѕРј РєРѕР»Р»РёС‡РµСЃС‚РІРµ?
+--     РћРґРёРЅ
+--       РЎРєРѕР»СЊРєРѕ РІСЂРµРјРµРЅРё С‚РµР±Рµ РїРѕРЅР°РґРѕР±РёС‚СЃСЏ?
+--         10 СЃРµРєСѓРЅРґ
+--         20 СЃРµРєСѓРЅРґ
+--         30 СЃРµРєСѓРЅРґ
+--         40 СЃРµРєСѓРЅРґ
 --         <ret>
 --     ...
 --     <ret>
 --
 -- <stake>
--- Тотализатор
---   Какой бой?
---     Военные против Свободы
---       На кого ставишь?
---         Военные
---           Сколько?
+-- РўРѕС‚Р°Р»РёР·Р°С‚РѕСЂ
+--   РљР°РєРѕР№ Р±РѕР№?
+--     Р’РѕРµРЅРЅС‹Рµ РїСЂРѕС‚РёРІ РЎРІРѕР±РѕРґС‹
+--       РќР° РєРѕРіРѕ СЃС‚Р°РІРёС€СЊ?
+--         Р’РѕРµРЅРЅС‹Рµ
+--           РЎРєРѕР»СЊРєРѕ?
 --             1000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             2000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             3000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             <nomoney>
 --             <ret>
---         Свобода
---           Сколько?
+--         РЎРІРѕР±РѕРґР°
+--           РЎРєРѕР»СЊРєРѕ?
 --             1000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             2000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             3000
---               Ну чтож, все ставки сделаны.
---                 Поехали
+--               РќСѓ С‡С‚РѕР¶, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             <nomoney>
 --             <ret>
 --         <ret>
@@ -1421,34 +1421,34 @@ end
 --     <ret>
 --
 -- <turnament>
--- Турнир
---   Какой бой?
---     Военные против Свободы.
---       На кого ставишь?
---         Военные
---           Сколько?
+-- РўСѓСЂРЅРёСЂ
+--   РљР°РєРѕР№ Р±РѕР№?
+--     Р’РѕРµРЅРЅС‹Рµ РїСЂРѕС‚РёРІ РЎРІРѕР±РѕРґС‹.
+--       РќР° РєРѕРіРѕ СЃС‚Р°РІРёС€СЊ?
+--         Р’РѕРµРЅРЅС‹Рµ
+--           РЎРєРѕР»СЊРєРѕ?
 --             1000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             2000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             3000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             <nomoney>
 --             <ret>
---         Свобода
---           Сколько?
+--         РЎРІРѕР±РѕРґР°
+--           РЎРєРѕР»СЊРєРѕ?
 --             1000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             2000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             3000
---               И так, все ставки сделаны.
---                 Поехали
+--               Р С‚Р°Рє, РІСЃРµ СЃС‚Р°РІРєРё СЃРґРµР»Р°РЅС‹.
+--                 РџРѕРµС…Р°Р»Рё
 --             <nomoney>
 --             <ret>
 --         <ret>
@@ -1458,7 +1458,7 @@ end
 
 -------
 -- Added by DEXXX
--- Проверяем версию игры и подставляем нужный тип данных
+-- РџСЂРѕРІРµСЂСЏРµРј РІРµСЂСЃРёСЋ РёРіСЂС‹ Рё РїРѕРґСЃС‚Р°РІР»СЏРµРј РЅСѓР¶РЅС‹Р№ С‚РёРї РґР°РЅРЅС‹С…
 -------
 function chk_ver(pid)
 	if tonumber(_G.main_menu.get_main_menu():GetGSVer()) <= 1.0004 then
@@ -1481,7 +1481,7 @@ function chk_ver_back(ph_curr)
 end
 
 -------
--- создаётся диалог актера, в котором будут выдаваться задания
+-- СЃРѕР·РґР°С‘С‚СЃСЏ РґРёР°Р»РѕРі Р°РєС‚РµСЂР°, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґСѓС‚ РІС‹РґР°РІР°С‚СЊСЃСЏ Р·Р°РґР°РЅРёСЏ
 -------
 function CArenaext:dlg_init(dlg)
 	--printf("CArenaext:dlg_init(...)")
@@ -1518,7 +1518,7 @@ function CArenaext:dlg_init(dlg)
 end
 
 -------
--- добавляет в диалог группу обычных боёв
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РіСЂСѓРїРїСѓ РѕР±С‹С‡РЅС‹С… Р±РѕС‘РІ
 -------
 function CArenaext:dlg_init_group(dlg, name, parent)
 	--printf("CArenaext:dlg_init_group('%s')", name)
@@ -1542,7 +1542,7 @@ function CArenaext:dlg_init_group(dlg, name, parent)
 end
 
 -------
--- добавляет в диалог один обычный бой
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РѕРґРёРЅ РѕР±С‹С‡РЅС‹Р№ Р±РѕР№
 -------
 function CArenaext:dlg_init_fight(dlg, name, parent)
 	--printf("CArenaext:dlg_init_fight('%s')", name)
@@ -1639,7 +1639,7 @@ function CArenaext:dlg_init_fight(dlg, name, parent)
 end
 
 -------
--- добавляет в диалог группу stakes
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РіСЂСѓРїРїСѓ stakes
 -------
 function CArenaext:dlg_init_stakes(dlg, parent)
 	--printf("CArenaext:dlg_init_stakes()")
@@ -1671,7 +1671,7 @@ function CArenaext:dlg_init_stakes(dlg, parent)
 end
 
 -------
--- добавляет в диалог один бой stakes
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РѕРґРёРЅ Р±РѕР№ stakes
 -------
 function CArenaext:dlg_init_stakes_fight(dlg, name1, name2, parent, dlg_id)
 	--printf("CArenaext:dlg_init_stakes_fight('%s vs %s')", name1, name2)
@@ -1711,7 +1711,7 @@ function CArenaext:dlg_init_stakes_fight(dlg, name1, name2, parent, dlg_id)
 end
 
 -------
--- добавляет в диалог группу turnament
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РіСЂСѓРїРїСѓ turnament
 -------
 function CArenaext:dlg_init_turnament(dlg, parent)
 	--printf("CArenaext:dlg_init_turnament()")
@@ -1744,7 +1744,7 @@ function CArenaext:dlg_init_turnament(dlg, parent)
 end
 
 -------
--- добавляет в диалог один бой turnament
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РѕРґРёРЅ Р±РѕР№ turnament
 -------
 function CArenaext:dlg_init_turnament_fight(dlg, name1, name2, parent, dlg_id)
 	--printf("CArenaext:dlg_init_turnament_fight('%s vs %s')", name1, name2)
@@ -1784,7 +1784,7 @@ function CArenaext:dlg_init_turnament_fight(dlg, name1, name2, parent, dlg_id)
 end
 
 -------
--- добавляет в диалог ветку со ставками
+-- РґРѕР±Р°РІР»СЏРµС‚ РІ РґРёР°Р»РѕРі РІРµС‚РєСѓ СЃРѕ СЃС‚Р°РІРєР°РјРё
 -------
 function CArenaext:dlg_init_stake_tree(dlg, stake, parent)
 
@@ -1839,7 +1839,7 @@ function CArenaext:dlg_init_stake_tree(dlg, stake, parent)
 end
 
 -------
--- возвращает id фразы боя turnament
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ id С„СЂР°Р·С‹ Р±РѕСЏ turnament
 -------
 function CArenaext:turnament_phrase_id(name)
 	local info = self.fights[name]
@@ -1849,7 +1849,7 @@ function CArenaext:turnament_phrase_id(name)
 end
 
 -------
--- возвращает id фразы боя stakes
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ id С„СЂР°Р·С‹ Р±РѕСЏ stakes
 -------
 function CArenaext:stakes_phrase_id(name)
 	local info = self.fights[name]
@@ -1859,7 +1859,7 @@ function CArenaext:stakes_phrase_id(name)
 end
 
 -------
--- возвращает имя боя по id фразы
+-- РІРѕР·РІСЂР°С‰Р°РµС‚ РёРјСЏ Р±РѕСЏ РїРѕ id С„СЂР°Р·С‹
 -------
 function CArenaext:fight_by_phrase(phr_id)
 	local name, info
@@ -1902,11 +1902,11 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- функции для управления manager-ом
+-- С„СѓРЅРєС†РёРё РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ manager-РѕРј
 ---------------------------------------------------------------------------------------------------
 
 -------
--- получить и проинициализировать объект класса
+-- РїРѕР»СѓС‡РёС‚СЊ Рё РїСЂРѕРёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ РѕР±СЉРµРєС‚ РєР»Р°СЃСЃР°
 -------
 function get_aem()
 	if arenaext == nil then
@@ -1916,7 +1916,7 @@ function get_aem()
 end
 
 -------
--- удалить объект класса
+-- СѓРґР°Р»РёС‚СЊ РѕР±СЉРµРєС‚ РєР»Р°СЃСЃР°
 -------
 function clear_aem()
 	arenaext = nil
@@ -1924,11 +1924,11 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- функции для работы с инвентарём и ящиком
+-- С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РёРЅРІРµРЅС‚Р°СЂС‘Рј Рё СЏС‰РёРєРѕРј
 ---------------------------------------------------------------------------------------------------
 
 -------
--- переносит заданные вещи из инвентаря ГГ в ящик
+-- РїРµСЂРµРЅРѕСЃРёС‚ Р·Р°РґР°РЅРЅС‹Рµ РІРµС‰Рё РёР· РёРЅРІРµРЅС‚Р°СЂСЏ Р“Р“ РІ СЏС‰РёРє
 -- void put_items_to_box(game_object box, {["section1"]=true, ["section2"]=true, ...} items)
 -------
 function put_items_to_box(box, items)
@@ -1946,7 +1946,7 @@ function put_items_to_box(box, items)
 end
 
 -------
--- переносит все вещи, кроме заданных, из инвентаря ГГ в ящик
+-- РїРµСЂРµРЅРѕСЃРёС‚ РІСЃРµ РІРµС‰Рё, РєСЂРѕРјРµ Р·Р°РґР°РЅРЅС‹С…, РёР· РёРЅРІРµРЅС‚Р°СЂСЏ Р“Р“ РІ СЏС‰РёРє
 -- void put_items_to_box_exept(game_object box, {["section1"]=true, ["section2"]=true, ...} exept)
 -------
 function put_items_to_box_exept(box, exept)
@@ -1965,7 +1965,7 @@ function put_items_to_box_exept(box, exept)
 end
 
 -------
--- переносит все вещи из ящика в инвертарь ГГ
+-- РїРµСЂРµРЅРѕСЃРёС‚ РІСЃРµ РІРµС‰Рё РёР· СЏС‰РёРєР° РІ РёРЅРІРµСЂС‚Р°СЂСЊ Р“Р“
 -- void get_items_from_box(game_object box)
 ------
 function get_items_from_box(box)
@@ -1983,7 +1983,7 @@ function get_items_from_box(box)
 end
 
 -------
--- удаляет заданные вещи из инвентаря ГГ
+-- СѓРґР°Р»СЏРµС‚ Р·Р°РґР°РЅРЅС‹Рµ РІРµС‰Рё РёР· РёРЅРІРµРЅС‚Р°СЂСЏ Р“Р“
 -- void clear_items({["section1"]=true, ["section2"]=true, ...} items)
 -------
 function clear_items(items)
@@ -2001,7 +2001,7 @@ function clear_items(items)
 end
 
 -------
--- очистить ящик в онлайне
+-- РѕС‡РёСЃС‚РёС‚СЊ СЏС‰РёРє РІ РѕРЅР»Р°Р№РЅРµ
 -- void clear_box(game_object box)
 -------
 function clear_box(box)
@@ -2014,7 +2014,7 @@ function clear_box(box)
 end
 
 -------
--- очистить ящик в офлайне
+-- РѕС‡РёСЃС‚РёС‚СЊ СЏС‰РёРє РІ РѕС„Р»Р°Р№РЅРµ
 -- void clear_offline_box(number sid)
 -------
 function clear_offline_box(sid)
@@ -2034,7 +2034,7 @@ function clear_offline_box(sid)
 end
 
 -------
--- получить список id вещей лежащих в ящике
+-- РїРѕР»СѓС‡РёС‚СЊ СЃРїРёСЃРѕРє id РІРµС‰РµР№ Р»РµР¶Р°С‰РёС… РІ СЏС‰РёРєРµ
 -- {id1, id2, ...} enum_box_items(game_object box)
 -------
 function enum_box_items(box)
@@ -2057,11 +2057,11 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- переопределённые binder-ы, как алтернатива net_spawn
+-- РїРµСЂРµРѕРїСЂРµРґРµР»С‘РЅРЅС‹Рµ binder-С‹, РєР°Рє Р°Р»С‚РµСЂРЅР°С‚РёРІР° net_spawn
 ---------------------------------------------------------------------------------------------------
 
 -------
--- binder для привязки сталкеров к 'bar_arena_restrictor'
+-- binder РґР»СЏ РїСЂРёРІСЏР·РєРё СЃС‚Р°Р»РєРµСЂРѕРІ Рє 'bar_arena_restrictor'
 -------
 function bind_npc(npc)
 	npc:add_restrictions("bar_arena_restrictor","")
@@ -2069,7 +2069,7 @@ function bind_npc(npc)
 end
 
 -------
--- binder для привязки админов к 'bar_restrictor'
+-- binder РґР»СЏ РїСЂРёРІСЏР·РєРё Р°РґРјРёРЅРѕРІ Рє 'bar_restrictor'
 -------
 function bind_admin(npc)
 	if actor:has_info("aem_go_bar") then
@@ -2081,8 +2081,8 @@ function bind_admin(npc)
 end
 
 -------
--- binder для привязки монстров к 'bar_arena_restrictor'
--- !!! не работает для контролёра !!!
+-- binder РґР»СЏ РїСЂРёРІСЏР·РєРё РјРѕРЅСЃС‚СЂРѕРІ Рє 'bar_arena_restrictor'
+-- !!! РЅРµ СЂР°Р±РѕС‚Р°РµС‚ РґР»СЏ РєРѕРЅС‚СЂРѕР»С‘СЂР° !!!
 -------
 function bind_mob(mob)
 	mob:add_restrictions("bar_arena_restrictor","")
@@ -2091,7 +2091,7 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- получение и отнятие денег без передачи NPC
+-- РїРѕР»СѓС‡РµРЅРёРµ Рё РѕС‚РЅСЏС‚РёРµ РґРµРЅРµРі Р±РµР· РїРµСЂРµРґР°С‡Рё NPC
 ---------------------------------------------------------------------------------------------------
 function manage_money(num, type)
 	if actor then
@@ -2108,7 +2108,7 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- вывод сообщений об арене
+-- РІС‹РІРѕРґ СЃРѕРѕР±С‰РµРЅРёР№ РѕР± Р°СЂРµРЅРµ
 ---------------------------------------------------------------------------------------------------
 function msg(text)
 	if sleep_manager.is_sleep_active() then return end
@@ -2143,11 +2143,11 @@ function npc(npc)
 	return npc
 end
 ---------------------------------------------------------------------------------------------------
--- функции для работы со временем
+-- С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃРѕ РІСЂРµРјРµРЅРµРј
 ---------------------------------------------------------------------------------------------------
 
 -------
--- время начала игры (по хорошему нужно прочесть из ltx игры)
+-- РІСЂРµРјСЏ РЅР°С‡Р°Р»Р° РёРіСЂС‹ (РїРѕ С…РѕСЂРѕС€РµРјСѓ РЅСѓР¶РЅРѕ РїСЂРѕС‡РµСЃС‚СЊ РёР· ltx РёРіСЂС‹)
 -------
 function time_get_start()
 	local t = game.CTime()
@@ -2156,7 +2156,7 @@ function time_get_start()
 end
 
 -------
--- время в часах, прошедшее от начала игры
+-- РІСЂРµРјСЏ РІ С‡Р°СЃР°С…, РїСЂРѕС€РµРґС€РµРµ РѕС‚ РЅР°С‡Р°Р»Р° РёРіСЂС‹
 -------
 function time_get_curr()
 	local t = game.get_game_time()
@@ -2165,10 +2165,10 @@ function time_get_curr()
 end
 
 -------
--- время следующего открытия
+-- РІСЂРµРјСЏ СЃР»РµРґСѓСЋС‰РµРіРѕ РѕС‚РєСЂС‹С‚РёСЏ
 -------
 function time_get_next(curr)
-	-- задание случайного интервала следующего открытия арены
+	-- Р·Р°РґР°РЅРёРµ СЃР»СѓС‡Р°Р№РЅРѕРіРѕ РёРЅС‚РµСЂРІР°Р»Р° СЃР»РµРґСѓСЋС‰РµРіРѕ РѕС‚РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹
 	if delay_min < 1 then
 		curr = curr + (math.random(delay_max) - 1) * 24
 	else
@@ -2186,7 +2186,7 @@ function time_get_next(curr)
 end
 
 -------
--- проверка, не пора ли закрывать арену
+-- РїСЂРѕРІРµСЂРєР°, РЅРµ РїРѕСЂР° Р»Рё Р·Р°РєСЂС‹РІР°С‚СЊ Р°СЂРµРЅСѓ
 -------
 function time_need_close(curr, open)
 	local need = open + time_close - time_open
@@ -2198,7 +2198,7 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- создание диалога выдачи боёв
+-- СЃРѕР·РґР°РЅРёРµ РґРёР°Р»РѕРіР° РІС‹РґР°С‡Рё Р±РѕС‘РІ
 ---------------------------------------------------------------------------------------------------
 function dlg_init(dlg, npc)
 	get_aem():dlg_init(dlg)
@@ -2206,11 +2206,11 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- Проверка условий диалогов - precondition
+-- РџСЂРѕРІРµСЂРєР° СѓСЃР»РѕРІРёР№ РґРёР°Р»РѕРіРѕРІ - precondition
 ---------------------------------------------------------------------------------------------------
 
 -------
--- проверка возможности показа в диалоге ветки дополнительных боёв
+-- РїСЂРѕРІРµСЂРєР° РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РїРѕРєР°Р·Р° РІ РґРёР°Р»РѕРіРµ РІРµС‚РєРё РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹С… Р±РѕС‘РІ
 -------
 function is_stakes_or_turnament_valid()
 	local arena = get_aem()
@@ -2219,7 +2219,7 @@ function is_stakes_or_turnament_valid()
 end
 
 -------
--- проверка возможности показа в диалоге боя 'stakes'
+-- РїСЂРѕРІРµСЂРєР° РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РїРѕРєР°Р·Р° РІ РґРёР°Р»РѕРіРµ Р±РѕСЏ 'stakes'
 -------
 function is_stakes_valid(npc1, npc2, dlg_name, phr_prev, phr_curr)
 	phr_curr = chk_ver_back(phr_curr)
@@ -2232,7 +2232,7 @@ function is_stakes_valid(npc1, npc2, dlg_name, phr_prev, phr_curr)
 end
 
 -------
--- проверка возможности показа в диалоге боя 'turnament'
+-- РїСЂРѕРІРµСЂРєР° РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РїРѕРєР°Р·Р° РІ РґРёР°Р»РѕРіРµ Р±РѕСЏ 'turnament'
 -------
 function is_turnament_valid(npc1, npc2, dlg_name, phr_prev, phr_curr)
 	phr_curr = chk_ver_back(phr_curr)
@@ -2245,7 +2245,7 @@ function is_turnament_valid(npc1, npc2, dlg_name, phr_prev, phr_curr)
 end
 
 -------
--- проверка наличия денег на ставку
+-- РїСЂРѕРІРµСЂРєР° РЅР°Р»РёС‡РёСЏ РґРµРЅРµРі РЅР° СЃС‚Р°РІРєСѓ
 -------
 function has_money_1()
 	return actor:money() >= stake1
@@ -2264,10 +2264,10 @@ function hasnt_money()
 end
 
 -------
--- проверка вариантов диалога награды за бой
+-- РїСЂРѕРІРµСЂРєР° РІР°СЂРёР°РЅС‚РѕРІ РґРёР°Р»РѕРіР° РЅР°РіСЂР°РґС‹ Р·Р° Р±РѕР№
 -------
 
--- ставка выиграла
+-- СЃС‚Р°РІРєР° РІС‹РёРіСЂР°Р»Р°
 --
 function is_reward_stake_win()
 	if not get_aem():is_stake() then
@@ -2276,7 +2276,7 @@ function is_reward_stake_win()
 	return get_aem():is_stake_win()
 end
 
--- ставка проиграла
+-- СЃС‚Р°РІРєР° РїСЂРѕРёРіСЂР°Р»Р°
 --
 function is_reward_stake_fail()
 	if not get_aem():is_stake() then
@@ -2285,7 +2285,7 @@ function is_reward_stake_fail()
 	return not get_aem():is_stake_win()
 end
 
--- бой без ограничения времени
+-- Р±РѕР№ Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёСЏ РІСЂРµРјРµРЅРё
 --
 function is_reward_nostake_unlimit()
 	if get_aem():is_stake() then
@@ -2297,7 +2297,7 @@ function is_reward_nostake_unlimit()
 	return true
 end
 
--- бой с ограничением времени - победа
+-- Р±РѕР№ СЃ РѕРіСЂР°РЅРёС‡РµРЅРёРµРј РІСЂРµРјРµРЅРё - РїРѕР±РµРґР°
 --
 function is_reward_nostake_bonus()
 	if get_aem():is_stake() then
@@ -2309,7 +2309,7 @@ function is_reward_nostake_bonus()
 	return actor:dont_has_info("aem_timeover")
 end
 
--- бой с ограничением времени - ничья
+-- Р±РѕР№ СЃ РѕРіСЂР°РЅРёС‡РµРЅРёРµРј РІСЂРµРјРµРЅРё - РЅРёС‡СЊСЏ
 --
 function is_reward_nostake_timeover()
 	if get_aem():is_stake() then
@@ -2321,7 +2321,7 @@ function is_reward_nostake_timeover()
 	return actor:dont_has_info("aem_fight_foul")
 end
 
--- бой с ограничением времени - фолл
+-- Р±РѕР№ СЃ РѕРіСЂР°РЅРёС‡РµРЅРёРµРј РІСЂРµРјРµРЅРё - С„РѕР»Р»
 --
 function is_reward_nostake_foul()
 	if get_aem():is_stake() then
@@ -2334,40 +2334,40 @@ function is_reward_nostake_foul()
 end
 
 -------
--- проверка вариантов диалога для инициализации арены
+-- РїСЂРѕРІРµСЂРєР° РІР°СЂРёР°РЅС‚РѕРІ РґРёР°Р»РѕРіР° РґР»СЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё Р°СЂРµРЅС‹
 -------
 
--- первая активация
+-- РїРµСЂРІР°СЏ Р°РєС‚РёРІР°С†РёСЏ
 --
 function is_init_first()
 	return get_aem().init_t == 0
 end
 
--- не первая активация
+-- РЅРµ РїРµСЂРІР°СЏ Р°РєС‚РёРІР°С†РёСЏ
 --
 function is_init_not_first()
 	return not is_init_first()
 end
 
--- сборная
+-- СЃР±РѕСЂРЅР°СЏ
 --
 function is_init_stalkers()
 	return get_aem():is_stalkers_evil()
 end
 
--- не сборная
+-- РЅРµ СЃР±РѕСЂРЅР°СЏ
 --
 function is_init_not_stalkers()
 	return not is_init_stalkers()
 end
 
--- мутанты
+-- РјСѓС‚Р°РЅС‚С‹
 --
 function is_init_mutants()
 	return get_aem():get_mutants_time() >= delay_mut*24
 end
 
--- не мутанты
+-- РЅРµ РјСѓС‚Р°РЅС‚С‹
 --
 function is_init_not_mutants()
 	return not is_init_mutants()
@@ -2375,11 +2375,11 @@ end
 
 
 ---------------------------------------------------------------------------------------------------
--- функции диалогов - action
+-- С„СѓРЅРєС†РёРё РґРёР°Р»РѕРіРѕРІ - action
 ---------------------------------------------------------------------------------------------------
 
 -------
--- инициализация мода
+-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РјРѕРґР°
 -------
 function startup()
 	get_aem():startup()
@@ -2389,38 +2389,38 @@ function timeup()
 	get_aem():timeup()
 end
 -------
--- удаление мода
+-- СѓРґР°Р»РµРЅРёРµ РјРѕРґР°
 -------
 function cleanup()
 	get_aem():cleanup()
 end
 
 -------
--- сделать на арене посветлее
+-- СЃРґРµР»Р°С‚СЊ РЅР° Р°СЂРµРЅРµ РїРѕСЃРІРµС‚Р»РµРµ
 -------
 function lights_on()
 	aem_lights.lights_on()
 end
 
 -------
--- вернуть прежнее освещение
+-- РІРµСЂРЅСѓС‚СЊ РїСЂРµР¶РЅРµРµ РѕСЃРІРµС‰РµРЅРёРµ
 -------
 function lights_off()
 	aem_lights.lights_off()
 end
 
 -------
--- 'суточная' переинициализация боёв
+-- 'СЃСѓС‚РѕС‡РЅР°СЏ' РїРµСЂРµРёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±РѕС‘РІ
 -------
 function reinit()
 	get_aem():reinit()
 end
 
 -------
--- начать бой, какой именно - определяется по id фразы
+-- РЅР°С‡Р°С‚СЊ Р±РѕР№, РєР°РєРѕР№ РёРјРµРЅРЅРѕ - РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РїРѕ id С„СЂР°Р·С‹
 -------
 function start_fight(npc1, npc2, dlg_name, phr_curr)
--- отсекание случая закрытия арены во время диалога
+-- РѕС‚СЃРµРєР°РЅРёРµ СЃР»СѓС‡Р°СЏ Р·Р°РєСЂС‹С‚РёСЏ Р°СЂРµРЅС‹ РІРѕ РІСЂРµРјСЏ РґРёР°Р»РѕРіР°
 	if actor:dont_has_info("aem_ready") then
 		actor:disable_info_portion("aem_bonus")
 		actor:disable_info_portion("aem_bonus_5s")
@@ -2446,14 +2446,14 @@ function start_fight(npc1, npc2, dlg_name, phr_curr)
 end
 
 -------
--- закрытие боя и получение награды, если она есть
+-- Р·Р°РєСЂС‹С‚РёРµ Р±РѕСЏ Рё РїРѕР»СѓС‡РµРЅРёРµ РЅР°РіСЂР°РґС‹, РµСЃР»Рё РѕРЅР° РµСЃС‚СЊ
 -------
 function close_fight()
 	get_aem():close()
 end
 
 -------
--- функция части инициализации смерти аренных менеджеров
+-- С„СѓРЅРєС†РёСЏ С‡Р°СЃС‚Рё РёРЅРёС†РёР°Р»РёР·Р°С†РёРё СЃРјРµСЂС‚Рё Р°СЂРµРЅРЅС‹С… РјРµРЅРµРґР¶РµСЂРѕРІ
 -------
 function admin_dead()
 	if actor:has_info("aem_arny_dead") then
@@ -2473,7 +2473,7 @@ function admin_dead()
 		timeup()
 	end
 	
-	-- иммитируется закрытие арены
+	-- РёРјРјРёС‚РёСЂСѓРµС‚СЃСЏ Р·Р°РєСЂС‹С‚РёРµ Р°СЂРµРЅС‹
 	actor:disable_info_portion("aem_spam")
 	actor:disable_info_portion("aem_megafone")
 	
@@ -2483,11 +2483,11 @@ function admin_dead()
 end
 
 -------
--- заспавним-ка нового администратора для арены
+-- Р·Р°СЃРїР°РІРЅРёРј-РєР° РЅРѕРІРѕРіРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° РґР»СЏ Р°СЂРµРЅС‹
 -------
 function admin_spawn()
 	local obj = sim:create("aem_admin", vector():set(153.451, -0.00164, 42.0269), 40777, 1230)
 
-	-- сохранение id нового админа
+	-- СЃРѕС…СЂР°РЅРµРЅРёРµ id РЅРѕРІРѕРіРѕ Р°РґРјРёРЅР°
 	xr_logic.pstor_store(actor, "aem_id", obj.id)
 end

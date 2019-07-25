@@ -3,7 +3,7 @@ local func_by_string = {}
 -- pda timer
 for i=0,4 do
 	func_by_string['pda_timer'..i] = function ( params )
-		local msg = "%c[255,0,255,0]Таймер сработал\\n"
+		local msg = "%c[255,0,255,0]РўР°Р№РјРµСЂ СЃСЂР°Р±РѕС‚Р°Р»\\n"
 		if params ~= "" then
 			msg= msg.."%c[255,255,128,128]"..params
 		end
@@ -11,7 +11,7 @@ for i=0,4 do
 	end
 end
 func_by_string["pda_alarm"] = function ( params )
-	news_manager.send_tip(db.actor, "%c[255,0,255,0]БУДИЛЬНИК", nil, "nano", 15000, nil, "device\\pda\\pda_sos")
+	news_manager.send_tip(db.actor, "%c[255,0,255,0]Р‘РЈР”РР›Р¬РќРРљ", nil, "nano", 15000, nil, "device\\pda\\pda_sos")
 	sleep_manager.stopper()
 end
 
@@ -53,27 +53,27 @@ end
 func_by_string["fli_code"] = function (params)
 	fly_island.check_code()
 end
--- Proper70: Надоело добавлять сюда строки - сделал универсальный запуск по таймеру любой служебной функции.
--- params = нужная функция.
--- Ограничения: нельзя передавать в качестве параметров функции переменные, только конкретные значения.
+-- Proper70: РќР°РґРѕРµР»Рѕ РґРѕР±Р°РІР»СЏС‚СЊ СЃСЋРґР° СЃС‚СЂРѕРєРё - СЃРґРµР»Р°Р» СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ Р·Р°РїСѓСЃРє РїРѕ С‚Р°Р№РјРµСЂСѓ Р»СЋР±РѕР№ СЃР»СѓР¶РµР±РЅРѕР№ С„СѓРЅРєС†РёРё.
+-- params = РЅСѓР¶РЅР°СЏ С„СѓРЅРєС†РёСЏ.
+-- РћРіСЂР°РЅРёС‡РµРЅРёСЏ: РЅРµР»СЊР·СЏ РїРµСЂРµРґР°РІР°С‚СЊ РІ РєР°С‡РµСЃС‚РІРµ РїР°СЂР°РјРµС‚СЂРѕРІ С„СѓРЅРєС†РёРё РїРµСЂРµРјРµРЅРЅС‹Рµ, С‚РѕР»СЊРєРѕ РєРѕРЅРєСЂРµС‚РЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ.
 func_by_string["run"] = function (params)
 	if params then loadstring(params)() end
 end
 for i = 1, 5 do
 	func_by_string["run"..i] = func_by_string["run"]
 end
--- острова
+-- РѕСЃС‚СЂРѕРІР°
 func_by_string["fli_teleport_actor"] = function (params)
 	kostya_dialog.create_teleport(params, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id())
 end
 func_by_string["fli_teleport_timeout"] = function (data)
 	kostya_dialog.create_teleport(data[1], vector():set(data[2], data[3], data[4]), data[5], data[6])
 end
--- телепортатор
+-- С‚РµР»РµРїРѕСЂС‚Р°С‚РѕСЂ
 func_by_string["on_take_teleportator"] = function (params)
 	spawn_level_changer.on_take_teleportator_chunk(params)
 end
--- битва
+-- Р±РёС‚РІР°
 func_by_string["battle"] = function (params)
 	battle.show_must_go_on(params)
 end
@@ -83,11 +83,11 @@ end
 func_by_string["move_on"] = function (params)
 	monster_parts.move_on()
 end
--- взносы
+-- РІР·РЅРѕСЃС‹
 func_by_string["stop_tush"] = function (params)
 	db.actor:give_info_portion("sidor_music")
 end
--- достижения
+-- РґРѕСЃС‚РёР¶РµРЅРёСЏ
 func_by_string["send_archievement"] = function (params)
 	archievements.send_archievement_chunk(params)
 end
@@ -117,14 +117,14 @@ end
 func_by_string["unload_wpn_time"] = function (params)
 	local obj = level.object_by_id(params)
 	if obj and not death_manager.unique_wpn[obj:section()] then
-		--amk.send_tip("Разрядили ",tostring(obj:name()),0,15,"gen_info")
+		--amk.send_tip("Р Р°Р·СЂСЏРґРёР»Рё ",tostring(obj:name()),0,15,"gen_info")
 		obj:unload_magazine()
 	end
 end
 func_by_string["wpn_cond_time"] = function (params)
 	local obj = level.object_by_id(params)
 	if obj and not death_manager.unique_wpn[obj:section()] then
-		--amk.send_tip("Состояние ",tostring(obj:name()),0,15,"gen_info")
+		--amk.send_tip("РЎРѕСЃС‚РѕСЏРЅРёРµ ",tostring(obj:name()),0,15,"gen_info")
 		obj:set_condition((math.random(20, 50)+5*(3-level.get_game_difficulty()))/100)
 	end
 end
@@ -271,11 +271,11 @@ end
 func_by_string["timer_drop_obj_varka"] = function (tbl)
 	local sobj = alife():object(tbl.obj_id)
 	if sobj and sobj.parent_id == 65535 then
-		-- выбросили
-		-- запускаем проверку на рецепт и, если успешно, варку
+		-- РІС‹Р±СЂРѕСЃРёР»Рё
+		-- Р·Р°РїСѓСЃРєР°РµРј РїСЂРѕРІРµСЂРєСѓ РЅР° СЂРµС†РµРїС‚ Рё, РµСЃР»Рё СѓСЃРїРµС€РЅРѕ, РІР°СЂРєСѓ
 		local obj	= level.object_by_id(tbl.obj_id)
 		local anom	= level.object_by_id(tbl.anom_id)
-		if obj and anom then -- если чего само выпадет или будет вброшено в игру скриптом при переходе ГГ между уровнями, то obj == nil и аномалии тоже не будет
+		if obj and anom then -- РµСЃР»Рё С‡РµРіРѕ СЃР°РјРѕ РІС‹РїР°РґРµС‚ РёР»Рё Р±СѓРґРµС‚ РІР±СЂРѕС€РµРЅРѕ РІ РёРіСЂСѓ СЃРєСЂРёРїС‚РѕРј РїСЂРё РїРµСЂРµС…РѕРґРµ Р“Р“ РјРµР¶РґСѓ СѓСЂРѕРІРЅСЏРјРё, С‚Рѕ obj == nil Рё Р°РЅРѕРјР°Р»РёРё С‚РѕР¶Рµ РЅРµ Р±СѓРґРµС‚
 			local obj_sect	= obj:section()
 			local obj_pos	= obj:position()
 			local anom_sect	= anom:section()
@@ -287,8 +287,8 @@ end
 func_by_string["timer_drop_obj_transform"] = function (tbl)
 	local sobj = alife():object(tbl.obj_id)
 	if sobj and sobj.parent_id == 65535 then
-		-- выбросили
-		-- запускаем трансформацию предмета
+		-- РІС‹Р±СЂРѕСЃРёР»Рё
+		-- Р·Р°РїСѓСЃРєР°РµРј С‚СЂР°РЅСЃС„РѕСЂРјР°С†РёСЋ РїСЂРµРґРјРµС‚Р°
 		local obj = level.object_by_id(tbl.obj_id)
 		if obj then
 			amk_mod.item_transform(tbl.obj_id, tbl.lv, tbl.gv)

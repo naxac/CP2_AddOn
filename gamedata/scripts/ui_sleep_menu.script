@@ -1,8 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --/amk_rel_1/
--- инициализация
+-- РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
 class "UISleepWnd" ( CUIScriptWnd )
-local k_sleep = 2.5		-- один час сна даёт два с половиной часа бодрствования
+local k_sleep = 2.5		-- РѕРґРёРЅ С‡Р°СЃ СЃРЅР° РґР°С‘С‚ РґРІР° СЃ РїРѕР»РѕРІРёРЅРѕР№ С‡Р°СЃР° Р±РѕРґСЂСЃС‚РІРѕРІР°РЅРёСЏ
 
 function UISleepWnd:__init( val )
 	super()
@@ -17,32 +17,32 @@ end
 function UISleepWnd:__finalize() end
 
 function UISleepWnd:InitControls()
-	-- здесь определяем координаты левого верхнего угла и ширину-высоту
+	-- Р·РґРµСЃСЊ РѕРїСЂРµРґРµР»СЏРµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ Р»РµРІРѕРіРѕ РІРµСЂС…РЅРµРіРѕ СѓРіР»Р° Рё С€РёСЂРёРЅСѓ-РІС‹СЃРѕС‚Сѓ
 	self:Init( 50, 50, 550, 450 )
 
-	-- файл-описатель наших элементов
+	-- С„Р°Р№Р»-РѕРїРёСЃР°С‚РµР»СЊ РЅР°С€РёС… СЌР»РµРјРµРЅС‚РѕРІ
 	local xml = CScriptXmlInit()
 	xml:ParseFile( "ui_cheat_wnd.xml" )
 
-	-- видео на заднем плане
+	-- РІРёРґРµРѕ РЅР° Р·Р°РґРЅРµРј РїР»Р°РЅРµ
 	xml:InitStatic( "back_video", self )
 
-	-- рамка
+	-- СЂР°РјРєР°
 	xml:InitStatic( "background", self )
 	xml:Init3tButton( "caption", self )
 
-	-- Шкала усталости
+	-- РЁРєР°Р»Р° СѓСЃС‚Р°Р»РѕСЃС‚Рё
 	local cond_sleep = xml:InitFrame( "frame_need_sleep", self )
 	local scale = xml:InitStatic( "scale_need_sleep", cond_sleep )
 	local m = ( self.can_sleep_time % 1 ) * 60
-	scale:SetText( string.format( "Можно спать: %02dч. %02dмин.", math.floor( self.can_sleep_time ), m ) )
+	scale:SetText( string.format( "РњРѕР¶РЅРѕ СЃРїР°С‚СЊ: %02dС‡. %02dРјРёРЅ.", math.floor( self.can_sleep_time ), m ) )
 	local cond = self.can_sleep_time * k_sleep / 36
 	scale:SetWidth( scale:GetWidth() * cond )
 	local r = ( cond >= 0.5 and 255 ) or cond * 510
 	local g = ( cond < 0.5 and 255 ) or ( 1-cond ) * 510
 	scale:SetColor( GetARGB( 255, r, g, 10 ) )
 	
-	-- кнопки
+	-- РєРЅРѕРїРєРё
 	local btn = xml:Init3tButton( "btn_1", self )
 	self:Register( btn,"btn_1" )
 	btn:Enable( self.can_sleep_time>1/6 )
@@ -62,12 +62,12 @@ function UISleepWnd:InitControls()
 	btn = xml:Init3tButton( "btn_5", self )
 	self:Register( btn,"btn_5" )
 	
-	-- кнопка выхода
+	-- РєРЅРѕРїРєР° РІС‹С…РѕРґР°
 	self:Register( xml:Init3tButton( "btn_quit", self ), "btn_quit" )
 end
 
 function UISleepWnd:InitCallBacks()
-	-- тут интерактивные элементы, при определенном действии выполняется заданная ф-ия
+	-- С‚СѓС‚ РёРЅС‚РµСЂР°РєС‚РёРІРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹, РїСЂРё РѕРїСЂРµРґРµР»РµРЅРЅРѕРј РґРµР№СЃС‚РІРёРё РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ Р·Р°РґР°РЅРЅР°СЏ С„-РёСЏ
 	self:AddCallbackEx( "btn_1", ui_events.BUTTON_CLICKED, self.start_sleep, 1 )
 	self:AddCallbackEx( "btn_2", ui_events.BUTTON_CLICKED, self.start_sleep, 3 )
 	self:AddCallbackEx( "btn_3", ui_events.BUTTON_CLICKED, self.start_sleep, 5 )

@@ -57,9 +57,9 @@ end
 
 function soul_cube_binder:update(delta)
 	object_binder.update(self, delta)
-	-- проверяем, у актора ли куб
+	-- РїСЂРѕРІРµСЂСЏРµРј, Сѓ Р°РєС‚РѕСЂР° Р»Рё РєСѓР±
 	if self.object:parent() and self.object:parent():id() == db.actor:id() then
-		self.souls = self.souls + souls -- подзаряжаем куб
+		self.souls = self.souls + souls -- РїРѕРґР·Р°СЂСЏР¶Р°РµРј РєСѓР±
 		if self.cube and souls ~= 0 then
 			self:OnRemove()
 			self:OnTake()
@@ -72,11 +72,11 @@ function soul_cube_binder:update(delta)
 			end
 		end
 	end
-	souls = 0 -- обнуляем счетчик убитых
+	souls = 0 -- РѕР±РЅСѓР»СЏРµРј СЃС‡РµС‚С‡РёРє СѓР±РёС‚С‹С…
 	
 	local ammo_elapsed = self.object:get_ammo_in_magazine()
 	local accuracy = db.actor:accuracy()
-	--позиция партиклов и звуков
+	--РїРѕР·РёС†РёСЏ РїР°СЂС‚РёРєР»РѕРІ Рё Р·РІСѓРєРѕРІ
 
 	if self.first_update then
 		self.first_update = false
@@ -85,36 +85,36 @@ function soul_cube_binder:update(delta)
 		return
 	end
 	
-	-- генерируем события взятия в руки и убирания
+	-- РіРµРЅРµСЂРёСЂСѓРµРј СЃРѕР±С‹С‚РёСЏ РІР·СЏС‚РёСЏ РІ СЂСѓРєРё Рё СѓР±РёСЂР°РЅРёСЏ
 	local qwerty = actor_active_item and (self.object:id() == actor_active_item:id())
 	if qwerty then 
-		if not self.last_in_slot then -- только взяли
+		if not self.last_in_slot then -- С‚РѕР»СЊРєРѕ РІР·СЏР»Рё
 			self.last_in_slot = true
 			self:OnTake()
 			self.in_hands = true
 			self.object:set_fastcall( self.sound_particle_fastcall, self )
-		else -- просто держим
+		else -- РїСЂРѕСЃС‚Рѕ РґРµСЂР¶РёРј
 			self:OnHold(delta)
 		end
 	else
-		if self.last_in_slot then -- только убрали
+		if self.last_in_slot then -- С‚РѕР»СЊРєРѕ СѓР±СЂР°Р»Рё
 			self.last_in_slot = false
 			self:OnRemove()
 			self.in_hands = false
 		end
-		return -- больше ничего не делаем
+		return -- Р±РѕР»СЊС€Рµ РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
 	end
 
-	-- Определяем что делаем с левой кнопокой мыши
+	-- РћРїСЂРµРґРµР»СЏРµРј С‡С‚Рѕ РґРµР»Р°РµРј СЃ Р»РµРІРѕР№ РєРЅРѕРїРѕРєРѕР№ РјС‹С€Рё
 	local da = self.last_ammo_elapsed - ammo_elapsed
-	if da > 0 then -- это либо первое нажатие, либо удержание
-		if not self.lbutton_pressed then -- первое нажатие
+	if da > 0 then -- СЌС‚Рѕ Р»РёР±Рѕ РїРµСЂРІРѕРµ РЅР°Р¶Р°С‚РёРµ, Р»РёР±Рѕ СѓРґРµСЂР¶Р°РЅРёРµ
+		if not self.lbutton_pressed then -- РїРµСЂРІРѕРµ РЅР°Р¶Р°С‚РёРµ
 			self:OnLButtonDown(delta)
 			self.lbutton_pressed = true
-		else -- удерживание
+		else -- СѓРґРµСЂР¶РёРІР°РЅРёРµ
 			self:OnLButtonHold(delta)
 		end
-	elseif self.lbutton_pressed then -- отпускание
+	elseif self.lbutton_pressed then -- РѕС‚РїСѓСЃРєР°РЅРёРµ
 		self:OnLButtonUp()
 		self.lbutton_pressed = false
 	end
@@ -142,7 +142,7 @@ end
 function soul_cube_binder:net_destroy()
 	self.lbutton_pressed = false
 	self.target = nil
---	self:HideCrosshair() -- отключен худ
+--	self:HideCrosshair() -- РѕС‚РєР»СЋС‡РµРЅ С…СѓРґ
 	object_binder.net_destroy(self)
 end
 
@@ -190,21 +190,21 @@ function soul_cube_binder:sound_particle_fastcall()
 	end
 end
 
-function soul_cube_binder:seek_target() -- поиск цели
+function soul_cube_binder:seek_target() -- РїРѕРёСЃРє С†РµР»Рё
 	local sim = alife()
 	local dist_search = 50
 	local cone_min = 0.5
 	self.target = nil
-	-- перебираем мутантов
+	-- РїРµСЂРµР±РёСЂР°РµРј РјСѓС‚Р°РЅС‚РѕРІ
 	for k,v in pairs (db.monster) do
 		if sim:object( k ) ~= nil then
 			local rvec = v:position():sub(device().cam_pos)
 			local r = rvec:magnitude()
-			if r <= dist_search and db.actor:see(v) and v:clsid() ~= clsid.boar_s then -- если цель в зоне поражения
+			if r <= dist_search and db.actor:see(v) and v:clsid() ~= clsid.boar_s then -- РµСЃР»Рё С†РµР»СЊ РІ Р·РѕРЅРµ РїРѕСЂР°Р¶РµРЅРёСЏ
 				local proj = rvec:dotproduct(device().cam_dir)
 				local cos_a = proj/r
-				if cos_a >= cone_min then -- объект ближе к оси прицеливания
-					-- сужаем конус поиска и запоминаем цель
+				if cos_a >= cone_min then -- РѕР±СЉРµРєС‚ Р±Р»РёР¶Рµ Рє РѕСЃРё РїСЂРёС†РµР»РёРІР°РЅРёСЏ
+					-- СЃСѓР¶Р°РµРј РєРѕРЅСѓСЃ РїРѕРёСЃРєР° Рё Р·Р°РїРѕРјРёРЅР°РµРј С†РµР»СЊ
 					cone_min = cos_a 
 					self.target = k
 				end
@@ -213,19 +213,19 @@ function soul_cube_binder:seek_target() -- поиск цели
 	end
 end
 
-function soul_cube_binder:OnLButtonDown(delta) -- атака, если есть энергия
-	-- проверяем, есть ли энергия на атаку
+function soul_cube_binder:OnLButtonDown(delta) -- Р°С‚Р°РєР°, РµСЃР»Рё РµСЃС‚СЊ СЌРЅРµСЂРіРёСЏ
+	-- РїСЂРѕРІРµСЂСЏРµРј, РµСЃС‚СЊ Р»Рё СЌРЅРµСЂРіРёСЏ РЅР° Р°С‚Р°РєСѓ
 	if not self.charged then
-		return -- недостаточно энергии
+		return -- РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЌРЅРµСЂРіРёРё
 	end
 	
-	-- ищем цель
+	-- РёС‰РµРј С†РµР»СЊ
 	self:seek_target()
 	if not self.target then
-		return -- атаковать некого
+		return -- Р°С‚Р°РєРѕРІР°С‚СЊ РЅРµРєРѕРіРѕ
 	end
 	
-	-- атакуем
+	-- Р°С‚Р°РєСѓРµРј
 	self:OnRemove()
 	self:OnTake("a")
 	self:attack_cycle(delta)
@@ -240,7 +240,7 @@ end
 
 
 function soul_cube_binder:OnTake(cube_type)
-	if self.cube then return end -- если куб есть, второй не спавним.
+	if self.cube then return end -- РµСЃР»Рё РєСѓР± РµСЃС‚СЊ, РІС‚РѕСЂРѕР№ РЅРµ СЃРїР°РІРЅРёРј.
 	if not cube_type then
 		if self.souls > 5 then
 			self.souls = 5
@@ -251,7 +251,7 @@ function soul_cube_binder:OnTake(cube_type)
 	local cube_section = "soulcube_"..cube_type
 	local cube = alife():create(cube_section,(device().cam_pos:mad(device().cam_dir, 1.5)),db.actor:level_vertex_id(),db.actor:game_vertex_id())
 	self.cube_id = cube.id
---	self:ShowCrosshair() -- отключен худ
+--	self:ShowCrosshair() -- РѕС‚РєР»СЋС‡РµРЅ С…СѓРґ
 end
 
 function soul_cube_binder:OnHold(delta)
@@ -289,20 +289,20 @@ function soul_cube_binder:OnHold(delta)
 end
 
 function soul_cube_binder:OnRemove()
-	if self.attack then return end -- если атака началась, не прерываем.
+	if self.attack then return end -- РµСЃР»Рё Р°С‚Р°РєР° РЅР°С‡Р°Р»Р°СЃСЊ, РЅРµ РїСЂРµСЂС‹РІР°РµРј.
 	self.sound_idle:stop()
 	alife():release(alife():object(self.cube_id),true)
 	self.cube_id = nil
 	self.cube = nil
 	self.lbutton_pressed = false
---	self:HideCrosshair() -- отключен худ
+--	self:HideCrosshair() -- РѕС‚РєР»СЋС‡РµРЅ С…СѓРґ
 end
 
 function soul_cube_binder:hold_cycle(delta)
 	self.hang_pos = device().cam_pos:mad(device().cam_dir, 2):mad(device().cam_top, -0.25)
 	local current_velocity = vector()
 	self.ps:get_linear_vel(current_velocity)
-	local rvec = self.hang_pos:sub(self.cube:center()) -- вектор от текущей позиции к точке назначения
+	local rvec = self.hang_pos:sub(self.cube:center()) -- РІРµРєС‚РѕСЂ РѕС‚ С‚РµРєСѓС‰РµР№ РїРѕР·РёС†РёРё Рє С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ
 	local impulse = rvec:mul(0.7*self.mass / (1e-3*delta))
 	local current_impulse = current_velocity:mul(self.mass)
 	local result_impulse = impulse:sub(current_impulse):mul(100)
@@ -349,7 +349,7 @@ function soul_cube_binder:attack_cycle(delta)
 			self.sound_fly_end:play_at_pos(db.actor,self.cube:position())
 			self:OnRemove()
 			self:OnTake()
-			archievements.acv_count_event("acv_soul", 5, "Ловец душ")
+			archievements.acv_count_event("acv_soul", 5, "Р›РѕРІРµС† РґСѓС€")
 		end
 	end
 end
@@ -391,7 +391,7 @@ function soul_cube_binder:move(target_pos,vmax,vfactor,delta)
 	pos = self.cube:position():mad(dir, v*delta/1000)
 	local current_velocity = vector()
 	self.ps:get_linear_vel(current_velocity)
-	local rvec = target_pos:sub(self.cube:center()) -- вектор от текущей позиции к точке назначения
+	local rvec = target_pos:sub(self.cube:center()) -- РІРµРєС‚РѕСЂ РѕС‚ С‚РµРєСѓС‰РµР№ РїРѕР·РёС†РёРё Рє С‚РѕС‡РєРµ РЅР°Р·РЅР°С‡РµРЅРёСЏ
 	local impulse = rvec:mul(0.7*self.mass / (1e-3*delta))
 	local current_impulse = current_velocity:mul(self.mass)
 	local result_impulse = impulse:sub(current_impulse):mul(100)
@@ -461,7 +461,7 @@ function soul_cube_binder:HideCrosshair()
 end
 
 function dir_up(dir)
-	local dir_xz = vector():set(dir.x,0,dir.z):magnitude() -- проекция вектора dir на горизонтальную плоскость
+	local dir_xz = vector():set(dir.x,0,dir.z):magnitude() -- РїСЂРѕРµРєС†РёСЏ РІРµРєС‚РѕСЂР° dir РЅР° РіРѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅСѓСЋ РїР»РѕСЃРєРѕСЃС‚СЊ
 	local dir_xz1 = vector():set((-1*dir.x) ,0,(-1*dir.z)):set_length(dir.y)
 	return vector():set(dir_xz1.x ,dir_xz,dir_xz1.z):normalize()
 end
