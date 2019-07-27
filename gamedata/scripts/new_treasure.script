@@ -13,25 +13,43 @@ function open_new_treasure(actor, box)
 	end
 end
 
-local items_to_save = nil
 function save_box_items(box, items)
 --	log("save_box_items: %s", table.size(items))
-	items_to_save = {}
+	if #items == 0 then
+		return
+	end
+
+	local items_to_save = {}
+	local repack_ammo = {}
 	local show_spot = false
+	local sect
 	for i, v in ipairs(items) do
-		table.insert(items_to_save, v:get_table())
+		sect = v:section()
+		if ammo_sections[sect]
+			and v.ammo_left ~= ammo_sections[sect]
+			and v:condition() == 1
+		then
+			table.add(repack_ammo, v:section(), v.ammo_left)
+		else
+			table.insert(items_to_save, v:get_table())
+		end
 		if v:section() == "amk_metka" then
 			show_spot = true
 		end
 	end
 
+	local box_size
+	for sect, num in pairs(repack_ammo) do
+		box_size = ammo_sections[sect]
+		while num > box_size do
+			table.insert( items_to_save, {s = sect} )
+			num = num - box_size
+		end
+		table.insert( items_to_save, {s = sect, al = num} )
+	end
+
 	local boxId = box:id()
 	fake_boxes[boxId] = {}
-
-	if #items_to_save == 0 then
-		items_to_save = nil
-		return
-	end
 
 	gps_habar.update_gps_spot_on_fake(show_spot, boxId, items_to_save)
 
@@ -62,7 +80,6 @@ function save_box_items(box, items)
 	--	log("[%s]: packet size = %s", obj:name(), size + 1)
 	--	table.print(stor)
 		if #items_to_save == 0 then
-			items_to_save = nil
 			break
 		end
 	end
