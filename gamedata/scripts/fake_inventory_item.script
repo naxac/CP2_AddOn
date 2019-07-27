@@ -2,10 +2,10 @@
 local saved_fields = {
 	["__section"]    = { name = "s",  def = nil },
 	["__condition"]  = { name = "c",  def = 1   },
-	["weight"]       = { name = "w",  def = nil },
+--	["weight"]       = { name = "w",  def = nil },
 	["custom_data"]  = { name = "cd", def = ""  },
 	["charge_level"] = { name = "cl", def = nil },
-	["ammo_left"]    = { name = "al", def = nil },
+--	["ammo_left"]    = { name = "al", def = nil },
 	["ammo_elapsed"] = { name = "ae", def = nil },
 	["ammo_type"]    = { name = "at", def = nil },
 	["addon_flags"]  = { name = "af", def = 0   },
@@ -53,6 +53,10 @@ function fake_item:set_table(tbl)
 		self[field] = tbl[t.name] or t.def
 	end
 	self.__cost = sys_ini:r_float(self.__section, "cost")
+	self.weight = tbl.w or sys_ini:r_float(self.__section, "inv_weight")
+	if ammo_sections[self.__section] then
+		self.ammo_left = tbl.al or ammo_sections[self.__section]
+	end
 end
 
 function fake_item:get_table()
@@ -63,6 +67,12 @@ function fake_item:get_table()
 				ret[t.name] = self[field]
 			end
 		end
+	end
+	if self.weight ~= sys_ini:r_float(self.__section, "inv_weight") then
+		ret.w = self.weight
+	end
+	if ammo_sections[self.__section] and self.ammo_left ~= ammo_sections[self.__section] then
+		ret.al = self.ammo_left
 	end
 	return ret
 end
