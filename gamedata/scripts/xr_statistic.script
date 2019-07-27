@@ -549,26 +549,17 @@ local cost_by_rank = {
 }
 local cant_add = true
 
-function addArtefact(art)
+function addArtefact(art_id, art_section)
 	if has_alife_info("peshera_go") then return end	-- сон в Пещере не считаем
 
-	local sect = art:section()
-	if art:is_artefact()  
-		and ( bind_det_arts.is_detected_art(sect) 
-		or sect:find("^kolba_") )
-	then
-		-- arc +
-		arc_arts.register_artefact(sect, 1)
-		-- arc -
-		if cant_add then return end
-		if stat_arts_ids[art:id()]==nil then
-			stat_arts_ids[art:id()] = true
-			-- если получили арт при разговоре, то не считаем
-			if db.actor:is_talking() then return end
+	if cant_add then return end
+	if stat_arts_ids[art_id]==nil then
+		stat_arts_ids[art_id] = true
+		-- если получили арт при разговоре, то не считаем
+		if db.actor:is_talking() then return end
 
-			actor_stats.add_points("artefacts", get_inv_name(sect), 1, 1)
-			add_actor_rank( get_af_rank(sect) )
-		end
+		actor_stats.add_points("artefacts", get_inv_name(art_section), 1, 1)
+		add_actor_rank( get_af_rank(art_section) )
 	end
 end
 

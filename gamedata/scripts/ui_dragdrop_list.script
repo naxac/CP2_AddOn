@@ -142,7 +142,26 @@ function UIDragDropList:AddContainer(row, col)
 	if self.place2cell[row] == nil then
 		self.place2cell[row] = {}
 	end
-	self.place2cell[row][col] = #self.containers
+	local idx = #self.containers
+	self.place2cell[row][col] = idx
+	cell.index = idx
+
+	if self.custom_placement then
+		local cell_name = "cell_"..row.."_"..col
+		self:Register(cell, cell_name)
+		self:AddCallbackEx(cell_name, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellFocus, idx)
+		self:AddCallbackEx(cell_name, ui_events.STATIC_FOCUS_LOST, self.OnCellFocusLost, idx)
+	end
+end
+
+function UIDragDropList:OnCellFocus(cell_index)
+	self.cell_in_focus = cell_index
+end
+
+function UIDragDropList:OnCellFocusLost(cell_index)
+	if self.cell_in_focus == cell_index then
+		self.cell_in_focus = nil
+	end
 end
 
 function UIDragDropList:GetItem(item_name)
@@ -165,7 +184,6 @@ function UIDragDropList:RemoveItem(item)
 		itm:RemoveItemById(item:id())
 		if itm:GetTopItem() == nil then
 			self.scroll_v:RemoveWindow(self.list)
-		--	self.scroll_v:Clear()
 			itm:Destroy()
 			self.list:DetachChild(itm)
 			self.name2item[itm.name] = nil
@@ -177,22 +195,65 @@ function UIDragDropList:RemoveItem(item)
 	end
 end
 
+function UIDragDropList:AddItemToPlace(item, row, col)
+	local idx = self.place2cell[row][col]
+	local cell = self.containers[idx]
+	if not cell then
+		abort("[UIDragDropList:AddItemToPlace]: can not find cell [%s::%s] for item [%s]",
+			row, col, item:name())
+		return
+	end
+
+	local itm = ui_cell_item.UICellItem(item)
+
+	if not self:CheckFreePlace(cell, itm.icon.width, itm.icon.height) then
+		itm = nil
+		return false
+	end
+
+	itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
+	itm:Init(
+		cell.col*self.cell_width,
+		cell.row*self.cell_height,
+		itm.icon.width*self.cell_width,
+		itm.icon.height*self.cell_height
+	)
+	self.list:AttachChild(itm)
+	itm.start_cell = idx
+	itm:RecolorAndScale()
+	self.name2item[itm.name] = itm
+	self:TakeCells(idx, itm.icon.width, itm.icon.height)
+	return itm
+end
+
 function UIDragDropList:AddItem(item)
 	local itm = self:CheckSimilarItems(item)
 	if itm then
 		itm:AddItem(item)
-		return nil
+		return itm, false
 	else
+		if self.custom_placement then
+			local cell = self:GetFocusedCell()
+			if cell then
+				itm = self:AddItemToPlace(item, cell.row, cell.col)
+				if itm then
+					return itm, cell.index
+				end
+			end
+		end
+
 		itm = ui_cell_item.UICellItem(item)
-		itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
 		local idx = self:GetFreePlace(itm.icon.width, itm.icon.height)
 		if not idx then
 			if self.unlimited then
 				return abort("[UIDragDropList:AddItem] error for create free cells for item[%s]", item:name())
 			end
-			return false
+			itm = nil
+			return nil, false
 		end
 		
+		itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
+
 		local cell = self.containers[idx]
 		
 		itm:Init(
@@ -207,8 +268,8 @@ function UIDragDropList:AddItem(item)
 		itm.cell_height = self.cell_height
 		itm:RecolorAndScale()
 		self.name2item[itm.name] = itm
-		self:TakeCells(cell.col, cell.row, cell.col+itm.icon.width-1, cell.row+itm.icon.height-1)
-		return itm
+		self:TakeCells(idx, itm.icon.width, itm.icon.height)
+		return itm, idx
 	end
 end
 
@@ -229,39 +290,36 @@ function UIDragDropList:GetFreePlace(width, height)
 		if not cell then
 			if self.unlimited then
 				self.scroll_v:RemoveWindow(self.list)
-			--	self.scroll_v:Clear()
 				self:AddRow()
 				self.list:SetHeight(self.rows_num*self.cell_height)
 				self.scroll_v:AddWindow(self.list, true)
 				self.list:SetAutoDelete(false)
-			--	cell = self.containers[idx]
 				return self:GetFreePlace(width, height)
 			else
 				return false
 			end
 		end
-
-		if cell.free
-			and self.cols_num - cell.col >= width
-			and self.rows_num - cell.row >= height
-		then
-			local check = true
-			for j = cell.col, cell.col + width - 1 do
-				for i = cell.row, cell.row + height - 1 do
-					if self.containers[ self.place2cell[i][j] ].free == false then
-						check = false
-						break
-					end
-				end
-				if check == false then
-					break
-				end
-			end
-			if check then
-				return idx
-			end
+		if self:CheckFreePlace(cell, width, height) then
+			return idx
 		end
 	end
+end
+
+function UIDragDropList:CheckFreePlace(cell, width, height)
+	if cell.free
+		and self.cols_num - cell.col >= width
+		and self.rows_num - cell.row >= height
+	then
+		for j = cell.col, cell.col + width - 1 do
+			for i = cell.row, cell.row + height - 1 do
+				if self.containers[ self.place2cell[i][j] ].free == false then
+					return false
+				end
+			end
+		end
+		return true
+	end
+	return false
 end
 
 function UIDragDropList:AddRow()
@@ -308,9 +366,10 @@ function UIDragDropList:RemoveExcessRows()
 	end
 end
 
-function UIDragDropList:TakeCells(start_col, start_row, end_col, end_row)
-	for i = start_row, end_row do
-		for j = start_col, end_col do
+function UIDragDropList:TakeCells(idx, width, height)
+	local cell = self.containers[idx]
+	for i = cell.row, cell.row+height-1 do
+		for j = cell.col, cell.col+width-1 do
 			self.containers[ self.place2cell[i][j] ].free = false
 		end
 	end
@@ -325,7 +384,57 @@ function UIDragDropList:FreeCells(idx, width, height)
 	end
 end
 
+function UIDragDropList:GetFocusedCell()
+	if not self.custom_placement then return false end
+
+	if self.cell_in_focus then
+		return self.containers[self.cell_in_focus]
+	end
+	return false
+end
+
+function UIDragDropList:ReplaceItem(item_name)
+	if not self.custom_placement then return false end
+
+	local itm = self:GetItem(item_name)
+	if not itm then return false end
+
+	local cell = self:GetFocusedCell()
+	if not cell then return false end
+
+	if not self:CheckFreePlace(cell, itm.icon.width, itm.icon.height) then
+		return false
+	end
+
+	self:FreeCells(itm.start_cell, itm.icon.width, itm.icon.height)
+
+	itm:SetWndPos(
+		cell.col*self.cell_width,
+		cell.row*self.cell_height
+	)
+	itm.start_cell = cell.index
+	self:TakeCells(cell.index, itm.icon.width, itm.icon.height)
+	return cell.index
+end
+
+function UIDragDropList:Clear()
+	self.scroll_v:RemoveWindow(self.list)
+	for nm, itm in pairs(self.name2item) do
+		itm:Destroy()
+		self.list:DetachChild(itm)
+		self.name2item[nm] = nil
+	end
+	self:RemoveExcessRows()
+	self.scroll_v:AddWindow(self.list, true)
+	self.list:SetAutoDelete(false)
+
+	for i, cell in ipairs(self.containers) do
+		cell.free = true
+	end
+end
+
 function UIDragDropList:Destroy()
+	self:ClearCallbacks()
 	for i = 1, #self.containers do
 		self.containers[i] = nil
 	end

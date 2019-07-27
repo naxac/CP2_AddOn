@@ -20,32 +20,6 @@ local db_click_timeout = 300
 local ActiveBoxId = nil
 
 ---------------------------------------------------------------------------------------------------------
-class "UIDragItem" (CUIStatic)
-
-function UIDragItem:__init()
-	super()
-
-	self.section = ""
-
-	self:Init(0, 0, 50, 50)
-	self:SetAutoDelete(true)
-	self:InitTexture("ui\\ui_icon_equipment")
-	self:SetStretchTexture(true)
-	self:SetColor( GetARGB(150, 255, 255, 255) )
-end
-
-function UIDragItem:__finalize()
-end
-
-function UIDragItem:InitItem(item)
-	local sect = item:section()
-	if self.section ~= sect then
-		self.section = sect
-		local icon = GetIconParams(sect)
-		self:SetOriginalRect(icon.x, icon.y, icon.w, icon.h)
-	end
-end
----------------------------------------------------------------------------------------------------------
 
 class "UICarBodyNew" (CUIScriptWnd)
 
@@ -134,7 +108,7 @@ function UICarBodyNew:InitControls()
 
 	self:ShowWeight()
 
-	self.drag_item = UIDragItem()
+	self.drag_item = ui_drag_item.UIDragItem()
 	self:AttachChild(self.drag_item)
 	self.drag_item:Show(false)
 end
@@ -167,8 +141,8 @@ function UICarBodyNew:OnItemTake(item)
 	end
 
 	table.insert(self.our_items, item)
-	local itm = self.our_bag:AddItem(item)
-	if itm then
+	local itm, first = self.our_bag:AddItem(item)
+	if first then
 		local nm = itm.name.."_r"
 		self:Register(itm, nm)
 		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
@@ -229,8 +203,8 @@ function UICarBodyNew:FillItems()
 	self.our_items = new_treasure.get_actor_items()
 	table.sort(self.our_items, sort_items)
 	for i, v in ipairs(self.our_items) do
-		local itm = self.our_bag:AddItem(v)
-		if itm then
+		local itm, first = self.our_bag:AddItem(v)
+		if first then
 			local nm = itm.name.."_r"
 			self:Register(itm, nm)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
@@ -241,14 +215,14 @@ function UICarBodyNew:FillItems()
 	self.others_items = new_treasure.load_box_items(self.box)
 	table.sort(self.others_items, sort_items)
 	for i, v in ipairs(self.others_items) do
-		local itm = self.others_bag:AddItem(v)
-		self.others_weight = self.others_weight + v:get_weight()
-		if itm then
+		local itm, first = self.others_bag:AddItem(v)
+		if first then
 			local nm = itm.name.."_b"
 			self:Register(itm, nm)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "others_bag", itm.name)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, "others_bag", itm.name)
 		end
+		self.others_weight = self.others_weight + v:get_weight()
 	end
 
 	self:ShowOthersWeight()
@@ -300,8 +274,8 @@ function UICarBodyNew:TransferItem(from_where, item_name)
 
 		self:OnDropItemToBox( item:section() )
 
-		local new_itm = self.others_bag:AddItem(obj)
-		if new_itm then
+		local new_itm, first = self.others_bag:AddItem(obj)
+		if first then
 			local nm = new_itm.name.."_b"
 			self:Register(new_itm, nm)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "others_bag", new_itm.name)
@@ -351,8 +325,8 @@ function UICarBodyNew:OnSpawnItem(obj, condition, ammo)
 		obj:set_ammo_elapsed(ammo)
 	end
 	table.insert(self.our_items, obj)
-	local itm = self.our_bag:AddItem(obj)
-	if itm then
+	local itm, first = self.our_bag:AddItem(obj)
+	if first then
 		local nm = itm.name.."_r"
 		self:Register(itm, nm)
 		self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, "our_bag", itm.name)
@@ -434,7 +408,7 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		local bind = dik_to_bind(dik)
-		if bind == key_bindings.kUSE or bind == key_bindings.kQUIT or dik == self.quit_dik then
+		if bind == key_bindings.kUSE or dik == self.quit_dik then
 			self:Quit()
 			return  true
 		end

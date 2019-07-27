@@ -174,11 +174,21 @@ end
 
 function fake_item:get_container_arts()
 	local cd = netpk:parse_custom_data(self.custom_data)
-	if not (cd and cd.arts) then  return nil end
 	local ret = {}
-	for n, sec in pairs(cd.arts) do
-		ret[ tonumber(n) ] = sec
+
+	if cd and cd.arts then
+		local sect, cond
+		for n, str in pairs(cd.arts) do
+			sect, cond = unpack( string.explode(str, ":", true) )
+			ret[tonumber(n)] = { s = sect, c = cond or 1 }
+		end
+	else
+		local count = sys_ini:r_u32( self:section(), "container_slots" )
+		for i = 1, count do
+			ret[i] = { s = "_", c = 0 }
+		end
 	end
+
 	return ret
 end
 

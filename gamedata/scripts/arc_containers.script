@@ -1,229 +1,128 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local cfg_containers = {}
 local inv_containers = {}
+local cfg_containers = {
+	["arc_art_box_8basic"] = true,
+	["arc_art_box_basic"] = true,
+	["arc_art_box_1basic"] = true
+}
 
-local menu_showed = false
 
-function get_cfg_containers_number()
-	return #cfg_containers
-end
+function on_take_container(item)
+	local cont_section = item:section()
+	if not cfg_containers[cont_section] then return false end
 
-function get_container_slots(cont_index)
-	if inv_containers[cont_index] == nil then return nil end
-	local t = inv_containers[cont_index].type
-	return cfg_containers[t].slots
-end
+	local cont_id = item:id()
+	if inv_containers[cont_id] then return end
 
-function get_container_protection(cont_index)
-	if inv_containers[cont_index] == nil then return nil end
-	local t = inv_containers[cont_index].type
-	return cfg_containers[t].max_rad
-end
+	local arts = get_container_arts(cont_id)
 
-function get_inv_containers_number()
-	return #inv_containers
-end
+	local slots = sys_ini:r_u32(cont_section, "container_slots")
+	local rad_protect = sys_ini:r_float(cont_section, "rad_protection")
 
-function get_cfg_index(cont_section)
-	for i = 1, get_cfg_containers_number() do
-		if cont_section == cfg_containers[i].section then
-			return i
-		end
-	end
-	return 0
-end
-
-function get_inv_index(cont_id)
-	for i = 1, get_inv_containers_number() do
-		if inv_containers[i].id == cont_id then
-			return i
-		end
-	end
-	return 0
-end
-
-function get_inv_container_arts(cont_index)
-	return inv_containers[cont_index].arts
-end
-
-function register_container(cont_id, cont_section, cont_arts)
-	if get_inv_index(cont_id)>0 then -- Уже зарегистрирован
-		return true
-	end
-	
-	local f = get_cfg_index(cont_section)
-	if f==0 then
-		if sys_ini:section_exist(cont_section) then
-			local tmp = {}
-			
-			tmp.section = cont_section
-			tmp.slots = sys_ini:r_u32_ex(cont_section, "container_slots", 0)
-			tmp.max_rad = sys_ini:r_float_ex(cont_section, "rad_protection", nil)
-			
-			table.insert(cfg_containers, tmp)
-			f = table.getn(cfg_containers)
-			
-		--	arc.info(list_cfg_containers(),1)
-		else
-			return false
-		end
-	end
-	
-	local cnt = {}
-	
-	cnt.id = cont_id
-	cnt.type = f
-	cnt.arts = {}
-	
-	local arts = cont_arts
-	if not arts then
-		arts = get_container_arts(cont_id)
-	end
-	
-	local s = cfg_containers[f].slots
-	local k_rad = cfg_containers[f].max_rad
-	local a
-	for i = 1, s do
-		if (not arts) or (not arts[i]) or (arts[i]=="_") then
-			cnt.arts[i] = 0
-		else
-			a = arc_arts.register_artefact(arts[i],1,true)
-			if a==0 then
-				arc.warning("Неизвестный артефакт "..tostring(arts[i]).." находится в слоте #"..i.." контейнера #"..cont_id..". При открытии контейнера артефакт будет удалён.")
-			end
-			cnt.arts[i] = a
-			
-			if k_rad then
-				local inv_rad = arc_arts.get_inv_rad_sect(arts[i])
-				if inv_rad > k_rad then
-					arc_radiation.change_inv_radiation(inv_rad-k_rad)
-				end
+	for i = 1, slots do
+		if arts and arts[i] and arts[i].s ~= "_" then
+			local inv_rad = sys_ini:r_float(arts[i].s, "radiation_restore_speed")
+			inv_rad = math.max(inv_rad, 0)
+			if inv_rad > rad_protect then
+				arc_radiation.change_inv_radiation(inv_rad-rad_protect)
 			end
 		end
 	end
-	
-	table.insert(inv_containers, cnt)
---	arc.info(list_inv_containers(),1)
-	
-	if arts and #arts>s then
-		arc.warning("Количество артефактов превышает количество слотов в контейнере #"..cont_id..". При открытии контейнера лишние артефакты будут удалены.")
-	end
-	
-	return true --f
+
+	inv_containers[cont_id] = arts
+
+	return true
 end
 
-function respawn_container(cont_index)
-	local ic = inv_containers[cont_index]
-	if not ic then
---		return false
-	end
+function on_lose_container(item)
+	local cont_section = item:section()
+	if not cfg_containers[cont_section] then return end
 
-	local a = {}
-	for i=1, cfg_containers[ic.type].slots do
-		if ic.arts[i] > 0 then
-			a[i] = arc_arts.get_art_section(ic.arts[i])
-		else
-			a[i] = "_"
-		end
-	end
+	local arts = inv_containers[ item:id() ]
+	if not arts then return end
 
-	local sobj = arc.give_item(cfg_containers[ic.type].section)
-	if not sobj then
-		return false
-	else
-		inv_containers[cont_index].id = sobj.id
-		set_container_arts(sobj.id, a)
-	end
-end
-
-function remove_container(cont_index)
-	arc.remove_obj(inv_containers[cont_index].id)
-end
-
-function on_lose_container(cont_id, cont_section)
-	if menu_showed then return end
-
-	local n = get_inv_index(cont_id)
-	local s = get_container_slots(n)
-	
-	if alife():object(cont_id)==nil and _G["biznes_remove_special_item"] == nil then
-	-- Контейнер использован. Показать меню
-		arc_ui_container_menu.show_menu(n)
-	else
-		-- Контейнер выброшен. Удалить контейнер и арты в нём из списка
-		local arts = inv_containers[n].arts
-		local k_rad = get_container_protection(n)
-		for i = 1, table.getn(arts) do
-			if arts[i]>0 then
-			
-				if k_rad then
-					local inv_rad = arc_arts.get_inv_rad_sect(arc_arts.get_art_section(arts[i]))
-					if inv_rad > k_rad then
-						arc_radiation.change_inv_radiation(-(inv_rad-k_rad))
-					end
-				end
-				
-				arc_arts.register_artefact(arc_arts.get_art_section(arts[i]), -1, true)
+	local rad_protect = sys_ini:r_float(cont_section, "rad_protection")
+	for i, v in ipairs(arts) do
+		if v.s ~= "_" then
+			local inv_rad = sys_ini:r_float(v.s, "radiation_restore_speed")
+			inv_rad = math.max(inv_rad, 0)
+			if inv_rad > rad_protect then
+				arc_radiation.change_inv_radiation(rad_protect-inv_rad)
 			end
 		end
-      
-		table.remove(inv_containers, n)
 	end
+	inv_containers[ item:id() ] = nil
 end
 
-function set_menu_showed(f)
-	menu_showed = f
+function on_use_container(item)
+	if not cfg_containers[ item:section() ] then return false end
+
+	arc_ui_container_menu.show_menu(item)
 end
 
 function get_container_arts(cont_id)
+	if inv_containers[cont_id] then
+		return inv_containers[cont_id]
+	end
+
 	local sobj = alife():object(cont_id)
-	if sobj==nil then return nil end
-	
+	if sobj==nil then
+		abort("arc_containers.get_container_arts: sobj with id [%s] is nil!", cont_id)
+		return nil
+	end
+
 	local tbl = netpk:get(sobj, netpk.fState)
 	local cd = netpk:parse_custom_data(tbl.custom_data)
-	
---	arc.info("CD = ["..tostring(cd_string).."]",1)
-	
-	if not (cd and cd.arts) then  return nil end
-	
+
 	local ret = {}
-	for n,sec in pairs(cd.arts) do
-		ret[tonumber(n)] = sec
+
+	if cd and cd.arts then
+		local sect, cond
+		for n, str in pairs(cd.arts) do
+			sect, cond = unpack( string.explode(str, ":", true) )
+			ret[tonumber(n)] = { s = sect, c = cond or 1 }
+		end
+	else
+		local count = sys_ini:r_u32( sobj:section_name(), "container_slots" )
+		for i = 1, count do
+			ret[i] = { s = "_", c = 0 }
+		end
 	end
+
 	return ret
 end
 
 function set_container_arts(cont_id, arts)
 	local sobj = alife():object(cont_id)
-	if sobj==nil then  return false end
+	if sobj==nil then
+		abort("arc_containers.set_container_arts: sobj with id [%s] is nil!", cont_id)
+		return false
+	end
 
-	local tbl = { custom_data = netpk:gen_custom_data( { arts = arts } ) }
-	netpk:modify( sobj, tbl, netpk.fState )
+	local t = {}
+	for i, v in ipairs(arts) do
+		t[ tostring(i) ] = string.format("%s:%s", v.s, v.c or 1)
+	end
+
+	local data = {
+		custom_data = netpk:gen_custom_data( { ['arts'] = t } )
+	}
+	netpk:modify( sobj, data, netpk.fState )
+	inv_containers[cont_id] = arts
+
 	return true
 end
 
-function list_cfg_containers()
-	local s = "cfg_containers = "
-	
-	for i=1, get_cfg_containers_number() do
-		local c = cfg_containers[i]
---		s = s.."\n s=["..c.section.."], b_r="..c.belt_rad..", i_r="..c.inv_rad.."; tx=["..c.tx..","..c.ty.."], w="..c.weight
-		s = s.."["..c.section.."] "
+function change_container_params(cont_id, rad_delta, weight_delta)
+	if rad_delta ~= 0 then
+		arc_radiation.change_inv_radiation(rad_delta)
 	end
-	
-	return s
-end
-
-function list_inv_containers()
-	local s = "inv_containers = "
-	
-	for i=1, get_inv_containers_number() do
-		local c = inv_containers[i]
---		s = s.."\n s=["..c.section.."], b_r="..c.belt_rad..", i_r="..c.inv_rad.."; tx=["..c.tx..","..c.ty.."], w="..c.weight
-		s = s.."["..c.id.."] arts={"..table.concat(c.arts, ",").."}"
+	if weight_delta ~= 0 then
+		local cont = level.object_by_id(cont_id)
+		if cont then
+			cont:set_weight( cont:get_weight() + weight_delta )
+		end
 	end
-	
-	return s
 end
 
 --========================================================================================--
@@ -242,8 +141,8 @@ function container_binder:net_spawn(sobj)
 	if arts then
 		local add_weight = 0
 		for i, v in ipairs(arts) do
-			if v ~= "_" then
-				add_weight = add_weight + sys_ini:r_float(v, "inv_weight")
+			if v.s ~= "_" then
+				add_weight = add_weight + sys_ini:r_float(v.s, "inv_weight")
 			end
 		end
 		if add_weight > 0 then
@@ -260,3 +159,9 @@ function init(obj)
 	obj:bind_object(binder)
 end
 
+--===================================================================
+function attach()
+	xr_s.subscribe("item_take", this.on_take_container)
+	xr_s.subscribe("item_use", this.on_use_container)
+	xr_s.subscribe("item_drop", this.on_lose_container)
+end

@@ -350,46 +350,42 @@ end
 -- Показываем список артефактов из конейнера и неэкранированную радиацию
 function CUIDescriptionWnd:GetContainerParams()
 	local arts
-	local fake = self.item.is_fake
-	if fake then
+	if self.item.is_fake then
 		arts = self.item:get_container_arts()
 	else
 		arts = arc_containers.get_container_arts(self.item:id())
 	end
+
 	self.arts_list = {}
-	if arts then
-		local p = sys_ini:r_float_ex(self.section, "rad_protection", nil)
-		local slots = sys_ini:r_u32(self.section, "container_slots")
-		local t = {}
-		local r, s = 0, ""
-		for i = 1, slots do
-			s = arts[i]
-			if s and s ~= "_" then
-				if t[s] == nil then t[s] = 1
-				else t[s] = t[s] + 1 end
-				if p then
-					r = r + math.max(sys_ini:r_float(s, "radiation_restore_speed") - p, 0)
-				end
-			end
+
+	local p = sys_ini:r_float_ex(self.section, "rad_protection", nil)
+	local slots = sys_ini:r_u32(self.section, "container_slots")
+	local t = {}
+	local r = 0
+	for i, v in ipairs(arts) do
+		if v.s ~= "_" then
+			table.add(t, v.s)
+			r = r + math.max(sys_ini:r_float(v.s, "radiation_restore_speed") - p, 0)
 		end
-		if table.size(t) > 0 then
-			local art_name
-			for k,v in pairs(t) do
-				if artefact_hunter.is_known_art(k) then
-					art_name = get_inv_name(k)
-				else
-					art_name = "unknown_art"
-				end
-				table_insert(self.arts_list, {
-					GetIconParams(k),
-					get_string(art_name)..(v>1 and " x"..v or "")
-				})
+	end
+
+	if table.size(t) > 0 then
+		local art_name
+		for k,v in pairs(t) do
+			if artefact_hunter.is_known_art(k) then
+				art_name = get_inv_name(k)
+			else
+				art_name = "unknown_art"
 			end
-			if r > 0 then
-				if arc_inventory.IsRadDetected() then
-					r = r*100/conditions.radiation_restore_speed
-					self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
-				end
+			table_insert(self.arts_list, {
+				GetIconParams(k),
+				get_string(art_name)..(v>1 and " x"..v or "")
+			})
+		end
+		if r > 0 then
+			if arc_inventory.IsRadDetected() then
+				r = r*100/conditions.radiation_restore_speed
+				self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
 			end
 		end
 	end
