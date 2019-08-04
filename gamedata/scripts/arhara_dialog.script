@@ -4442,31 +4442,48 @@ function nashel_listok_sms21()
 		"%c[255,160,160,160]ПАРФЮМЕР:\\n%c[255,255,128,128]Стрелок, какой Владимир Ильич??? Я уже у входа в штаб, встречай.",
 		nil, nil, 25000)
 end
+
 function operator_babki_otdat_sms()
 	news_manager.send_tip(db.actor,
 		"%c[255,160,160,160]ОПЕРАТОР СВЯЗИ:\\n%c[255,255,128,128]Уважаемые пользователи местной сети! Оператор связи сообщает, что в связи с модернизацией оборудования со счёта каждого пользователя в ближайшее время будет снято по 3000 рублей.",
-		nil, nil, 25000, nil, [[characters_voice\ozvuchka\babki_za_svyz1]])
+		nil, nil, 25000, nil, [[characters_voice\ozvuchka\babki_za_svyz1]],
+		"arhara_dialog.operator_babki_otdat_sms11()")
+	local se_obj = alife():object("mil1_plata1_restrictor")
+	if se_obj then
+		alife():release(se_obj, true)
+	end
 end
-function operator_babki_otdat_sms1()
+function operator_babki_otdat_sms11()
 	news_manager.send_tip(db.actor,
 		"%c[255,160,160,160]ЛУКАШ:\\n%c[255,255,128,128]Мародёры... Это происки Долга!!!",
-		nil, nil, 20000, nil, [[characters_voice\ozvuchka\lukash_operator_svyzi]])
+		nil, nil, 20000, nil, [[characters_voice\ozvuchka\lukash_operator_svyzi]],
+		"arhara_dialog.operator_babki_otdat_sms12()")
 end
-function operator_babki_otdat_sms2()
+function operator_babki_otdat_sms12()
 	news_manager.send_tip(db.actor,
 		"%c[255,160,160,160]КУЗНЕЦОВ:\\n%c[255,255,128,128]Э!!! Я на бюджетном довольствии!",
-		nil, nil, 20000, nil, [[characters_voice\ozvuchka\kuzy_operator_svyzi]])
+		nil, nil, 20000, nil, [[characters_voice\ozvuchka\kuzy_operator_svyzi]],
+		"arhara_dialog.operator_babki_otdat_sms13()")
 end
-function operator_babki_otdat_sms3()
+function operator_babki_otdat_sms13()
 	news_manager.send_tip(db.actor,
 		"%c[255,160,160,160]ЛЫСЫЙ:\\n%c[255,255,128,128]Вот козлы...",
-		nil, nil, 20000, nil, [[characters_voice\ozvuchka\lusuy_operator_svyzi]])
+		nil, nil, 20000, nil, [[characters_voice\ozvuchka\lusuy_operator_svyzi]],
+		"arhara_dialog.operator_babki_otdat_sms4()", 20)
 end
+function operator_babki_otdat_sms1() end
+function operator_babki_otdat_sms2() end
+function operator_babki_otdat_sms3() end
 function operator_babki_otdat_sms4()
+	local money = math.min(db.actor:money(), 3000)
+	db.actor:give_money(-money)
+	news_manager.relocate_money(db.actor, "out", money)
+
 	news_manager.send_tip(db.actor,
-		"%c[255,160,160,160]ОПЕРАТОР СВЯЗИ:\\n%c[255,255,128,128]С вашего счёта были сняты 3000 рублей. Благодарим за понимание и сотрудничество.",
-		nil, nil, 25000, nil, [[characters_voice\ozvuchka\babki_za_svyz2]])
+		"%c[255,160,160,160]ОПЕРАТОР СВЯЗИ:\\n%c[255,255,128,128]С вашего счёта были сняты "..money.." рублей. Благодарим за понимание и сотрудничество.",
+		1, nil, 25000, nil, [[characters_voice\ozvuchka\babki_za_svyz2]])
 end
+
 function bland_sms()
 	news_manager.send_tip(db.actor,
 		"%c[255,160,160,160]БЛЕНД:\\n%c[255,255,128,128]Эй, нейтрал! Я смотрю, у тебя есть лапти-самоскоки? По той лестнице, что ты поднялся, обычный человек, да ещё с твоим маленьким рюкзачонком залезть не сможет. За флешкой пожаловал? И кто же настучал о ней и о сходке? Жди меня на верхнем уровне.",
