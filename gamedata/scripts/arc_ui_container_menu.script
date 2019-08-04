@@ -1,21 +1,21 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local container_types = { 1, 3, 8 }
 local db_click_timeout = 300
+local used_container = -1
 
 function show_menu(container)
 	local wnd = level.main_input_receiver()
 	if wnd then level.start_stop_menu(wnd, true) end
 
-	local arts = arc_containers.get_container_arts( container:id() )
+	used_container = container:id()
+	local arts = arc_containers.get_container_arts(used_container)
 	local se_obj = alife():create(container:section(), vector():set(0,0,0), 0, 0, 0)
 	if arts then
 		arc_containers.set_container_arts( se_obj.id, arts )
 	end
 
-	local ui = arc_containers_menu(se_obj, arts)
-	level.start_stop_menu(ui, true)
+	level.start_stop_menu( arc_containers_menu(se_obj, arts), true )
 end
-
 
 class "arc_containers_menu" (CUIScriptWnd)
 
@@ -35,10 +35,7 @@ function arc_containers_menu:__init(obj, arts)
 	self.container_index = 1
 
 	self:search_inventory()
-	
-	self.take_buttons = {}
-	self.put_buttons = {}
-	
+
 	self:InitControls()
 
 	self:FillContainer()
@@ -48,9 +45,13 @@ function arc_containers_menu:__init(obj, arts)
 
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
 
-	self.wnd = self
-
 	bind_stalker.hide_weapon("inv")
+	
+	log("arc_containers_menu:__init")
+end
+
+function arc_containers_menu:__finalize()
+	log("arc_containers_menu:__finalize")
 end
 
 function arc_containers_menu:InitControls()
@@ -60,30 +61,20 @@ function arc_containers_menu:InitControls()
 	xml:ParseFile("ui_arc_container_menu.xml")
 
 	local back = xml:InitFrame("frame", self)
-	xml:InitStatic("art_box", back)
+	local cont = xml:InitStatic("art_box", back)
 
-	local container = xml:InitStatic("container", back)
-	self:Register(container, "container")
+	local st = xml:InitStatic("container", cont)
+	self:Register(st, "container")
 	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "container")
 	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "container")
 
-	local st = xml:InitStatic("dragdrop_container_1", back)
-	self.container_1 = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
-	st:AttachChild(self.container_1)
-	self.container_1:Enable(false)
-	self.container_1:Show(false)
-
-	st = xml:InitStatic("dragdrop_container_3", back)
-	self.container_3 = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
-	st:AttachChild(self.container_3)
-	self.container_3:Enable(false)
-	self.container_3:Show(false)
-
-	st = xml:InitStatic("dragdrop_container_8", back)
-	self.container_8 = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
-	st:AttachChild(self.container_8)
-	self.container_8:Enable(false)
-	self.container_8:Show(false)
+	for i, n in ipairs(container_types) do
+		st = xml:InitStatic("dragdrop_container_"..n, cont)
+		self["container_"..n] = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
+		st:AttachChild(self["container_"..n])
+		self["container_"..n]:Enable(false)
+		self["container_"..n]:Show(false)
+	end
 
 	local bag = xml:InitStatic("dragdrop_bag", back)
 	self:Register(bag, "bag")
@@ -93,27 +84,32 @@ function arc_containers_menu:InitControls()
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
 
-	self.weight_st = xml:InitStatic("arts_weight", back)
+	self.weight_st = xml:InitStatic("arts_weight", cont)
 
 	local sh = #self.containers > 1
 
-	self.btn_prev = xml:InitButton("btn_prev", back)
-	self:Register(self.btn_prev, "btn_prev")
+	local btn = xml:InitButton("btn_prev", cont)
+	self:Register(btn, "btn_prev")
 	self:AddCallbackEx("btn_prev", ui_events.BUTTON_CLICKED, self.PrevContainer)
-	self.btn_prev:Show(sh)
+	btn:SetText("<<")
+	btn:Show(sh)
 
-	self.btn_next = xml:InitButton("btn_next", back)
-	self:Register(self.btn_next, "btn_next")
+	btn = xml:InitButton("btn_next", cont)
+	self:Register(btn, "btn_next")
 	self:AddCallbackEx("btn_next", ui_events.BUTTON_CLICKED, self.NextContainer)
-	self.btn_next:Show(sh)
+	btn:SetText(">>")
+	btn:Show(sh)
 
-	local btn = xml:InitButton("btn_quit", back)
+	btn = xml:InitButton("btn_quit", cont)
 	self:Register(btn, "btn_quit")
 	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.Quit)
 
 	self.drag_item = ui_drag_item.UIDragItem()
 	self:AttachChild(self.drag_item)
 	self.drag_item:Show(false)
+	self.move_item = false
+
+	self.message_box = CUIMessageBoxEx()
 end
 
 function arc_containers_menu:__finalize()
@@ -122,7 +118,7 @@ end
 function arc_containers_menu:Update()
 	CUIScriptWnd.Update(self)
 
-	if self.move then
+	if self.move_item then
 		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
 	end
 	if self.first_click and self.first_click < time_global() then
@@ -147,6 +143,8 @@ function arc_containers_menu:NextContainer()
 end
 
 function arc_containers_menu:insert_container(id, section, arts)
+	if id == used_container then return end
+
 	local t = {}
 	t.container = {
 		section = section,
@@ -183,7 +181,12 @@ end
 
 function arc_containers_menu:FillContainer()
 	local t_cont = self.containers[self.container_index]
-	self.container_slots = #t_cont.arts
+	self.container_slots = sys_ini:r_u32(t_cont.container.section, "container_slots")	--#t_cont.arts
+	if #t_cont.arts > self.container_slots then
+		log("! artefacts count [%s] in container [%s:%s] more then slots count [%s]",
+			#t_cont.arts, t_cont.container.section, t_cont.container.id, self.container_slots)
+		table.print(t_cont.arts)
+	end
 	self.current_dragdrop =  "container_"..self.container_slots
 	self.cont_protection = sys_ini:r_float(t_cont.container.section, "rad_protection")
 
@@ -199,10 +202,12 @@ function arc_containers_menu:FillContainer()
 	dragdrop:Show(true)
 	dragdrop:Clear()
 	self.arts_weight = 0
-	for i, v in ipairs(t_cont.arts) do
+	local row, col, v
+	for i = 0, self.container_slots-1 do
+		v = t_cont.arts[i+1]
 		if v then
-			local row = math.floor(i/dragdrop.rows_num)
-			local col = (i - 1 - row*dragdrop.cols_num) % dragdrop.cols_num
+			row = math.floor(i/dragdrop.cols_num)
+			col = math.mod(i, dragdrop.cols_num)
 			local itm = dragdrop:AddItemToPlace(v, row, col)
 			if itm then
 				local nm = itm.name.."_c"..self.container_index
@@ -294,15 +299,17 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 		for i, v in ipairs(t_cont.arts) do
 			if v and v:id() == item:id() then
 				t_cont.arts[i] = false
+				arc_containers.remove_art(t_cont.container.id, i)
 				break
 			end
 		end
-		
-		self:ConvertFakeItem(item)
-		self.arts_weight = self.arts_weight - add_weight
-		bag_from:RemoveItem(item)
 
-		mul = -1
+		add_weight = -add_weight
+		add_rad = -add_rad
+
+
+		self:ConvertFakeItem(item)
+		bag_from:RemoveItem(item)
 	else		-- из рюкзака в контейнер
 		for i, v in ipairs(self.artefacts) do
 			if v:id() == item:id() then
@@ -320,22 +327,32 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self.current_dragdrop, new_itm.name)
 
 			if t_cont.arts[idx] ~= false then
-				abort("arc_containers_menu:TransferItem : place #%s already taken in container [%s:%s]", idx, t_cont.section, t_cont.id)
+				abort("arc_containers_menu:TransferItem : place #%s already taken in container [%s:%s]", idx, t_cont.container.section, t_cont.container.id)
 			end
 			t_cont.arts[idx] = obj
+			arc_containers.insert_art(t_cont.container.id, item, idx)
 		end
-		
-		self.arts_weight = self.arts_weight + add_weight
 
 		bag_from:RemoveItem( item )
 
 		shiftCheckDropItem()
 		alife():release( alife():object( item:id() ), true )
 
-		mul = 1
+		if add_rad > 0 then
+			self.message_box:Init("message_box_empty_file_name")
+			self.message_box:SetText(
+				string.format(
+					game.translate_string("st_no_full_radiation_protection"),
+					add_rad / sys_ini:r_float('actor_condition', 'radiation_v')
+				)
+			)
+			self:GetHolder():start_stop_menu(self.message_box, true)
+		end
 	end
 
-	arc_containers.change_container_params(t_cont.container.id, add_rad*mul, add_weight*mul)
+	self.arts_weight = self.arts_weight + add_weight
+	arc_containers.change_container_weight(t_cont.container.id, add_weight)
+	arc_radiation.change_inv_radiation(add_rad)
 
 	self:ShowArtsWeight()
 end
@@ -373,21 +390,23 @@ end
 
 function arc_containers_menu:ReplaceArt(cell_item_name, new_idx)
 	local itm = self[self.current_dragdrop]:GetItem(cell_item_name)
-	local art = itm:GetTopItem()
+	local item = itm:GetTopItem()
 
 	local t_cont = self.containers[self.container_index]
 	if t_cont.arts[new_idx] ~= false then
 		abort("arc_containers_menu:ReplaceArt : place #%s already taken in container [%s:%s]", idx, t_cont.section, t_cont.id)
 	end
 
-	for i, v in ipairs(t_cont.arts) do
-		if v and v:id() == art:id() then
+	local v
+	for i = 1, #t_cont.arts do
+		v = t_cont.arts[i]
+		if v and v:id() == item:id() then
 			t_cont.arts[i] = false
+			t_cont.arts[new_idx] = item
 			break
 		end
 	end
-
-	t_cont.arts[new_idx] = art
+	self.containers_for_save[self.container_index] = true
 end
 
 function arc_containers_menu:SaveContainers()
@@ -402,19 +421,15 @@ function arc_containers_menu:SaveContainers()
 			end
 		end
 		arc_containers.set_container_arts(t.container.id, a)
-		for i, v in ipairs(t.arts) do
-			if v then
-				v:destroy()
-			end
-		end
 	end
 end
 
 function arc_containers_menu:Quit()
+	self:ClearCallbacks()
+
 	local key = hotkeys.dik2key( self.quit_dik )
 	if not key:find("MOUSE") then key = "k"..key end
 	get_console():execute( "bind quit "..string.lower( key ) )
-
 
 	for i, v in ipairs(container_types) do
 		self["container_"..v]:Destroy()
@@ -423,22 +438,36 @@ function arc_containers_menu:Quit()
 	self.our_bag:Destroy()
 	self.our_bag = nil
 	self.drag_item = nil
+	self.weight_st = nil
+	self.message_box = nil
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
 
 	self:SaveContainers()
 
 	self.items_to_convert = nil
+	for i = 1, #self.artefacts do
+		self.artefacts[i] = nil
+	end
 	self.artefacts = nil
+	for i = 1, #self.containers do
+		for j = 1, #self.containers[i].arts do
+			if self.containers[i].arts[j] then
+				self.containers[i].arts[j]:destroy()
+				self.containers[i].arts[j] = nil
+			end
+		end
+		self.containers[i] = nil
+	end
 	self.containers = nil
 
 	xr_s.unsubscribe("item_take", self.OnItemTake)
 
-	self:ClearCallbacks()
-	self:GetHolder():start_stop_menu(self,true)
-	self.wnd = nil
+	used_container = -1
 
 	bind_stalker.restore_weapon("inv")
+
+	self:GetHolder():start_stop_menu(self, true)
 end
 
 function arc_containers_menu:OnKeyboard(dik, keyboard_action)
@@ -469,7 +498,7 @@ function arc_containers_menu:OnKeyboard(dik, keyboard_action)
 				self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
 				self.drag_item:Show(true)
 
-				self.move = true
+				self.move_item = true
 			end
 		end
 		if self.first_click == nil then
@@ -490,8 +519,8 @@ function arc_containers_menu:OnKeyboard(dik, keyboard_action)
 			end
 		end
 	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if self.move then
-			self.move = false
+		if self.move_item then
+			self.move_item = false
 			if self.drag_item:IsShown() then
 				self.drag_item:Show(false)
 			end

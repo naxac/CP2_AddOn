@@ -12,9 +12,11 @@ function on_take_container(item)
 	if not cfg_containers[cont_section] then return false end
 
 	local cont_id = item:id()
-	if inv_containers[cont_id] then return end
-
-	local arts = get_container_arts(cont_id)
+	local arts = inv_containers[cont_id]
+	if arts == nil then
+		arts = get_container_arts(cont_id)
+		inv_containers[cont_id] = arts
+	end
 
 	local slots = sys_ini:r_u32(cont_section, "container_slots")
 	local rad_protect = sys_ini:r_float(cont_section, "rad_protection")
@@ -28,8 +30,6 @@ function on_take_container(item)
 			end
 		end
 	end
-
-	inv_containers[cont_id] = arts
 
 	return true
 end
@@ -61,14 +61,14 @@ function on_use_container(item)
 end
 
 function get_container_arts(cont_id)
-	if inv_containers[cont_id] then
-		return inv_containers[cont_id]
-	end
-
 	local sobj = alife():object(cont_id)
 	if sobj==nil then
 		abort("arc_containers.get_container_arts: sobj with id [%s] is nil!", cont_id)
 		return nil
+	end
+
+	if inv_containers[cont_id] then
+		return inv_containers[cont_id]
 	end
 
 	local tbl = netpk:get(sobj, netpk.fState)
@@ -80,7 +80,7 @@ function get_container_arts(cont_id)
 		local sect, cond
 		for n, str in pairs(cd.arts) do
 			sect, cond = unpack( string.explode(str, ":", true) )
-			ret[tonumber(n)] = { s = sect, c = cond or 1 }
+			ret[tonumber(n)] = { s = sect, c = tonumber(cond) or 1 }
 		end
 	else
 		local count = sys_ini:r_u32( sobj:section_name(), "container_slots" )
@@ -88,6 +88,8 @@ function get_container_arts(cont_id)
 			ret[i] = { s = "_", c = 0 }
 		end
 	end
+
+	inv_containers[cont_id] = ret
 
 	return ret
 end
@@ -101,22 +103,42 @@ function set_container_arts(cont_id, arts)
 
 	local t = {}
 	for i, v in ipairs(arts) do
-		t[ tostring(i) ] = string.format("%s:%s", v.s, v.c or 1)
+		t[ tostring(i) ] = string.format("%s:%s", v.s, (v.c or 1))
 	end
 
 	local data = {
 		custom_data = netpk:gen_custom_data( { ['arts'] = t } )
 	}
 	netpk:modify( sobj, data, netpk.fState )
+
+	local cont = level.object_by_id(cont_id)
+	if cont then
+		local bFlag = cont:get_weight() ~= sys_ini:r_float(cont:section(), "inv_weight")
+		cont:set_inventory_item_flags(ii_flags.ungroupable, bFlag)
+	end
+
 	inv_containers[cont_id] = arts
 
 	return true
 end
 
-function change_container_params(cont_id, rad_delta, weight_delta)
-	if rad_delta ~= 0 then
-		arc_radiation.change_inv_radiation(rad_delta)
-	end
+function remove_art(cont_id, art_index)
+	local arts = inv_containers[cont_id]
+	if not arts then return end
+
+	arts[art_index].s = "_"
+	arts[art_index].c = 1
+end
+
+function insert_art(cont_id, art, art_index)
+	local arts = inv_containers[cont_id]
+	if not arts then return end
+
+	arts[art_index].s = art:section()
+	arts[art_index].c = art:condition()
+end
+
+function change_container_weight(cont_id, weight_delta)
 	if weight_delta ~= 0 then
 		local cont = level.object_by_id(cont_id)
 		if cont then
