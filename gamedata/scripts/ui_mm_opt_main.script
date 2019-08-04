@@ -8,16 +8,13 @@
 class "options_dialog" (CUIScriptWnd)
 
 function options_dialog:__init() super()
-   self:SetFont(GetFontMedium()) --set base font for dialog.
-
-	self.m_preconditions	= {}
+	self.m_preconditions_r2	= {}
 	
     self:InitControls()
     self:InitCallBacks()
 end
 
 function options_dialog:__finalize()
-
 end
 
 function options_dialog:InitControls()	
@@ -95,13 +92,9 @@ function options_dialog:UpdateControls()
 	opt:SaveBackupValues("mm_opt_sound")
 
 	opt:SetCurrentValues("mm_opt_controls")
+	opt:SaveBackupValues("mm_opt_controls")
 
 	opt:SetCurrentValues("key_binding")
-
-	if not xrRender_test_r2_hw() then
-		self.combo_r2:SetCurrentID		(0)
-		self.combo_r2:Enable			(false)
-	end
 
 	self:UpdateDependControls()
 	self:GameSetupMenuLoad()
@@ -112,18 +105,9 @@ function options_dialog:UpdateDependControls()
 	
 	local _current_id	= self.combo_r2:CurrentID()
 
-	for i,j in pairs(self.m_preconditions) do
+	for i,j in pairs(self.m_preconditions_r2) do
 		j				(i, _current_id)
 	end
---[[	
-	if self.combo_r2:CurrentID()==1 then
-		self.ch_r2_sun:Enable			(true)
-		self.ch_r2_sun_det:Enable		(true)
-	else
-		self.ch_r2_sun:Enable			(false)
-		self.ch_r2_sun_det:Enable		(false)
-	end
-]]
 end
 
 function options_dialog:InitCallBacks()
@@ -137,11 +121,8 @@ function options_dialog:InitCallBacks()
 	self:AddCallbackEx("combo_preset",		ui_events.LIST_ITEM_SELECT,	self.OnPresetChanged)
 	self:AddCallbackEx("btn_simply_graphic",	ui_events.BUTTON_CLICKED,	self.OnSimplyGraphic)
 	self:AddCallbackEx("btn_keyb_default",	ui_events.BUTTON_CLICKED,	self.OnBtnDefault)
---	self:AddCallback("btn_check_updates",	ui_events.BUTTON_CLICKED,	self.OnBtnCheckUpdates,		self)
 
-	self:AddCallbackEx("btn_cancel_download",	ui_events.BUTTON_CLICKED,	self.OnBtn_CancelDownload)
-
-	self:AddCallbackEx("list_difficulty",		ui_events.BUTTON_CLICKED,	self.OnDifficultyChanged)
+	self:AddCallbackEx("list_difficulty",		ui_events.LIST_ITEM_SELECT,	self.OnDifficultyChanged)
 	self:AddCallbackEx("amk_hud",				ui_events.BUTTON_CLICKED,	self.OnAMKHudChanged)
 	self:AddCallbackEx("blow_enable",			ui_events.BUTTON_CLICKED,	self.OnBlowoutChanged)
 	self:AddCallbackEx("pause_on_load",			ui_events.BUTTON_CLICKED,	self.OnLoadPauseChanged)
@@ -150,17 +131,12 @@ function options_dialog:InitCallBacks()
 	self:AddCallbackEx("message_box",			ui_events.MESSAGE_BOX_OK_CLICKED, self.Quit)
 end
 
-function options_dialog:OnBtnCheckUpdates()
-	local console			= get_console()
-	console:execute			("check_for_updates 1")
-end
-
 function options_dialog:OnBtnDefault()
 	local console			= get_console()
---	console:execute			("cfg_load default_controls")
 	console:execute			("unbindall")
 
 	local opt				= COptionsManager()
+	opt:SendMessage2Group	("mm_opt_controls","set_default_value")
 	opt:SetCurrentValues	("mm_opt_controls")
 	opt:SetCurrentValues	("key_binding")
 end
@@ -168,6 +144,9 @@ end
 function options_dialog:OnBtnDefGameplay()
 	_G["game_options"] = nil
 	self:GameSetupMenuLoad()
+
+	local opt				= COptionsManager()
+	opt:SetCurrentValues	("mm_opt_gameplay")
 end
 
 function options_dialog:OnPresetChanged()	
@@ -177,15 +156,11 @@ function options_dialog:OnPresetChanged()
 end
 
 function options_dialog:OnR2changed()	
-
 	self:UpdateDependControls()
-	
-	if false==self.b_r2_restart then
-		self.b_r2_restart			 = true
-	--	self.message_box:Init			("message_box_restart_game")
-	--	self:GetHolder():start_stop_menu(self.message_box,true)
+
+	if false == self.b_r2_restart then
+		self.b_r2_restart = true
 	end
-	
 end
 
 function options_dialog:OnBtnDefGraph()
@@ -199,7 +174,6 @@ function options_dialog:OnBtnDefSound()
 end
 
 function options_dialog:OnBtnAccept()
-	
 	local opt = COptionsManager()
 	local console = get_console()
 	
@@ -214,7 +188,6 @@ function options_dialog:OnBtnAccept()
 	self:GameSetupMenuSave()
 
 	console:execute("cfg_save user.ltx")
-	if db.actor then ui_inv_add.on_options_change() end
 	
 	if self.b_r2_restart == true
 		or self.need_restart_game == true
@@ -297,11 +270,6 @@ function options_dialog:OnKeyboard(dik, keyboard_action)
 	return true
 end
 
-function options_dialog:OnBtn_CancelDownload()
-	local mm = main_menu.get_main_menu()
-	mm:CancelDownload()
-end
-
 function options_dialog:GameSetupMenuLoad()
 	self.autochange_difficulty:SetCheck(game_options.AutoDif)
 	self.dynamic_bioradar:SetNewActiveTab(game_options.DynBio)
@@ -319,7 +287,7 @@ function options_dialog:GameSetupMenuLoad()
 	self.horrortime:SetCheck(game_options.HorrorTime)
 
 	self.trade_cond:SetCheck(game_options.TradeCondition)
-	self.untrade_belt_Slots:SetCheck(game_options.UntradeSlotsAndBelt)
+	self.untrade_belt_slots:SetCheck(game_options.UntradeSlotsAndBelt)
 
 	self.amk_treasures:SetNewActiveTab(game_options.AmkTrs)
 	self.amk_music:SetCheck(game_options.DynMusic)
@@ -385,7 +353,7 @@ function options_dialog:GameSetupMenuSave()
 	game_options.HorrorTime = self.horrortime:GetCheck()
 
 	game_options.TradeCondition = self.trade_cond:GetCheck()
-	game_options.UntradeSlotsAndBelt = self.untrade_belt_Slots:GetCheck()
+	game_options.UntradeSlotsAndBelt = self.untrade_belt_slots:GetCheck()
 
 	game_options.AmkTrs = self.amk_treasures:GetActiveIndex()
 	game_options.DynMusic = self.amk_music:GetCheck()
@@ -441,6 +409,7 @@ function options_dialog:GameSetupMenuSave()
 			"biodetector",
 			"trade_precondition",
 			"transparent_treasure",
+			"ui_inv_add",
 			"ui_hud_slots",
 			"zamok"
 		}
@@ -459,7 +428,7 @@ end
 
 -- отключение на мастере распознавания НПС и дистанции
 function options_dialog:OnDifficultyChanged()
-	if self.list_difficulty:GetText() == game.translate_string( "gd_master" ) then
+	if self.list_difficulty:CurrentID() == 3 then
 		self.check_tips:SetCheck(false)
 		self.check_tips:Enable(false)
 		self.check_dist:SetCheck(false)
@@ -472,6 +441,10 @@ function options_dialog:OnDifficultyChanged()
 		self.n_console:Enable(false)
 		self.autograb_body:SetCheck(false)
 		self.autograb_body:Enable(false)
+		self.autofoto:SetCheck(false)
+		self.autofoto:Enable(false)
+		self.fotofocus:SetCheck(false)
+		self.fotofocus:Enable(false)
 		self.buy:SetText("")
 		self.buy:Enable(false)
 		self.trade_cond:Enable(true)
@@ -484,6 +457,8 @@ function options_dialog:OnDifficultyChanged()
 		self.n_console:Enable(true)
 		self.autograb_body:Enable(true)
 		self.buy:Enable(true)
+		self.autofoto:Enable(true)
+		self.fotofocus:Enable(true)
 	end
 end
 
