@@ -1330,62 +1330,44 @@ function get_npc_weapon(npc)
 end
 
 function get_weapon_firepower(wpn)
-	local result = 0
 	if wpn and IAmAWeapon[wpn:clsid()] then
 		local sect = wpn:section_name()
 		if wpn_fp[sect] then
-			result = wpn_fp[sect]
+			return wpn_fp[sect]
 		else
 			if table.find(xrs_grenade.gr_types, sect) == false then
-			--local fd = utils.cfg_get_number(sys_ini, wpn:section_name(), "fire_distance", wpn, false, 1)
-			--local bs = utils.cfg_get_number(sys_ini, wpn:section_name(), "bullet_speed", wpn, false, 1)
-			--local rpm = utils.cfg_get_number(sys_ini, wpn:section_name(), "rpm", wpn, false, 1)
-				-- local priority = utils.cfg_get_number(sys_ini, wpn:section_name(), "ef_weapon_type", wpn, false, 1)
-				-- local priority2 = utils.cfg_get_number(sys_ini, wpn:section_name(), "ef_main_weapon_type", wpn, false, 0)
-				local priority = getIniValueFloat(sect, "ef_weapon_type", 1, nil)
-				local priority2 = getIniValueFloat(sect, "ef_main_weapon_type", 0, nil)
-				local GetRPM = ui_wpn_params.GetRPM(sect)
-				local GetDamage = ui_wpn_params.GetDamage(sect)
-				local GetHandling = ui_wpn_params.GetHandling(sect)
-				local GetAccuracy = ui_wpn_params.GetAccuracy(sect)
-			local fp = 1
+				local priority = sys_ini:r_u32_ex(sect, "ef_weapon_type", 1)
+				local priority2 = sys_ini:r_u32_ex(sect, "ef_main_weapon_type", 0)
+				local fd = sys_ini:r_float_ex(sect, "fire_distance", 1)
+				local bs = sys_ini:r_float_ex(sect, "bullet_speed", 1)
+				local rpm = sys_ini:r_float_ex(sect, "rpm", 1)
 				if priority>1 then
 					if priority2>0 then
-				priority = priority + priority2
-			end
+						priority = priority + priority2
+					end
 				end
-			--fp = priority*1000 + math.sqrt(fd*bs*rpm)		
-				fp = math_ceil(priority * 1000 + GetAccuracy * 100 + GetRPM * 3 + GetDamage * 8) - 5000
-			if GetHandling >= 99 then
-				fp = fp + 1500
-			end
-			result = fp
-				if wpn_fp[sect] == nil then
-					wpn_fp[sect] = fp
-				end
+				local fp = priority*1000 + math.sqrt(fd*bs*rpm)
+				wpn_fp[sect] = fp
+				
+				return fp
 			end
 		end
 	end
-	return result
+	return 0
 end
 
 function get_weapon_cost(weapon)
-	local result = 0
-	local sect = weapon:section_name()
 	if (weapon and IAmAWeapon[weapon:clsid()]) then
-		-- result = utils.cfg_get_number(sys_ini, weapon:section_name(), "cost", weapon, false, 0)
-		result = getIniValueFloat(sect, "cost", 0, nil)
+		return sys_ini:r_float_ex(weapon:section_name(), "cost", 0)
 	end
-	return result
+	return 0
 end
 
 function get_item_cost(item)
-	local result = 0
-	if (item and item.section_name) then
-		-- result = utils.cfg_get_number(sys_ini, item:section_name(), "cost", item, false, 0)
-		result = getIniValueFloat(item:section_name(), "cost", 0, nil)
+	if item then
+		result = sys_ini:r_float_ex(item:section_name(), "cost", 0)
 	end
-	return result
+	return 0
 end
 
 function set_npc_health(obj, health)

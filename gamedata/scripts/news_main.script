@@ -104,10 +104,8 @@ function init()
 		timer_weather_showed = timer_last_showed - math_random(timer_weather_freq)
 		timer_daytime_showed = timer_last_showed - math_random(timer_daytime_freq)
 		
-		--timer_show_freq = timer_show_freq * time_factor
-	
-		-- rel_enemy,rel_friend = utils.cfg_get_number(sys_ini, "game_relations", "goodwill_enemy", nil, false, -1000), utils.cfg_get_number(sys_ini, "game_relations", "goodwill_friend", nil, false, 1000)
-		rel_enemy,rel_friend = getIniValueFloat("game_relations", "goodwill_enemy", -1000, nil), getIniValueFloat("game_relations", "goodwill_friend", 1000, nil)
+		rel_enemy = sys_ini:r_float("game_relations", "goodwill_enemy")
+		rel_friend = sys_ini:r_float("game_relations", "goodwill_friend")
 
 	    if not xr_timers.has_timer("news_check") then
 			xr_timers.start_game_timer("news_check", 0, 0, timer_check_freq)
@@ -2803,10 +2801,8 @@ end
 
 function is_creature_day(obj_section)
 	--проверка на дневной/ночной режим
-	--local day_begin = utils.cfg_get_number(sys_ini, obj_section, "DayTime_Begin", nil, false, -1)
-	local day_begin = getIniValueFloat(obj_section, "DayTime_Begin", -1, nil)
-	--local day_end = utils.cfg_get_number(sys_ini, obj_section, "DayTime_End", nil, false, -1)
-	local day_end = getIniValueFloat(obj_section, "DayTime_End", -1, nil)
+	local day_begin = sys_ini:r_float_ex(obj_section, "DayTime_Begin", -1, nil)
+	local day_end = sys_ini:r_float_ex(obj_section, "DayTime_End", -1, nil)
 	if day_begin~=-1 and day_end~=-1 then
 		local hrs = level.get_time_hours()
 		local de = day_end

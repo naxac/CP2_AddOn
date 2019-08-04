@@ -1168,26 +1168,15 @@ function collectExplosiveInfo(section)
 			["hit_type_blast"] = "explosion",
 			["hit_type_frag"] = "burn"
 		}
-		
-		--local ini = system_ini()
-		--if ini and ini:section_exist(section) then
-			for k, v in pairs(explosive) do
-				--[[if ini:line_exist(section, k) then
-					local varType = type(explosive[k])
-					if varType == "number" then
-						explosive[k] = ini:r_float(section, k)
-					elseif varType == "string" then
-						explosive[k] = ini:r_string(section, k)
-				end
-				end]]
-				local varType = type(explosive[k])
-				if varType == "number" then
-					explosive[k] = getIniValueFloat(section, k, v, nil)
-				elseif varType == "string" then
-					explosive[k] = getIniValueString(section, k, v, nil)
-				end
+		local varType
+		for k, v in pairs(explosive) do
+			varType = type(v)
+			if varType == "number" then
+				explosive[k] = sys_ini:r_float_ex(section, k, v)
+			elseif varType == "string" then
+				explosive[k] = sys_ini:r_string_ex(section, k, v)
 			end
-		--end
+		end
 		
 		explosivesInfo[section] = explosive
 	end
