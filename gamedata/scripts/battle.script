@@ -5296,7 +5296,7 @@ function reinforcement(data)
 	if cur_wave.medkit then
 		--get_console():execute("load ~~~ medkit")
 		for i=1,math.random(0, cur_wave.medkit) do
-			alife():create(medkits[math.random(#medkits)], vector():set(0,0,0), 0, 0, ruk.id)
+			alife():create(table.random(medkits), vector():set(0,0,0), 0, 0, ruk.id)
 		end
 	end
 
@@ -5310,18 +5310,18 @@ function reinforcement(data)
 				
 				if cur_wave.ammo then
 					--get_console():execute("load ~~~ ammo")
+					list = sys_ini:r_list(wpn:section(), "ammo_class" )
 					for j=1,math.floor(last_monster_cnt*cur_wave.ammo) do
-						list = rx_utils.parse_list_new(nil, wpn:section(), "ammo_class")
-						section = list[math.random(#list)]
-						alife():create_ammo(section, vector():set(0,0,0), 0, 0, ruk.id, rx_utils.read_from_ini(nil, section, "box_size", 1, 3))
+						section = table.random(list)
+						alife():create_ammo( section, vector():set(0,0,0), 0, 0, ruk.id, sys_ini:r_u32(section, "box_size") )
 					end
 				end
 				
 				if cur_wave.podstvol and rx_utils.addon_attached(wpn, "gl") then
 					--get_console():execute("load ~~~ podstvol")
+					list = sys_ini:r_list(wpn:section(), "grenade_class")
 					for j=1,math.floor(last_monster_cnt*cur_wave.podstvol) do
-						list = rx_utils.parse_list_new(nil, wpn:section(), "grenade_class")
-						section = list[math.random(#list)]
+						section = table.random(list)
 						alife():create(section, vector():set(0,0,0), 0, 0, ruk.id)
 					end
 				end

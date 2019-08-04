@@ -68,16 +68,16 @@ wm_modes = {sect = {custom = {}, default = {}}, -- данные из конфи�
 		wpn_minmax = read_from_ini(iniFileName,"main","weapon_minmaxr",false,0)}
 
 function init()
-	wm_modes.types.list = rx_utils.parse_list_new(iniFileName,"types","list")
+	wm_modes.types.list = wm_ini:r_list("types", "list")
 	for z,i in ipairs(wm_modes.types.list) do
 		if wm_ini:line_exist("types","rsec_"..i) then
-			wm_modes.types.rsec[i] = rx_utils.parse_list_new(iniFileName,"types","rsec_"..i)
+			wm_modes.types.rsec[i] = wm_ini:r_list("types","rsec_"..i)
 			if #wm_modes.types.rsec[i] < 3 then
 				abort("weapon_manager: number of values in rsec_%s '%s' < 3!",i,#wm_modes.types.rsec[i])
 			end
 		end
 		if wm_ini:line_exist("types","minmaxr_"..i) and not wm_modes.wpn_minmax then
-			local tmp = rx_utils.parse_list_new(iniFileName,"types","minmaxr_"..i)
+			local tmp = wm_ini:r_list("types","minmaxr_"..i)
 			if #tmp ~= 2 then
 				abort("weapon_manager: number of values in minmaxr_%s '%s' ~= 2!",i,#tmp)
 			end
@@ -86,14 +86,14 @@ function init()
 		end
 		if wm_ini:line_exist("types","enemy_"..i) then
 			wm_modes.types.enem[i] = {}
-			local tmp = rx_utils.parse_list_new(iniFileName,"types","enemy_"..i)
+			local tmp = wm_ini:r_list("types","enemy_"..i)
 			for k,v in ipairs(tmp) do
 				local p = string_find(v,":",1,true)
 				wm_modes.types.enem[i][string_sub(v,1,p-1)] = string_sub(v,p+1,-1)
 			end
 		end
 	end
-	wm_modes.forbiddens = rx_utils.parse_list_new(iniFileName,"main","forbidden_weapons",true)
+	wm_modes.forbiddens = wm_ini:r_list("main","forbidden_weapons",true)
 	local cm,rp = rx_utils.collect_sections_new(iniFileName,{defsec})
 	if rp[1] == 0 then
 		abort("weapon_manager: default ini section [%s] not exist or empty!",defsec)
@@ -1078,11 +1078,6 @@ function get_dmg(section)
 	if not grenade then
 		grenade = getIniValueString(section,"rocket_class",nil,nil)
 	end
-	--[[if ltx:line_exist(ammo_list,"fake_grenade_name") then
-		grenade = ltx:r_string(ammo_list,"fake_grenade_name")
-	elseif ltx:line_exist(section,"rocket_class") then
-		grenade =  ltx:r_string(section,"rocket_class")
-	end]]
 	if grenade then
 		local blast = read_if_exist_float(grenade,"blast",2)
 		local blast_r = read_if_exist_float(grenade,"blast_r",3)
@@ -1149,7 +1144,7 @@ function get_cost(section)
 end
 
 function get_ammo_section(section)
-	return rx_utils.parse_list_new(nil,section,"ammo_class")
+	return sys_ini:r_list(section,"ammo_class")
 end
 
 function get_addons_status(section)

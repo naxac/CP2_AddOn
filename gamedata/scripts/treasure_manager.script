@@ -380,13 +380,11 @@ experienced_section = {
 local treasure_manager = nil
 local n_rank 
 
-function parse_spawns(line)
-	if line == nil then
+function parse_items(t)
+	if t == nil then
 		return {}
 	end
 
-	--' если default-ов больше, чем значений в ini, то забить недостающие последним значением из ini
-	local t = se_respawn.parse_names(line)
 	local n = table.getn(t)
 		
 	local ret_table = {}
@@ -439,13 +437,9 @@ function CTreasure:__init()
 		
 		self.treasure_info[id] = {}
 
-		self.treasure_info[id].target		= utils.cfg_get_number(self.ini, id, "target", nil, true)
-		self.treasure_info[id].named		= utils.cfg_get_bool(self.ini, id, "named", nil, false)
-		self.treasure_info[id].name			= utils.cfg_get_string(self.ini, id, "name", nil, true, "")
-		-- следующее не храним постоянно в памяти, а вычитываем из конфига при необходимости
-		--self.treasure_info[id].description	= utils.cfg_get_string(self.ini, id, "description", nil, true, "")
-		--self.treasure_info[id].items		= parse_spawns(utils.cfg_get_string(self.ini, id, "items", nil, true, ""))
-		--self.treasure_info[id].condlist		= xr_logic.parse_condlist(db.actor, "treasure_manager", "condlist", utils.cfg_get_string(self.ini, id, "condlist", nil, true, ""))
+		self.treasure_info[id].target		= self.ini:r_u32(id, "target")
+		self.treasure_info[id].named		= self.ini:r_bool_ex(id, "named", false)
+		self.treasure_info[id].name			= self.ini:r_string(id, "name")
 		
 		--' Отметим тайник как новый
 		self.treasure_info[id].active = false
@@ -502,7 +496,9 @@ function CTreasure:use(npc)
 	for k,v in pairs(self.treasure_info) do
 		if v.done == false and v.active == false then
 			--local treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc, v.condlist)
-			treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc, xr_logic.parse_condlist(db.actor, "treasure_manager", "condlist", utils.cfg_get_string(self.ini, k, "condlist", nil, true, "")))
+			treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc,
+				xr_logic.parse_condlist(db.actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
+			)
 
 			if treasure_prob == "" or treasure_prob == nil then
 				treasure_prob = 0
@@ -578,7 +574,8 @@ function CTreasure:give_treasure(k)
 		news_manager.send_treasure(v.name, lname)
 
 		--' Пометить на карте		
-		local text = "%c[255,238,155,23]"..game.translate_string(v.name).."\\n".."%c[default]"..game.translate_string(utils.cfg_get_string(self.ini, k, "description", nil, true, ""))
+		local text = "%c[255,238,155,23]"..game.translate_string(v.name).."\\n"..
+			"%c[default]"..game.translate_string(self.ini:r_string(k, "description"))
 --    if not level.map_has_object_spot(obj.id,"treasure") then
       level.map_add_object_spot_ser(obj.id, "treasure", text)
 --    else
@@ -590,7 +587,7 @@ function CTreasure:give_treasure(k)
 		if game_options.AmkTrs ~= 0 and v.named == false then
 		   v.items = self:give_item_list()
 		else
-			v.items = parse_spawns(utils.cfg_get_string(self.ini, k, "items", nil, true, ""))
+			v.items = parse_items(self.ini:r_list(k, "items"))
 		end  
 		
 		--' Сгенерить вещи
