@@ -65,17 +65,19 @@ DIK_keys.DIK_RMOUSE			= 338
 DIK_keys.DIK_WMOUSE			= 339
 
 _G.inventory_slots = {
-	NO_SLOT		= 4294967295,
+	NO_ACTIVE	= 4294967295,
 	KNIFE		= 0,
 	PISTOL		= 1,
 	RIFLE		= 2,
 	GRENADE		= 3,
-	BINOCULAR	= 4,
+	APPARATUS	= 4,
 	BOLT 		= 5,
 	OUTFIT		= 6,
 	PDA			= 7,
 	DETECTOR	= 8,
-	TORCH		= 9
+	TORCH		= 9,
+	ARTEFACT	= 10,
+	TOTAL		= 11
 }
 -- Движковая таблица EIIFlags для CInventoryItem
 _G.ii_flags = {
@@ -426,7 +428,7 @@ CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
 		wnd_id = wnd_id + 1
 		self.__CUIScriptWnd_id = id
 		registered_windows[ id ] = {}
-		registered_windows[ id ].w = self
+		registered_windows[ id ]["__window"] = self
 	end
 	if registered_windows[ id ][ ui_name ] == nil then
 		registered_windows[ id ][ ui_name ] = {}
@@ -437,12 +439,12 @@ CUIScriptWnd.AddCallbackEx = function ( self, ui_name, ui_event, func, ... )
 		function ( i )
 			local t = registered_windows[ i ]
 			if t then
-				local wnd = registered_windows[ i ].w
-				local p = registered_windows[ i ][ ui_name ][ ui_event ]
+				local wnd = t["__window"]
+				local p = t[ ui_name ][ ui_event ]
 				func( wnd, unpack( p ) )
 			else
-				log( "[%s]: ignore callback for unregistered window %s: ui_name = %s, ui_event = %s",
-					script_name(), i, ui_name, ui_event )
+				log( "[CUIScriptWnd]: ignore callback for unregistered window %s: ui_name = %s, ui_event = %s",
+					i, ui_name, ui_event )
 			end
 		end,
 	id )
@@ -450,27 +452,31 @@ end
 CUIScriptWnd.ClearCallbacks = function ( self )
 	local id = self.__CUIScriptWnd_id
 	if id == nil then
-		log("~ CUIScriptWnd.ClearCallbacks : __CUIScriptWnd_id not found" )
+	--	log("~ CUIScriptWnd.ClearCallbacks : __CUIScriptWnd_id not found" )
 	else
 		if self.__reg_childs then
 			for i, v in ipairs( self.__reg_childs ) do
+				registered_windows[ v ]["__window"] = nil
 				registered_windows[ v ] = nil
 			end
 			self.__reg_childs = nil
 		end
+		registered_windows[ id ]["__window"] = nil
 		registered_windows[ id ] = nil
 	end
---	log("CUIScriptWnd.ClearCallbacks: registered windows count [%d]", table.size(registered_windows) )
+--	log("CUIScriptWnd.ClearCallbacks [%s]: registered windows count [%d]", tostring(id), table.size(registered_windows) )
 end
-CUIScriptWnd.register_child_to_unreg = function( self, child )
+CUIScriptWnd.RegisterChild = function( self, child )
 	if child.__CUIScriptWnd_id == nil then return end
 
-	if self.__CUIScriptWnd_id == nil then
-		self.__CUIScriptWnd_id = wnd_id
+	local id = self.__CUIScriptWnd_id
+	if id == nil then
+		id = wnd_id
 		wnd_id = wnd_id + 1
-		registered_windows[ self.__CUIScriptWnd_id ] = {}
-		registered_windows[ self.__CUIScriptWnd_id ].w = self
-	--	log("CUIScriptWnd.register_child_to_unreg: parent window has no __CUIScriptWnd_id - Register" )
+		self.__CUIScriptWnd_id = id
+		registered_windows[ id ] = {}
+		registered_windows[ id ]["__window"] = self
+	--	log("CUIScriptWnd.RegisterChild: parent window has no __CUIScriptWnd_id" )
 	end
 
 	if self.__reg_childs == nil then
@@ -480,17 +486,17 @@ CUIScriptWnd.register_child_to_unreg = function( self, child )
 end
 CUIScriptWnd.InitEditBoxEx = function ( self, stat, pos_x, pos_y, width, type )
 	local w = ui_edit_box_ru.CUIEditBox_new( stat, pos_x, pos_y, width, type )
-	self:register_child_to_unreg( w )
+	self:RegisterChild( w )
 	return w
 end
 CUIScriptWnd.InitSpinNum = function ( self, stat, pos_x, pos_y, width, p )
 	local w = ui_spin_num.CUISpinNum( stat, pos_x, pos_y, width, p )
-	self:register_child_to_unreg( w )
+	self:RegisterChild( w )
 	return w
 end
 CUIScriptWnd.InitSpinStr = function ( self, stat, pos_x, pos_y, width, p )
 	local w = ui_spin_str.CUISpinStr( stat, pos_x, pos_y, width, p )
-	self:register_child_to_unreg( w )
+	self:RegisterChild( w )
 	return w
 end
 
@@ -512,6 +518,7 @@ level.set_time_factor = function(factor)
 	level.set_time_factor_old(factor)
 	level.__time_factor = factor
 end
+level.invalid_vertex_id = 4294967296
 
 -- namespace 'relation_registry'
 relation_registry.get_goodwill = function (who_id, to_whom_id)
@@ -547,6 +554,10 @@ end
 
 _G.set_story_id = function( obj, sid )
 	alife():assign_story_id( nil, nil, obj.id, sid )
+end
+
+_G.is_story_object = function( obj )
+	return obj:story_id() < 4294967296
 end
 
 _G.old_user_name = user_name
