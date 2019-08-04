@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local run_tbl = {
-	6
+	3
 }
 local funcs = {
 	[1] = function()
@@ -16,32 +16,24 @@ local funcs = {
 		end
 	end,
 	[3] = function()
-		log(tostring(has_alife_info("val_prisoner_scene_end")))
+		log(tostring(db.actor:active_slot()))
 	end,
 	[4] = function()
-		local item = db.actor:object("bandage")
-		local w = item:get_weight()
-		for i = 0, 1000, 4 do
-			local v = item:get_inventory_item_float(i)
-			log("%s -> %s", i, v)
-			if v == w then
-				log("- FOUND: %s", i)
-				break
-			end
-		end
-	end,
-	[5] = function()
-		local item = db.actor:object("bandage")
-		item:set_inventory_item_float(nil, 20, 164)
-	end,
-	[6] = function()
 		local obj
 		local sim = alife()
 		for i = 1, 65534 do
 			obj = sim:object(i)
-			if obj and obj:section_name() == "smart_terrain" then
-				level.map_add_object_spot(i, "red_location", obj:name())
+			if obj then
+				log(obj.m_story_id)
 			end
+		end
+	end,
+	[5] = function()
+		local ini = ini_file("game_story_ids.ltx")
+		for i = 0, ini:line_count("story_ids") - 1 do
+			local res, id, value = ini:r_line("story_ids", i, "", "")
+			value = string.clear(value)
+			log( "[%s :: %s] -> %s", id, value, tostring(story_ids[value]) )
 		end
 	end
 }
@@ -231,7 +223,7 @@ function restore_anoms()
 end
 
 function add_spot_lc()
-	local obj = alife():story_object(130029)
+	local obj = alife():story_object(story_ids.lc_pripyat_to_east_pripyat)
 	level.map_add_object_spot_ser(obj.id, "level_changer2", "В Восточную Припять")
 end
 
