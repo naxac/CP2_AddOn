@@ -190,6 +190,14 @@ table.random = function ( tbl )
 	if not next(tbl) then return nil end
 	return tbl[ math.random(#tbl) ]
 end
+-- преобразование массива в хэш: [значение] = true
+table.tohash = function ( tbl )
+	local ret = {}
+	for i, v in ipairs( tbl ) do
+		ret[ v ] = true
+	end
+	return ret
+end
 -- расширенная распечатка таблицы в лог
 table.print = function( tbl, subs )
 	subs = subs or ""
@@ -268,6 +276,17 @@ ini_file.r_bool_ex = function (ini, section, line, def)
 		return ini:r_bool(section, line)
 	end
 	return def
+end
+ini_file.r_list = function (ini, section, line, hash)
+	if ini:line_exist(section, line) then
+		local ret = string.explode( ini:r_string(section, line), ",", true )
+		if hash then
+			return table.tohash(ret)
+		else
+			return ret
+		end
+	end
+	return nil
 end
 
 -- class 'game_object'
