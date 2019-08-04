@@ -522,14 +522,14 @@ end
 
 -- Кто-то из участников сценки вступил в бой - теперь нужно пообижать всех на всех
 function gar_dm_bandits_fight(actor, npc)
-  local novice = level_object_by_sid(104)
+  local novice = level_object_by_sid(story_ids.gar_dm_novice)
   if not novice or not novice:alive() then
     return
   end
 
   local ignore_actor = distance_between(actor, novice) > 25
 
-  local bandit1 = level_object_by_sid(101)
+  local bandit1 = level_object_by_sid(story_ids.gar_dm_bandit1)
   if bandit1 then
     novice:set_relation(game_object.enemy, bandit1)
     if not ignore_actor then
@@ -538,7 +538,7 @@ function gar_dm_bandits_fight(actor, npc)
     bandit1:set_relation(game_object.enemy, novice)
   end
 
-  local bandit2 = level_object_by_sid(102)
+  local bandit2 = level_object_by_sid(story_ids.gar_dm_bandit2)
   if bandit2 then
     novice:set_relation(game_object.enemy, bandit2)
     if not ignore_actor then
@@ -547,7 +547,7 @@ function gar_dm_bandits_fight(actor, npc)
     bandit2:set_relation(game_object.enemy, novice)
   end
 
-  local bandit3 = level_object_by_sid(103)
+  local bandit3 = level_object_by_sid(story_ids.gar_dm_bandit3)
   if bandit3 then
     novice:set_relation(game_object.enemy, bandit3)
     if not ignore_actor then
@@ -720,7 +720,7 @@ function mil_paul_frost_dead (actor, npc)
 end
 
 function set_freedom_actor_enemy (actor, npc)
-    local luk = level_object_by_sid (707)
+    local luk = level_object_by_sid (story_ids.Mil_Lukash)
     this.actor_enemy (actor, luk)
 end
 
@@ -900,7 +900,7 @@ function bar_arena_hit(actor, npc)
   npc:hit(h)
 end
 function esc_hit_from_fox(actor, npc)
-  local fox = level_object_by_sid (005)
+  local fox = level_object_by_sid (story_ids.Escape_stalker_from_raid)
   if fox == nil then
     return
   end
@@ -989,7 +989,7 @@ function bar_actor_is_enemy(actor, npc)
 end
 
 function bar_actor_enemy_set (actor, npc)          
-    local dog = level_object_by_sid (509)
+    local dog = level_object_by_sid (story_ids.bar_freedom_volkodav)
     if dog ~= nil then
        dog:set_relation (game_object.enemy, db.actor) 
     end   
@@ -997,7 +997,7 @@ end
 
 function bar_arena_weapon_spawn ()
   
-  local obj = level_object_by_sid (606)
+  local obj = level_object_by_sid (story_ids.pl_weapon_spawn)
   local spawn_items = {}
   
   for i = 1,100 do
@@ -1019,7 +1019,7 @@ local function transfer_object_item(item)
 end
 function bar_arena_teleport ( actor, npc)
 
-  inv_box_1 = level_object_by_sid (573)
+  inv_box_1 = level_object_by_sid (story_ids.bar_arena_inventory_box)
 
   out_object = actor
     in_object  = inv_box_1
@@ -1109,7 +1109,7 @@ function bar_arena_teleport_2 ( actor, npc)
     local dir = patrol("t_look_2"):point(0):sub(patrol("t_walk_2"):point(0))
     db.actor:set_actor_direction(-dir:getH())
   
-  inv_box_2 = level_object_by_sid (574)
+  inv_box_2 = level_object_by_sid (story_ids.bar_arena_inventory_box_2)
 
   out_object = actor
     in_object  = inv_box_2
@@ -1179,7 +1179,7 @@ function mil_sniper_dead (actor, npc)
 end
 
 function mil_actor_enemy_set (actor, npc)
-    local sniper = level_object_by_sid (704)
+    local sniper = level_object_by_sid (story_ids.Mil_Sniper)
     if sniper ~= nil then
 --       sniper:set_relation (game_object.enemy, db.actor)		-- отключен переход Свободы во враги при заходе в запретную зону
     end   
@@ -1188,7 +1188,7 @@ end
 
 
 function mil_actor_enemy_reset (actor, npc)
-    local sniper = level_object_by_sid (704)
+    local sniper = level_object_by_sid (story_ids.Mil_Sniper)
     if sniper ~= nil then
 --       sniper:set_relation (game_object.neutral, db.actor)	-- отключен переход Свободы во враги при заходе в запретную зону
     end   
@@ -1196,14 +1196,7 @@ function mil_actor_enemy_reset (actor, npc)
 end
 
 function mil_bomb_explode (actor, npc)
-    local source = nil
-    local sim = alife ()
-    if sim then
-       local se_obj = sim:story_object (723)  
-       if se_obj then
-          source = level.object_by_id(se_obj.id)
-       end
-    end
+    local source = level_object_by_sid(story_ids.Mil_Bomb)
 
     if source == nil then
        --'abort ("Bomb with story id MIL_BOMB not found")
@@ -1225,22 +1218,22 @@ function mil_set_alarm (actor, npc)
   printf("pl:millitary base is under attack!")
     actor:give_info_portion ("mil_freedom_under_attack")
     
-    local skull = level_object_by_sid (708)
+    local skull = level_object_by_sid (story_ids.Mil_Dolg_Zoneguard)
     if skull == nil then 
        return 
     end
 
-    this.set_stalker_enemy (702, skull)     -- hit to Lukash
-    this.set_stalker_enemy (707, skull)     -- hit to Max
-    this.set_stalker_enemy (730, skull)     -- hit to Sniper1
-    this.set_stalker_enemy (731, skull)     -- hit to Sniper2
-    this.set_stalker_enemy (732, skull)     -- hit to Sniper3
+    this.set_stalker_enemy (story_ids.Mil_Master_Max, skull)     -- hit to Lukash
+    this.set_stalker_enemy (story_ids.Mil_Lukash, skull)     -- hit to Max
+    this.set_stalker_enemy (story_ids.Mil_Sniper1, skull)     -- hit to Sniper1
+    this.set_stalker_enemy (story_ids.Mil_Sniper2, skull)     -- hit to Sniper2
+    this.set_stalker_enemy (story_ids.Mil_Sniper3, skull)     -- hit to Sniper3
 end
 
 function sar2_monolith_explode (actor, npc)
-    local monolith = level_object_by_sid (1305)
+    local monolith = level_object_by_sid (story_ids.sar2_destroyable_monolith)
     if monolith == nil then
-       abort ("Object MONOLITH with SID 1305 not found")
+       abort ("Object MONOLITH with SID 'sar2_destroyable_monolith' not found")
     end    
     local h = hit ();
     h.power = 1000;
@@ -1268,12 +1261,12 @@ end
 
 
 function mil_remove_cook_map_spot (actor, npc)
-    level_tasks.remove_location (728, "mil_cook_location")
+    level_tasks.remove_location (story_ids.Mil_Cook, "mil_cook_location")
 end
 
 function mil_transfer_docs_to_ara (actor, npc)
-    --local ara = level_object_by_sid (719)
-    --local pavlik = level_object_by_sid (710)
+    --local ara = level_object_by_sid (story_ids.Mil_Informator)
+    --local pavlik = level_object_by_sid (story_ids.Mil_Courier)
     --if ara == nil or pavlik == nil or pavlik:object ("mil_courier_doc") == nil then
        --return
     --end   
@@ -1295,7 +1288,7 @@ end
 
 
 function mil_cap_mapspot (actor, npc)
-    local cap = level_object_by_sid (724)
+    local cap = level_object_by_sid (story_ids.Mil_Kap)
     if cap == nil or cap:alive () == false then
        return 
     end    
@@ -1303,13 +1296,13 @@ function mil_cap_mapspot (actor, npc)
     if not has_alife_info("mil_fblockpost_spot_set") then
        actor:give_info_portion ("mil_fblockpost_spot") 
        actor:give_info_portion ("mil_fblockpost_spot_set")
-       level_tasks.add_location (724, "mil_fblockpost_location")
+       level_tasks.add_location (story_ids.Mil_Kap, "mil_fblockpost_location")
     end
 end
 
 function mil_cap_mapspot_remove (stalker1, stalker2)
     if has_alife_info("mil_fblockpost_spot") then
-       level_tasks.remove_location_safe (724, "mil_fblockpost_location")
+       level_tasks.remove_location_safe (story_ids.Mil_Kap, "mil_fblockpost_location")
        db.actor:disable_info_portion ("mil_fblockpost_spot_remove")
     end      
 end
@@ -1360,7 +1353,7 @@ function val_escort_guard_hit(actor, npc)
                 actor:give_info_portion("val_escort_captive_enemy")
             end
       else
-          local npc1 = level_object_by_sid(406)
+          local npc1 = level_object_by_sid(story_ids.val_escort_nap1)
           if npc1 ~= nil and t.who == npc1:id() then
                 actor:give_info_portion("val_escort_combat")
                 actor:give_info_portion("val_escort_nap1_start_combat")
@@ -1720,7 +1713,7 @@ end
 
 
 function aes_grenade_explode (actor, npc)
-    local obj = level_object_by_sid (1101)
+    local obj = level_object_by_sid (story_ids.aes_grenade)
     if obj == nil then return end
     local h = hit ();
     h.power = 1000;
@@ -1738,7 +1731,7 @@ function aes_kill_actor (actor, npc)
 end
 
 function set_sidorovich_animation (npc)
-    local sidor = level_object_by_sid (1118)
+    local sidor = level_object_by_sid (story_ids.aes_sidorovich)
     if sidor == nil then
        abort ("SIDOROVICH NOT FOUND !!!")
     end
@@ -1748,7 +1741,7 @@ function set_sidorovich_animation (npc)
 end
 
 function aes_zombie_hit1 (npc)
-    --local npc = level_object_by_sid (1119)
+    --local npc = level_object_by_sid (story_ids.aes_zombie1)
     --local force = vector ():set (0, 0, 0.02)
     --local pshell = npc:get_physics_shell ()
     
@@ -1756,7 +1749,7 @@ function aes_zombie_hit1 (npc)
     --joint:set_max_force_and_velocity (0.5 + math.random (), 0.1 * -1, 0)
     --joint:set_max_force_and_velocity (0.5 + math.random(), 0.1 * -1,  2)
     
-    --local npc = level_object_by_sid (1119)
+    --local npc = level_object_by_sid (story_ids.aes_zombie1)
     --local force = vector ():set (0, 0, 50)
     --local pshell = npc:get_physics_shell ()
     --local element = pshell:get_element_by_bone_name ("foot_right")
@@ -1770,25 +1763,25 @@ function aes_zombie_hit1 (npc)
     --dir:normalize ()
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1120)
+    --npc = level_object_by_sid (story_ids.aes_zombie2)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1121)
+    --npc = level_object_by_sid (story_ids.aes_zombie3)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1122)
+    --npc = level_object_by_sid (story_ids.aes_zombie4)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1123)
+    --npc = level_object_by_sid (story_ids.aes_zombie5)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir:normalize ()   
@@ -1796,14 +1789,14 @@ function aes_zombie_hit1 (npc)
 end
 
 function aes_zombie_hit2 (npc)
-    --local npc = level_object_by_sid (1119)
+    --local npc = level_object_by_sid (story_ids.aes_zombie1)
     --local force = vector ():set (0, 0, 50)
     --local pshell = npc:get_physics_shell ()
     --local element = pshell:get_element_by_bone_name ("foot_right")
     --element:apply_force (force.x, force.y, force.z)
     
     
-    --local npc = level_object_by_sid (1119)
+    --local npc = level_object_by_sid (story_ids.aes_zombie1)
     --local force = vector ():set (0, 0, 0.02)
     --local pshell = npc:get_physics_shell ()
     
@@ -1817,7 +1810,7 @@ function aes_zombie_hit2 (npc)
     
     --local element = pshell:get_element_by_bone_name ("foot_right")
     --element:apply_force (force.x, force.y, force.z)
-    --local npc = level_object_by_sid (1119)
+    --local npc = level_object_by_sid (story_ids.aes_zombie1)
     --local dir = npc:direction ()
     --dir.y = 0.0
     --dir.x = -dir.x
@@ -1825,7 +1818,7 @@ function aes_zombie_hit2 (npc)
     --dir:normalize ()
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1120)
+    --npc = level_object_by_sid (story_ids.aes_zombie2)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir.x = -dir.x
@@ -1833,7 +1826,7 @@ function aes_zombie_hit2 (npc)
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1121)
+    --npc = level_object_by_sid (story_ids.aes_zombie3)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir.x = -dir.x
@@ -1841,7 +1834,7 @@ function aes_zombie_hit2 (npc)
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1122)
+    --npc = level_object_by_sid (story_ids.aes_zombie4)
     --dir = npc:direction ()
     --dir.y = 0.0
     --dir.x = -dir.x
@@ -1849,7 +1842,7 @@ function aes_zombie_hit2 (npc)
     --dir:normalize ()   
   --npc:set_const_force (dir, 2000, 3)
   
-    --npc = level_object_by_sid (1123)
+    --npc = level_object_by_sid (story_ids.aes_zombie5)
     --dir = npc:direction ()
     --dir.x = -dir.x
     --dir.z = -dir.z
@@ -2032,14 +2025,14 @@ function destroy_monolith_generator(actor, npc)
     local source = nil
     local sim = alife()
     if sim then
-       local se_obj = sim:story_object(1305)  
+       local se_obj = sim:story_object(story_ids.sar2_destroyable_monolith)  
        if se_obj then
           source = level.object_by_id(se_obj.id)
        end
     end
 
     if source == nil then
-       abort ("MONOLITH GENERATOR story id 1305 not found")
+       abort ("MONOLITH GENERATOR story id 'sar2_destroyable_monolith' not found")
        return
     end
 
@@ -2118,12 +2111,12 @@ function pri_game_over(actor, npc)
 end
 
 function esc_init_dialod ()
-  local trader = level_object_by_sid(003)
+  local trader = level_object_by_sid(story_ids.Escape_Trader)
   db.actor:run_talk_dialog(trader)
 end
 
 function oso_init_dialod ()
-  -- local oso = level_object_by_sid(1307)
+  -- local oso = level_object_by_sid(story_ids.oso)
   -- db.actor:run_talk_dialog(oso)
 end
 -- DELME:only for presentation!
@@ -2223,7 +2216,7 @@ end
 -- Телепорты 
 ---------------------------------
 -- удаляем телепорты
-function delete_teleport2(story_id)
+function delete_teleport2()
 local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_6", -1, true)
 local se_obj = alife() : object(obj_id)
 if se_obj then
@@ -2232,7 +2225,7 @@ end
 news_manager.send_tip(db.actor, "Ищи в другом месте.", nil, nil, 30000)
 end 
 
-function delete_teleport3(story_id)
+function delete_teleport3()
 local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_26", -1, true)
 local se_obj = alife() : object(obj_id)
 if se_obj then
@@ -2451,7 +2444,7 @@ function spawn_teleport35()
 	xr_logic.pstor_store(db.actor, "m_teleport_35", se_obj.id)		  
 end
 
-function delete_teleport35(story_id)
+function delete_teleport35()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_35", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2464,7 +2457,7 @@ function spawn_teleport36()
 	xr_logic.pstor_store(db.actor, "m_teleport_36", se_obj.id)		  
 end
 
-function delete_teleport36(story_id)
+function delete_teleport36()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_36", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2485,7 +2478,7 @@ function spawn_teleport37()
 	xr_logic.pstor_store(db.actor, "m_teleport_37", se_obj.id)		  
 end
 
-function delete_teleport37(story_id)
+function delete_teleport37()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_37", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2498,7 +2491,7 @@ function spawn_teleport38()
 	xr_logic.pstor_store(db.actor, "m_teleport_38", se_obj.id)		  
 end
 
-function delete_teleport38(story_id)
+function delete_teleport38()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_38", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2511,7 +2504,7 @@ function spawn_teleport39()
 	xr_logic.pstor_store(db.actor, "m_teleport_39", se_obj.id)		  
 end
 
-function delete_teleport39(story_id)
+function delete_teleport39()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_39", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2524,7 +2517,7 @@ function spawn_teleport40()
 	xr_logic.pstor_store(db.actor, "m_teleport_40", se_obj.id)		  
 end
 
-function delete_teleport40(story_id)
+function delete_teleport40()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_40", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2545,7 +2538,7 @@ function spawn_teleport41()
 	xr_logic.pstor_store(db.actor, "m_teleport_41", se_obj.id)		  
 end
 
-function delete_teleport41(story_id)
+function delete_teleport41()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_41", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2558,7 +2551,7 @@ function spawn_teleport42()
 	xr_logic.pstor_store(db.actor, "m_teleport_42", se_obj.id)		  
 end
 
-function delete_teleport42(story_id)
+function delete_teleport42()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_42", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2579,7 +2572,7 @@ function spawn_teleport43()
 	xr_logic.pstor_store(db.actor, "m_teleport_43", se_obj.id)		  
 end
 
-function delete_teleport43(story_id)
+function delete_teleport43()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_43", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2592,7 +2585,7 @@ function spawn_teleport44()
 	xr_logic.pstor_store(db.actor, "m_teleport_44", se_obj.id)		  
 end
 
-function delete_teleport44(story_id)
+function delete_teleport44()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_44", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2605,7 +2598,7 @@ function spawn_teleport45()
 	xr_logic.pstor_store(db.actor, "m_teleport_45", se_obj.id)		  
 end
 
-function delete_teleport45(story_id)
+function delete_teleport45()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_45", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2618,7 +2611,7 @@ function spawn_teleport46()
 	xr_logic.pstor_store(db.actor, "m_teleport_46", se_obj.id)		  
 end
 
-function delete_teleport46(story_id)
+function delete_teleport46()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_46", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2631,7 +2624,7 @@ function spawn_teleport47()
 	xr_logic.pstor_store(db.actor, "m_teleport_47", se_obj.id)		  
 end
 
-function delete_teleport47(story_id)
+function delete_teleport47()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_47", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2644,7 +2637,7 @@ function spawn_teleport48()
 	xr_logic.pstor_store(db.actor, "m_teleport_48", se_obj.id)		  
 end
 
-function delete_teleport48(story_id)
+function delete_teleport48()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_48", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2657,7 +2650,7 @@ function spawn_teleport49()
 	xr_logic.pstor_store(db.actor, "m_teleport_49", se_obj.id)		  
 end
 
-function delete_teleport49(story_id)
+function delete_teleport49()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_49", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2670,7 +2663,7 @@ function spawn_teleport50()
 	xr_logic.pstor_store(db.actor, "m_teleport_50", se_obj.id)		  
 end
 
-function delete_teleport50(story_id)
+function delete_teleport50()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_50", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2683,7 +2676,7 @@ function spawn_teleport51()
 	xr_logic.pstor_store(db.actor, "m_teleport_51", se_obj.id)		  
 end
 
-function delete_teleport51(story_id)
+function delete_teleport51()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_51", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2696,7 +2689,7 @@ function spawn_teleport52()
 	xr_logic.pstor_store(db.actor, "m_teleport_52", se_obj.id)		  
 end
 
-function delete_teleport52(story_id)
+function delete_teleport52()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_52", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2709,7 +2702,7 @@ function spawn_teleport53()
 	xr_logic.pstor_store(db.actor, "m_teleport_53", se_obj.id)		  
 end
 
-function delete_teleport53(story_id)
+function delete_teleport53()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_53", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -2722,7 +2715,7 @@ function spawn_teleport54()
 	xr_logic.pstor_store(db.actor, "m_teleport_54", se_obj.id)		  
 end
 
-function delete_teleport54(story_id)
+function delete_teleport54()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "m_teleport_54", -1, true)
 	local se_obj = alife() : object(obj_id)
 	if se_obj then
@@ -3035,7 +3028,7 @@ end
 function foto_ohota_spawn()
 	alife():create("wpn_pm",vector():set(-65.136116027832,-4.0836248397827,-142.66575622559),3725,704)
 	local se_obj = alife():create("journalist_npc",vector():set(-65.448280334473,-4.437150478363,-143.68698120117),3724,704)
-	set_story_id(se_obj,21023)
+	set_story_id(se_obj, story_ids.journalist_npc)
 	se_obj:on_death()
 end
 function gigant_ohota_spawn()

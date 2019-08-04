@@ -962,7 +962,7 @@ end
 function val_escort_captive_dist_to_guards_ge(actor, npc, p)
     local d2 = p[1] * p[1]
 
-    local g1 = level_object_by_sid(407)
+    local g1 = level_object_by_sid(story_ids.val_escort_guard1)
     if g1 and g1:alive() then
         if npc:position():distance_to_sqr(g1:position()) < d2 then
             --printf("xr_cond <captive_dist_to_guards>: FALSE")
@@ -970,7 +970,7 @@ function val_escort_captive_dist_to_guards_ge(actor, npc, p)
         end
 	end
 
-    local g2 = level_object_by_sid(408)
+    local g2 = level_object_by_sid(story_ids.val_escort_guard2)
     if g2 and g2:alive() then
         if npc:position():distance_to_sqr(g2:position()) < d2 then
             --printf("xr_cond <captive_dist_to_guards>: FALSE")
@@ -985,7 +985,7 @@ end
 function val_escort_captive_dist_to_guards_le(actor, npc, p)
     local d2 = p[1] * p[1]
 
-    local g1 = level_object_by_sid(407)
+    local g1 = level_object_by_sid(story_ids.val_escort_guard1)
     if g1 and g1:alive() then
         if npc:position():distance_to_sqr(g1:position()) > d2 then
             --printf("xr_cond <captive_dist_to_guards>: FALSE")
@@ -993,7 +993,7 @@ function val_escort_captive_dist_to_guards_le(actor, npc, p)
         end
 	end
 
-    local g2 = level_object_by_sid(408)
+    local g2 = level_object_by_sid(story_ids.val_escort_guard2)
     if g2 and g2:alive() then
         if npc:position():distance_to_sqr(g2:position()) > d2 then
             --printf("xr_cond <captive_dist_to_guards>: FALSE")
@@ -1006,10 +1006,7 @@ function val_escort_captive_dist_to_guards_le(actor, npc, p)
 end
 
 function val_fighting_captive(actor, npc)
-	-- FIXME: use SID!!!
-	-- db.storage[npc:id()].enemy:story_id() == 400
-	-- return db.storage[npc:id()].enemy:name() == "val_escort_captive"
-	return db.storage[npc:id()].enemy:story_id() == 400
+	return db.storage[npc:id()].enemy:story_id() == story_ids.val_escort_captive
 end
 
 function val_escort_combat_end(actor, npc)
@@ -1017,7 +1014,7 @@ function val_escort_combat_end(actor, npc)
 end
 
 function val_hit_by_nap1(actor, npc)
-	local nap1 = level_object_by_sid(406)
+	local nap1 = level_object_by_sid(story_ids.val_escort_nap1)
 	if nap1 == nil then return false end
 	local t = db.storage[npc:id()].hit
 	local hit_by_nap1 = (t ~= nil and t.who == nap1:id())
@@ -1026,8 +1023,8 @@ function val_hit_by_nap1(actor, npc)
 end
 
 function val_hit_by_guard(actor, npc)
-	local g1 = level_object_by_sid(407)
-	local g2 = level_object_by_sid(408)
+	local g1 = level_object_by_sid(story_ids.val_escort_guard1)
+	local g2 = level_object_by_sid(story_ids.val_escort_guard2)
 	if g1 == nil and g2 == nil then return false end
 	local t = db.storage[npc:id()].hit
 	local hit_by_guard = (t ~= nil and
@@ -1049,7 +1046,7 @@ function val_fighting_prisoner(actor, npc)
 end    
 
 function val_fighting_sacrifice_bloodsucker(actor, npc)
-	return db.storage[npc:id()].enemy:story_id() == 403
+	return db.storage[npc:id()].enemy:story_id() == story_ids.val_sacrifice_bloodsucker
 end    
 
 function val_actor_in_cage(actor, npc)
@@ -1067,7 +1064,7 @@ end
 
 --[[
 function val_prisoner_in_cage(actor, npc)
-	local prisoner = level_object_by_sid(402)
+	local prisoner = level_object_by_sid(story_ids.val_prisoner)
 	if not prisoner then
 		return false
 	end
@@ -1224,7 +1221,7 @@ function is_courier_time (actor, npc)
 end
 
 function is_controller_dead (actor, npc)
-    local c = level_object_by_sid (729)
+    local c = level_object_by_sid (story_ids.Mil_Controller)
     if c == nil then return false end
     return not c:alive ()
 end
@@ -1253,11 +1250,11 @@ end
 -- Special functions for Military
 ------------------------------------------------------------------------------------
 function mil_actor_enemy (actor, npc)
-    local npc = level_object_by_sid (707)
+    local npc = level_object_by_sid (story_ids.Mil_Lukash)
     if npc == nil or npc:alive () == false then
-       npc = level_object_by_sid (702) 
+       npc = level_object_by_sid (story_ids.Mil_Master_Max) 
        if npc == nil or npc:alive () == false then
-          npc = level_object_by_sid (728)
+          npc = level_object_by_sid (story_ids.Mil_Cook)
           if npc == nil then 
              printf ("NOT LEAVED NPC !!!")
              return
@@ -1282,7 +1279,7 @@ function cit_combat_ignore(actor, npc, p)
     if enemy and enemy:alive() then
         if enemy:id() == actor:id() then
             return p[1] ~= nil and not has_alife_info(p[1])
-        elseif enemy:story_id() == 1200 then
+        elseif enemy:story_id() == story_ids.cit_doctor then
             return true
         else
             local g = xr_gulag.get_npc_gulag(enemy)
@@ -1402,7 +1399,7 @@ function rostok_dist_to_actor_le(actor, npc, p)
 	return false
 end
 function see_actor_and_kruglov(actor, npc)
-	local kruglov = level_object_by_sid (503)
+	local kruglov = level_object_by_sid (story_ids.bar_ecolog_professor)
     return npc:see(actor) or npc:see(kruglov)
 end
 function has_ghost_pda ()

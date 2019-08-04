@@ -30,7 +30,8 @@ class "actor_binder" (object_binder)
 ----------------------------------------------------------------------------------------------------------------------
 function actor_binder:__init (obj) super(obj)
 	self.bCheckStart = false
-	self.loaded_active_slot = -1
+	self.loaded_active_slot = inventory_slots.NO_ACTIVE
+	self.last_active_slot = nil
 	self.weather_manager = level_weathers.WeatherManager()
 	self.actor_detector = xr_detector.actor_detector()
 --	self.is_saved = false
@@ -416,6 +417,7 @@ function actor_binder:update(delta)
 		xr_s.on_event("first_update")
 
 		self.object:activate_slot(self.loaded_active_slot)
+		self.loaded_active_slot = nil
 		
 		if not has_alife_info("storyline_actor_start") and
 			(level.name() == "l01_escape")
@@ -593,6 +595,11 @@ function actor_binder:update(delta)
 	-- Апдейт прятание оружия игрока во время диалога
 	if check_hide_weapon() or actor:is_talking() then
 		if self.weapon_hide == false then
+			local active_slot = actor:active_slot()
+			if active_slot ~= inventory_slots.NO_ACTIVE+1 then
+				self.last_active_slot = active_slot
+				actor:activate_slot(inventory_slots.NO_ACTIVE)
+			end
 			actor:hide_weapon()
 			self.weapon_hide = true
 		end
@@ -600,6 +607,9 @@ function actor_binder:update(delta)
 		if self.weapon_hide == true then
 			actor:restore_weapon()
 			self.weapon_hide = false
+		elseif self.last_active_slot then
+			actor:activate_slot(self.last_active_slot)
+			self.last_active_slot = nil
 		end
 	end 
 
@@ -769,7 +779,9 @@ function actor_binder:save_old(packet)
 
 	-- naxac
 	local it = self.object:active_slot()
-	if it>9 then it = 20 end
+	if it > inventory_slots.TOTAL then
+		it = inventory_slots.TOTAL
+	end
 	packet:w_u8(it)
 
 	local chck_slots = { inventory_slots.PISTOL, inventory_slots.RIFLE }
@@ -787,11 +799,7 @@ function actor_binder:load(reader)
 	object_binder.load(self, reader)
 
 	--' Загружаем уровень сложности
-	local game_difficulty = reader:r_u8()
-	if game_difficulty >= 128 then           
-		game_difficulty = game_difficulty - 128
-	end                                      
-
+	local game_difficulty = reader:r_u8()                             
 	get_console():execute("g_game_difficulty "..game_difficulty_by_num[game_difficulty])
 
 	if reader:r_eof() then
@@ -826,8 +834,10 @@ function actor_binder:load(reader)
 
 	-- Загружаем активный слот
 	local slot = reader:r_u8()
-	if slot == 20 then slot = -1 end
-	self.loaded_active_slot = slot
+	if slot < inventory_slots.TOTAL then
+		self.loaded_active_slot = slot
+	end
+
 	-- Загружаем пушки в неродных слотах
 	while not reader:r_eof() do
 		local i = reader:r_u16()

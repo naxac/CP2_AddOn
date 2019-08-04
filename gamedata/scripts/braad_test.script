@@ -92,27 +92,20 @@ function radar_man()
 	sim:create("zombie_normal",v:set(0.86928582191467,-23.69577599,1.777916193),6155,2703)
 end
 
-function killactor (sid)
-local npc = level_object_by_sid (9623)
-    if npc == nil or npc:alive () == false then
-       return 
-    end    
-    npc:set_relation (game_object.enemy, db.actor)
-local npc = level_object_by_sid (9624)
-    if npc == nil or npc:alive () == false then
-       return 
-    end    
-    npc:set_relation (game_object.enemy, db.actor)
-local npc = level_object_by_sid (9625)
-    if npc == nil or npc:alive () == false then
-       return 
-    end    
-    npc:set_relation (game_object.enemy, db.actor)
-local npc = level_object_by_sid (9905)
-    if npc == nil or npc:alive () == false then
-       return 
-    end    
-    npc:set_relation (game_object.enemy, db.actor)	
+function killactor ()
+	local sids = {
+		story_ids.mil_trader_gavr,
+		story_ids.mil_gavr_bodyguard1,
+		story_ids.mil_gavr_bodyguard2,
+		story_ids.tamaz_body2
+	}
+	local npc
+	for i, sid in ipairs(sids) do
+		npc = level_object_by_sid (sid)
+		if npc and npc:alive() then
+		   npc:set_relation(game_object.enemy, db.actor) 
+		end
+	end
 end
 
 function killactor_spawn()
@@ -153,7 +146,7 @@ local position = db.actor:position()
 end			
 			
 function kill_npc(sid)
-local npc = level_object_by_sid (9630)
+local npc = level_object_by_sid (story_ids.yakut_agro)
     if npc == nil or npc:alive () == false then
        return 
     end    
@@ -356,7 +349,7 @@ local out_object
 local in_object
 
 function ograblen_kalm(actor,npc)
-	local inv_box_1 = level_object_by_sid(14003)
+	local inv_box_1 = level_object_by_sid(story_ids.kalmyak)
 	out_object = db.actor
 	in_object = inv_box_1
 	shiftCheckDropItem()
@@ -364,7 +357,7 @@ function ograblen_kalm(actor,npc)
 end
 
 function vozvrat_kalm(actor,npc)
-	local inv_box_1 = level_object_by_sid(14003)
+	local inv_box_1 = level_object_by_sid(story_ids.kalmyak)
 	in_object = db.actor
 	out_object = inv_box_1
 	shiftCheckDropItem()
@@ -562,7 +555,7 @@ function reregistr_kashei()
 	if obj then
 		local params = {
 			custom_data = "[logic]\ncfg = scripts\\new\\nebo\\kashei_new.ltx",
-			story_id = 14100
+			story_id = story_ids.kashei
 		}
 		netpk:modify( obj, params, netpk.fState )
 	end
@@ -951,7 +944,7 @@ function logig_scromnyi()
 	if obj then
 		local params = {
 			custom_data = "[logic]\ncfg = scripts\\new\\nebo\\scromnyi_new.ltx",
-			story_id = 14102
+			story_id = story_ids.scromnyi
 		}
 		netpk:modify( obj, params, netpk.fState )
 	end	  
@@ -1060,7 +1053,7 @@ function spawn_prohod_hos()
 end
 
 --function black_doctor_init_dialod()
-   --local black_doctor = level_object_by_sid(14008)
+   --local black_doctor = level_object_by_sid(story_ids.black_doctor)
    --db.actor:run_talk_dialog(black_doctor)
 --end
 
@@ -1677,7 +1670,7 @@ end
 function dead_city_atpeshka()
   	if (not has_alife_info("dead_city_atpeshka" )) then
 		netpk:create_level_changer(
-			18114,
+			story_ids.lc_dcity_to_atp,
 			vector():set(72.183212280273,-1.8766392469406,-207.6682434082),
 			425926,
 			3646, 
