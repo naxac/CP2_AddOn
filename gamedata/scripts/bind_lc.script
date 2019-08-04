@@ -39,15 +39,17 @@ function lc_binder:update(delta)
 	if dist > -5 then
 		if not self.sms_sent then
 			self.sms_sent = true
-		--	log1("level cahnger: "..self.object:name())
+			local cs = get_hud():AddCustomStatic("cs_level_changer", true)
 			local dest_lvl = alife():level_name(game_graph():vertex(self.sh_data.dest_game_vertex_id):level_id())
-			db.actor:give_game_news("%c[255,160,160,160]Переход:\\n"..
-				"%c[default]"..game.translate_string(level.name())..
-				" - "..game.translate_string(dest_lvl)..".",
-				"ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 5000)
+			local text = "Переход "..game.translate_string(level.name()).." - "..game.translate_string(dest_lvl)
+			cs:wnd():SetText(text)
 		end
 	elseif self.sms_sent then
 		self.sms_sent = nil
+		local cs = get_hud():GetCustomStatic("cs_level_changer")
+		if cs then
+			get_hud():RemoveCustomStatic("cs_level_changer")
+		end
 	end
 end
 
