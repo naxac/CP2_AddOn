@@ -6,9 +6,9 @@ local string_gfind = string.gfind
 local string_find = string.find
 local table_insert = table.insert
 
-local cell_size = 25  -- размер иконки в описании свойств предмета
+local cell_size = 25  -- СЂР°Р·РјРµСЂ РёРєРѕРЅРєРё РІ РѕРїРёСЃР°РЅРёРё СЃРІРѕР№СЃС‚РІ РїСЂРµРґРјРµС‚Р°
 
-local shift_show_descr = 700  -- через какое время после наведения курсора будет показано окно, ms
+local shift_show_descr = 700  -- С‡РµСЂРµР· РєР°РєРѕРµ РІСЂРµРјСЏ РїРѕСЃР»Рµ РЅР°РІРµРґРµРЅРёСЏ РєСѓСЂСЃРѕСЂР° Р±СѓРґРµС‚ РїРѕРєР°Р·Р°РЅРѕ РѕРєРЅРѕ, ms
 
 
 local reg_callbacks = {
@@ -19,20 +19,20 @@ local reg_callbacks = {
 	update = "OnUpdate"
 }
 
--- Пушки, для которых дополнительное описание не пишем
+-- РџСѓС€РєРё, РґР»СЏ РєРѕС‚РѕСЂС‹С… РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕРµ РѕРїРёСЃР°РЅРёРµ РЅРµ РїРёС€РµРј
 local forbidden_wpns = {
-	['wpn_fot'] = true,			-- фотоаппарат
-	['wpn_eagle_m2'] = true,	-- фотопистолет
-	['wpn_eagle_m3'] = true,	-- фотопистолет 2
-	['wpn_svd_foto'] = true,	-- фоторужьё СВД
-	['wpn_binoc'] = true,		-- бинокль
-	['wpn_binoc_dist'] = true,	-- ещё бинокль
---	['wpn_flame'] = true,		-- огнемёт системы "Шуруп"
-	['wpn_gravigun'] = true,	-- гравицапа
-	['wpn_soulcube'] = true		-- душекуб
+	['wpn_fot'] = true,			-- С„РѕС‚РѕР°РїРїР°СЂР°С‚
+	['wpn_eagle_m2'] = true,	-- С„РѕС‚РѕРїРёСЃС‚РѕР»РµС‚
+	['wpn_eagle_m3'] = true,	-- С„РѕС‚РѕРїРёСЃС‚РѕР»РµС‚ 2
+	['wpn_svd_foto'] = true,	-- С„РѕС‚РѕСЂСѓР¶СЊС‘ РЎР’Р”
+	['wpn_binoc'] = true,		-- Р±РёРЅРѕРєР»СЊ
+	['wpn_binoc_dist'] = true,	-- РµС‰С‘ Р±РёРЅРѕРєР»СЊ
+--	['wpn_flame'] = true,		-- РѕРіРЅРµРјС‘С‚ СЃРёСЃС‚РµРјС‹ "РЁСѓСЂСѓРї"
+	['wpn_gravigun'] = true,	-- РіСЂР°РІРёС†Р°РїР°
+	['wpn_soulcube'] = true		-- РґСѓС€РµРєСѓР±
 }
 
--- съедобное
+-- СЃСЉРµРґРѕР±РЅРѕРµ
 local is_eatable = {
 	[clsid.obj_antirad]	= true,
 	[clsid.obj_bandage]	= true,
@@ -40,14 +40,14 @@ local is_eatable = {
 	[clsid.obj_food]	= true,
 	[clsid.obj_medkit]	= true
 }
--- Радиоактивные предметы
+-- Р Р°РґРёРѕР°РєС‚РёРІРЅС‹Рµ РїСЂРµРґРјРµС‚С‹
 local rad_items = {
 	["lekar_kalmyak"] = 80,
 	["mushroom"] = 10,
 	["case_nebo"] = 30
 }
 
--- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
+-- РџР°СЂР°РјРµС‚СЂС‹ Р°РєС‚С‘СЂР°, РїРѕ РєРѕС‚РѕСЂС‹Рј СЃС‡РёС‚Р°СЋС‚СЃСЏ РЅРµРєРѕС‚РѕСЂС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ РёР»Рё РєРѕСЃС‚СЋРјРѕРІ
 local conditions = {
 	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'bleeding_v'),
 	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v'),
@@ -55,36 +55,36 @@ local conditions = {
 	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v'),
 	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v') *100
 }
--- параметры костюмов и артов
+-- РїР°СЂР°РјРµС‚СЂС‹ РєРѕСЃС‚СЋРјРѕРІ Рё Р°СЂС‚РѕРІ
 local conditions_params = {
-	{ prop = "health_restore_speed",	text = "Здоровье:",		tex = "health"		},
-	{ prop = "bleeding_restore_speed",	text = "Кровотечение:",	tex = "bleeding"	},
-	{ prop = "satiety_restore_speed",	text = "Сытость:",		tex = "satiety"		},
-	{ prop = "power_restore_speed",		text = "Выносливость:",	tex = "power"		},
-	{ prop = "radiation_restore_speed",	text = "Радиация:",		tex = "radiation_2", unit = "Ки"	},
+	{ prop = "health_restore_speed",	text = "Р—РґРѕСЂРѕРІСЊРµ:",		tex = "health"		},
+	{ prop = "bleeding_restore_speed",	text = "РљСЂРѕРІРѕС‚РµС‡РµРЅРёРµ:",	tex = "bleeding"	},
+	{ prop = "satiety_restore_speed",	text = "РЎС‹С‚РѕСЃС‚СЊ:",		tex = "satiety"		},
+	{ prop = "power_restore_speed",		text = "Р’С‹РЅРѕСЃР»РёРІРѕСЃС‚СЊ:",	tex = "power"		},
+	{ prop = "radiation_restore_speed",	text = "Р Р°РґРёР°С†РёСЏ:",		tex = "radiation_2", unit = "РљРё"	},
 }
--- Типы хитов и соответствующие им текстуры и названия
+-- РўРёРїС‹ С…РёС‚РѕРІ Рё СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ РёРј С‚РµРєСЃС‚СѓСЂС‹ Рё РЅР°Р·РІР°РЅРёСЏ
 local hit_types = {
-	{ prop = "burn",			text = "Ожог:"			},
-	{ prop = "shock",			text = "Электрошок:"	},
-	{ prop = "strike",			text = "Удар:"			},
-	{ prop = "wound",			text = "Разрыв:"		},
-	{ prop = "radiation",		text = "Радиация:"		},
-	{ prop = "telepatic",		text = "Телепатия:"		},
-	{ prop = "chemical_burn",	text = "Хим. ожог:"		},
-	{ prop = "explosion",		text = "Взрыв:"			},
-	{ prop = "fire_wound",		text = "Пулестойкость:"	}
+	{ prop = "burn",			text = "РћР¶РѕРі:"			},
+	{ prop = "shock",			text = "Р­Р»РµРєС‚СЂРѕС€РѕРє:"	},
+	{ prop = "strike",			text = "РЈРґР°СЂ:"			},
+	{ prop = "wound",			text = "Р Р°Р·СЂС‹РІ:"		},
+	{ prop = "radiation",		text = "Р Р°РґРёР°С†РёСЏ:"		},
+	{ prop = "telepatic",		text = "РўРµР»РµРїР°С‚РёСЏ:"		},
+	{ prop = "chemical_burn",	text = "РҐРёРј. РѕР¶РѕРі:"		},
+	{ prop = "explosion",		text = "Р’Р·СЂС‹РІ:"			},
+	{ prop = "fire_wound",		text = "РџСѓР»РµСЃС‚РѕР№РєРѕСЃС‚СЊ:"	}
 }
--- Параметры еды
+-- РџР°СЂР°РјРµС‚СЂС‹ РµРґС‹
 local eatable_params = {
-	{ prop = "eat_health",				text = "Здоровье:",		tex = "health"		},
-	{ prop = "wounds_heal_perc",		text = "Кровотечение:",	tex = "bleeding"	},
-	{ prop = "eat_psy_health",			text = "Пси-здоровье:",	tex = "telepatic"	},
-	{ prop = "eat_satiety",				text = "Сытость:",		tex = "satiety"		},
-	{ prop = "eat_power",				text = "Выносливость:",	tex = "power"		},
-	{ prop = "eat_alcohol",				text = "Опьянение:",	tex = "alcohol"		},
-	{ prop = "eat_radiation",			text = "Радиация:",		tex = "radiation_2"	},
-	{ prop = "eat_radiation_arc",		text = "Радиация:",		tex = "radiation_2", unit = "Р"	}
+	{ prop = "eat_health",				text = "Р—РґРѕСЂРѕРІСЊРµ:",		tex = "health"		},
+	{ prop = "wounds_heal_perc",		text = "РљСЂРѕРІРѕС‚РµС‡РµРЅРёРµ:",	tex = "bleeding"	},
+	{ prop = "eat_psy_health",			text = "РџСЃРё-Р·РґРѕСЂРѕРІСЊРµ:",	tex = "telepatic"	},
+	{ prop = "eat_satiety",				text = "РЎС‹С‚РѕСЃС‚СЊ:",		tex = "satiety"		},
+	{ prop = "eat_power",				text = "Р’С‹РЅРѕСЃР»РёРІРѕСЃС‚СЊ:",	tex = "power"		},
+	{ prop = "eat_alcohol",				text = "РћРїСЊСЏРЅРµРЅРёРµ:",	tex = "alcohol"		},
+	{ prop = "eat_radiation",			text = "Р Р°РґРёР°С†РёСЏ:",		tex = "radiation_2"	},
+	{ prop = "eat_radiation_arc",		text = "Р Р°РґРёР°С†РёСЏ:",		tex = "radiation_2", unit = "Р "	}
 }
 --------------------------------------------------------------------------------------------------------
 class "CUIDescriptionWnd" (CUIScriptWnd)
@@ -205,11 +205,11 @@ function CUIDescriptionWnd:ShowDescription(item)
 			self:ShowAfParams()
 		else
 			inv_name = "unknown_art"
-			description = "Неизвестное аномальное образование."
+			description = "РќРµРёР·РІРµСЃС‚РЅРѕРµ Р°РЅРѕРјР°Р»СЊРЅРѕРµ РѕР±СЂР°Р·РѕРІР°РЅРёРµ."
 			if arc_inventory.IsRadDetected() then
 				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") * 100 / conditions.radiation_restore_speed
 				if rd > 0 then
-					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри. Надо быть осторожней."
+					description = description.." Р Р°РґРёРѕР°РєС‚РёРІРЅРѕ, РїСЂРё Р·Р°РјРµСЂРµ РїРѕРєР°Р·С‹РІР°РµС‚ РёР·Р»СѓС‡РµРЅРёРµ "..string.format("%d", rd).." РљСЋСЂРё. РќР°РґРѕ Р±С‹С‚СЊ РѕСЃС‚РѕСЂРѕР¶РЅРµР№."
 				end
 			end
 		end
@@ -217,13 +217,13 @@ function CUIDescriptionWnd:ShowDescription(item)
 	elseif string_find(self.section, "^arc_art_box_") then
 		self:GetContainerParams()
 		if #self.arts_list > 0 then
-			description = description.."\\n \\n%c[UI_orange]Содержимое:"
+			description = description.."\\n \\n%c[UI_orange]РЎРѕРґРµСЂР¶РёРјРѕРµ:"
 		else
 			self.arts_list = nil
-			description = description.."\\n \\n%c[UI_orange]Контейнер пуст"
+			description = description.."\\n \\n%c[UI_orange]РљРѕРЅС‚РµР№РЅРµСЂ РїСѓСЃС‚"
 		end
 	elseif rad_items[self.section] then
-		local p = { {"radiation_2", "Радиация: %c[red]+"..string_format("%d Ки",rad_items[self.section])} }
+		local p = { {"radiation_2", "Р Р°РґРёР°С†РёСЏ: %c[red]+"..string_format("%d РљРё",rad_items[self.section])} }
 		self:ShowProps(p)
 	end
 
@@ -259,7 +259,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 	-- knife
 	elseif item:is_knife() then
 		local d = sys_ini:r_float(self.section, 'fire_distance')
-		self:ShowProps( { {"fire_distance_knife", "дистанция удара: "..string_format("%.2f м.", d)} } )
+		self:ShowProps( { {"fire_distance_knife", "РґРёСЃС‚Р°РЅС†РёСЏ СѓРґР°СЂР°: "..string_format("%.2f Рј.", d)} } )
 	-- scope
 	elseif item:is_scope() then
 		local zf = sys_ini:r_float(self.section, 'scope_zoom_factor')
@@ -269,7 +269,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 	elseif item:is_grenade() then
 		local fr = sys_ini:r_float(self.section, 'frags_r')
 		local br =  sys_ini:r_float(self.section, 'blast_r')
-		self:ShowProps( { {"explosion", string_format("опасный радиус: %.1f м.", (fr+br)/2)} } )
+		self:ShowProps( { {"explosion", string_format("РѕРїР°СЃРЅС‹Р№ СЂР°РґРёСѓСЃ: %.1f Рј.", (fr+br)/2)} } )
 	end
 
 	if inv_name == "unknown_art"
@@ -277,9 +277,9 @@ function CUIDescriptionWnd:ShowDescription(item)
 	then
 		self.cost:SetText("")
 	else
-		self.cost:SetText( string_format( "Цена: %d руб.", item:cost() ) )
+		self.cost:SetText( string_format( "Р¦РµРЅР°: %d СЂСѓР±.", item:cost() ) )
 	end
-	self.weight_static:SetText( string_format("Вес: %.2f кг.", item:get_weight()) )
+	self.weight_static:SetText( string_format("Р’РµСЃ: %.2f РєРі.", item:get_weight()) )
 
 	if need_show_condition(item) then
 		self.cond_scale:SetWidth(self.max_cond_w*self.condition)
@@ -318,7 +318,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 	self.frame:Show(true)
 end
 
--- Показываем параметры съедобных предметов
+-- РџРѕРєР°Р·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ СЃСЉРµРґРѕР±РЅС‹С… РїСЂРµРґРјРµС‚РѕРІ
 function CUIDescriptionWnd:ShowEatableParams()
 	local params = {}
 	local val, txt = 0, ""
@@ -347,7 +347,7 @@ function CUIDescriptionWnd:ShowEatableParams()
 		self:ShowProps(params)
 	end
 end
--- Показываем список артефактов из конейнера и неэкранированную радиацию
+-- РџРѕРєР°Р·С‹РІР°РµРј СЃРїРёСЃРѕРє Р°СЂС‚РµС„Р°РєС‚РѕРІ РёР· РєРѕРЅРµР№РЅРµСЂР° Рё РЅРµСЌРєСЂР°РЅРёСЂРѕРІР°РЅРЅСѓСЋ СЂР°РґРёР°С†РёСЋ
 function CUIDescriptionWnd:GetContainerParams()
 	local arts
 	if self.item.is_fake then
@@ -385,20 +385,20 @@ function CUIDescriptionWnd:GetContainerParams()
 		if r > 0 then
 			if arc_inventory.IsRadDetected() then
 				r = r*100/conditions.radiation_restore_speed
-				self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
+				self:ShowProps( { {"radiation_2", "Р Р°РґРёР°С†РёСЏ: %c[red]+"..string_format("%dРљРё",r)} } )
 			end
 		end
 	end
 end
--- Показываем описание оружия
+-- РџРѕРєР°Р·С‹РІР°РµРј РѕРїРёСЃР°РЅРёРµ РѕСЂСѓР¶РёСЏ
 function CUIDescriptionWnd:ShowWeaponParams()
 	self.xml:InitStatic("props", self.scroll_v)
 	self.addH = self.addH + 20
 	local st = self.xml:InitStatic("props", self.scroll_v)
-	st:SetText("Боеприпасы:")
+	st:SetText("Р‘РѕРµРїСЂРёРїР°СЃС‹:")
 	st:SetTextColor(255, 238, 153, 26)
 	self.addH = self.addH + 20
-	-- Боеприпасы
+	-- Р‘РѕРµРїСЂРёРїР°СЃС‹
 	local s = sys_ini:r_string(self.section, 'ammo_class')
 	for a in string_gfind(s, "[%w_%-%.]+") do
 		self:ShowPropFromIni( GetIconParams(a), get_inv_name(a) )
@@ -406,7 +406,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	local gl = sys_ini:r_u32(self.section, 'grenade_launcher_status')
 	if gl~=0 then
 		s = sys_ini:r_string_ex(self.section, 'grenade_class')
-		if s and s~="ammo_vog-27" then	-- не коллиматор
+		if s and s~="ammo_vog-27" then	-- РЅРµ РєРѕР»Р»РёРјР°С‚РѕСЂ
 			for a in string_gfind(s, "[%w_%-%.]+") do
 				self:ShowPropFromIni( GetIconParams(a), get_inv_name(a) )
 			end
@@ -414,7 +414,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	end
 
 	local st2
-	-- Навесы
+	-- РќР°РІРµСЃС‹
 	local text = ""
 	local addon, v
 	local n = sys_ini:r_u32(self.section, 'scope_status')
@@ -426,7 +426,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		if n == 1 then
 			s = sys_ini:r_float(self.section, 'scope_zoom_factor')
 			n = device().fov/(s*0.75)
-			text = "Интегрированный x"..string_format("%.1f", n).."-кратный прицел"
+			text = "РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ x"..string_format("%.1f", n).."-РєСЂР°С‚РЅС‹Р№ РїСЂРёС†РµР»"
 		else
 			text = get_inv_name(addon)
 		end
@@ -441,7 +441,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		addon = sys_ini:r_string_ex(self.section, 'silencer_name', "wpn_addon_silencer")
 		v = GetIconParams(addon)
 		if n == 1 then
-			text = "Интегрированный глушитель"
+			text = "РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ РіР»СѓС€РёС‚РµР»СЊ"
 		else
 			text = get_inv_name(addon)
 		end
@@ -455,56 +455,56 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		addon = sys_ini:r_string_ex(self.section, 'grenade_launcher_name', "wpn_addon_grenade_launcher")
 		v = GetIconParams(addon)
 		if gl == 1 then
-			text = "Интегрированный подствольный гранатомёт"
+			text = "РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ РїРѕРґСЃС‚РІРѕР»СЊРЅС‹Р№ РіСЂР°РЅР°С‚РѕРјС‘С‚"
 		else
 			text = get_inv_name(addon)
 		end
 		self:ShowPropFromIni(v, text)
 	end
 	if st2 then
-		st2:SetText("Навесы:")
+		st2:SetText("РќР°РІРµСЃС‹:")
 		st2:SetTextColor(255, 238, 153, 26)
 		self.addH = self.addH + 20
 	end
 	self.xml:InitStatic("props", self.scroll_v)
 	self.addH = self.addH + 20
 	
-	-- Некоторые характеристики
+	-- РќРµРєРѕС‚РѕСЂС‹Рµ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё
 	v = {}
 	n = sys_ini:r_u32(self.section, 'fire_distance')
-	text = "эффективная дальность: "..string_format("%d", n).." метров"
+	text = "СЌС„С„РµРєС‚РёРІРЅР°СЏ РґР°Р»СЊРЅРѕСЃС‚СЊ: "..string_format("%d", n).." РјРµС‚СЂРѕРІ"
 	table_insert( v, {"fire_distance", text} )
 
 	n = sys_ini:r_u32(self.section, 'rpm')
-	text = "скорострельность: "..string_format("%d", n).." в/мин"
+	text = "СЃРєРѕСЂРѕСЃС‚СЂРµР»СЊРЅРѕСЃС‚СЊ: "..string_format("%d", n).." РІ/РјРёРЅ"
 	table_insert( v, {"rpm", text} )
 
 	n = sys_ini:r_u32(self.section, 'ammo_mag_size')
-	text = "ёмкость магазина: "..string_format("%d", n)
+	text = "С‘РјРєРѕСЃС‚СЊ РјР°РіР°Р·РёРЅР°: "..string_format("%d", n)
 	table_insert( v, {"ammo_mag_size", text} )
 
 	if sys_ini:r_bool_ex( self.section, "scope_nv", false ) then
-		table_insert( v, {"nv_scope", "прицел ночного видения"} )
+		table_insert( v, {"nv_scope", "РїСЂРёС†РµР» РЅРѕС‡РЅРѕРіРѕ РІРёРґРµРЅРёСЏ"} )
 	end
 	if sys_ini:r_clsid(self.section, "class") == clsid.wpn_binocular_s then
-		table_insert( v, {"adjust_scope", "регулируемый прицел"} )
+		table_insert( v, {"adjust_scope", "СЂРµРіСѓР»РёСЂСѓРµРјС‹Р№ РїСЂРёС†РµР»"} )
 		if sys_ini:r_bool(self.section, "vision_present") == true then
-			table_insert( v, {"comp_scope", "автозахват цели"} )
+			table_insert( v, {"comp_scope", "Р°РІС‚РѕР·Р°С…РІР°С‚ С†РµР»Рё"} )
 		end
 	end
 	if string_find(self.section, "_kalibr") then
-		table_insert( v, {"kalibr", "смена калибра"} )
+		table_insert( v, {"kalibr", "СЃРјРµРЅР° РєР°Р»РёР±СЂР°"} )
 	end
 	if string_find(self.section, "_otdaca") then
-		table_insert( v, {"otdaca", "уменьшена отдача"} )
+		table_insert( v, {"otdaca", "СѓРјРµРЅСЊС€РµРЅР° РѕС‚РґР°С‡Р°"} )
 	end
 	if string_find(self.section, "_ves") then
-		table_insert( v, {"ves", "снижен вес"} )
+		table_insert( v, {"ves", "СЃРЅРёР¶РµРЅ РІРµСЃ"} )
 	end
 
 	self:ShowProps(v)
 end
--- Показываем параметры артефактов
+-- РџРѕРєР°Р·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ
 function CUIDescriptionWnd:ShowAfParams()
 	local params = {}
 	local val, txt = 0, ""
@@ -540,7 +540,7 @@ function CUIDescriptionWnd:ShowAfParams()
 	if sys_ini:line_exist(self.section, "additional_inventory_weight") then
 		val = sys_ini:r_float(self.section, "additional_inventory_weight")
 		if val~=0 then
-			txt = "Переносимый вес: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." кг"
+			txt = "РџРµСЂРµРЅРѕСЃРёРјС‹Р№ РІРµСЃ: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." РєРі"
 			table_insert( params, {"additional_weight", txt} )
 		end
 	end
@@ -549,7 +549,7 @@ function CUIDescriptionWnd:ShowAfParams()
 		self:ShowProps(params)
 	end
 end
--- Показываем параметры костмов
+-- РџРѕРєР°Р·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ РєРѕСЃС‚РјРѕРІ
 function CUIDescriptionWnd:ShowOutfitParams()
 	local params = {}
 	local val, txt = 0, ""
@@ -565,14 +565,14 @@ function CUIDescriptionWnd:ShowOutfitParams()
 	val = self.item:get_go_float(480)	-- power_loss
 	if val ~= 1 then
 		val = val*100 - 100
-		txt = "Усталость: "..(val>0 and "%c[red]+" or "%c[green]")..string_format("%d%%",val)
+		txt = "РЈСЃС‚Р°Р»РѕСЃС‚СЊ: "..(val>0 and "%c[red]+" or "%c[green]")..string_format("%d%%",val)
 		table_insert( params, {"power_loss", txt} )
 	end
 
 	if sys_ini:line_exist(self.section, "additional_inventory_weight") then
 		val = self.item:get_go_float(500)
 		if val>0 then
-			txt = "Грузоподъёмность: %c[green]+"..string_format("%.1f",val).." кг"
+			txt = "Р“СЂСѓР·РѕРїРѕРґСЉС‘РјРЅРѕСЃС‚СЊ: %c[green]+"..string_format("%.1f",val).." РєРі"
 			table_insert( params, {"additional_weight", txt} )
 		end
 	end
@@ -581,7 +581,7 @@ function CUIDescriptionWnd:ShowOutfitParams()
 		self:ShowProps(params)
 	end
 end
--- Показываем параметры энергозависимых предметов
+-- РџРѕРєР°Р·С‹РІР°РµРј РїР°СЂР°РјРµС‚СЂС‹ СЌРЅРµСЂРіРѕР·Р°РІРёСЃРёРјС‹С… РїСЂРµРґРјРµС‚РѕРІ
 function CUIDescriptionWnd:ShowVolatileItemParams()
 	local charge = nil
 	local binder = self.item:binded_object()
@@ -622,16 +622,16 @@ function CUIDescriptionWnd:ShowVolatileItemParams()
 		local h = math.floor(tm/60)
 		local txt
 		if h >= 1 then
-			txt = string.format("%dч. %dмин.", h, tm%60)
+			txt = string.format("%dС‡. %dРјРёРЅ.", h, tm%60)
 		else
-			txt = string.format("%dмин.", tm)
+			txt = string.format("%dРјРёРЅ.", tm)
 		end
-		self:ShowProps( { {"time", "время работы: "..txt} } )
+		self:ShowProps( { {"time", "РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹: "..txt} } )
 	end
 
 	local accum = sys_ini:r_string_ex(self.section, "energy_source")
 	if accum then
-		self:ShowPropFromIni( GetIconParams(accum), string.format("Источник питания: %s", get_string( get_inv_name(accum) )) )
+		self:ShowPropFromIni( GetIconParams(accum), string.format("РСЃС‚РѕС‡РЅРёРє РїРёС‚Р°РЅРёСЏ: %s", get_string( get_inv_name(accum) )) )
 	end
 end
 
