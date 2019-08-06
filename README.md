@@ -7,6 +7,7 @@
 
 - Rulix (aka Bak) - Ai Additions 2.0
 - проект X-Ray Extensions (r232)
+- OGSE-Team
 - ARC (New Radiation & Cardiography Mod)
 - идеи и реализации некоторых товарищей с АМК-форума (dsh, Dennis_Chikin, Charsi и многие другие)
 
