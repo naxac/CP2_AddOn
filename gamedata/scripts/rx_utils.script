@@ -136,7 +136,7 @@ function get_communities_list()
 end
 
 --------------------------------------str---------------------------------------
--- СѓРґР°Р»РµРЅРёРµ РёР· СЃС‚СЂРѕРєРё РЅР°С‡Р°Р»СЊРЅС‹С… Рё РєРѕРЅРµС‡РЅС‹С… РїСЂРѕР±РµР»РѕРІ
+-- удаление из строки начальных и конечных пробелов
 function trim_space(s)
 	local i,j = 1,-1
 	
@@ -448,7 +448,7 @@ function npc_in_cover(npc,stand)
 	if be and not xr_wounded.is_wounded(be) then
 		enemies[1] = be
 		tt[be:id()] = true
-	else	-- РІ РѕС‚СЃСѓС‚СЃС‚РІРёРµ РІСЂР°РіР° РїСЂРѕРІРµСЂСЏРµРј СѓРіСЂРѕР·Сѓ
+	else	-- в отсутствие врага проверяем угрозу
 		if not be and de and npc:best_danger() then
 			local dir = npc:best_danger():position():sub(npc:position())
 			local cover = level.cover_in_direction(npc:level_vertex_id(),dir) or 1
@@ -503,9 +503,9 @@ function npc_in_cover(npc,stand)
 		else
 			local dir = enemy:position():sub(npc:position())
 			local dist = dir:magnitude()
-			local seez = npc:see(enemy) and enemy:see(npc)	-- РќРџРЎ Р·РЅР°РµС‚, С‡С‚Рѕ РІСЂР°Рі РµРіРѕ РІРёРґРёС‚
+			local seez = npc:see(enemy) and enemy:see(npc)	-- НПС знает, что враг его видит
 			local cover = level.cover_in_direction(npc_lvid,dir) or 1
-			if seez or dist < 7 or cover > 0.8 or dist*cover > dist-f*cover then		-- С‡РµРј РґР°Р»СЊС€Рµ РІСЂР°Рі, С‚РµРј РјРµРЅСЊС€Рµ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРёРєСЂС‹С‚РёСЏ
+			if seez or dist < 7 or cover > 0.8 or dist*cover > dist-f*cover then		-- чем дальше враг, тем меньше требуется прикрытия
 --				printf("npc_in_cover[%s]:enemy![dist = %s,seez = %s,cover = %s]",npc:character_name(),dist,seez,1-cover)
 				st.evn = false
 				st.wait = tg+2500
@@ -634,7 +634,7 @@ function any_data_tostring(v)
         else
             string_returned = " BOOLEAN:false"
         end
-    elseif t == "nil" then                    --- NIL РўР•Р РЇР•РўРЎРЇ РџР Р РњРђРЎРЎРћР’РћР™ РџР•Р Р•Р”РђР§Р• РђР Р“РЈРњР•РќРўРђ. COMPLETE
+    elseif t == "nil" then                    --- NIL ТЕРЯЕТСЯ ПРИ МАССОВОЙ ПЕРЕДАЧЕ АРГУМЕНТА. COMPLETE
         string_returned = " NIL"
     elseif t == "function" then                --- COMPLETE
         string_returned = " FUNCTION"

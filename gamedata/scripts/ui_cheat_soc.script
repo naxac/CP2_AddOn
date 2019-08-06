@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- Р Р°Р·Р»РёС‡РЅС‹Рµ СЃР»СѓР¶РµР±РЅС‹Рµ С„СѓРЅРєС†РёРё Рё РїРµСЂРµРјРµРЅРЅС‹Рµ
+-- Различные служебные функции и переменные
 local function get_inv_name( section, def )
 	if sys_ini:section_exist( section ) and sys_ini:line_exist( section, "inv_name" ) then
 		return game.translate_string( sys_ini:r_string_wq( section, "inv_name" ) )
@@ -29,15 +29,15 @@ end
 local cheat_list = nil
 
 
--- РЎРѕР±СЃС‚РІРµРЅРЅРѕ, СЃР°РјРѕ РјРµРЅСЋ
+-- Собственно, само меню
 class "list_item" (CUIListItemEx)
 local symb2color = {
-	[33] = {255,255,0,0},		-- ! РєСЂР°СЃРЅС‹Р№
-	[35] = {255,0,255,160},		-- # СЃР°Р»Р°С‚РѕРІС‹Р№
-	[42] = {255,160,160,160},	-- * СЃРµСЂС‹Р№
-	[45] = {255,0,255,0},		-- - Р·РµР»С‘РЅС‹Р№
-	[43] = {255,0,0,255},		-- + СЃРёРЅРёР№
-	[126] = {255,255,255,0}		-- ~ Р¶С‘Р»С‚С‹Р№
+	[33] = {255,255,0,0},		-- ! красный
+	[35] = {255,0,255,160},		-- # салатовый
+	[42] = {255,160,160,160},	-- * серый
+	[45] = {255,0,255,0},		-- - зелёный
+	[43] = {255,0,0,255},		-- + синий
+	[126] = {255,255,255,0}		-- ~ жёлтый
 }
 function list_item:__init(name, sect) super()
 	self:SetWndRect		(0,0,430,22)
@@ -148,7 +148,7 @@ function cheat_menu:InitControls()
 	self.btn_del = xml:Init3tButton("main_dialog:btn_delitem", dialog)
 	self.btn_del:Enable(false)
 	self:Register(self.btn_del, "btn_del")
-	-- РџРѕРёСЃРє РїРѕ РёРјРµРЅРё
+	-- Поиск по имени
 	ctrl = xml:Init3tButton("main_dialog:btn_search", dialog)
 	self:Register(ctrl, "btn_search")
 	self.edit_box = xml:InitEditBox("main_dialog:edit_search", dialog)
@@ -156,14 +156,14 @@ function cheat_menu:InitControls()
 	
 	self.section_name = xml:InitStatic("main_dialog:sect_wnd", dialog)
 
-	-- РЎРѕСЂС‚РёСЂРѕРІРєР°
+	-- Сортировка
 	xml:InitStatic("main_dialog:sort_caption", dialog)
 	self.sort_by_name = xml:InitCheck("main_dialog:check_sort_name", dialog)
 	self:Register(self.sort_by_name, "check_sort_name")
 	self.sort_by_section = xml:InitCheck("main_dialog:check_sort_section", dialog)
 	self:Register(self.sort_by_section, "check_sort_section")
 	
-	-- РћРїРёСЃР°РЅРёРµ
+	-- Описание
 	local desc_back = xml:InitFrame("description", self)
 	xml:InitStatic("description:caption_descr", desc_back)
 	self.scroll_v = xml:InitScrollView("description:scroll_v", desc_back)
@@ -359,8 +359,8 @@ function cheat_menu:GetDescription(indx)
 	local cst = sys_ini:line_exist(sect, "cost") and sys_ini:r_float(sect, "cost") or 0
 	local wght = sys_ini:line_exist(sect, "inv_weight") and sys_ini:r_float(sect, "inv_weight") or 0
 	self.descr:SetText(description)
-	self.cost:SetText(string.format("Р¦РµРЅР°: %d СЂСѓР±.", cst))
-	self.weight:SetText(string.format("Р’РµСЃ: %.2f РєРі.", wght))
+	self.cost:SetText(string.format("Цена: %d руб.", cst))
+	self.weight:SetText(string.format("Вес: %.2f кг.", wght))
 	self.scroll_v:ScrollToBegin()
 	self.section_name:SetText(sect)
 end
@@ -375,7 +375,7 @@ function cheat_menu:SearchItem()
 	local size = self.list:GetSize()
 	if size==0 then return end
 	
-	search_text = string.lower1(search_text):gsub("С‘","Рµ")
+	search_text = string.lower1(search_text):gsub("ё","е")
 
 	local res = false
 
@@ -384,7 +384,7 @@ function cheat_menu:SearchItem()
 		for i, v in ipairs( cheat_list[ index2type[idx] ] ) do
 			j = i - 1
 			if self.search_pos < j
-				and ( string.find( string.lower1(v[2]):gsub("С‘","Рµ"),search_text,1,true )
+				and ( string.find( string.lower1(v[2]):gsub("ё","е"),search_text,1,true )
 				or string.find( v[1],search_text,1,true ) )
 			then
 				self.search_pos = j
@@ -446,7 +446,7 @@ function cheat_menu:OnBtnSpawn()
 			dist_mul = 25
 		end
 		local sobj = alife():create(sect, a:position():add(a:direction():mul(dist_mul)), a:level_vertex_id(), a:game_vertex_id())
-		if sec_type == "anomalies" then	-- Р—Р°РґР°РґРёРј С€РµР№Рї Р°РЅРѕРјР°Р»РёРё, С‡С‚РѕР±С‹ РЅР°РЅРѕСЃРёР»Р° С…РёС‚
+		if sec_type == "anomalies" then	-- Зададим шейп аномалии, чтобы наносила хит
 			local data = { shapes = {
 				[1] = { shtype = 0, center = vector():set( 0, 0, 0 ), radius = 2.0 }
 			} }
@@ -467,7 +467,7 @@ function cheat_menu:OnBtnDelete()
 	local sect = itm.sct:GetText()
 	local obj = db.actor:object(sect)
 	if obj then
-		amk.send_tip("РЈРґР°Р»РёР»Рё РёР· РёРЅРІРµРЅС‚Р°СЂСЏ%c[255,0,255,100] "..itm.fn:GetText())
+		amk.send_tip("Удалили из инвентаря%c[255,0,255,100] "..itm.fn:GetText())
 		local sobj = alife():object(obj:id())
 		if sobj then alife():release(sobj, true) end
 		get_console():execute("main_menu off")
@@ -539,7 +539,7 @@ function cheat_menu:AddItemToList(tbl)
 	self.list:AddItem( list_item(itm_name, tbl[1]) )
 end
 ---------------------------------------------------------------------------------------------------
--- РџР°СЂР°РјРµС‚СЂС‹ Р°РєС‚С‘СЂР°, РїРѕ РєРѕС‚РѕСЂС‹Рј СЃС‡РёС‚Р°СЋС‚СЃСЏ РЅРµРєРѕС‚РѕСЂС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ РёР»Рё РєРѕСЃС‚СЋРјРѕРІ
+-- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
 local conditions = {
 	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'bleeding_v'),
 	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v'),
@@ -547,53 +547,53 @@ local conditions = {
 	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v'),
 	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v') *100
 }
--- РїР°СЂР°РјРµС‚СЂС‹ РєРѕСЃС‚СЋРјРѕРІ Рё Р°СЂС‚РѕРІ
+-- параметры костюмов и артов
 local conditions_params = {
-	{ prop = "health_restore_speed",	text = "Р—РґРѕСЂРѕРІСЊРµ:"		},
-	{ prop = "bleeding_restore_speed",	text = "РљСЂРѕРІРѕС‚РµС‡РµРЅРёРµ:"	},
-	{ prop = "satiety_restore_speed",	text = "РЎС‹С‚РѕСЃС‚СЊ:"		},
-	{ prop = "power_restore_speed",		text = "Р’С‹РЅРѕСЃР»РёРІРѕСЃС‚СЊ:"	},
-	{ prop = "radiation_restore_speed",	text = "РћР±Р»СѓС‡РµРЅРёРµ:"		},
-	{ prop = "inventory_radiation",		text = "РћР±Р»СѓС‡РµРЅРёРµ:"		}
+	{ prop = "health_restore_speed",	text = "Здоровье:"		},
+	{ prop = "bleeding_restore_speed",	text = "Кровотечение:"	},
+	{ prop = "satiety_restore_speed",	text = "Сытость:"		},
+	{ prop = "power_restore_speed",		text = "Выносливость:"	},
+	{ prop = "radiation_restore_speed",	text = "Облучение:"		},
+	{ prop = "inventory_radiation",		text = "Облучение:"		}
 }
--- РёРјРјСѓРЅРёС‚РµС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ Рё Р·Р°С‰РёС‚С‹ РєРѕС‚СЋРјРѕРІ
+-- иммунитеы артефактов и защиты котюмов
 local hit_types = {
-	{ prop = "burn",			text = "РћР¶РѕРі:"			},
-	{ prop = "shock",			text = "Р­Р»РµРєС‚СЂРѕС€РѕРє:"	},
-	{ prop = "strike",			text = "РЈРґР°СЂ:"			},
-	{ prop = "wound",			text = "Р Р°Р·СЂС‹РІ:"		},
-	{ prop = "radiation",		text = "Р Р°РґРёР°С†РёСЏ:"		},
-	{ prop = "telepatic",		text = "РўРµР»РµРїР°С‚РёСЏ:"		},
-	{ prop = "chemical_burn",	text = "РҐРёРј. РѕР¶РѕРі:"		},
-	{ prop = "explosion",		text = "Р’Р·СЂС‹РІ:"			},
-	{ prop = "fire_wound",		text = "РџСѓР»РµСЃС‚РѕР№РєРѕСЃС‚СЊ:"	}
+	{ prop = "burn",			text = "Ожог:"			},
+	{ prop = "shock",			text = "Электрошок:"	},
+	{ prop = "strike",			text = "Удар:"			},
+	{ prop = "wound",			text = "Разрыв:"		},
+	{ prop = "radiation",		text = "Радиация:"		},
+	{ prop = "telepatic",		text = "Телепатия:"		},
+	{ prop = "chemical_burn",	text = "Хим. ожог:"		},
+	{ prop = "explosion",		text = "Взрыв:"			},
+	{ prop = "fire_wound",		text = "Пулестойкость:"	}
 }
--- РџР°СЂР°РјРµС‚СЂС‹ РµРґС‹
+-- Параметры еды
 local eatable_params = {
-	{ prop = "eat_health",				text = "Р—РґРѕСЂРѕРІСЊРµ:"		},
-	{ prop = "wounds_heal_perc",		text = "РљСЂРѕРІРѕС‚РµС‡РµРЅРёРµ:"	},
-	{ prop = "eat_psy_health",			text = "РџСЃРё-Р·РґРѕСЂРѕРІСЊРµ:"	},
-	{ prop = "eat_satiety",				text = "РЎС‹С‚РѕСЃС‚СЊ:"		},
-	{ prop = "eat_power",				text = "Р’С‹РЅРѕСЃР»РёРІРѕСЃС‚СЊ:"	},
-	{ prop = "eat_alcohol",				text = "РћРїСЊСЏРЅРµРЅРёРµ:"		},
-	{ prop = "eat_radiation",			text = "Р Р°РґРёР°С†РёСЏ:"		},
-	{ prop = "eat_radiation_arc",		text = "Р Р°РґРёР°С†РёСЏ:"		}
+	{ prop = "eat_health",				text = "Здоровье:"		},
+	{ prop = "wounds_heal_perc",		text = "Кровотечение:"	},
+	{ prop = "eat_psy_health",			text = "Пси-здоровье:"	},
+	{ prop = "eat_satiety",				text = "Сытость:"		},
+	{ prop = "eat_power",				text = "Выносливость:"	},
+	{ prop = "eat_alcohol",				text = "Опьянение:"		},
+	{ prop = "eat_radiation",			text = "Радиация:"		},
+	{ prop = "eat_radiation_arc",		text = "Радиация:"		}
 }
--- РџРѕР»СѓС‡Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ Р°СЂС‚РµС„Р°РєС‚РѕРІ
+-- Получаем параметры артефактов
 function GetAfParams(section)
 	local val, txt = 0, ""
 	for i,t in ipairs(conditions_params) do
 		val = sys_ini:line_exist(section, t.prop) and sys_ini:r_float(section, t.prop) or 0
 		if val~=0 then
 			val = val*100/conditions[t.prop]
-			txt = txt.."%c[white]вЂў "..t.text.." "
+			txt = txt.."%c[white]• "..t.text.." "
 			unit = "%"
 			if t.prop == "bleeding_restore_speed" then
 				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
 				val = -val
 			elseif t.prop == "radiation_restore_speed" then
 				txt = txt..(val>0 and "%c[red]+" or "%c[green]")
-				unit = "РљРё"
+				unit = "Ки"
 			else
 				txt = txt..(val>0 and "%c[green]+" or "%c[red]")
 			end
@@ -606,19 +606,19 @@ function GetAfParams(section)
 		val = sys_ini:r_float(hit_absorbation_sect, t.prop.."_immunity")
 		if val~=1 then
 			val = 100-val*100
-			txt = txt.."%c[white]вЂў "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string.format("%d%%",val).."\\n"
+			txt = txt.."%c[white]• "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string.format("%d%%",val).."\\n"
 		end
 	end
 
 	if sys_ini:line_exist(section, "additional_inventory_weight") then
 		val = sys_ini:r_float(section, "additional_inventory_weight")
 		if val~=0 then
-			txt = txt.."%c[white]вЂў РџРµСЂРµРЅРѕСЃРёРјС‹Р№ РІРµСЃ: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%.1f",val).." РєРі\\n"
+			txt = txt.."%c[white]• Переносимый вес: "..(val>0 and "%c[green]+" or "%c[red]")..string.format("%.1f",val).." кг\\n"
 		end
 	end
 	return txt
 end
--- РџРѕР»СѓС‡Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ РєРѕСЃС‚РјРѕРІ
+-- Получаем параметры костмов
 function GetOutfitParams(section)
 	local txt = ""
 	local val = 0
@@ -626,7 +626,7 @@ function GetOutfitParams(section)
 		val = sys_ini:r_float(section, t.prop.."_protection")
 		if val~=0 then
 			val = val*100
-			txt = txt.."%c[white]вЂў "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string.format("%d%%",val).."\\n"
+			txt = txt.."%c[white]• "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string.format("%d%%",val).."\\n"
 		end
 	end
 
@@ -634,74 +634,74 @@ function GetOutfitParams(section)
 		val = sys_ini:r_float(section, "power_loss")
 		if val ~= 1 then
 			val = val*100 - 100
-			txt = txt.."%c[white]вЂў РЈСЃС‚Р°Р»РѕСЃС‚СЊ: "..(val>0 and "%c[red]+" or "%c[green]")..string.format("%d",val).."%\\n"
+			txt = txt.."%c[white]• Усталость: "..(val>0 and "%c[red]+" or "%c[green]")..string.format("%d",val).."%\\n"
 		end
 	end
 	if sys_ini:line_exist(section, "additional_inventory_weight") then
 		val = sys_ini:r_float(section, "additional_inventory_weight")
 		if val ~= 0 then
-			txt = txt.."%c[white]вЂў Р“СЂСѓР·РѕРїРѕРґСЉС‘РјРЅРѕСЃС‚СЊ: %c[green]+"..string.format("%.1f",val).." РєРі\\n"
+			txt = txt.."%c[white]• Грузоподъёмность: %c[green]+"..string.format("%.1f",val).." кг\\n"
 		end
 	end
 
-	txt = txt.." \\n%c[white]РљРѕСЌС„С„РёС†РёРµРЅС‚С‹ СЃРѕРїСЂРѕС‚РёРІР»РµРЅРёСЏ Рє РёР·РЅРѕСЃСѓ:\\n"
+	txt = txt.." \\n%c[white]Коэффициенты сопротивления к износу:\\n"
 	local immunities_sect = sys_ini:r_string(section, "immunities_sect")
 	for i,t in ipairs(hit_types) do
 		val = sys_ini:r_float(immunities_sect, t.prop.."_immunity")
-		txt = txt.."вЂў "..t.text.." "..string.format("%f",val).."\\n"
+		txt = txt.."• "..t.text.." "..string.format("%f",val).."\\n"
 	end
 	return txt
 end
--- РџРѕР»СѓС‡Р°РµРј РѕРїРёСЃР°РЅРёРµ РѕСЂСѓР¶РёСЏ
+-- Получаем описание оружия
 function GetWeaponParams(section)
-	local text = "Р‘РѕРµРїСЂРёРїР°СЃС‹:\\n"
+	local text = "Боеприпасы:\\n"
 	local addons = nil
 	local s = sys_ini:r_string(section, 'ammo_class')
 	for a in string.gfind(s, "[%w_%-%.]+") do
-		text = text.."вЂў "..get_inv_name(a).."\\n"
+		text = text.."• "..get_inv_name(a).."\\n"
 	end
 	local gl = sys_ini:r_u32(section, 'grenade_launcher_status')
 	if gl~=0 then
 		s = sys_ini:line_exist(section, "grenade_class") and sys_ini:r_string(section, 'grenade_class')
-		if s and s~="ammo_vog-27" then	-- РЅРµ РєРѕР»Р»РёРјР°С‚РѕСЂ
+		if s and s~="ammo_vog-27" then	-- не коллиматор
 			for a in string.gfind(s, "[%w_%-%.]+") do
-				text = text.."вЂў "..get_inv_name(a).."\\n"
+				text = text.."• "..get_inv_name(a).."\\n"
 			end
 		end
 	end
 
 	local n = sys_ini:r_u32(section, 'scope_status')
 	if n ~= 0 then
-		addons = "РќР°РІРµСЃС‹:\\n"
+		addons = "Навесы:\\n"
 		if n == 1 then
 			s = sys_ini:r_float(section, 'scope_zoom_factor')
 			n = 67.5/(s*0.75)
-			addons = addons.."вЂў РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ x"..string.format("%d", n).."-РєСЂР°С‚РЅС‹Р№ РїСЂРёС†РµР»\\n"
+			addons = addons.."• Интегрированный x"..string.format("%d", n).."-кратный прицел\\n"
 		else
-			addons = addons.."вЂў "..get_inv_name( sys_ini:r_string(section, 'scope_name') ).."\\n"
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'scope_name') ).."\\n"
 		end
 	end
 
 	n = sys_ini:r_u32(section, 'silencer_status')
 	if n ~= 0 then
 		if addons == nil then
-			addons = "РќР°РІРµСЃС‹:\\n"
+			addons = "Навесы:\\n"
 		end
 		if n == 1 then
-			addons = addons.."вЂў РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ РіР»СѓС€РёС‚РµР»СЊ\\n"
+			addons = addons.."• Интегрированный глушитель\\n"
 		else
-			addons = addons.."вЂў "..get_inv_name( sys_ini:r_string(section, 'silencer_name') ).."\\n"
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'silencer_name') ).."\\n"
 		end
 	end
 
 	if gl ~= 0 then
 		if addons == nil then
-			addons = "РќР°РІРµСЃС‹:\\n"
+			addons = "Навесы:\\n"
 		end
 		if gl == 1 then
-			addons = addons.."вЂў РРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅС‹Р№ РїРѕРґСЃС‚РІРѕР»СЊРЅС‹Р№ РіСЂР°РЅР°С‚РѕРјС‘С‚\\n"
+			addons = addons.."• Интегрированный подствольный гранатомёт\\n"
 		else
-			addons = addons.."вЂў "..get_inv_name( sys_ini:r_string(section, 'grenade_launcher_name') ).."\\n"
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'grenade_launcher_name') ).."\\n"
 		end
 	end
 
@@ -711,29 +711,29 @@ function GetWeaponParams(section)
 	text = text.." \\n"
 
 	n = sys_ini:r_u32(section, 'fire_distance')
-	text = text.."вЂў СЌС„С„РµРєС‚РёРІРЅР°СЏ РґР°Р»СЊРЅРѕСЃС‚СЊ: "..string.format("%d", n).." РјРµС‚СЂРѕРІ\\n"
+	text = text.."• эффективная дальность: "..string.format("%d", n).." метров\\n"
 
 	n = sys_ini:r_u32(section, 'rpm')
-	text = text.."вЂў СЃРєРѕСЂРѕСЃС‚СЂРµР»СЊРЅРѕСЃС‚СЊ: "..string.format("%d", n).." РІ/РјРёРЅ\\n"
+	text = text.."• скорострельность: "..string.format("%d", n).." в/мин\\n"
 
 	n = sys_ini:r_u32(section, 'ammo_mag_size')
-	text = text.."вЂў С‘РјРєРѕСЃС‚СЊ РјР°РіР°Р·РёРЅР°: "..string.format("%d", n).."\\n"
+	text = text.."• ёмкость магазина: "..string.format("%d", n).."\\n"
 
 	if sys_ini:r_clsid(section, "class") == clsid.wpn_binocular_s then
-		text = text.."вЂў СЂРµРіСѓР»РёСЂСѓРµРјС‹Р№ РїСЂРёС†РµР»\\n"
+		text = text.."• регулируемый прицел\\n"
 		if sys_ini:r_bool(section, "vision_present") == true then
-			text = text.."вЂў Р°РІС‚РѕР·Р°С…РІР°С‚ С†РµР»Рё\\n"
+			text = text.."• автозахват цели\\n"
 		end
 	end
 
 	if string.find(section, "_kalibr") then
-		text = text.."вЂў СЃРјРµРЅР° РєР°Р»РёР±СЂР°\\n"
+		text = text.."• смена калибра\\n"
 	end
 	if string.find(section, "_otdaca") then
-		text = text.."вЂў СѓРјРµРЅСЊС€РµРЅР° РѕС‚РґР°С‡Р°\\n"
+		text = text.."• уменьшена отдача\\n"
 	end
 	if string.find(section, "_ves") then
-		text = text.."вЂў СЃРЅРёР¶РµРЅ РІРµСЃ\\n"
+		text = text.."• снижен вес\\n"
 	end
 
 	return text
@@ -743,7 +743,7 @@ function GetEatableParams(section)
 	for i, t in ipairs(eatable_params) do
 		val = sys_ini:line_exist(section, t.prop) and sys_ini:r_float(section, t.prop) or 0
 		if val~=0 then
-			txt = txt.."%c[white]вЂў "..t.text.." "
+			txt = txt.."%c[white]• "..t.text.." "
 			if t.prop == "wounds_heal_perc" then
 				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
 				val = -val
@@ -778,14 +778,14 @@ function cheat_menu:GetExtDescr( section )
 	elseif isGrenade(nil, cls) then
 		local fr = sys_ini:r_float(section, 'frags_r')
 		local br =  sys_ini:r_float(section, 'blast_r')
-		txt = string.format( "вЂў РѕРїР°СЃРЅС‹Р№ СЂР°РґРёСѓСЃ: %.1f Рј.", (fr+br)/2 ).."\\n"
+		txt = string.format( "• опасный радиус: %.1f м.", (fr+br)/2 ).."\\n"
 	elseif isKnife(nil, cls) then
 		local d = sys_ini:r_float(section, 'fire_distance')
-		txt = string.format( "вЂў РґРёСЃС‚Р°РЅС†РёСЏ СѓРґР°СЂР°: %.2f Рј.", d ).."\\n"
+		txt = string.format( "• дистанция удара: %.2f м.", d ).."\\n"
 	elseif isScope(nil, cls) then
 		local zf = sys_ini:r_float(section, 'scope_zoom_factor')
 		local zoom = 67.5/(zf*0.75)
-		txt = "вЂў СѓРІРµР»РёС‡РµРЅРёРµ: x"..string.format("%.1f", zoom).."\\n"
+		txt = "• увеличение: x"..string.format("%.1f", zoom).."\\n"
 	end
 
 	return txt, mode
@@ -870,7 +870,7 @@ function init_cheat_table( sort )
 								name = anom_name
 							end
 							if b == "bind_mteleport.bind" then
-								name = "! "..name.." (С‚РµР»РµРїРѕСЂС‚)"
+								name = "! "..name.." (телепорт)"
 							elseif chech_exclusion_anom( sec ) then
 								name = "! "..name
 							end
