@@ -170,12 +170,23 @@ function se_monster:can_switch_online ()
 					if not amk_offline_alife.sobj_is_far(self, self.min_distance) then
 					--	if rpt then amk.mylog(self:name().." off distance false") end
 						return save_state(self, false)
+
+		--все проверки прошли - финал
+		--	if rpt then amk.mylog(self:name().." off standard") end
+		local res = cse_alife_monster_base.can_switch_online(self)
+		if res then
+			-- Проверка на попадание в поле зрения
+			if db.actor ~= nil then
+				local cam_pos = dev.cam_pos
+				local obj_pos = self.position
+				if cam_pos:distance_to_sqr(obj_pos) < 1600 then	--40
+					if object_level_name(self) == level.name() then
+						res = dev.cam_dir:dotproduct( obj_pos:sub(cam_pos) ) < 0
 					end
 				end
-				
-			--все проверки прошли - финал
-		--	if rpt then amk.mylog(self:name().." off standard") end
-	    return save_state( self, can_switch_online_sight(self, cse_alife_monster_base.can_switch_online) )
+			end
+		end
+		return save_state(self, res)
     else
         if db.actor == nil or db.actor:alive () == false then
 		--	if rpt then amk.mylog(self:name().." on no actor true") end
