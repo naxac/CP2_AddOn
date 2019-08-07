@@ -1,17 +1,17 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local math_random = math.random
 
--- С„СѓРЅРєС†РёСЏ РґР»СЏ Р·Р°РїСѓСЃРєР° С‚Р°Р№РјРµСЂР° РїСЂРё РѕРЅРґСЂРѕРїРµ
+-- функция для запуска таймера при ондропе
 function timeBombOut(id, sect)
 	xr_timers.start_real_timer("babah_drop_timeBomb", 0.2, {id = id, sect = sect})
 end
 
--- С„СѓРЅРєС†РёСЏ РґР»СЏ Р·Р°РїСѓСЃРєР° С‚Р°Р№РјРµСЂР° РїСЂРё РѕРЅРґСЂРѕРїРµ
+-- функция для запуска таймера при ондропе
 function mineOut(id, sect)
 	xr_timers.start_real_timer("babah_drop_mine", 0.2, {id = id, sect = sect})
 end
 
--- С„СѓРЅРєС†РёСЏ РґР»СЏ Р·Р°РїСѓСЃРєР° С‚Р°Р№РјРµСЂР° РїСЂРё РѕРЅРґСЂРѕРїРµ
+-- функция для запуска таймера при ондропе
 function detonatorOut(id, sect)
 	xr_timers.start_real_timer("babah_drop_detonator", 0.2, {id = id, sect = sect})
 end
@@ -111,8 +111,8 @@ local mines = {
 local detonators = {
 	["sect"] = {
 		["detonator"] = {
-			["probability"] = 0.75, -- РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ СѓРґР°С‡РЅРѕРіРѕ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёСЏ, РµСЃР»Рё РЅРµС‚ СЃРµРєС†РёРё - 1
-			["delay"] = 2, -- Р·Р°РґРµСЂР¶РєР° РІ СЃРµРєСѓРЅРґР°С…, РµСЃР»Рё РЅРµС‚ СЃРµРєС†РёРё - 0
+			["probability"] = 0.75, -- вероятность удачного срабатывания, если нет секции - 1
+			["delay"] = 2, -- задержка в секундах, если нет секции - 0
 			["distance"] = 100,
 			["id"] = -1,
 			["name"] = "NK-32beta RUS",
@@ -157,7 +157,7 @@ end
 
 collectFuncBySect(timeBombs)
 collectFuncBySect(mines)
---collectFuncBySect(bombs) -- Р±СѓРґРµРј РёСЃРєР°С‚СЊ Р±РѕРјР±С‹ С‚РѕР»СЊРєРѕ РїСЂРё СЃСЂР°Р±Р°С‚С‹РІР°РЅРёРё РґРµС‚РѕРЅР°С‚РѕСЂР°
+--collectFuncBySect(bombs) -- будем искать бомбы только при срабатывании детонатора
 collectFuncBySect(detonators)
 --amk.dump_table(funcBySect)
 
@@ -195,7 +195,7 @@ function useDetonator(sect)
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
 	if detonators["sect"][sect]["delay"] then
-		-- Р·Р°РїСѓСЃРєР°РµРј С‚Р°Р№РјРµСЂ РѕС‚СЃСЂРѕС‡РєРё Р°РєС‚РёРІР°С†РёРё РґРµС‚РѕРЅР°С‚РѕСЂР°
+		-- запускаем таймер отсрочки активации детонатора
 		xr_timers.start_real_timer("babah_activateDetonator", detonators["sect"][sect]["delay"], sect)
 	else
 		explodeBombsByDetonator(sect)
@@ -210,7 +210,7 @@ function explodeBombsByDetonator(sect)
 		--get_console():execute("load ~~~ explodeBombsByDetonator(sect) sect: "..sect.." probability: "..tostring(probability))
 		if probability then
 			if math_random() > probability then
-				messg("РћС€РёР±РєР° РґРµС‚РѕРЅР°С‚РѕСЂР°!", detonator["name"])
+				messg("Ошибка детонатора!", detonator["name"])
 				return
 			end
 		end
@@ -236,13 +236,13 @@ function explodeBombsByDetonator(sect)
 				--amk.dump_table(explosivesOnLevel)
 				for invBoxId, invBoxExplosives in pairs(explosivesOnLevel) do
 					--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 1.6")
-					if invBoxId ~= 0 then -- РЅРµ РїРѕРґСЂС‹РІР°РµРј Сѓ СЃРµР±СЏ РІ СЂСЋРєР·Р°РєРµ
+					if invBoxId ~= 0 then -- не подрываем у себя в рюкзаке
 						invBox = level_object_by_id(invBoxId)
 						if invBox and invBox:position():distance_to(actorPos) <= radius then
 							--local isInventoryBox = (invBox:clsid() == clsid.inventory_box)
 							--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 1.7")
 							invBoxExploded = false
-							for explSect, explIds in pairs(invBoxExplosives) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+							for explSect, explIds in pairs(invBoxExplosives) do -- можно отсекать по секциям
 								--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 1.8")
 								if bombs["sect"][explSect] and explIds then
 									for j = #explIds, 1, -1 do
@@ -277,7 +277,7 @@ function explodeBombsByDetonator(sect)
 				--amk.dump_table(explosivesOnLevel)
 				--get_console():execute("load ~~~ explosivesAll:")
 				--amk.dump_table(explosivesAll)
-				for explSect, explIds in pairs(explosivesOnLevel) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+				for explSect, explIds in pairs(explosivesOnLevel) do -- можно отсекать по секциям
 					if bombs["sect"][explSect] and explIds then
 						for j = #explIds, 1, -1 do
 							if explIds[j] then 
@@ -295,9 +295,9 @@ function explodeBombsByDetonator(sect)
 				--amk.dump_table(explosivesAll)
 			end
 			if anyBombsExploded then
-				messg("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР°!", detonator["name"])
+				messg("Взрывчатка взорвана!", detonator["name"])
 			else
-				messg("РќРёС‡РµРіРѕ РЅРµ РІР·РѕСЂРІР°РЅРѕ!", detonator["name"])
+				messg("Ничего не взорвано!", detonator["name"])
 			end
 			--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 3")
 		end
@@ -309,14 +309,14 @@ function dropMine(tbl)
 	if level.main_input_receiver() then
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
-	-- Р·Р°РїСѓСЃРєР°РµРј С‚Р°Р№РјРµСЂ Р°РєС‚РёРІР°С†РёРё РјРёРЅС‹
+	-- запускаем таймер активации мины
 	xr_timers.start_real_timer("babah_activateMine", mines["sect"][tbl.sect]["delay"], tbl)
 end
 
 function dropTimeBomb(tbl)
 	--get_console():execute("load ~~~ function dropTimeBomb(tbl)")
 	--xr_timers.start_real_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
-	-- РїСЂРµРІСЂР°С‰Р°РµРј РёРЅРІРµРЅС‚Р°СЂРЅСѓСЋ Р±РѕРјР±Сѓ РІ РѕР±С‹С‡РЅСѓСЋ
+	-- превращаем инвентарную бомбу в обычную
 	if level.main_input_receiver() then
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
@@ -331,8 +331,8 @@ function dropTimeBomb(tbl)
 			local gv = obj:game_vertex_id()
 			if not game_graph():valid_vertex_id(gv) then
 				gv = actor:game_vertex_id()
-				if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-					messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+				if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+					messg("Здесь странное место...", "Локальная сеть")
 					return
 				end
 			end
@@ -345,10 +345,10 @@ end
 function relocateTimeBomb(tbl)
 	--get_console():execute("load ~~~ function relocateTimeBomb(tbl)")
 	--xr_timers.start_real_timer("babah_timeBomb_activated", timeBombs["sect"][se_obj:section_name()]["delay"], se_obj.id)
-	-- РїСЂРµРІСЂР°С‰Р°РµРј РѕР±С‹С‡РЅСѓСЋ Р±РѕРјР±Сѓ РІ РёРЅРІРµРЅС‚Р°СЂРЅСѓСЋ
+	-- превращаем обычную бомбу в инвентарную
 	if transferredBombs[tbl.id] then
 		transferredBombs[tbl.id] = nil
-	elseif timeBombs["sect"][tbl.sect] then -- РїРµСЂРµР»РѕР¶РёР»Рё РёР· СЃРІРѕРµРіРѕ РёРЅРІРµРЅС‚Р°СЂСЏ
+	elseif timeBombs["sect"][tbl.sect] then -- переложили из своего инвентаря
 		local sim = alife()
 		local obj = level.object_by_id(tbl.id)
 		local se_obj = sim:object(tbl.id)
@@ -364,8 +364,8 @@ function relocateTimeBomb(tbl)
 				local gv = se_parent.m_game_vertex_id
 				if not game_graph():valid_vertex_id(gv) then
 					gv = db.actor:game_vertex_id()
-					if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-						messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+					if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+						messg("Здесь странное место...", "Локальная сеть")
 						return
 					end
 				end
@@ -373,8 +373,8 @@ function relocateTimeBomb(tbl)
 				sim:release(se_obj, true)
 				local new_se_obj = sim:create(sect, pos, lv, gv, parent_id)
 				if parent:clsid() == clsid.inventory_box then
-					-- СЏС‰РёРєРё СЃРѕРІСЃРµРј РѕС…СЂРµРЅРµР»Рё
-					--amk.send_tip("СЏС‰РёРєРё СЃРѕРІСЃРµРј РѕС…СЂРµРЅРµР»Рё")
+					-- ящики совсем охренели
+					--amk.send_tip("ящики совсем охренели")
 					xr_timers.start_real_timer("babah_timeBomb_transfer", 0.2, new_se_obj.id)
 				end
 			--	inventory.on_inventory_info("ui_inventory_hide")
@@ -403,14 +403,14 @@ end
 
 function on_item_take(obj)
 	--get_console():execute("load ~~~ function on_item_take(obj)")
-	-- РїСЂРµРІСЂР°С‰Р°РµРј РѕР±С‹С‡РЅСѓСЋ Р±РѕРјР±Сѓ РІ РёРЅРІРµРЅС‚Р°СЂРЅСѓСЋ
+	-- превращаем обычную бомбу в инвентарную
 	local id = obj:id()
 	if transferredBombs[id] then
 		transferredBombs[id] = nil
 	elseif obj then
 		local sect = obj:section()
 		local timeBombBase = timeBombsBase[sect]
-		if timeBombBase then -- РїРµСЂРµР»РѕР¶РёР»Рё РІ СЃРІРѕР№ РёРЅРІРµРЅС‚Р°СЂСЊ Р±РѕРјР±Сѓ СЃ С‚Р°Р№РјРµСЂРѕРј
+		if timeBombBase then -- переложили в свой инвентарь бомбу с таймером
 			local sim = alife()
 			local parent = obj:parent()
 			if parent then
@@ -420,8 +420,8 @@ function on_item_take(obj)
 				local gv = parent:game_vertex_id()
 				if not game_graph():valid_vertex_id(gv) then
 					gv = db.actor:game_vertex_id()
-					if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-						messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+					if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+						messg("Здесь странное место...", "Локальная сеть")
 						return
 					end
 				end
@@ -447,28 +447,28 @@ function useTimeBomb(tbl)
 		local pos = actor:position()
 		local lv = actor:level_vertex_id()
 		local gv = actor:game_vertex_id()
-		if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-			messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+		if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+			messg("Здесь странное место...", "Локальная сеть")
 			return
 		end
 		se_obj = alife():create(newSect, pos, lv, gv, actor:id())
 		xr_timers.start_real_timer("babah_timeBomb_activated", delay, se_obj.id)
-		messg("РўР°Р№РјРµСЂ Р·Р°РїСѓС‰РµРЅ! РќСѓР¶РЅРѕ СЃСЂРѕС‡РЅРѕ РІС‹Р»РѕР¶РёС‚СЊ РІР·СЂС‹РІС‡Р°С‚РєСѓ Рё РѕС‚РѕР№С‚Рё РЅР° Р±РµР·РѕРїР°СЃРЅРѕРµ СЂР°СЃСЃС‚РѕСЏРЅРёРµ.", "Р’Р·СЂС‹РІС‡Р°С‚РєР°")
+		messg("Таймер запущен! Нужно срочно выложить взрывчатку и отойти на безопасное расстояние.", "Взрывчатка")
 	end
 end
 
 function explosiveExplode(id)
 	--get_console():execute("load ~~~ function explosiveExplode(id)")
-	--amk.send_tip("РїСЂРѕР±СѓРµРј РІР·РѕСЂРІР°С‚СЊ")
+	--amk.send_tip("пробуем взорвать")
 	local sim = alife()
 	local level_object_by_id = level.object_by_id
 	local se_obj = sim:object(id)
 	if se_obj then
 		local obj = level_object_by_id(id)
 		if obj then
-			-- РїСЂРѕРІРµСЂРєР° РЅР° С‚Рѕ, С‡С‚Рѕ РІР·СЂС‹РІС‡Р°С‚РєСѓ РєС‚Рѕ-С‚Рѕ РїРѕРґРѕР±СЂР°Р»
+			-- проверка на то, что взрывчатку кто-то подобрал
 			if se_obj.parent_id and se_obj.parent_id ~= 65535 then
-				-- РїРµСЂРµРјРµС‰Р°РµРј РµС‘ Рє С…РѕР·СЏРёРЅСѓ
+				-- перемещаем её к хозяину
 				local sect = obj:section()
 				local parent = level_object_by_id(se_obj.parent_id)
 				if parent then
@@ -479,22 +479,22 @@ function explosiveExplode(id)
 						local pos = parent:position()
 						local lv = parent:level_vertex_id()
 						local gv = parent:game_vertex_id()
-						if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-							messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+						if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+							messg("Здесь странное место...", "Локальная сеть")
 							return
 						end
 						sim:release(se_obj, true)
 						se_obj = sim:create(sect, pos, lv, gv, parent:id())
 						xr_timers.start_real_timer("babah_explode_moved_timeBomb", 0.2, se_obj.id)
-						--amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РїРµСЂРµРјРµС‰РµРЅР° "..type(se_obj.id).." "..tostring(se_obj.id))
+						--amk.send_tip("Взрывчатка перемещена "..type(se_obj.id).." "..tostring(se_obj.id))
 					end
 				end
 			else
 				collectExplosivesAll()
 				explode_r(obj)
-				amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР°", nil, 4)
+				amk.send_tip("Взрывчатка взорвана", nil, 4)
 			end
-		else -- РѕР±СЉРµРєС‚ РЅР° РґСЂСѓРіРѕР№ С‚РµСЂСЂРёС‚РѕСЂРёРё РёР»Рё РІ РѕС„С„Р»Р°Р№РЅРµ
+		else -- объект на другой территории или в оффлайне
 			collectExplosivesAll()
 			explodeOffline(se_obj, true)
 		end
@@ -503,7 +503,7 @@ end
 
 function collectExplosivesAll()
 	--get_console():execute("load ~~~ function collectExplosivesAll()")
-	-- СЃРѕР±РёСЂР°РµРј РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РІР·СЂС‹РІС‡Р°С‚РєР°С…
+	-- собираем информацию о взрывчатках
 	explosivesAll = {
 		["online"] = {
 			["onLevels"] = {},
@@ -538,7 +538,7 @@ function collectExplosivesAll()
 			parent_id = se_obj.parent_id
 			
 			if parent_id and parent_id ~= 65535 then
-				-- РІ РєРѕР»Р»РµРєС†РёСЋ РїРѕ РёРЅРІРµРЅС‚Р°СЂСЏРј
+				-- в коллекцию по инвентарям
 				p_obj = sim:object(parent_id)
 				if p_obj and ggraph:valid_vertex_id(p_obj.m_game_vertex_id) then
 					levelName = sim:level_name(ggraph:vertex(p_obj.m_game_vertex_id):level_id())
@@ -563,7 +563,7 @@ function collectExplosivesAll()
 					--get_console():execute("load ~~~ collectExplosivesAll(): "..se_obj.id.." name - "..se_obj:name().." sect - "..se_obj:section_name()..", parent_id - "..tostring(se_obj.parent_id))
 				end
 			elseif ggraph:valid_vertex_id(se_obj.m_game_vertex_id) then
-				-- РІ РєРѕР»Р»РµРєС†РёСЋ РїРѕ СѓСЂРѕРІРЅСЏРј
+				-- в коллекцию по уровням
 				levelName = sim:level_name(ggraph:vertex(se_obj.m_game_vertex_id):level_id())
 				obj = level_object_by_id(i)
 				if obj then
@@ -583,7 +583,7 @@ function collectExplosivesAll()
 			end
 			
 			if correct then
-				-- РІ РѕР±С‰СѓСЋ РєРѕР»Р»РµРєС†РёСЋ
+				-- в общую коллекцию
 				--t = explosivesAll["ids"]
 				--table.insert(t, i)
 				--explosivesAll["count"] = explosivesAll["count"] + 1
@@ -598,12 +598,12 @@ end
 
 function explodeMovedTimeBomb(id)
 	--get_console():execute("load ~~~ function explodeMovedTimeBomb(id)")
-	--amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР° id "..type(id).." "..tostring(id))
+	--amk.send_tip("Взрывчатка взорвана id "..type(id).." "..tostring(id))
 	local se_obj = alife():object(id)
-	--amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР° se_obj.id "..type(se_obj.id).." "..tostring(se_obj.id).." section: "..se_obj:section_name(), nil, 3)
+	--amk.send_tip("Взрывчатка взорвана se_obj.id "..type(se_obj.id).." "..tostring(se_obj.id).." section: "..se_obj:section_name(), nil, 3)
 	local obj = level.object_by_id(se_obj.id)
-	--amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР° obj "..type(obj), nil, 4)
-	--amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РІР·РѕСЂРІР°РЅР° obj.id "..type(obj:id()).." "..tostring(obj:id()), nil, 4)
+	--amk.send_tip("Взрывчатка взорвана obj "..type(obj), nil, 4)
+	--amk.send_tip("Взрывчатка взорвана obj.id "..type(obj:id()).." "..tostring(obj:id()), nil, 4)
 	if obj and se_obj then
 		collectExplosivesAll()
 		explode_r(obj)
@@ -624,7 +624,7 @@ function explode_r(ob)
 		if ob:parent() then
 			parent_id = ob:parent():id()
 			if parent_id and parent_id ~= 65535 then
-				obj = level_object_by_id(parent_id) -- РїРѕР»СѓС‡Р°РµРј РѕР±СЉРµРєС‚ С…РѕР·СЏРёРЅР°
+				obj = level_object_by_id(parent_id) -- получаем объект хозяина
 			end
 		end
 
@@ -633,10 +633,10 @@ function explode_r(ob)
 		local sect = ob:section()
 		local sim = alife()
 		local ggraph = game_graph()
-		if obj:id() ~= id then -- РІР·СЂС‹РІС‡Р°С‚РєР° РІ РёРЅРІРµРЅС‚Р°СЂРµ
+		if obj:id() ~= id then -- взрывчатка в инвентаре
 			if (obj.character_community and obj:character_community() == "trader") or
 				rx_utils.read_from_ini(nil, obj:section(), "immunities_sect", "", 1) == "stalker_immunities_sakharov"
-			then -- С‡С‚РѕР±С‹ РЅРµ С‚СЂСЏСЃР»Рё С‚РѕСЂРіРѕРІС†РµРІ Рё Р±РµСЃСЃРјРµСЂС‚РЅС‹С… РЅРµРїРёСЃРµР№
+			then -- чтобы не трясли торговцев и бессмертных неписей
 				local h = hit()
 				h.power = 100
 				h.impulse = 0
@@ -652,13 +652,13 @@ function explode_r(ob)
 			--end
 			local lv = obj:level_vertex_id()
 			local gv = obj:game_vertex_id()
-			if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-				messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+			if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+				messg("Здесь странное место...", "Локальная сеть")
 				return
 			end
 			--get_console():execute("load ~~~ babah pos: x "..pos.x..", y "..pos.y..", z "..pos.z..", lv "..lv..", gv "..gv)
-			-- СѓРґР°Р»СЏРµРј РІСЃС‘ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ
-			--amk.send_tip("СѓРґР°Р»СЏРµРј РІСЃС‘ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ")
+			-- удаляем всё из инвентаря
+			--amk.send_tip("удаляем всё из инвентаря")
 			local isNPC = obj:clsid()==clsid.script_stalker or IAmAMonster[obj:clsid()]
 --			if isNPC then
 --				particles_object("anomaly2\\body_tear_01"):play_at_pos(pos)
@@ -677,7 +677,7 @@ function explode_r(ob)
 					end,
 					obj
 				)
-			else -- РґР»СЏ С‚Р°Р№РЅРёРєРѕРІ Рё С‚СЂСѓРїРѕРІ
+			else -- для тайников и трупов
 				if db.actor then
 					local packet
 					local sect, se_obj
@@ -702,7 +702,7 @@ function explode_r(ob)
 												transferredBombs[i] = true
 											end
 											obj:transfer_item(inv_obj, db.actor)
-											-- СЃРѕР±РёСЂР°РµРј РїСЂРµРґРјРµС‚С‹ РґР»СЏ СЃР»РµРґСѓСЋС‰РµР№ РїРµСЂРµР±СЂРѕСЃРєРё РѕР±СЂР°С‚РЅРѕ РІ С‚Р°Р№РЅРёРє, РёРЅР°С‡Рµ - РІС‹Р»РµС‚, РµСЃР»Рё РєР°РєРѕР№-С‚Рѕ РёР· РїСЂРµРґРјРµС‚РѕРІ РїРѕРґС…РѕРґРёС‚ РІ РїСѓСЃС‚РѕР№ СЃР»РѕС‚ РѕСЂСѓР¶РёСЏ Рё Р“Р“ РЅРµ РёРјРµРµС‚ РІ РґР°РЅРЅС‹Р№ РјРѕРјРµРЅС‚ Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРµРґРјРµС‚Р° РІ СЂСѓРєР°С…
+											-- собираем предметы для следующей переброски обратно в тайник, иначе - вылет, если какой-то из предметов подходит в пустой слот оружия и ГГ не имеет в данный момент активного предмета в руках
 											table.insert(itemsTransferBack, se_obj.id)
 										end
 									end
@@ -728,7 +728,7 @@ function explode_r(ob)
 			xr_timers.start_real_timer("babah_explode_biside_explosives", 0.5, {id = id, sect = sect, x = pos.x, y = pos.y - 0.5, z = pos.z, lvl = levelName})
 		end
 	else
-		amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РЅРµ РІР·РѕСЂРІР°РЅР°. РћРЅР° РЅРµ РЅР°Р№РґРµРЅР°.", nil, 2)
+		amk.send_tip("Взрывчатка не взорвана. Она не найдена.", nil, 2)
 	end
 end
 
@@ -740,8 +740,8 @@ function itemsTransferBackToInventory(tbl)
 		pos.y = pos.y + 0.5
 		local lv = inventory:level_vertex_id()
 		local gv = inventory:game_vertex_id()
-		if not game_graph():valid_vertex_id(gv) then -- РїРѕС…РѕР¶Рµ, С‡С‚Рѕ СЂСЏРґРѕРј РЅРµС‚Сѓ РІРµСЂС‚РµРєСЃР°
-			messg("Р—РґРµСЃСЊ СЃС‚СЂР°РЅРЅРѕРµ РјРµСЃС‚Рѕ...", "Р›РѕРєР°Р»СЊРЅР°СЏ СЃРµС‚СЊ")
+		if not game_graph():valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
+			messg("Здесь странное место...", "Локальная сеть")
 			return
 		end
 		local sim = alife()
@@ -755,12 +755,12 @@ function itemsTransferBackToInventory(tbl)
 			if obj and se_obj and obj:parent() and obj:parent():id() == 0 then
 				sect = obj:section()
 				db.actor:transfer_item(obj, inventory)
-				packet = net_packet() -- СЃРѕР·РґР°С‘Рј РїСѓСЃС‚РѕР№ РїР°РєРµС‚
-				se_obj:STATE_Write(packet) -- Р·Р°РіСЂСѓР·РёР»Рё РІ РЅР°С€ РїР°РєРµС‚ СЃРѕСЃС‚РѕСЏРЅРёРµ СЃРµСЂРІРµСЂРЅРѕРіРѕ РѕР±СЉРµРєС‚Р°
-				-- РёСЃРїРѕР»СЊР·СѓСЏ РјРµС‚РѕРґС‹ РєР»Р°СЃСЃР° net_packet РјРµРЅСЏРµРј РЅСѓР¶РЅС‹Рµ РЅР°Рј Р·РЅР°С‡РµРЅРёСЏ.
+				packet = net_packet() -- создаём пустой пакет
+				se_obj:STATE_Write(packet) -- загрузили в наш пакет состояние серверного объекта
+				-- используя методы класса net_packet меняем нужные нам значения.
 				sim:release(se_obj, true)
 				se_obj = sim:create(sect, pos, lv, gv)
-				se_obj:STATE_Read(packet, packet:w_tell()) -- Р·Р°РїРёСЃР°Р»Рё РІ РѕР±СЉРµРєС‚ РёР·РјРµРЅС‘РЅРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РѕР±СЂР°С‚РЅРѕ, РёРјРёС‚РёСЂСѓСЏ РїСЂРѕС†РµСЃСЃ РµРіРѕ Р·Р°РіСЂСѓР·РєРё
+				se_obj:STATE_Read(packet, packet:w_tell()) -- записали в объект изменённое состояние обратно, имитируя процесс его загрузки
 			end
 		end
 		itemsTransferBack = {}
@@ -777,7 +777,7 @@ end
 
 function explodeBisideExplosives(tbl)
 	--get_console():execute("load ~~~ function explodeBisideExplosives(tbl)")
-	--amk.send_tip("Р’Р·СЂС‹РІР°РµРј РІР·СЂС‹РІС‡Р°С‚РєСѓ СЂСЏРґРѕРј")
+	--amk.send_tip("Взрываем взрывчатку рядом")
 	local sim = alife()
 	local ggraph = game_graph()
 	local level_object_by_id = level.object_by_id
@@ -790,10 +790,10 @@ function explodeBisideExplosives(tbl)
 	--amk.dump_table(infoExplosive)
 	local radius = infoExplosive["blast_r"]
 	--if infoExplosive["frags"] > 0 then
-	--	radius = math.max(radius, infoExplosive["frags_r"]) -- СЃР»РёС€РєРѕРј РґР°Р»РµРєРѕ РґРѕСЃС‚Р°СЋС‚ РѕСЃРєРѕР»РєРё
+	--	radius = math.max(radius, infoExplosive["frags_r"]) -- слишком далеко достают осколки
 	--end
 	--get_console():execute("load ~~~ function explodeBisideExplosives(tbl) 1")
-		-- РїРѕРґСЂС‹РІР°РµРј РІР·СЂС‹РІС‡Р°С‚РєСѓ СЂСЏРґРѕРј
+		-- подрываем взрывчатку рядом
 	--get_console():execute("load ~~~ explosivesAll:")
 	--amk.dump_table(explosivesAll)
 	local invBox
@@ -808,9 +808,9 @@ function explodeBisideExplosives(tbl)
 			invBox = level_object_by_id(invBoxId)
 			invBoxExploded = false
 			if invBox and invBox:position():distance_to(explPos) <= radius then
-				for sect, explIds in pairs(invBoxExplosives) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+				for sect, explIds in pairs(invBoxExplosives) do -- можно отсекать по секциям
 					if explIds then
-						for j = #explIds, 1, -1  do -- Р° Р·РґРµСЃСЊ РјРѕР¶РЅРѕ Рё СЃ РїСЂРµРґРјРµС‚Р°РјРё РІ РёРЅРІРµРЅС‚Р°СЂРµ С‡С‚Рѕ-С‚Рѕ СЃРґРµР»Р°С‚СЊ, РµСЃР»Рё РёС… Р·Р°РїРѕРјРЅРёС‚СЊ РІРјРµСЃС‚Рµ СЃРѕ РІР·СЂС‹РІС‡Р°С‚РєРѕР№ РїРµСЂРµРґ СЌС‚РёРј
+						for j = #explIds, 1, -1  do -- а здесь можно и с предметами в инвентаре что-то сделать, если их запомнить вместе со взрывчаткой перед этим
 							if explIds[j] then
 								if explIds[j] ~= explId then
 									explosive = level_object_by_id(explIds[j])
@@ -841,7 +841,7 @@ function explodeBisideExplosives(tbl)
 		--amk.dump_table(explosivesOnLevel)
 		--get_console():execute("load ~~~ explosivesAll:")
 		--amk.dump_table(explosivesAll)
-		for sect, explIds in pairs(explosivesOnLevel) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+		for sect, explIds in pairs(explosivesOnLevel) do -- можно отсекать по секциям
 			--get_console():execute("load ~~~ function explodeBisideExplosives(tbl) 5")
 			if explIds then
 				for j = #explIds, 1, -1 do
@@ -868,7 +868,7 @@ end
 function hitExplosive(ob)
 	--get_console():execute("load ~~~ function hitExplosive(ob)")
 	if ob then
-		--amk.send_tip("РќР°РЅРѕСЃРёРј РїРѕРІСЂРµР¶РґРµРЅРёРµ РІР·СЂС‹РІС‡Р°С‚РєРµ: id "..ob:id()..", name "..ob:name())
+		--amk.send_tip("Наносим повреждение взрывчатке: id "..ob:id()..", name "..ob:name())
 	local h = hit()
 	h.power = 2000
 	h.impulse = 100
@@ -880,7 +880,7 @@ end
 end
 
 function collectBombs(se_obj)
-	if se_obj.parent_id == 65535 then -- Р»РµР¶РёС‚ РЅР° Р·РµРјР»Рµ
+	if se_obj.parent_id == 65535 then -- лежит на земле
 		local sect = se_obj:section_name()
 		if mines["sect"][sect] then
 			addMine(se_obj)
@@ -900,7 +900,7 @@ function addMine(se_obj)
 			local parent_id = se_obj.parent_id
 			
 			--[[if parent_id and parent_id ~= 0 and parent_id ~= 65535 then
-				-- РІ РєРѕР»Р»РµРєС†РёСЋ РїРѕ РёРЅРІРµРЅС‚Р°СЂСЏРј
+				-- в коллекцию по инвентарям
 				p_obj = sim:object(parent_id)
 				if p_obj and ggraph:valid_vertex_id(p_obj.m_game_vertex_id) then
 					if not mine["inInventory"][parent_id] then
@@ -911,7 +911,7 @@ function addMine(se_obj)
 					correct = true
 				end
 			else]]if parent_id == 65535 and ggraph:valid_vertex_id(se_obj.m_game_vertex_id) then
-				-- РІ РєРѕР»Р»РµРєС†РёСЋ РїРѕ СѓСЂРѕРІРЅСЏРј
+				-- в коллекцию по уровням
 				levelName = sim:level_name(ggraph:vertex(se_obj.m_game_vertex_id):level_id())
 				if not mine["onLevels"][levelName] then
 					mine["onLevels"][levelName] = {}
@@ -922,7 +922,7 @@ function addMine(se_obj)
 			end
 			
 			if correct then
-				-- РІ РѕР±С‰СѓСЋ РєРѕР»Р»РµРєС†РёСЋ
+				-- в общую коллекцию
 				local t = mine["ids"]
 				table.insert(t, se_obj.id)
 				mines["count"] = mines["count"] + 1
@@ -955,7 +955,7 @@ function update(delta)
 			if ggraph:valid_vertex_id(db.actor:game_vertex_id()) then
 				actorLevelName = sim:level_name(ggraph:vertex(db.actor:game_vertex_id()):level_id())
 			end
-			-- РїСЂРѕРІРµСЂСЏРµРј РЅР° СЂР°СЃСЃС‚РѕСЏРЅРёРµ РјРµР¶РґСѓ РјРёРЅР°РјРё Рё РѕРЅР»Р°Р№РЅРѕРІС‹РјРё РЅРµРїРёСЃСЏРјРё
+			-- проверяем на расстояние между минами и онлайновыми неписями
 			--get_console():execute("load ~~~ MINES+")
 			--amk.dump_table(mines)
 			--get_console():execute("load ~~~ MINES-")
@@ -969,15 +969,15 @@ function update(delta)
 								mineObj = sim:object(mineId)
 								if mineObj then
 									parentId = mineObj.parent_id
-									-- РµСЃР»Рё РєС‚Рѕ-С‚Рѕ РїРѕРґРЅСЏР» РјРёРЅСѓ (Р»РѕРІРєРёР№ РїР°СЂРµРЅСЊ :))
+									-- если кто-то поднял мину (ловкий парень :))
 									if parentId and parentId ~= 65535 then
-										-- РїРµСЂРµРјРµС‰Р°РµРј РјРёРЅСѓ РІ СЃРїРёСЃРѕРє РїРѕ РёРЅРІРµРЅС‚Р°СЂСЏРј Рё РЅРµ РІР·СЂС‹РІР°РµРј
+										-- перемещаем мину в список по инвентарям и не взрываем
 										inInventory = v["inInventory"]
 										table.insert(inInventory, mineId)
 										table.remove(levelData, i)
 									else
 										minePos = mineObj.position
-										-- РїРѕРёСЃРє РІ РѕРЅР»Р°Р№РЅРµ
+										-- поиск в онлайне
 										if actorLevelName == levelName then
 											for npcId, npc in pairs(npcOnline) do
 												npcObj = level_object_by_id(npcId)
@@ -987,7 +987,7 @@ function update(delta)
 												end
 											end
 										end
-										-- РїРѕРёСЃРє РІ РѕС„С„Р»Р°Р№РЅРµ
+										-- поиск в оффлайне
 										levelOfflineData = npcOffline[levelName]
 										if levelOfflineData then
 											--get_console():execute("load ~~~ levelOfflineData-")
@@ -1024,7 +1024,7 @@ function update(delta)
 											end
 										end
 										if found then
-											-- СѓРґР°Р»СЏРµРј РјРёРЅСѓ РёР· С‚Р°Р±Р»РёС†С‹
+											-- удаляем мину из таблицы
 											--get_console():execute("load ~~~ MINES babah: "..mineId)
 											--amk.dump_table(mines)
 											--get_console():execute("load ~~~ MINES babah+")
@@ -1040,7 +1040,7 @@ function update(delta)
 											found = false
 											--amk.dump_table(mines)
 											--get_console():execute("load ~~~ MINES babah-")
-											-- РІР·СЂС‹РІР°РµРј РјРёРЅСѓ
+											-- взрываем мину
 											explosiveExplode(mineId)
 										end
 									end
@@ -1054,9 +1054,9 @@ function update(delta)
 	end
 end
 
--- РїРѕРґСЂС‹РІ РІ РѕС„С„Р»Р°Р№РЅРµ
+-- подрыв в оффлайне
 function explodeOffline(se_obj, first)
-	--amk.send_tip("РїСЂРѕР±СѓРµРј РІР·РѕСЂРІР°С‚СЊ РЅР° РґСЂСѓРіРѕР№ С‚РµСЂСЂРёС‚РѕСЂРёРё")
+	--amk.send_tip("пробуем взорвать на другой территории")
 	if se_obj then
 		local infoExplosive = collectExplosiveInfo(se_obj:section_name())
 		--amk.dump_table(infoExplosive)
@@ -1069,7 +1069,7 @@ function explodeOffline(se_obj, first)
 		local obj = se_obj
 		local parent_id = se_obj.parent_id
 		if parent_id and parent_id ~= 0 and parent_id ~= 65535 then
-			obj = sim:object(parent_id) -- РїРѕР»СѓС‡Р°РµРј РѕР±СЉРµРєС‚ С…РѕР·СЏРёРЅР°
+			obj = sim:object(parent_id) -- получаем объект хозяина
 		end
 		
 		local ggraph = game_graph()
@@ -1085,9 +1085,9 @@ function explodeOffline(se_obj, first)
 				local explId = se_obj.id
 				local explPos = obj.position
 				local levelNameExplosive = sim:level_name(ggraph:vertex(obj.m_game_vertex_id):level_id())
-				-- РІР·СЂС‹РІС‡Р°С‚РєР° РѕС‚СЂР°Р±РѕС‚Р°Р»Р°
+				-- взрывчатка отработала
 				sim:release(se_obj, true)
-				-- РїРѕРґСЂС‹РІР°РµРј РІР·СЂС‹РІС‡Р°С‚РєСѓ СЂСЏРґРѕРј
+				-- подрываем взрывчатку рядом
 				--amk.dump_table(explosivesAll)
 				local invBox
 				explosivesOnLevel = explosivesAll["offline"]["onLevelsInInventory"][levelNameExplosive]
@@ -1095,9 +1095,9 @@ function explodeOffline(se_obj, first)
 					for invBoxId, invBoxExplosives in pairs(explosivesOnLevel) do
 						invBox = sim:object(invBoxId)
 						if invBox and invBox.position:distance_to(explPos) <= radius then
-							for sect, explIds in pairs(invBoxExplosives) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+							for sect, explIds in pairs(invBoxExplosives) do -- можно отсекать по секциям
 								if explIds then
-									for j = #explIds, 1, -1 do -- Р° Р·РґРµСЃСЊ РјРѕР¶РЅРѕ Рё СЃ РїСЂРµРґРјРµС‚Р°РјРё РІ РёРЅРІРµРЅС‚Р°СЂРµ С‡С‚Рѕ-С‚Рѕ СЃРґРµР»Р°С‚СЊ, РµСЃР»Рё РёС… Р·Р°РїРѕРјРЅРёС‚СЊ РІРјРµСЃС‚Рµ СЃРѕ РІР·СЂС‹РІС‡Р°С‚РєРѕР№ РїРµСЂРµРґ СЌС‚РёРј
+									for j = #explIds, 1, -1 do -- а здесь можно и с предметами в инвентаре что-то сделать, если их запомнить вместе со взрывчаткой перед этим
 										if explIds[j] then
 											if explIds[j] ~= explId then
 												explosive = sim:object(explIds[j])
@@ -1118,7 +1118,7 @@ function explodeOffline(se_obj, first)
 				explosivesOnLevel = explosivesAll["offline"]["onLevels"][levelNameExplosive]
 				if explosivesOnLevel then
 					--amk.dump_table(explosivesAll)
-					for sect, explIds in pairs(explosivesOnLevel) do -- РјРѕР¶РЅРѕ РѕС‚СЃРµРєР°С‚СЊ РїРѕ СЃРµРєС†РёСЏРј
+					for sect, explIds in pairs(explosivesOnLevel) do -- можно отсекать по секциям
 						if explIds then
 							for j = #explIds, 1, -1 do
 								if explIds[j] then 
@@ -1141,17 +1141,17 @@ function explodeOffline(se_obj, first)
 				sim:release(se_obj, true)
 		end
 			if first then
-				messg("Р’Р·РѕСЂРІР°РЅРѕ РЅР° РґСЂСѓРіРѕР№ С‚РµСЂСЂРёС‚РѕСЂРёРё.", "Р’Р·СЂС‹РІС‡Р°С‚РєР°")
+				messg("Взорвано на другой территории.", "Взрывчатка")
 	end
 		else
 			if first then
-				amk.send_tip("Р’Р·СЂС‹РІС‡Р°С‚РєР° РќР• РІР·РѕСЂРІР°РЅР°! РћРЅР° РІ РєСЂРёРІРѕРј РјРµСЃС‚Рµ...", nil, 2)
+				amk.send_tip("Взрывчатка НЕ взорвана! Она в кривом месте...", nil, 2)
 		end
 	end
 						end
 					end
 
--- РґР»СЏ РєРµС€РёСЂРѕРІР°РЅРёСЏ РґР°РЅРЅС‹С…
+-- для кеширования данных
 local explosivesInfo = {}
 
 function collectExplosiveInfo(section)
@@ -1184,8 +1184,8 @@ function collectExplosiveInfo(section)
 	return explosivesInfo[section]
 end
 
--- СЃРѕР±РёСЂР°РµРј РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ Р¶РµСЂС‚РІР°С…
--- РєРѕРґ РїРѕРІР·Р°РёРјСЃС‚РІРѕРІР°РЅ РёР· amk_offline_alife.offline_alife()
+-- собираем информацию о жертвах
+-- код повзаимствован из amk_offline_alife.offline_alife()
 function collectExplosiveVictimsOffline(se_obj, radius)
 	local sim = alife()
 	local vdata = {}
@@ -1195,7 +1195,7 @@ function collectExplosiveVictimsOffline(se_obj, radius)
 		local off_npcs = amk_offline_alife.off_npcs
 		local explPos = se_obj.position
 		
-		-- РїРѕ СЃС‚Р°Р»РєРµСЂР°Рј
+		-- по сталкерам
 		
 		local function collectNPCs(offNPCs)
 			if offNPCs then
@@ -1228,7 +1228,7 @@ function collectExplosiveVictimsOffline(se_obj, radius)
 	return vdata
 end
 
--- РґР»СЏ РєРµС€РёСЂРѕРІР°РЅРёСЏ РґР°РЅРЅС‹С…
+-- для кеширования данных
 local victimsSquare = {}
 
 function getVictimSquare(sect)
@@ -1276,7 +1276,7 @@ function calcDamageForVictim(victimInfo, infoExplosive)
 		-- (1 - x ^ 2) http://yotx.ru/default.aspx?clr0=000000&exp0=1+-+x*x&mix=0&max=1&asx=on&u=mm&nx=X&aiy=on&asy=on&ny=Y&iw=600&ih=400&ict=png&aa=on
 	end
 	if infoExplosive["frags"] > 0 and victimInfo["dist"] < infoExplosive["frags_r"] then
-		-- РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ РїРѕРїР°РґР°РЅРёСЏ
+		-- вероятность попадания
 		local sphereSquere = 4 * math.pi * victimInfo["dist"] * victimInfo["dist"]
 		local prob = victimInfo["squere"] / sphereSquere
 		for i = 1, infoExplosive["frags"] do
@@ -1285,7 +1285,7 @@ function calcDamageForVictim(victimInfo, infoExplosive)
 		end
 	end
 end
-	-- РµРіРѕ РІРµР»РёС‡РµСЃС‚РІРѕ РЎР»СѓС‡Р°Р№
+	-- его величество Случай
 	damage = damage * (1 - math_random()*math_random()*math_random()*math_random())
 
 	return damage

@@ -48,7 +48,7 @@ callback.entity_alive_before_hit      = 152
 callback.update_addons_visibility     = 154
 callback.update_hud_addons_visibility = 155
 
--- РќРµРєРѕС‚РѕСЂС‹Рµ РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ key_bindings
+-- Некоторые недостающие key_bindings
 key_bindings.kENGINE		= 15
 key_bindings.kACTIVE_JOBS	= 53
 key_bindings.kMAP			= 54
@@ -59,7 +59,7 @@ key_bindings.kUSE_MEDKIT	= 74
 key_bindings.kQUICK_SAVE	= 75
 key_bindings.kQUICK_LOAD	= 76
 key_bindings.DUMMY			= 78
--- РќРµРєРѕС‚РѕСЂС‹Рµ РЅРµРґРѕСЃС‚Р°СЋС‰РёРµ DIK_keys
+-- Некоторые недостающие DIK_keys
 DIK_keys.DIK_LMOUSE			= 337
 DIK_keys.DIK_RMOUSE			= 338
 DIK_keys.DIK_WMOUSE			= 339
@@ -79,7 +79,7 @@ _G.inventory_slots = {
 	ARTEFACT	= 10,
 	TOTAL		= 11
 }
--- Р”РІРёР¶РєРѕРІР°СЏ С‚Р°Р±Р»РёС†Р° EIIFlags РґР»СЏ CInventoryItem
+-- Движковая таблица EIIFlags для CInventoryItem
 _G.ii_flags = {
 	drop_manual         = 1,		-- Fdrop
 	can_take            = 2,		-- FCanTake
@@ -102,7 +102,7 @@ _G.ii_flags = {
 
 -- extension of namespaces Lua 
 --// string
--- РѕР±СЂРµР·Р°РµРј РїСЂРѕР±РµР»С‹ РїРѕ РєСЂР°СЏРј СЃС‚СЂРѕРєРё
+-- обрезаем пробелы по краям строки
 if string.trim==nil then
 	_G.trim = function (s)
 		return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
@@ -110,7 +110,7 @@ if string.trim==nil then
 else
 	_G.trim = string.trim
 end
--- СЂР°Р·Р±РёРІРєР° СЃС‚СЂРѕРєРё РїРѕ СЃРёРјРІРѕР»Сѓ
+-- разбивка строки по символу
 string.explode = function ( str, div, clear )
 	local ret = {}
 	for s in string.gmatch( str, "([^"..div.."]+)" ) do
@@ -118,33 +118,33 @@ string.explode = function ( str, div, clear )
 	end
 	return ret
 end
--- 'string.lower/upper' СЃ РїРѕРґРґРµСЂР¶РєРѕР№ РєРёСЂРёР»Р»РёС†С‹.
+-- 'string.lower/upper' с поддержкой кириллицы.
 string.lower1 = function ( str )
-	return string.lower( str:gsub( "([Рђ-РЇ])",
-		function( s ) return string.char( s:byte()+32 ) end ):gsub( "РЃ", "С‘" ) )
+	return string.lower( str:gsub( "([А-Я])",
+		function( s ) return string.char( s:byte()+32 ) end ):gsub( "Ё", "ё" ) )
 end
 string.upper1 = function ( str )
-	return string.upper( str:gsub( "([Р°-СЏ])",
-		function( s ) return string.char( s:byte()-32 ) end ):gsub( "С‘", "РЃ" ) )
+	return string.upper( str:gsub( "([а-я])",
+		function( s ) return string.char( s:byte()-32 ) end ):gsub( "ё", "Ё" ) )
 end
--- РѕС‡РёСЃС‚РєР° СЃС‚СЂРѕРєРё РѕС‚ РЅРµРґРѕРїСѓСЃС‚РёРјС‹С… РґР»СЏ РёРјС‘РЅ С„Р°Р№Р»РѕРІ СЃРёРјРІРѕР»РѕРІ (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРё СЂР°Р±РѕС‚Рµ СЃ FS)
+-- очистка строки от недопустимых для имён файлов символов (используется при работе с FS)
 string.clear = function ( str )
 	return str:gsub( "%p", function( s ) return s:match( "[%.%-_]*" ) end )
 end
 --// math
--- РІС‹СЂР°РІРЅРёРІР°РЅРёРµ Р·РЅР°С‡РµРЅРёСЏ n РІ РїСЂРµРґРµР»С‹ РѕС‚ min РґРѕ max
+-- выравнивание значения n в пределы от min до max
 math.clamp = function( n, min, max )
 	if min > max then
 		min, max = max, min
 	end
 	return ( n > max and max ) or ( n < min and min ) or n
 end
--- РѕРєСЂСѓРіР»РµРЅРёРµ С‡РёСЃР»Р°
+-- округление числа
 math.round = function ( n )
 	return math.floor(n + 0.5)
 end
 --// table
--- РїРѕР»СѓС‡Р°РµРј СЂР°Р·РјРµСЂ С‚Р°Р±Р»РёС†С‹ (РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРІСЏР·РѕРє [РєР»СЋС‡] = Р·РЅР°С‡РµРЅРёРµ)
+-- получаем размер таблицы (количество связок [ключ] = значение)
 if table.size == nil then
 	table.size = function ( t )
 		local n = 0
@@ -152,7 +152,7 @@ if table.size == nil then
 		return n
 	end
 end
--- РїРѕР»СѓС‡Р°РµРј РєРѕРїРёСЋ С‚Р°Р±Р»РёС†С‹
+-- получаем копию таблицы
 table.copy = function ( tbl, src )
 	for k,v in pairs( src ) do
 		if type( v ) == 'table' then
@@ -163,7 +163,7 @@ table.copy = function ( tbl, src )
 	end
 	return tbl
 end
--- РїРѕРёСЃРє Р·РЅР°С‡РµРЅРёСЏ РІ С‚Р°Р±Р»РёС†Рµ
+-- поиск значения в таблице
 table.find = function( tbl, val )
 	local tp = type(val)
 	for k,v in pairs(tbl) do
@@ -171,7 +171,7 @@ table.find = function( tbl, val )
 	end
 	return false
 end
--- С„СѓРЅРєС†РёРё РґР»СЏ РїРѕРґСЃС‡РµС‚Р° С‡РµРіРѕ-Р»РёР±Рѕ РІ РІРёРґРµ: [РєР»СЋС‡] = РєРѕР»РёС‡РµСЃС‚РІРѕ
+-- функции для подсчета чего-либо в виде: [ключ] = количество
 table.add = function( tbl, key, v )
 	local n = tbl[key] or 0
 	tbl[key] = n + (v or 1)
@@ -184,12 +184,12 @@ table.sub = function( tbl, key, v )
 		tbl[key] = n - (v or 1)
 	end
 end
--- РїРѕР»СѓС‡РµРЅРёРµ СЂР°РЅРґРѕРјРЅРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ РёР· РјР°СЃСЃРёРІР°
+-- получение рандомного значения из массива
 table.random = function ( tbl )
 	if not next(tbl) then return nil end
 	return tbl[ math.random(#tbl) ]
 end
--- РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РјР°СЃСЃРёРІР° РІ С…СЌС€: [Р·РЅР°С‡РµРЅРёРµ] = true
+-- преобразование массива в хэш: [значение] = true
 table.tohash = function ( tbl )
 	local ret = {}
 	for i, v in ipairs( tbl ) do
@@ -197,7 +197,7 @@ table.tohash = function ( tbl )
 	end
 	return ret
 end
--- СЂР°СЃС€РёСЂРµРЅРЅР°СЏ СЂР°СЃРїРµС‡Р°С‚РєР° С‚Р°Р±Р»РёС†С‹ РІ Р»РѕРі
+-- расширенная распечатка таблицы в лог
 table.print = function( tbl, subs )
 	subs = subs or ""
 	local s
@@ -233,11 +233,11 @@ table.print = function( tbl, subs )
 		end
 	end
 end
--- РїРµС‡Р°С‚Р°РµРј РІРµРєС‚РѕСЂ
+-- печатаем вектор
 function print_vector(v, subs)
 	log1((subs or "")..v.x..":"..v.y..":"..v.z)
 end
--- РїРµС‡Р°С‚Р°РµРј РјР°С‚СЂРёС†Сѓ
+-- печатаем матрицу
 function print_matrix(m, subs)
 	print_vector(m.i, subs)
 	print_vector(m.j, subs)
@@ -301,7 +301,7 @@ game_object.is_wounded = function ( obj )
 	return obj:is_stalker() and obj:alive() and obj:wounded()
 end
 -- CInventoryItem
--- РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ С„СѓРЅРєС†РёРё РґР»СЏ СѓСЃС‚Р°РЅРѕРІРєРё С„Р»Р°РіРѕРІ РІ РєР»Р°СЃСЃРµ CInventoryItem
+-- вспомогательные функции для установки флагов в классе CInventoryItem
 game_object.set_inventory_item_flags = function ( item, mask, value )
 	local flags = item:get_inventory_item_int16( nil, 132 )
 	flags = flags16():assign(flags):set(mask, value):get()
@@ -316,15 +316,15 @@ game_object.set_custom_color_ids = function (item, col_idx)
 	local fl = bit_or(bit_and(item:get_inventory_item_int16(nil, 134), 65520), col_idx)
 	item:set_inventory_item_int16(134, fl)
 end
--- РїРѕР»СѓС‡РёС‚СЊ СЃР»РѕС‚ РїСЂРµРґРјРµС‚Р°
+-- получить слот предмета
 game_object.get_slot = function ( obj )
 	return obj:get_inventory_item_int( nil, 156 )
 end
--- Р·Р°РґР°С‚СЊ СЃР»РѕС‚ РїСЂРµРґРјРµС‚Сѓ
+-- задать слот предмету
 game_object.set_slot = function ( obj, slot )
 	obj:set_inventory_item_int( 156, slot )
 end
--- Р·Р°РґР°С‚СЊ РІРµСЃ РїСЂРµРґРјРµС‚Сѓ
+-- задать вес предмету
 game_object.set_weight = function ( obj, weight )
 	obj:set_inventory_item_float(nil, weight, 164)
 end
@@ -622,7 +622,7 @@ _G.ShiftPressed = function( b )
 end
 
 local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
-local ru = [[Р№С†СѓРєРµРЅРіС€С‰Р·С…СЉС„С‹РІР°РїСЂРѕР»РґР¶СЌСЏС‡СЃРјРёС‚СЊР±СЋ.Р™Р¦РЈРљР•РќР“РЁР©Р—РҐРЄ/Р¤Р«Р’РђРџР РћР›Р”Р–Р­РЇР§РЎРњРРўР¬Р‘Р®,"в„–;:?]]
+local ru = [[йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"№;:?]]
 local tt = {}
 for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
 _G.translit  = function (l) return tt[l] or l end
