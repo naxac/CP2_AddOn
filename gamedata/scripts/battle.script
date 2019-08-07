@@ -5221,7 +5221,7 @@ function show_must_go_on(data)
 		for s,p in pairs(cur_wave["enemy"]) do
 			for i=1,p do
 				pos, lv = get_pos(cur_wave.dist, sector)
-				alife():create(s, pos, lv, db.actor:game_vertex_id())
+				AI:create(s, pos, lv, db.actor:game_vertex_id())
 				monster_cnt = monster_cnt+1
 			end
 		end
@@ -5280,7 +5280,7 @@ function reinforcement(data)
 	
 	-- рюкзак спавним с меткой и не далее 10 м от гг, чтобы нашел
 	pos, lv = get_pos(math.random(3,10))
-	local ruk = alife():create("m_inventory_box", pos, lv, db.actor:game_vertex_id())
+	local ruk = AI:create("m_inventory_box", pos, lv, db.actor:game_vertex_id())
 	local t = netpk:get(ruk, netpk.fState)
 	-- Устанавливаем флаги, чтобы объект не уходил в оффлайн
 	-- Use Switches + Switch Online + Interactive + Visible For AI +
@@ -5296,7 +5296,7 @@ function reinforcement(data)
 	if cur_wave.medkit then
 		--get_console():execute("load ~~~ medkit")
 		for i=1,math.random(0, cur_wave.medkit) do
-			alife():create(table.random(medkits), vector():set(0,0,0), 0, 0, ruk.id)
+			AI:create(table.random(medkits), vector():set(0,0,0), 0, 0, ruk.id)
 		end
 	end
 
@@ -5313,7 +5313,7 @@ function reinforcement(data)
 					list = sys_ini:r_list(wpn:section(), "ammo_class" )
 					for j=1,math.floor(last_monster_cnt*cur_wave.ammo) do
 						section = table.random(list)
-						alife():create_ammo( section, vector():set(0,0,0), 0, 0, ruk.id, sys_ini:r_u32(section, "box_size") )
+						AI:create_ammo( section, vector():set(0,0,0), 0, 0, ruk.id, sys_ini:r_u32(section, "box_size") )
 					end
 				end
 				
@@ -5322,7 +5322,7 @@ function reinforcement(data)
 					list = sys_ini:r_list(wpn:section(), "grenade_class")
 					for j=1,math.floor(last_monster_cnt*cur_wave.podstvol) do
 						section = table.random(list)
-						alife():create(section, vector():set(0,0,0), 0, 0, ruk.id)
+						AI:create(section, vector():set(0,0,0), 0, 0, ruk.id)
 					end
 				end
 			end
@@ -5333,7 +5333,7 @@ function reinforcement(data)
 	if cur_wave["items"] then
 		for s,p in pairs(cur_wave["items"]) do
 			for i=1,p do
-				alife():create(s, vector():set(0,0,0), 0, 0, ruk.id)
+				AI:create(s, vector():set(0,0,0), 0, 0, ruk.id)
 			end
 		end
 	end
@@ -5443,8 +5443,8 @@ end
 -- ускоренное удаление трупов при очень больших битвах. вызывается из апдейта монстров
 function cleanup(obj)
     if has_alife_info("battle") and db.actor:position():distance_to(obj:position()) > cleanup_distance then
-		local sobj = alife():object(obj:id())
-		if sobj then alife():release(sobj, true) end
+		local sobj = AI:object(obj:id())
+		if sobj then AI:release(sobj, true) end
 	end
 end
 

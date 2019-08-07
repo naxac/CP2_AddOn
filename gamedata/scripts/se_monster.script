@@ -6,44 +6,44 @@
 	modyfied by xStream
 ]]
 
-need_be_online={}
+need_be_online = {}
 
-local levels_types={
-  l01_escape=0,
-  l02_garbage=0,
-  l03_agroprom=0,
-	l03u_agr_underground=1,
-  l04_darkvalley=0,
-	l04u_labx18=1,
-  l05_bar=1,
-  l06_rostok=0,
-  l07_military=0,
-  l08_yantar=0,
-	l08u_brainlab=1,
-  l10_radar=0,
-	l10u_bunker=1,
-  l11_pripyat=0,
-  l12_stancia=0,
-	l12_stancia_2=0,
-	l12u_control_monolith=1,
-	l12u_sarcofag=1,
-  atp_for_test22=0,
-	peshera=1,
-  puzir=0,
-  av_peshera=1,
-  aver=0,
-  hospital=0,
-  limansk=0,
-  marsh=0,
-  warlab=1,
-  lost_village=0,
-  generators=0,
-  dead_city=0,
-  jupiter=0,
-  zaton=0,
-  pripyat=0,
-  jupiter_underground=0,
-  labx8=1
+local levels_types = {
+	l01_escape = 0,
+	l02_garbage = 0,
+	l03_agroprom = 0,
+	l03u_agr_underground = 1,
+	l04_darkvalley = 0,
+	l04u_labx18 = 1,
+	l05_bar = 1,
+	l06_rostok = 0,
+	l07_military = 0,
+	l08_yantar = 0,
+	l08u_brainlab = 1,
+	l10_radar = 0,
+	l10u_bunker = 1,
+	l11_pripyat = 0,
+	l12_stancia = 0,
+	l12_stancia_2 = 0,
+	l12u_control_monolith = 1,
+	l12u_sarcofag = 1,
+	atp_for_test22 = 0,
+	peshera = 1,
+	puzir = 0,
+	av_peshera = 1,
+	aver = 0,
+	hospital = 0,
+	limansk = 0,
+	marsh = 0,
+	warlab = 1,
+	lost_village = 0,
+	generators = 0,
+	dead_city = 0,
+	jupiter = 0,
+	zaton = 0,
+	pripyat = 0,
+	jupiter_underground = 0,
+	labx8 = 1
 }
 
 class "se_monster" (cse_alife_monster_base)
@@ -123,6 +123,7 @@ function se_monster:can_switch_offline ()
 	end
 end
 --------------------
+local dev = device()
 function se_monster:can_switch_online ()
 --	if true then return true end
 --	local rpt=false
@@ -147,29 +148,31 @@ function se_monster:can_switch_online ()
 	if self.online == false then
 	-- если игрока нет, то в оффлайн
         if db.actor == nil or db.actor:alive () == false then
-				--	if rpt then amk.mylog(self:name().." off no actor false ") end
-					return save_state(self, false) 
-				end
-				
-				-- Если в custom_data зверушки есть cond в секции [spawner], то это условие должно иметь приоритет.
-				local chk_spawner=xr_spawner.check_spawn(self)
-				if chk_spawner~=nil then
-				--	if rpt then amk.mylog(self:name().." off check spawn "..tostring(chk_spawner)) end
-					return save_state(self, chk_spawner)
-				end
-				
-				--если "ночь"  - остаемся в офф
-				if not is_creature_day(self, day_night_switch) then
-				--	if rpt then amk.mylog(self:name().." off not creature's day false") end
-					return save_state(self, false)
-				end
-				
+		--	if rpt then amk.mylog(self:name().." off no actor false ") end
+			return save_state(self, false) 
+		end
+
+		-- Если в custom_data зверушки есть cond в секции [spawner], то это условие должно иметь приоритет.
+		local chk_spawner=xr_spawner.check_spawn(self)
+		if chk_spawner~=nil then
+		--	if rpt then amk.mylog(self:name().." off check spawn "..tostring(chk_spawner)) end
+			return save_state(self, chk_spawner)
+		end
+
+		--если "ночь"  - остаемся в офф
+		if not is_creature_day(self, day_night_switch) then
+		--	if rpt then amk.mylog(self:name().." off not creature's day false") end
+			return save_state(self, false)
+		end
+
         --если задана дистанция проверки, то проверим.
-				if check_distance == true then
-					-- проверим дистанцию до игрока. если меньше требуемой, то офф
-					if not amk_offline_alife.sobj_is_far(self, self.min_distance) then
-					--	if rpt then amk.mylog(self:name().." off distance false") end
-						return save_state(self, false)
+		if check_distance == true then
+			-- проверим дистанцию до игрока. если меньше требуемой, то офф
+			if not amk_offline_alife.sobj_is_far(self, self.min_distance) then
+			--	if rpt then amk.mylog(self:name().." off distance false") end
+				return save_state(self, false)
+			end
+		end
 
 		--все проверки прошли - финал
 		--	if rpt then amk.mylog(self:name().." off standard") end
@@ -236,40 +239,32 @@ function se_monster:STATE_Write(packet)
 		packet:w_stringZ(self.job_online_condlist)
 	end
 
---	amk.mylog("writen "..self.id.." state "..st)
-
 	packet:w_bool(self.was_in_smart_terrain)
 end
 --------------------
 function se_monster:STATE_Read(packet, size)
 	cse_alife_monster_base.STATE_Read (self, packet, size)
 
---	if self.script_version >= 4 then
-		local t = packet:r_u8()
-		
-		if t>=4 then
-			need_be_online[self.id]=true
-			t = t - 4
-		end
-		
-		if t == 0 then
-			self.job_online = true
-		elseif t == 1 then
-			self.job_online = false
-		elseif t == 2 then
-			self.job_online = nil
-		else
-			self.job_online_condlist = packet:r_stringZ()
+	local t = packet:r_u8()
 
-			self.job_online = xr_logic.parse_condlist(nil, "se_monster:STATE_Read", "job_online", self.job_online_condlist)
-		end
-		--amk.mylog("readed "..self.id.." state "..st)
---	end
+	if t>=4 then
+		need_be_online[self.id]=true
+		t = t - 4
+	end
 
---	if self.script_version >= 5 then
-		self.was_in_smart_terrain = packet:r_bool()
---	end
-	
+	if t == 0 then
+		self.job_online = true
+	elseif t == 1 then
+		self.job_online = false
+	elseif t == 2 then
+		self.job_online = nil
+	else
+		self.job_online_condlist = packet:r_stringZ()
+
+		self.job_online = xr_logic.parse_condlist(nil, "se_monster:STATE_Read", "job_online", self.job_online_condlist)
+	end
+
+	self.was_in_smart_terrain = packet:r_bool()
 end
 --------------------
 function se_monster:on_before_register()
@@ -281,65 +276,20 @@ function se_monster:on_register()
 	netpk:modify( self, { dynamic_in_restrictions = {} }, netpk.fState )
 
 	cse_alife_monster_base.on_register( self )
-	--'self:fill_exclusives()
 
 	-- dsh: Принудительно установим мобам flInteractive
 	-- Есть подозрение, что те, у кого этот флаг сброшен, а таких полно в all.spawn, не обходят аномалии.
-	alife():set_interactive( self, true )
-
-	--' Нарисовать мапспот с собой
-	--[[ квесты Доцента на установки меток на монстров убраны - это больше не нужно
-	if self:alive() and sim_statistic.show_monster_spot == true then
-		local community, rank = sim_statistic.getNpcType(self)
---                level.map_add_object_spot_ser(self.id, "alife_presentation_monstr", self:name().." "..community)
-		if community=="controller" and has_alife_info("have_kontroler_spot")  then
-		level.map_add_object_spot(self.id, "kontroler_spot", "контроллер")
-		elseif community=="bloodsucker" and has_alife_info("have_bloodsucker_spot")  then
-		level.map_add_object_spot(self.id, "bloodsucker_spot", "кровосос")
-		elseif community=="pseudo_gigant" and has_alife_info("have_pseudo_gigant_spot")  then
-		level.map_add_object_spot(self.id, "pseudo_gigant_spot", "псевдогигант")
-		end
-	end
-	]]
+	AI:set_interactive( self, true )
 end
 --------------------
 function se_monster:on_unregister()
 	cse_alife_monster_base.on_unregister( self )
-
-	--' Убрать мапспот с собой
-	--[[ квесты Доцента на установки меток на монстров убраны - это больше не нужно
-	if sim_statistic.show_monster_spot == true then
-		local community, rank = sim_statistic.getNpcType(self)
---                level.map_remove_object_spot(self.id, "alife_presentation_monstr")
-		if community=="controller" then
-		level.map_remove_object_spot(self.id, "kontroler_spot")
-		elseif community=="bloodsucker" then
-		level.map_remove_object_spot(self.id, "bloodsucker_spot")
-		elseif community=="pseudo_gigant" then
-		level.map_remove_object_spot(self.id, "pseudo_gigant_spot")
-		end
-	end
-	]]
 
 	smart_terrain.unregister_npc(self)
 end
 --------------------
 function se_monster:on_death(killer)
 	cse_alife_monster_base.on_death(self, killer)
-
-	--' Убрать мапспот с собой
-	--[[ квесты Доцента на установки меток на монстров убраны - это больше не нужно
-	if sim_statistic.show_monster_spot == true then
-		local community, rank = sim_statistic.getNpcType(self)
-		if community=="controller" then
-		level.map_remove_object_spot(self.id, "kontroler_spot")
-		elseif community=="bloodsucker" then
-		level.map_remove_object_spot(self.id, "bloodsucker_spot")
-		elseif community=="pseudo_gigant" then
-		level.map_remove_object_spot(self.id, "pseudo_gigant_spot")
-		end
-	end
-	]]
 end
 --------------------
 function se_monster:fill_exclusives()
@@ -374,8 +324,8 @@ end
 --------------------
 function select_logic(obj)
 	local is_underground = 1
-	if game_graph():valid_vertex_id(obj.m_game_vertex_id) then
-		is_underground = levels_types[alife():level_name(game_graph():vertex(obj.m_game_vertex_id):level_id())]
+	if GGraph:valid_vertex_id(obj.m_game_vertex_id) then
+		is_underground = levels_types[ object_level_name(obj) ]
 	end
 	local day_night_switch,check_distance
 	if is_underground==0 then

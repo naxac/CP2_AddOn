@@ -66,7 +66,7 @@ end
 -- Спавн в инвентарь
 function spawn_in_inv(item,count)
 for i=1,count do
-alife():create(item,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+AI:create(item,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
 end
 end
 -- Проверяем нужное нам кол-во предметов в инвенторе ГГ
@@ -79,12 +79,12 @@ if db.actor and victim then
 local cnt = n
 if type == "in" then
 for i=1,n do
-alife():create(section,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+AI:create(section,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
 end
 elseif type == "out" then
 db.actor:iterate_inventory(function (dummy,item)
 if item:section()==section and n>0 then 
-alife():release(alife():object(item:id()))
+AI:release(AI:object(item:id()))
 n=n-1
 end
 end, nil)
@@ -102,11 +102,11 @@ dialogs.relocate_item_section(first_speaker, item, "out")
 end
 -- Удаляем что-то из инвенторя
 function remove_item(item_section)
-alife():release(alife():object(db.actor:object(item_section):id()), true)
+AI:release(AI:object(db.actor:object(item_section):id()), true)
 end
 -- Удаляем ЧТО_ТО
 function remove_obj(obj_id)
-alife():release(alife():object(obj_id), true)
+AI:release(AI:object(obj_id), true)
 end
 -- Функции для работы с инфопоршнями
 function have_info(info)
@@ -136,7 +136,7 @@ end
 --Зомби ту лайф
 function zombie()
 for i=1,10000,1 do
-local obj = alife():object(i)
+local obj = AI:object(i)
 if  (obj and IAmAStalker[obj:clsid()] and not obj:alive()) then
 if obj:character_community() == "zombied" then
 if obj.position:distance_to(db.actor:position()) < 10 then
@@ -149,7 +149,7 @@ end
 --оживляем труп
 function deadman_to_life()
 for a=1,10000,1 do
-local obj=alife():object(a)
+local obj=AI:object(a)
 if  (obj and IAmAStalker[obj:clsid()] and not obj:alive()) then
 local posobj=obj.position
 local actorpos=db.actor:position()

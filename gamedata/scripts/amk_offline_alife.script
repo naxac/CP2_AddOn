@@ -159,7 +159,7 @@ function update()
 			iCounter = 1
 		--	amk.mylog("Updating offline-ALife finished")
 		else
-			add_fresh_meat( alife():object(iCounter) )
+			add_fresh_meat( AI:object(iCounter) )
 			iCounter = iCounter + 1
 		end
 	end
@@ -168,11 +168,11 @@ end
 --on_death - не убиваем! off_npcs
 --on_hit - не обрабатываем!
 function add_fresh_meat(obj)
-	if obj and obj.m_game_vertex_id and game_graph():valid_vertex_id(obj.m_game_vertex_id)
+	if obj and obj.m_game_vertex_id and GGraph:valid_vertex_id(obj.m_game_vertex_id)
 		and ( not protected_items.actor_items_keep(obj:section_name()) )
 		and ( not protected_items.is_no_offline_alife_npc(obj) )
 	then
-		local map=alife():level_name(game_graph():vertex(obj.m_game_vertex_id):level_id())
+		local map = object_level_name(obj)
 		local cls = obj:clsid()
 		if not off_npcs[map] then off_npcs[map]={monsters={},stalkers={},weapons={},artefacts={},inv_boxes={}} end
 		if IAmAMonster[cls] and obj.alive and obj:alive() and obj.health and obj:health()>0 and obj.m_story_id == 4294967296 then
@@ -192,14 +192,14 @@ function add_fresh_meat(obj)
 		elseif IAmAWeapon[cls] then
 			if obj.m_story_id == 4294967296 then
 				if obj.parent_id then
-						local p_obj = alife():object(obj.parent_id)
+					local p_obj = AI:object(obj.parent_id)
 					if p_obj then
-							if p_obj.m_game_vertex_id and game_graph():valid_vertex_id(p_obj.m_game_vertex_id) then
-								if p_cls == clsid.inventory_box then
-									-- НПС "не видят" этого
-									map = ""
-								else
-									local p_map = alife():level_name(game_graph():vertex(p_obj.m_game_vertex_id):level_id())
+						if p_obj.m_game_vertex_id and GGraph:valid_vertex_id(p_obj.m_game_vertex_id) then
+							if p_cls == clsid.inventory_box then
+								-- НПС "не видят" этого
+								map = ""
+							else
+								local p_map = object_level_name(p_obj)
 								if p_map ~= map then
 									if not off_npcs[p_map] then
 										off_npcs[p_map] = {	monsters={},stalkers={},weapons={},artefacts={},inv_boxes={} }
@@ -216,14 +216,14 @@ function add_fresh_meat(obj)
 			end
 		elseif string_find(obj:section_name(),"^af_") then
 			if obj.parent_id then
-				local p_obj = alife():object(obj.parent_id)
+				local p_obj = AI:object(obj.parent_id)
 				if p_obj then
-					if p_obj.m_game_vertex_id and game_graph():valid_vertex_id(p_obj.m_game_vertex_id) then
+					if p_obj.m_game_vertex_id and GGraph:valid_vertex_id(p_obj.m_game_vertex_id) then
 						if p_cls == clsid.inventory_box then
 							-- НПС "не видят" этого
 							map = ""
 						else
-							local p_map = alife():level_name(game_graph():vertex(p_obj.m_game_vertex_id):level_id())
+							local p_map = object_level_name(p_obj)
 							if p_map ~= map then
 								if not off_npcs[p_map] then off_npcs[p_map]={monsters={},stalkers={},weapons={},artefacts={}, inv_boxes={}} end
 								map = p_map
@@ -240,7 +240,7 @@ function add_fresh_meat(obj)
 		if obj.parent_id and obj.m_story_id == 4294967296
 			and not (IAmAMonster[cls] or IAmAStalker[cls])
 		then
-			local zz = alife():object(obj.parent_id)
+			local zz = AI:object(obj.parent_id)
 			if zz then
 				if not items[obj.parent_id] then items[obj.parent_id] = {} end
 				table.insert(items[obj.parent_id], {id = obj.id, name=obj:name()})
@@ -275,10 +275,9 @@ function build_tables()
 end
 
 function update_trade()
-	local sim = alife()
 	local obj
 	for a=1,65534 do
-		obj = sim:object(a)
+		obj = AI:object(a)
 		if obj then
 			process_trade(obj)
 		end
@@ -288,16 +287,14 @@ end
 function update_tables(level)
 	off_npcs[level]={monsters={},stalkers={},weapons={},artefacts={}, inv_boxes={}}
 	local obj, p_obj
-	local ggraph = game_graph()
-	local sim = alife()
 	for a=1,65534 do
-		obj = sim:object(a)
+		obj = AI:object(a)
 		if obj then
-			if ggraph:valid_vertex_id(obj.m_game_vertex_id) and sim:level_name(ggraph:vertex(obj.m_game_vertex_id):level_id()) == level then
+			if GGraph:valid_vertex_id(obj.m_game_vertex_id) and object_level_name(obj) == level then
 				add_fresh_meat(obj)
 			elseif obj.parent_id then
-				p_obj = sim:object(obj.parent_id)
-				if p_obj and ggraph:valid_vertex_id(p_obj.m_game_vertex_id)	and sim:level_name(ggraph:vertex(p_obj.m_game_vertex_id):level_id()) == level then
+				p_obj = AI:object(obj.parent_id)
+				if p_obj and GGraph:valid_vertex_id(p_obj.m_game_vertex_id)	and object_level_name(p_obj) == level then
 					add_fresh_meat(obj)
 				end
 			end
@@ -307,7 +304,6 @@ end
 
 --генерируем оффлайн события
 function offline_alife()
-	
 	local lname = table.random(maps)
 --	update_tables(lname)
 --	log("# Offline_alife -> %s", lname)
@@ -333,7 +329,7 @@ function offline_alife()
 		amk.oau_reason="cn offline_alife chp4"
 		if npcs.stalkers[rnd] then 
 			amk.oau_reason="cn offline_alife chp5"
-			local victim = alife():object(npcs.stalkers[rnd].id)
+			local victim = AI:object(npcs.stalkers[rnd].id)
 			amk.oau_reason="cn offline_alife chp6"
 			local victim_name = victim and victim:name()
 			if victim and (not victim.online) and victim.health and victim.can_switch_online
@@ -403,27 +399,29 @@ function collect_info(victim,map)
 	vdata.rank = victim:rank() --ранг
 	vdata.health = victim:health()  --хелсы
 	vdata.community = victim:community()  --группировка
-	
+
 	--пытаемся определить пушку
 	local wp = #off_npcs[map].weapons
 	--условная огневая мощь
 	vdata.fire_power = 0
-	
-	local sim = alife()
+
 	vdata.weapons={own={},seen={}}
 	-- если есть пушки в карманах, выбираем лучшую (по условной мощности)
 	if wp>0 then
 		for w=1,wp do
 			if off_npcs[map].weapons[w] then
-				local www = sim:object(off_npcs[map].weapons[w].id)
+				local www = AI:object(off_npcs[map].weapons[w].id)
 				if www and www:name()==off_npcs[map].weapons[w].name then
 					if www.parent_id == victim.id then
 						table.insert(vdata.weapons.own, {id = www.id, name = www:name()})
 						local fp = get_weapon_firepower(www)
 						if vdata.fire_power<fp then vdata.fire_power=fp end
-					elseif www:can_switch_online() and victim.position:distance_to(www.position)<look_radius and sobj_is_far(www, to_actor) then
+					elseif www:can_switch_online()
+						and victim.position:distance_to(www.position)<look_radius
+						and sobj_is_far(www, to_actor)
+					then
 						local p_id = www.parent_id
-						local p_obj = p_id and sim:object(p_id)
+						local p_obj = p_id and AI:object(p_id)
 						-- Безхозное оружие
 						if p_id==nil or p_id==65535
 							-- В нычках без замков можно что-нибудь стырить
@@ -450,8 +448,14 @@ function collect_info(victim,map)
 	if #off_npcs[map].stalkers>0 then
 		for a=1,#off_npcs[map].stalkers do
 			if off_npcs[map].stalkers[a] then
-				local opponent = sim:object(off_npcs[map].stalkers[a].id)
-				if opponent and opponent.id~=victim.id and opponent.health and opponent.can_switch_online and opponent:can_switch_online() and opponent:name() == off_npcs[map].stalkers[a].name  then
+				local opponent = AI:object(off_npcs[map].stalkers[a].id)
+				if opponent
+					and opponent.id~=victim.id
+					and opponent.health
+					and opponent.can_switch_online
+					and opponent:can_switch_online()
+					and opponent:name() == off_npcs[map].stalkers[a].name
+				then
 					if victim.position:distance_to(opponent.position)<look_radius then
 						if opponent:health()>0 then
 							local rel = relation_registry.get_goodwill(victim.id, opponent.id)
@@ -479,8 +483,14 @@ function collect_info(victim,map)
 		if #off_npcs[map].monsters>0 then
 			for a=1,#off_npcs[map].monsters do
 				if off_npcs[map].monsters[a] then
-					local monster = sim:object(off_npcs[map].monsters[a].id)
-					if monster and monster.health and monster.can_switch_online and monster:can_switch_online() and monster:name() == off_npcs[map].monsters[a].name and victim.position:distance_to(monster.position)<look_radius then
+					local monster = AI:object(off_npcs[map].monsters[a].id)
+					if monster
+						and monster.health
+						and monster.can_switch_online
+						and monster:can_switch_online()
+						and monster:name() == off_npcs[map].monsters[a].name
+						and victim.position:distance_to(monster.position)<look_radius
+					then
 						if monster:health()>0 then
 							table.insert(vdata.monsters, {id = monster.id, name = monster:name()})
 						else
@@ -500,11 +510,21 @@ function collect_info(victim,map)
 		if #off_npcs[map].artefacts>0 then
 			for a=1,#off_npcs[map].artefacts do
 				if off_npcs[map].artefacts[a] then
-					local artefact = sim:object(off_npcs[map].artefacts[a].id)
-					if (artefact and artefact.can_switch_online and artefact:can_switch_online() and artefact:name() == off_npcs[map].artefacts[a].name and victim.position:distance_to(artefact.position)<look_radius and sobj_is_far(artefact, to_actor)) then
-						--if artefact.parent_id==nil or artefact.parent_id==65535 or (sim:object(artefact.parent_id) and (sim:object(artefact.parent_id):section_name()=="inventory_box" or (sim:object(artefact.parent_id):clsid()>172 and sim:object(artefact.parent_id):clsid()<180))) then
-						--if artefact.parent_id==nil or artefact.parent_id==65535 or (sim:object(artefact.parent_id) and (sim:object(artefact.parent_id):clsid() == clsid.inventory_box or (sim:object(artefact.parent_id):clsid()>172 and sim:object(artefact.parent_id):clsid()<180))) then
-						if artefact.parent_id==nil or artefact.parent_id==65535 or (sim:object(artefact.parent_id) and (sim:object(artefact.parent_id):clsid() == clsid.inventory_box or amk_anoms.is_anomaly(sim:object(artefact.parent_id):clsid()))) then
+					local artefact = AI:object(off_npcs[map].artefacts[a].id)
+					if (artefact
+						and artefact.can_switch_online
+						and artefact:can_switch_online()
+						and artefact:name() == off_npcs[map].artefacts[a].name
+						and victim.position:distance_to(artefact.position)<look_radius
+						and sobj_is_far(artefact, to_actor))
+					then
+						if artefact.parent_id==nil
+							or artefact.parent_id==65535
+							or ( AI:object(artefact.parent_id)
+								and ( AI:object(artefact.parent_id):clsid() == clsid.inventory_box
+								or amk_anoms.is_anomaly(AI:object(artefact.parent_id):clsid()) )
+							)
+						then
 							table.insert(vdata.artefacts, {id = artefact.id, name = artefact:name()})
 						end
 					end
@@ -519,8 +539,14 @@ function collect_info(victim,map)
 		if #off_npcs[map].inv_boxes>0 then
 			for a=1,#off_npcs[map].inv_boxes do
 				if off_npcs[map].inv_boxes[a] then
-					local inv_box = sim:object(off_npcs[map].inv_boxes[a].id)
-					if (inv_box and inv_box.can_switch_online and inv_box:can_switch_online() and inv_box:name() == off_npcs[map].inv_boxes[a].name and victim.position:distance_to(inv_box.position)<=look_radius_box and sobj_is_far(inv_box, to_actor)) then
+					local inv_box = AI:object(off_npcs[map].inv_boxes[a].id)
+					if ( inv_box
+						and inv_box.can_switch_online
+						and inv_box:can_switch_online()
+						and inv_box:name() == off_npcs[map].inv_boxes[a].name
+						and victim.position:distance_to(inv_box.position)<=look_radius_box
+						and sobj_is_far(inv_box, to_actor) )
+					then
 						local zdist = victim.position:distance_to(inv_box.position)/100
 						if math_random() > zdist then
 							if inv_box.parent_id==nil or inv_box.parent_id==65535 then
@@ -559,7 +585,7 @@ function on_enemies_found(victim, vdata)
 		for i=1, #vdata.friends do
 			v_obj = vdata.friends[i]
 			if v_obj then
-				obj = alife():object(v_obj.id)
+				obj = AI:object(v_obj.id)
 				if (obj and obj:name()==v_obj.name) then
 					wpn = get_npc_weapon(obj)
 					rank = obj:rank()
@@ -573,7 +599,7 @@ function on_enemies_found(victim, vdata)
 	end
 	for i=1, #vdata.enemies do
 		v_obj = vdata.enemies[i]
-		obj = alife():object(v_obj.id)
+		obj = AI:object(v_obj.id)
 		if (obj and obj:name() == v_obj.name) then
 			wpn = get_npc_weapon(obj)
 			if (wpn == nil) then
@@ -667,7 +693,7 @@ function on_enemies_found(victim, vdata)
 									for a=1,#items[defender.player.id] do
 										v_itA = items[defender.player.id][a]
 										if (v_itA) then
-											itA = alife():object(v_itA.id)
+											itA = AI:object(v_itA.id)
 											if (itA and itA:name()==v_itA.name and itA.parent_id == defender.player.id) then
 												l_objA = pick_item(attacker.player, itA)
 											else
@@ -735,7 +761,7 @@ function on_enemies_found(victim, vdata)
 										for a=1,#items[defender.player.id] do
 											v_itB = items[defender.player.id][a]
 											if (v_itB) then
-												itB = alife():object(v_itB.id)
+												itB = AI:object(v_itB.id)
 												if (itB and itB:name() == v_itB.name and itB.parent_id == defender.player.id) then
 													l_objB = pick_item(attacker.player, itB)
 												else
@@ -817,7 +843,7 @@ function on_monsters_found(victim, vdata)
 	if (vdata.friends and #vdata.friends > 0) then
 		for i=1, #vdata.friends do
 			v_obj = vdata.friends[i]
-			obj = alife():object(v_obj.id)
+			obj = AI:object(v_obj.id)
 			if (obj and obj:name()==v_obj.name) then
 				wpn = get_npc_weapon(obj)
 				rank = obj:rank()
@@ -833,7 +859,7 @@ function on_monsters_found(victim, vdata)
 	for i=1, #vdata.monsters do
   amk.oau_reason="on_monsters_found chp2.1"
 		v_obj = vdata.monsters[i]
-		obj = alife():object(v_obj.id)
+		obj = AI:object(v_obj.id)
   amk.oau_reason="on_monsters_found chp2.2"
 		if (obj and obj:name() == v_obj.name) then
   amk.oau_reason="on_monsters_found chp2.3"
@@ -946,7 +972,7 @@ function on_monsters_found(victim, vdata)
 									for a=1,#items[defender.player.id] do
 										v_itA = items[defender.player.id][a]
 										if (v_itA) then
-											itA = alife():object(v_itA.id)
+											itA = AI:object(v_itA.id)
 											if (itA and itA:name()==v_itA.name and itA.parent_id == defender.player.id) then
 												l_objA = pick_item(attacker.player, itA)
 											else
@@ -1065,7 +1091,7 @@ function on_npc_corpses_found(victim, vdata)
 	local v_id = victim.id
 	for i=1, #vdata.corpses.stalkers do
 		v_obj = vdata.corpses.stalkers[i]
-		local corpse = alife():object(v_obj.id)
+		local corpse = AI:object(v_obj.id)
 		if (corpse and corpse:name() == v_obj.name) then
 			news_main.on_offline_corpse_found(victim, corpse)
 			id = corpse.id
@@ -1073,7 +1099,7 @@ function on_npc_corpses_found(victim, vdata)
 				for a=1, #items[id] do
 					local v_itA = items[id][a]
 					if (v_itA) then
-						local itA = alife():object(v_itA.id)
+						local itA = AI:object(v_itA.id)
 						if (itA and itA:name() == v_itA.name and itA.parent_id == id) then
 							local l_objA = pick_item(victim, itA)
 						end
@@ -1101,7 +1127,7 @@ function on_monster_corpses_found(victim, vdata)
 	local v_id = victim.id
 	for i=1, #vdata.corpses.monsters do
 		v_obj = vdata.corpses.monsters[i]
-		local corpse = alife():object(v_obj.id)
+		local corpse = AI:object(v_obj.id)
 		if (corpse and corpse:name() == v_obj.name) then
 			news_main.on_offline_corpse_found(victim, corpse)		
 			id = corpse.id
@@ -1109,7 +1135,7 @@ function on_monster_corpses_found(victim, vdata)
 				for a=1, #items[id] do
 					local v_itA = items[id][a]
 					if (v_itA) then
-						local itA = alife():object(v_itA.id)
+						local itA = AI:object(v_itA.id)
 						if (itA and itA:name() == v_itA.name and itA.parent_id == id) then
 							local l_objA = pick_item(victim, itA)
 						end			
@@ -1135,7 +1161,7 @@ function on_weapons_found(victim, vdata)
 	for i=1, #vdata.weapons.seen do
 		v_obj = vdata.weapons.seen[i]
 		if (v_obj) then
-			object = alife():object(v_obj.id)
+			object = AI:object(v_obj.id)
 			if (object and object:name() == v_obj.name) then
 				obj = pick_item(victim, object)
 			end
@@ -1161,7 +1187,7 @@ function on_artifacts_found(victim, vdata)
 	for i=1, #vdata.artefacts do
 		v_obj = vdata.artefacts[i]
 		if (v_obj) then
-			object = alife():object(v_obj.id)
+			object = AI:object(v_obj.id)
 			if (object and object:name() == v_obj.name) then
 				obj = pick_item(victim, object)
 				if (obj) then
@@ -1227,14 +1253,14 @@ function on_inv_boxes_found(victim, vdata)
 	for i=1, #vdata.inv_boxes do
 		v_obj = vdata.inv_boxes[i]
 		if (v_obj) then
-			object = alife():object(v_obj.id)
+			object = AI:object(v_obj.id)
 			if (object and object:name() == v_obj.name) then
 				if inv_box_is_avail(victim, object) then  -- Idler ++-- если нычка доступна - можно шмонать
 					if items[v_obj.id] and #items[v_obj.id]>0 then
 						for a=1,#items[v_obj.id] do
 							local v_itA = items[v_obj.id][a]
 							if (v_itA) then
-								local itA = alife():object(v_itA.id)
+								local itA = AI:object(v_itA.id)
 								if (itA and itA:name()==v_itA.name and itA.parent_id == v_obj.id) then
 									--news_main.trace("on_inv_boxes_found - found "..itA:section_name().." in "..object:name())
 									-- Решим, подбираем или нет?
@@ -1264,7 +1290,7 @@ function on_inv_boxes_found(victim, vdata)
 end
 
 function pick_fake_item(npc, sect)
-	local new = alife():create(sect, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
+	local new = AI:create(sect, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
 	if new and new.parent_id then
 		if not items[new.parent_id] then items[new.parent_id] = {} end
 		table.insert(items[new.parent_id], {id = new.id, name = new:name()})
@@ -1276,7 +1302,7 @@ function pick_item(npc, obj)
 	local new = nil
 	if (npc and obj and db.actor and obj.id ~= db.actor:id()) then
 		local section = obj:section_name()
-		new = alife():create(section, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
+		new = AI:create(section, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
 		if (new) then
 			if (new.parent_id) then
 				if not items[new.parent_id] then items[new.parent_id] = {} end
@@ -1292,7 +1318,7 @@ function pick_item(npc, obj)
 					end
 				end
 			end
-			alife():release(alife():object(obj.id), true)
+			AI:release(AI:object(obj.id), true)
 		end
 	end
 	return new
@@ -1304,7 +1330,7 @@ function get_npc_weapon(npc)
 	if (npc) then
 		if items[npc.id] ~= nil and items ~= nil and npc.id ~= nil then -- заплатка от вылета //[fR4g]
 			for k,v in pairs(items[npc.id]) do --- вылет был тут
-				local wpn = alife():object(v.id)
+				local wpn = AI:object(v.id)
 				if wpn and IAmAWeapon[wpn:clsid()] and wpn:name() == v.name and wpn.parent_id == npc.id then
 					local sect = wpn:section_name()
 					local cur_fp = 0				
@@ -1382,12 +1408,11 @@ function set_npc_health(obj, health)
 end
 
 function list_npc_items(obj)
-	local sim = alife()
 	if (obj) then
 		log1("! amk_offline_alife: can't find weapon for "..obj:name()..":")
 		local it
 		for a=1,65534 do
-			it = sim:object(a)
+			it = AI:object(a)
 			if (it and it.parent_id == obj.id) then
 				log1("~ -> "..it:name().." "..it:section_name())
 				if (IAmAWeapon[it:clsid()]) then
@@ -1437,7 +1462,6 @@ function process_trade(npc)
 	--	log1("# process_trade: "..npc:name())
 		local item_list = {}
 		local sell_list = {}
-		local sim = alife()
 		local m_comm = npc:community()
 		local b_stalker = false		
 		if (m_comm == "stalker" or m_comm == "dolg" or m_comm == "freedom" or m_comm == "nebo" or m_comm == "green") then
@@ -1454,7 +1478,7 @@ function process_trade(npc)
 		local obj, sect
 		local t_remove = {}
 		for ok,ov in ipairs(npc_items) do
-			obj = sim:object(ov.id)
+			obj = AI:object(ov.id)
 			if obj and obj.parent_id == nid then
 				if obj and obj:name()==ov.name then
 					sect = obj:section_name()
@@ -1672,7 +1696,7 @@ function process_trade(npc)
 						--	log1("* best weapon: "..w.obj:name())
 						-- Нет патронов, надо доспавнить
 						if b_ammo == false and vac and vac[1] then
-							local o = sim:create(vac[1], npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, nid)
+							local o = AI:create(vac[1], npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, nid)
 							if o then
 								table.insert(npc_items, {id = o.id, name = o:name()})
 							--	log("* spawn ammo: %s", o:section_name())
@@ -1725,7 +1749,7 @@ function process_trade(npc)
 						end
 					end
 				--	log("* sell [%s]", vv:name())
-					sim:release(vv, true)
+					AI:release(vv, true)
 				end				
 			end
 			if (money > 0) then
@@ -1810,44 +1834,18 @@ function sobj_is_far(obj, distance)
 	local result = true
 	if (db.actor and obj and distance and obj.position ) then
 		-- на одном ли уровне?
-		if obj.m_game_vertex_id and game_graph():valid_vertex_id(obj.m_game_vertex_id) then
-		local map = alife():level_name(game_graph():vertex(obj.m_game_vertex_id):level_id())
-		if (map and level.name() == map) then
-			-- Достаточно ли далеко?
-			if (obj.position:distance_to(db.actor:position()) < distance) then
-				result = false
+		if obj.m_game_vertex_id and GGraph:valid_vertex_id(obj.m_game_vertex_id) then
+			local map = object_level_name(obj)
+			if (map and level.name() == map) then
+				-- Достаточно ли далеко?
+				if (obj.position:distance_to(db.actor:position()) < distance) then
+					result = false
+				end
 			end
-		end
-   end
+	   end
    end
    return result
 end
-
---[[
-function have_ammo(npc, weapon)
-	if npc and weapon and IAmAStalker[npc:clsid()] and IAmAWeapon[weapon:clsid()] then
-		local sect = weapon:section_name()
-		local ammo_str = sys_ini:r_string_ex(sect, "ammo_class", nil)
-		if ammo_str == nil then -- Болт или граната
-			return false
-		end
-		local ammo_list = {}
-		for s in string.gfind(ammo_str, '[%w_%.%-]+') do
-			ammo_list[s] = true
-		end
-		local sec, obj
-		local sim = alife()
-		for k, v in items[npc.id] do
-			obj = sim:object(v.id)
-			sec = obj and obj:section_name()
-			if sec and ammo_list[sec] then
-				return sec
-			end
-		end
-	end
-	return false
-end
-]]
 
 function box_is_protected(v)
 	if v then
@@ -1886,7 +1884,7 @@ function npc_smart_is_peaceful(sobj)
 	local result = false
 	if (sobj and smart_filters and #smart_filters>0) then
 		if (sobj.smart_terrain_id and sobj:smart_terrain_id() and sobj:smart_terrain_id()~=65535) then
-			local sm = alife():object(sobj:smart_terrain_id())
+			local sm = AI:object(sobj:smart_terrain_id())
 			if (sm and sm.name and sm:name()) then
 				local sn = sm:name()
 				for ks, vs in pairs(smart_filters) do
@@ -1908,7 +1906,7 @@ end
 
 function get_flags(npc_id)
 	local flags = 0
-	local obj = alife():object(npc_id)
+	local obj = AI:object(npc_id)
 	if obj then
 		if IAmAMonster[obj:clsid()] or IAmAStalker[obj:clsid()] then
 			local char_ini = xr_logic.get_customdata_or_ini_file(obj, "<customdata>")

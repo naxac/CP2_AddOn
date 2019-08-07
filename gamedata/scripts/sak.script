@@ -44,7 +44,7 @@ end
 function add_new_mil_110()
 	local obj = add_new_lc(story_ids.exit_to_mil_110,"to_military","info_way110a",1)
 	if obj then
-		alife():teleport_object("", vector():set(-49.27893447876,-1.8120930194855,-24.721027374268),116037,1019, obj.id)
+		AI:teleport_object("", vector():set(-49.27893447876,-1.8120930194855,-24.721027374268),116037,1019, obj.id)
 	end
 end
 function add_new_darkvalley_111()
@@ -188,24 +188,23 @@ end
 function add_new_lima_to_dead_city()
 	local obj = add_new_lc(story_ids.lima_to_dead_city,"to_dead_city","info_way_arhara_lima_dcity",2)
 	if obj then
-		alife():teleport_object("", vector():set(-52.046363, -10.754915, -184.263061), 4128, 2993, obj.id)
+		AI:teleport_object("", vector():set(-52.046363, -10.754915, -184.263061), 4128, 2993, obj.id)
 	end
 end
 
 -- Убрана привязка к номеру секции - переделано на spawn_story_id.
 -- При добавлении сюда новых переходов прописывать им в алспавне spawn_story_id, равный story_id.
 function add_new_lc(story_spawn_id, spot_hint, info, dir)
-	local sim = alife()
-	local objt = sim:story_object(story_spawn_id)
+	local objt = AI:story_object(story_spawn_id)
 	if objt then
 		log("~ level changer with story_id [%d] already exist! Respawn...", story_spawn_id)
-		sim:release(objt, true)
+		AI:release(objt, true)
 	end
-	local obj = sim:create( sim:spawn_id(story_spawn_id) )
+	local obj = AI:create( AI:spawn_id(story_spawn_id) )
 	if obj then
 		level.map_add_object_spot_ser(obj.id, "level_changer"..tostring(dir), spot_hint)
 		if not has_alife_info(info) then
-			db.actor:give_info_portion(info)
+			Actor:give_info_portion(info)
 		end
 		show_lc_info(obj)
 		return obj
@@ -219,14 +218,14 @@ function show_lc_info(obj)
 	
 	local data = netpk:get(obj, netpk.fState)
 	local dest_lvl = game.translate_string(string.lower(data.dest_level_name))
-	local prev_lvl = game.translate_string(alife():level_name(game_graph():vertex(data.game_vertex_id):level_id()))
+	local prev_lvl = game.translate_string(AI:level_name(GGraph:vertex(data.game_vertex_id):level_id()))
 	info_received(prev_lvl..' >> '..dest_lvl)
 end
 function add_new_military_false()
-local obj = alife():story_object(story_ids.mil_secret_0012)
-level.map_add_object_spot(obj.id, "level_changer1","На ЧАЭС")
-  db.actor:give_info_portion("info_way_false")
-  info_received("Армейские Склады >> ЧАЭС")
+	local obj = AI:story_object(story_ids.mil_secret_0012)
+	level.map_add_object_spot(obj.id, "level_changer1","На ЧАЭС")
+	Actor:give_info_portion("info_way_false")
+	info_received("Армейские Склады >> ЧАЭС")
 end
 
 function out_excess_lc()
@@ -292,22 +291,21 @@ function out_excess_lc()
 		lima_to_dead_city = "info_way_arhara_lima_dcity",
 		chaes_to_chaes2_level_changer = "perehod_chaes2_na_chaes"
 	}
-	local sim = alife()
 	local lc
 	for sid, info in pairs(out_lchangers) do
 		if not has_alife_info(info) then
-			lc = sim:story_object( story_ids[sid] )
-			if lc then sim:release(lc) end
+			lc = AI:story_object( story_ids[sid] )
+			if lc then AI:release(lc) end
 	--		log1("out_lc: "..info)
 		end
 	end
 end
 
 function out_new_lc(levch,info)
-  if not db.actor:has_info(info) then
-    local objt = alife():story_object(levch)
+  if not Actor:has_info(info) then
+    local objt = AI:story_object(levch)
     if objt then
-      alife():release(objt)
+      AI:release(objt)
     end
   end
 end
@@ -341,9 +339,9 @@ function add_new_lcitem()
 	amk.spawn_item("playboy13",vector():set(292.20834350586,13.639252662659,-155.84591674805),3531,325954,true)
 --	amk.spawn_item("m_inventory_seif",vector():set(306.47,-39.39,-26.22),1930,69058)
 	for a=1000,20000,1 do
-		local obj=alife():object(a)
+		local obj=AI:object(a)
 		if obj and ( (string_find(obj:name(),"af_") and not string_find(obj:name(),"esc_af_")  and not string_find(obj:name(),"pri_af_" ) and not string_find(obj:name(),"af_dumm")) ) then	-- or string_find(obj:name(),"esc_wpn")) then
-			alife():release(obj,true)
+			AI:release(obj,true)
 		end
 	end
 end
@@ -381,7 +379,7 @@ function add_seif()
 amk.spawn_item("inventory_sakbox_03",vector():set(15.52,-12.43,8.59),1156,5132,true) --Сейф в подземелье X-18
 end
 function give_seif(obj)
-amk.remove_item_from_inventory_by_name(obj,db.actor)
+amk.remove_item_from_inventory_by_name(obj,Actor)
 amk.spawn_item("m_inventory_seif",vector():set(34.37,-3.37,-37.29),1997,21736,true)  --передача сейфа
 end
 -- Akill begin Изменены к-ты спавна декодера + монстры
@@ -407,26 +405,26 @@ end
 --end
 function add_blood_green()
 	amk.spawn_item("af_blood_green",vector():set(55.34,1.27,40.89),1511,68094,true) --Изумрудная кровь на Янтаре 
-	alife():create("yan_zombied_respawn_1",vector():set(75.406539916992,0.34422329068184,23.229085922241),79415,1512)
-	alife():create("yan_zombied_respawn_2",vector():set(41.926971435547,0.037857890129089,20.751808166504),60400,1445)
-	alife():create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
-	alife():create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
-	alife():create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
-	alife():create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
-	alife():create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
-	alife():create("m_poltergeist_dd",vector():set(58.236850738525,-0.84842598438263,-20.68497467041),69709,1508)
-	alife():create("electro_polter",vector():set(56.451206207275,0.046565324068069,-60.764457702637),68827,1516)
-	alife():create("polter_xray",vector():set(27.053871154785,0.084938794374466,-9.735237121582),52620,1507)
-	alife():create("controller_flame",vector():set(90.896003723145,0.028825730085373,12.075715065002),87194,1513)
-	alife():create("m_controller_act",vector():set(15.076522827148,0.030788093805313,19.65348815918),46805,1445)
+	AI:create("yan_zombied_respawn_1",vector():set(75.406539916992,0.34422329068184,23.229085922241),79415,1512)
+	AI:create("yan_zombied_respawn_2",vector():set(41.926971435547,0.037857890129089,20.751808166504),60400,1445)
+	AI:create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
+	AI:create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
+	AI:create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
+	AI:create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
+	AI:create("spider",vector():set(106.78483581543,-8.8652667999268,-212.50025939941),96215,1472)
+	AI:create("m_poltergeist_dd",vector():set(58.236850738525,-0.84842598438263,-20.68497467041),69709,1508)
+	AI:create("electro_polter",vector():set(56.451206207275,0.046565324068069,-60.764457702637),68827,1516)
+	AI:create("polter_xray",vector():set(27.053871154785,0.084938794374466,-9.735237121582),52620,1507)
+	AI:create("controller_flame",vector():set(90.896003723145,0.028825730085373,12.075715065002),87194,1513)
+	AI:create("m_controller_act",vector():set(15.076522827148,0.030788093805313,19.65348815918),46805,1445)
 	artefact_hunter.add_art_info("af_blood_green")
 end
 function add_battery_red()
 amk.spawn_item("af_dummy_battery_red",vector():set(668.9,-45.79,-39.93),1896,227187,true) --Рубиновая батарейка на Радаре 
 end
 function add_order()
-	local obj = alife():story_object(story_ids.agr_sak_inventory_box)
-	alife():create("rad_document7",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+	local obj = AI:story_object(story_ids.agr_sak_inventory_box)
+	AI:create("rad_document7",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
 	amk.convert_npc[obj.id] = 1
 end
 
@@ -438,7 +436,7 @@ function add_two_corpses()
 	tbl.upd = { health = 0 }
 	netpk:modify( obj,tbl )					
 
-	alife():create("scaintist_docs",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+	AI:create("scaintist_docs",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
 
 	obj=amk.spawn_item("yan_ecolog_respawn_2",vector():set(187.66,5.03,-375.97),938,386327)
 	tbl.story_id = 48801
@@ -453,42 +451,42 @@ function add_scaintist_body()
 	tbl.health = 0
 	tbl.upd = { health = 0 }
 	netpk:modify( obj,tbl )
-	alife():create("scaintist_pda",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+	AI:create("scaintist_pda",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
 end
 function add_agroprom_box()
 	for a=1000,10000,1 do
-	local obj=alife():object(a)
+	local obj=AI:object(a)
 		if (obj and obj.name and obj:name() == "agr_quest_case_02") then
-		alife():release(obj, true)
+		AI:release(obj, true)
 		--dbglog("keis: "..a) ~5665
 		end
 	end	
 	--amk.spawn_item("quest_case_02",vector():set(18.76,-2.23,-219.12),436,259029)
-	dialogs.relocate_item_section(db.actor, "quest_case_02", "in")
+	dialogs.relocate_item_section(Actor, "quest_case_02", "in")
 end
 -- Akill begin
 function add_kontainer()
 --	amk.spawn_item("inventory_sakbox_05",vector():set(378,-52,-179.20),2097,101537)
-	alife():create("inventory_sakbox_05",vector():set(467.15960693359,-48.180206298828,-294.86013793945),155265,2063)
-	alife():create("chimera_black",vector():set(486.33248901367,-48.54475402832,-236.83911132813),160400,2058)
-	alife():create("zombie_beee",vector():set(544.77508544922,-50.461318969727,-251.75929260254),187962,2114)
-	alife():create("zombie_blow",vector():set(545.21411132813,-57.409252166748,-226.63201904297),188356,1873)
-	alife():create("zombie_hell",vector():set(568.07763671875,-60.318313598633,-221.79908752441),199631,1873)
-	alife():create("bear",vector():set(514.51159667969,-50.558048248291,-283.08618164063),172856,2060)
-	alife():create("chimera_weak",vector():set(478.98034667969,-54.138397216797,-254.24066162109),157244,2111)
-	alife():create("controller_senator",vector():set(543.19293212891,-53.148582458496,-239.98249816895),187241,2114)
-	alife():create("controller_babka",vector():set(563.63739013672,-62.943653106689,-199.03614807129),197039,1884)
+	AI:create("inventory_sakbox_05",vector():set(467.15960693359,-48.180206298828,-294.86013793945),155265,2063)
+	AI:create("chimera_black",vector():set(486.33248901367,-48.54475402832,-236.83911132813),160400,2058)
+	AI:create("zombie_beee",vector():set(544.77508544922,-50.461318969727,-251.75929260254),187962,2114)
+	AI:create("zombie_blow",vector():set(545.21411132813,-57.409252166748,-226.63201904297),188356,1873)
+	AI:create("zombie_hell",vector():set(568.07763671875,-60.318313598633,-221.79908752441),199631,1873)
+	AI:create("bear",vector():set(514.51159667969,-50.558048248291,-283.08618164063),172856,2060)
+	AI:create("chimera_weak",vector():set(478.98034667969,-54.138397216797,-254.24066162109),157244,2111)
+	AI:create("controller_senator",vector():set(543.19293212891,-53.148582458496,-239.98249816895),187241,2114)
+	AI:create("controller_babka",vector():set(563.63739013672,-62.943653106689,-199.03614807129),197039,1884)
 end
 function agroprom_wpm()
-	local obj = alife():story_object(story_ids.agr_sak_inventory_box)
-	alife():create("wpn_vintorez_m1",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
-	alife():create("zasada_tonnel_agro_2",vector():set(-120.86868286133,14.998485565186,-192.318359375),118958,642)
-	alife():create("agro_elite_rpg",vector():set(-170.82591247559,5.3163747787476,-182.25466918945),66088,667)
-	alife():create("zasada_tonnel_agro_1",vector():set(-121.89569091797,4.9972257614136,-198.87106323242),118189,617)
-	alife():create("soldier_mines_regular",vector():set(-196.39508056641,7.3849902153015,-223.58135986328),39867,555)
-	alife():create("soldier_mines_veteran",vector():set(-175.36352539063,7.3837895393372,-154.81077575684),61033,560)
-	alife():create("soldier_mines_regular",vector():set(-106.75975036621,7.3841366767883,-136.29498291016),132868,696)
-	alife():create("soldier_mines_veteran",vector():set(-108.10691833496,7.3828616142273,-207.12539672852),132051,552)
+	local obj = AI:story_object(story_ids.agr_sak_inventory_box)
+	AI:create("wpn_vintorez_m1",obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+	AI:create("zasada_tonnel_agro_2",vector():set(-120.86868286133,14.998485565186,-192.318359375),118958,642)
+	AI:create("agro_elite_rpg",vector():set(-170.82591247559,5.3163747787476,-182.25466918945),66088,667)
+	AI:create("zasada_tonnel_agro_1",vector():set(-121.89569091797,4.9972257614136,-198.87106323242),118189,617)
+	AI:create("soldier_mines_regular",vector():set(-196.39508056641,7.3849902153015,-223.58135986328),39867,555)
+	AI:create("soldier_mines_veteran",vector():set(-175.36352539063,7.3837895393372,-154.81077575684),61033,560)
+	AI:create("soldier_mines_regular",vector():set(-106.75975036621,7.3841366767883,-136.29498291016),132868,696)
+	AI:create("soldier_mines_veteran",vector():set(-108.10691833496,7.3828616142273,-207.12539672852),132051,552)
 end
 function add_books()
 amk.spawn_item("sak_book1",vector():set(28.11,-12.07,38.93),1161,6530) 
@@ -496,16 +494,16 @@ amk.spawn_item("sak_book2",vector():set(-120.27,21.56,-32.65),1529,165)
 amk.spawn_item("sak_book3",vector():set(0.77,-19.45,24.89),2768,6203) 
 end
 function add_new_111item()
-	alife():create("soldier_mines_veteran",vector():set(69.474830627441,0.55580735206604,25.300632476807),305190,671)
-	alife():create("soldier_mines_regular",vector():set(63.35139465332,-0.20042996108532,-0.63388842344284),299977,462)
-	alife():create("soldier_mines_veteran",vector():set(9.7593650817871,0.97461330890656,37.45044708252),250081,490)
-	local obj = alife():create("dynamite",vector():set(54.160469055176,0.78570091724396,23.48705291748),292636,461)
+	AI:create("soldier_mines_veteran",vector():set(69.474830627441,0.55580735206604,25.300632476807),305190,671)
+	AI:create("soldier_mines_regular",vector():set(63.35139465332,-0.20042996108532,-0.63388842344284),299977,462)
+	AI:create("soldier_mines_veteran",vector():set(9.7593650817871,0.97461330890656,37.45044708252),250081,490)
+	local obj = AI:create("dynamite",vector():set(54.160469055176,0.78570091724396,23.48705291748),292636,461)
 	level.map_add_object_spot_ser(obj.id, "crlc_big", "Возможное местоположение динамита")
 end
 function dynamite_metka_delete()
 	local obj
 	for a=1,65534,1 do
-	obj=alife():object(a)
+	obj=AI:object(a)
 	if obj and string.find(obj:name(),"dynamite") then
 	level.map_remove_object_spot(obj.id,"crlc_big")
 	break
@@ -513,16 +511,16 @@ function dynamite_metka_delete()
 	end
 end
 function add_new_109item()
-	alife():create("quest_case_05",vector():set(124.79997253418,2.2573802471161,-263.01544189453),321655,955)
+	AI:create("quest_case_05",vector():set(124.79997253418,2.2573802471161,-263.01544189453),321655,955)
 end
 -- Akill end
 function info_received(text)
 	if (not text) or type(text)~="string" then return end
 	amk.send_tip(text,"Новый путь!",0,10,"nano")
-	if db.actor:is_talking() then
+	if Actor:is_talking() then
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_locations", "ui_iconsTotal_locations")
 		local news_text = "%c[255,160,160,160]Новый путь!\\n%c[white]"..text
-		db.actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
+		Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
 	end
 end
 --function add_resiver()
@@ -550,7 +548,7 @@ end
 
 function make_kill_task_failed(actor,npc,p1,p2) 
   local nid=npc:id()
-  if nid==db.actor:id() then
+  if nid==Actor:id() then
     nid=actor:id()
   end
   local targets=task_manager.amk_kill_targets()
@@ -563,7 +561,7 @@ end
 
 function agr_ratcatcher__id()
 for a=5000,6000,1 do
-		local obj=alife():object(a)
+		local obj=AI:object(a)
 		if (obj and obj.name and obj:name() == "agr_ratcatcher") then
 		--dbglog("Entered: "..obj:name().." id "..a.." sid "..obj.m_story_id) -- id~5564
 		amk.save_variable("agr_ratcatcher_id", a) 
@@ -664,21 +662,20 @@ local nepis = {
 }
 function deadman_to_life(art)
 	local obj
-	local sim = alife()
 	for i, v in ipairs(nepis) do
-		obj = sim:story_object(v.story_id)
-		if obj and (not obj:alive()) and obj.position:distance_to(db.actor:position()) < 2 then
+		obj = AI:story_object(v.story_id)
+		if obj and (not obj:alive()) and obj.position:distance_to(Actor:position()) < 2 then
 
 			-- снимаем нужные поршни
 			if not v.trup then
-				db.actor:disable_info_portion("nu"..tostring(v.story_id))
+				Actor:disable_info_portion("nu"..tostring(v.story_id))
 			end
 			if v._umer then
-				db.actor:disable_info_portion(obj:name().."_umer")
+				Actor:disable_info_portion(obj:name().."_umer")
 			end
 			if v.info then
 				for b=1,#v.info do 
-					db.actor:disable_info_portion(v.info[b])
+					Actor:disable_info_portion(v.info[b])
 				end
 			end
 
@@ -687,16 +684,16 @@ function deadman_to_life(art)
 			amk_mod.af_flash(art)
 			amk.send_tip("%c[255,0,255,0]Обнаружен новый сталкер: "..naxac_netpk.get_character_name(obj)..". Добавлен в базу данных сети.%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 0, 15, "questman_death")
 			local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
-			sim:release(obj)
+			AI:release(obj)
 
 			local se_npc
 			if v.script then
 				se_npc = loadstring("return "..v.script.."()")()
 			else
-				se_npc = sim:create(sim:spawn_id(v.story_id))
+				se_npc = AI:create(AI:spawn_id(v.story_id))
 			end
 			if se_npc then
-				sim:teleport_object("", pos, lv, gv, se_npc.id)
+				AI:teleport_object("", pos, lv, gv, se_npc.id)
 			end
 			return
 		end
@@ -705,19 +702,18 @@ end
 
 function nepis_umer()
 	local obj, name, nu
-	local sim = alife()
 	for i, v in ipairs(nepis) do
-		obj = sim:story_object(v.story_id)
+		obj = AI:story_object(v.story_id)
 		if obj and not obj:alive() then
 			name=obj:name()
 			nu="nu"..tostring(v.story_id)
 			
 			if v._umer then
-				db.actor:give_info_portion(name.."_umer")
+				Actor:give_info_portion(name.."_umer")
 			end
 			
 			if ( not v.trup ) and ( not has_alife_info(nu) ) then
-				db.actor:give_info_portion(nu)
+				Actor:give_info_portion(nu)
 				archievements.send_umer_info(obj)
 			end
 		end
@@ -739,10 +735,9 @@ end
 -- проверка что все квестовики живы
 function all_questmen_alive()
 	local obj
-	local sim = alife()
 	for i, v in ipairs(nepis) do
 		if not v.trup then
-			obj = sim:story_object(v.story_id)
+			obj = AI:story_object(v.story_id)
 			if obj and not obj:alive() then
 	--			get_console():execute("load ~#I#:"..string.format("Мёртвый квестовик: "..v.story_id))
 				return false
@@ -754,14 +749,14 @@ end
 
 
 function af_zone_off(af)
- local anom=amk_anoms.get_nearest_anomaly(db.actor)
- local sid=alife():object(anom)
+ local anom=amk_anoms.get_nearest_anomaly(Actor)
+ local sid=AI:object(anom)
   level.add_pp_effector("teleport.ppe", 1524, false)
   amk.remove_item(af)
-  alife():release(sid,true)
+  AI:release(sid,true)
 end
 function inv_item_cond(item,val)
-local obj=db.actor:object(item)
+local obj=Actor:object(item)
 	if obj~=nil then
 	  obj:set_condition(val)
 	end
@@ -856,12 +851,12 @@ function get_teleport(pos_out,pos_in,made,sidlc)
 	local name_level = tmp.lname
 	local b = ( made == 0 and  table.random( tmp.p ) ) or tmp.p[ 1 ]
 
-	local obj1 = alife():create("level_changer",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
-	local obj_tp = alife():create("zone_teleport",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
+	local obj1 = AI:create("level_changer",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
+	local obj_tp = AI:create("zone_teleport",vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
 	local obj_tport = obj_tp.id
 	amk.save_variable("sak_teleport", obj_tport)  
 	if obj1 then
-		local obj2 = alife():story_object(story_ids.escape_teleport_120)
+		local obj2 = AI:story_object(story_ids.escape_teleport_120)
 		local t = netpk:get(obj2, netpk.fState)
 		t.story_id = sidlc
 		t.dest_level_name = name_level
@@ -881,12 +876,12 @@ local lev={"l01_escape","l11_pripyat","l07_military","l08_yantar","l12u_sarcofag
 	for a=1,#sid,1 do
 	local sidlc=sid[a]
 	local lname=lev[a]	
-	local obj=alife():story_object(sidlc)
+	local obj=AI:story_object(sidlc)
 		if obj and level.name()~=lname then
 		local objt = amk.load_variable("sak_teleport", 0)
-		alife():release(obj)
+		AI:release(obj)
 			if objt ~= 0 then
-                alife():release(alife():object(objt), true)
+                AI:release(AI:object(objt), true)
             end
 		amk.del_variable("sak_teleport")
 		end
@@ -896,7 +891,7 @@ local lev={"l01_escape","l11_pripyat","l07_military","l08_yantar","l12u_sarcofag
 end
 
 function switch_mil_matugalnik()
-	local obj=sim:object("mil_physic_destroyable_object_0046")
+	local obj=AI:object("mil_physic_destroyable_object_0046")
 	if obj then
 		local params = {}
 		params.custom_data="[logic]\ncfg = scripts\\mil\\matugalnik.ltx"
@@ -922,20 +917,19 @@ end
 function set_community(actor, npc)
 	relation_registry.set_community_goodwill("bandit", 0, 500)
 	-- поссорим актёра с конвоем Макса Любера
-	local sim = alife()
-	local obj = sim:object("val_escort_guard2")
+	local obj = AI:object("val_escort_guard2")
 	if obj and obj:alive() then
-		relation_registry.set_goodwill(obj.id, db.actor:id(), -1000)
+		relation_registry.set_goodwill(obj.id, Actor:id(), -1000)
 	end
-	obj = sim:object("val_escort_guard1")
+	obj = AI:object("val_escort_guard1")
 	if obj and obj:alive() then
-		relation_registry.set_goodwill(obj.id, db.actor:id(), -1000)
+		relation_registry.set_goodwill(obj.id, Actor:id(), -1000)
 	end
 	-- Помирим Макса Любера и Пулю с Монголом
-	obj = sim:object("val_escort_bandit_halfdead")
+	obj = AI:object("val_escort_bandit_halfdead")
 	if obj and obj:alive() then
-		local npc1 = sim:object("val_escort_nap1")
-		local npc2 = sim:object("val_escort_captive")
+		local npc1 = AI:object("val_escort_nap1")
+		local npc2 = AI:object("val_escort_captive")
 		if npc1 and npc1:alive() and npc2 and npc2:alive() then
 			relation_registry.set_goodwill(obj.id, npc1.id, 500)
 			relation_registry.set_goodwill(npc1.id, obj.id, 500)
@@ -951,7 +945,7 @@ function bandits_enemy(actor, npc)
 	relation_registry.set_community_goodwill("bandit", 0, -1500)
 end
 function drink_vodka()
-	db.actor:eat(db.actor:object("vodka"))
+	Actor:eat(Actor:object("vodka"))
 end
 function take_trasure(npc, npc1)
 	treasure_manager.get_treasure_manager():dialog(npc)
@@ -964,26 +958,26 @@ function have_trasure(first_speaker, second_speaker)
       tres = 50
 	end
 	local ran=math_random(100)
-	if ran > tres then db.actor:give_info_portion("have_sak_treasure")
-	else db.actor:give_info_portion("havent_sak_treasure")
+	if ran > tres then Actor:give_info_portion("have_sak_treasure")
+	else Actor:give_info_portion("havent_sak_treasure")
 	end
 end
 function zombie_checkup()
-	if db.actor ~= nil then
+	if Actor ~= nil then
 		if math_random() > 0.7 	and not inventory.on_belt("af_serpantin") then
 		local a=math_random()
 		local h = hit()
-		h.draftsman = db.actor
+		h.draftsman = Actor
 		h.direction = vector():set(0,0,0)
 		h:bone("bip01_spine") -- чтобv учитvвалась броня
 		h.type = hit.telepatic
 		h.power = 0.3+a/2
 		h.impulse = 1.0
-		db.actor:hit(h)
+		Actor:hit(h)
 		h.type = hit.strike
-		db.actor:hit(h)
+		Actor:hit(h)
 		h.type = hit.radiation
-		db.actor:hit(h)
+		Actor:hit(h)
 		level.add_pp_effector("alcohol.ppe", 100, false)
 		local rnd=math_random(1,6)
 		local snd_obj
@@ -1000,7 +994,7 @@ function zombie_checkup()
 			elseif rnd==6 then
 			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_8]])
 			end
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		end
 		archievements.acv_count_event("acv_fzom", 100, "Друг зомби")
 	end
@@ -1009,19 +1003,19 @@ function add_spot_of_docent(a)
 --[[
 	local old_spot=amk.load_variable("spot_of_nps", 0)
 	if old_spot~=0 then
-		local obj_old = alife():story_object(old_spot)
+		local obj_old = AI:story_object(old_spot)
 		if obj_old then
 			amk.remove_spot_from_map(obj_old.id,'blue_location')
 		end
 	end
-	local obj = alife():story_object(a)
+	local obj = AI:story_object(a)
 	if obj and IAmAStalker[obj:clsid()] then
 		amk.add_spot_on_map(obj.id,'blue_location',obj:name().."_sak")
 		old_spot=a
 		amk.save_variable("spot_of_nps", old_spot)
 	end
 ]]
-	local obj = alife():story_object(a)
+	local obj = AI:story_object(a)
 	if obj and IAmAStalker[obj:clsid()]
 		and level.map_has_object_spot(obj.id, 'blue_location')==0
 	then
@@ -1031,7 +1025,7 @@ end
 
 function check_actor_community(lname, sname)
 	if lname=="l04_darkvalley" then
-		local obj=alife():story_object(story_ids.val_borov)
+		local obj=AI:story_object(story_ids.val_borov)
 		if obj and IAmAStalker[obj:clsid()] and obj:alive() then
 			if has_alife_info("val_bandit_talk") then
 				relation_registry.set_community_goodwill("bandit", 0, 500)
@@ -1048,9 +1042,9 @@ function check_actor_community(lname, sname)
 	if has_alife_info("snp_almaz3")
 		and ( not has_alife_info("snp_almaz_done") )
 		and lname ~= "av_peshera"
-		and db.actor:character_community() == "monolith"
+		and Actor:character_community() == "monolith"
 	then
-		db.actor:set_character_community("actor", 0, 0)
+		Actor:set_character_community("actor", 0, 0)
 	end
 end
 
@@ -1064,23 +1058,21 @@ function check_radio()
 		end
 	end
 	if not res then
-		db.actor:give_info_portion("bar_random")
+		Actor:give_info_portion("bar_random")
 	end
 end
 
 function add_tail()
 	local lname = level.name()
-	local actor = db.actor
-
 	if lname=="l05_bar" then
 		check_radio()
 		if has_alife_info("kot_need_next_done")
 			and not has_alife_info("bkot_spawn")
 		then
-			local se_obj = alife():object("kot")
+			local se_obj = AI:object("kot")
 			if se_obj then
-				alife():release(se_obj, true)
-				db.actor:give_info_portion("bkot_spawn")
+				AI:release(se_obj, true)
+				Actor:give_info_portion("bkot_spawn")
 			end
 		end
 
@@ -1088,23 +1080,23 @@ function add_tail()
 		check_radio()
 
 	elseif lname=="l01_escape" then
-		actor:give_info_portion("sidor_music")
-		if actor:has_info("prizrak_finalzver_start")
-			and not actor:has_info("info_spawn_zver")
+		Actor:give_info_portion("sidor_music")
+		if Actor:has_info("prizrak_finalzver_start")
+			and not Actor:has_info("info_spawn_zver")
 		then
-			actor:give_info_portion("info_spawn_zver")
+			Actor:give_info_portion("info_spawn_zver")
 		end
 
 	elseif lname=="l07_military" then
-		if actor:has_info("francuz_start") then
-			actor:give_info_portion("francuz_spawn")
+		if Actor:has_info("francuz_start") then
+			Actor:give_info_portion("francuz_spawn")
 		end
 
 	elseif lname=="l10u_bunker" then
-		if actor:has_info("ucen_talk_need")
-			and not actor:has_info("ucen_talk_spawn")
+		if Actor:has_info("ucen_talk_need")
+			and not Actor:has_info("ucen_talk_spawn")
 		then
-			actor:give_info_portion("ucen_talk_spawn")
+			Actor:give_info_portion("ucen_talk_spawn")
 		end
 
 	elseif lname=="l10_radar" and not has_alife_info("bar_deactivate_radar_done") then
@@ -1112,111 +1104,111 @@ function add_tail()
 
 	elseif lname == "marsh" then
 		xr_s.subscribe("update", marsh_radiation.update, { timeout = 500 } )
-		if actor:has_info("brat_luis_start") then
-			actor:give_info_portion("brat_luis_spawn")
+		if Actor:has_info("brat_luis_start") then
+			Actor:give_info_portion("brat_luis_spawn")
 		end
 
 	elseif lname=="l03u_agr_underground" then
-		if actor:has_info("yakut_false_start")
-			and not actor:has_info("yakut_false_have")
+		if Actor:has_info("yakut_false_start")
+			and not Actor:has_info("yakut_false_have")
 		then
-			actor:give_info_portion("yakut_false_have")
+			Actor:give_info_portion("yakut_false_have")
 		end
 
 	elseif lname=="l03_agroprom" then
-		if actor:has_info("yakut_false_have")
-			and not actor:has_info("yakut_false_done")
+		if Actor:has_info("yakut_false_have")
+			and not Actor:has_info("yakut_false_done")
 		then
-			actor:give_info_portion("yakut_false_done")
+			Actor:give_info_portion("yakut_false_done")
 		end
-		if actor:has_info("kot_agro_mono_start") 
+		if Actor:has_info("kot_agro_mono_start") 
 			and not has_alife_info("kot_agro_mono_spawn")
 		then
-			actor:give_info_portion("kot_agro_mono_spawn")
+			Actor:give_info_portion("kot_agro_mono_spawn")
 		end
 
 	elseif lname=="l06_rostok" then
-		if actor:has_info("zahar_naemnik_start")
-			and not actor:has_info("zahar_naemnik_begin")
+		if Actor:has_info("zahar_naemnik_start")
+			and not Actor:has_info("zahar_naemnik_begin")
 		then
-			actor:give_info_portion("zahar_naemnik_begin")
+			Actor:give_info_portion("zahar_naemnik_begin")
 		end
 
 	elseif lname=="l11_pripyat" then
 		if has_alife_info("kot_find_rabi_scromnyi")
 			and not has_alife_info("kot_find_rabi_spawn_rabi")
 		then
-			db.actor:give_info_portion("kot_find_rabi_spawn_rabi")
+			Actor:give_info_portion("kot_find_rabi_spawn_rabi")
 		end
 
 	elseif lname == "red_forest" then
 		if not has_alife_info("actor_in_forest") then
-			db.actor:give_info_portion("actor_in_forest")
+			Actor:give_info_portion("actor_in_forest")
 		end
 
 	elseif lname == "av_peshera" then
 		if not has_alife_info("spawn_teleport_exit") then 
-			alife():create("m_teleport_exit",vector():set(102.761,31.20,410.701),168848,2985)
-			db.actor:give_info_portion("spawn_teleport_exit")
+			AI:create("m_teleport_exit",vector():set(102.761,31.20,410.701),168848,2985)
+			Actor:give_info_portion("spawn_teleport_exit")
 		end
 
 	elseif lname == "hospital" then
 		if (not has_alife_info("spawn_teleport_hospital"))
 			and has_alife_info("pri_helicopters_start")
 		then 
-			alife():create("m_teleport_hospital",vector():set(-74.66,23.69,562.013),7350,3075)
-			db.actor:give_info_portion("spawn_teleport_hospital")
+			AI:create("m_teleport_hospital",vector():set(-74.66,23.69,562.013),7350,3075)
+			Actor:give_info_portion("spawn_teleport_hospital")
 		end	
 	end
 	
 	if lname~="l03_agroprom"
-		and actor:has_info("ratcatcher_order_done")
-		and not actor:has_info("ratcatcher_out")
+		and Actor:has_info("ratcatcher_order_done")
+		and not Actor:has_info("ratcatcher_out")
 	then
-		actor:give_info_portion("ratcatcher_out")
+		Actor:give_info_portion("ratcatcher_out")
 	end
 
 	if lname~="l05_bar"
-		and actor:has_info("info_way_false")
-		and not actor:has_info("informer_out")
+		and Actor:has_info("info_way_false")
+		and not Actor:has_info("informer_out")
 	then
-		actor:give_info_portion("informer_out")
+		Actor:give_info_portion("informer_out")
 	end
 end
 
 function off_testobj()
 	-- переделано на поршни - при выбросе снимаем все поршни, при спавне артов на локе выдаем
-	db.actor:disable_info_portion("testsak_l01_escape")
-	db.actor:disable_info_portion("testsak_l02_garbage")
-	db.actor:disable_info_portion("testsak_l03_agroprom")
-	db.actor:disable_info_portion("testsak_l04_darkvalley")
-	db.actor:disable_info_portion("testsak_l05_bar")
-	db.actor:disable_info_portion("testsak_l06_rostok")
-	db.actor:disable_info_portion("testsak_l07_military")
-	db.actor:disable_info_portion("testsak_l08_yantar")
-	db.actor:disable_info_portion("testsak_l10_radar")
-	db.actor:disable_info_portion("testsak_l11_pripyat")
-	db.actor:disable_info_portion("testsak_l12_stancia")
-	db.actor:disable_info_portion("testsak_atp_for_test22")
-	db.actor:disable_info_portion("testsak_puzir")
-	db.actor:disable_info_portion("testsak_aver")
-	db.actor:disable_info_portion("testsak_marsh")
-	db.actor:disable_info_portion("testsak_limansk")
-	db.actor:disable_info_portion("testsak_dead_city")
-	db.actor:disable_info_portion("testsak_generators")
-	db.actor:disable_info_portion("testsak_hospital")
-	db.actor:disable_info_portion("testsak_lost_village")
-	db.actor:disable_info_portion("testsak_red_forest")
-	db.actor:disable_info_portion("testsak_zaton")
-	db.actor:disable_info_portion("testsak_jupiter")
-	db.actor:disable_info_portion("testsak_pripyat")
+	Actor:disable_info_portion("testsak_l01_escape")
+	Actor:disable_info_portion("testsak_l02_garbage")
+	Actor:disable_info_portion("testsak_l03_agroprom")
+	Actor:disable_info_portion("testsak_l04_darkvalley")
+	Actor:disable_info_portion("testsak_l05_bar")
+	Actor:disable_info_portion("testsak_l06_rostok")
+	Actor:disable_info_portion("testsak_l07_military")
+	Actor:disable_info_portion("testsak_l08_yantar")
+	Actor:disable_info_portion("testsak_l10_radar")
+	Actor:disable_info_portion("testsak_l11_pripyat")
+	Actor:disable_info_portion("testsak_l12_stancia")
+	Actor:disable_info_portion("testsak_atp_for_test22")
+	Actor:disable_info_portion("testsak_puzir")
+	Actor:disable_info_portion("testsak_aver")
+	Actor:disable_info_portion("testsak_marsh")
+	Actor:disable_info_portion("testsak_limansk")
+	Actor:disable_info_portion("testsak_dead_city")
+	Actor:disable_info_portion("testsak_generators")
+	Actor:disable_info_portion("testsak_hospital")
+	Actor:disable_info_portion("testsak_lost_village")
+	Actor:disable_info_portion("testsak_red_forest")
+	Actor:disable_info_portion("testsak_zaton")
+	Actor:disable_info_portion("testsak_jupiter")
+	Actor:disable_info_portion("testsak_pripyat")
 
 --[[ старый код
 	local obj
 	for a=1,65534,1 do
-	obj=alife():object(a)
+	obj=AI:object(a)
 		if obj and string_find(obj:name(),"testsak_") then
-		alife():release(obj,true)
+		AI:release(obj,true)
 		end
 	end
 ]]
@@ -1232,19 +1224,18 @@ function add_krysyk_pda()
 end
 -- Продолжение Крысюк - Жила:
 function krysyk_enemy(first_speaker, second_speaker)
-	local act = db.actor
-	local npc = first_speaker:id() == act:id() and second_speaker or first_speaker
+	local npc = first_speaker:id() == Actor:id() and second_speaker or first_speaker
 	start_small_timer(400, function ()
-		npc:set_relation(game_object.enemy, act)
+		npc:set_relation(game_object.enemy, Actor)
 	end)
-	act:give_info_portion("bandit_krisyk_finish")
-	act:give_info_portion("bandit_krisyk_enemy")
+	Actor:give_info_portion("bandit_krisyk_finish")
+	Actor:give_info_portion("bandit_krisyk_enemy")
 end
 function krysyk_umer()
 	if has_alife_info("bandit_krisyk_finish") then 
-		db.actor:give_info_portion("bandit_krisyk_finish2")
+		Actor:give_info_portion("bandit_krisyk_finish2")
 	else
-		db.actor:give_info_portion("bandit_krisyk_umer2")
+		Actor:give_info_portion("bandit_krisyk_umer2")
 	end
 end
 --

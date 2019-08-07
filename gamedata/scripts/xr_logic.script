@@ -225,9 +225,7 @@ function configure_schemes(npc, ini, ini_filename, stype, section_logic, gulag_n
   enable_generic_schemes(actual_ini, npc, stype, section_logic)
 
   -- Инициализация торговли
-  if stype == modules.stype_stalker or
-     npc:clsid() == clsid.script_trader
-  then
+  if IsHuman[npc:clsid()] then
     local trade_ini = utils.cfg_get_string(actual_ini, section_logic, "trade", npc, false, "", "misc\\trade_generic.ltx")
     local rx_st = rx_ai.get_storage(npc:id())
 	rx_st.is_trader = actual_ini:line_exist(section_logic, "trade")
@@ -1105,9 +1103,8 @@ function cfg_get_npc_and_zone(ini, section, field, npc)
   local t = cfg_get_two_strings_and_condlist(ini, section, field, npc)
 
   if t then
-    local sim = alife()
-    if sim then
-      local se_obj = sim:story_object(tonumber(t.v1))
+    if AI then
+      local se_obj = AI:story_object(tonumber(t.v1))
       if se_obj then
         t.npc_id = se_obj.id
       else
@@ -1363,7 +1360,7 @@ function pstor_load_all(obj, reader)
 		db.storage[npc_id].pstor = pstor
 	end
 	if (not db.actor) and npc_id ~= 0 then
-		abort("Не создан актор. Возможно, синтаксическая ошибка в bind_stalker.script")
+		abort("Не создан актор. Возможно, синтаксическая ошибка в bind_actor.script")
 	end
 
 	load_pstor_table(reader, pstor, obj)

@@ -279,7 +279,7 @@ local codes = {
 
 -- Обработчик. При каждом вызове увеличивает индекс таблицы по каждому уровню. Параметры передавать только для отладки конкретного объекта.
 function worker(index, level)
-	local lvl = alife():level_id()
+	local lvl = AI:level_id()
 	if level then
 		lvl = level
 	end
@@ -305,7 +305,7 @@ function worker(index, level)
 
 		-- снимаем отскок
 		if job.invul_off then
-			alife():release(alife():object(db.actor:object("af_invul"):id()))
+			AI:release(AI:object(db.actor:object("af_invul"):id()))
 		end
 
 		-- выдаем поршень
@@ -343,7 +343,7 @@ function worker(index, level)
 		-- рюкзак
 		obj = job.rukzak
 		if obj then
-			alife():create(obj.section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
+			AI:create(obj.section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
 		end
 
 		-- остров
@@ -360,7 +360,7 @@ function worker(index, level)
 		if obj then
 			for i = 1,#obj do
 				a = obj[i]
-				alife():create("zone_tuman3",vector():set(a.position.x,a.position.y,a.position.z),a.lv,a.gv)
+				AI:create("zone_tuman3",vector():set(a.position.x,a.position.y,a.position.z),a.lv,a.gv)
 			end
 		end
 
@@ -388,18 +388,18 @@ function create_code(num)
 
 	if num == 99 then
 		for i = 1,#finarts do
-			se_obj = alife():create(finarts[i], vector():set(0,0,0),0,0,0)
+			se_obj = AI:create(finarts[i], vector():set(0,0,0),0,0,0)
 			table.insert(items, se_obj.id)
 		end
 		
 	else
 		local obj = codes[num]
 		
-		se_obj = alife():create("fli_code"..tostring(num), vector():set(0,0,0),0,0,0)
+		se_obj = AI:create("fli_code"..tostring(num), vector():set(0,0,0),0,0,0)
 		table.insert(items, se_obj.id)
 		
 		for i = 1,obj.art do
-			se_obj = alife():create(arts[math.random(#arts)], vector():set(0,0,0),0,0,0)
+			se_obj = AI:create(arts[math.random(#arts)], vector():set(0,0,0),0,0,0)
 			table.insert(items, se_obj.id)
 		end
 	end
@@ -418,7 +418,7 @@ function spawn_zanoza(num)
 	
 	local obj = zanozas[num]
 	for i = 1,obj.qty do
-		alife():create("zanoza_strong", vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
+		AI:create("zanoza_strong", vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
 	end
 end
 
@@ -502,7 +502,7 @@ function spawn_all_fly_islands()
 	}
 	for i=1,#p do
 		a = p[i]
-		alife():create("zone_tuman3",vector():set(a.position.x,a.position.y,a.position.z),a.lv,a.gv)
+		AI:create("zone_tuman3",vector():set(a.position.x,a.position.y,a.position.z),a.lv,a.gv)
 	end
 	
 	-- Запускаем цепочки на каждом уровне
@@ -513,7 +513,7 @@ end
 
 -- скриптовый спавн острова
 function create_fly_island(pos,lv,gv)
-	local obj = alife():create("fly_island",pos,lv,gv)
+	local obj = AI:create("fly_island",pos,lv,gv)
 	local params = {}
 	params.object_flags = -198		-- 0xffffff3a object_flags
 	params.visual_flags = 1			-- 0x1 visual_flags
@@ -523,7 +523,7 @@ function create_fly_island(pos,lv,gv)
 	params.mass = 100
 	params.fixed_bones = "link"
 	netpk:modify(obj, params, netpk.fState)
-	alife():create("zone_fly_island",pos,lv,gv)
+	AI:create("zone_fly_island",pos,lv,gv)
 	return obj
 end
 
@@ -537,7 +537,7 @@ function release_completed_fly_islands()
 	for i = 1,#levels do
 		lvl = tostring(levels[i])
 		
-		if has_alife_info("fli_have"..lvl) and not has_alife_info("fli_done"..lvl) and alife():level_id() ~= levels[i] then
+		if has_alife_info("fli_have"..lvl) and not has_alife_info("fli_done"..lvl) and AI:level_id() ~= levels[i] then
 			-- актор ушел с территории и есть что удалять - удаляем
 			db.actor:give_info_portion("fli_done"..lvl)
 			release_fly_islands_from_location(levels[i])
@@ -551,14 +551,14 @@ function release_fly_islands_from_location(lvl)
 	local obj, section
 
 	for i=1,65534 do
-		obj = alife():object(i)
+		obj = AI:object(i)
 		if obj then
 			section = obj:section_name()
 			
 			if (section == "fly_island" or section == "zone_fly_island" or section == "zone_tuman3") and
-				game_graph():vertex(obj.m_game_vertex_id):level_id() == lvl
+				GGraph:vertex(obj.m_game_vertex_id):level_id() == lvl
 			then
-				alife():release(obj, true)
+				AI:release(obj, true)
 			end
 		end
 	end
@@ -575,28 +575,28 @@ function code_found()
 end
 
 function final36()
-	alife():create("n_inventory_box_jupiter8",vector():set(326.61563110352,19.90522354126,-325.15548706055),1239434,3745)
+	AI:create("n_inventory_box_jupiter8",vector():set(326.61563110352,19.90522354126,-325.15548706055),1239434,3745)
 end
 function final29()
 	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ПРАЙМ:".."\\n".."%c[255,255,128,128]Я вижу, что на этом декодере запись зашифрована. Я скопировал её себе и попробую расшифровать. Как расшифрую - сообщу.".."\n", 2, nil, 20000)
 	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ФАНАТ:".."\\n".."%c[255,255,128,128]Стрелок, тут такое дело. В общем, баба тебя какая-то в деревне новичков спрашивает, вторые сутки уже всем мозг выносит. Ты бы наведался к нам, узнал, что ей надо?".."\n", 15, nil, 35000)
-	local obj = alife():create("maria_kordon",vector():set(-204.1490020752,-19.89564704895,-134.2516784668),48497,58)
+	local obj = AI:create("maria_kordon",vector():set(-204.1490020752,-19.89564704895,-134.2516784668),48497,58)
 	set_story_id(obj, story_ids.maria_kordon)
 end
 function final37()
 	final_worker("n_inventory_box_fli_cp1", true)
 end
 function final33()
-	alife():create("n_inventory_box_kordon2",vector():set(-135.32402038574,-21.160322189331,-359.40664672852),114324,19)
+	AI:create("n_inventory_box_kordon2",vector():set(-135.32402038574,-21.160322189331,-359.40664672852),114324,19)
 end
 function final35()
-	alife():create("n_inventory_box_zaton1",vector():set(-179.84135437012,12.3297290802,91.413040161133),580251,3670)
+	AI:create("n_inventory_box_zaton1",vector():set(-179.84135437012,12.3297290802,91.413040161133),580251,3670)
 end
 function final31()
-	alife():create("n_inventory_box_kl2",vector():set(-132.65020751953,-1.8911116123199,-45.473976135254),7751,3240)
+	AI:create("n_inventory_box_kl2",vector():set(-132.65020751953,-1.8911116123199,-45.473976135254),7751,3240)
 end
 function final9()
-	alife():create("n_inventory_box_mg1",vector():set(67.914001464844,0.68784832954407,-245.32879638672),419143,3646)
+	AI:create("n_inventory_box_mg1",vector():set(67.914001464844,0.68784832954407,-245.32879638672),419143,3646)
 end
 function final1()
 	final_worker("n_inventory_box_fli_agro1", true)
@@ -688,7 +688,7 @@ function final_worker(section, start)
 		if sys_ini:line_exist(section, "teleport") then
 			kostya_dialog.create_teleport(section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
 		else
-			alife():create(section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
+			AI:create(section, vector():set(obj.position.x, obj.position.y, obj.position.z), obj.lv, obj.gv)
 		end
 	end
 end
@@ -727,15 +727,15 @@ end
 function f1()
 	create_fly_island(vector():set(-85.416549682617,58.062057495117,776.19738769531),4025,3052)
 	for i=1,6 do
-		alife():create("burer_strong",vector():set(-390.24560546875,2.6403789520264,-2.2561192512512),58677,3708)
-		alife():create("burer_strong",vector():set(-370.21899414063,2.6395626068115,-2.5708112716675),89514,3708)
-		alife():create("burer_strong",vector():set(-391.23162841797,11.417081832886,-2.6433510780334),57671,3708)
+		AI:create("burer_strong",vector():set(-390.24560546875,2.6403789520264,-2.2561192512512),58677,3708)
+		AI:create("burer_strong",vector():set(-370.21899414063,2.6395626068115,-2.5708112716675),89514,3708)
+		AI:create("burer_strong",vector():set(-391.23162841797,11.417081832886,-2.6433510780334),57671,3708)
 	end
 end
 function f2()
 	kostya_dialog.delete_teleport("fli99_tp1")
-	alife():create("n_inventory_box_hospital1",vector():set(-85.48804473877,59.20728302002,776.19372558594),3566,3048)
-	alife():create("n_inventory_box_hospital2",vector():set(-213.37503051758,27.725624084473,756.26025390625),1283,3043)
+	AI:create("n_inventory_box_hospital1",vector():set(-85.48804473877,59.20728302002,776.19372558594),3566,3048)
+	AI:create("n_inventory_box_hospital2",vector():set(-213.37503051758,27.725624084473,756.26025390625),1283,3043)
 	snp.create_restrictor(vector():set(-416.46112060547,2.5735311508179,16.113891601563),24169,3708,0.5,"fly_island.f3")
 end
 function f3()
@@ -773,7 +773,7 @@ function akim1_done()
 end
 
 function kalinin1_done()
-	alife():release(snp.object_by_section_offline("snp_nolik"))
+	AI:release(snp.object_by_section_offline("snp_nolik"))
 	snp.create_restrictor(vector():set(513.66589355469,-0.015384167432785,162.50059509277),160431,2603,2000,"fly_island.chaes2")
 end
 function chaes2()
@@ -902,7 +902,7 @@ local snipers = {
 		a = snipers[i]
 		create_sniper_2chaes("fli_snp1",vector():set(a.position.x,a.position.y,a.position.z),a.lv,a.gv,i,a.look)
 	end
-	local obj = alife():create("snegir_2chaes",vector():set(579.54382324219,18.204019546509,283.24234008789),175064,2613)
+	local obj = AI:create("snegir_2chaes",vector():set(579.54382324219,18.204019546509,283.24234008789),175064,2613)
 	set_story_id(obj, story_ids.snegir_2chaes)
 	snp.set_stalker_oflags(obj,-5)		-- 0xfffffffb
 	create_snegir_2chaes_team("snegir2_2chaes",vector():set(577.90197753906,18.204019546509,285.45306396484),174107,2613,"scripts\\snp\\snegir21_2chaes.ltx")
@@ -913,7 +913,7 @@ end
 
 -- собственно спавн снайперов с присвоением кастомдаты
 function create_sniper_2chaes(section,pos,lv,gv,num,look)
-	local obj = alife():create(section,pos,lv,gv)
+	local obj = AI:create(section,pos,lv,gv)
 	local params = {}
 	params.object_flags = -5	-- 0xfffffffb
 	params.custom_data = 
@@ -946,7 +946,7 @@ end
 
 -- спавн команды Снегиря
 function create_snegir_2chaes_team(section,pos,lv,gv,custom_data)
-	local obj = alife():create(section,pos,lv,gv)
+	local obj = AI:create(section,pos,lv,gv)
 	local params = {}
 	params.object_flags = -5	-- 0xfffffffb
 	params.custom_data = "[logic]\ncfg = "..custom_data
@@ -995,10 +995,10 @@ function snegir_start_done2()
 	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	for id,obj in pairs(db.creatures) do
 		if obj:section() == "snegir_2chaes" or obj:section() == "snegir2_2chaes" or obj:section() == "snegir3_2chaes" then
-			alife():release(alife():object(id))
+			AI:release(AI:object(id))
 		end
 	end
-	local obj = alife():create("snegir_kordon",vector():set(-205.52618408203,-19.880298614502,-134.23291015625),47209,58)
+	local obj = AI:create("snegir_kordon",vector():set(-205.52618408203,-19.880298614502,-134.23291015625),47209,58)
 	set_story_id(obj, story_ids.snegir_kordon)
 	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ПРАЙМ:".."\\n".."%c[255,255,128,128]Стрелок, есть хорошие новости! Я расшифровал запись на декодере с Генераторов! Скинул текст тебе в ПДА.".."\n", 10, nil, 20000)
 	final_worker("n_inventory_box_fli_2chaes1", true)
@@ -1013,7 +1013,7 @@ function bonus_start()
 	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."КОМАНДА СОЗДАТЕЛЕЙ ОП-2:".."\\n".."%c[255,255,128,128]Итак, это здание - в центре ЧАЭС-2, с одной антенной на крыше. Оно стоит между двух кранов.\\n"..user_name().." - чтобы сделать это, ты должен собрать вместе весь свой накопленный до этого времени опыт по поиску тайников и - отбросить его полностью. Забыть про него на короткое время. Совсем. Потому что путь туда абсолютно нестандартен. Совершенно. Ничего даже близко подобного в Зоне ты ещё не встречал и больше нигде не встретишь. Поэтому здесь ты должен думать совсем по другому. Не спеши заглядывать в ГИД - перевари, что ты прочёл, осмысли. Отложи этот вопрос на время, потом вернись к нему. Всё гениальное - просто, и путь на это здание прост до гениальности. Элементарен, как два пальца об асфальт, но: если поймать идею за хвост.\\nИтак, "..user_name()..", вся Зона смотрит на тебя, застыв в ожидании. Покажи им всем кузькину мать - заберись на это здание, и пусть весь мир подождёт! А все сталкеры Зоны пусть облезут от зависти, глядя на тебя!!!".."\n", 65, nil, 90000)
 	kostya_dialog.create_teleport("fli_block_tp1",vector():set(413.00189208984,8.6671514511108,219.40933227539),138681,2605)
 	kostya_dialog.create_teleport("fli_block_tp2",vector():set(436.49609375,8.3453769683838,184.02789306641),145799,2598)
-	alife():create("n_inventory_box_2chaes2",vector():set(481.09655761719,16.82391166687,195.08290100098),153823,2604)
+	AI:create("n_inventory_box_2chaes2",vector():set(481.09655761719,16.82391166687,195.08290100098),153823,2604)
 end
 function chaes2_block_sms1()
 	news_manager.send_tip(db.actor, "%c[255,160,160,160]".."КОМАНДА СОЗДАТЕЛЕЙ ОП-2:".."\\n".."%c[255,255,128,128]Нет, "..user_name()..", по крану, конечно, можно забраться на это здание. Муторно, но можно. Но это самый обычный путь, первым приходящий на ум, и в нем нет ничего нестандартного и, тем более, гениального. Ищи красивый, нестандартный и простой до гениальности путь, "..user_name().."! Путь, который по настоящему удивит и тебя, и всех обитателей Зоны, когда ты найдёшь его! Поверь, удовольствие от нахождения этого пути превысит всё, что ты испытывал до этого!!!".."\n", 2, nil, 40000)

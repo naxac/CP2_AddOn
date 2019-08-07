@@ -65,20 +65,19 @@ function repack_ammo(section, box_size)
 	local s, t = enum_ammo(section, box_size)
 	if (s > 0) and (#t > 1) then
 		local i, id, obj
-		local sim = alife()
 
 		for i, id in pairs(t) do
-			obj = sim:object(id)
-			if obj then sim:release(obj, true) end
+			obj = AI:object(id)
+			if obj then AI:release(obj, true) end
 		end
 
 		while s >= box_size do
-			sim:create_ammo(section, vector(), 0, 0, 0, box_size)
+			AI:create_ammo(section, vector(), 0, 0, 0, box_size)
 			s = s - box_size
 		end
 
 		if s > 0 then
-			sim:create_ammo(section, vector(), 0, 0, 0, s)
+			AI:create_ammo(section, vector(), 0, 0, 0, s)
 		end
 	end
 end
@@ -111,7 +110,7 @@ end
 -- вроде подходящих функций нет, пришлось делать через net_packet
 --------
 function get_ammo_size(obj)
-	local se_obj = alife():object(obj:id())
+	local se_obj = AI:object(obj:id())
 	if se_obj==nil then return 0 end
 	local packet = net_packet()
 	cse_alife_item_ammo.STATE_Write(se_obj, packet)
@@ -141,12 +140,11 @@ function repack_in_box(box)
 --	table.print(ammo_to_repack)
 
 	local spawn_ammo = {}
-	local sim = alife()
 	for s, t in pairs(ammo_to_repack) do
 		n = 0
 		for i,v in pairs(t) do
-			obj = sim:object(i)
-			if obj then sim:release(obj, true) end
+			obj = AI:object(i)
+			if obj then AI:release(obj, true) end
 			n = n + v
 		end
 		spawn_ammo[s] = n
@@ -158,11 +156,11 @@ function repack_in_box(box)
 	for s, n in pairs(spawn_ammo) do
 		sz = ammo[s].box
 		while n > sz do
-			obj = sim:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, sz)
+			obj = AI:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, sz)
 			spawn_callback():add(obj.id, 0, dunin_ammo.ammo_fix)
 			n = n - sz
 		end
-		obj = sim:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, n)
+		obj = AI:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, n)
 		spawn_callback():add(obj.id, 0, dunin_ammo.ammo_fix)
 	end
 end

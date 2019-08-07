@@ -5,12 +5,12 @@ end
 function stealth_start2()
 	level.add_pp_effector ("teleport.ppe", 2006, false)
 	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-	alife():create("tm_brother_labirint",vector():set(-313.31903076172,62.234169006348,202.46311950684),38734,2987)
+	AI:create("tm_brother_labirint",vector():set(-313.31903076172,62.234169006348,202.46311950684),38734,2987)
 end
 function stealth1_have()
 	local obj = snp.object_by_section_offline("arhara_seif")
 	if obj then
-		alife():release(obj)
+		AI:release(obj)
 	end
 	news_manager.relocate_item(db.actor, "out", "arhara_seif")
 end
@@ -22,30 +22,30 @@ function stealth1_done2()
 	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
 	local obj = snp.object_by_section("tm_brother_labirint")
 	if obj then
-		local sobj = alife():object(obj:id())
+		local sobj = AI:object(obj:id())
 		if sobj then
-			alife():release(sobj, true)
+			AI:release(sobj, true)
 		end
 	end
 	tm_brother_2chaes_spawn()
 end
 function tm_brother_2chaes_spawn()
-	local se_obj = alife():create("tm_brother_2chaes",vector():set(84.960639953613,8.7271690368652,113.30625152588),56965,2566)
+	local se_obj = AI:create("tm_brother_2chaes",vector():set(84.960639953613,8.7271690368652,113.30625152588),56965,2566)
 	set_story_id(se_obj, story_ids.tm_brother_2chaes)
 	return se_obj
 end
 function stealth2_done()
-	alife():create("s_inventory_box_stealth1",vector():set(157.05128479004,12.03516960144,82.391082763672),39526,1229)
-	alife():create("s_inventory_box_stealth2",vector():set(-73.545913696289,15.663717269897,2.5357427597046),129042,319)
-	alife():create("s_inventory_box_stealth3",vector():set(-136.37683105469,9.9986381530762,-196.55345275879),102496,629)
-	alife():create("s_inventory_box_stealth4",vector():set(3.6388249874115,-7.1780724525452,-17.246803207397),312192,1585)
-	alife():create("s_inventory_box_stealth5",vector():set(23.35853767395,0.18157379329205,-24.917425918579),209456,1046)
+	AI:create("s_inventory_box_stealth1",vector():set(157.05128479004,12.03516960144,82.391082763672),39526,1229)
+	AI:create("s_inventory_box_stealth2",vector():set(-73.545913696289,15.663717269897,2.5357427597046),129042,319)
+	AI:create("s_inventory_box_stealth3",vector():set(-136.37683105469,9.9986381530762,-196.55345275879),102496,629)
+	AI:create("s_inventory_box_stealth4",vector():set(3.6388249874115,-7.1780724525452,-17.246803207397),312192,1585)
+	AI:create("s_inventory_box_stealth5",vector():set(23.35853767395,0.18157379329205,-24.917425918579),209456,1046)
 end
 function stealth5_done()
 	inventory.give_items("arhara_seif",1)
 	local obj = snp.object_by_section_offline("tm_brother_2chaes")
 	if obj then
-		alife():release(obj)
+		AI:release(obj)
 	end
 end
 -- проверка на провал при убийстве, сняти амулета или одевании маскхалата
@@ -78,7 +78,7 @@ function krest_topor()
 		{position={x=44.239944458008,y=-0.0053302049636841,z=16.853719711304},gv=2885,lv=224518}
 	}
     local a = table.random( b )
-    alife():create("skelet_ded", vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
+    AI:create("skelet_ded", vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
 end
 
 local peshera_table
@@ -103,13 +103,13 @@ function peshera_start()
 		shiftCheckDropItem()
 		db.actor:iterate_inventory(
 			function(dummy,item)
-				if alife():object(item:id()) == nil then return end
+				if AI:object(item:id()) == nil then return end
 				if not protected_items.actor_items_keep(item:section()) then
 					db.actor:transfer_item(item, box)
 				end
 			end
 		,db.actor)
-		alife():create("zamok", vector():set(0,0,0), 0, 0, box:id())
+		AI:create("zamok", vector():set(0,0,0), 0, 0, box:id())
 	end
 	
 	create_teleport("peshera_blok_tp",vector():set(-112.609199523926,-9.9281539916992,-34.9218902587891),12288,2868)
@@ -125,36 +125,35 @@ function peshera_end()
 	snp.invul_off()
 	shiftCheckDropItem()
 	local obj
-	local sim = alife()
 	db.actor:iterate_inventory(
 		function(dummy,item)
 			if not protected_items.actor_items_keep(item:section()) then
-				obj = sim:object(item:id())
-				if obj then sim:release(obj, true) end
+				obj = AI:object(item:id())
+				if obj then AI:release(obj, true) end
 			end
 		end
 	,db.actor)
 	
 	if peshera_table == nil then init_peshera_table() end
 	for k,v in pairs(peshera_table) do
-		obj = sim:object(k)
+		obj = AI:object(k)
 		if obj and obj.parent_id ~= db.actor:id() and not protected_items.actor_items_keep(obj:section_name()) then
-			sim:release(obj)
+			AI:release(obj)
 		end
 	end
 	xr_logic.pstor_clear_custom(db.actor, "peshera_clear")
 
 	for id,obj in pairs(db.creatures) do
 		if obj and IAmAMonster[obj:clsid()] then
-			sim:release(sim:object(id))
+			AI:release(AI:object(id))
 		end
 	end
 
 	for i=1,65535 do
-		obj = sim:object(i)
+		obj = AI:object(i)
 		if obj then
 			if obj:section_name() == "af_part_monolit" or obj:section_name() == "m_inventory_box16" then
-				sim:release(obj)
+				AI:release(obj)
 			end
 		end
 	end
@@ -204,9 +203,9 @@ function kuv_hit()
 	end
 end
 function remove_wpn(id)
-	local obj = alife():object(id)
+	local obj = AI:object(id)
 	if obj then
-		alife():release(obj, true)
+		AI:release(obj, true)
 	end
 end
 
@@ -297,7 +296,7 @@ end
 function vzn_fill(vzn) -- создание тайника
 	if     vzn == 11 then
 		-- контрик
-		alife():create("vzn_stalker_kontrik",vector():set(-209.23837280273,-20.614948272705,-149.44313049316),43943,61)
+		AI:create("vzn_stalker_kontrik",vector():set(-209.23837280273,-20.614948272705,-149.44313049316),43943,61)
 		aem_manager.manage_money(450000, "out")
 	elseif vzn == 12 then
 		-- лотерея
@@ -397,7 +396,7 @@ function vzn_fill_taynik(section, cnt, obj)
 	end
 end
 function spawn_item_in_taynik(section, box)
-	local item = alife():create(section, vector():set(0,0,0), 0, 0, box.id)
+	local item = AI:create(section, vector():set(0,0,0), 0, 0, box.id)
 	level.client_spawn_manager():add(item.id, -1, fix_spawn_item_in_taynik, box)
 end
 function fix_spawn_item_in_taynik(box, id, item)
@@ -552,27 +551,27 @@ function checking_taken_item63(obj)
 		news_manager.send_tip(act, "%c[255,160,160,160]ДРАГУНОВ:\\n%c[255,255,128,128]"..act:character_name()..", пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, Стрелок, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.", nil, nil, 30000)
 		this.tm_done1()
 		spawn_tm_taynik()
-		local se_obj = alife():create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
+		local se_obj = AI:create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
 		xr_logic.pstor_store(act, "tm_teleport_1", se_obj.id)		  
-		se_obj = alife():create("tm_teleport_2",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
+		se_obj = AI:create("tm_teleport_2",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
 		xr_logic.pstor_store(act, "tm_teleport_2", se_obj.id)		  
 		spawn_restrictor.tm_sr1()
 	end
 end
 function tm_spawn1()
-	alife():create("z_inventory_box01",vector():set(10.472078323364,49.034076690674,-15.613767623901),3388,2417)
-	alife():create("z_inventory_box02",vector():set(19.680177688599,48.432109832764,-4.1294741630554),4341,2417)
-	alife():create("z_inventory_box03",vector():set(3.4836528301239,56.036026000977,35.414047241211),2518,2405)
-	alife():create("z_inventory_box04",vector():set(60.87622833252,53.735683441162,26.076965332031),9266,2417)
-	alife():create("z_inventory_box05",vector():set(60.85319519043,53.796840667725,21.076036453247),9788,2417)
-	alife():create("z_inventory_box06",vector():set(61.789813995361,60.531970977783,41.451103210449),9966,2402)
-	alife():create("z_inventory_box07",vector():set(9.1720209121704,20.386127471924,-11.211741447449),6333,2453)
-	alife():create("z_inventory_box08",vector():set(44.268180847168,58.320827484131,-24.319999694824),8050,2417)
-	alife():create("z_inventory_box09",vector():set(-19.819829940796,64.045745849609,-31.615013122559),591,2417)
-	alife():create("z_inventory_box10",vector():set(80.993240356445,71.973617553711,-40.810508728027),6403,2417)
-	alife():create("z_inventory_box11",vector():set(42.494750976563,69.035263061523,38.658748626709),4591,2417)
-	alife():create("z_inventory_box12",vector():set(64.846755981445,67.564109802246,45.584968566895),4591,2417)
-	alife():create("z_inventory_box13",vector():set(51.092010498047,49.359004974365,-17.654895782471),8798,2416)
+	AI:create("z_inventory_box01",vector():set(10.472078323364,49.034076690674,-15.613767623901),3388,2417)
+	AI:create("z_inventory_box02",vector():set(19.680177688599,48.432109832764,-4.1294741630554),4341,2417)
+	AI:create("z_inventory_box03",vector():set(3.4836528301239,56.036026000977,35.414047241211),2518,2405)
+	AI:create("z_inventory_box04",vector():set(60.87622833252,53.735683441162,26.076965332031),9266,2417)
+	AI:create("z_inventory_box05",vector():set(60.85319519043,53.796840667725,21.076036453247),9788,2417)
+	AI:create("z_inventory_box06",vector():set(61.789813995361,60.531970977783,41.451103210449),9966,2402)
+	AI:create("z_inventory_box07",vector():set(9.1720209121704,20.386127471924,-11.211741447449),6333,2453)
+	AI:create("z_inventory_box08",vector():set(44.268180847168,58.320827484131,-24.319999694824),8050,2417)
+	AI:create("z_inventory_box09",vector():set(-19.819829940796,64.045745849609,-31.615013122559),591,2417)
+	AI:create("z_inventory_box10",vector():set(80.993240356445,71.973617553711,-40.810508728027),6403,2417)
+	AI:create("z_inventory_box11",vector():set(42.494750976563,69.035263061523,38.658748626709),4591,2417)
+	AI:create("z_inventory_box12",vector():set(64.846755981445,67.564109802246,45.584968566895),4591,2417)
+	AI:create("z_inventory_box13",vector():set(51.092010498047,49.359004974365,-17.654895782471),8798,2416)
 end
 function tm_done1()
  	amk.remove_item_from_inventory_by_name("tm_docs01",db.actor)
@@ -594,30 +593,30 @@ function checking_taken_item64(obj)
 	if obj:section() == "tm_docs14" then
 		db.actor:give_info_portion("tm_find_done")
 		this.delete_teleport("tm_teleport_4")
-		alife():create("z_inventory_box15",vector():set(84.50724029541,69.478454589844,-7.1580576896667),6048,2417)
+		AI:create("z_inventory_box15",vector():set(84.50724029541,69.478454589844,-7.1580576896667),6048,2417)
 		amk.drop_item(db.actor,obj)
 		amk.remove_item(obj)
 	end
 end
 function spawn_tm_taynik()
-	alife():create("z_inventory_box14",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
+	AI:create("z_inventory_box14",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
 end
 function remove_tm_taynik()
 	local obj = snp.object_by_section_offline("z_inventory_box14")
-	if obj then alife():release(obj, true) end
+	if obj then AI:release(obj, true) end
 end
 
 -- универсальная процедура спавна телепортов
 function create_teleport(section, pos, lv, gv)
-    local se_obj = alife():create(section, pos, lv, gv)
+    local se_obj = AI:create(section, pos, lv, gv)
 	xr_logic.pstor_store(db.actor, section, se_obj.id)
 	return se_obj
 end
 -- универсальная процедура удаления телепортов
 function delete_teleport(section)
-	local se_obj = alife():object(xr_logic.pstor_retrieve(db.actor, section, -1, true))
+	local se_obj = AI:object(xr_logic.pstor_retrieve(db.actor, section, -1, true))
 	if se_obj then
-		alife():release(se_obj, true)
+		AI:release(se_obj, true)
 	end
 end
 
@@ -665,14 +664,13 @@ function checking_taken_item61(obj)
 		if  (sect=="zonedocs_26" and lname == "l03u_agr_underground") or 
 			(sect=="zonedocs_22" and (lname == "l06_rostok" or lname == "l05_bar"))
 		then
-			local sim = alife()
 			local sobj
 			for i = 1,65534 do
-				sobj = sim:object(i)
+				sobj = AI:object(i)
 				if sobj then
 					sect = sobj:section_name()
 					if sect == "zonedocs_26" or sect == "zonedocs_22" then
-						sim:release(sobj,true)
+						AI:release(sobj,true)
 						break
 					end
 				end
@@ -691,12 +689,11 @@ end
 function voronin_docs1_done()
 	inventory.out_items_all("zone_docs")
 	if not has_alife_info("voronin_docs1_have") then -- удаляем ненайденные части
-		local sim = alife()
 		local sobj
 		for i = 1,65534 do
-			sobj = sim:object(i)
+			sobj = AI:object(i)
 			if sobj and string.find(sobj:name(),"zonedocs") then
-				sim:release(sobj,true)
+				AI:release(sobj,true)
 			end
 		end
 	end
@@ -1867,35 +1864,35 @@ function kill_online_kontroller()
 end
 
 function s_inventory_box1()
-  local obj = alife():create("s_inventory_box1",vector():set(126.61811828613,15.248512268066,90.880737304688),225170,2143)
+  local obj = AI:create("s_inventory_box1",vector():set(126.61811828613,15.248512268066,90.880737304688),225170,2143)
   this.create_teleport("s_teleport1_1",vector():set(122.58910369873,4.5209398269653,87.757598876953),229491,2143)
   spawn_restrictor.strelok_taynik_pda1_sr1()
 end
 
 function s_inventory_box2()
   taynik_spawn.s_new_inventory2_1()
-  local obj = alife():create("s_inventory_box2_2",vector():set(-77.04369354248,-7.4020524024963,-20.482629776001),90914,892)
+  local obj = AI:create("s_inventory_box2_2",vector():set(-77.04369354248,-7.4020524024963,-20.482629776001),90914,892)
 end
 
 function s_inventory_box30()
-  local obj = alife():create("s_inventory_box30",vector():set(73.863845825195,-0.0094784200191498,121.16677093506),29686,1221)
+  local obj = AI:create("s_inventory_box30",vector():set(73.863845825195,-0.0094784200191498,121.16677093506),29686,1221)
 end
 
 function s_inventory_box3()
-  local obj = alife():create("s_inventory_box3",vector():set(16.393283843994,37.914726257324,2.0604181289673),6342,2453)
+  local obj = AI:create("s_inventory_box3",vector():set(16.393283843994,37.914726257324,2.0604181289673),6342,2453)
 end
 
 function s_inventory_box4()
-  local obj = alife():create("s_inventory_box4",vector():set(596.83740234375,-49.984550476074,-24.092365264893),214270,1899)
+  local obj = AI:create("s_inventory_box4",vector():set(596.83740234375,-49.984550476074,-24.092365264893),214270,1899)
   this.spawn_s_teleport4_1()
   spawn_restrictor.strelok_taynik_pda4_sr1()
-  obj = alife():create("af_dummy_spring_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
-  obj = alife():create("af_dummy_battery_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
-  obj = alife():create("af_dummy_pellicle_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
+  obj = AI:create("af_dummy_spring_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
+  obj = AI:create("af_dummy_battery_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
+  obj = AI:create("af_dummy_pellicle_red",vector():set(664.32122802734,-44.515979766846,-37.01086807251),227163,1896)
 end
 
 function s_inventory_box5()
-  local obj = alife():create("s_inventory_box5",vector():set(984.81433105469,11.019639015198,245.36875915527),261708,2646)
+  local obj = AI:create("s_inventory_box5",vector():set(984.81433105469,11.019639015198,245.36875915527),261708,2646)
 end
 
 function s_inventory_box6()
@@ -1905,7 +1902,7 @@ function s_inventory_box6()
 end
 
 function s_inventory_box7()
-  local obj = alife():create("s_inventory_box7",vector():set(-17.708236694336,17.989824295044,-4.267804145813),5646,2026)
+  local obj = AI:create("s_inventory_box7",vector():set(-17.708236694336,17.989824295044,-4.267804145813),5646,2026)
   spawn_restrictor.strelok_taynik_pda7_sr1()
   spawn_restrictor.strelok_taynik_pda7_sr2()
 end
@@ -1982,67 +1979,67 @@ function strelok_taynik_pda7_have(task, objective)
 end
 
 function spawn_s_teleport1_2()
-    local se_obj = alife():create("s_teleport1_2",vector():set(207.23626708984,17.963800430298,48.94217300415),260660,2145)
+    local se_obj = AI:create("s_teleport1_2",vector():set(207.23626708984,17.963800430298,48.94217300415),260660,2145)
 	xr_logic.pstor_store(db.actor, "s_teleport1_2", se_obj.id)		  
 end
 function delete_s_teleport1_2()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport1_2", -1, true)
-	local se_obj = alife() : object(obj_id)
+	local se_obj = AI : object(obj_id)
 	if se_obj then
-		alife():release(se_obj, true)
+		AI:release(se_obj, true)
 	end
 end
 function spawn_s_teleport1_3_1()
-    local se_obj = alife():create("s_teleport1_3_1",vector():set(98.162727355957,28.547431945801,38.083969116211),225595,2143)
+    local se_obj = AI:create("s_teleport1_3_1",vector():set(98.162727355957,28.547431945801,38.083969116211),225595,2143)
 	xr_logic.pstor_store(db.actor, "s_teleport1_3_1", se_obj.id)		  
 end
 function spawn_s_teleport1_3_2()
-    local se_obj = alife():create("s_teleport1_3_2",vector():set(-17.820304870605,13.85008430481,11.088830947876),81517,2160)
+    local se_obj = AI:create("s_teleport1_3_2",vector():set(-17.820304870605,13.85008430481,11.088830947876),81517,2160)
 	xr_logic.pstor_store(db.actor, "s_teleport1_3_2", se_obj.id)		  
 end
 function spawn_s_teleport1_4()
-    local se_obj = alife():create("s_teleport1_4",vector():set(-90.959411621094,13.623492240906,28.934303283691),7528,2253)
+    local se_obj = AI:create("s_teleport1_4",vector():set(-90.959411621094,13.623492240906,28.934303283691),7528,2253)
 	xr_logic.pstor_store(db.actor, "s_teleport1_4", se_obj.id)		  
 end
 function spawn_s_teleport1_5()
-    local se_obj = alife():create("s_teleport1_5",vector():set(43.850486755371,11.828426361084,37.138198852539),155631,2225)
+    local se_obj = AI:create("s_teleport1_5",vector():set(43.850486755371,11.828426361084,37.138198852539),155631,2225)
 	-- нигде не используется, лишний мусор в псторе
 	--xr_logic.pstor_store(db.actor, "s_teleport1_5", se_obj.id)		  
 end
 
 function spawn_s_teleport3_2()
-    local se_obj = alife():create("s_teleport3_2",vector():set(-150.38586425781,-5.7839937210083,-278.90524291992),6896,3238)
+    local se_obj = AI:create("s_teleport3_2",vector():set(-150.38586425781,-5.7839937210083,-278.90524291992),6896,3238)
 	xr_logic.pstor_store(db.actor, "s_teleport3_2", se_obj.id)		  
 end
 function delete_s_teleport3_2()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport3_2", -1, true)
-	local se_obj = alife():object(obj_id)
+	local se_obj = AI:object(obj_id)
 	if se_obj then
-	  alife():release(se_obj, true)
+	  AI:release(se_obj, true)
 	end
 end
 
 function spawn_s_teleport4_1()
-    local se_obj = alife():create("s_teleport4_1",vector():set(308.16702270508,-37.625602722168,-21.087753295898),69058,1930)
+    local se_obj = AI:create("s_teleport4_1",vector():set(308.16702270508,-37.625602722168,-21.087753295898),69058,1930)
 	xr_logic.pstor_store(db.actor, "s_teleport4_1", se_obj.id)		  
 end
 function delete_s_teleport4_1()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport4_1", -1, true)
-	local se_obj = alife():object(obj_id)
+	local se_obj = AI:object(obj_id)
 	if se_obj then
-	  alife():release(se_obj, true)
+	  AI:release(se_obj, true)
 	end
 end
 
 function spawn_s_teleport0_1()
-    local se_obj = alife():create("s_teleport0_1",vector():set(-1.5840334892273,5.1518805027008,-44.498065948486),10089,1961)
+    local se_obj = AI:create("s_teleport0_1",vector():set(-1.5840334892273,5.1518805027008,-44.498065948486),10089,1961)
 	xr_logic.pstor_store(db.actor, "s_teleport0_1", se_obj.id)		  
 end
 function delete_s_teleport0_1()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport0_1", -1, true)
-	local se_obj = alife() : object(obj_id)
+	local se_obj = AI : object(obj_id)
 	if se_obj then
-	  alife():release(se_obj, true)
+	  AI:release(se_obj, true)
 	end
 end
 
@@ -2130,7 +2127,7 @@ function kostya_taynik_pda21_done(task, objective)
 	}
 	
 	for i,a in pairs(portals) do
- 		obj = alife():create("event_horisont",vector():set(a.eh.x,a.eh.y,a.eh.z),a.eh.lv,a.eh.gv)
+ 		obj = AI:create("event_horisont",vector():set(a.eh.x,a.eh.y,a.eh.z),a.eh.lv,a.eh.gv)
 		params = {}
 		params.object_flags = -198		-- 0xffffff3a object_flags
 		params.visual_flags = 1			-- 0x1 visual_flags
@@ -2140,7 +2137,7 @@ function kostya_taynik_pda21_done(task, objective)
 		params.mass = 100
 		params.fixed_bones = "joint1"
 		netpk:modify(obj, params, netpk.fState)
-		alife():create("zone_event_horisont",vector():set(a.eh.x,a.eh.y+1.7,a.eh.z),a.eh.lv,a.eh.gv)
+		AI:create("zone_event_horisont",vector():set(a.eh.x,a.eh.y+1.7,a.eh.z),a.eh.lv,a.eh.gv)
 
 		create_eh_lc(220000+i, vector():set(a.lc.x,a.lc.y,a.lc.z),a.lc.lv,a.lc.gv,
 			vector():set(a.to.x,a.to.y,a.to.z),a.to.lv,a.to.gv,
@@ -2164,8 +2161,7 @@ function create_eh_lc(
 	p_dest_level,	-- название уровня, например "L11_Pripyat"
 	p_silent	-- следует задать 1, чтобы подавить вопрос о смене уровня (автоматический переход)
 )
-	local sim = alife()
-	local obj = sim:create("level_changer", p_position, p_lvertex_id, p_gvertex_id)
+	local obj = AI:create("level_changer", p_position, p_lvertex_id, p_gvertex_id)
  
 	local packet = net_packet()
 	obj:STATE_Write(packet)
@@ -2278,8 +2274,8 @@ end
 function t_inventory_box3()
   taynik_spawn.t_new_inventory3_1()
   taynik_spawn.t_new_inventory3_2()
-  local obj = alife():create("t_inventory_box3_3",vector():set(4.5460352897644,31.063150405884,67.978546142578),27143,2659)
-  obj = alife():create("t_inventory_box3_4",vector():set(242.60501098633,73.895149230957,138.61387634277),76288,2573)
+  local obj = AI:create("t_inventory_box3_3",vector():set(4.5460352897644,31.063150405884,67.978546142578),27143,2659)
+  obj = AI:create("t_inventory_box3_4",vector():set(242.60501098633,73.895149230957,138.61387634277),76288,2573)
 end
 function kostya_taynik_pda3_have(task, objective)
 	for i=1,4 do
@@ -2298,7 +2294,7 @@ function kostya_taynik_pda3_done(first_speaker, second_speaker)
 end
 
 function t_inventory_box4()
-  local obj = alife():create("t_inventory_box4",vector():set(316.57379150391,-12.273648262024,-261.89810180664),1431070,2903)
+  local obj = AI:create("t_inventory_box4",vector():set(316.57379150391,-12.273648262024,-261.89810180664),1431070,2903)
 end
 function kostya_taynik_pda4_have(task, objective)
 	if inventory.search("kostya_taynik_pda4", 1) then
@@ -2346,7 +2342,7 @@ function kostya_taynik_pda6_done(first_speaker, second_speaker)
 end
 
 function t_inventory_box7()
-  local obj = alife():create("t_inventory_box7",vector():set(94.308715820313,14.254689216614,50.491359710693),40199,3336)
+  local obj = AI:create("t_inventory_box7",vector():set(94.308715820313,14.254689216614,50.491359710693),40199,3336)
 end
 function kostya_taynik_pda7_have(task, objective)
 	if inventory.search("kostya_taynik_pda7", 1) then
@@ -2376,7 +2372,7 @@ end
 
 function t_inventory_box9()
   taynik_spawn.t_new_inventory9_1()
-  local obj = alife():create("t_inventory_box9_2",vector():set(-108.54,0.61,-244.63),11031,3241)
+  local obj = AI:create("t_inventory_box9_2",vector():set(-108.54,0.61,-244.63),11031,3241)
   taynik_spawn.t_new_inventory9_3()
 end
 function kostya_taynik_pda9_have(task, objective)
@@ -2394,10 +2390,10 @@ function kostya_taynik_pda9_done(first_speaker, second_speaker)
 end
 
 function t_inventory_box10()
-  local obj = alife():create("t_inventory_box10_1",vector():set(-116.87435913086,4.8685846328735,-149.80033874512),89560,562)
-  obj = alife():create("t_inventory_box10_2",vector():set(-26.37,-0.58,-25.53),280608,1593)
-  obj = alife():create("t_inventory_box10_3",vector():set(27.953716278076,20.462240219116,684.33978271484),307284,208)
-  obj = alife():create("t_inventory_box10_4",vector():set(106.7265625,13.199247360229,153.22033691406),272568,374)
+  local obj = AI:create("t_inventory_box10_1",vector():set(-116.87435913086,4.8685846328735,-149.80033874512),89560,562)
+  obj = AI:create("t_inventory_box10_2",vector():set(-26.37,-0.58,-25.53),280608,1593)
+  obj = AI:create("t_inventory_box10_3",vector():set(27.953716278076,20.462240219116,684.33978271484),307284,208)
+  obj = AI:create("t_inventory_box10_4",vector():set(106.7265625,13.199247360229,153.22033691406),272568,374)
   spawn_restrictor.kostya_taynik_pda10_sr1()
 end
 function kostya_taynik_pda10_have(task, objective)
@@ -2416,9 +2412,9 @@ function kostya_taynik_pda10_done(first_speaker, second_speaker)
 end
 
 function t_inventory_box11()
-  local obj = alife():create("t_inventory_box11_1",vector():set(192.18560791016,12.331077575684,101.35523986816),260351,2221)
+  local obj = AI:create("t_inventory_box11_1",vector():set(192.18560791016,12.331077575684,101.35523986816),260351,2221)
   taynik_spawn.t_new_inventory11_2()
-  obj = alife():create("t_inventory_box11_3",vector():set(6.5773458480835,8.061222076416,138.07514953613),109702,2147)
+  obj = AI:create("t_inventory_box11_3",vector():set(6.5773458480835,8.061222076416,138.07514953613),109702,2147)
 end
 function kostya_taynik_pda11_have(task, objective)
 	if db.actor:object("kostya_taynik_pda11_1") ~= nil and db.actor:object("kostya_taynik_pda11_2") ~= nil and db.actor:object("kostya_taynik_pda11_3") ~= nil then
@@ -2438,48 +2434,48 @@ function kostya_taynik_pda11_done(first_speaker, second_speaker)
 end
 
 function spawn_t_teleport1_1()
-    local se_obj = alife():create("t_teleport1_1",vector():set(190.83657836914,2.7860803604126,217.42588806152),260274,2219)
+    local se_obj = AI:create("t_teleport1_1",vector():set(190.83657836914,2.7860803604126,217.42588806152),260274,2219)
 	xr_logic.pstor_store(db.actor, "t_teleport1_1", se_obj.id)		  
 end
 function delete_t_teleport1_1()
 	local obj_id = xr_logic.pstor_retrieve(db.actor, "t_teleport1_1", -1, true)
-	local se_obj = alife():object(obj_id)
+	local se_obj = AI:object(obj_id)
 if se_obj then
-  alife():release(se_obj, true)
+  AI:release(se_obj, true)
 end
 end
 function spawn_t_teleport1_2()
-    local se_obj = alife():create("t_teleport1_2",vector():set(23.953285217285,10.699913024902,162.15838623047),131398,2199)
+    local se_obj = AI:create("t_teleport1_2",vector():set(23.953285217285,10.699913024902,162.15838623047),131398,2199)
 	-- нигде не используется, лишний мусор в псторе
 --	xr_logic.pstor_store(db.actor, "t_teleport1_2", se_obj.id)		  
 end
 
 function spawn_t_teleport4_1()
-    local se_obj = alife():create("t_teleport4_1",vector():set(-50.95,-29.72,-139.41),796684,2897)
+    local se_obj = AI:create("t_teleport4_1",vector():set(-50.95,-29.72,-139.41),796684,2897)
 	-- нигде не используется, лишний мусор в псторе
 --	xr_logic.pstor_store(db.actor, "t_teleport4_1", se_obj.id)		  
 end
 
 function spawn_x_teleport1()
-    local se_obj = alife():create("x_teleport1",vector():set(9.4039793014526,11.447186470032,90.041458129883),114619,2142)
+    local se_obj = AI:create("x_teleport1",vector():set(9.4039793014526,11.447186470032,90.041458129883),114619,2142)
 	xr_logic.pstor_store(db.actor, "x_teleport1", se_obj.id)
 	spawn_restrictor.ktdt1_sr1()
 end
 function spawn_x_teleport2()
-    local se_obj = alife():create("x_teleport2",vector():set(-15.461825370789,-3.8673331737518,-5.0735273361206),283384,1593)
+    local se_obj = AI:create("x_teleport2",vector():set(-15.461825370789,-3.8673331737518,-5.0735273361206),283384,1593)
 	xr_logic.pstor_store(db.actor, "x_teleport2", se_obj.id)
 	spawn_restrictor.ktdt2_sr1()
 end
 function spawn_x_teleport3()
-    local se_obj = alife():create("x_teleport3",vector():set(47.420116424561,-2.4642562866211,-209.0924987793),63669,1469)
+    local se_obj = AI:create("x_teleport3",vector():set(47.420116424561,-2.4642562866211,-209.0924987793),63669,1469)
 	xr_logic.pstor_store(db.actor, "x_teleport3", se_obj.id)
-    se_obj = alife():create("x_teleport3_1",vector():set(-47.345569610596,0.74647736549377,-160.83731079102),16808,1490)
+    se_obj = AI:create("x_teleport3_1",vector():set(-47.345569610596,0.74647736549377,-160.83731079102),16808,1490)
 	xr_logic.pstor_store(db.actor, "x_teleport3_1", se_obj.id)
-    se_obj = alife():create("x_teleport3_2",vector():set(-25.791805267334,0.7459944486618,-150.2300567627),16808,1490)
+    se_obj = AI:create("x_teleport3_2",vector():set(-25.791805267334,0.7459944486618,-150.2300567627),16808,1490)
 	xr_logic.pstor_store(db.actor, "x_teleport3_2", se_obj.id)
-    se_obj = alife():create("x_teleport3_3",vector():set(-67.088394165039,1.2463047504425,-154.01571655273),15216,1490)
+    se_obj = AI:create("x_teleport3_3",vector():set(-67.088394165039,1.2463047504425,-154.01571655273),15216,1490)
 	xr_logic.pstor_store(db.actor, "x_teleport3_3", se_obj.id)
-    se_obj = alife():create("x_inventory_box3",vector():set(-27.107929229736,0.74637401103973,-160.10646057129),16808,1490)
+    se_obj = AI:create("x_inventory_box3",vector():set(-27.107929229736,0.74637401103973,-160.10646057129),16808,1490)
 	spawn_restrictor.ktdt3_sr1()
 end
 

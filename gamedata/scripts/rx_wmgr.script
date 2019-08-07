@@ -158,7 +158,7 @@ function weapon_manager:update()
 			or item_parents[self.weapon_id] == tostring(self.npc_id)))
 		then
 --			printw("update[%s]: cwpn parent ~= npc(%s)",self.npc:character_name(),tostring(self.npc_id))
---			printw("info[%s]:se=[%s],box=[%s],prstor=[%s],parent=[%s]",cwpn:name(),tostring(alife():object(self.weapon_id)~=nil),tostring((parent and parent:id())==boxid),tostring(self.wpns_prstor[id]),tostring(parent and parent:id()))
+--			printw("info[%s]:se=[%s],box=[%s],prstor=[%s],parent=[%s]",cwpn:name(),tostring(AI:object(self.weapon_id)~=nil),tostring((parent and parent:id())==boxid),tostring(self.wpns_prstor[id]),tostring(parent and parent:id()))
 			if self.wpns_prstor[id] then
 --				printw("update[%s]:return from prstor (%s)",self.npc:character_name(),tostring(self.weapon_id))
 				self:return_items(self.weapon_id)
@@ -586,7 +586,7 @@ function weapon_manager:update_weapon_list()
 		end
 		if not item then
 --			printf("weapon_iterator:pr weapon [%s] not exist", tostring(id))
-			if id and alife():object(id) ~= nil then
+			if id and AI:object(id) ~= nil then
 --				printw("weapon_iterator:alife obj with id [%s] exist",tostring(id))
 				switch_online(id)
 			else
@@ -720,7 +720,7 @@ function weapon_manager:return_items(id)
 			return
 		end
 		local obj = level.object_by_id(id)
-		if obj and self.npc_id and alife():object(self.npc_id) and alife():object(self.npc_id).online then
+		if obj and self.npc_id and AI:object(self.npc_id) and AI:object(self.npc_id).online then
 			if not rx_utils.item_is_fa(obj) then
 --				printw("transfer_to_npc[%s]:%s[%s]:obj not isWeapon", self.npc:character_name(),obj:section(),obj:id())
 				return
@@ -742,10 +742,10 @@ function weapon_manager:return_items(id)
 			parent:transfer_item(obj,self.npc)
 			item_parents[id] = self.npc_id
 		else
-			local sobj = alife():object(id)
+			local sobj = AI:object(id)
 			if sobj then
 --				printw("transfer_to_npc[%s]:release [%s]", self.npc:character_name(), tostring(sobj.id))
-				alife():release(sobj,true)
+				AI:release(sobj,true)
 			else
 --				printw("transfer_to_npc[%s]:item not found [%s]", self.npc:character_name(), tostring(id))
 			end
@@ -880,7 +880,7 @@ function global_update(tg)
 			if ((not p) or (p:id() ~= tonumber(v))) and rp then
 				if type(v) == "string" then
 --					printw("item_parents:transfer %s[%s](p:%s) to %s[%s]",item:section(),item:id(),tostring(p and p:id()),rp:section(),rp:id())
-					if alife():object(rp:id()) and alife():object(rp:id()).online then
+					if AI:object(rp:id()) and AI:object(rp:id()).online then
 					--	log("~ wmgr:global_update -> transfer_item[%s] from [%s] to [%s]",
 					--		item:name(), (p and p:name() or "<nil>", rp:name())
 						if p then
@@ -1184,20 +1184,18 @@ function get_box()
 end
 
 function manage_box()
-	local sim = alife()
-	local box = boxid and sim:object(boxid)
+	local box = boxid and AI:object(boxid)
 	if not (get_box() and box) then
 	--	printf("manage_box:find")
 		boxid = nil
-		local ggraph = game_graph()
-		if not ggraph:valid_vertex_id(db.actor:game_vertex_id()) then
+		if not GGraph:valid_vertex_id(db.actor:game_vertex_id()) then
 			return
 		end
-		local clid = ggraph:vertex(db.actor:game_vertex_id()):level_id()
+		local clid = GGraph:vertex(db.actor:game_vertex_id()):level_id()
 		local obj
 		for id=1,65534 do
-			obj = sim:object(id)
-			if obj and obj:section_name() == "inventory_box" and obj.position.y == -300 and ggraph:vertex(obj.m_game_vertex_id):level_id() == clid then
+			obj = AI:object(id)
+			if obj and obj:section_name() == "inventory_box" and obj.position.y == -300 and GGraph:vertex(obj.m_game_vertex_id):level_id() == clid then
 			--	printf("manage_box:%s",id)
 				box = obj
 				boxid = id
@@ -1221,7 +1219,7 @@ end
 function create_box()
 	local pos = vector():set(0,-300,0)
 	if db.actor then
-		local obj = alife():create("inventory_box",pos,db.actor:level_vertex_id(),db.actor:game_vertex_id())
+		local obj = AI:create("inventory_box",pos,db.actor:level_vertex_id(),db.actor:game_vertex_id())
 		if obj then
 			boxid = obj.id
 		--	printf("box[%s] created on level '%s'",tostring(obj.id),tostring(level.name()))
@@ -1232,12 +1230,11 @@ end
 function net_spawn()
 --	local boxid = xr_logic.pstor_retrieve(db.actor,"wm_boxid_"..level.name(),nil)
 	if boxid then
-		local sim = alife()
 		local sobj
 		for i=1,65534 do
-			sobj = sim:object(i)
+			sobj = AI:object(i)
 			if sobj and sobj.parent_id == boxid then
-				sim:release(sobj,true)
+				AI:release(sobj,true)
 			end
 		end
 	end

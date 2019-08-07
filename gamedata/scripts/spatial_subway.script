@@ -10,12 +10,11 @@ local tmp_pos, max_lv
 function init()
 	if not has_alife_info( "spatial_subway_start" ) then return end
 
-	local sim = alife()
 	local lname = level.name()
 	
-	local se_obj = sim:story_object(story_ids.spatial_subway_level_changer)
+	local se_obj = AI:story_object(story_ids.spatial_subway_level_changer)
 	if se_obj then
-		sim:release(se_obj, true)
+		AI:release(se_obj, true)
 	end
 	
 	local t = n_vertexes.get_locations( true )
@@ -42,7 +41,7 @@ end
 
 function add_zone(se_obj)
 	local gv = se_obj.m_game_vertex_id
-	local ln = alife():level_name(game_graph():vertex(gv):level_id())
+	local ln = AI:level_name(GGraph:vertex(gv):level_id())
 	if not levels[ln] then levels[ln] = {} end
 	if levels[ln][se_obj.id] == nil then
 		levels[ln][se_obj.id] = {
@@ -111,7 +110,7 @@ end
 
 ---------------------------------------------------------------------------------------
 function create_zone_subway( pos, new_lv, new_gv )
-	local se_obj = alife():create( "zone_subway", pos, new_lv, new_gv )
+	local se_obj = AI:create( "zone_subway", pos, new_lv, new_gv )
 --	level.map_add_object_spot_ser( se_obj.id, 'blue_location', se_obj:name() )
 	local data = {}
 	data.shapes = {
@@ -128,7 +127,7 @@ end
 
 
 function create_level_changer( pos, lv, gv, lname )
-	local obj = alife():create( "level_changer", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id() )
+	local obj = AI:create( "level_changer", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id() )
 
 	local data = {}
 	data.story_id = story_ids.spatial_subway_level_changer

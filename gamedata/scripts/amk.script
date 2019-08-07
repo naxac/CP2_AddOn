@@ -169,9 +169,9 @@ end
 function spawn_item(spawn_item, pos, gv, lv, no_ai )
 	if gv==nil then gv=db.actor:game_vertex_id() end
 	if lv==nil then lv=db.actor:level_vertex_id() end
-	local obj = alife():create(spawn_item, pos, lv, gv)
+	local obj = AI:create(spawn_item, pos, lv, gv)
 	if no_ai then
-		obj = alife():object( obj.id )
+		obj = AI:object( obj.id )
 		obj:use_ai_locations( false )
 	end
 	return obj
@@ -182,7 +182,7 @@ function spawn_item_in_inv(spawn_item,npc)
 	if not npc then 
 		npc = db.actor 
 	end
-	local item = alife():create(spawn_item, 
+	local item = AI:create(spawn_item, 
 		npc:position(),
 		npc:level_vertex_id(),  
 		npc:game_vertex_id(),
@@ -218,7 +218,7 @@ end
 -- удаляем объект из игры
 function remove_item(remove_item)
   if remove_item~=nil then
-    alife():release(alife():object(remove_item:id()), true)
+    AI:release(AI:object(remove_item:id()), true)
     return true
   end
   return false
@@ -290,8 +290,8 @@ function remove_item_from_inventory(remove_item,npc)
   if npc==nil then npc=db.actor end
   if remove_item~=nil then
 --      npc:mark_item_dropped(remove_item)
-	local se_item = alife():object(remove_item:id())
-	if se_item then alife():release(se_item, true) end
+	local se_item = AI:object(remove_item:id())
+	if se_item then AI:release(se_item, true) end
     return true
   end
   return false
@@ -315,7 +315,7 @@ function __del_item(npc, item)
         return false
     end
 --    npc:mark_item_dropped(item)
-    alife():release(alife():object(item:id()), true)
+    AI:release(AI:object(item:id()), true)
 end
 
 ---------------------------
@@ -627,9 +627,8 @@ function on_actor_update(delta)
 	amk_mod.interactive_music()
 	oau_watchdog=91
 	local obj, sobj
-	local sim = alife()
 	for k,v in pairs(convert_npc) do
-		sobj=sim:object(k)
+		sobj=AI:object(k)
 		if sobj then
 			obj=level.object_by_id(k)
 			if obj==nil and v==true then
@@ -638,8 +637,8 @@ function on_actor_update(delta)
 			elseif obj and v==false then
 				convert_npc[k]=nil
 			elseif v==1 and obj then -- тайник не перешёл в оффлайн попытаемся его туда запихнуть.
-				sim:set_switch_online(k, false)
-				sim:set_switch_offline(k, true)
+				AI:set_switch_online(k, false)
+				AI:set_switch_offline(k, true)
 				convert_npc[k]=true
 			elseif v==1 then -- тайник в оффлайне. выталкиваем.
 				convert_npc[k]=nil
@@ -749,7 +748,7 @@ function on_npc_go_offline(npc)
 	end
 	if amk_offline_alife then
 		if check_game()==true then
-			local sobj = alife():object(npc:id())
+			local sobj = AI:object(npc:id())
 			if sobj then
 				amk_offline_alife.process_trade(sobj)
 			end

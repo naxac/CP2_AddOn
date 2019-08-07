@@ -106,7 +106,7 @@ function torch_binder:init_torch()
 
 	self.full_charge_time = sys_ini:r_u32(self.section, "working_time") *60
 
-	self.se_torch = alife():object(self.object:id())
+	self.se_torch = AI:object(self.object:id())
 	self.time_left = self.full_charge_time - self.se_torch.worked_time
 
 	local cond = self.time_left/self.full_charge_time
@@ -207,7 +207,7 @@ function torch_binder:charge(new_charge)
 	local old_charge = self:get_charge_level()
 	if old_charge > 0 then
 		local accum_sect = sys_ini:r_string(self.section, "energy_source")
-		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = old_charge}, netpk.fState)
 		level.client_spawn_manager():add(accum.id, -1,
 			function(condition, id, obj)
@@ -296,8 +296,8 @@ function charge(acumm, torch)
 	if not binder then return end
 
 	if binder:charge(acumm:ondition()) then
-		local se_obj = alife():object(acumm:id())
-		if se_obj then alife():release(se_obj, true) end
+		local se_obj = AI:object(acumm:id())
+		if se_obj then AI:release(se_obj, true) end
 		zvuki.use_snd("acumm")
 	end
 end
@@ -312,7 +312,7 @@ function on_item_from_slot(item)
 			local cond = binder:get_charge_level()
 			if cond > 0 then
 				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
-				local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+				local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 				netpk:modify(accum, {condition = cond}, netpk.fState)
 				level.client_spawn_manager():add(accum.id, -1,
 					function(condition, id, obj)

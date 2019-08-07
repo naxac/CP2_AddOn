@@ -52,7 +52,7 @@ function outfit_binder:net_spawn(data)
 
 		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
 		self.full_charge_time = sys_ini:r_float( sect, "working_time" ) * 60
-		self.se_obj = alife():object( self.object:id() )
+		self.se_obj = AI:object( self.object:id() )
 		self.time_left = self.full_charge_time - (self.se_obj and self.se_obj.worked_time or 0)
 		self.last_time = get_seconds()
 		self.current_chrg = self.time_left/self.full_charge_time
@@ -146,7 +146,7 @@ function outfit_binder:update(delta)
 	if self.se_obj then
 		self.se_obj.worked_time = self.full_charge_time - self.time_left
 	else
-		local sobj = alife():object(self.object:id())
+		local sobj = AI:object(self.object:id())
 		if sobj then
 			self.se_obj = sobj
 			self.time_left = self.full_charge_time - self.se_obj.worked_time
@@ -187,7 +187,7 @@ function outfit_binder:charge(new_charge, no_test)
 
 	if self.current_chrg > 0 and not no_test then
 		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
-		local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
 		level.client_spawn_manager():add(accum.id, -1,
 			function(condition, id, obj)
@@ -265,7 +265,7 @@ function on_item_from_slot(item)
 			local cond = binder:get_charge_level()
 			if cond > 0 then
 				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
-				local accum = alife():create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+				local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
 				netpk:modify(accum, {condition = cond}, netpk.fState)
 				level.client_spawn_manager():add(accum.id, -1,
 					function(condition, id, obj)

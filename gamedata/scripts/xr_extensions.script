@@ -65,7 +65,9 @@ DIK_keys.DIK_RMOUSE			= 338
 DIK_keys.DIK_WMOUSE			= 339
 
 _G.inventory_slots = {
-	NO_ACTIVE	= 4294967295,
+	-- active_slot возвращает 4294967296, а в activate_slot передавать надо 4294967295. Сталкир...
+	NO_ACTIVE_SET	= 4294967295,
+	NO_ACTIVE_GET	= 4294967296,
 	KNIFE		= 0,
 	PISTOL		= 1,
 	RIFLE		= 2,
@@ -140,10 +142,9 @@ math.clamp = function( n, min, max )
 	return ( n > max and max ) or ( n < min and min ) or n
 end
 -- округление числа
---math.round = function ( n )
---	local r = n%1
---	return (r>=0.5 and n-r+1) or n-r
---end
+math.round = function ( n )
+	return math.floor(n + 0.5)
+end
 --// table
 -- получаем размер таблицы (количество связок [ключ] = значение)
 if table.size == nil then
@@ -292,8 +293,11 @@ end
 -- class 'game_object'
 -- CEntityAlive
 game_object.is_alive = function( obj )
-	local cls = ( obj and obj.clsid ) and obj:clsid() or -1
-	return ( IAmAStalker[ cls ] or IAmAMonster[ cls ] ) and obj:alive()
+	local cls = obj:clsid()
+	if ( IAmAStalker[ cls ] or IAmAMonster[ cls ] ) then
+		return obj:alive()
+	end
+	return cls == clsid.script_trader
 end
 game_object.is_wounded = function ( obj )
 	return obj:is_stalker() and obj:alive() and obj:wounded()
@@ -575,7 +579,7 @@ _G.ShowAutohideMsg = function( text, time_ms )
 end
 
 _G.set_story_id = function( obj, sid )
-	alife():assign_story_id( nil, nil, obj.id, sid )
+	AI:assign_story_id( nil, nil, obj.id, sid )
 end
 
 _G.is_story_object = function( obj )

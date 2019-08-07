@@ -1,8 +1,7 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 -----------------------------------------------------------------------------------
--- Monster binding
+-- Trader binding
 -----------------------------------------------------------------------------------
-local particles={}
-
 function bind(obj)
    local new_binder = trader_binder(obj)
    obj:bind_object(new_binder)
@@ -54,8 +53,6 @@ end
 
 function trader_binder:death_callback(victim, who) 
 	if (self.object == nil) then return end 
-
-	db.del_monster(self.object) -- убираем из онлайн-живых
 
 	if who:id() == db.actor:id() then 
 		kostya_dialog.kuv_hit()
@@ -111,10 +108,6 @@ function trader_binder:net_spawn(sobject)
 
 	db.add_obj(self.object)
 
-	if self.object:alive() then
-		db.add_monster(self.object) -- добавляем в онлайн-живых
-	end
-   
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
 
 	if self.object:alive() then 
@@ -143,10 +136,6 @@ function trader_binder:net_destroy()
 	end 
 
 	db.del_obj(self.object)
-
-	if self.object:alive() then
-		db.del_monster(self.object) -- убираем из онлайн-живых
-	end
 
 	object_binder.net_destroy(self)
 end 

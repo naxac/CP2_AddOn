@@ -44,12 +44,11 @@ end
 -- сюжетные задания
 function remind_storyline()
 	local obj, t, npc_name
-	local sim = alife()
 	local actor = db.actor
 	local str = ""
 
 	for sid, v in pairs(tasks_info) do
-		obj = sim:story_object(story_ids[sid])
+		obj = AI:story_object(story_ids[sid])
 		if obj then
 			npc_name = "%c[255,0,255,255]"..get_npc_name(obj, sid).." > "
 			for task_id, ob in pairs(v) do
@@ -118,16 +117,14 @@ function init()
 	tasks_info = {}
 	
 	local ini = ini_file("misc\\reminder.ltx")
-	local sim = alife()
-	local gg = game_graph()
 	local result, id, sid, task_id, ob, obj
 	for i=0,ini:line_count("tasks")-1 do
 		result, id, sid = ini:r_line("tasks",i,"","")
 		task_id, ob = string.match(id, "(.+)[_](.+)")
 		if story_ids[sid] then
-			obj = sim:story_object(story_ids[sid])
+			obj = AI:story_object(story_ids[sid])
 			if obj and (obj:clsid() == clsid.script_trader or obj:alive())
-				and gg:vertex(obj.m_game_vertex_id):level_id() == sim:level_id()
+				and GGraph:vertex(obj.m_game_vertex_id):level_id() == AI:level_id()
 			then
 				if tasks_info[sid] == nil then
 					tasks_info[sid] = {}

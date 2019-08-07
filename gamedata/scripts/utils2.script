@@ -25,12 +25,11 @@ end
 
 local function fill_top_game_vertex_ids(gg)
 	top_game_vertex_ids = {}
-	local sim = alife()
 	local lid, gvid = -1, 0
 	while gg:valid_vertex_id(gvid) == true do
 		if gg:vertex(gvid):level_id() ~= lid then
 			lid = gg:vertex(gvid):level_id()
-			top_game_vertex_ids[sim:level_name(lid)] = gg_backward_scan(gg, lid, gvid)
+			top_game_vertex_ids[AI:level_name(lid)] = gg_backward_scan(gg, lid, gvid)
 		end
 		gvid = gvid + 10
 	end
@@ -38,18 +37,16 @@ end
 
 function get_top_graph_ids(level_name)
 	if level_name ~= nil then
-		local gg = game_graph()
 		if top_game_vertex_ids == nil then
-			fill_top_game_vertex_ids(gg)
+			fill_top_game_vertex_ids(GGraph)
 		end
 		local gvid = top_game_vertex_ids[level_name]
-		return gg:vertex(gvid):level_vertex_id(), gvid
+		return GGraph:vertex(gvid):level_vertex_id(), gvid
 	end
 	if top_gvid == nil then
-		local gg = game_graph()
 		local gvid = db.actor:game_vertex_id()
-		top_gvid = gg_backward_scan(gg, gg:vertex(gvid):level_id(), gvid)
-		top_lvid = gg:vertex(top_gvid):level_vertex_id()
+		top_gvid = gg_backward_scan(GGraph, GGraph:vertex(gvid):level_id(), gvid)
+		top_lvid = GGraph:vertex(top_gvid):level_vertex_id()
 	end
 	return top_lvid, top_gvid
 end
@@ -158,10 +155,10 @@ function deferred_release_update()
 	local time = math.floor(time_global() * 0.001)
 	for k,v in pairs(deferred_release_queue) do
 		if v <= time then
-			se_obj = alife():object(k)
+			se_obj = AI:object(k)
 			if se_obj ~= nil then
 				dbglog("deferred release of object id=%d done", k)
-				alife():release(se_obj)
+				AI:release(se_obj)
 				deferred_release_queue[k] = nil
 			else
 				abort("no object id=%d, though it was scheduled for the deferred release", k)

@@ -44,11 +44,10 @@ function update(tg)
 	elseif addons_sets.inited ~= true then
 		init()
 	end
-	local sim = alife()
 	for i,id in ipairs(remt) do
-		local obj = sim:object(id)
+		local obj = AI:object(id)
 		if obj then
-			sim:release(obj,true)
+			AI:release(obj,true)
 		end
 	end
 	remt = {}
@@ -102,7 +101,7 @@ function update(tg)
 				rx_utils.switch_online(id)
 			end
 		else
-			local se_npc = sim:object(t[1])
+			local se_npc = AI:object(t[1])
 			if se_npc then
 				if t[2] >= tg then
 					printw("transfer[%s%s]:npc %s switch online",sect,id,se_npc:name())
@@ -125,7 +124,7 @@ function update(tg)
 	if #cont ~= 0 then
 		table.sort(cont,function(a,b) return a.pid < b.pid end)
 		for i,t in ipairs(cont) do
-			local cwpn = sim:create(t.sec,t.pos,t.lvid,t.gvid)
+			local cwpn = AI:create(t.sec,t.pos,t.lvid,t.gvid)
 			if cwpn then
 				netpk:set(cwpn,t.data,netpk.fState + netpk.fUpdate)
 				ctmp[cwpn.id] = {t.npc,tg+8000,t.sec,t.pid,t.at}
@@ -137,10 +136,9 @@ function update(tg)
 end
 
 function actor_save()
-	local sim = alife()
 	local npc, obj, aitem
 	for id,t in pairs(ctmp) do
-		obj = sim:object(id)
+		obj = AI:object(id)
 		if obj then
 			npc = level.object_by_id(t[1])
 			if npc then
@@ -149,7 +147,7 @@ function actor_save()
 					npc:drop_item( aitem )
 				end
 			end
-			sim:release(obj, true)
+			AI:release(obj, true)
 		end		
 	end
 	ctmp = {}
@@ -157,18 +155,17 @@ function actor_save()
 end
 
 function npc_switch_offline(npc)
-	local sim = alife()
 	local npc_id = npc:id()
 	local aitem = npc:active_item()
 	local aid = aitem and aitem:id()
 	for id,t in pairs(ctmp) do
 		if t[1] == npc_id then
-			local obj = sim:object(id)
+			local obj = AI:object(id)
 			if obj then
 				if aid == id then
 					npc:drop_item( aitem )
 				end
-				sim:release(obj, true)
+				AI:release(obj, true)
 			end
 			ctmp[id] = nil
 		end
@@ -375,12 +372,11 @@ function get_upd_weapons(npc,weapons,wmgr,wm)
 end
 
 function spawn_addon(npc,sec)
-	alife():create(sec,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
+	AI:create(sec,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
 end
 
 function convert_weapon(npc,id,flags,at)
-	local sim = alife()
-	local wpn = sim:object(id)
+	local wpn = AI:object(id)
 	if wpn then
 		local sect = wpn:section_name()
 		local data = netpk:get(wpn, netpk.fState + netpk.fUpdate)

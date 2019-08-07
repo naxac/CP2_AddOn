@@ -107,7 +107,7 @@ end
 function ui_add_spot:on_ButtonDelete_clicked()
 	local obj
 	for i=1,65534 do
-		obj = alife():object(i)
+		obj = AI:object(i)
 		if obj then
 			if level.map_has_object_spot(obj.id, "red_location_1")~=0 then
 				level.map_remove_object_spot(obj.id, "red_location_1")
@@ -121,17 +121,17 @@ end
 function ui_add_spot:on_ButtonSearchtreasures_clicked()
 	local on_level = self.check_lvl:GetCheck()
 	local show_empty = self.check_p:GetCheck()
-	local gg = game_graph()
-	local act_level = gg:vertex(db.actor:game_vertex_id()):level_id()
+	local act_level = level.name()
 	local treasures = {}
 	local obj, obj_name, tmp, pid, p
+	local invbox_clsid = clsid.inventory_box
 	for i=1,65534 do
-		obj = alife():object(i)
+		obj = AI:object(i)
 		if obj and obj.parent_id then
 			pid = obj.parent_id
-			p = alife():object(pid)
-			if p and pid~=0 and pid~=65535 and p:clsid()==clsid.inventory_box then
-				if (on_level==true and gg:vertex(p.m_game_vertex_id):level_id()==act_level) or on_level==false then
+			p = AI:object(pid)
+			if p and pid~=0 and pid~=65535 and p:clsid() == invbox_clsid then
+				if (on_level==true and object_level_name(p) == act_level) or on_level==false then
 					if treasures[pid] == nil then treasures[pid] = {} end
 					tmp = treasures[pid]
 					obj_name = game.translate_string(get_inv_name(obj:section_name()))
@@ -139,8 +139,8 @@ function ui_add_spot:on_ButtonSearchtreasures_clicked()
 					if tmp[obj_name] then tmp[obj_name] = tmp[obj_name]+1
 					else tmp[obj_name] = 1 end
 				end
-			elseif show_empty and obj:clsid()==clsid.inventory_box then
-				if (on_level==true and gg:vertex(obj.m_game_vertex_id):level_id()==act_level) or on_level==false then
+			elseif show_empty and obj:clsid() == invbox_clsid then
+				if (on_level==true and object_level_name(obj) == act_level) or on_level==false then
 					if treasures[obj.id] == nil then treasures[obj.id] = {} end
 				end
 			end
@@ -153,7 +153,7 @@ function ui_add_spot:on_ButtonSearchtreasures_clicked()
 			hint = hint..name.."("..num.."), "
 		end
 		if #hint==0 then hint = "Пустой, " end
-		hint = "%c[255,150,245,25]Тайник: "..alife():object(id):name().."\\n%c[default]"..hint
+		hint = "%c[255,150,245,25]Тайник: "..AI:object(id):name().."\\n%c[default]"..hint
 		hint = hint:sub(1,-3)
 		if level.map_has_object_spot(id, "red_location_1")~=0 then
 			level.map_change_spot_hint(id, "red_location_1", hint)
@@ -186,24 +186,22 @@ function ui_add_spot:find_items()
 	self.items_ids = {}
 	if text~=nil and text~="" then
 		text = string.lower1(text)
-		local obj, obj_lvl, obj_pid, ftext
+		local obj, obj_pid, ftext
 		local on_level = self.check_lvl:GetCheck()
 		local no_parent = self.check_p:GetCheck()
-		local gg = game_graph()
-		local act_lvl = gg:vertex(db.actor:game_vertex_id()):level_id()
+		local act_lvl = level_name()
 		for i=1,65534 do
-			obj = alife():object(i)
+			obj = AI:object(i)
 			if obj and obj.parent_id~=0 then
-				obj_lvl = gg:vertex(obj.m_game_vertex_id):level_id()
 				obj_pid = obj.parent_id
-				if (on_level==true and obj_lvl==act_lvl) or on_level==false then
+				if (on_level == true and object_level_name(obj) == act_lvl) or on_level==false then
 					local hint = get_inv_name(obj:section_name())
 					if hint~=nil then
 						hint = game.translate_string(hint)
 						hint = string.gsub(hint, "[ёЁ]", "е")
 						if string.find(string.lower1(hint), text, 1, true) then
 							if obj_pid~=65535 then
-								local p = alife():object(obj_pid)
+								local p = AI:object(obj_pid)
 								hint = hint.."\\n".."%c[255,160,160,160]Владелец: "..p:name()
 							end
 							if (no_parent==true and obj_pid==65535) or no_parent==false then
@@ -222,7 +220,7 @@ end
 function ui_add_spot:on_ButtonAddSpot_clicked()
 	local added = false
 	for id, hint in pairs(self.items_ids) do
-		local obj = alife():object(id)
+		local obj = AI:object(id)
 		if obj.parent_id~=65535 then
 			id = obj.parent_id
 		end

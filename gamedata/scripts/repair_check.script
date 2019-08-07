@@ -59,8 +59,8 @@ function repair_repkit(repkit, item)
 	end
 
 	item:set_condition(cnd+rep_percent)
-	local se_obj = alife():object( repkit:id() )
-	if se_obj then alife():release(se_obj, true) end
+	local se_obj = AI:object( repkit:id() )
+	if se_obj then AI:release(se_obj, true) end
 	zvuki.use_snd(repkit_sect)
 	inventory.force_update( item:section() )
 end
@@ -849,9 +849,9 @@ function remove_repairitem_to_upgrade(slt)
 		local iis = db.actor:item_in_slot(slt)
 		local wpn = iis:section()
 		recheck = iis:id()
-		local sobj = alife():object(recheck)
+		local sobj = AI:object(recheck)
 		release_addons(sobj,wpn,iis) 
-		alife():release(sobj, true)
+		AI:release(sobj, true)
 		news_manager.relocate_item(db.actor, "out", wpn)
 		recheck=nil
 	end
@@ -1102,7 +1102,7 @@ function remove_repair_bronik_item(slt)
 		local iis = db.actor:item_in_slot(slt)
 		local wpn = iis:section()
 		recheck = iis:id()
-		alife():release(alife():object(iis:id()), true)
+		AI:release(AI:object(iis:id()), true)
 		news_manager.relocate_item(db.actor, "out", wpn)
 		recheck=nil
 	end
@@ -1397,9 +1397,9 @@ function remove_repairitem(slt)
 		recheck = iis:id()
 		check_sec=0
 		check_secondary(wpn)
-		local sobj = alife():object(recheck)
+		local sobj = AI:object(recheck)
 		release_addons(sobj,wpn,iis) 
-		alife():release(sobj, true)
+		AI:release(sobj, true)
 		news_manager.relocate_item(db.actor, "out", wpn)
 		tmpcode = 0
 		db.actor:iterate_inventory(function(dummy, item) remove_secondary(item,check_sec) end, nil)
@@ -1425,9 +1425,9 @@ function remove_secondary(item,checker)
 			if item:id()~=recheck then
 				tmpcode=1
 				news_manager.relocate_item(db.actor, "out", item:section())
-				local sobj = alife():object(item:id())
+				local sobj = AI:object(item:id())
 				release_addons(sobj,sec,item)
-				alife():release(sobj, true)
+				AI:release(sobj, true)
 			end
 		end
 	end
@@ -1473,7 +1473,7 @@ function release_addons(sobj,wpn,obj)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"scope_name",nil)
 			if addon ~= nil and bit_and(t.addon_flags, addon_flags.scope) ~= 0 then
-				alife():create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
 			end
 		end
 		
@@ -1481,7 +1481,7 @@ function release_addons(sobj,wpn,obj)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"silencer_name",nil)
 			if addon ~= nil and bit_and(t.addon_flags, addon_flags.silencer) ~= 0 then
-				alife():create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
 			end
 		end
 		
@@ -1489,7 +1489,7 @@ function release_addons(sobj,wpn,obj)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"grenade_launcher_name",nil)
 			if addon ~= nil and bit_and(t.addon_flags, addon_flags.grenade_launcher) ~= 0 then
-				alife():create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
 			end
 		end
 		
@@ -1523,7 +1523,7 @@ function give_weapon_to_player(trader, actor)
 	get_vars(var)
 	if wpnsec ~= nil then
 		amk.del_variable(var)
-		local wpn_c = alife():create(wpnsec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		local wpn_c = AI:create(wpnsec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
 	--	xr_timers.start_real_timer("unload_rep_weapon",1,wpn_c.id)
 		level.client_spawn_manager():add(wpn_c.id, 0, repair_check.weapon_unload)
 		news_manager.relocate_item(db.actor, "in", wpnsec)
@@ -1776,8 +1776,8 @@ function pay_damaged1(actor, trader)
 	if item_in_slot ~= nil then
 		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
 		news_manager.relocate_item(db.actor, "out", item_in_slot:section())
-		local obj = alife():object(item_in_slot:id())
-		if obj then alife():release(obj, true) end
+		local obj = AI:object(item_in_slot:id())
+		if obj then AI:release(obj, true) end
 	end
 	return false
 end
@@ -1787,8 +1787,8 @@ function pay_damaged2(actor, trader)
 	if item_in_slot ~= nil then
 		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
 		news_manager.relocate_item(db.actor, "out", item_in_slot:section())
-		local obj = alife():object(item_in_slot:id())
-		if obj then alife():release(obj, true) end
+		local obj = AI:object(item_in_slot:id())
+		if obj then AI:release(obj, true) end
 	end
 	return false
 end

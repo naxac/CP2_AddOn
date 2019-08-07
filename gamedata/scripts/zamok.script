@@ -71,10 +71,10 @@ function remove( box, item )
 end
 
 function add( item )
-	local sitem = alife():object( item:id() ) -- получаем серверный объект
+	local sitem = AI:object( item:id() ) -- получаем серверный объект
 	if sitem == nil then return end		-- если удалили замок, то ничего не делаем
 	local pid = sitem.parent_id
-	local se_box = alife():object( pid ) -- получаем серверный объект хозяина
+	local se_box = AI:object( pid ) -- получаем серверный объект хозяина
 	if se_box ~= nil and se_box:clsid() == clsid.inventory_box then
 		check_box( nil, pid )
 	end
@@ -120,7 +120,7 @@ end
 
 function add_in_fake_box(box)
 	local box_id = box:id()
-	local se_box = alife():object( box_id )
+	local se_box = AI:object( box_id )
 	if se_box and se_box:clsid() == clsid.inventory_box then
 		check_box(box, box_id)
 	end
@@ -138,7 +138,7 @@ function codelock:__init( box, mode )
 
 	if not self.install then
 		self.code = ""
-		local se_box = alife():object( box:id() )
+		local se_box = AI:object( box:id() )
 		local data = netpk:get( se_box, netpk.fStat )
 		local cd = netpk:parse_custom_data( data.custom_data )
 		if cd.password and cd.password.code then
@@ -172,7 +172,7 @@ function codelock:OnNumberReceive( text, mode )
 		local t = zamok_box[ box_id ]
 		if t then t.code = text end
 
-		local se_box = alife():object( box_id )
+		local se_box = AI:object( box_id )
 		local data = netpk:get(se_box, netpk.fState)
 		local cd = netpk:parse_custom_data(data.custom_data)
 		cd.logic = { cfg = "scripts\\code_inventory_box.ltx" }
@@ -213,7 +213,7 @@ end
 
 -- Вызывается при открытии тайника из логики, если на нём стоит замок
 function show_codelock(actor, box)
-	local se_box = alife():object( box:id() )
+	local se_box = AI:object( box:id() )
 	if se_box then
 	--	log1("show_codelock for se_box: "..se_box:name())
 		box:set_nonscript_usable( false )
@@ -238,17 +238,16 @@ function transfer_all(actor, box)
 			box:transfer_item(item, a)
 		end
 	end
-	local sim = alife()
-	local se_box = sim:object(box:id())
-	if se_box then sim:release(se_box, true) end
-	sim:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
+	local se_box = AI:object(box:id())
+	if se_box then AI:release(se_box, true) end
+	AI:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
 	hotkeys.clear_used_box()
 end
 
 -- Перезагрузка логики ящика без перевода в оффлайн
 function change_box_data(box)
 	local box_id = box:id()
-	local se_box = alife():object(box_id)
+	local se_box = AI:object(box_id)
 	if se_box then
 	--	log1("box found: "..se_box:name())
 		local inifilename = nil
@@ -332,13 +331,12 @@ function init_code_dialog( dlg )
 
 	local text = ""
 	local sobj, lname
-	local sim = alife()
 	local p1, p2, p3
 	for id, v in pairs( zamok_box ) do
 		if v.code and #v.code > 0 then
-			sobj = sim:object( id )
+			sobj = AI:object( id )
 			if sobj then
-				lname = sim:level_name( game_graph():vertex( sobj.m_game_vertex_id ):level_id() )
+				lname = object_level_name( sobj )
 				text = news_main.get_point_description( lname, sobj.position )
 				p1 = gen_phrase_id_str()
 				dlg:AddPhrase( text, p1, "3", -10000 )

@@ -92,7 +92,7 @@ local excluded_npcs={
 local excluded_ids = {}
 
 local function check_obj_id( i )
-	return i~=nil and alife():object(i)~=nil and level.object_by_id(i)~=nil
+	return i~=nil and AI:object(i)~=nil and level.object_by_id(i)~=nil
 end
 ----------------------------------------------------------------------------------------------------------------------
 -- EVALUATORS
@@ -115,7 +115,6 @@ function evaluator_crazy_grenadier:evaluate()
 
 	if self.a.testing then
 		local tg_hi, tg_lo = self.a.test_grenades.hi, self.a.test_grenades.lo
-		local sim = alife()
 		if (not check_obj_id(tg_hi))
 			or not check_obj_id(tg_lo)
 		then
@@ -123,10 +122,10 @@ function evaluator_crazy_grenadier:evaluate()
 			self.a.test_running = false
 			self.a.test_begun = false
 			self.a.next_check_time = time_global() + 1000
-			local sobj = sim:object(tg_hi)
-			if sobj then sim:release(sobj, true) end
-			sobj = sim:object(tg_lo)
-			if sobj then sim:release(sobj, true) end
+			local sobj = AI:object(tg_hi)
+			if sobj then AI:release(sobj, true) end
+			sobj = AI:object(tg_lo)
+			if sobj then AI:release(sobj, true) end
 			test_grenades[tg_hi]=nil
 			test_grenades[tg_lo]=nil
 			return false
@@ -178,10 +177,10 @@ function evaluator_crazy_grenadier:evaluate()
 				self.a.throwing=true
 			end
 			
-			local sobj = sim:object(tg_hi)
-			if sobj then sim:release(sobj, true) end
-			sobj = sim:object(tg_lo)
-			if sobj then sim:release(sobj, true) end
+			local sobj = AI:object(tg_hi)
+			if sobj then AI:release(sobj, true) end
+			sobj = AI:object(tg_lo)
+			if sobj then AI:release(sobj, true) end
 			test_grenades[tg_hi]=nil
 			test_grenades[tg_lo]=nil
 			
@@ -219,10 +218,10 @@ function evaluator_crazy_grenadier:evaluate()
 			local timeout = time_global() + self.a.grenades[gr].explode_time
 			self.a.test_grenades={}
 			local t
-			t = alife():create(gr.."_test", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+			t = AI:create(gr.."_test", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
 			test_grenades[t.id]=timeout+5000
 			self.a.test_grenades.hi=t.id
-			t = alife():create(gr.."_test", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+			t = AI:create(gr.."_test", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
 			test_grenades[t.id]=timeout+5000
 			self.a.test_grenades.lo=t.id
 			self.a.test_grenades_sect = gr
@@ -646,12 +645,11 @@ function get_grenade_radius(section)
 end
 
 function update(delta)
-	local sim = alife()
 	local _time = time_global()
 	local sobj
 	local to_remove = {}
 	for k,v in pairs(pseudo_grenades) do
-		sobj = sim:object(k)
+		sobj = AI:object(k)
 		if sobj then
 			local obj = level.object_by_id(k)
 			if obj then
@@ -671,17 +669,17 @@ function update(delta)
 	to_remove = {}
 
 	for k,v in pairs(grenades) do
-		sobj = sim:object(k)
+		sobj = AI:object(k)
 		if sobj then
 			if _time>v then
 				local obj = level.object_by_id(k)
 				if obj then
-					local a = sim:create(obj:section().."_fake",obj:position():add(vector():set(0,1,0)),obj:level_vertex_id(),obj:game_vertex_id())
+					local a = AI:create(obj:section().."_fake",obj:position():add(vector():set(0,1,0)),obj:level_vertex_id(),obj:game_vertex_id())
 					if a then
 						pseudo_grenades[a.id]=true
 					end
 				end
-				sim:release(sobj, true)
+				AI:release(sobj, true)
 				to_remove[k]=true
 			end
 		else
@@ -695,10 +693,10 @@ function update(delta)
 	to_remove = {}
 
 	for k,v in pairs(test_grenades) do
-		sobj = sim:object(k)
+		sobj = AI:object(k)
 		if sobj then
 			if _time>v then
-				sim:release(sobj, true)
+				AI:release(sobj, true)
 				to_remove[k]=true
 			end
 		else
@@ -720,7 +718,7 @@ function death_callback(npc)
 		local g_obj = get_grenade(grenade)
 		if g_obj then
 			local dummy,timeout = get_grenade_radius(g_obj:section())
-			grenade = alife():create(g_obj:section(), npc:bone_position(grenade_bone), npc:level_vertex_id(), npc:game_vertex_id())
+			grenade = AI:create(g_obj:section(), npc:bone_position(grenade_bone), npc:level_vertex_id(), npc:game_vertex_id())
 			grenades[grenade.id] = time_global() + timeout
 		end	
 		grenadiers[npc:id()]=nil
@@ -751,7 +749,7 @@ function npc_update(binder)
 	end
 
 	if time>binder.grenade_update_time then
-		local sobj = alife():object(npc:id())
+		local sobj = AI:object(npc:id())
 		if sobj and sobj.rank and sobj:rank()~=0 then
 			local prb = math.clamp(sobj:rank()/2500, 0.01, 0.9)
 			for k,v in ipairs(gr_types) do
@@ -759,7 +757,7 @@ function npc_update(binder)
 				if curr_gr == nil then 
 					if math.random()<prb then
 					--	log1( "Спавним гранату: "..v.."\nНеписю: "..npc:name().."\n" )
-						alife():create(v, npc:position(), npc:level_vertex_id(),
+						AI:create(v, npc:position(), npc:level_vertex_id(),
 							npc:game_vertex_id(), npc:id())
 					end
 				else
@@ -794,7 +792,7 @@ function release_grenade(sobj)
 	local sect = sobj:section_name()
 	for k,v in ipairs(gr_types) do
 		if sect==v.."_test" or sect==v.."_fake" then
-			alife():release(sobj, true)
+			AI:release(sobj, true)
 			return true
 		end
 	end
@@ -806,8 +804,8 @@ function fake_pickup(obj)
 	ui_grenade_marks.start_fading(obj:id())
 	for k,v in ipairs(gr_types) do
 		if obj:section()==v.."_test" or obj:section()==v.."_fake" then
-			local sobj = alife():object(obj:id())
-			if sobj then alife():release(sobj, true) end
+			local sobj = AI:object(obj:id())
+			if sobj then AI:release(sobj, true) end
 			return
 		end
 	end

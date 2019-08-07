@@ -4,7 +4,7 @@ local run_tbl = {
 }
 local funcs = {
 	[1] = function()
-		local obj = alife():object("val_prisoner_captive")
+		local obj = AI:object("val_prisoner_captive")
 		if obj then
 			level.map_add_object_spot(obj.id, "red_location", "val_prisoner_captive")
 		end
@@ -20,9 +20,8 @@ local funcs = {
 	end,
 	[4] = function()
 		local obj
-		local sim = alife()
 		for i = 1, 65534 do
-			obj = sim:object(i)
+			obj = AI:object(i)
 			if obj then
 				log(obj.m_story_id)
 			end
@@ -50,13 +49,12 @@ end
 function repair()
 	if has_alife_info( "naxac_test_repair5" ) then return end
 
-	local sim = alife()
 	local obj
 
 	db.actor:iterate_inventory(function(dummy, item)
 		if item:section() == "wpn_ballast" then
-			local obj = sim:object(item:id())
-			if obj then sim:release(obj, true) end
+			local obj = AI:object(item:id())
+			if obj then AI:release(obj, true) end
 		end
 	end,
 	db.actor)
@@ -64,29 +62,29 @@ function repair()
 	if not has_alife_info( "naxac_test_repair4" ) then
 		db.actor:give_info_portion( "naxac_test_repair4" )
 
-		obj = sim:object("radar_kukla")
+		obj = AI:object("radar_kukla")
 		if obj then
-			sim:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
-			sim:release(obj, true)
+			AI:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+			AI:release(obj, true)
 		end
 
 		obj = snp.object_by_section_offline("good_psy_helmet1")
 		if obj then
 			if obj.parent_id == 65535 then
-				sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
 			else
-				sim:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
 			end
-			sim:release(obj, true)
+			AI:release(obj, true)
 		end
 	end
 
 	if not has_alife_info( "naxac_test_repair3" ) then
 		db.actor:give_info_portion( "naxac_test_repair3" )
-		obj = sim:object( "podlovim_chiterov_restrictor" )
-		if obj then sim:release( obj, true ) end
-		obj = sim:object( "podlovim_chiterov1_restrictor" )
-		if obj then sim:release( obj, true ) end
+		obj = AI:object( "podlovim_chiterov_restrictor" )
+		if obj then AI:release( obj, true ) end
+		obj = AI:object( "podlovim_chiterov1_restrictor" )
+		if obj then AI:release( obj, true ) end
 		start_small_timer( 2000, naxac_test.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
 	end
 
@@ -101,8 +99,8 @@ function repair()
 	if not has_alife_info( "naxac_test_repair1" ) then
 		db.actor:give_info_portion( "naxac_test_repair1" )
 
-		if sim:object( "subway_scaner_doc_0001" ) == nil then
-			sim:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+		if AI:object( "subway_scaner_doc_0001" ) == nil then
+			AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
 		end
 	end
 
@@ -130,12 +128,11 @@ function after_credits()
 			['netpacket_pda'] = true,
 			["device_torch"] = true
 		}
-		local sim = alife()
 		local obj
 		db.actor:iterate_inventory(function(actor, item)
-			obj = sim:object(item:id())
+			obj = AI:object(item:id())
 			if obj and not_del[item:section()] == nil then
-				sim:release(obj, true)
+				AI:release(obj, true)
 			end
 		end,
 		db.actor)
@@ -171,8 +168,7 @@ function treasure_ss_1()
 	naxac_test.create_treasure( vector():set( -394.92098999023,0.49698415398598,52.124488830566 ), 146089, 3664, items )
 end
 function treasure_ss_2()
-	local sim = alife()
-	local obj = sim:create( "inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
+	local obj = AI:create( "inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
 	local code = ""
 	for i = 1,10 do
 		code = code..tostring( math.random( 0, 9 ) )
@@ -184,17 +180,16 @@ function treasure_ss_2()
 					"[password]\n"..
 					"code = "..code
 	netpk:modify( obj, t, netpk.fState )
-	obj = sim:object( obj.id )
+	obj = AI:object( obj.id )
 	obj:use_ai_locations( false )
 
-	sim:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
-	sim:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+	AI:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+	AI:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
 end
 function ss_teleports()
-	local sim = alife()
-	sim:create( "ss_tele_1", vector():set(-427.43768310547,35.865772247314,-323.46566772461),137286,3664)
-	sim:create( "ss_tele_2", vector():set(-418.9528503418,0.43205073475838,17.969646453857),146089,3664)
-	sim:create( "ss_tele_3", vector():set(-394.98583984375,0.49851682782173,56.047332763672),146089,3664)
+	AI:create( "ss_tele_1", vector():set(-427.43768310547,35.865772247314,-323.46566772461),137286,3664)
+	AI:create( "ss_tele_2", vector():set(-418.9528503418,0.43205073475838,17.969646453857),146089,3664)
+	AI:create( "ss_tele_3", vector():set(-394.98583984375,0.49851682782173,56.047332763672),146089,3664)
 end
 function del_ss_teleports()
 	bind_mteleport.del_teleport( "ss_tele_1" )
@@ -204,7 +199,7 @@ end
 
 function lc_question_add()
 	-- Припять - ЧАЭС
-	local obj = alife():object("exit_to_stancia_01")
+	local obj = AI:object("exit_to_stancia_01")
 	if obj then
 		local t = { silent_mode = 0 }
 		netpk:modify(obj, t, netpk.fState)
@@ -213,22 +208,22 @@ end
 
 function restore_anoms()
 	if has_alife_info("snpt_vp1_have") then
-		alife():create("zone_ozero",vector():set(58.848209381104,1.0079244375229,367.44982910156),276095,3760)
+		AI:create("zone_ozero",vector():set(58.848209381104,1.0079244375229,367.44982910156),276095,3760)
 	end
 	for i = 15606, 15618, 1 do
-		alife():create(i)
+		AI:create(i)
 	end
 --	local t = {723,726,740,745,746,747,749,750,751,754,755,773}
---	for i,v in ipairs(t) do alife():create(v) end
+--	for i,v in ipairs(t) do AI:create(v) end
 end
 
 function add_spot_lc()
-	local obj = alife():story_object(story_ids.lc_pripyat_to_east_pripyat)
+	local obj = AI:story_object(story_ids.lc_pripyat_to_east_pripyat)
 	level.map_add_object_spot_ser(obj.id, "level_changer2", "В Восточную Припять")
 end
 
 function rewrite_restr_logic( obj_name, logic )
-	local obj = alife():object( obj_name )
+	local obj = AI:object( obj_name )
 	if obj then
 		local cd = logic and "[logic]\ncfg = "..logic or ""
 		netpk:modify( obj, {custom_data =	cd}, netpk.fState )
@@ -242,13 +237,12 @@ function rewrite_restr_logic( obj_name, logic )
 end
 
 function create_treasure( pos, lv, gv, items, mapspot, hint )
-	local sim = alife()
-	local ruck = sim:create( "m_inventory_box", pos, lv, gv )
+	local ruck = AI:create( "m_inventory_box", pos, lv, gv )
 
 	local id = ruck.id
 	for sect, n in pairs(items) do
 		for i = 1, n do
-			sim:create(sect, pos, lv, gv, id)
+			AI:create(sect, pos, lv, gv, id)
 		end
 	end
 
@@ -256,7 +250,7 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 	t.custom_data  = "[logic]\n".."cfg = scripts\\new_inventory_box.ltx"
 	t.object_flags = bit_and( t.object_flags, bit_not(197) )
 	netpk:set( ruck, t )
-	ruck = sim:object( id )
+	ruck = AI:object( id )
 	ruck:use_ai_locations( false )
 
 	if mapspot then
@@ -269,7 +263,7 @@ end
 local new_name = nil
 function hero_rename_start()
 	new_name = "Стрелок"
-	netpk:modify( alife():actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
+	netpk:modify( AI:actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
 end
 function hero_rename( pk )
 	if not new_name then return end

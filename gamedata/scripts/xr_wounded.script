@@ -26,7 +26,7 @@ function evaluator_wound:evaluate ()
 						or npc:character_community()=="monolith")
 	end
 
-	local sobj=alife():object(npc:id())
+	local sobj=AI:object(npc:id())
 
 	local wounded_state = tostring( xr_logic.pstor_retrieve(self.object, "wounded_state") )
 	
@@ -116,7 +116,7 @@ function action_wounded:execute ()
 	elseif tostring(wound_manager_victim) == "nil" then
 		victim = nil
 	else
-		victim = alife():story_object(victim)
+		victim = AI:story_object(victim)
 	end
 
 	if self.object:character_community()~="monolith" and 
@@ -266,7 +266,7 @@ function Cwound_manager:update()
 	local hp  = 100*self.npc.health
 	local psy = 100*self.npc.psy_health
 --	amk.mylog("hp is "..hp.." for "..self.npc:name().." state "..tostring(cur_state))
-	local sobj=alife():object(self.npc:id())
+	local sobj=AI:object(self.npc:id())
 	if sobj then
 		if sobj.wounded and (not self.a.regen) and (not self.medkit_eaten) then
 			hp=1 -- симулируем раненость
@@ -328,7 +328,7 @@ function Cwound_manager:eat_medkit()
 		end
 		if medkit_eaten then
 		--	amk.mylog("medkit eaten be "..self.npc:name())
-			local sobj=alife():object(self.npc:id())
+			local sobj=AI:object(self.npc:id())
 			sobj.wounded=false -- позволяем выйти из состояния раненности
 			self.medkit_eaten=true
 			self.can_use_medkit = false
@@ -649,7 +649,7 @@ function help_wounded(npc)
 	npc:set_character_community( "stalker", 0, 0 )
 	npc:set_relation( game_object.friend, db.actor )
 	npc:enable_memory_object( db.actor, false )
-	local sobj = alife():object( npc:id() )
+	local sobj = AI:object( npc:id() )
 	if sobj then
 		sobj:brain():can_choose_alife_tasks( false )
 	end
@@ -674,7 +674,7 @@ end
 
 
 function custom_change( id )
-	local sobj = alife():object( id )
+	local sobj = AI:object( id )
 	if sobj then
 		netpk:modify( sobj, {custom_data = ""}, netpk.fState )
 

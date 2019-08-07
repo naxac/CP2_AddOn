@@ -15,7 +15,6 @@ local arenaext = nil	-- объект manager
 local time_def = nil	-- время в мире на момент начала игры (CTime)
 local update_time = game.CTime()
 local actor = db.actor
-local sim = alife()
 ---------------------------------------------------------------------------------------------------
 -- вывод отладочной информации
 ---------------------------------------------------------------------------------------------------
@@ -566,15 +565,15 @@ function CArenaext:startup()
 		end
 		
 		-- удаление 'деревянного' долговца
-		local obj = sim:object("level_prefix_physic_object_0004")
+		local obj = AI:object("level_prefix_physic_object_0004")
 		if obj ~= nil then
-			sim:release(obj)
+			AI:release(obj)
 		end
 		
 		-- освободим место в баре, если оно занято
-		local obj = sim:object("bar_bar_visitors_1_2")
+		local obj = AI:object("bar_bar_visitors_1_2")
 		if obj ~= nil then
-			sim:release(obj)
+			AI:release(obj)
 		end
 	end
 	timeup()
@@ -683,10 +682,10 @@ function CArenaext:cleanup()
 
 	-- удаление объектов
 	for id=0, 65535 do
-		obj = sim:object(id)
+		obj = AI:object(id)
 		if obj ~= nil then
 			if string.find(obj:name(), "aem_") then
-				sim:release(obj)
+				AI:release(obj)
 			end
 		end
 	end
@@ -838,16 +837,16 @@ function CArenaext:reinit()
 		if obj ~= nil then
 			section = obj:section()
 			if section == "aem_sound" or section == "aem_timer" then
-				sim:release(sim:object(id), true)
+				AI:release(AI:object(id), true)
 			end
 		end
 	end
 	
 	-- рестриктор, который будет выполнять озвучку и выход с арены
-	sim:create("aem_sound", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
+	AI:create("aem_sound", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
 	
 	-- рестриктор, который будет выполнять функции таймера, при сражениях на время
-	sim:create("aem_timer", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
+	AI:create("aem_timer", vector():set(150.14, -14.16, 74.03), actor:level_vertex_id(), actor:game_vertex_id())
 	
 	self.it = self.nt
 	xr_logic.pstor_store(actor, "aem_it", self.it)
@@ -855,7 +854,7 @@ function CArenaext:reinit()
 end
 
 -------
--- вызывается из "bind_stalker.script" <actor_binder:update(delta)>
+-- вызывается из "bind_actor.script" <actor_binder:update(delta)>
 -------
 function CArenaext:update()
 	local curr = time_get_curr()
@@ -873,9 +872,9 @@ function CArenaext:update()
 
 	-- удаляем Арни и создаём его клона
 	if id == 0 then
-		npc = sim:object("bar_arena_man")
+		npc = AI:object("bar_arena_man")
 		if npc ~= nil then
-			sim:release(npc)
+			AI:release(npc)
 		--	if npc:alive() ~= true then	-- вы ж его удалили, какого хрена проверять? Неудивительно, что при старте новой игры всякая херь временами бывает...
 				-- мёртвый
 		--		actor:give_info_portion("aem_arny_dead")
@@ -883,7 +882,7 @@ function CArenaext:update()
 		--		admin_dead()
 		--	else
 				-- живой
-				local obj = sim:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
+				local obj = AI:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
 				-- сохранение id
 				id = obj.id
 				xr_logic.pstor_store(actor, "aem_id", id)
@@ -903,7 +902,7 @@ function CArenaext:update()
 		--printf("CArenaext:update(30sec_update_done)")
 		if id > 0 then	
 			id = xr_logic.pstor_retrieve(actor, "aem_id")
-			npc = sim:object(id)
+			npc = AI:object(id)
 			if npc ~= nil and npc:clsid() == clsid.script_stalker then
 				if npc:alive() ~= true then
 					-- мёртвый
@@ -1100,7 +1099,7 @@ function CArenaext:start(phr_id)
 		for i=1, n1 do
 			local spawn = team1.spawn1[i]
 			local place = self.places[team1.place1[i]]
-			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
+			local obj = AI:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
 		-- спавн второй команды - люди
@@ -1113,7 +1112,7 @@ function CArenaext:start(phr_id)
 		for i=1, n2 do
 			local spawn = team2.spawn2[i]
 			local place = self.places[team2.place2[i]]
-			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
+			local obj = AI:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
 		-- ставка
@@ -1137,7 +1136,7 @@ function CArenaext:start(phr_id)
 		for i=1, n1 do
 			local spawn = team1.spawn1[i]
 			local place = self.places[team1.place1[i]]
-			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
+			local obj = AI:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
 		-- спавн второй команды
@@ -1147,7 +1146,7 @@ function CArenaext:start(phr_id)
 		for i=1, n2 do
 			local spawn = team2.spawn2[i]
 			local place = self.places[team2.place2[i]]
-			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
+			local obj = AI:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
 		-- ставка 
@@ -1170,7 +1169,7 @@ function CArenaext:start(phr_id)
 		for i=1, n do
 			local spawn = info.spawn[i]
 			local place = self.places[info.place[i]]
-			local obj = sim:create(spawn, place.pos, place.lvid, place.gvid)
+			local obj = AI:create(spawn, place.pos, place.lvid, place.gvid)
 		end
 		
 		-- 'волшебный' ящичек
@@ -1995,7 +1994,7 @@ function clear_items(items)
 		obj = actor:object(i)
 		if items[obj:section()] == true then
 			--printf(" section='%s'", obj:section())
-			sim:release(sim:object(obj:id()), true)
+			AI:release(AI:object(obj:id()), true)
 		end
 	end
 end
@@ -2009,7 +2008,7 @@ function clear_box(box)
 	local obj
 	local ids = enum_box_items(box)
 	for i, id in pairs(ids) do
-		sim:release(sim:object(id), true)
+		AI:release(AI:object(id), true)
 	end
 end
 
@@ -2019,15 +2018,15 @@ end
 -------
 function clear_offline_box(sid)
 	--printf("clear_offline_box(sid=%d)", sid)
-	local obj = sim:story_object(sid)
+	local obj = AI:story_object(sid)
 	if obj then
 		local box = obj.id
 		local id
 		for id=0, 65535 do
-			obj = sim:object(id)
+			obj = AI:object(id)
 			if obj and obj.parent_id == box then
 				--printf("release(%s)", obj:name())
-				sim:release(obj, true)
+				AI:release(obj, true)
 			end
 		end
 	end
@@ -2121,7 +2120,7 @@ function msg(text)
 		who = game.translate_string("aem_barman")
 		icon = Frect():set(332,235,84,45)
 	else
-		npc = sim:object(xr_logic.pstor_retrieve(actor, "aem_id"))
+		npc = AI:object(xr_logic.pstor_retrieve(actor, "aem_id"))
 		if npc ~= nil and npc:alive() == true then
 			if npc:profile_name() == "aem_arny" then
 				who = game.translate_string("bar_arny_name")
@@ -2486,7 +2485,7 @@ end
 -- заспавним-ка нового администратора для арены
 -------
 function admin_spawn()
-	local obj = sim:create("aem_admin", vector():set(153.451, -0.00164, 42.0269), 40777, 1230)
+	local obj = AI:create("aem_admin", vector():set(153.451, -0.00164, 42.0269), 40777, 1230)
 
 	-- сохранение id нового админа
 	xr_logic.pstor_store(actor, "aem_id", obj.id)

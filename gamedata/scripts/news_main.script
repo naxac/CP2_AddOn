@@ -1468,7 +1468,6 @@ function isGameObject(obj)
 end
 
 function get_object_levelname(obj)
-	local sim = alife()
 	local mlevel = "null"	
 	if (obj) then
 		local m_game_vertex
@@ -1479,12 +1478,12 @@ function get_object_levelname(obj)
 		else
 			m_game_vertex = obj.m_game_vertex_id
 		end
-		if (m_game_vertex and game_graph():valid_vertex_id(m_game_vertex)) then
-			local lvert = game_graph():vertex(m_game_vertex)
+		if (m_game_vertex and GGraph:valid_vertex_id(m_game_vertex)) then
+			local lvert = GGraph:vertex(m_game_vertex)
 			if (lvert ~= nil and lvert.level_id) then
 				local lid = lvert:level_id()
 				if (lid ~= nil) then
-					mlevel = sim:level_name(lid)
+					mlevel = AI:level_name(lid)
 				else
 					if _debug == true then mylog(" get_object_levelname - level id is null "..nm) end
 				end
@@ -1539,7 +1538,6 @@ function check_news()
 end
 
 function add_spawned_object(obj)
-	local sim = alife()
 	if (obj and (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()])) and obj:alive() then
 		if obj.can_switch_online and obj:can_switch_online() == false then return end
 		local s_comm = get_npc_community(obj)
@@ -1580,10 +1578,10 @@ function add_spawned_object(obj)
 			if (obj.smart_terrain_id) then
 				m_obj = obj
 			else
-				m_obj = sim:object(s_id)
+				m_obj = AI:object(s_id)
 			end
 			if (m_obj and m_obj.smart_terrain_id and m_obj:smart_terrain_id() and m_obj:smart_terrain_id()~=65535 and news_data.smart_filters[s_comm]) then
-				local sm = sim:object(m_obj:smart_terrain_id())
+				local sm = AI:object(m_obj:smart_terrain_id())
 				if (sm and sm.name and sm:name()) then
 					local sn = sm:name()
 					for ks, vs in pairs (news_data.smart_filters[s_comm]) do
@@ -1935,7 +1933,6 @@ end
 
 -- Видели монстров. Будем спавнить.
 function do_seen_monster()
-	local sim = alife()
 	local avail = {}
 --	local name, sname = amk_names_lists.get_strings()
 	local s_author =	amk_names_lists.get_strings()	-- name.." "..sname
@@ -2022,7 +2019,7 @@ function do_seen_monster()
 								-- Слишком близко.
 								return
 							end
-							obj = sim:create(class, new_pos, lv, gv)
+							obj = AI:create(class, new_pos, lv, gv)
 							if (obj) then
 								if (o_author == "") then
 									local author = get_nearest_stalker(get_object_levelname(obj), get_object_position(obj), dist_seen, 0)
@@ -2239,7 +2236,6 @@ end
 
 
 function on_news()
-	local sim = alife()
 	local avail = {}
 	if news_stack then 
 		amk.oau_reason="cn on_news first pass"
@@ -2288,7 +2284,7 @@ function on_news()
 			if (m_author_id ~= nil) then
 				amk.oau_reason="cn on_news check author"
 				bAlive = false
-				local obj = sim:object(m_author_id)
+				local obj = AI:object(m_author_id)
 				amk.oau_reason="cn on_news check author obj"
 				if (obj) then
 					amk.oau_reason="cn on_news author obj exists"
@@ -2613,7 +2609,7 @@ end
 
 function create_treasurebox()
 	local actor = db.actor
-	local obj = alife():create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
+	local obj = AI:create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
 	if not obj then return false end
 	
 	local t = netpk:get(obj, netpk.fState)
@@ -2625,7 +2621,7 @@ function create_treasurebox()
 		t.custom_data = "[logic]\ncfg = scripts\\new_inventory_box.ltx"
 	end
 	netpk:set(obj, t)
-	obj = alife():object( obj.id )
+	obj = AI:object( obj.id )
 	obj:use_ai_locations( false )
 end
 
@@ -2639,7 +2635,6 @@ function get_spawn_t(t)
 end
 
 function on_miniquest_reward(trader)
-	local sim = alife()
 	if (trader and db.actor) then
 		local money = 0
 		local items = ""
@@ -2652,7 +2647,7 @@ function on_miniquest_reward(trader)
 		if (story_id == story_ids.Escape_Trader)
 			or (story_id == story_ids.bar_Barman)
 		then
-			local obj = sim:story_object(story_id)
+			local obj = AI:story_object(story_id)
 			if (obj) then
 				local t = netpk:get(obj, netpk.fState)
 				local cd = netpk:parse_custom_data(t.custom_data)
@@ -2683,12 +2678,11 @@ end
 
 
 function point_is_far(point, lv, gv, distance)
-	local sim = alife()
 	local actor = db.actor
 	local result = true
-	if (actor and point and lv and gv and distance and game_graph():valid_vertex_id(gv)) then
+	if (actor and point and lv and gv and distance and GGraph:valid_vertex_id(gv)) then
 		-- на одном ли уровне?
-		local map = sim:level_name(game_graph():vertex(gv):level_id())
+		local map = AI:level_name(GGraph:vertex(gv):level_id())
 		if (map and level.name() == map) then
 			-- Достаточно ли далеко?
 			if (point:distance_to(actor:position()) < distance) then
@@ -2700,7 +2694,6 @@ function point_is_far(point, lv, gv, distance)
 end
 
 function get_nearest_stalker(level, point, dist_max, dist_min)
-	local sim = alife()
 	local obj = nil
 	local map = level
 	local min_dist = 1000000
@@ -2709,10 +2702,10 @@ function get_nearest_stalker(level, point, dist_max, dist_min)
 	if (map and point and amk_offline_alife.off_npcs[map] and amk_offline_alife.off_npcs[map].stalkers and #amk_offline_alife.off_npcs[map].stalkers > 0) then
 		for k, v in pairs(amk_offline_alife.off_npcs[map].stalkers) do
 			if v then
-				local stalker = sim:object(v.id)
+				local stalker = AI:object(v.id)
 				-- На одном ли уровне?
-				if stalker and stalker.id ~= db.actor:id() and stalker.health and stalker.can_switch_online and stalker:can_switch_online() and stalker.m_game_vertex_id and game_graph():valid_vertex_id(stalker.m_game_vertex_id) then
-					local s_map = sim:level_name(game_graph():vertex(stalker.m_game_vertex_id):level_id())
+				if stalker and stalker.id ~= db.actor:id() and stalker.health and stalker.can_switch_online and stalker:can_switch_online() and stalker.m_game_vertex_id and GGraph:valid_vertex_id(stalker.m_game_vertex_id) then
+					local s_map = object_level_name(stalker)
 					if (map == s_map) then
 						if (stalker:health() > 0 and stalker.alive and stalker:alive()==true) then
 							local zz = get_npc_community(stalker)
@@ -2752,7 +2745,7 @@ end
 
 function isAlive(story_id)
 	if (story_id) then
-		local obj = alife():story_object(story_id)
+		local obj = AI:story_object(story_id)
 		return obj and obj.alive and obj:alive()
 	end
 	return false

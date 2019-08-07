@@ -1,0 +1,31 @@
+--[[---------------------------------------------------------------------------------------------------------------------------------
+ File			: bind_crow.script
+ Description	: Р‘РёРЅРґРµСЂ РІРѕСЂРѕРЅ - РѕР·РІСѓС‡РєР°, Рё РїРѕРґР±РёСЂР°РµРјС‹Рµ С‚СѓС€РєРё.
+ Copyright		: 2013 В© boryan67
+ Author			: boryan67 - scripts & mauvais - sounds
+ Last edit		: 15.08.2013
+--]]------------------------------------------------------------------------------------------------------------------------------------
+-- РѕР·РІСѓС‡РєР° РІС‹РєРёРЅСѓС‚Р° - РµРµ РІСЃРµ СЂР°РІРЅРѕ РЅРµ СЃР»С‹С€РЅРѕ, С‚РѕР»СЊРєРѕ Р°РїРґРµР№С‚ РіСЂСѓР·РёС‚.
+
+function init(obj)
+	obj:bind_object(crow_binder(obj))
+end
+
+class "crow_binder" (object_binder)
+
+function crow_binder:__init(obj) super(obj)
+end 
+
+function crow_binder:update(delta)
+	object_binder.update(self, delta)
+	
+	if not self.object:alive() and not self.dead then
+		self.dead = true
+
+		if not amk.has_variable("blowout") then
+			-- СѓРґР°Р»РёРј РІРѕСЂРѕРЅСѓ Рё Р·Р°СЃРїР°РІРЅРёРј С‚СѓС€РєСѓ
+			AI:release(AI:object(self.object:id()))
+			AI:create("mutant_crow", self.object:position(), self.object:level_vertex_id(), self.object:game_vertex_id())
+		end
+	end
+end

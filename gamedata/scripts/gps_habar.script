@@ -10,12 +10,6 @@ local table_sort = table.sort
 local string_find = string.find
 local string_gsub = string.gsub
 
-local IsHuman = {
-	[clsid.actor] = true,
-	[clsid.script_stalker] = true,
-	[clsid.script_trader] = true,
-}
-
 local is_gps_debug = false -- для включения локальной отладочной информации
 local max_comments_strings_on_screen = 35 -- сколько строк комментариев максимально влезает в экран на ПДА
 
@@ -117,7 +111,7 @@ function get_inventory_box_id(obj)
 	if not obj then
 		return
 	end
-	local aobj = alife():object(obj:id())
+	local aobj = AI:object(obj:id())
 	if aobj and aobj.parent_id then
 		return aobj.parent_id
 	end
@@ -195,11 +189,11 @@ function remove_item(boxId, item, is_need_msg_warning)
 	
 	-- если было ограбление и нет мода Заминированные тайники, предупреждаем ГГ
 	if is_need_msg_warning and is_msg_warning then
-		local seBox = alife():object(boxId)
+		local seBox = AI:object(boxId)
 	  if not IsHuman[seBox:clsid()] then
 		local lvname = "Зоны Отчуждения"
-		if boxId and game_graph():valid_vertex_id(seBox.m_game_vertex_id) then
-			lvname = game.translate_string(alife():level_name(game_graph():vertex(seBox.m_game_vertex_id):level_id()))
+		if boxId and GGraph:valid_vertex_id(seBox.m_game_vertex_id) then
+			lvname = game.translate_string(object_level_name(seBox))
 		end
 		amk.send_tip("%c[255,255,128,128]На территории " .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
 	  end
@@ -220,9 +214,8 @@ function get_gps_count(boxId)
 	local gps_count = 0
 	
 	if items_in_box[boxId] then
-		local sim = alife()
 		for i, v in pairs(items_in_box[boxId]) do
-			locObj = sim:object(v.id)
+			locObj = AI:object(v.id)
 			if locObj and locObj:section_name() == "amk_metka" then
 				gps_count = gps_count + 1
 			end
@@ -235,10 +228,9 @@ end
 
 -- соствялем таблицу вещей в тайниках. не используется.
 function load_items()
-	local sim = alife()
 	local aobj
 	for i = 1, 65534 do 
-		aobj =  sim:object(i)
+		aobj =  AI:object(i)
 		if aobj and aobj.parent_id and aobj.parent_id ~= 0 and aobj.parent_id ~=65535 then
 			if not items_in_box[aobj.parent_id] then items_in_box[aobj.parent_id] = {} end
 			table.insert(items_in_box[aobj.parent_id], {id = aobj.id, name=aobj:name()})
@@ -314,10 +306,9 @@ function reinit_box(boxId)
 	
 	if items_in_box[boxId] then
 		local aobj
-		local sim = alife()
 		for i, v in pairs(items_in_box[boxId]) do
 			if v.id then
-				aobj = sim:object(v.id)
+				aobj = AI:object(v.id)
 				if not aobj then
 					table_remove(items_in_box[boxId], i)
 				elseif aobj.parent_id ~= boxId then
@@ -386,7 +377,7 @@ function update_gps(item, box, boxId, is_new_metka)
 	end
 
 	if boxId then
-		box = alife():object(boxId)
+		box = AI:object(boxId)
 	end
 	
 	-- если предмет не в тайник и не из тайника - не наш случай
@@ -397,7 +388,7 @@ function update_gps(item, box, boxId, is_new_metka)
 
 	if not box then
 		-- непись мог погибнуть, ну или тайник могли уничтожить (наверное)
-		local aobj = alife():object(boxId)
+		local aobj = AI:object(boxId)
 		if not aobj then
 			remove_label(boxId)
 		end
@@ -448,7 +439,7 @@ function update_gps_stalker(box, boxId, is_new_metka)
 		local npc_name = get_npc_name(box)
 		
 		-- помеченный погиб, предупредим ГГ
-		local aobj = alife():object(boxId)
+		local aobj = AI:object(boxId)
 		if is_warning_on_death and aobj and get_health(aobj) <= 0 and labels[boxId].wh == 0 then
 			labels[boxId].wh = 1
 			is_save_table = true
@@ -527,10 +518,9 @@ function get_color(secName)
 end
 
 function spawn_m_inv()
-	local sim = alife()
 	local aobj
 	for i = 1, 65534 do 
-		aobj =  sim:object(i)
+		aobj =  AI:object(i)
 		if aobj and aobj.section_name and aobj:section_name() == "m_inventory_box" then
 			amk.add_spot_on_map(aobj.id, "red_location", "рюкзак")
 		end
@@ -566,10 +556,9 @@ function update_gps_habar(boxId)
 		local secName, invName, locObj
 		local itemsbox = {}
 		local is_yes
-		local sim = alife()
 		
 		for i, v in pairs(items_in_box[boxId]) do
-			locObj = sim:object(v.id)
+			locObj = AI:object(v.id)
 			if locObj and locObj:section_name() then
 				secName = locObj:section_name()
 				invName = get_name(secName)
@@ -701,15 +690,14 @@ function update_gps_state()
 	if habar_list_mode then
 		local gm = amk.game_minutes()
 		local gh = amk.game_hours()
-		local sim = alife()
 		
 		for i, v in pairs(labels) do
 			-- если надо предупредить о разряде сообщением
 			if v.at > 0 and v.wt > 0 and v.wr == 0 and gh - v.gt > v.at - v.wt then
-				aobj = sim:object(i)
+				aobj = AI:object(i)
 				lvname = ""
-				if aobj and game_graph():valid_vertex_id(aobj.m_game_vertex_id) then
-					lvname = game.translate_string(sim:level_name(game_graph():vertex(aobj.m_game_vertex_id):level_id()))
+				if aobj and GGraph:valid_vertex_id(aobj.m_game_vertex_id) then
+					lvname = game.translate_string(object_level_name(aobj))
 				end
 
 --					mylog("i = " .. i)
@@ -734,10 +722,10 @@ function update_gps_state()
 			
 			-- если время вышло, выключаем метку
 			if v.at > 0 and gh - v.gt > v.at then
-				aobj = sim:object(i)
+				aobj = AI:object(i)
 				lvname = ""
-				if aobj and game_graph():valid_vertex_id(aobj.m_game_vertex_id) then
-					lvname = game.translate_string(sim:level_name(game_graph():vertex(aobj.m_game_vertex_id):level_id()))
+				if aobj and GGraph:valid_vertex_id(aobj.m_game_vertex_id) then
+					lvname = game.translate_string(object_level_name(aobj))
 				end
 				amk.send_tip("%c[255,255,128,128]На маячке на территории " .. lvname .. " села батарея. Связь потеряна.", "GPS", nil, 20, "nano")
 
@@ -766,7 +754,7 @@ function show_dlg_dots_npc(obj)
 	end
 	
 	-- маячок попал не сталкеру или метка уже установлена, заканчиваем.
-	local box = alife():object(boxId)
+	local box = AI:object(boxId)
 	if not box then 
 		return
 	end
@@ -827,7 +815,7 @@ function on_item_take_from_box(box, item)
 	-- mylog("ON_ITEM_TAKE_FROM_BOX: взят предмет " .. objinfo(item) .. ". Из ящика. Id: " .. tostring(boxId))
 	-- если удалили из ящика почистим items_in_box
 	if item and item:id() and box and box:id() then
-		remove_item(box:id(), alife():object(item:id()), false)
+		remove_item(box:id(), AI:object(item:id()), false)
 	end
 	
 	recharge_gps(item, box)
@@ -840,7 +828,7 @@ function on_item_drop(obj)
 	if _G["biznes_remove_special_item"]==true then return end
 
 	-- mylog("ON_ITEM_DROP: потерян предмет: " .. objinfo(obj))
-	local se_obj = obj and obj:id() and alife():object(obj:id())
+	local se_obj = obj and obj:id() and AI:object(obj:id())
 	if se_obj then
 		insert_item(get_inventory_box_id(obj), se_obj)
 	end

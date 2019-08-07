@@ -51,7 +51,7 @@ function UICarBodyNew:__init(obj)
 	self.wnd = self
 
 	db.actor:give_info_portion("ui_car_body_new")
-	bind_stalker.hide_weapon("inv")
+	bind_actor.hide_weapon("inv")
 end
 
 function UICarBodyNew:InitControls()
@@ -286,7 +286,7 @@ function UICarBodyNew:TransferItem(from_where, item_name)
 		self.our_bag:RemoveItem( item )
 
 		shiftCheckDropItem()
-		alife():release( alife():object( item:id(), true) )
+		AI:release( AI:object( item:id(), true) )
 	end
 
 	self:ShowOthersWeight()
@@ -296,15 +296,15 @@ function UICarBodyNew:ConvertFakeItem(item)
 	local sobj
 	local sect = item:section()
 	if item.ammo_left then
-		sobj = alife():create_ammo(sect, vector():set(0,0,0), 0, 0, 0, item.ammo_left)
+		sobj = AI:create_ammo(sect, vector():set(0,0,0), 0, 0, 0, item.ammo_left)
 	elseif item.addon_flags and item.addon_flags ~= 0 then
 		local spawn_pos = db.actor:position():add(vector():set(2, 2, 2))
-		sobj = alife():create(sect, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+		sobj = AI:create(sect, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
 		level.client_spawn_manager():add(sobj.id, -1, function(id, obj)
 			db.actor:transfer_item(obj, db.actor)
 		end)
 	else
-		sobj = alife():create(sect, vector():set(0,0,0), 0, 0, 0)
+		sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
 	end
 
 	item:set_server_object(sobj)
@@ -400,7 +400,7 @@ function UICarBodyNew:Quit()
 	self.wnd = nil
 
 	db.actor:give_info_portion("ui_car_body_new_hide")
-	bind_stalker.restore_weapon("inv")
+	bind_actor.restore_weapon("inv")
 end
 
 function UICarBodyNew:OnKeyboard(dik, keyboard_action)

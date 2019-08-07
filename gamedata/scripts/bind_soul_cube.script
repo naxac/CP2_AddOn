@@ -167,7 +167,7 @@ function soul_cube_binder:load(reader)
 	self.souls = reader:r_u8()
 	self.cube_id = reader:r_u32()
 	if self.cube_id ~= 70000 then
-		alife():release(alife():object(self.cube_id),true)
+		AI:release(AI:object(self.cube_id),true)
 	end
 	self.cube_id = nil
 	self.charged = self.souls >= 5
@@ -191,13 +191,12 @@ function soul_cube_binder:sound_particle_fastcall()
 end
 
 function soul_cube_binder:seek_target() -- поиск цели
-	local sim = alife()
 	local dist_search = 50
 	local cone_min = 0.5
 	self.target = nil
 	-- перебираем мутантов
 	for k,v in pairs (db.monster) do
-		if sim:object( k ) ~= nil then
+		if AI:object( k ) ~= nil then
 			local rvec = v:position():sub(device().cam_pos)
 			local r = rvec:magnitude()
 			if r <= dist_search and db.actor:see(v) and v:clsid() ~= clsid.boar_s then -- если цель в зоне поражения
@@ -249,7 +248,7 @@ function soul_cube_binder:OnTake(cube_type)
 	end
 	self.sound_idle:play_at_pos(db.actor, device().cam_pos:mad(device().cam_dir, 1.5))
 	local cube_section = "soulcube_"..cube_type
-	local cube = alife():create(cube_section,(device().cam_pos:mad(device().cam_dir, 1.5)),db.actor:level_vertex_id(),db.actor:game_vertex_id())
+	local cube = AI:create(cube_section,(device().cam_pos:mad(device().cam_dir, 1.5)),db.actor:level_vertex_id(),db.actor:game_vertex_id())
 	self.cube_id = cube.id
 --	self:ShowCrosshair() -- отключен худ
 end
@@ -291,7 +290,7 @@ end
 function soul_cube_binder:OnRemove()
 	if self.attack then return end -- если атака началась, не прерываем.
 	self.sound_idle:stop()
-	alife():release(alife():object(self.cube_id),true)
+	AI:release(AI:object(self.cube_id),true)
 	self.cube_id = nil
 	self.cube = nil
 	self.lbutton_pressed = false
@@ -368,11 +367,11 @@ function soul_cube_binder:slash_target(target_obj)
 		db.actor.psy_health = health
 		db.actor.radiation = -1*health
 		if not self.bint_id1 then
-			local bint1 = alife():create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+			local bint1 = AI:create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
 			self.bint_id1 = bint1.id
 		end
 		if not self.bint_id2 then
-			local bint2 = alife():create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+			local bint2 = AI:create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
 			self.bint_id2 = bint2.id
 		end
 		self.slash_time = time_global() + self.sound_health_up:length()/2

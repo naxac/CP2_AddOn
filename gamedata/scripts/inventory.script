@@ -201,9 +201,8 @@ function give_items(sSection, iNeedCount)
 		iNeedCount = 1
 	end
 
-	local sim = alife()
 	for i = 1, iNeedCount do
-		sim:create(sSection, vector(), 0, 0, 0)
+		AI:create(sSection, vector(), 0, 0, 0)
 	end
 
 	news_manager.relocate_item(db.actor, "in", sSection, iNeedCount)
@@ -216,7 +215,6 @@ function out_items(sSection, iNeedCount, bGood)
 
 	local iOutCount = 0
 	local seObj = nil
-	local sim = alife()
 	db.actor:iterate_inventory(function (dummy, vItem)
 		if iOutCount >= iNeedCount then
 			return
@@ -225,9 +223,9 @@ function out_items(sSection, iNeedCount, bGood)
 		if vItem:section() == sSection
 			and (bGood ~= true or vItem:condition() > good_condition)
 		then
-			seObj = sim:object( vItem:id() )
+			seObj = AI:object( vItem:id() )
 			if seObj then
-				sim:release(seObj, true)
+				AI:release(seObj, true)
 			end
 			iOutCount = iOutCount + 1
 		end
@@ -240,14 +238,13 @@ end
 function out_items_all(sSection, bGood)
 	local iOutCount = 0
 	local seObj = nil
-	local sim = alife()
 	db.actor:iterate_inventory(function (dummy, vItem)
 		if vItem:section() == sSection
 			and (bGood ~= true or vItem:condition() > good_condition)
 		then
-			seObj = sim:object( vItem:id() )
+			seObj = AI:object( vItem:id() )
 			if seObj then
-				sim:release(seObj, true)
+				AI:release(seObj, true)
 			end
 			iOutCount = iOutCount + 1
 		end

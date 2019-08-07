@@ -27,12 +27,11 @@ local statistic = {}
 
 function scan()
 	local table_insert = table.insert
-	local sim = alife()
 	local sobj = nil
 	local p_id
 	
 	for i=1,65534 do
-		sobj = sim:object(i)
+		sobj = AI:object(i)
 		if sobj then
 			all_objects[i] = sobj
 			p_id = sobj.parent_id
@@ -48,7 +47,7 @@ end
 function strn_fix(obj)
 	local strn_id = obj:smart_terrain_id()
 	if strn_id ~= 65535 then
-		local strn = alife():object(strn_id)
+		local strn = AI:object(strn_id)
 		if strn and strn:clsid() ~= clsid.smart_terrain then
 			log("! Обнаружена привязка к несуществующему smart_terrain: %s, smart_terrain_id: %s. Привязка удалена.",
 				obj:name(), tostring(strn_id))
@@ -66,9 +65,6 @@ function off_corpses()
 	
 --	tmr:get("scan")
 
-	local graph = game_graph()
-	local sim = alife()
-
 	local actor_level = level.name()
 	local actorpos = db.actor:position()
 	
@@ -82,9 +78,9 @@ function off_corpses()
 	local rel = {}
 	-- главный цикл
 	for i, obj in pairs(all_objects) do
-		if graph:valid_vertex_id(obj.m_game_vertex_id) then
+		if GGraph:valid_vertex_id(obj.m_game_vertex_id) then
 			obj_clsid = obj:clsid()
-			obj_level = sim:level_name( graph:vertex(obj.m_game_vertex_id):level_id() )
+			obj_level = object_level_name(obj)
 			obj_name = obj:name()
 			obj_sect = obj:section_name()
 			released = false
@@ -140,7 +136,7 @@ function off_corpses()
 				-- удалем аномалии
 				elseif amk_anoms.is_anomaly(obj_clsid) then
 					if is_blowout==false and amk_anoms.can_remove_anom(obj, obj_level) then
-						sim:release(obj, true)
+						AI:release(obj, true)
 						released = true
 					end
 
@@ -158,7 +154,7 @@ function off_corpses()
 							or obj_sect == "af_ameba_slug" 
 							or obj_sect == "af_ameba_mica" )
 						then
-							sim:release(obj, true)
+							AI:release(obj, true)
 							released = true
 
 						-- проблемые арты в СД
@@ -168,7 +164,7 @@ function off_corpses()
 							or obj_sect == "af_rusty_sea-urchin"
 							or obj_sect == "af_rusty_kristall" )
 						then
-							sim:release(obj, true)
+							AI:release(obj, true)
 							released = true
 						end
 					end
@@ -178,7 +174,7 @@ function off_corpses()
 					if level_changing and ( protected_items.obj_is_protected(obj,"tabl_wpn_keep","like") == false ) then
 						if (obj_level == "l10_radar" or obj_level == "hospital") and (obj_level ~= actor_level) then
 							--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
-							sim:release(obj, true)
+							AI:release(obj, true)
 							released = true
 							table.add( statistic, "remove_weapons" )
 						elseif obj.position:distance_to(actorpos) > dist_to_weapons then 
@@ -198,8 +194,8 @@ function off_corpses()
 								if obj_sect == "a_inventory_box41" then
 									xr_sound.get_safe_sound_object([[zwuk\pluton]]):play_at_pos(db.actor, obj.position, 0, sound_object.s3d+sound_object.looped)
 								end
-								sim:set_switch_online(i, true)
-								sim:set_switch_offline(i, true)
+								AI:set_switch_online(i, true)
+								AI:set_switch_offline(i, true)
 							end
 						end
 					end
@@ -211,7 +207,7 @@ function off_corpses()
 
 				-- трупы ворон
 				elseif obj_sect == "mutant_crow" then
-					sim:release(obj, true)
+					AI:release(obj, true)
 					released = true
 				end
 
@@ -241,7 +237,7 @@ function off_corpses()
 				elseif string.find(obj_sect, "gl_test_shell")
 					or string.find(obj_sect, "gl_fake_missile")
 				then
-					sim:release(obj, true)
+					AI:release(obj, true)
 					released = true
 				end
 			end
@@ -258,7 +254,7 @@ function off_corpses()
 			table.insert( rel, i )
 		end
 
-		if sim:object(i) then
+		if AI:object(i) then
 			amk_offline_alife.add_fresh_meat(obj)
 		end
 	end -- for
@@ -289,7 +285,7 @@ function off_corpses()
 			while b > summ_dead_monsters and n > 0 do
 				local corps = tabl_monsters_dead[n]
 				if item_found(corps.id) == false then --если нету "запчастей" - удаляем
-					sim:release(corps,true)
+					AI:release(corps,true)
 					table.remove(tabl_monsters_dead,n)
 					table.add( statistic, "remove_monsters" )
 					b=b-1
@@ -307,7 +303,7 @@ function off_corpses()
 			while b > summ_corpses and n > 0 do
 				local corps = tabl_corpses[n]
 				if item_found(corps.id) == false  then
-					sim:release(corps,true)
+					AI:release(corps,true)
 					table.remove(tabl_corpses,n)
 					table.add( statistic, "remove_npc" )
 					b=b-1
@@ -325,7 +321,7 @@ function off_corpses()
 			local wpn_name = wpn:name()
 			if (get_dist_to_trup_9510(wpn) == true and get_dist_to_trup(wpn) == true) then
 				local weapon = tabl_weapons[b]
-				sim:release(weapon,true)
+				AI:release(weapon,true)
 				table.remove(tabl_weapons,b)
 				table.add( statistic, "remove_weapons" )
 			end
@@ -435,7 +431,7 @@ function clear_outfits(npc)
 				
 			--	log1("* sell outfit ["..outfit:name().."]"..
 			--		" outfit level: "..lvl..", npc vis level: ["..vis..":"..npc_lvl.."]")
-				alife():release(outfit, true)
+				AI:release(outfit, true)
 				table.remove(tabl_outfits_all, i)
 			end
 		end

@@ -82,11 +82,11 @@ local cmd2func = {}
 		end
 		local a = db.actor
 		local gv = a:game_vertex_id()
-		if not game_graph():valid_vertex_id(gv) then
+		if not GGraph:valid_vertex_id(gv) then
 			return false, "Invalid vertex of actor: can't create object"
 		end
 		local pos = a:position():add(a:direction():mul(3))
-		alife():create(section, pos:add(vector():set(0, 0.5, 0)),
+		AI:create(section, pos:add(vector():set(0, 0.5, 0)),
 			a:level_vertex_id(), gv)
 		return true, nil
 	end
@@ -99,9 +99,9 @@ local cmd2func = {}
 		end
 		local obj = db.actor:object(section)
 		if obj then
-			local sobj = alife():object(obj:id())
+			local sobj = AI:object(obj:id())
 			if sobj then
-				alife():release(sobj, true)
+				AI:release(sobj, true)
 				return true, nil
 			else	-- WTF?
 				return true, "Object already removed"
@@ -120,9 +120,8 @@ local cmd2func = {}
 			return false, "Incorrect section ["..section.."]"
 		end
 		local cnt = n and math.ceil(math.abs(tonumber(n) or 1)) or 1
-		local sim = alife()
 		for i = 1, cnt do
-			sim:create(section, vector(), 0, 0, 0)
+			AI:create(section, vector(), 0, 0, 0)
 		end
 		_G['from_cheat_menu'] = true
 		return true, nil
@@ -151,7 +150,7 @@ local cmd2func = {}
 		local pos = db.actor:position()
 		local lv = db.actor:level_vertex_id()
 		local gv = db.actor:game_vertex_id()
-		local msg = "X = "..pos.x.."\\nY = "..pos.y.."\\nZ = "..pos.z.."\\nLevel Vertex = "..lv.."\\nGame Vertex = "..gv.."\\nValid = "..tostring(game_graph():valid_vertex_id(gv))
+		local msg = "X = "..pos.x.."\\nY = "..pos.y.."\\nZ = "..pos.z.."\\nLevel Vertex = "..lv.."\\nGame Vertex = "..gv.."\\nValid = "..tostring(GGraph:valid_vertex_id(gv))
 		return true, msg
 	end
 	

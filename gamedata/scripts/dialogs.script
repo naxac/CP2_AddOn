@@ -10,11 +10,10 @@ end
 function has_ammo(sect, cnt)
 	cnt = cnt*sys_ini:r_u32(sect, "box_size")
 	local num = 0
-	local sim = alife()
 	local obj
 	db.actor:iterate_inventory(function (actor, item)
 		if item:section()==sect then
-			obj = sim:object(item:id())
+			obj = AI:object(item:id())
 			if obj then
 				num = num + naxac_netpk.get_ammo_size(obj)
 			end
@@ -27,22 +26,21 @@ end
 function out_ammo(sect, cnt)
 	local n = cnt*sys_ini:r_u32(sect, "box_size")
 	local out_cnt = 0
-	local sim = alife()
 	local obj
 	db.actor:iterate_inventory(function (actor, item)
 		if out_cnt>=n then return end
 		if item:section()==sect then
-			obj = sim:object(item:id())
+			obj = AI:object(item:id())
 			if obj then
 				out_cnt = out_cnt + naxac_netpk.get_ammo_size(obj)
 				actor:drop_item(item)
-				sim:release(obj, true)
+				AI:release(obj, true)
 			end
 		end
 	end,
 	db.actor)
 	if out_cnt>n then
-		sim:create_ammo(sect, db.actor:position(), db.actor:level_vertex_id(),
+		AI:create_ammo(sect, db.actor:position(), db.actor:level_vertex_id(),
 			db.actor:game_vertex_id(), 0, out_cnt-n)
 	end
 	news_manager.relocate_item(db.actor, "out", sect, cnt)
@@ -198,7 +196,7 @@ function relocate_item_section(victim, section, type)
 			then
 				victim:transfer_item(victim:object(section), db.actor)
 			else
-				alife():create(section,	
+				AI:create(section,	
 					    db.actor:position(),
 						db.actor:level_vertex_id(),	
 						db.actor:game_vertex_id(),
@@ -213,7 +211,7 @@ function relocate_item_section(victim, section, type)
 			else
 				local obj = db.actor:object(section)
 				if obj then
-					alife():release(alife():object(obj:id()))
+					AI:release(AI:object(obj:id()))
 				end
 			end
 		end

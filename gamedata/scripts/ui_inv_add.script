@@ -29,7 +29,7 @@ function inventory_open()
 	if not wnd then	
 		wnd = InvWnd(level.main_input_receiver())
 	end
-	bind_stalker.hide_weapon("inv")
+	bind_actor.hide_weapon("inv")
 	xr_actor.change_move("inv", false)
 end
 
@@ -39,7 +39,7 @@ function inventory_close()
 		wnd = nil
 		amk.save_table("quick_slots", slot2section)
 	end
-	bind_stalker.restore_weapon("inv")
+	bind_actor.restore_weapon("inv")
 	xr_actor.change_move("inv", true)
 end
 
@@ -192,8 +192,8 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 					if binder:charge( drag_item:condition() ) then
 						drop_on_item:set_weight( drop_on_item:get_weight() + drag_item:get_weight() )
 
-						local se_obj = alife():object( drag_item:id() )
-						if se_obj then alife():release(se_obj, true) end
+						local se_obj = AI:object( drag_item:id() )
+						if se_obj then AI:release(se_obj, true) end
 						zvuki.use_snd(section)
 					end
 				end
@@ -326,7 +326,7 @@ end
 
 -- Чтобы не было глюков при продаже неписям
 function restore_slot( item )
-	if isMagazinedWeapon( item ) and alife():object( item:id() ) then
+	if isMagazinedWeapon( item ) and AI:object( item:id() ) then
 		local slot = item:get_slot()
 		local ini_slot = sys_ini:r_u32( item:section(), "slot" )
 		if ini_slot ~= slot then
@@ -413,15 +413,15 @@ function charge_device( art, device )
 	local add_power = power + power*k
 	local new_cond = math.min( cond + add_power, 1 )
 	device:set_condition( new_cond )
-	netpk:modify( alife():object( device:id() ), { condition = new_cond }, netpk.fState )
+	netpk:modify( AI:object( device:id() ), { condition = new_cond }, netpk.fState )
 
-	local obj = alife():object( art:id() )
-	if obj then alife():release( obj, true ) end
+	local obj = AI:object( art:id() )
+	if obj then AI:release( obj, true ) end
 	zvuki.use_snd("art")
 
 	local rem = cond + add_power - 1
 	if rem > 0 then
-		alife():create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
+		AI:create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
 	end
 end
 ------------------------------------------------------------------------------------------

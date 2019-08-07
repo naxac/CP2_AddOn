@@ -170,15 +170,15 @@ function init_drop_settings()
 	end
 
 	n = ini:line_count("item_dependence")
-	for i=0,n-1 do
+	for i = 0, n-1 do
 		result, id, value = ini:r_line("item_dependence",i,"","")
 		if id and id~="" then
-			for a in str_gfind(sys_ini:r_string(id, "ammo_class"), "[%w_%-%.]+") do
+			for j, a in ipairs( sys_ini:r_list(id, "ammo_class") ) do
 				add_item_dependence(a, id)
 				add_ammo(a)
 			end
 			if sys_ini:line_exist(id, "grenade_class") then
-				for a in str_gfind(sys_ini:r_string(id, "grenade_class"), "[%w_%-%.]+") do
+				for j, a in ipairs( sys_ini:r_list(id, "grenade_class") ) do
 					add_item_dependence(a, id)
 					add_ammo(a)
 				end
@@ -257,9 +257,8 @@ end
 function drop_manager:create_release_item()
 	if self.npc == nil then return end
 	
-	local sim = alife()
 	--' Спрашиваем у серверного объекта генерились ли предметы
-	local se_obj = sim:object(self.npc:id())
+	local se_obj = AI:object(self.npc:id())
 	if (se_obj == nil) or (se_obj.death_droped == true) then return end
 	se_obj.death_droped = true
 
@@ -280,16 +279,16 @@ function drop_manager:create_release_item()
 	local se_item, sect, item_id
     self.npc:iterate_inventory(function (nepis, item)
 		item_id = item:id()
-		se_item = sim:object(item_id)
+		se_item = AI:object(item_id)
 		if se_item == nil then return end
 		sect = item:section()
 		if always_offs_items[sect] or _G.ammo_sections[sect] then
 			if item_id ~= active_item_id then
-				sim:release(se_item, true)
+				AI:release(se_item, true)
 			end
 		elseif always_offs_items_prob[sect] and math_random() > always_offs_items_prob[sect] then
 			if item_id ~= active_item_id then
-				sim:release(se_item, true)
+				AI:release(se_item, true)
 			end
 		elseif  isMagazinedWeapon(item) and unique_wpn[sect] == nil then
 			--	Оставляем немного патронов в магазине
@@ -377,7 +376,7 @@ function create_items(npc, section, number, rnd)
 		for i=1,number do
 			--' Проверяем вероятность появить каждый объект в отдельности
 			if math_random(1000) <=  rnd then
-				return alife():create(section, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+				return AI:create(section, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
 			end
 		end
 	end

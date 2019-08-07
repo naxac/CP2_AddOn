@@ -102,7 +102,7 @@ local suit_condition, wotsuittype
 local last_outfit = -1
 
 function check_hud()
-	if suithud_enable==false or db.actor:alive()==false then
+	if suithud_enable==false or Actor:alive()==false then
 		removeDynHud()
 		return
 	elseif hud_wnd == nil then
@@ -115,7 +115,7 @@ function check_hud()
 		xr_s.subscribe( "net_destroy", this.removeDynHud )
 	end
 	
-	local csuithud = db.actor:get_current_outfit()
+	local csuithud = Actor:get_current_outfit()
 	wotsuittype = get_hud_type(csuithud)
 	suit_condition = ""
 	if wotsuittype ~= "hud_empty" then
@@ -144,7 +144,7 @@ function check_hud()
 		if suit_condition ~= "2" and suit_condition ~= "1" then
 			local snd_obj = sound_object("material\\glass\\glass_fall0"..
 				tostring(math.random(1,4)).."hl")
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 9.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 9.0)
 		end
 	end
 	last_outfit = oid
@@ -178,7 +178,7 @@ local bloodtimeb = 0
 local isbleeding = nil
 local countblood = 0
 function blood(delta)
-	if not ( blood_enable and db.actor:alive() ) then return end
+	if not ( blood_enable and Actor:alive() ) then return end
 	
 	bloodtime = bloodtime + delta
 	if bloodtime > 1500 then
@@ -193,10 +193,10 @@ function blood(delta)
 			end
 		end
 		
-		if actor_last_health - db.actor.health > 0.01 then
+		if actor_last_health - Actor.health > 0.01 then
 			isbleeding = true
 		end
-		actor_last_health = db.actor.health
+		actor_last_health = Actor.health
 	end
 
 	bloodtimeb = bloodtimeb + delta
@@ -214,12 +214,11 @@ end
 local isactcondset = false
 function bleedcondition()
 	if not bleed_enable then return end
-	local actor = db.actor
-	if actor.health < 0.31 and isactcondset ~= true then
+	if Actor.health < 0.31 and isactcondset ~= true then
 		level.add_pp_effector ("alcohol.ppe", 2012, true)
 		isactcondset = true
 	end
-	if actor.health > 0.30 and isactcondset ~= false then
+	if Actor.health > 0.30 and isactcondset ~= false then
 		level.remove_pp_effector (2012)
 		isactcondset = false
 	end
@@ -269,7 +268,7 @@ function set_blurs(enabled,rect)
 	end
   
 -- Циклы в зависимости от силы дыхания: 0->1->0 0->1->2->4->5->0 0->1->2->3->4->5->0 5->4->3->4->5 4->3->4
-	local power=db.actor.power
+	local power=Actor.power
 	local period=1.0+power*power*1.0 -- текущая частота дыхания от 30 до 120 циклов в минуту
 	local expirt=0.3
 	local breathpower=3

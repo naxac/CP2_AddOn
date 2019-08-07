@@ -119,11 +119,11 @@ function evaluator_gl_ready:hit_callback(amount,dir,who)
 end
 -- удаление мусора из инвентаря при смерти
 function evaluator_gl_ready:death_callback()
-	local npc,sim = self.object,alife()
+	local npc = self.object
 	for i=0,npc:object_count()-1 do
 		local item = npc:object(i)
 		local sec = item:section()
-		if (string.find(sec,"gl_fake_missile") or string.find(sec,"gl_test_shell")) and sim:object(item:id()) then
+		if (string.find(sec,"gl_fake_missile") or string.find(sec,"gl_test_shell")) and AI:object(item:id()) then
 			delete_obj(item:id())
 		end
 	end
@@ -286,7 +286,7 @@ function action_launch_grenade:execute()
 		if so then
 			self.fake_missile = so:id()
 		else
-			self.fake_missile = alife():create("gl_fake_missile_"..self.st.ammo,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id()).id
+			self.fake_missile = AI:create("gl_fake_missile_"..self.st.ammo,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id()).id
 			return
 		end
 	end
@@ -301,7 +301,7 @@ function action_launch_grenade:execute()
 	local st = self.st
 	if st.covert then
 		if self.stage == 0 then
-			self.test_shell = alife():create("gl_test_shell_"..st.ammo,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id()).id
+			self.test_shell = AI:create("gl_test_shell_"..st.ammo,npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id()).id
 			self.stage = 1
 		elseif self.stage == 1 then
 			set_to_launch(npc,self.test_shell,self.target_point,self.launch_pos,config_data[wpn:section()].vel,get_shell_radius(st.ammo),true,self.fixd)
@@ -764,7 +764,7 @@ function check_ammo(npc)	-- проверить наличие оружия и п
 		end
 		if gl_sets.spawn_ammo then
 			local shells = config_data[wpn:section()].shells
-			alife():create(shells[math.random(#shells)],npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
+			AI:create(shells[math.random(#shells)],npc:position(),npc:level_vertex_id(),npc:game_vertex_id(),npc:id())
 			return false, nil
 		end
 	end
@@ -1131,7 +1131,7 @@ end
 
 function trace_shell(obj)
 	local id = obj:id()
-	if not alife():object(id) then
+	if not AI:object(id) then
 		remove_shell(id)
 		return true
 	end
@@ -1244,9 +1244,8 @@ function add_to_binder(npc,ini,scheme,section,storage)
 end
 --[[-----------------------------------------------------------
 function net_spawn()
-	local sim = alife()
 	for a=0,65534 do
-		local sobj = sim:object(a)
+		local sobj = AI:object(a)
 		if sobj then
 			local sec = sobj:section_name()
 			if string.find(sec,"gl_test_shell") or string.find(sec,"gl_fake_missile") then

@@ -29,9 +29,7 @@ iniLines = {
 iniOtherLines = {}
 iniStat = {}
 iniCaching = true
---iniStatistic = true
 iniStatistic = false
---iniSections = {} -- если пустая - кешируется ВСЁ!
 iniSections = { -- если пустая - кешируется ВСЁ!
     ["af_ameba_slug "]              = true,
     ["af_blood"]                    = true,
@@ -695,11 +693,10 @@ end
 
 --' Проверка на инфопоршны, даже если игрока не существует
 function has_alife_info(info_id)
-  local aa = alife()
-  if aa == nil then
-    return false
-  end
-  return aa:has_info(0, info_id)
+	if AI == nil then
+		return false
+	end
+	return AI:has_info(0, info_id)
 end
 
 -------------------------------------------------------------------
@@ -1433,6 +1430,7 @@ function get_actor_id()
 end
 -------------------------------------------------------------------------------------------
 IAmAStalker = {}
+IsHuman = {}
 IAmAMonster = {}
 IAmAnArtefact = {}
 IAmAnOutfit = {}
@@ -1448,6 +1446,11 @@ function InitObjectTypeTables()
         [clsid.actor] = true,
         [clsid.script_stalker] = true
     }
+	IsHuman = {
+		[clsid.actor] = true,
+		[clsid.script_stalker] = true,
+		[clsid.script_trader] = true
+	}
     IAmAMonster = {
        [clsid.boar_s] = true,
        [clsid.bloodsucker_s] = true,
@@ -1605,30 +1608,25 @@ function isAmmo(object, class_id)
 	return IAmAnAmmo[id]~=nil
 end
 
+-------------------------------------------------------------------------------------------
 function level_object_by_sid( sid )
-  local sim = alife()
-
-  if sim then
-    local se_obj = sim:story_object( sid )
-    if se_obj then
-      return level.object_by_id( se_obj.id )
-    end
-  end
-
-  return nil
+	if AI then
+		local se_obj = AI:story_object( sid )
+		if se_obj then
+			return level.object_by_id( se_obj.id )
+		end
+	end
+	return nil
 end
 
 function id_by_sid( sid )
-  local sim = alife()
-
-  if sim then
-    local se_obj = sim:story_object( sid )
-    if se_obj then
-      return se_obj.id
-    end
-  end
-
-  return nil
+	if AI then
+		local se_obj = AI:story_object( sid )
+		if se_obj then
+			return se_obj.id
+		end
+	end
+	return nil
 end
 
 -- быстрый if
@@ -1660,10 +1658,10 @@ function ASSERT(obj, ...)
 end
 
 function set_postprocess(name_ini_file)
-  bind_stalker.post_process = postprocess.PostProcess(ini_file(name_ini_file))
+  bind_actor.post_process = postprocess.PostProcess(ini_file(name_ini_file))
 end
 function remove_postprocess()
-  bind_stalker.post_process = nil
+  bind_actor.post_process = nil
 end
 
 function set_inactivate_input_time(delta)
@@ -1770,14 +1768,23 @@ function get_texture_info(id_name, id_default)
   return task_info:get_file_name(), r
 end
 
+function need_show_condition(item)
+	local b = sys_ini:r_bool_ex(item:section(), "show_condition", nil)
+	return ( ( item:is_weapon() or item:is_outfit() ) and b ~= false ) or b == true
+end
+
+function object_level_name(obj)
+	return AI:level_name( GGraph:vertex(obj.m_game_vertex_id):level_id() )
+end
+
 -- malandrinus
 --[[counter = 0
 prev_watch = 0
 function watch_condition()
-    counter = (bind_stalker.watch_value == prev_watch) and (counter + 1) or 0
-    prev_watch = bind_stalker.watch_value
+    counter = (bind_actor.watch_value == prev_watch) and (counter + 1) or 0
+    prev_watch = bind_actor.watch_value
     if counter > 100 then
-        get_console():execute("load ~~~ malandrinus bind_stalker.watch_value: "..tostring(prev_watch)..", counter: "..tostring(counter))
+        get_console():execute("load ~~~ malandrinus bind_actor.watch_value: "..tostring(prev_watch)..", counter: "..tostring(counter))
         if db.actor and not device():is_paused() then
             local snd_obj = xr_sound.get_safe_sound_object("detectors\\da-2_beep1")
             snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 2.5)
@@ -1791,33 +1798,25 @@ end
 -- /malandrinus
 ]]
 function start_game_callback()
--- malandrinus
-    --level.add_call(watch_condition, dummy_action)
---/ malandrinus
- -- printf  ("start_game_callback called")
-	InitObjectTypeTables()
-  task_manager.clear_task_manager()
-  treasure_manager.clear_treasure_manager()
-  xr_sound.clear_all_sound_object()
-  dialog_manager.fill_phrase_table() 
+	_G.AI		= alife()
+	_G.GGraph	= game_graph()
+	_G.netpk	= naxac_netpk.init()
 
-  --AMK UTILS--
-  amk.getStartTime()
-  --AMK UTILS--
-	_G[ "netpk" ] = naxac_netpk.init()
+	-- malandrinus
+	--level.add_call(watch_condition, dummy_action)
+	--/ malandrinus
+	-- printf  ("start_game_callback called")
+	InitObjectTypeTables()
+	task_manager.clear_task_manager()
+	treasure_manager.clear_treasure_manager()
+	xr_sound.clear_all_sound_object()
+	dialog_manager.fill_phrase_table() 
+
+	amk.getStartTime()
+
 	-- Пишем версию мода в лог
 	local mm = _G.main_menu.get_main_menu()
-	log1( "## X-Ray Engine v"..mm:GetGSVer().." .. XE r232 .. xrLua Ext. by RvP" )
-	log1( "## Mod version: "..meceniy_utils.read_mod_ver() )
-end
-
-
-function ammo_section(section)
-	return sys_ini:r_string(section, "class") == "AMMO"
-end
-
-function need_show_condition(item)
-	local b = sys_ini:r_bool_ex(item:section(), "show_condition", nil)
-	return ( ( item:is_weapon() or item:is_outfit() ) and b ~= false ) or b == true
+	log1( "# X-Ray Engine v"..mm:GetGSVer().." .. XE r232 .. xrLua Ext. by RvP" )
+	log1( "# "..meceniy_utils.read_mod_ver() )
 end
 

@@ -10,9 +10,13 @@ end
 
 local function GetAmmoSize(item)
 	if item.is_fake then
+		if item.ammo_left == nil then
+			item.ammo_left = sys_ini:r_u32(item:section(), "box_size")
+			log("fake item ammo %s has no ammo_left!", item:section())
+		end
 		return item.ammo_left
 	else
-		local se_obj = alife():object(item:id())
+		local se_obj = AI:object(item:id())
 		return se_obj and naxac_netpk.get_ammo_size(se_obj) or 0
 	end
 end

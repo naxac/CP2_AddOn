@@ -53,14 +53,14 @@ function save_box_items(box, items)
 
 	gps_habar.update_gps_spot_on_fake(show_spot, boxId, items_to_save)
 
-	local se_box = alife():object(boxId)
+	local se_box = AI:object(boxId)
 	local data = netpk:get(se_box, netpk.fState)
 	local cd = netpk:parse_custom_data(data.custom_data)
 	local zc = 0
 	cd.storage = {}
 	while true do
 		local size = 110	-- start packet size
-		local obj = alife():create("script_storage", vector(), 0, 0)
+		local obj = AI:create("script_storage", vector(), 0, 0)
 		local stor = se_storage.get_storage(obj.id)
 		cd.storage[obj.id] = "<nil>"
 		for i = #items_to_save, 1, -1 do
@@ -96,7 +96,7 @@ function save_box_items(box, items)
 end
 
 function load_box_items(box)
-	local se_box = alife():object( box:id() )
+	local se_box = AI:object( box:id() )
 	local data = netpk:get(se_box, netpk.fState)
 	local cd = netpk:parse_custom_data(data.custom_data)
 
@@ -172,8 +172,7 @@ end
 function take_all_from_box(box)
 	shiftCheckDropItem(500)
 
-	local sim = alife()
-	local se_box = sim:object( box:id() )
+	local se_box = AI:object( box:id() )
 	local data = netpk:get(se_box, netpk.fState)
 	local cd = netpk:parse_custom_data(data.custom_data)
 
@@ -187,11 +186,11 @@ function take_all_from_box(box)
 				local ret = (t.af and t.af~=0)
 				if ret then
 					local spawn_pos = db.actor:position():add(vector():set(2, 2, 2))
-					sobj = sim:create(t.s, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+					sobj = AI:create(t.s, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
 				elseif t.al then
-					sobj = sim:create_ammo(t.s, vector():set(0,0,0), 0, 0, 0, t.al)
+					sobj = AI:create_ammo(t.s, vector():set(0,0,0), 0, 0, 0, t.al)
 				else
-					sobj = sim:create(t.s, vector():set(0,0,0), 0, 0, 0)
+					sobj = AI:create(t.s, vector():set(0,0,0), 0, 0, 0)
 				end
 
 				local data = {}
@@ -216,8 +215,8 @@ function take_all_from_box(box)
 	end
 
 	fake_boxes[se_box.id] = nil
-	sim:release(se_box, true)
-	sim:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
+	AI:release(se_box, true)
+	AI:create("treasure_item", vector():set(0,0,0), 0, 0, 0)
 end
 
 function is_fake_box(box_id)
@@ -269,8 +268,8 @@ function offline_npc_found_box(npc, se_box)
 	if gps_habar.has_label(se_box.id) and robbed then
 		gps_habar.update_gps_spot_on_fake(true, se_box.id, tmp_items)
 		local lvname = "Зоны Отчуждения"
-		if game_graph():valid_vertex_id(se_box.m_game_vertex_id) then
-			lvname = game.translate_string(alife():level_name(game_graph():vertex(se_box.m_game_vertex_id):level_id()))
+		if GGraph:valid_vertex_id(se_box.m_game_vertex_id) then
+			lvname = game.translate_string( object_level_name(se_box) )
 		end
 		amk.send_tip("%c[255,255,128,128]На территории " .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
 	end

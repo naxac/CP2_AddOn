@@ -9,7 +9,7 @@ function show_menu(container)
 
 	used_container = container:id()
 	local arts = arc_containers.get_container_arts(used_container)
-	local se_obj = alife():create(container:section(), vector():set(0,0,0), 0, 0, 0)
+	local se_obj = AI:create(container:section(), vector():set(0,0,0), 0, 0, 0)
 	if arts then
 		arc_containers.set_container_arts( se_obj.id, arts )
 	end
@@ -45,7 +45,7 @@ function arc_containers_menu:__init(obj, arts)
 
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
 
-	bind_stalker.hide_weapon("inv")
+	bind_actor.hide_weapon("inv")
 	
 	log("arc_containers_menu:__init")
 end
@@ -336,7 +336,8 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 		bag_from:RemoveItem( item )
 
 		shiftCheckDropItem()
-		alife():release( alife():object( item:id() ), true )
+		xr_statistic.set_id(item:id(), nil)
+		AI:release( AI:object( item:id() ), true )
 
 		if add_rad > 0 then
 			self.message_box:Init("message_box_empty_file_name")
@@ -359,8 +360,9 @@ end
 
 function arc_containers_menu:ConvertFakeItem(item)
 	local sect = item:section()
-	local sobj = alife():create(sect, vector():set(0,0,0), 0, 0, 0)
+	local sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
 
+	xr_statistic.set_id(sobj.id, true)
 	item:set_server_object(sobj)
 
 	self.items_to_convert[sobj.id] = item:condition()
@@ -465,7 +467,7 @@ function arc_containers_menu:Quit()
 
 	used_container = -1
 
-	bind_stalker.restore_weapon("inv")
+	bind_actor.restore_weapon("inv")
 
 	self:GetHolder():start_stop_menu(self, true)
 end

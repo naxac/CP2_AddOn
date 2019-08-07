@@ -152,14 +152,13 @@ function n_netpk:set( obj, data, flags )
 	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
-	local sim = alife()
-	if sim then
+	if AI then
 		local i = obj.id
 		local o = level.object_by_id( i )
 		if o then
 			if class_str=="se_stalker" then o:stop_talk() end
-			sim:set_switch_online( i, false )
-			sim:set_switch_offline( i, true )
+			AI:set_switch_online( i, false )
+			AI:set_switch_offline( i, true )
 			amk.convert_npc[ i ] = 1
 		end
 	end
@@ -233,14 +232,13 @@ function n_netpk:modify( obj, data, flags )
 	if bit_and( ( flags or 0 ), self.fConvert ) == 0 then return end
 
 	-- если нужно поместить объект ненадолго в оффлайн для вступления в силу изменений
-	local sim = alife()
-	if sim then
+	if AI then
 		local i = obj.id
 		local o = level.object_by_id( i )
 		if o then
 			if class_str=="se_stalker"  then o:stop_talk() end
-			sim:set_switch_online( i, false )
-			sim:set_switch_offline( i, true )
+			AI:set_switch_online( i, false )
+			AI:set_switch_offline( i, true )
 			amk.convert_npc[ i ] = 1
 		end
 	end
@@ -256,7 +254,7 @@ function n_netpk:create_restrictor(
 	story_id		-- STORY_ID, если нужно
 )
 
-	local se_obj = alife():create( "space_restrictor", position, level_vertex, game_vertex )
+	local se_obj = AI:create( "space_restrictor", position, level_vertex, game_vertex )
 
 	local data = {}
 	data.shapes = {
@@ -291,7 +289,7 @@ function n_netpk:create_level_changer(
 	spot,		-- таблица с параметрами метки. hint - надпись, type - тип. Если не задана, то метку не ставим.
 	report		-- true - выдавать сообщение о переходе
 )
-	local se_obj = alife():create( "level_changer", position, lvertex_id, gvertex_id )
+	local se_obj = AI:create( "level_changer", position, lvertex_id, gvertex_id )
 
 	if box_sz == nil then box_sz = 4 end
 
@@ -326,7 +324,7 @@ function n_netpk:create_level_changer(
 
 	if report then
 		local dest_lvl = game.translate_string(string.lower(dest_level))
-		local prev_lvl = game.translate_string(alife():level_name(game_graph():vertex(gvertex_id):level_id()))
+		local prev_lvl = game.translate_string(AI:level_name(GGraph:vertex(gvertex_id):level_id()))
 		local news_text = "%c[gray2]Новый путь!\\n%c[white]"..prev_lvl.." >> "..dest_lvl
 		db.actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 10000)
 		if db.actor:is_talking() then
@@ -1682,7 +1680,7 @@ end
 function get_all_shapes_data( cobj )
 	local data = {}
 	
-	data.sobj = alife():object(cobj:id())
+	data.sobj = AI:object(cobj:id())
 	local row_data = netpk:get( data.sobj, netpk.f_state )
 	local shapes_row_data = row_data.shapes
 	

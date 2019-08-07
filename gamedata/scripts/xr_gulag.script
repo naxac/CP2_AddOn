@@ -160,7 +160,7 @@ function gulag:prepare_jobs()
 
 		job.path_name        = path_name
 		job.game_vertex_id   = ptrl:game_vertex_id( 0 )
-		job.level_id		 = game_graph():vertex(job.game_vertex_id):level_id()
+		job.level_id		 = GGraph:vertex(job.game_vertex_id):level_id()
 		job.position         = ptrl:point( 0 )
 
 		job_loaded           = self.JobLoaded[i] or empty_table
@@ -463,7 +463,7 @@ function gulag:update_beginning_jobs()
 
 			local job = self.Job[self.ObjectJob[obj_id]]
 --'			local jl = self:distance_to_job_location(obj_id, job)
---'			printf("### [%s] %s < %s", alife():object(obj_id):name(), tostring(jl), tostring(job.position_threshold or job_position_threshold))
+--'			printf("### [%s] %s < %s", AI:object(obj_id):name(), tostring(jl), tostring(job.position_threshold or job_position_threshold))
 
 			self:beginJob( obj_id )
 		end
@@ -485,7 +485,7 @@ function gulag:can_obj_begin_job( obj_id, obj )
           if job ~= nil then
 		if job.position_threshold == "graph" then
 			local obj_gv, obj_pos = self:get_obj_game_vertex_and_position( obj_id )
-			local job_gv = game_graph():vertex( job.game_vertex_id )
+			local job_gv = GGraph:vertex( job.game_vertex_id )
 			if obj_gv:level_vertex_id() == job_gv:level_vertex_id() then
 				return true
                 end
@@ -626,7 +626,7 @@ end
 -- используется для определения ближайшего к месту работы персонажа.
 function gulag:distance_to_job_location( obj_id, job )
 	local obj_gv, obj_pos = self:get_obj_game_vertex_and_position( obj_id )
-	local job_gv          = game_graph():vertex( job.game_vertex_id )
+	local job_gv          = GGraph:vertex( job.game_vertex_id )
 
 	if obj_gv:level_id() == job_gv:level_id() then
 		return obj_pos:distance_to( job.position )
@@ -644,9 +644,9 @@ function gulag:get_obj_game_vertex_and_position( obj_id )
 	if obj == true then
 		obj = self.npc_info[obj_id].se_obj
 
-		return game_graph():vertex( obj.m_game_vertex_id ), obj.position
+		return GGraph:vertex( obj.m_game_vertex_id ), obj.position
 	else
-		return game_graph():vertex( obj:game_vertex_id() ), obj:position()
+		return GGraph:vertex( obj:game_vertex_id() ), obj:position()
 	end
 end
 
@@ -1173,8 +1173,7 @@ end
 -- установить логику и сообщить смарту, что объект перешёл в онлайн.
 -- вызывается из net_spawn() объектов
 function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
-	local sim = alife()
-	if sim then
+	if AI then
 		local strn_id
 
 		if sobject.smart_terrain_id then
@@ -1185,10 +1184,10 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 		
 		-- // Правка вылета по attempt to index local 'strn' (a nil value). Основано на скрипте WhatAbout
 		if strn_id ~= 65535 then
-			local strn = alife():object(strn_id)
+			local strn = AI:object(strn_id)
 			
 			if not strn or strn:clsid() ~= clsid.smart_terrain then
-				local se_obj = alife():object(obj:id())
+				local se_obj = AI:object(obj:id())
 				get_console():execute("load ~~~ xr_gulag.script: Обнаружена привязка к несуществующему smart_terrain: "..se_obj:name()..", smart_terrain_id: "..tostring(strn_id)..". Привязка удалена.")
 				se_obj:clear_smart_terrain()
 				-- sim_statistic.remove(se_obj) -- эта статистка не нужна
@@ -1200,7 +1199,7 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 		printf( "setup_gulag_and_logic_on_spawn obj=%s, strn_id=%s", obj:name(), tostring(strn_id) )
 
 		if strn_id ~= 65535 then
-			local strn                   = sim:object( strn_id )
+			local strn                   = AI:object( strn_id )
 			local need_setup_logic       = strn.gulag.Object_begin_job[obj:id()] and not loaded
 			local need_setup_restrictors = strn.gulag.Object_begin_job[obj:id()]
 
@@ -1225,7 +1224,7 @@ function get_gulag_by_name( name )
 	local go_strn = db.zone_by_name[name]
 
 	if go_strn then
-		local strn = alife():object( go_strn:id() )
+		local strn = AI:object( go_strn:id() )
 
 		strn:initialize_if_needed()
 
@@ -1238,7 +1237,7 @@ end
 -- получить гулаг по story id смарта
 -- работает всегда
 function get_gulag_by_sid( sid )
-	local strn = alife():story_object( sid )
+	local strn = AI:story_object( sid )
 
 	strn:initialize_if_needed()
 
@@ -1257,12 +1256,10 @@ end
 -- получить гулаг персонажа
 -- obj=game_object
 function get_npc_gulag( obj )
-	local sim = alife()
-
-	obj = sim:object( obj:id() )
+	obj = AI:object( obj:id() )
 
 	if obj:smart_terrain_id() ~= 65535 then
-		local strn = sim:object( obj:smart_terrain_id() )
+		local strn = AI:object( obj:smart_terrain_id() )
 
 		strn:initialize_if_needed()
 
@@ -1335,12 +1332,10 @@ function resetJob( obj )
 end
 
 function clearJob( obj )
-	local sim = alife()
-
-	obj = sim:object( obj:id() )
+	obj = AI:object( obj:id() )
 
 	if obj:smart_terrain_id() ~= 65535 then
-		local strn = sim:object( obj:smart_terrain_id() )
+		local strn = AI:object( obj:smart_terrain_id() )
 
 		strn:initialize_if_needed()
     strn:unregister_npc(obj)

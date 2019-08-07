@@ -295,7 +295,7 @@ function se_respawn:create(prob)
     
     local parent_id = nil
     if self.parent ~= nil then
-      local s_obj = alife():story_object(self.parent)
+      local s_obj = AI:story_object(self.parent)
       if s_obj == nil then
         abort("SPAWNING [%s], cant find parent with SID [%s]", self:name(), self.parent)
         return
@@ -305,12 +305,12 @@ function se_respawn:create(prob)
     
     local obj
     if parent_id == nil then
-      obj = alife():create(spawn_section, 
+      obj = AI:create(spawn_section, 
             self.position,
             self.m_level_vertex_id, 
             self.m_game_vertex_id)
     else
-      obj = alife():create(spawn_section, 
+      obj = AI:create(spawn_section, 
             self.position,
             self.m_level_vertex_id, 
             self.m_game_vertex_id,
@@ -337,7 +337,7 @@ function se_respawn:create(prob)
           table.insert(self.spawned_obj ,obj.id)
           local pos = obj.position
 --          printf("SPAWNING [%s] -> [%s], position [%s][%s][%s]", tostring(self:name()), spawn_section, pos.x, pos.y, pos.z)
-          local sm_obj = alife():object(smart_terrain_id)
+          local sm_obj = AI:object(smart_terrain_id)
 
 --          printf("SPAWNING for SMART [%s] : [%s] -> [%s]", self:name(), obj:name(), sm_obj:name())
           --sak.dbglog("SPAWNING for SMART [%s] : [%s] -> [%s]", self:name(), obj:name(), sm_obj:name())  
@@ -346,7 +346,7 @@ function se_respawn:create(prob)
         else
 		  --get_console():execute("load ~ Released ["..tostring(self:name()).."] -> ["..obj:name().."]")
 		--	log1("released object '"..obj:name().."' from respawn "..self:name())
-          alife():release(obj, true)
+          AI:release(obj, true)
           --sak.dbglog("SPAWNING [%s] -> [%s], CANT SPAWN. NO SMART_TERRAIN AVAILABLE!!!", tostring(self:name()), spawn_section)
 --          printf("SPAWNING [%s] -> [%s], CANT SPAWN. NO SMART_TERRAIN AVAILABLE!!!", tostring(self:name()), spawn_section)
           return false
@@ -365,10 +365,9 @@ function se_respawn:spawn()
 	if not self.spawn_once then
 		-- Пробегаемся по списку уже заспавненных объектов и удаляем из них мертвые либо уничтоженные.
 		local obj
-		local sim = alife()
 		local parentid = self.parent and id_by_sid(self.parent) or -1
 		for k,v in pairs(self.spawned_obj) do
-			obj = sim:object(v)
+			obj = AI:object(v)
 
 			if obj ~= nil then
 				if (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) then
@@ -608,12 +607,11 @@ end
 
 function create_ammo(section, position, lvi, gvi, pid, num)
 	local num_in_box = _G.ammo_sections[section] or sys_ini:r_u32(section, "box_size")
-	local sim = alife()
 	while num > num_in_box do
-		sim:create_ammo(section, position, lvi, gvi, pid, num_in_box)
+		AI:create_ammo(section, position, lvi, gvi, pid, num_in_box)
 		num = num - num_in_box
 	end
-	sim:create_ammo(section, position, lvi, gvi, pid, num)
+	AI:create_ammo(section, position, lvi, gvi, pid, num)
 end
 
 local amk_respawner_control={}
@@ -717,6 +715,6 @@ end
 
 function get_respawner_by_name(name)
 	if amk_named_respawner_control[name] then
-		return alife():object(amk_named_respawner_control[name].id)
+		return AI:object(amk_named_respawner_control[name].id)
 	end
 end

@@ -381,12 +381,11 @@ function horrorspawn(level_name)
 	local lv = db.actor:level_vertex_id()
 	local gv = db.actor:game_vertex_id()
 	local n = tabl_horror_by_level[level_name]["spawn"]
-	local sim = alife()
 	local rnd = math.random
 	
 	for i=1,rnd(n-5,n+5) do
 		-- секци для ЧУ zombie_hell1 ... zombie_hell15
-		sim:create("zombie_hell"..tostring(rnd(15)), vector():set(ap.x+rnd(-50,50), ap.y, ap.z+rnd(-50,50)), lv, gv)
+		AI:create("zombie_hell"..tostring(rnd(15)), vector():set(ap.x+rnd(-50,50), ap.y, ap.z+rnd(-50,50)), lv, gv)
 	end
 end
 
@@ -403,13 +402,12 @@ end
 -- уборка оставшихся живых монстров
 function remove_horror_mutant()
 	if not remove_horror then return end
-	
-	local sim = alife()
+
 	local se_obj
 	for id, obj in pairs (db.creatures) do
-		se_obj = sim:object(id)
+		se_obj = AI:object(id)
 		if se_obj and obj:alive() and string.find(obj:section(), "^zombie_hell") then
-			sim:release(se_obj)
+			AI:release(se_obj)
 		end
 	end
 end
