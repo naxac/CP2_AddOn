@@ -1,9 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --[[
-Изменения script_version:
-  3 - сохранение поля job_online
-  5 - сохранение поля was_in_smart_terrain
-  6 - сохранение поля death_droped
+РР·РјРµРЅРµРЅРёСЏ script_version:
+  3 - СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕР»СЏ job_online
+  5 - СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕР»СЏ was_in_smart_terrain
+  6 - СЃРѕС…СЂР°РЅРµРЅРёРµ РїРѕР»СЏ death_droped
 ]]
 
 class "se_stalker"  (cse_alife_human_stalker)
@@ -17,18 +17,18 @@ function se_stalker:__init (section) super (section)
   self.smart_terrain_conditions = nil
   self.smart_terrain_conditions_initialized = false
 
-  -- этот флаг берётся из работы смарта
-  -- true     = всегда в онлайне
-  -- false    = всегда в офлайне
-  -- condlist = условие, которое отпределяет true или false
-  -- nil      = смарту всё равно
+  -- СЌС‚РѕС‚ С„Р»Р°Рі Р±РµСЂС‘С‚СЃСЏ РёР· СЂР°Р±РѕС‚С‹ СЃРјР°СЂС‚Р°
+  -- true     = РІСЃРµРіРґР° РІ РѕРЅР»Р°Р№РЅРµ
+  -- false    = РІСЃРµРіРґР° РІ РѕС„Р»Р°Р№РЅРµ
+  -- condlist = СѓСЃР»РѕРІРёРµ, РєРѕС‚РѕСЂРѕРµ РѕС‚РїСЂРµРґРµР»СЏРµС‚ true РёР»Рё false
+  -- nil      = СЃРјР°СЂС‚Сѓ РІСЃС‘ СЂР°РІРЅРѕ
   self.job_online          = nil
   self.job_online_condlist = nil
 
-  -- посещал ли сталкер хоть один smart_terrain
+  -- РїРѕСЃРµС‰Р°Р» Р»Рё СЃС‚Р°Р»РєРµСЂ С…РѕС‚СЊ РѕРґРёРЅ smart_terrain
   self.was_in_smart_terrain = false
 
-  self.death_droped = false --'Генерил ли персонаж выпадаемые предметы или нет.
+  self.death_droped = false --'Р“РµРЅРµСЂРёР» Р»Рё РїРµСЂСЃРѕРЅР°Р¶ РІС‹РїР°РґР°РµРјС‹Рµ РїСЂРµРґРјРµС‚С‹ РёР»Рё РЅРµС‚.
   self.treasure_processed = false
 
   --' Test for dima
@@ -124,7 +124,7 @@ function se_stalker:STATE_Write (packet)
 
 	packet:w_bool(self.was_in_smart_terrain)
 	
-	-- Запишем состояние раненности.
+	-- Р—Р°РїРёС€РµРј СЃРѕСЃС‚РѕСЏРЅРёРµ СЂР°РЅРµРЅРЅРѕСЃС‚Рё.
 	local ddw=0
 	if self.death_droped		then ddw = bit_or(ddw, 1) end
 	if self.wounded				then ddw = bit_or(ddw, 2) end
@@ -142,7 +142,7 @@ function se_stalker:STATE_Read (packet, size)
 
 --	if self.script_version >= 3 then
 		local t = packet:r_u8()
-		t=bit_and(t,3) -- Задел на будущее
+		t=bit_and(t,3) -- Р—Р°РґРµР» РЅР° Р±СѓРґСѓС‰РµРµ
 		if t == 0 then
 			self.job_online = true
 		elseif t == 1 then
@@ -161,7 +161,7 @@ function se_stalker:STATE_Read (packet, size)
 --	end
 
 --	if self.script_version >= 6 then
-		-- Прочитаем состояние раненности.
+		-- РџСЂРѕС‡РёС‚Р°РµРј СЃРѕСЃС‚РѕСЏРЅРёРµ СЂР°РЅРµРЅРЅРѕСЃС‚Рё.
 		local ddw = packet:r_u8()
 		self.death_droped		= bit_and(ddw,1)==1
 		self.wounded			= bit_and(ddw,2)==2
@@ -178,7 +178,7 @@ function se_stalker:on_before_register()
 end
 --------------------
 function se_stalker:on_register()
-	-- Чистим рестрикторы
+	-- Р§РёСЃС‚РёРј СЂРµСЃС‚СЂРёРєС‚РѕСЂС‹
 	netpk:modify( self, { dynamic_in_restrictions = {} }, net_packet.fState )
 	
   cse_alife_human_stalker.on_register( self )
@@ -193,7 +193,7 @@ function se_stalker:on_register()
     end
   end
 
-  --' Регистрация в таскменеджере
+  --' Р РµРіРёСЃС‚СЂР°С†РёСЏ РІ С‚Р°СЃРєРјРµРЅРµРґР¶РµСЂРµ
   task_manager.get_random_task():register_target(self)
 
 	if self:alive() then
@@ -202,10 +202,10 @@ function se_stalker:on_register()
 		end
 		amk_names_lists.add_name(self)
 	end
-	-- dsh: Принудительно установим мобам flInteractive
-	-- Есть подозрение, что те, у кого этот флаг сброшен, а таких полно в all.spawn, не обходят аномалии.
+	-- dsh: РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ СѓСЃС‚Р°РЅРѕРІРёРј РјРѕР±Р°Рј flInteractive
+	-- Р•СЃС‚СЊ РїРѕРґРѕР·СЂРµРЅРёРµ, С‡С‚Рѕ С‚Рµ, Сѓ РєРѕРіРѕ СЌС‚РѕС‚ С„Р»Р°Рі СЃР±СЂРѕС€РµРЅ, Р° С‚Р°РєРёС… РїРѕР»РЅРѕ РІ all.spawn, РЅРµ РѕР±С…РѕРґСЏС‚ Р°РЅРѕРјР°Р»РёРё.
 	alife():set_interactive( self, true )
-  --' Нарисовать мапспот с собой
+  --' РќР°СЂРёСЃРѕРІР°С‚СЊ РјР°РїСЃРїРѕС‚ СЃ СЃРѕР±РѕР№
 --' if sim_statistic.show_stalker_spot == true and self:alive() then
 --'   local community, rank = sim_statistic.getNpcType(self)
 --'   level.map_add_object_spot_ser(self.id, "alife_presentation_"..community, self:name().." "..community)
@@ -215,7 +215,7 @@ end
 function se_stalker:on_unregister()
   cse_alife_human_stalker.on_unregister(self)
 
-  --' Убрать мапспот с собой
+  --' РЈР±СЂР°С‚СЊ РјР°РїСЃРїРѕС‚ СЃ СЃРѕР±РѕР№
 --' if sim_statistic.show_stalker_spot == true then
 --'   local community, rank = sim_statistic.getNpcType(self)
 --'   level.map_remove_object_spot(self.id, "alife_presentation_"..community)
@@ -223,7 +223,7 @@ function se_stalker:on_unregister()
 
   smart_terrain.unregister_npc(self)
 
-  --' Отрегистрация в таскменеджере
+  --' РћС‚СЂРµРіРёСЃС‚СЂР°С†РёСЏ РІ С‚Р°СЃРєРјРµРЅРµРґР¶РµСЂРµ
   task_manager.get_random_task():unregister_target(self)
   
   if(actor_stats.remove_from_ranking~=nil)then
@@ -246,7 +246,7 @@ end
 function se_stalker:on_death(killer)
   cse_alife_human_stalker.on_death(self, killer)
 
---        --' Убрать мапспот с собой
+--        --' РЈР±СЂР°С‚СЊ РјР°РїСЃРїРѕС‚ СЃ СЃРѕР±РѕР№
 --	if sim_statistic.show_stalker_spot == true then
 --		local community, rank = sim_statistic.getNpcType(self)
 --		level.map_remove_object_spot(self.id, "alife_presentation_"..community)
@@ -268,7 +268,7 @@ end
 
 
 
---'Торговец
+--'РўРѕСЂРіРѕРІРµС†
 class "se_trader" (cse_alife_trader)
 function se_trader:__init (section) super (section)
 	self.resupply_time = 0
