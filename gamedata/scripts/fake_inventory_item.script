@@ -1,16 +1,17 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local saved_fields = {
-	["__section"]    = { name = "s",  def = nil },
-	["__condition"]  = { name = "c",  def = 1   },
---	["weight"]       = { name = "w",  def = nil },
-	["custom_data"]  = { name = "cd", def = ""  },
-	["charge_level"] = { name = "cl", def = nil },
---	["ammo_left"]    = { name = "al", def = nil },
-	["ammo_elapsed"] = { name = "ae", def = nil },
-	["ammo_type"]    = { name = "at", def = nil },
-	["addon_flags"]  = { name = "af", def = 0   },
-	["ammo_ids"]     = { name = "ai", def = nil },
-	["worked_time"]  = { name = "wt", def = 0   }
+	["__section"]    = { name = "s",  def = function(s) return nil end },
+	["__condition"]  = { name = "c",  def = function(s) return 1 end },
+	["__cost"]       = { name = "k", def = function(s) return sys_ini:r_u32(s, "cost") end },
+	["weight"]       = { name = "w",  def = function(s) return sys_ini:r_float(s, "inv_weight") end },
+	["custom_data"]  = { name = "cd", def = function(s) return "" end  },
+	["charge_level"] = { name = "cl", def = function(s) return nil end },
+	["ammo_left"]    = { name = "al", def = function(s) return sys_ini:r_u32_ex(s, "box_size", nil) end },
+	["ammo_elapsed"] = { name = "ae", def = function(s) return sys_ini:r_u32_ex(s, "ammo_mag_size", nil) end },
+	["ammo_type"]    = { name = "at", def = function(s) return nil end },
+	["addon_flags"]  = { name = "af", def = function(s) return 0 end   },
+	["ammo_ids"]     = { name = "ai", def = function(s) return nil end },
+	["worked_time"]  = { name = "wt", def = function(s) return 0 end   }
 }
 	
 local fake_items = {}
@@ -52,30 +53,23 @@ function fake_item:__finalize()
 end
 
 function fake_item:set_table(tbl)
+	local sect = tbl.s
+	ASSERT(sect, "[fake_item:set_table] Section is not saved!")
 	for field, t in pairs(saved_fields) do
-		self[field] = tbl[t.name] or t.def
-	end
-	self.__cost = sys_ini:r_float(self.__section, "cost")
-	self.weight = tbl.w or sys_ini:r_float(self.__section, "inv_weight")
-	if ammo_sections[self.__section] then
-		self.ammo_left = tbl.al or ammo_sections[self.__section]
+		self[field] = tbl[t.name] or t.def(sect)
 	end
 end
 
 function fake_item:get_table()
 	local ret = {}
+	local v
 	for field, t in pairs(saved_fields) do
-		if self[field] then
-			if t.def == nil or t.def ~= self[field] then
+		if self[field] ~= nil then
+			v = t.def(self.__section)
+			if v ~= self[field] then
 				ret[t.name] = self[field]
 			end
 		end
-	end
-	if self.weight ~= sys_ini:r_float(self.__section, "inv_weight") then
-		ret.w = self.weight
-	end
-	if ammo_sections[self.__section] and self.ammo_left ~= ammo_sections[self.__section] then
-		ret.al = self.ammo_left
 	end
 	return ret
 end
@@ -102,7 +96,7 @@ function fake_item:set_obj(obj)
 	self.ammo_ids = data.upd.ammo_ids
 end
 
-function fake_item:set_server_object(se_obj)
+function fake_item:write_server_object(se_obj)
 	local t = {}
 	t.custom_data = self.custom_data
 	t.condition = self:condition()
