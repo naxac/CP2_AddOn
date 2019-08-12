@@ -2208,6 +2208,7 @@ use constant section_to_class => {
 	subway_scaner_doc				=> 'cse_alife_item',
 	kukla_1							=> 'cse_alife_item',
 	chuchelo_body					=> 'cse_alife_item',
+	computer_new					=> 'cse_alife_item',
 
 	novice_outfit					=> 'cse_alife_item_custom_outfit',
 	outfit_novice_m1				=> 'cse_alife_item_custom_outfit',
