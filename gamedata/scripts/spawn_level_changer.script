@@ -415,19 +415,19 @@ end
 
 function telepot_allowed(obj_sect)
 	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip(db.actor, "Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 10000)
+		news_manager.send_tip("Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 10000)
 		return false
 	elseif has_alife_info("kod_vveden_verno") and not has_alife_info("dead_city_atpeshka") then 
-		news_manager.send_tip(db.actor, "Телепортация временно невозможна по техническим причинам. Попробуйте активировать функцию позднее.", nil, "nano", 10000)
+		news_manager.send_tip("Телепортация временно невозможна по техническим причинам. Попробуйте активировать функцию позднее.", nil, "nano", 10000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
 	elseif teleports[obj_sect].art and not (db.actor:object(teleports[obj_sect].art)) then  	
 		-- если арт не нужен или его нет у ГГ
-		news_manager.send_tip(db.actor, "Отсутствует необходимый для телепортации артефакт "..game.translate_string(artefact_hunter.get_art_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
+		news_manager.send_tip("Отсутствует необходимый для телепортации артефакт "..game.translate_string(artefact_hunter.get_art_name(teleports[obj_sect].art))..".", nil, "nano", 10000)
 		return false
 	elseif teleports[obj_sect].pay and not has_remove_art(teleports[obj_sect].art) then
-		news_manager.send_tip(db.actor, "Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 10000)
+		news_manager.send_tip("Для перемещения необходимо поместить на пояс любой артефакт.", nil, "nano", 10000)
 		return false
 	end
 	return true
@@ -497,7 +497,7 @@ function teleport_start(obj_sect)
 	local where = table.random( teleports[obj_sect].goto_func )
 	-- проверим вес
 	if db.actor:get_inventory_weight() > 350 then
-		news_manager.send_tip(db.actor, "Внимание! Слишком большой вес: возможен сбой телепортации!", nil, "nano", 10000)
+		news_manager.send_tip("Внимание! Слишком большой вес: возможен сбой телепортации!", nil, "nano", 10000)
 		if math.random() > 0.4 then where = get_gluk() end
 	end
 
@@ -541,7 +541,7 @@ end
 function on_take_teleportator_chunk()
 	shiftCheckDropItem()
 	db.actor:inventory_for_each(transfer_to_teleporter)
-	news_manager.send_tip(db.actor, "Все имеющиеся ручные телепорты перенесены в Телепортатор.", nil, "nano", 20000)
+	news_manager.send_tip("Все имеющиеся ручные телепорты перенесены в Телепортатор.", nil, "nano", 20000)
 end
 function transfer_to_teleporter(obj)
 	local obj_sect = obj:section()
@@ -560,7 +560,7 @@ function on_take_teleporter(obj)
 
 	if string.find(obj_sect, "arhara_obman") then
 		db.actor:give_info_portion(obj_sect)
-		news_manager.send_tip(db.actor, "В Телепортатор добавлена новая территория: "..game.translate_string(teleports[obj_sect].autosave)..".", nil, "nano", 20000)
+		news_manager.send_tip("В Телепортатор добавлена новая территория: "..game.translate_string(teleports[obj_sect].autosave)..".", nil, "nano", 20000)
 		archievements.acv_cognized_zone()
 
 		shiftCheckDropItem()
@@ -616,6 +616,6 @@ function show_teleport_msg( teleport )
 	local func_yes = function() this.teleport_start( teleport ) end
 	local func_no = function() this.teleport_fail( teleport ) end
 
-	ui_messagebox_new.UIMessageBox( "yes_no_alarm", msg, func_yes, func_no )
+	ShowMessageBox( "yes_no_alarm", msg, func_yes, func_no )
 end
 

@@ -42,14 +42,14 @@ function mylog(msg)
 	  if msg==nil then
 	    return 
 	  end
-	  if db and db.actor then
+	  if Actor then
 	    if bufferedmessages then
 	      for k,v in ipairs(bufferedmessages) do
-	        db.actor:give_game_news(v, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), 0, 15000)
+	        Actor:give_game_news(v, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), 0, 15000)
 	      end
 	      bufferedmessages=nil
 	    end
-	  db.actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), 0, 15000)
+	  Actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), 0, 15000)
 	  else
 	    if bufferedmessages then
 	      table.insert(bufferedmessages,msg)
@@ -80,7 +80,7 @@ function send_tip(news_text, header, timeout, showtime, sender, sound)
 
 	--' Играем дефолтный звук
 	local player = tips_sounds[sound or 'default'] or tips_sounds['default']
-	player:play_no_feedback(db.actor, sound_object.s2d, timeout, vector(), 1.0)
+	player:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
 
 	if #news_text>0 and not news_text:match("^(%%c%[[%w,]+%])") then
 		news_text = "%c[default]"..news_text
@@ -172,8 +172,8 @@ end
 --спавним объекты на карту
 --для спавна неписей смотрим config\creatures\spawn_sections.ltx - там написаны имена секций для разных типов неписей
 function spawn_item(spawn_item, pos, gv, lv, no_ai )
-	if gv==nil then gv=db.actor:game_vertex_id() end
-	if lv==nil then lv=db.actor:level_vertex_id() end
+	if gv==nil then gv=Actor:game_vertex_id() end
+	if lv==nil then lv=Actor:level_vertex_id() end
 	local obj = AI:create(spawn_item, pos, lv, gv)
 	if no_ai then
 		obj = AI:object( obj.id )
@@ -185,7 +185,7 @@ end
 --для спавна патронов используем spawn_ammo_in_inv
 function spawn_item_in_inv(spawn_item,npc)
 	if not npc then 
-		npc = db.actor 
+		npc = Actor 
 	end
 	local item = AI:create(spawn_item, 
 		npc:position(),
@@ -208,7 +208,7 @@ end
 --используем для спавна патронов
 function spawn_ammo_in_inv(spawn_item,number,npc)
   if npc==nil then 
-    npc=db.actor 
+    npc=Actor 
   end
   if number > 0 then
     return se_respawn.create_ammo(spawn_item, 
@@ -292,7 +292,7 @@ end
 
 --удаляем предмет из инвентаря
 function remove_item_from_inventory(remove_item,npc)
-  if npc==nil then npc=db.actor end
+  if npc==nil then npc=Actor end
   if remove_item~=nil then
 --      npc:mark_item_dropped(remove_item)
 	local se_item = AI:object(remove_item:id())
@@ -327,7 +327,7 @@ end
 
 --проверка запущена ли игра
 function check_game()
-  if level.present() and (db.actor ~= nil) and db.actor:alive() then
+  if level.present() and (Actor ~= nil) and Actor:alive() then
     return true
   end
   return false
@@ -340,14 +340,14 @@ function save_variable(variable_name, value)
     del_variable(variable_name)
   else
 --    local vn=compress_name(variable_name)
-    xr_logic.pstor_store(db.actor, variable_name, value)
+    xr_logic.pstor_store(Actor, variable_name, value)
   end
 end
 
 --загружаем переменную
 function load_variable(variable_name, value_if_not_found)
   local vn=compress_name(variable_name)
-  return xr_logic.pstor_retrieve(db.actor, vn, value_if_not_found)
+  return xr_logic.pstor_retrieve(Actor, vn, value_if_not_found)
 end
 
 --есть ли переменная
@@ -657,9 +657,8 @@ function on_actor_update(delta)
 	end
 
 	oau_watchdog=90
-	local actor = db.actor
-	local h = actor.health
-	if gg_kick and actor:alive() then
+	local h = Actor.health
+	if gg_kick and Actor:alive() then
 		if prev_health>h+0.05 then
 			level.add_pp_effector("amk_shoot.ppe", 2011, false)
 			level.set_pp_effector_factor(2011, (prev_health-h)*100)
@@ -677,10 +676,10 @@ function on_actor_update(delta)
 				end
 				level.add_cam_effector( "camera_effects\\"..table.random(cameffs)..".anm", 999, false, "" )
 				local snd_obj = xr_sound.get_safe_sound_object( "actor\\"..table.random(sounds) )
-				snd_obj:play_no_feedback(actor, sound_object.s2d, 0, vector(), 1.0)
+				snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 				if math_random()<(prev_health-h)/2.5 then
 					if actor_active_item and actor_active_item:section()~= "bolt" then
-						actor:drop_item(actor_active_item)
+						Actor:drop_item(actor_active_item)
 					end
 				end
 			end
@@ -787,10 +786,10 @@ function on_use(victim, who)
 				amk.save_table("amk_body_recipe",recipes)
 			end
 		end  
-		if info==nil or db.actor:has_info(info) then
+		if info==nil or Actor:has_info(info) then
 			return
 		end
-		db.actor:give_info_portion(info)
+		Actor:give_info_portion(info)
 	end
 end
 
@@ -807,14 +806,14 @@ end
 
 function on_npc_hit(obj, amount, local_direction, who, bone_index)
 	amk_mod.firebated(obj, amount, local_direction, who, bone_index)
-	if db.actor and who and who:id()==0 and amount>0 then
+	if Actor and who and who:id()==0 and amount>0 then
 		amk_mod.calc_adrenaline("actor_hit_enemy",obj,"npc")
 	end
 end
 
 function on_monster_hit(obj, amount, local_direction, who, bone_index)
 	amk_mod.firebated(obj, amount, local_direction, who, bone_index)
-	if db.actor and who and who:id()==0 and amount>0 then
+	if Actor and who and who:id()==0 and amount>0 then
 		amk_mod.calc_adrenaline("actor_hit_enemy",obj,"monster")
 	end
 end
@@ -829,10 +828,10 @@ function enemy_see_actor(obj,typ)
 	danger.enemy_see_actor()
 
 	if string_find(obj:name(),"^ferma_band") and not has_alife_info("sveeblov_ferma_have") then
-       db.actor:give_info_portion("sveeblov_ferma_fail")
+       Actor:give_info_portion("sveeblov_ferma_fail")
     end
 	if string_find(obj:name(),"^xalyava_naem") and not has_alife_info("xalyava_nebo_next") then
-       db.actor:give_info_portion("xalyava_naemnik_see")
+       Actor:give_info_portion("xalyava_naemnik_see")
     end
 	mod_call("calc_adrenaline","enemy_see_actor",obj,typ)
 end
@@ -849,8 +848,8 @@ end
 
 --загружаем все переменные, которые нужно, вызывается загрузке игры, автоматически; вручную не вызывать
 function on_game_load()
-	if db.storage[db.actor:id()].pstor == nil then
-		db.storage[db.actor:id()].pstor = {}
+	if db.storage[Actor:id()].pstor == nil then
+		db.storage[Actor:id()].pstor = {}
 	end
 
 	npc_spawner = load_table("x_npc_spawner")
@@ -861,7 +860,7 @@ function on_game_load()
 	amk_mod.test_sleep_pp( amk.load_variable("gg_need_sleep", 0) )
 
 	if has_alife_info("val_actor_has_borov_key") and not has_alife_info("val_borov_dead") then
-		db.actor:give_info_portion("val_borov_dead")
+		Actor:give_info_portion("val_borov_dead")
 	end
 end
 

@@ -2,6 +2,7 @@
 local container_types = { 1, 3, 8 }
 local db_click_timeout = 300
 local used_container = -1
+local actor_radiation_v = sys_ini:r_float('actor_condition', 'radiation_v')
 
 function show_menu(container)
 	local wnd = level.main_input_receiver()
@@ -30,6 +31,7 @@ function arc_containers_menu:__init(obj, arts)
 	self.containers = {}
 	self.containers_for_save = {}
 	self.arts_weight = 0
+	self.arts_rad = 0
 
 	self:insert_container(obj.id, obj:section_name(), arts)
 	self.container_index = 1
@@ -84,7 +86,9 @@ function arc_containers_menu:InitControls()
 	bag:AttachChild(self.our_bag)
 	self.our_bag:Show(true)
 
-	self.weight_st = xml:InitStatic("arts_weight", cont)
+	self.weight_st = xml:InitStatic("arts_weight", back)
+	self.rad_st = xml:InitStatic("arts_rad", back)
+	self.protect_st = xml:InitStatic("cont_protect", back)
 
 	local sh = #self.containers > 1
 
@@ -168,7 +172,7 @@ end
 
 function arc_containers_menu:search_inventory()
 	local section
-	db.actor:iterate_inventory( function(dummy, item)
+	Actor:iterate_inventory( function(dummy, item)
 		section = item:section()
 		if string.find(section, "arc_art_box") then
 			self:insert_container(item:id(), section, nil)
@@ -176,7 +180,7 @@ function arc_containers_menu:search_inventory()
 			table.insert(self.artefacts, item)
 		end
 	end,
-	db.actor)
+	Actor)
 end
 
 function arc_containers_menu:FillContainer()
@@ -202,22 +206,29 @@ function arc_containers_menu:FillContainer()
 	dragdrop:Show(true)
 	dragdrop:Clear()
 	self.arts_weight = 0
-	local row, col, v
-	for i = 0, self.container_slots-1 do
-		v = t_cont.arts[i+1]
+	self.arts_rad = 0
+	local v, r
+	for i = 1, self.container_slots do
+		v = t_cont.arts[i]
 		if v then
-			row = math.floor(i/dragdrop.cols_num)
-			col = math.mod(i, dragdrop.cols_num)
-			local itm = dragdrop:AddItemToPlace(v, row, col)
+			local itm = dragdrop:AddItemToPlace(v, i)
 			if itm then
 				local nm = itm.name.."_c"..self.container_index
 				self:Register(itm, nm)
 				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self.current_dragdrop, itm.name)
 				self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_LOST, self.OnCellItemFocusLost, self.current_dragdrop, itm.name)
+			else
+				abort("[arc_containers_menu:FillContainer] can not add item %s", v:name())
 			end
 			self.arts_weight = self.arts_weight + v:get_weight()
+			r = sys_ini:r_float(v:section(), "radiation_restore_speed")
+			if r > self.cont_protection then
+				self.arts_rad = self.arts_rad + r - self.cont_protection
+			end
 		end
 	end
+
+	self.protect_st:SetText( string.format("%d", self.cont_protection/actor_radiation_v) )
 
 	self:ShowArtsWeight()
 end
@@ -236,6 +247,7 @@ end
 
 function arc_containers_menu:ShowArtsWeight()
 	self.weight_st:SetText( string.format("Вес артефактов: %.2f кг", self.arts_weight) )
+	self.rad_st:SetText( string.format("Неэкранированное излучение: %d Ки", self.arts_rad/actor_radiation_v) )
 end
 
 function arc_containers_menu:OnCellItemFocus(from_where, item_name)
@@ -291,6 +303,7 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 		add_rad = item_rad - self.cont_protection
 	end
 	local add_weight = item:get_weight()
+	local add_cost = item:cost()
 
 
 	local t_cont = self.containers[self.container_index]
@@ -306,21 +319,16 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 
 		add_weight = -add_weight
 		add_rad = -add_rad
+		add_cost = -add_cost
 
 
 		self:ConvertFakeItem(item)
 		bag_from:RemoveItem(item)
 	else		-- из рюкзака в контейнер
-		for i, v in ipairs(self.artefacts) do
-			if v:id() == item:id() then
-				table.remove(self.artefacts, i)
-				break
-			end
-		end
-
-		local obj = fake_inventory_item.fake_item(item)
-		local new_itm, idx = bag_to:AddItem(obj)
-		if idx then
+		local check, index = bag_to:AddItem(item, true)
+		if check then
+			local obj = fake_inventory_item.fake_item(item)
+			local new_itm, idx = bag_to:AddItem(obj)
 			local nm = new_itm.name.."_c"..self.container_index
 			self:Register(new_itm, nm)
 			self:AddCallbackEx(nm, ui_events.STATIC_FOCUS_RECEIVED, self.OnCellItemFocus, self.current_dragdrop, new_itm.name)
@@ -331,6 +339,15 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 			end
 			t_cont.arts[idx] = obj
 			arc_containers.insert_art(t_cont.container.id, item, idx)
+		else
+			return
+		end
+
+		for i, v in ipairs(self.artefacts) do
+			if v:id() == item:id() then
+				table.remove(self.artefacts, i)
+				break
+			end
 		end
 
 		bag_from:RemoveItem( item )
@@ -344,7 +361,7 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 			self.message_box:SetText(
 				string.format(
 					game.translate_string("st_no_full_radiation_protection"),
-					add_rad / sys_ini:r_float('actor_condition', 'radiation_v')
+					add_rad / actor_radiation_v
 				)
 			)
 			self:GetHolder():start_stop_menu(self.message_box, true)
@@ -352,7 +369,8 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 	end
 
 	self.arts_weight = self.arts_weight + add_weight
-	arc_containers.change_container_weight(t_cont.container.id, add_weight)
+	self.arts_rad = self.arts_rad + add_rad
+	arc_containers.change_container_params(t_cont.container.id, add_weight, add_cost)
 	arc_radiation.change_inv_radiation(add_rad)
 
 	self:ShowArtsWeight()
@@ -363,7 +381,7 @@ function arc_containers_menu:ConvertFakeItem(item)
 	local sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
 
 	xr_statistic.set_id(sobj.id, true)
-	item:set_server_object(sobj)
+	item:write_server_object(sobj)
 
 	self.items_to_convert[sobj.id] = item:condition()
 

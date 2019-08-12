@@ -250,7 +250,7 @@ function foto_binder:update(delta)
 
 			if db.debug then
 				-- если это сообщение на тесте перестало приходить - завис биндер фотика, смотри лог.
-				news_manager.send_tip(db.actor, "Сделано фото.", nil, nil, 10000)
+				news_manager.send_tip("Сделано фото.", nil, nil, 10000)
 			end
 			-- вызываем поочередно проверки. останавливаем при первой удачной
 			if self:check_creatures() or self:check_anomaly() or self:check_territory_from_places() then
@@ -280,7 +280,7 @@ function foto_binder:check_territory_from_places()
 
 				if not has_alife_info(b.info) and p:distance_to(b.position) < b.radius then
 					-- этого снимка еще не было и ракурс правильный - засчитываем фото.
-					news_manager.send_tip(db.actor, a.sms, nil, nil, 10000)
+					news_manager.send_tip(a.sms, nil, nil, 10000)
 					db.actor:give_info_portion(b.info)
 					return true
 				end
@@ -307,8 +307,8 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 2, 3.5, true, nil, true) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip(db.actor, "%c[255,160,160,160]".."МЕЧЕНЫЙ:".."\\n".."%c[255,255,128,128]Захар, я подкрался к очередному монстру и успешно его сфотографировал.".."".."\n", nil, nil, 15000)
-				news_manager.send_tip(db.actor, "%c[255,160,160,160]".."ЗАХАР:".."\\n".."%c[255,255,128,128]Отлично. Неси фото и ищи следующего.".."\n", 15, nil, 15000)
+				news_manager.send_tip("%c[255,160,160,160]".."$actor$:".."\\n".."%c[255,255,128,128]Захар, я подкрался к очередному монстру и успешно его сфотографировал.".."".."\n", nil, nil, 15000)
+				news_manager.send_tip("%c[255,160,160,160]".."ЗАХАР:".."\\n".."%c[255,255,128,128]Отлично. Неси фото и ищи следующего.".."\n", 15, nil, 15000)
 				db.actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
 				return true
 				
@@ -319,7 +319,7 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip(db.actor, "Уникальный монстр сфотографирован.".."\n", nil, nil, 10000)
+				news_manager.send_tip("Уникальный монстр сфотографирован.".."\n", nil, nil, 10000)
 				db.actor:give_info_portion(foto_unique_monster[section].info)
 				return true
 
@@ -329,7 +329,7 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip(db.actor, "Монстр сфотографирован.".."\n", nil, nil, 10000)
+				news_manager.send_tip("Монстр сфотографирован.".."\n", nil, nil, 10000)
 				db.actor:give_info_portion(foto_ohota_monsters[section])
 				return true
 			end
@@ -350,7 +350,7 @@ function foto_binder:check_anomaly()
 			for _, anom in ipairs(anoms) do 	-- внутри это: {id=id,name=obj:name(),pos=o.pos,radius=o.radius}
 				if string.find(anom.name, anom_sect) and ( CheatFoto or self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) ) then
 					-- удачный снимок
-					news_manager.send_tip(db.actor, "Аномалия сфотографирована.".."\n", nil, nil, 10000)
+					news_manager.send_tip("Аномалия сфотографирована.".."\n", nil, nil, 10000)
 					db.actor:give_info_portion(info)
 					return true
 				end

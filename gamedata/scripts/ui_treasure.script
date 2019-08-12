@@ -286,6 +286,7 @@ function UICarBodyNew:TransferItem(from_where, item_name)
 		self.our_bag:RemoveItem( item )
 
 		shiftCheckDropItem()
+		xr_statistic.set_id(item:id(), nil)
 		AI:release( AI:object( item:id(), true) )
 	end
 
@@ -307,12 +308,16 @@ function UICarBodyNew:ConvertFakeItem(item)
 		sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
 	end
 
-	item:set_server_object(sobj)
+	item:write_server_object(sobj)
 
 	self.items_to_convert[sobj.id] = {
 		condition	= item:condition(),
 		ammo		= item:get_ammo_in_magazine()
 	}
+
+	if IAmAnArtefact[sobj.id] and bind_det_arts.is_detected_art(sobj:section_name()) then
+		xr_statistic.set_id(sobj.id, true)
+	end
 
 	item:destroy()
 end

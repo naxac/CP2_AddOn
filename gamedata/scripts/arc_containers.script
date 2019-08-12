@@ -85,7 +85,7 @@ function get_container_arts(cont_id)
 	else
 		local count = sys_ini:r_u32( sobj:section_name(), "container_slots" )
 		for i = 1, count do
-			ret[i] = { s = "_", c = 0 }
+			ret[i] = { s = "_", c = 1 }
 		end
 	end
 
@@ -138,11 +138,14 @@ function insert_art(cont_id, art, art_index)
 	arts[art_index].c = art:condition()
 end
 
-function change_container_weight(cont_id, weight_delta)
-	if weight_delta ~= 0 then
-		local cont = level.object_by_id(cont_id)
-		if cont then
+function change_container_params(cont_id, weight_delta, cost_delta)
+	local cont = level.object_by_id(cont_id)
+	if cont then
+		if weight_delta ~= 0 then
 			cont:set_weight( cont:get_weight() + weight_delta )
+		end
+		if cost_delta ~= 0 then
+			cont:set_cost( cont:cost() + cost_delta )
 		end
 	end
 end
@@ -162,13 +165,18 @@ function container_binder:net_spawn(sobj)
 	local arts = get_container_arts(self.object:id())
 	if arts then
 		local add_weight = 0
+		local add_cost = 0
 		for i, v in ipairs(arts) do
 			if v.s ~= "_" then
 				add_weight = add_weight + sys_ini:r_float(v.s, "inv_weight")
+				add_cost = add_cost + sys_ini:r_u32(v.s, "cost")*(v.c or 1)
 			end
 		end
 		if add_weight > 0 then
 			self.object:set_weight( self.object:get_weight() + add_weight )
+		end
+		if add_cost > 0 then
+			self.object:set_cost( self.object:cost() + add_cost )
 		end
 	end
 

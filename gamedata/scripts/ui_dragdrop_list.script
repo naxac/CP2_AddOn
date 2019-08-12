@@ -45,8 +45,9 @@ local function get_item_name(item, group_similar)
 	end
 
 	if (not item.is_fake) 
-		and ( db.actor:is_in_slot(item)
-		or db.actor:is_on_belt(item) )
+		and ( Actor:is_in_slot(item)
+		or Actor:is_on_belt(item) )
+		and not item:is_grenade()
 	then
 		name = name.."__slot"
 		sl = true
@@ -195,23 +196,75 @@ function UIDragDropList:RemoveItem(item)
 	end
 end
 
-function UIDragDropList:AddItemToPlace(item, row, col)
-	local idx = self.place2cell[row][col]
+function UIDragDropList:AddItemToPlace(item, idx)
 	local cell = self.containers[idx]
 	if not cell then
-		abort("[UIDragDropList:AddItemToPlace]: can not find cell [%s::%s] for item [%s]",
-			row, col, item:name())
+		abort("[UIDragDropList:AddItemToPlace]: can not find cell #%s for item [%s]",
+			idx, item:name())
 		return
 	end
 
-	local itm = ui_cell_item.UICellItem(item)
-
-	if not self:CheckFreePlace(cell, itm.icon.width, itm.icon.height) then
-		itm = nil
+	local sect = item:section()
+	local w, h = sys_ini:r_u32(sect, "inv_grid_width"), sys_ini:r_u32(sect, "inv_grid_height")
+	if not self:CheckFreePlace(cell, w, h) then
 		return false
 	end
 
+	return self:InitCellItem(item, cell)
+end
+
+function UIDragDropList:AddItem(item, test)
+	local itm = self:CheckSimilarItems(item)
+	if itm then
+		if test then
+			return true, nil
+		else
+			itm:AddItem(item)
+			return itm, nil
+		end
+	else
+		local sect = item:section()
+		if self.custom_placement then
+			local cell = self:GetFocusedCell()
+			if cell then
+				if self:CheckFreePlace(
+					cell,
+					sys_ini:r_u32(sect, "inv_grid_width"),
+					sys_ini:r_u32(sect, "inv_grid_height")
+				) then
+					if test then
+						return true, cell.index
+					else
+						return self:InitCellItem(item, cell)
+					end
+				end
+			end
+		end
+
+		local idx = self:GetFreePlace(
+			sys_ini:r_u32(sect, "inv_grid_width"),
+			sys_ini:r_u32(sect, "inv_grid_height")
+		)
+		if not idx then
+			if self.unlimited then
+				return abort("[UIDragDropList:AddItem] Error in create free cells for item[%s]", item:name())
+			end
+			return false, nil
+		elseif test then
+			return true, idx
+		end
+
+		local cell = self.containers[idx]
+		return self:InitCellItem(item, cell)
+	end
+end
+
+function UIDragDropList:InitCellItem(item, cell)
+	local itm = ui_cell_item.UICellItem(item)
 	itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
+
+	local idx = cell.index
+	
 	itm:Init(
 		cell.col*self.cell_width,
 		cell.row*self.cell_height,
@@ -220,57 +273,10 @@ function UIDragDropList:AddItemToPlace(item, row, col)
 	)
 	self.list:AttachChild(itm)
 	itm.start_cell = idx
-	itm:RecolorAndScale()
+	itm:RecolorAndScale(self.cell_width, self.cell_height)
 	self.name2item[itm.name] = itm
 	self:TakeCells(idx, itm.icon.width, itm.icon.height)
-	return itm
-end
-
-function UIDragDropList:AddItem(item)
-	local itm = self:CheckSimilarItems(item)
-	if itm then
-		itm:AddItem(item)
-		return itm, false
-	else
-		if self.custom_placement then
-			local cell = self:GetFocusedCell()
-			if cell then
-				itm = self:AddItemToPlace(item, cell.row, cell.col)
-				if itm then
-					return itm, cell.index
-				end
-			end
-		end
-
-		itm = ui_cell_item.UICellItem(item)
-		local idx = self:GetFreePlace(itm.icon.width, itm.icon.height)
-		if not idx then
-			if self.unlimited then
-				return abort("[UIDragDropList:AddItem] error for create free cells for item[%s]", item:name())
-			end
-			itm = nil
-			return nil, false
-		end
-		
-		itm.name, itm.addon_flags, itm.in_slot = get_item_name(item, self.group_similar)
-
-		local cell = self.containers[idx]
-		
-		itm:Init(
-			cell.col*self.cell_width,
-			cell.row*self.cell_height,
-			itm.icon.width*self.cell_width,
-			itm.icon.height*self.cell_height
-		)
-		self.list:AttachChild(itm)
-		itm.start_cell = idx
-		itm.cell_width = self.cell_width
-		itm.cell_height = self.cell_height
-		itm:RecolorAndScale()
-		self.name2item[itm.name] = itm
-		self:TakeCells(idx, itm.icon.width, itm.icon.height)
-		return itm, idx
-	end
+	return itm, idx
 end
 
 function UIDragDropList:CheckSimilarItems(item)
