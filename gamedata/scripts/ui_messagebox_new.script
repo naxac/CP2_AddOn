@@ -10,8 +10,10 @@ local type2box = {
 
 class "UIMessageBox" ( CUIScriptWnd )
 
-function UIMessageBox:__init( type, text, func_yes, func_no )
+function UIMessageBox:__init( type, text, func_yes, func_no, show_time )
 	super()
+
+	BlockUIDescr( true )
 
 	self:Init( 0, 0, 1024, 768 )
 	
@@ -26,18 +28,18 @@ function UIMessageBox:__init( type, text, func_yes, func_no )
 
 	if string.find( type, "^ok_" ) then
 		self.OnMsgOk = function( wnd, func )
-			if func then func() end
 			wnd:OnQuit()
+			if func then func() end
 		end
 		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_OK_CLICKED, self.OnMsgOk, func_yes )
 	else
 		self.OnMsgYes = function( wnd, func )
-			if func then func() end
 			wnd:OnQuit()
+			if func then func() end
 		end
 		self.OnMsgNo = function( wnd, func )
-			if func then func() end
 			wnd:OnQuit()
+			if func then func() end
 		end
 		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes, func_yes )
 		self:AddCallbackEx( "message_box", ui_events.MESSAGE_BOX_NO_CLICKED, self.OnMsgNo, func_no )
@@ -48,9 +50,14 @@ function UIMessageBox:__init( type, text, func_yes, func_no )
 
 	-- start_small_timer( 300, self.ShowMessageBox, self )
 	xr_s.subscribe( "update", self.ShowMessageBox, { timeout = 300, self = self, once = true } )
+
+	if show_time then
+		self.timer_id = start_small_timer( show_time + 300, self.OnQuit, self, true )
+	end
 end
 
-function UIMessageBox:__finalize() end
+function UIMessageBox:__finalize()
+end
 
 function UIMessageBox:ShowMessageBox()
 	self.message_box:Init( self.box_name )
@@ -58,12 +65,22 @@ function UIMessageBox:ShowMessageBox()
 	self:GetHolder():start_stop_menu( self.message_box, true )
 end
 
-function UIMessageBox:OnQuit()
+function UIMessageBox:OnQuit(from_timer)
+	if self.timer_id then
+		remove_small_timer( self.timer_id )
+		if from_timer then
+			self:GetHolder():start_stop_menu( self.message_box, true )
+		end
+	end
+
 	local key = hotkeys.dik2key( self.quit_dik )
 	if not key:find("MOUSE") then key = "k"..key end
 	get_console():execute( "bind quit "..string.lower( key ) )
 
 	self:ClearCallbacks()
+	self.message_box = nil
 	self:GetHolder():start_stop_menu( self, true )
 	self.dlg = nil
+
+	BlockUIDescr( false )
 end
