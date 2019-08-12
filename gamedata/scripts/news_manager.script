@@ -313,7 +313,7 @@ function get_sender_icon(text, sender)
 	return tips_icons[sender][1], tips_icons[sender][2]
 end
 
-function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka, func, _shift)
+function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func, _shift)
 	if news_id == nil then return false end
 
 	if sender_id ~= nil then
@@ -344,17 +344,17 @@ function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka
 		--' играем озвучку
 		xr_sound.stop_prev_sms_sound()
 		local ozvuchka_snd = xr_sound.get_safe_sound_object(ozvuchka)
-		ozvuchka_snd:play(db.actor, timeout, sound_object.s2d)
+		ozvuchka_snd:play(Actor, timeout, sound_object.s2d)
 		
 		--' Необходимо поставить время показа по длине сцены
 		showtime = ozvuchka_snd:length() + 500
 	else
 		--' Играем дефолтный звук
-		pda_tips:play_no_feedback(db.actor, sound_object.s2d, timeout, vector(), 1.0)
-	--	pda_tips:play(db.actor, timeout, sound_object.s2d)
+		pda_tips:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
+	--	pda_tips:play(Actor, timeout, sound_object.s2d)
 		if news[news_id] ~= nil then
 			--' Играем звук забитый
-			news[news_id]:play(db.actor, timeout+1, sound_object.s2d)
+			news[news_id]:play(Actor, timeout+1, sound_object.s2d)
 
 			--' Необходимо поставить время показа по длине сцены
 			local length = news[news_id]:length()
@@ -367,24 +367,31 @@ function send_tip(actor, news_id, timeout, sender, showtime, sender_id, ozvuchka
 	if func then
 		xr_timers.start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
 	end
-	
+
+	news_id = game.translate_string(news_id)
 	-- Определяем, ГГ как отправитель по игре уже Cтрелок, или еще Меченый
-	if has_alife_info("esc_find_doctor_done") then
+	if string.find(news_id, "%$actor%$") then
+		news_id = string.gsub(news_id, "%$actor%$", Actor:character_name())
+	end
+--[[
+	local actor_name = Actor:character_name()
+	if actor_name == "Стрелок" then
 		news_id = string.gsub(news_id, "МЕЧЕНЫЙ", "СТРЕЛОК", 1)
 		news_id = string.gsub(news_id, "Меченый", "Стрелок", 1)
 	else
 		news_id = string.gsub(news_id, "СТРЕЛОК", "МЕЧЕНЫЙ", 1)
 		news_id = string.gsub(news_id, "Стрелок", "Меченый", 1)
 	end
+]]
 
 	local news_text
 	if news_id:find('\\n') then
-		news_text = game.translate_string(news_id)
+		news_text = news_id
 	else
-		news_text = "%c[255,160,160,160]"..game.translate_string("st_tip").."\\n".."%c[default]"..game.translate_string(news_id)
+		news_text = "%c[255,160,160,160]"..game.translate_string("st_tip").."\\n".."%c[default]"..news_id
 	end
 	local x,y = get_sender_icon(news_text, sender)
-	actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime)
+	Actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime)
 	return true
 end
 
