@@ -90,8 +90,13 @@ function send_tip(news_text, header, timeout, showtime, sender, sound)
 	end
 
 	local msg = header.."\\n"..news_text
+	-- Определяем, ГГ как отправитель по игре уже Cтрелок, или еще Меченый
+	if string.find(msg, "$actor$", 1, true) then
+		msg = string.gsub(msg, "%$actor%$", Actor:character_name())
+	end
+
 	local x,y = news_manager.get_sender_icon(msg, sender)
-	db.actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime*1000)
+	Actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime*1000)
 	return true
 end
 
