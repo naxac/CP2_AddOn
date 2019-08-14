@@ -131,7 +131,7 @@ end
 function InvWnd:qslot_focus(i)
 	local sect = slot2section[i]
 	if sect~="" then
-		local obj = db.actor:object(sect)
+		local obj = Actor:object(sect)
 		if obj then
 			self.DescrWnd:OnItemFocus(obj)
 		end
@@ -143,7 +143,7 @@ function InvWnd:qslot_focus_lost(i)
 	if i == self.quick_slot then
 		local sect = slot2section[i]
 		if sect~="" then
-			local obj = db.actor:object(sect)
+			local obj = Actor:object(sect)
 			if obj then
 				self.DescrWnd:OnItemFocusLost(obj)
 			end
@@ -154,12 +154,12 @@ function InvWnd:qslot_focus_lost(i)
 end
 function InvWnd:qslot_dbclick(i)
 	local sect = slot2section[i]
-	local obj = db.actor:object(sect)
+	local obj = Actor:object(sect)
 	if obj then
 		if inventory.search(sect, 2) == false then
 			self.DescrWnd:OnItemFocusLost(obj)
 		end
-		db.actor:eat(obj)
+		Actor:eat(obj)
 	end
 end
 
@@ -227,20 +227,20 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 		if self.wpn_slot == item_slot then return end
 
 		local forced_move = false
-		if db.actor:is_in_slot( drag_item ) then
-			db.actor:move_to_ruck( drag_item )
+		if Actor:is_in_slot( drag_item ) then
+			Actor:move_to_ruck( drag_item )
 			forced_move = true
 		end
 
-		local item_in_slot = db.actor:item_in_slot( self.wpn_slot )
+		local item_in_slot = Actor:item_in_slot( self.wpn_slot )
 		if item_in_slot then
-			db.actor:move_to_ruck( item_in_slot )
+			Actor:move_to_ruck( item_in_slot )
 			forced_move = true
 		end
 
 		drag_item:set_slot( self.wpn_slot )
 		
-		if forced_move then db.actor:move_to_slot( drag_item ) end
+		if forced_move then Actor:move_to_slot( drag_item ) end
 	end
 end
 
@@ -250,7 +250,7 @@ function InvWnd:DrawSlotIcon(n)
 	local sz = GetIconParams(sect)
 	
 	s.icn:SetOriginalRect(sz.x, sz.y, sz.w, sz.h)
-	if sect~="" and db.actor:object(sect)~=nil then
+	if sect~="" and Actor:object(sect)~=nil then
 		s.icn:SetColor(GetARGB(255, 255, 255, 255))
 	else
 		s.icn:SetColor(GetARGB(70, 200, 200, 200))
@@ -301,7 +301,7 @@ end
 
 -- Выделение предмета в инвентаре
 function InvWnd:on_item_select( item )
-	if db.actor:is_in_slot( item ) then
+	if Actor:is_in_slot( item ) then
 		local sect = item:section()
 		if sect:find( "exo_mil_exoskeleton_add" ) then
 			self:ShowSkatPanel( sect )
@@ -338,7 +338,7 @@ end
 function slot_fix( id, item )
 	local slot = item:get_slot()
 	item:set_slot( inventory_slots.PISTOL + inventory_slots.RIFLE - slot )
-	db.actor:move_to_slot( item )
+	Actor:move_to_slot( item )
 end
 
 -- Кастомная заливка предметов в слотах, как в старых билдах
@@ -377,7 +377,7 @@ end
 ------------------------------------------------------------------------------------------
 -- from ui_mm_opt_main
 function on_options_change()
-	if not (db.actor and db.actor:alive()) then
+	if not (Actor and Actor:alive()) then
 		return
 	end
 
