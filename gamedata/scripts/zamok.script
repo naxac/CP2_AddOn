@@ -183,7 +183,7 @@ function codelock:OnNumberReceive( text, mode )
 		-- Перезагружаем логику
 		local st = db.storage[ box_id ]
 		st = {}
-		xr_logic.initialize_obj( self.object, st, false, db.actor, modules.stype_item, "scripts\\code_inventory_box.ltx" )
+		xr_logic.initialize_obj( self.object, st, false, Actor, modules.stype_item, "scripts\\code_inventory_box.ltx" )
 
 		self:Quit()
 	else
@@ -202,7 +202,7 @@ function actor_open_box( box, is_fake )
 	if is_fake then
 		level.start_stop_menu( ui_treasure.UICarBodyNew( box ), true )
 	else
-		db.actor:open_inventory_box( box )
+		Actor:open_inventory_box( box )
 	end
 end
 
@@ -226,12 +226,11 @@ function transfer_all(actor, box)
 	shiftCheckDropItem()
 
 	local n = box:inv_box_count()
-	local a = db.actor
 	if n>0 then
 		local item
 		for i=0,n-1 do
 			item = box:object_from_inv_box(i)
-			box:transfer_item(item, a)
+			box:transfer_item(item, actor)
 		end
 	end
 	local se_box = AI:object(box:id())
@@ -267,7 +266,7 @@ function change_box_data(box)
 		-- Перезагружаем логику
 		local st = db.storage[box_id]
 		st = {}
-		xr_logic.initialize_obj(box, st, false, db.actor, modules.stype_item, inifilename)
+		xr_logic.initialize_obj(box, st, false, Actor, modules.stype_item, inifilename)
 	end
 end
 

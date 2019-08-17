@@ -1,3 +1,4 @@
+// XE Wiki: https://xray-engine.org/index.php?title=X-Ray_extensions
 List of the classes exported to LUA
 
 C++ class entity_memory_object : memory_object {

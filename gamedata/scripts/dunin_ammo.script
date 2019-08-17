@@ -30,7 +30,7 @@ function on_take(obj)
 
 	local section = obj:section()
 	if ammo[section] and ammo[section].repack == false then
-		if get_ammo_size(obj) < ammo[section].box then
+		if obj:get_ammo_left() < ammo[section].box then
 			ammo[section].repack = true
 			repack = true
 		end
@@ -95,7 +95,7 @@ function enum_ammo(section, box_size)
 	for i=0, db.actor:object_count()-1 do
 		obj = db.actor:object(i)
 		if obj:section() == section then
-			size = get_ammo_size(obj)
+			size = obj:get_ammo_left()
 			if size < box_size then
 				table.insert(t, obj:id())
 				s = s + size
@@ -130,7 +130,7 @@ function repack_in_box(box)
 		obj = box:object_from_inv_box(i)
 		sect = obj:section()
 		if obj:is_ammo() and ammo[sect] then
-			sz = get_ammo_size(obj)
+			sz = obj:get_ammo_left()
 			if sz < ammo[sect].box then
 				if ammo_to_repack[sect] == nil then ammo_to_repack[sect] = {} end
 				ammo_to_repack[sect][obj:id()] = sz

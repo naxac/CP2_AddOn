@@ -10,7 +10,7 @@ local type2box = {
 
 class "UIMessageBox" ( CUIScriptWnd )
 
-function UIMessageBox:__init( type, text, func_yes, func_no, show_time )
+function UIMessageBox:__init( type, msg, func_yes, func_no, show_time )
 	super()
 
 	BlockUIDescr( true )
@@ -21,7 +21,7 @@ function UIMessageBox:__init( type, text, func_yes, func_no, show_time )
 	get_console():execute( "unbind quit" )
 
 	self.box_name = type2box[ type or "ok_info" ]
-	self.text = text
+	self.text = game.translate_string(msg)
 	
 	self.message_box = CUIMessageBoxEx()
 	self:Register( self.message_box, "message_box" )
@@ -74,8 +74,10 @@ function UIMessageBox:OnQuit(from_timer)
 	end
 
 	local key = hotkeys.dik2key( self.quit_dik )
-	if not key:find("MOUSE") then key = "k"..key end
-	get_console():execute( "bind quit "..string.lower( key ) )
+	if key then
+		if not key:find("MOUSE") then key = "k"..key end
+		get_console():execute( "bind quit "..string.lower( key ) )
+	end
 
 	self:ClearCallbacks()
 	self.message_box = nil

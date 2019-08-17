@@ -354,22 +354,12 @@ function get_weapon(npc)
 	return rx_wmgr and rx_wmgr.get_wm(npc):get_weapon() or npc:best_weapon()
 end
 
-function get_ammo_type(wpn)
-	local obj = AI:object(wpn:id())
-	if obj then
-		local pk = net_packet()
-		obj:STATE_Write( pk )
-		pk:r_seek( pk:w_tell() - 1 )
-		return pk:r_u8()	-- ammo_type
-	end
-	return 0
-end
-
 function in_grenade_mode(wpn)
-	local obj = AI:object(wpn:id())
-	if obj then
-		local pak = netpk:get(obj)
-		if bit_and(pak.addon_flags,addon_flags.grenade_launcher) ~= 0 then
+	local flags = wpn:get_addon_flags()
+	if bit_and(flags, addon_flags.grenade_launcher) ~= 0 then
+		local obj = AI:object(wpn:id())
+		if obj then
+			local pak = netpk:get(obj)
 			return pak.upd.grenade_mode ~= 0
 		end
 	end

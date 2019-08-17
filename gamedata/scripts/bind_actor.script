@@ -86,6 +86,8 @@ function actor_binder:net_spawn(data)
 
 	autopause.main()
 
+	db.actor:disable_info_portion("level_changing")
+
 	return true
 end
 ----------------------------------------------------------------------------------------------------------------------
@@ -521,8 +523,7 @@ function actor_binder:update(delta)
 					if cls == clsid.wpn_binocular_s then
 						scopeUsed = true
 					elseif IAmAWeapon[cls] then
-						local t = netpk:get(AI:object(actor_active_item:id()), netpk.fState)
-						scopeUsed = ( bit_and(t.addon_flags, addon_flags.scope) ~= 0
+						scopeUsed = ( bit_and(actor_active_item:get_addon_flags(), addon_flags.scope) ~= 0
 							or sys_ini:r_u32(section, "scope_status") == 1 )
 					end
 					if scopeUsed then

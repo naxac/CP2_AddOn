@@ -546,7 +546,7 @@ end
 function hamster_kuznec3_have_all()
 	return
 		inventory.search("wpn_sr25_mk11_mod0_sk1_otdaca_ves",1,true) and
-		inventory.search("ammo_7.62x51_ap",10)
+		inventory.search_ammo("ammo_7.62x51_ap",200)
 end
 function hamster_kuznec3_have()
 	if hamster_kuznec3_have_all() then
@@ -558,7 +558,7 @@ function hamster_kuznec3_have()
 end
 function hamster_kuznec3_done()
 	inventory.out_items("wpn_sr25_mk11_mod0_sk1_otdaca_ves",1,true)
-	dialogs.out_ammo("ammo_7.62x51_ap",10)
+	inventory.out_ammo("ammo_7.62x51_ap",200)
 --	inventory.out_items("ammo_7.62x51_ap",10)
 end
 
@@ -3197,11 +3197,11 @@ end
 function taynik_akill_done_all()
 	return
 		inventory.search("wpn_vihlop",1,true) and 
-		inventory.search("ammo_12.7x108",5)
+		inventory.search_ammo("ammo_12.7x108",50)
 end
 function taynik_akill_done()
 	inventory.out_items("wpn_vihlop",1,true)
-	dialogs.out_ammo("ammo_12.7x108",5)
+	inventory.out_ammo("ammo_12.7x108",50)
 --	inventory.out_items("ammo_12.7x108",5)
 	table_treasure_l.treasure()
 	AI:create("bw_killers1",vector():set(-241.58294677734,9.3622379302979,57.937065124512),13224,1391)
@@ -5248,12 +5248,12 @@ function volna_kogot_have_all()
 	return
 		inventory.search("kogot_snotvornoe",10) and
 		inventory.search("wpn_awm_new",1) and
-		inventory.search("ammo_igl_new",2)
+		inventory.search_ammo("ammo_igl_new",70)
 end
 function volna_kogot_done()
 	inventory.out_items("kogot_snotvornoe",15)
 	inventory.out_items("wpn_awm_new",1)
-	dialogs.out_ammo("ammo_igl_new",2)
+	inventory.out_ammo("ammo_igl_new",70)
 --	inventory.out_items("ammo_igl_new",2)
 end
 
@@ -6323,7 +6323,7 @@ end
 function viking_proverka_have_all()
 	return
 		inventory.search("wpn_vepr",1) and
-		inventory.search("ammo_12x76_zhekan",5)
+		inventory.search_ammo("ammo_12x76_zhekan",50)
 end
 function viking_proverka_give(first_speaker, second_speaker)
 	local npc = first_speaker:id() == 0 and second_speaker or first_speaker
@@ -6331,15 +6331,19 @@ function viking_proverka_give(first_speaker, second_speaker)
 	spawn_restrictor.viking_proverka_sr1()
 	actor:transfer_item(actor:object("wpn_vepr"), npc)
 	news_manager.relocate_item(actor, "out", "wpn_vepr")
-	local n = 5
+	local n = 50
 	actor:iterate_inventory(function(dummy, item)
-		if item:section()=="ammo_12x76_zhekan" and n>0 then
+		if item:section()=="ammo_12x76_zhekan" and n > 0 then
 			actor:transfer_item(item, npc)
-			n = n-1
+			n = n - item:get_ammo_left()
 		end
 	end,
 	actor)
-	news_manager.relocate_item(actor, "out", "ammo_12x76_zhekan", 5)
+	if n < 0 then
+		AI:create_ammo("ammo_12x76_zhekan", vector():set(0,0,0), 0, 0, Actor:id(), -n)
+		n = 0
+	end
+	news_manager.relocate_item(actor, "out", "ammo_12x76_zhekan", 50 - n)
 --	inventory.out_items("ammo_12x76_zhekan",4)
 end
 function viking_proverka_begin()

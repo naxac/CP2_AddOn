@@ -570,7 +570,7 @@ for a=5000,6000,1 do
 end
 
 -- список неписей, которых можно воскресить живым сердцем. 
--- story_id   = story_id непися
+-- ключ - story_id непися
 -- _umer = true - у непися есть поршень с приставкой "_umer"
 -- info  = дополнительные поршни, которые выдаются при смерти
 -- script = функция, которая воскрешает непися при скриптовом спавне
@@ -684,10 +684,6 @@ function deadman_to_life(art)
 			level.start_stop_menu(level.main_input_receiver(), true)
 			amk_mod.af_flash(art)
 
-			amk.send_tip("%c[255,0,255,0]Обнаружен новый сталкер: "..naxac_netpk.get_character_name(obj)..". Добавлен в базу данных сети.%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 5, 15, "questman_death")
-			local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
-			AI:release(obj)
-
 			local se_npc
 			if v.script then
 				se_npc = loadstring("return "..v.script.."()")()
@@ -695,10 +691,15 @@ function deadman_to_life(art)
 				se_npc = AI:create(AI:spawn_id(sid))
 			end
 			if se_npc then
-				AI:teleport_object("", pos, lv, gv, se_npc.id)
-				netpk:modify( se_npc, { health = add_health, upd = {health = add_health} } )
+				AI:teleport_object(
+					"",
+					obj.position,
+					obj.m_level_vertex_id,
+					obj.m_game_vertex_id,
+					se_npc.id
+				)
 				Actor.health = -add_health
-				this.set_actor_friend(se_npc.id)
+				this.set_on_spawn(se_npc, obj, add_health)
 			end
 			return
 		end
@@ -718,18 +719,50 @@ function deadman_to_life(art)
 	if not trup then return end
 
 	local se_npc = AI:object(trup:id())
-	if not se_npc then return end
+	if not ( se_npc and GGraph:valid_vertex_id(se_npc.m_game_vertex_id) ) then return end
 
 	level.start_stop_menu(level.main_input_receiver(), true)
 	amk_mod.af_flash(art)
 
-	local data = netpk:get(se_npc)
-	local new_npc = AI:create(
-		se_npc:section_name(),
-		se_npc.position,
-		se_npc.m_level_vertex_id,
-		se_npc.m_game_vertex_id
-	)
+	local new_npc
+	if is_story_object(trup) and AI:spawn_id(se_npc.m_story_id) ~= 46144 then
+		local spawn_id = AI:spawn_id(se_npc.m_story_id)
+		log("story_id [%s]: spawn_id found: %s", se_npc.m_story_id, spawn_id)
+		new_npc = AI:create(spawn_id)
+		AI:teleport_object(
+			"", 
+			se_npc.position,
+			se_npc.m_level_vertex_id,
+			se_npc.m_game_vertex_id,
+			new_npc.id
+		)
+	else
+		new_npc = AI:create(
+			se_npc:section_name(),
+			se_npc.position,
+			se_npc.m_level_vertex_id,
+			se_npc.m_game_vertex_id
+		)
+	end
+
+	Actor.health = -add_health
+	this.set_on_spawn(new_npc, se_npc, add_health)
+end
+
+function convert_npc(npc_id, data)
+	-- уважуха актёру
+	if relation_registry.get_goodwill(npc_id, Actor:id()) < 2500 then
+		relation_registry.set_goodwill(npc_id, Actor:id(), 2500)
+	end
+
+	local se_npc = AI:object(npc_id)
+	if se_npc then
+		netpk:modify(se_npc, data, netpk.fConvert)
+	end
+end
+
+function set_on_spawn(new_npc, old_npc, add_health)
+	local data = netpk:get(old_npc)
 	local data_new = {
 		custom_data = data.custom_data,
 		story_id = data.story_id,
@@ -748,23 +781,72 @@ function deadman_to_life(art)
 			start_dialog = data.upd.start_dialog
 		}
 	}
-	netpk:modify(new_npc, data_new)
+	start_small_timer(500, this.convert_npc, new_npc.id, data_new)
+	amk.send_tip(
+		"%c[255,0,255,0]Обнаружен новый сталкер: "..data.character_name..
+		". Добавлен в базу данных сети.", "ЛОКАЛЬНАЯ СЕТЬ", 
+		0, 15, "questman_death"
+	)
 
-	amk.send_tip("%c[255,0,255,0]Обнаружен новый сталкер: "..data.character_name..". Добавлен в базу данных сети.%c[default]", "ЛОКАЛЬНАЯ СЕТЬ", 5, 15, "questman_death")
-	AI:release(se_npc, true)
-	Actor.health = -add_health
-	this.set_actor_friend(new_npc.id)
-end
+	local seBox = AI:create(
+		"inventory_box",
+		old_npc.position,
+		old_npc.m_level_vertex_id,
+		old_npc.m_game_vertex_id
+	)
 
-function set_actor_friend(npc_id)
-	level.client_spawn_manager():add(npc_id, 0,
-		function(id, npc)
-			if npc:relation(Actor) == game_object.enemy then
-				npc:set_relation(game_object.neutral, Actor)
-				relation_registry.set_goodwill(id, Actor:id(), 2500)
+	level.client_spawn_manager():add(seBox.id, 0,
+		function(trup_id, boxid, box)
+			local se_trup = AI:object(trup_id)
+			if se_trup then		-- переносим вещи трупа во временный ящик
+				local trup = level.object_by_id(trup_id)
+				if trup then
+					trup:iterate_inventory(function(dummy, item)
+						if item:section() ~= "bolt" then	-- движковый болт пусть удаляется
+							trup:transfer_item(item, box)
+						end
+					end,
+					trup)
+				end
+				AI:release(se_trup, true)
+			end
+		end,
+	old_npc.id)
+
+	start_small_timer(1200, function(npcID, boxID)
+		local npc = level.object_by_id(npcID)
+		if npc then		-- очищаем инвентарь непися
+			local seItem
+			local keep_items = { bolt = true, device_pda = true, device_torch = true }
+			npc:iterate_inventory(function(dummy, item)
+				if keep_items[item:section()] == nil then
+					npc:drop_item(item)
+					seItem = AI:object(item:id())
+				--	log("found item %s", item:name())
+					if seItem then
+						AI:release(seItem, true)
+					--	log("release")
+					end
+				end
+			end,
+			npc)
+		end
+		local box = level.object_by_id(boxID)
+		if box and npc then		-- если при оживлении у нпс были вещи, то возвращаем их
+			local n = box:inv_box_count()
+			if n>0 then
+				local item
+				for i=0,n-1 do
+					item = box:object_from_inv_box(i)
+				--	log("return to npc: %s", item:name())
+					box:transfer_item(item, npc)
+				end
 			end
 		end
-	)
+		local se_box = AI:object(boxID)
+		if se_box then AI:release(se_box, true) end
+	end,
+	new_npc.id, seBox.id)
 end
 
 function nepis_umer()

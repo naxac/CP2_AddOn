@@ -88,16 +88,6 @@ function torch_binder:net_spawn(data)
 		return false
 	end
 
-	self:init_torch()
-	if self:get_charge_level() > 0 then
-		local accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
-		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
-	end
-
-	return true
-end
-
-function torch_binder:init_torch()
 	self.section = self.object:section()
 	if self.section == "device_torch" then
 		self.object:set_callback(callback.on_switch_torch, self.on_switch_torch, self)
@@ -109,7 +99,18 @@ function torch_binder:init_torch()
 	self.se_torch = AI:object(self.object:id())
 	self.time_left = self.full_charge_time - self.se_torch.worked_time
 
-	local cond = self.time_left/self.full_charge_time
+	if self:get_charge_level() > 0 then
+		local accum_sect = sys_ini:r_string( self.section, "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+	end
+
+	self.need_init = true
+
+	return true
+end
+
+function torch_binder:init_torch()
+	local cond = self:get_charge_level()
 	if self.section == "device_torch" then
 		for i, v in ipairs(torch_cond) do
 			if cond <= v then
@@ -134,9 +135,9 @@ end
 function torch_binder:update(delta)
 	object_binder.update(self, delta)
 	
-	if self.force_init then
+	if self.need_init then
 		self:init_torch()
-		self.force_init = nil
+		self.need_init = nil
 		return
 	end
 
@@ -276,7 +277,7 @@ end
 
 function force_init_nv(id)
 	if devices[id] then
-		devices[id].force_init = true
+		devices[id].need_init = true
 	end
 end
 

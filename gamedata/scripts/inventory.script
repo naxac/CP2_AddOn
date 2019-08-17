@@ -116,17 +116,17 @@ function item_on_belt(item)
 end
 
 function is_free_belt_slot()
-	return db.actor:belt_count() < sys_ini:r_u32('inventory', 'max_belt')
+	return Actor:belt_count() < sys_ini:r_u32('inventory', 'max_belt')
 end
 
 function get_free_belt_slot()
 	if is_free_belt_slot() then return end
 	
 	local item
-	for i = 0, db.actor:belt_count()-1 do
-		item = db.actor:item_on_belt(i)
+	for i = 0, Actor:belt_count()-1 do
+		item = Actor:item_on_belt(i)
 		if item:is_artefact() and item:section()~="af_invul" then
-			db.actor:move_to_ruck(item)
+			Actor:move_to_ruck(item)
 			return
 		end
 	end
@@ -146,11 +146,17 @@ function search(iItemSection, iNeededCount, bGood)
 	--Загрузка текущего состояния инвентаря в кеш:
 	if tStat == nil then
 		tStat = { count = 0, good_count = 0 }
-		db.actor:iterate_inventory(function (dummy, vItem)
+		if isAmmo( nil, sys_ini:r_clsid(iItemSection, "class") ) then
+			tStat.ammo_count = 0
+		end
+		Actor:iterate_inventory(function (dummy, vItem)
 				if vItem:section() == iItemSection then
 					tStat.count = tStat.count + 1
 					if vItem:condition() > good_condition then
 						tStat.good_count = tStat.good_count + 1
+					end
+					if tStat.ammo_count then
+						tStat.ammo_count = tStat.ammo_count + vItem:get_ammo_left()
 					end
 				end 
 			end, nil)
@@ -177,23 +183,43 @@ function inventory_update(iObject, iCountDelta)
 		if iObject:condition() > good_condition then
 			tStat.good_count = tStat.good_count + iCountDelta
 		end
+		if iObject:is_ammo() then
+			tStat.ammo_count = tStat.ammo_count + iCountDelta * iObject:get_ammo_left()
+		end
 	end
 end
 
-function search_af(section, count)
-	if not artefact_hunter.is_known_art(section) then
+function search_af(sSection, iNeededCount)
+	if not artefact_hunter.is_known_art(sSection) then
 		return false
 	end
-	return this.search(section, count)
+	return this.search(sSection, iNeededCount)
 end
 
-function get_items_count(section)
-	local tStat = InventoryState[section]
+function search_ammo(sSection, iNeededCount)
+	local tStat = InventoryState[sSection]
 	if tStat == nil then
-		this.search(section)
-		tStat = InventoryState[section]
+		this.search(sSection)
+		tStat = InventoryState[sSection]
+	end
+	return tStat.ammo_count >= iNeededCount
+end
+
+function get_items_count(sSection)
+	local tStat = InventoryState[sSection]
+	if tStat == nil then
+		this.search(sSection)
+		tStat = InventoryState[sSection]
 	end
 	return tStat.count
+end
+function get_ammo_count(sSection)
+	local tStat = InventoryState[sSection]
+	if tStat == nil then
+		this.search(sSection)
+		tStat = InventoryState[sSection]
+	end
+	return tStat.ammo_count or 0
 end
 
 function give_items(sSection, iNeedCount)
@@ -201,11 +227,32 @@ function give_items(sSection, iNeedCount)
 		iNeedCount = 1
 	end
 
-	for i = 1, iNeedCount do
-		AI:create(sSection, vector(), 0, 0, 0)
+	if ammo_sections[sSection] then
+		this.give_ammo(sSection, iNeedCount*ammo_sections[sSection])
+		return
 	end
 
-	news_manager.relocate_item(db.actor, "in", sSection, iNeedCount)
+	local actor_id = Actor:id()
+	for i = 1, iNeedCount do
+		AI:create(sSection, vector():set(0,0,0), 0, 0, actor_id)
+	end
+
+	news_manager.relocate_item(Actor, "in", sSection, iNeedCount)
+end
+
+function give_ammo(sSection, iNeedCount)
+	local iOutCount = iNeedCount
+	local box_size = ammo_sections[sSection]
+		or sys_ini:r_u32(sSection, "box_size")
+
+	local actor_id = Actor:id()
+	while iOutCount > box_size do
+		AI:create_ammo(sSection, vector():set(0,0,0), 0, 0, actor_id, box_size)
+		iOutCount = iOutCount - box_size
+	end
+	AI:create_ammo(sSection, vector():set(0,0,0), 0, 0, actor_id, iOutCount)
+
+	news_manager.relocate_item(Actor, "in", sSection, iNeedCount)
 end
 
 function out_items(sSection, iNeedCount, bGood)
@@ -213,9 +260,14 @@ function out_items(sSection, iNeedCount, bGood)
 		iNeedCount = 1
 	end
 
+	if ammo_sections[sSection] then
+		this.out_ammo(sSection, iNeedCount*ammo_sections[sSection])
+		return
+	end
+
 	local iOutCount = 0
 	local seObj = nil
-	db.actor:iterate_inventory(function (dummy, vItem)
+	Actor:iterate_inventory(function (dummy, vItem)
 		if iOutCount >= iNeedCount then
 			return
 		end
@@ -230,15 +282,15 @@ function out_items(sSection, iNeedCount, bGood)
 			iOutCount = iOutCount + 1
 		end
 	end,
-	db.actor)
-	
-	news_manager.relocate_item(db.actor, "out", sSection, iOutCount)
+	Actor)
+
+	news_manager.relocate_item(Actor, "out", sSection, iOutCount)
 end
 
 function out_items_all(sSection, bGood)
 	local iOutCount = 0
 	local seObj = nil
-	db.actor:iterate_inventory(function (dummy, vItem)
+	Actor:iterate_inventory(function (dummy, vItem)
 		if vItem:section() == sSection
 			and (bGood ~= true or vItem:condition() > good_condition)
 		then
@@ -249,9 +301,35 @@ function out_items_all(sSection, bGood)
 			iOutCount = iOutCount + 1
 		end
 	end,
-	db.actor)
+	Actor)
 	
-	news_manager.relocate_item(db.actor, "out", sSection, iOutCount)
+	news_manager.relocate_item(Actor, "out", sSection, iOutCount)
+end
+
+
+function out_ammo(sSection, iNeedCount, bNoMessage)
+	local out_cnt = iNeedCount
+	local obj
+	Actor:iterate_inventory(function (actor, item)
+		if out_cnt <= 0 then return end
+		if item:is_ammo() and item:section() == sSection then
+			out_cnt = out_cnt - item:get_ammo_left()
+			obj = AI:object(item:id())
+			if obj then
+				AI:release(obj, true)
+			end
+		end
+	end,
+	Actor)
+
+	if out_cnt < 0 then
+		AI:create_ammo(sSection, Actor:position(), Actor:level_vertex_id(),
+			Actor:game_vertex_id(), Actor:id(), -out_cnt)
+		out_cnt = 0
+	end
+
+	if bNoMessage then return end
+	news_manager.relocate_item(Actor, "out", sSection, iNeedCount-out_cnt)
 end
 -------------------------------------------------------------------------------
 

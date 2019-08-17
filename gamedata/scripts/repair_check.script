@@ -1496,17 +1496,13 @@ function release_addons(sobj,wpn,obj)
 		local ammo = obj:get_ammo_in_magazine()
 		if ammo < 1 then return end
 		
-		local ammo_str = sys_ini:r_string_ex(wpn,"ammo_class",nil)
-		if ammo_str == nil then return end
+		if not sys_ini:line_exist(wpn,"ammo_class") then return end
 		
-		local sections_ammo = {}
-		for s in string.gfind(ammo_str, "[_%w%-%.]+") do
-			sections_ammo[#sections_ammo+1] = s
-		end
+		local sections_ammo = sys_ini:r_list(wpn,"ammo_class")
 		
 		if #sections_ammo > 0 then
-			ammo_str = sections_ammo[t.ammo_type+1]
-			amk.spawn_ammo_in_inv(ammo_str, ammo, db.actor)
+			local ammo_sect = sections_ammo[t.ammo_type+1]
+			amk.spawn_ammo_in_inv(ammo_sect, ammo, db.actor)
 		end
 	end
 end

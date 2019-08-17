@@ -148,11 +148,11 @@ function motivator_binder:net_spawn(sobject)
 
 --	сохранение отношений в Волне
 	if level.name() == "zaton" then
-		self.npc_goodwill = self.object:goodwill(db.actor)
+		self.npc_goodwill = self.object:goodwill(Actor)
 		if 0 <= self.npc_goodwill and self.npc_goodwill <= 1000 then
 			self.npc_goodwill = 1000
 		end
-		self.com_goodwill = relation_registry.community_goodwill(self.object:character_community(), db.actor:id())
+		self.com_goodwill = relation_registry.community_goodwill(self.object:character_community(), Actor:id())
 		--get_console():execute("load ~~~ self.object:character_community(): "..self.object:character_community())
 		--get_console():execute("load ~~~ self.com_goodwill: "..self.com_goodwill)
 	end
@@ -322,7 +322,7 @@ function motivator_binder:death_callback(victim, who)
 	local h = hit()
 	h.draftsman = self.object
 	h.type = hit.fire_wound
-	h.direction = db.actor:position():sub(self.object:position())
+	h.direction = Actor:position():sub(self.object:position())
 	h:bone("pelvis")
 	h.power = 1
 	h.impulse = 10
@@ -359,7 +359,7 @@ function motivator_binder:use_callback(obj, who)
 	else
 		treasure_manager:get_treasure_manager():use(self.object)
 		if self.object:name() == "rostok_dead_stalker_0000" then
-			db.actor:give_info_portion("acv_vandal")
+			Actor:give_info_portion("acv_vandal")
 		end
 	end
 
@@ -378,9 +378,9 @@ end
 
 function motivator_binder:update(delta)
     if amk.oau_watchdog~=0 then
-        if db.actor and not device():is_paused() then
+        if Actor and not device():is_paused() then
             local snd_obj = xr_sound.get_safe_sound_object("detectors\\da-2_beep1")
-            snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 2.5)
+            snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.5)
         end
         abort("Watchdog "..amk.oau_watchdog..".Reason "..amk.oau_reason)
     end
@@ -424,11 +424,11 @@ function motivator_binder:update(delta)
 	end
 ]]
     if time_global() - self.last_update > 1000 then
-        if amk.get_npc_relation(self.object,db.actor)=="enemy" and self.object:alive() and self.object.health>0.01 then
-            if self.object:see(db.actor) then
+        if amk.get_npc_relation(self.object,Actor)=="enemy" and self.object:alive() and self.object.health>0.01 then
+            if self.object:see(Actor) then
                 amk.enemy_see_actor(self.object,"npc")
             end
-            if db.actor:see(self.object) then
+            if Actor:see(self.object) then
                 amk.actor_see_enemy(self.object,"npc")
             end
         end
@@ -440,7 +440,7 @@ function motivator_binder:update(delta)
     local wpn = utils.wpn_info_get(self.object)
     if wpn["ammo"]~=nil then
         local enemy = self.object:best_enemy()
-        if enemy and enemy:id()==db.actor:id() and self.object:see(db.actor) and self.prev_ammo>wpn["ammo"] then
+        if enemy and enemy:id()==Actor:id() and self.object:see(Actor) and self.prev_ammo>wpn["ammo"] then
             amk.npc_shot_actor(self.object)
         end
     end
@@ -562,7 +562,7 @@ end
 function motivator_binder:rotting()
 	self.pos = self.object:position()
 	
-	if self.pos:distance_to(db.actor:position()) < 3 then
+	if self.pos:distance_to(Actor:position()) < 3 then
 		if not self.rot_sound then
 			self.rot_sound = sound_object([[anomaly\rot_flies]])
 			db.rotting = db.rotting+1

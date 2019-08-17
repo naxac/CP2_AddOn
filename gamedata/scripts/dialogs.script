@@ -7,45 +7,6 @@ function allow_break_dialog(first_speaker, second_speaker, id)
 	return true
 end
 
-function has_ammo(sect, cnt)
-	cnt = cnt*sys_ini:r_u32(sect, "box_size")
-	local num = 0
-	local obj
-	db.actor:iterate_inventory(function (actor, item)
-		if item:section()==sect then
-			obj = AI:object(item:id())
-			if obj then
-				num = num + naxac_netpk.get_ammo_size(obj)
-			end
-		end
-	end,
-	db.actor)
-	return num >= cnt
-end
-
-function out_ammo(sect, cnt)
-	local n = cnt*sys_ini:r_u32(sect, "box_size")
-	local out_cnt = 0
-	local obj
-	db.actor:iterate_inventory(function (actor, item)
-		if out_cnt>=n then return end
-		if item:section()==sect then
-			obj = AI:object(item:id())
-			if obj then
-				out_cnt = out_cnt + naxac_netpk.get_ammo_size(obj)
-				actor:drop_item(item)
-				AI:release(obj, true)
-			end
-		end
-	end,
-	db.actor)
-	if out_cnt>n then
-		AI:create_ammo(sect, db.actor:position(), db.actor:level_vertex_id(),
-			db.actor:game_vertex_id(), 0, out_cnt-n)
-	end
-	news_manager.relocate_item(db.actor, "out", sect, cnt)
-end
-
 function break_dialog(first_speaker, second_speaker, id)
 	first_speaker:stop_talk()
 	second_speaker:stop_talk()
