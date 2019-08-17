@@ -67,8 +67,8 @@ function turret_binder:load(packet)
 end
 
 function turret_binder:on_hit(power, impulse, hit_type, enemy_id)
-	dbglog("hit: power=%f impulse=%f hit_type=%d enemy_id=%d health=%f",
-			power, impulse, hit_type, enemy_id, self.heli:GetfHealth())
+--	dbglog("hit: power=%f impulse=%f hit_type=%d enemy_id=%d health=%f",
+--			power, impulse, hit_type, enemy_id, self.heli:GetfHealth())
 	self.se_obj.health = self.heli:GetfHealth()
 	local enemy = level.object_by_id(enemy_id)
 	if enemy ~= nil and self.st.active_section ~= nil then
@@ -81,6 +81,9 @@ function turret_binder:check_health()
 	if self.st.alive and self.heli:GetfHealth() <= 0.005 then
 		explode_turret(self.object)
 	end
+	if not self.st.alive and not self.heli:isVisible(db.actor) then
+		AI:release(self.se_obj)
+	end
 end
 
 function explode_turret(turret)
@@ -90,7 +93,7 @@ function explode_turret(turret)
 	local se_obj = AI:object(turret:id())
 	se_obj.health = 0
 	db.storage[turret:id()].alive = false
-	utils2.deferred_release(turret:id(), 5)
+--	utils2.deferred_release(turret:id(), 5)
 end
 
 
@@ -125,138 +128,32 @@ function is_friendly_turret(npc, turret, position)
 end
 
 function create_turret(turret_section_name, level_name, position, community, owner_gulag, search_dist, hunt_actor_prob, explode_dist, spawner)
-	local packet1 = utils2.packet_pool_get()
-	local packet2 = utils2.packet_pool_get()
-
 	local level_vertex_id, game_vertex_id = utils2.get_top_graph_ids(level_name)
 	local se_obj = AI:create(turret_section_name, position, level_vertex_id, game_vertex_id)
 	if se_obj == nil then
-		abort("can't create '%s' at (%f,%f,%f)")
+		abort("can't create '%s' at (%f,%f,%f)", turret_section_name, position.x, position.y, position.z)
 	end
 
-	-- лучше через table.concat()
-	local custom_data = "[logic]\nactive = turret\n[turret]\n"
-	if community ~= nil then
-		custom_data = custom_data.."community = "..community.."\n"
-	end
-	if owner_gulag ~= nil then
-		custom_data = custom_data.."owner_gulag = "..owner_gulag.."\n"
-	end
-	if hunt_actor_prob ~= nil then
-		custom_data = custom_data.."hunt_actor_prob = "..tostring(hunt_actor_prob).."\n"
-	else
-		custom_data = custom_data.."hunt_actor_prob = 50\n"
-	end
-	if search_dist ~= nil then
-		custom_data = custom_data.."search_dist = "..tostring(search_dist).."\n"
-	else
-		custom_data = custom_data.."search_dist = 90\n"
-	end
-	if explode_dist ~= nil then
-		custom_data = custom_data.."explode_dist = "..tostring(explode_dist).."\n"
-	else
-		custom_data = custom_data.."explode_dist = 1\n"
-	end
+	local cd = {}
+	cd.logic = {
+		active = "turret"
+	}
+	cd.turret = {
+		community = community,
+		owner_gulag = owner_gulag,
+		hunt_actor_prob = hunt_actor_prob or 50,
+		search_dist = search_dist or 90,
+		explode_dist = explode_dist or 1
+	}
 	if spawner ~= nil then
-		custom_data = custom_data.."[spawner]\ncond = "..spawner.."\n"
+		cd.spawner = { cond = spawner }
 	end
 
-	se_obj:STATE_Write(packet1)
-	local dead_space = packet2:w_tell()
-
-	-- cse_alife_dynamic_object
-	utils2.packet_copy(packet2, packet1, 18)
-	packet1:r_stringZ()
-	packet2:w_stringZ(custom_data)
-	utils2.packet_copy(packet2, packet1, 8)
-	-- cse_visual
-	packet2:w_stringZ(packet1:r_stringZ())
-	utils2.packet_copy(packet2, packet1, 1)
-	-- cse_motion
-	packet2:w_stringZ(packet1:r_stringZ())
-	-- cse_ph_skeleton
-	packet2:w_stringZ(packet1:r_stringZ())
-	utils2.packet_copy(packet2, packet1, 3)
-	-- cse_alife_helicopter
-	packet2:w_stringZ("idle")
-	packet2:w_stringZ("$no_sound")
-	-- se_turret_mgun
-	packet2:w_float(1.0)
-
-	se_obj:STATE_Read(packet2, packet2:w_tell() - dead_space)
-
-	utils2.packet_pool_put(packet1)
-	utils2.packet_pool_put(packet2)
-end
-
-function create_dir_turret(turret_section_name, level_name, position, community, owner_gulag, search_dist, hunt_actor_prob, explode_dist, spawner)
-	local packet1 = utils2.packet_pool_get()
-	local packet2 = utils2.packet_pool_get()
-
-	local level_vertex_id, game_vertex_id = utils2.get_top_graph_ids(level_name)
-	local se_obj = AI:create(turret_section_name, position, level_vertex_id, game_vertex_id)
-
-	if se_obj == nil then
-		abort("can't create '%s' at (%f,%f,%f)")
-	end
-	-- лучше через table.concat()
-	local custom_data = "[logic]\nactive = turret\n[turret]\n"
-	if community ~= nil then
-		custom_data = custom_data.."community = "..community.."\n"
-	end
-	if owner_gulag ~= nil then
-		custom_data = custom_data.."owner_gulag = "..owner_gulag.."\n"
-	end
-	if hunt_actor_prob ~= nil then
-		custom_data = custom_data.."hunt_actor_prob = "..tostring(hunt_actor_prob).."\n"
-	else
-		custom_data = custom_data.."hunt_actor_prob = 50\n"
-	end
-	if search_dist ~= nil then
-		custom_data = custom_data.."search_dist = "..tostring(search_dist).."\n"
-	else
-		custom_data = custom_data.."search_dist = 90\n"
-	end
-	if explode_dist ~= nil then
-		custom_data = custom_data.."explode_dist = "..tostring(explode_dist).."\n"
-	else
-		custom_data = custom_data.."explode_dist = 3\n"
-	end
-	if spawner ~= nil then
-		custom_data = custom_data.."[spawner]\ncond = "..spawner.."\n"
-	end
-
-	se_obj:STATE_Write(packet1)
-
-	local dead_space = packet2:w_tell()
-
-	-- cse_alife_dynamic_object
-	utils2.packet_copy(packet2, packet1, 18)
-	packet1:r_stringZ()
-	packet2:w_stringZ(custom_data)
-	utils2.packet_copy(packet2, packet1, 8)
-	-- cse_visual
-	packet2:w_stringZ(packet1:r_stringZ())
-	utils2.packet_copy(packet2, packet1, 1)
-	-- cse_motion
-	packet2:w_stringZ(packet1:r_stringZ())
-	-- cse_ph_skeleton
-	packet2:w_stringZ(packet1:r_stringZ())
-	utils2.packet_copy(packet2, packet1, 3)
-	-- cse_alife_helicopter
-	packet2:w_stringZ("idle")
-	packet2:w_stringZ("$no_sound")
-	-- se_turret_mgun
-	packet2:w_float(1.0)
-
-	se_obj:STATE_Read(packet2, packet2:w_tell() - dead_space)
-
-	utils2.packet_pool_put(packet1)
-	utils2.packet_pool_put(packet2)
-
----------------direction
-	se_obj.direction = vector():set(-1, 0, 0)
----------------
+	local data = {}
+	data.custom_data = netpk:gen_custom_data(cd)
+	data.startup_animation = 'idle'
+	data.engine_sound = '$no_sound'
+	netpk:modify(se_obj, data)
 end
 
 -----------------------------------------------------------------------
@@ -267,6 +164,7 @@ function se_turret_mgun:__init(section) super(section)
 	self.spawner_present = false
 	self.health = 1.0
 	self.direction = vector():set(0, 0, 0)
+	self.ammo_elapsed = 0
 end
 
 function se_turret_mgun:can_switch_offline()
@@ -277,24 +175,36 @@ function se_turret_mgun:can_switch_online()
 	if self.health <= 0.005 then
 		return false
 	end
+
 	if self.spawner_present == nil then
 		local ini = self:spawn_ini()
 		self.spawner_present = ini:section_exist("spawner")
 	end
-	if self.spawner_present == true then
+
+	if self.spawner_present == false then
 		return cse_alife_helicopter.can_switch_online(self)
 	end
-	return xr_spawner.check_spawn(self)
+
+	local chck = xr_spawner.check_spawn(self)
+	if chck ~= nil then
+		return chck
+	else
+		return cse_alife_helicopter.can_switch_online(self)
+	end
 end    
 
 function se_turret_mgun:STATE_Read(packet, size)
 	cse_alife_helicopter.STATE_Read(self, packet, size)
+
 	self.health = packet:r_float()
 	self.direction = packet:r_vec3()
+	self.ammo_elapsed = packet:r_u16()
 end
 
 function se_turret_mgun:STATE_Write(packet)
 	cse_alife_helicopter.STATE_Write(self, packet)
+
 	packet:w_float(self.health)
 	packet:w_vec3(self.direction)
+	packet:w_u16(self.ammo_elapsed)
 end

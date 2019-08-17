@@ -1,0 +1,96 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--[[ Рандомные турели для мода OGSE.
+	Автор: Mixser
+старые турели на блок посту Кордона
+temp[3]
+(-132.28,-24.59,-355.00)
+temp[6]
+(-121.61,-23.67,-371.1)
+Турели ПКМ спавнить с превышением 1.25
+Турели НАТО спавнить с превышением 0.9
+--]]
+local spawn_tbl = {
+	["l01_escape"] = {
+		turrets = {
+			{"turret_army", "l01_escape", vector():set(-172.85,-24.19,-350.07), "military", "esc_blokpost", 90, 100},
+			{"turret_army", "l01_escape", vector():set(-163.60,-24.19,-350.42), "military", "esc_blokpost", 90, 100},
+			{"turret_army", "l01_escape", vector():set(-132.49,-28.89,-387.39), "military", "esc_blokpost", 90, 100},
+			{"turret_army", "l01_escape", vector():set(-147.79,-25.19,-353.13), "military", "esc_blokpost", 90, 100},
+			{"turret_army", "l01_escape", vector():set(-172.60,-24.19,-359.43), "military", "esc_blokpost", 90, 100},
+			{"turret_army", "l01_escape", vector():set(-125.39,-28.9,-370.79), "military", "esc_blokpost", 90, 100}
+		},
+		count = 3,
+		cond = "true"
+	},
+	["l03_agroprom"] = {
+		turrets = {
+			{"turret_army", "l03_agroprom", vector():set(-175.96,6.46,-210.55), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-115.63,9.32,-220.57), "military", "agr_nii", 20, 90},
+			{"turret_army", "l03_agroprom", vector():set(-119.91,16.64,-190.84), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-157.50,16.63,-190.90), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-129.14,16.64,-205.67), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-192.96,5.74,-208.17), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-117.58,6.51,-173.71), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-132.49,6.48,-173.29), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-138.76,5.82,-185.84), "military", "agr_nii", 45, 90},
+			{"turret_army", "l03_agroprom", vector():set(-175.64,8.75,-155.02), "military", "agr_nii", 45, 90}
+		},
+		count = 3,
+		cond = "true"
+	},
+	["l06_rostok"] = {
+		turrets = {
+			{"turret_nato", "l06_rostok", vector():set(-84.12,0.9,140.35), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-84.12,0.9,131.72), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-47.37,0.9,113.67), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-46.56,0.9,128.24), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-86.86,0.9,120.83), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-52.16,0.9,146.86), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-60.0,0.9,146.9), "killer", "", 90, 90},
+			{"turret_nato", "l06_rostok", vector():set(-88.74,4.0,122.23), "killer", "", 90, 90}
+		},
+		count = 3,
+		cond = "{-bar_rescue_research_done}"
+	},
+	["l05_bar"] = {
+		turrets = {
+			{"turret_army", "l05_bar", vector():set(184.2,1.3,102.38), "dolg", "", 60, 60}
+		},
+		count = 1,
+		cond = "{+bar_svoboda_rg6_done}"
+	}
+}
+
+function respawn_turrets()
+	if not game_options.Turrets then return end
+
+	if not has_alife_info("level_changing") then
+		return
+	end
+
+	local level_name = level.name()
+	local n
+	for lvl, v in pairs(spawn_tbl) do
+		if lvl ~= level_name then
+			if xr_logic.pick_section_from_condlist(
+				Actor, nil,
+				xr_logic.parse_condlist(Actor, "turret_spawn", lvl, v.cond)
+			) ~= nil then
+				for i = 1, v.count do
+					n = math.random(#v.turrets)
+					turret_mgun.create_turret( unpack( v.turrets[n] ) )
+					table.remove(v.turrets, n)
+				end
+			end
+		end
+	end
+end
+
+-- спавним несколько переносных турелей
+function spawn_turrets()
+	bind_statpkm.create_stat_pkm("l01_escape", vector():set (-263.58,-17.87,-164.02))
+	bind_statpkm.create_stat_pkm("l02_garbage", vector():set (67.092,0.682,232.655))
+	bind_statpkm.create_stat_pkm("l05_bar", vector():set (216.34,4.46,-7.37))
+	bind_statpkm.create_stat_pkm("l07_military", vector():set (47.88,-16.97,354.58))
+	bind_statpkm.create_stat_pkm("l08_yantar", vector():set (34.84,-5.94,-272.17))
+end

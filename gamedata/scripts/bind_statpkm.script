@@ -1,0 +1,425 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- By Charsi ------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- edited by Jek@n-Lim0n -------------------------------------------------------------------------------------------------------------------------------------------
+-- edited by Malandrinus -------------------------------------------------------------------------------------------------------------------------------------------
+
+pkm_captured = nil
+
+local ammo_static = nil
+local ammo_total = 0
+local ammo_section = ""
+
+local mounting = false
+
+local snd_empty = xr_sound.get_safe_sound_object([[weapons\pkm\pkm_empty]])
+local snd_reload = xr_sound.get_safe_sound_object([[weapons\pkm\pkm_reload]])
+
+function on_item_use(item)
+	local se_obj = AI:object( item:id() )
+	if se_obj == nil then return end
+	local data = netpk:get(se_obj, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+	local ammo_count = 0
+	if cd.ammo then
+		ammo_count = tonumber(cd.ammo.elapsed)
+	end
+	local turret_section = sys_ini:r_string(item:section(), "turret_section")
+
+	this.create_stat_pkm_on_actor(turret_section, ammo_count)
+
+	local wnd = level.main_input_receiver()
+	level.start_stop_menu(wnd, true)
+
+	snd_reload:play_at_pos(Actor, vector():set (0,0,0), 0, sound_object.s2d)
+
+	local mount_time = snd_reload:length()
+	ShowMessageBox("ok_info", "pkm_mounting", false, false, mount_time)
+	xr_actor.change_move("turret_mount", false)
+	bind_actor.hide_weapon("turret_mount")
+	mounting = true
+	start_small_timer(mount_time, function()
+		bind_actor.restore_weapon("turret_mount")
+		xr_actor.change_move("turret_mount", true)
+		mounting = false
+	end)
+end
+
+-- таблица соответствий команд и слотов, которые ими активируются
+local activation_cmds = {
+	[key_bindings.kWPN_1] = inventory_slots.KNIFE,
+	[key_bindings.kWPN_2] = inventory_slots.PISTOL,
+	[key_bindings.kWPN_3] = inventory_slots.RIFLE,
+	[key_bindings.kWPN_4] = inventory_slots.GRENADE,
+	[key_bindings.kWPN_5] = inventory_slots.APPARATUS,
+	[key_bindings.kWPN_6] = inventory_slots.BOLT
+}
+local walk_cmds = {
+	[key_bindings.kFWD] = true,
+	[key_bindings.kBACK] = true,
+	[key_bindings.kL_STRAFE] = true,
+	[key_bindings.kR_STRAFE] = true,
+	[key_bindings.kJUMP] = true
+}
+
+function activate_slot_after_wpn_restore(slot_num)
+	Actor:activate_slot(slot_num)
+end
+-- специальный управляющий класс. Активируется при использовании пулемёта,
+-- после чего подписывается на события нажатия клавиш, что использует для включени/выключения огня
+-- событие проверки выхода также использует для контроля направления ствола
+class "turret_control"
+function turret_control:__init(turret_binder)
+	self.binder = turret_binder
+	self.turret = turret_binder.object
+	self.heli = self.turret:get_helicopter()
+	self.mag_empty = false
+	self.reload = false
+end
+
+function turret_control:start()
+	self.mag_empty = (self.binder.ammo_elapsed == 0)
+	self.turret:set_tip_text("")
+	self.heli.m_use_mgun_on_attack = false
+
+	self.saved_active_slot = Actor:active_slot()
+	if self.saved_active_slot ~= inventory_slots.NO_ACTIVE_GET then
+		Actor:activate_slot(inventory_slots.NO_ACTIVE_SET)
+	end
+--	log("[turret_control:start]: saved_active_slot = %s", self.saved_active_slot)
+	Actor:hide_weapon()
+--	bind_actor.hide_weapon("turret_use")
+	xr_actor.change_move("turret_use", false)
+
+	self.initial_turret_pos = self.turret:position()
+	pkm_captured = self.turret:id()
+
+	xr_s.subscribe( "key_press", self.on_key_down, {self = self} )
+	xr_s.subscribe( "key_release", self.on_key_up, {self = self} )
+	xr_s.subscribe( "update", self.update, {self = self} )
+	xr_s.subscribe( "net_destroy", this.hide_ammo )
+	xr_s.subscribe( "inventory_open", self.release, {self = self} )
+	xr_s.subscribe( "pda_open", self.release, {self = self} )
+
+	ammo_section = sys_ini:r_string(self.turret:section(), "ammo_class")
+	ammo_total = inventory.get_ammo_count(ammo_section)
+	this.show_ammo(self.binder.ammo_elapsed)
+end
+
+function turret_control:update(delta)
+	if self:condition() then
+		self:release()
+	end
+end
+-- проверка условия окончания использования
+function turret_control:condition()
+	-- если актор сошёл с места, где стоял
+--	if Actor:position():distance_to(self.initial_turret_pos) > 2 then
+--		return true
+	if not self.binder.alive then -- если турель загнулась
+		return true
+	elseif not Actor:alive() then -- если сам актор помер
+		return true
+	end
+	-- продолжаем использовать, синхронизируем направление ствола и взгляда актора
+	local dev = device()
+	local dist = math.clamp(level.get_target_dist(), 3, 50)
+	local target_pos = dev.cam_pos:mad(dev.cam_dir,dist)
+	self.heli:SetEnemy(target_pos)
+
+	local pos_actor = vector()
+	pos_actor:mad(self.initial_turret_pos, dev.cam_dir, -0.6)
+	pos_actor.y = Actor:position().y
+	if Actor:position():distance_to_xz(pos_actor) > 0.4 then
+		Actor:set_actor_position(pos_actor)
+	end
+
+	return false
+end
+
+function turret_control:start_fire()
+	if self.mag_empty then
+		snd_empty:play_at_pos(Actor, vector():set (0,0,0), 0, sound_object.s2d)
+		return
+	end
+	self.heli.m_use_mgun_on_attack = true
+end
+function turret_control:stop_fire()
+	self.heli.m_use_mgun_on_attack = false
+	self.heli:ClearEnemy()
+end
+
+function turret_control:on_key_down(key, bind)
+	if self.reload then return end
+	if bind == key_bindings.kWPN_FIRE then -- начинаем стрельбу
+		self:start_fire()
+	elseif bind == key_bindings.kWPN_RELOAD then
+		self:reload_turret()
+	elseif activation_cmds[bind] then -- переключаемся на своё оружие
+		if Actor:item_in_slot(activation_cmds[bind]) ~= nil then
+			self.saved_active_slot = activation_cmds[bind]
+			self:release()
+		end
+	elseif walk_cmds[bind] then
+		self:release()
+	end
+end
+function turret_control:on_key_up(key, bind)
+	if bind == key_bindings.kWPN_FIRE then -- заканчиваем стрельбу
+		self:stop_fire()
+	end
+end
+-- обработка действий окончания использования пулемёта
+function turret_control:release()
+	-- заканчиваем стрельбу
+	self:stop_fire()
+	-- отписываемся от сигналов клавиш
+	xr_s.unsubscribe("key_press", self.on_key_down)
+	xr_s.unsubscribe("key_release", self.on_key_up)
+	xr_s.unsubscribe("update", self.update)
+	xr_s.unsubscribe("net_destroy", this.hide_ammo)
+	xr_s.unsubscribe("inventory_open", self.release)
+	xr_s.unsubscribe("pda_open", self.release)
+	-- возвращаем актора в исходное состояние
+--	bind_actor.restore_weapon("turret_use")
+	Actor:restore_weapon()
+	xr_s.subscribe("update", function(delta, slot)
+		if slot ~= inventory_slots.NO_ACTIVE_GET then
+			Actor:activate_slot(slot)
+		end
+	--	log("[turret_control:release] attemt to activate slot %s", slot)
+	end,
+	{once = true, userobj = self.saved_active_slot, timeout = 100} )
+	self.saved_active_slot = nil
+	xr_actor.change_move("turret_use", true)
+	-- возвращаем турель в исходное состояние
+	pkm_captured = nil
+	self.turret:set_tip_text("tip_pkm_use")
+	self.binder:save_ammo()
+
+	this.hide_ammo()
+end
+-- перезарядка турели
+function turret_control:reload_turret()
+	if ammo_total == 0 then return end
+
+	self:stop_fire()
+
+	local mag_size = sys_ini:r_u32(self.turret:section(), "ammo_mag_size")
+	local need_count = mag_size - self.binder.ammo_elapsed
+	if need_count == 0 then return end
+
+	this.hide_ammo()
+
+	if ammo_total < need_count then
+		need_count = ammo_total
+	end
+	inventory.out_ammo(ammo_section, need_count, true)
+	self.binder.ammo_elapsed = self.binder.ammo_elapsed + need_count
+	self.binder:save_ammo()
+	ammo_total = ammo_total - need_count
+
+	snd_reload:play_at_pos(Actor, vector():set(0,0,0), 0, sound_object.s2d)
+
+	local reload_time = snd_reload:length()
+	ShowMessageBox("ok_info", "pkm_reload", false, false, reload_time)
+	start_small_timer(reload_time, self.reload_end, self)
+	self.reload = true
+end
+function turret_control:reload_end()
+	self.mag_empty = false
+	self.reload = false
+	this.show_ammo(self.binder.ammo_elapsed)
+end
+
+-- биндер турели
+function bind(obj)
+	obj:bind_object(pkm_binder(obj))
+end
+
+class "pkm_binder" (object_binder)
+
+function pkm_binder:__init(obj, ini) super(obj)
+	self.object:set_tip_text("tip_pkm_use")
+	self.ammo_elapsed = sys_ini:r_u32(obj:section(), "ammo_mag_size")
+end
+
+function pkm_binder:reinit()
+	db.storage[self.object:id()] = {}
+	self.st = db.storage[self.object:id()]
+	self.heli = self.object:get_helicopter()
+	self.object:set_callback(callback.use_object, self.on_use, self)
+	self.heli.m_use_mgun_on_attack = false
+end
+
+function pkm_binder:net_spawn(data)
+	self.se_obj = AI:object(self.object:id())
+	self.heli:SetfHealth(self.se_obj.health)
+	if self.se_obj.setup_direction then
+	--	log("setup_direction")
+	end
+
+	self.ammo_elapsed = self.se_obj.ammo_elapsed
+	
+	self.object:set_fastcall(self.fastcall, self)
+	return true
+end
+-- подсчёт кол-ва выстрелов (by Нанобот)
+function pkm_binder:fastcall()
+	local m_fPredBulletTime = self.object:get_go_float(660)
+	if self.m_fPredBulletTime ~= m_fPredBulletTime then
+		if self.m_fPredBulletTime then
+			self.ammo_elapsed = math.max(self.ammo_elapsed - 1, 0)
+			if self.ammo_elapsed == 0 then
+				level.send_event_key_release( bind_to_dik(key_bindings.kWPN_FIRE) )
+				self.control.mag_empty = true
+				-- self.heli.m_use_mgun_on_attack = false
+				-- self.heli:ClearEnemy()
+				snd_empty:play_at_pos(Actor, vector():set(0,0,0), 0, sound_object.s2d)
+			end
+			this.set_ammo_text(self.ammo_elapsed)
+		--	dbglog("turret '%s' numshot - %d", self.object:name(), self.numshot)
+		end
+		self.m_fPredBulletTime = m_fPredBulletTime
+	end
+end
+
+function pkm_binder:update(delta)
+	self:check_health()
+end
+
+-- событие использования
+function pkm_binder:on_use(obj,who)
+	if mounting then return end
+	if pkm_captured then -- если используем сейчас, 
+		return -- то ничего не делаем
+	end
+
+	if ShiftPressed() then -- если при нажатом Shift
+		AI:release(self.se_obj, true) -- то сворачиваем обратно в инвентарь
+
+		local section = self.object:section()
+		local box_section = sys_ini:r_string(section, "dismounting_section")
+		local obj = amk.spawn_item_in_inv(box_section)
+		-- сохраняем количество оставшихся в магазине боеприпасов
+		local data = {
+			custom_data =	"[ammo]\n"..
+							"elapsed = "..tostring(self.ammo_elapsed)
+		}
+		netpk:modify(obj, data, netpk.fState)
+		-- добавляем коробке вес с учётом патронов
+		local ammo_sec = sys_ini:r_string(self.object:section(), "ammo_class")
+		local box_size = sys_ini:r_u32(ammo_section, "box_size")
+		local ammo_weight = sys_ini:r_float(ammo_section, "inv_weight")
+		level.client_spawn_manager():add(obj.id, 0, function(add_weight, id, item)
+		--	log("[pkm_binder:on_use]: on spawn 'turret_pkm': add_weight = %s", add_weight)
+			if add_weight > 0 then
+				item:set_weight( item:get_weight() + add_weight )
+			end
+		end,
+		ammo_weight * self.ammo_elapsed / box_size)
+		-- демонтаж
+		snd_reload:play_at_pos(Actor, vector ():set (0, 0, 0), 0, sound_object.s2d)
+		local mount_time = snd_reload:length()
+		ShowMessageBox("ok_info", "pkm_dismounting", false, false, mount_time)
+		xr_actor.change_move("turret_mount", false)
+		bind_actor.hide_weapon("turret_mount")
+		start_small_timer(mount_time, function()
+			xr_actor.change_move("turret_mount", true)
+			bind_actor.restore_weapon("turret_mount")
+		end)
+	else -- стандартный случай, просто нажали 'F'
+		if self.control == nil then
+			self.control = turret_control(self)
+		end
+		self.control:start()	-- переключаемся в режим использования
+	end
+end
+
+function pkm_binder:net_destroy()
+	self.object:set_callback(callback.use_object, nil)
+	if pkm_captured == self.object:id() then
+		this.hide_ammo()
+	end
+	self.control = nil
+end
+
+function pkm_binder:save(packet)
+--	object_binder.save(self, packet)
+	self:save_ammo()
+end
+
+function pkm_binder:check_health()
+	self.alive = self.heli:GetfHealth() > 0.005
+	if not self.alive then
+		self.heli:ClearEnemy()
+		self.heli:Die()
+		AI:release(AI:object(self.object:id()))
+	end
+end
+
+function pkm_binder:save_ammo()
+	self.se_obj.ammo_elapsed = self.ammo_elapsed
+end
+----------------------------------------------------------------------------------------------------------------------------
+local pos_add = {
+	["stationary_pkm"] = 1.05,
+	["stationary_turret_nato"] = 0.9
+}
+function create_stat_pkm_on_actor(turret_section, ammo_count)   ----  это для переносной турели
+	local level_vertex_id = Actor:level_vertex_id()
+	local game_vertex_id = Actor:game_vertex_id()
+	local position = Actor:position()
+	local add_y = pos_add[turret_section]
+	local se_obj = AI:create(turret_section, position:add(vector():set(0,add_y,0)), level_vertex_id, game_vertex_id)
+	se_obj.setup_direction = device().cam_dir
+
+	local data = netpk:get(se_obj, netpk.fState)
+	data.startup_animation = 'idle'
+	data.engine_sound = '$no_sound'
+	data.ammo_elapsed = ammo_count
+	netpk:set(se_obj, data, netpk.fState)
+end
+
+
+function create_stat_pkm(level_name, position)     ----------   а это для постоянных
+	local level_vertex_id, game_vertex_id = utils2.get_top_graph_ids(level_name)
+	local se_obj = AI:create("stationary_pkm", position:add(vector():set(0,1.05,0)), level_vertex_id, game_vertex_id)
+	local data = {}
+	data.startup_animation = 'idle'
+	data.engine_sound = '$no_sound'
+	data.ammo_elapsed = math.random( 10, sys_ini:r_u32("stationary_pkm", "ammo_mag_size") )
+	netpk:modify(se_obj, data, netpk.fState)
+end
+-------------------------------------------------------------------------------------------------------
+function show_ammo(ammo)
+	local xml = CScriptXmlInit()
+	xml:ParseFile("maingame.xml")
+
+	ammo_static = CUIStatic()
+	ammo_static:SetAutoDelete(true)
+	ammo_static:Init(0,0,1024,768)
+	get_hud():AddDialogToRender(ammo_static)
+
+	local wpn_st = xml:InitStatic("static_weapon", ammo_static)
+	wpn_st:InitTexture("ui\\amk_blank")
+
+	local icon = xml:InitStatic("static_wpn_icon", wpn_st)
+	local p = GetIconParams(ammo_section)
+	icon:InitTexture("ui\\ui_icon_equipment")
+	icon:SetOriginalRect(p.x, p.y, p.w, p.h)
+	icon:SetStretchTexture(true)
+
+	ammo_static.text = xml:InitStatic("static_ammo", wpn_st)
+	ammo_static.text:SetText( string.format("%d /%d", ammo, ammo_total) )
+end
+
+function hide_ammo()
+	if ammo_static then
+		get_hud():RemoveDialogToRender(ammo_static)
+		ammo_static = nil
+	end
+end
+
+function set_ammo_text(ammo_elapsed)
+	ammo_static.text:SetText( string.format("%d/%d", ammo_elapsed, ammo_total) )
+end

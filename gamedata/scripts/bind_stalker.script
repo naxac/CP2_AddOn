@@ -232,6 +232,18 @@ function motivator_binder:hit_callback(obj, amount, local_direction, who, bone_i
 	-- FIXME: коллбеки неплохо было бы регистрировать в общем storage, а не посхемно...
 	-- просто всегда ставить их при включении схемы и снимать при отключении.
 
+	if who:section()=="stationary_pkm" then	-- стрелять из турели кроме актора некому: делаем его виновником
+		who = Actor
+		if self.object:relation(Actor) ~= game_object.enemy then
+			self.object:set_relation(game_object.enemy, Actor)
+			local smart_terrain = xr_gulag.get_npc_gulag(self.object)
+			if smart_terrain then
+				xr_gulag.setGulagEnemy(smart_terrain.name , Actor)
+			--	dbglog("motivator_binder:hit_callback, set gulag [%s] enemy for actor", smart_terrain.name)
+			end
+		end
+	end
+
 	if self.st.active_section then
 		xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "hit_callback", obj, amount, local_direction, who, bone_index)
 	end
@@ -265,7 +277,19 @@ function motivator_binder:death_callback(victim, who)
 	if self.object == nil then return end
 	if xrs_ai then xrs_ai.npc_death_callback(self.object) end
 	if rx_ai then rx_ai.npc_death(self.object,who) end
-	if who:id() == db.actor:id() then
+
+	if who:section()=="stationary_pkm" then	-- стрелять из турели кроме актора некому: делаем его виновником
+		who = Actor
+		if self.object:relation(Actor)~=game_object.enemy then
+			local smart_terrain = xr_gulag.get_npc_gulag(self.object)
+			if smart_terrain then
+				xr_gulag.setGulagEnemy(smart_terrain.name , Actor)
+			--	dbglog("motivator_binder:death_callback, set gulag [%s] enemy for actor", smart_terrain.name)
+			end
+		end
+	end
+
+	if who:id() == Actor:id() then
 		kostya_dialog.kuv_hit()
 		xr_statistic.addKillCount(self.object)
 		if bind_soul_cube then

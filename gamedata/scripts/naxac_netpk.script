@@ -757,6 +757,24 @@ function n_netpk:w_st_se_heli( data, stpk )
 end
 function n_netpk:w_upd_se_heli( data, uppk ) end
 ----------------------------------------------------------------------------------------------------------
+-- se_turret
+function n_netpk:r_st_se_turret( ret, stpk )
+	self:r_st_se_heli( ret, stpk )
+
+	ret.health			= stpk:r_float()
+	ret.direction		= stpk:r_vec3()
+	ret.ammo_elapsed	= stpk:r_u16()
+end
+function n_netpk:r_upd_se_turret( ret, uppk ) end
+function n_netpk:w_st_se_turret( data, stpk )
+	self:w_st_se_heli( data, stpk )
+
+	stpk:w_float	(data.health)
+	stpk:w_vec3		(data.direction)
+	stpk:w_u16		(data.ammo_elapsed)
+end
+function n_netpk:w_upd_se_turret( data, uppk ) end
+----------------------------------------------------------------------------------------------------------
 -- se_car
 function n_netpk:r_st_se_car( ret, stpk )
 	self:r_st_cse_alife_dynamic_object ( ret, stpk )
@@ -1806,6 +1824,8 @@ function init()
 
 		script_heli			= 'se_heli',
 
+		turret_mgun			= 'se_turret',
+
 		car_s 				= 'se_car',
 
 		artefact 			= 'cse_alife_inventory_item',
@@ -1951,6 +1971,7 @@ function set_flag(obj_flags, flag_name, mode)
 end
 
 function get_ammo_size( obj )
+	if not obj then return 0 end
 	local pk = net_packet()
 	cse_alife_item_ammo.STATE_Write( obj, pk )
 	pk:r_seek( pk:w_tell() - 2 )

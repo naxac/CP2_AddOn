@@ -1,7 +1,34 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- ver 1.0 debug
+
+local actor_id				= 0
 local state_idle			= 0
 local state_firing_enemy	= 1
 local state_killed_enemy	= 2
 local state_lost_enemy		= 3
+local min_dist_heli_sqr		= 250*250
+local tmp 					= {}
+local vis_time_quant		= 200 -- интервал (в мс) между проверками видимости
+local vis_threshold			= 60  -- какой процент видимости нужен, чтоб наблюдаемый объект считался видимым
+local vis_inc				= 80  -- на сколько процентов увеличится видимость объекта за 1с
+local vis_dec				= 30  -- на сколько процентов уменьшитя  видимость объекта за 1с
+
+local m_barrel_dir_tolerance = 2
+local EPS_S		= 0.0000001
+local EPS		= 0.0000100
+local EPS_L		= 0.0010000
+local PI		= math.pi
+local PI_MUL_2	= PI*2
+local deg2rad	= PI/180
+local rad2deg	= 180/PI
+
+function npcname(npc)
+	local name = npc:character_name()
+	if not name or name == "" then
+		name = npc:name()
+	end
+	return name
+end
 
 class "turret_firmware"
 
@@ -10,6 +37,11 @@ function turret_firmware:__init(obj, storage)
 	self.heli = obj:get_helicopter()
 	self.st = storage
 	self.position = self.object:position()
+	self.bullet_speed = sys_ini:r_float(obj:section(), "bullet_speed")
+	self.numshot = 0
+	m_barrel_dir_tolerance = sys_ini:r_float(self.object:section(), "barrel_dir_tolerance")
+	obj:set_fastcall(self.fastcall, self)
+--	log1("section-("..obj:section()..") bullet_speed-("..self.bullet_speed..")")
 end
 
 function turret_firmware:reset_scheme(loading)
@@ -21,8 +53,24 @@ function turret_firmware:reset_scheme(loading)
 	self.force_actor_enemy = xr_logic.pstor_retrieve(self.object, "force_actor_enemy", false)
 	self.state = state_idle
 	self.update_time = -1
+	self.update_time2 = 0
+	self.update_time3 = 0
 	self.alarm_time = -1
-	self.community = db.storage[self.object:id()].community
+	local id = self.object:id()
+	self.community 				= db.storage[id].community
+	self.st.owner_gulag 		= tmp[id].owner_gulag
+	self.st.hunt_actor_prob 	= tmp[id].hunt_actor_prob
+	self.st.search_dist_sqr 	= tmp[id].search_dist_sqr
+	self.st.explode_dist_sqr 	= tmp[id].explode_dist_sqr
+	self.vis_next_time = 0
+	local val = {x = -180, y = 180}	-- круговой обстрел на все 360 градусов!!!!!!!!!!!
+	val.x = val.x*deg2rad
+	val.y = val.y*deg2rad
+	set_go_vector2(self.object, 1474, val)
+	self.vis = 0
+--	log1("id-("..id..")search_dist_sqr-("..math.sqrt(self.st.search_dist_sqr)..")time-("..time_global()..")")
+--	log1("self.object:section()-("..self.object:section()..")")
+	tmp[id] = nil
 end
 
 function turret_firmware:distance_sqr(obj)
@@ -30,42 +78,50 @@ function turret_firmware:distance_sqr(obj)
 end
 
 function turret_firmware:find_enemy()
-	if self.actor_enemy and math.random(100) <= self.st.hunt_actor_prob and
-	   db.actor:alive() and self:distance_sqr(db.actor) < self.st.search_dist_sqr and
-	   self.heli:isVisible(db.actor) then
-		return db.actor
-	end
-
-	local best_enemy
-	local min_distance_sqr = 10000
-	local k,v,npc
-	for k,v in pairs(db.creature) do
-		npc = level.object_by_id(k)
-		if npc ~= nil then
-			distance_sqr = self:distance_sqr(npc)
-			if distance_sqr < self.st.search_dist_sqr and npc:alive() and
-			   distance_sqr < min_distance_sqr and
-			   (v == false or (v == true and utils2.community_relation(self.community, npc) <= -400)) and
-			   self.heli:isVisible(npc) then
-				best_enemy = npc
-				min_distance_sqr = distance_sqr
+	local best_enemy, dist_sqr
+	local min_dist_sqr = min_dist_heli_sqr
+	for id, v in pairs(db.heli) do
+		local heli = level.object_by_id(id)
+		if heli then
+			dist_sqr = self:distance_sqr(heli)
+			if dist_sqr < min_dist_sqr and self.heli:isVisible(heli) and heli:get_helicopter():GetfHealth() > 0.005 and 
+			heli_enemy(self.community, id) then
+				best_enemy = heli
+				min_dist_sqr = dist_sqr
 			end
 		end
 	end
-	if best_enemy ~= nil then
-		dbglog("turret '%s' found enemy '%s'", self.object:name(), best_enemy:name())
+	if best_enemy then
+		local comm_heli = db.storage[best_enemy:id()].community or "nil"
+	--	dbglog("turret '%s' found heli enemy '%s', comm_heli-%s", self.object:name(), npcname(best_enemy), comm_heli)
+		self.enemyheli = true
+		return best_enemy
 	end
+	min_dist_sqr = self.st.search_dist_sqr
+	for id, v in pairs(db.storage) do
+		local npc = level.object_by_id(id)
+		if npc then
+			dist_sqr = self:distance_sqr(npc)
+			if dist_sqr < min_dist_sqr and npc:alive() and self.heli:isVisible(npc) and is_enemy(self.community, npc) then
+				best_enemy = npc
+				min_dist_sqr = dist_sqr
+			end
+		end
+	end
+--	if best_enemy then
+--		dbglog("turret '%s' found enemy '%s'", self.object:name(), npcname(best_enemy))
+--	end
 	return best_enemy
 end
 
 function turret_firmware:alarm_owner_gulag()
 	if self.alarm_time < time_global() then
 		local gulag = xr_gulag.get_gulag(self.st.owner_gulag)
-		if gulag ~= nil then
-			local obj_id, obj, d
+		if gulag then
+			local obj_id, obj
 			for obj_id, obj in pairs(gulag.Object) do
 				obj = level.object_by_id(obj_id)
-				if obj ~= nil then
+				if obj then
 					local h = hit()
 					h.power = 0.001
 					h.impulse = 1
@@ -83,11 +139,12 @@ end
 
 function turret_firmware:set_new_enemy(suggested_enemy)
 	local enemy = suggested_enemy or self:find_enemy()
-	if enemy ~= nil then
-		if enemy:id() == db.actor:id() then
+	if enemy then
+		if enemy:id() == actor_id then
 			self:alarm_owner_gulag()
 		end
 		self.heli:SetEnemy(enemy)
+		self.object:set_go_float(nil, m_barrel_dir_tolerance, 1196)
 		self.state = state_firing_enemy
 		self.enemy = enemy
 		return true
@@ -95,42 +152,74 @@ function turret_firmware:set_new_enemy(suggested_enemy)
 	return false
 end
 
+function turret_firmware:fastcall()--
+	local bullet_time = self.object:get_go_float(660)
+	if self.last_bullet_time ~= bullet_time then
+		if self.last_bullet_time then
+			self.numshot = self.numshot + 1
+--			dbglog("turret '%s' numshot - %d, time-(%d)", self.object:name(), self.numshot, time_global())
+		end
+		self.last_bullet_time = bullet_time
+	end
+end
+
 function turret_firmware:update(delta)
 	if xr_logic.try_switch_to_another_section(self.object, self.st, db.actor) then
 		return
 	end
-
-	self.actor_enemy = self.force_actor_enemy or
-		utils2.community_relation(self.community, db.actor) <= -400
-
-	if self.actor_enemy and self:distance_sqr(db.actor) < self.st.explode_dist_sqr then
-		self.heli:SetfHealth(0)
-		return
+	local _time = time_global()
+	if self.update_time2 < _time then
+		local actor_enemy = self.force_actor_enemy or utils2.community_relation(self.community, db.actor) <= -400
+		if actor_enemy and self:distance_sqr(db.actor) < self.st.explode_dist_sqr then
+			self.heli:SetfHealth(0)
+			return
+		end
+		self.update_time2 = _time + 200
 	end
-
-	local time = time_global()
 	if self.state == state_idle then
-		if self.update_time < time and not self:set_new_enemy() then
-			self.update_time = time + 500
+		if self.update_time < _time and not self:set_new_enemy() then
+			self.update_time = _time + 500
 		end
 	elseif self.state == state_firing_enemy then
-		if not self.enemy:alive() then
-			dbglog("turret '%s' killed enemy '%s'", self.object:name(), self.enemy:name())
-			self.state = state_killed_enemy
-			if self.enemy:id() == db.actor:id() then
-				-- в тушку актёра постреляем подольше
-				self.update_time = time + 10000
-			else
-				self.update_time = time + 2000
+		if self.enemyheli then	-- огонь по вертолётам на упреждение
+			local eheli = self.enemy:get_helicopter()
+			if eheli:GetfHealth() <= 0.005 then
+			--	dbglog("turret '%s' killed heli enemy '%s'", self.object:name(), npcname(self.enemy))
+				self.state = state_killed_enemy
+				self.enemyheli = false
+				self.update_time = _time + 1000
+				return
 			end
+			local fire_pos = self.enemy:bone_position("pilot1")
+			local heli_speed_vec = eheli:GetCurrVelocityVec()-- показывает вектор направления, но не скорость
+			local heli_speed = eheli:GetCurrVelocity() -- показывает скорость верта, но не вектор
+			local dist = fire_pos:distance_to(self.position)
+			local upr = bullet_time(self.bullet_speed, dist)
+--			log1("heli upr = "..upr)
+			fire_pos:add(heli_speed_vec:mul(heli_speed*upr)) -- точка верта
+			self.heli:SetEnemy(fire_pos)
+			self.update_time = _time + 1000
+		elseif not self.enemy:alive() then
+		--	dbglog("turret '%s' killed enemy '%s'", self.object:name(), npcname(self.enemy))
+			self.state = state_killed_enemy
+			if self.enemy:id() == actor_id then
+				-- в тушку актёра постреляем подольше
+				self.update_time = _time + 3000
+			else
+				self.update_time = _time + 0
+				stop_fire(self.object) -- прекратить огонь
+			end
+			self.update_time3 = _time + 4000
 		elseif not self.heli:isVisible(self.enemy) then
-			dbglog("turret '%s' lost enemy '%s'", self.object:name(), self.enemy:name())
-			self.heli:SetEnemy(self.enemy:position())
+		--	dbglog("turret '%s' lost enemy '%s'", self.object:name(), npcname(self.enemy))
+			self.heli:SetEnemy(self.enemy:center())
+			stop_fire(self.object) -- прекратить огонь. To stop fire
 			self.state = state_lost_enemy
-			self.update_time = time + 1000
+			self.update_time = _time + 500
+			self.update_time3 = _time + 7000
 		end
-	elseif self.update_time < time then
-		if not self:set_new_enemy() then
+	elseif self.update_time < _time then
+		if not self:set_new_enemy() and self.update_time3 < _time then
 			self.heli:ClearEnemy()
 			self.enemy = nil
 			self.state = state_idle
@@ -139,16 +228,22 @@ function turret_firmware:update(delta)
 end
 
 function turret_firmware:hit_callback(obj, amount, local_direction, who, bone_index)
-	if amount == 0 or who == nil or not IAmAStalker[who:clsid()] then
+	if who and string.find(who:name(), "vehicle_btr") then
+		who = db.actor
+	end
+	if amount == 0 or who == nil or not IsStalkers(who) then
 		return
 	end
-	if who:id() == db.actor:id() then
-        	self.force_actor_enemy = true
+	if who:id() == actor_id then
+        if self.community == "actor" then
+			return
+		end
+		self.force_actor_enemy = true
 	elseif utils2.community_relation(self.community, who) > -400 then
 		return
 	end
 	if self.state == state_firing_enemy then
-		if self.enemy and IAmAMonster[self.enemy:clsid()] then
+		if self.enemy:is_monster() then
 			self:set_new_enemy(who)
 		end
 	else
@@ -169,13 +264,177 @@ end
 function set_scheme(npc, ini, scheme, section)
 	local st = xr_logic.assign_storage_and_bind(npc, ini, scheme, section)
 	st.logic = xr_logic.cfg_get_switch_conditions(ini, section, npc)
-
-	st.owner_gulag = utils.cfg_get_string(ini, section, "owner_gulag", npc, false, "", "")
-	st.search_dist_sqr = math.pow(utils.cfg_get_number(ini, section, "search_dist", npc, false, 100), 2)
-	st.explode_dist_sqr = math.pow(utils.cfg_get_number(ini, section, "explode_dist", npc, false, 5), 2)
-	st.hunt_actor_prob = utils.cfg_get_number(ini, section, "hunt_actor_prob", npc, false, 50)
-
-	-- перенести в turret_binder?
-	st = db.storage[npc:id()]
+	local id = npc:id()
+	tmp[id] = {}
+	tmp[id].owner_gulag 		= utils.cfg_get_string(ini, section, "owner_gulag", npc, false, "", "")
+	tmp[id].hunt_actor_prob 	= utils.cfg_get_number(ini, section, "hunt_actor_prob", npc, false, 50)
+	tmp[id].explode_dist_sqr 	= math.pow(utils.cfg_get_number(ini, section, "explode_dist", npc, false, 5), 2)
+	tmp[id].search_dist_sqr 	= math.pow(utils.cfg_get_number(ini, section, "search_dist", npc, false, 100), 2)
+--	log1("set_scheme()section-("..section..")time-("..time_global()..")")
+	local st = db.storage[id]-- перенести в turret_binder?
 	st.community = utils.cfg_get_string(ini, section, "community", npc, false, "", "none")
 end
+
+function stop_fire(turel)
+	turel:set_go_float(nil, -1, 1196)
+end
+local time_step = sys_ini:r_float("bullet_manager", "time_step")*0.001
+local kf = sys_ini:r_float("bullet_manager", "air_resistance_k")
+function bullet_time(bullet_speed, dist)
+	local ux = bullet_speed
+	local x, y, tm, a1 = 0, 0, 0
+	repeat
+		--u = sqrt(ux*ux+uy*uy)		-- скорость пули
+		a1 = kf*ux					-- ускорение пули (торможения)
+		--ax = ux*a1/ux				-- горизонтальное ускорение
+		ux = ux+a1*time_step		-- гор. скорость
+		--ay = uy*a1/u-Ge			-- вертикальное ускорение
+		--uy = uy+ay*time_step		-- вер. скорость
+		x = x + ux * time_step		-- гор. координата
+		--y = y+uy*time_step		-- вер. координата
+		tm = tm+time_step			-- время
+	until not (x<dist and ux > 2.0)
+	return tm
+end
+
+function heli_enemy(community_turel, heli_id)
+	local comm_heli = db.storage[heli_id].community or "military"
+	return utils2.comm2comm_relation(community_turel, comm_heli) < -400
+end
+
+function IsStalkers(npc)
+	return (npc:is_stalker() or npc:is_actor())
+end
+
+function is_enemy(community, npc)
+	if npc:is_stalker() or npc:is_actor() then
+		if community == "actor" then -- если турель актора, то мочим врагов актора, не смотря не на что!
+			return npc:relation(db.actor) == game_object.enemy
+		else
+			return utils2.community_relation(community, npc) < -400
+		end
+	elseif npc:is_monster() then
+		return true
+	else
+		return false
+	end
+end
+
+function get_go_vector(obj, pos)
+	local vec = vector()
+	vec.x = obj:get_go_float(pos)
+	vec.y = obj:get_go_float(pos+4)
+	vec.z = obj:get_go_float(pos+8)
+	return vec
+end
+
+function set_go_vector(obj, pos, value)
+	obj:set_go_float(nil, value.x, pos)
+	obj:set_go_float(nil, value.y, pos+4)
+	obj:set_go_float(nil, value.z, pos+8)
+end
+
+function get_go_vector2(obj, pos)
+	local vec = {}
+	vec.x = obj:get_go_float(pos)
+	vec.y = obj:get_go_float(pos+4)
+	return vec
+end
+
+function set_go_vector2(obj, pos, value)
+	obj:set_go_float(nil, value.x, pos)
+	obj:set_go_float(nil, value.y, pos+4)
+end
+
+--[[
+	if not self.flag111 then
+		local param = sys_ini:r_float(self.object:section(), "barrel_dir_tolerance")
+		for i = 0, 8000, 4 do
+			local value = self.object:get_go_float(i)
+			if value == param then
+				dbglog("param = %.7f, shift = %d", param, i)
+			end
+		end
+		dbglog("param = %.7f, поиск завершён!", param)
+		self.flag111 = true
+	end
+--]]
+------------------------------------------------------------------
+
+function vector2()
+	local vec = {}
+	vec.x = 0
+	vec.y = 0
+	return vec
+end
+
+-- normalize angle (0..2PI)
+function angle_normalize_always(a)
+	local div = a/PI_MUL_2
+	local rnd
+	if div > 0 then
+		rnd = math.floor(div)
+	else
+		rnd = math.ceil(div)
+	end
+	local frac = div-rnd;
+	if frac < 0 then 
+		frac = frac + 1.0
+	end
+	return frac * PI_MUL_2
+end
+
+-- normalize angle (0..2PI)
+function angle_normalize(a)
+	if a >= 0 and a <= PI_MUL_2 then 
+		return a
+	else
+		return angle_normalize_always(a)
+	end
+end
+
+-- -PI .. +PI
+function angle_normalize_signed(a)
+	if a >= (-PI) and a <= PI then 
+		return a 
+	end
+	local angle = angle_normalize_always(a)
+	if angle > PI then 
+		angle = angle - PI_MUL_2
+	end
+	return angle
+end
+
+-- -PI..PI
+function angle_difference_signed(a, b)
+	local diff	= angle_normalize_signed(a) - angle_normalize_signed(b);
+	if diff > 0 then
+		if diff > PI then
+			diff = diff - PI_MUL_2
+		end
+	else
+		if diff < (-PI) then 
+			diff = diff + PI_MUL_2
+		end
+	end
+	return diff;
+end
+
+-- 0..PI
+function angle_difference(a, b)
+	return math.abs(angle_difference_signed(a, b))
+end
+
+function clamp(val, _low, _high )
+	if val<_low then
+		val = _low
+	elseif val>_high then
+		val = _high
+	end
+	return val
+end
+
+function fsimilar(a, b, cmp)
+	return math.abs(a-b)<(cmp or EPS)
+end
+

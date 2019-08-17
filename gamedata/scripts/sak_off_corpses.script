@@ -190,7 +190,7 @@ function off_corpses()
 							new_treasure.add_fake_box(obj)
 						else
 							-- фикс рандомного невозврата тайников в онлайн - принудительно возвращаем
-							if obj_level==actor_level then
+							if obj_level == actor_level then
 								if obj_sect == "a_inventory_box41" then
 									xr_sound.get_safe_sound_object([[zwuk\pluton]]):play_at_pos(db.actor, obj.position, 0, sound_object.s3d+sound_object.looped)
 								end
@@ -203,6 +203,14 @@ function off_corpses()
 
 				elseif obj_clsid == clsid.respawn then
 					amk_mod.add_respawner(obj)
+					released = true
+
+				elseif obj_clsid == clsid.turret_mgun then
+					if level_changing and obj_level ~= actor_level then
+						if obj_sect == "turret_army" or obj_sect == "turret_nato" then
+							AI:release(obj, true)
+						end
+					end
 					released = true
 
 				-- трупы ворон
