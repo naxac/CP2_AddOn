@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- ver 1.0 debug
+local level_object = level.object_by_id
 
 local actor_id				= 0
 local state_idle			= 0
@@ -40,7 +41,7 @@ function turret_firmware:__init(obj, storage)
 	self.bullet_speed = sys_ini:r_float(obj:section(), "bullet_speed")
 	self.numshot = 0
 	m_barrel_dir_tolerance = sys_ini:r_float(self.object:section(), "barrel_dir_tolerance")
-	obj:set_fastcall(self.fastcall, self)
+--	obj:set_fastcall(self.fastcall, self)
 --	log1("section-("..obj:section()..") bullet_speed-("..self.bullet_speed..")")
 end
 
@@ -80,12 +81,16 @@ end
 function turret_firmware:find_enemy()
 	local best_enemy, dist_sqr
 	local min_dist_sqr = min_dist_heli_sqr
+	local heli
 	for id, v in pairs(db.heli) do
-		local heli = level.object_by_id(id)
+		heli = level_object(id)
 		if heli then
 			dist_sqr = self:distance_sqr(heli)
-			if dist_sqr < min_dist_sqr and self.heli:isVisible(heli) and heli:get_helicopter():GetfHealth() > 0.005 and 
-			heli_enemy(self.community, id) then
+			if dist_sqr < min_dist_sqr
+				and self.heli:isVisible(heli)
+				and heli:get_helicopter():GetfHealth() > 0.005
+				and heli_enemy(self.community, id)
+			then
 				best_enemy = heli
 				min_dist_sqr = dist_sqr
 			end
@@ -98,11 +103,16 @@ function turret_firmware:find_enemy()
 		return best_enemy
 	end
 	min_dist_sqr = self.st.search_dist_sqr
-	for id, v in pairs(db.storage) do
-		local npc = level.object_by_id(id)
+	local npc
+	for id, v in pairs(db.creatures) do
+		npc = level_object(id)
 		if npc then
 			dist_sqr = self:distance_sqr(npc)
-			if dist_sqr < min_dist_sqr and npc:alive() and self.heli:isVisible(npc) and is_enemy(self.community, npc) then
+			if dist_sqr < min_dist_sqr
+				and npc:alive()
+				and self.heli:isVisible(npc)
+				and is_enemy(self.community, npc)
+			then
 				best_enemy = npc
 				min_dist_sqr = dist_sqr
 			end
@@ -120,7 +130,7 @@ function turret_firmware:alarm_owner_gulag()
 		if gulag then
 			local obj_id, obj
 			for obj_id, obj in pairs(gulag.Object) do
-				obj = level.object_by_id(obj_id)
+				obj = level_object(obj_id)
 				if obj then
 					local h = hit()
 					h.power = 0.001
