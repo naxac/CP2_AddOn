@@ -74,6 +74,7 @@ function turret_control:__init(turret_binder)
 	self.heli = self.turret:get_helicopter()
 	self.mag_empty = false
 	self.reload = false
+	self.m_barrel_dir_tolerance = sys_ini:r_float(self.turret:section(), "barrel_dir_tolerance")
 end
 
 function turret_control:start()
@@ -129,7 +130,7 @@ function turret_control:condition()
 	local pos_actor = vector()
 	pos_actor:mad(self.initial_turret_pos, dev.cam_dir, -0.6)
 	pos_actor.y = Actor:position().y
-	if Actor:position():distance_to_xz(pos_actor) > 0.4 then
+	if Actor:position():distance_to_xz(pos_actor) > 0.3 then
 		Actor:set_actor_position(pos_actor)
 	end
 
@@ -141,9 +142,11 @@ function turret_control:start_fire()
 		snd_empty:play_at_pos(Actor, vector():set (0,0,0), 0, sound_object.s2d)
 		return
 	end
+	self.turret:set_go_float(nil, self.m_barrel_dir_tolerance, 1196)
 	self.heli.m_use_mgun_on_attack = true
 end
 function turret_control:stop_fire()
+	self.turret:set_go_float(nil, -1, 1196)
 	self.heli.m_use_mgun_on_attack = false
 	self.heli:ClearEnemy()
 end
@@ -270,10 +273,8 @@ function pkm_binder:fastcall()
 		if self.m_fPredBulletTime then
 			self.ammo_elapsed = math.max(self.ammo_elapsed - 1, 0)
 			if self.ammo_elapsed == 0 then
-				level.send_event_key_release( bind_to_dik(key_bindings.kWPN_FIRE) )
+				self.control:stop_fire()
 				self.control.mag_empty = true
-				-- self.heli.m_use_mgun_on_attack = false
-				-- self.heli:ClearEnemy()
 				snd_empty:play_at_pos(Actor, vector():set(0,0,0), 0, sound_object.s2d)
 			end
 			this.set_ammo_text(self.ammo_elapsed)
@@ -410,7 +411,7 @@ function show_ammo(ammo)
 	icon:SetStretchTexture(true)
 
 	ammo_static.text = xml:InitStatic("static_ammo", wpn_st)
-	ammo_static.text:SetText( string.format("%d /%d", ammo, ammo_total) )
+	ammo_static.text:SetText( string.format("%d/%d", ammo, ammo_total) )
 end
 
 function hide_ammo()
