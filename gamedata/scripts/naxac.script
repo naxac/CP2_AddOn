@@ -1,0 +1,251 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local current_fix = 1
+
+function repair()
+	local fix = amk.load_variable("nfx", 0)
+	if bit_and(fix, current_fix) ~= 0 then return end
+
+	amk.save_variable( "nfx", bit_or(fix, current_fix) )
+-------------------------------------------------------------------------------------------------------------------
+--	if bit_and(fix, 1) ~= 0 then return end
+
+	local obj = AI:story_object(story_ids.lc_escape_to_darkvalley)
+	if obj then AI:release(obj, true) end
+	AI:create( AI:spawn_id(story_ids.lc_escape_to_darkvalley) )
+
+	obj = AI:story_object(story_ids.lc_darkvalley_to_escape)
+	if obj then
+		level.map_remove_object_spot(obj.id, "level_changer2")
+		level.map_add_object_spot_ser(obj.id, "level_changer3", "to_escape")
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if has_alife_info( "naxac_test_repair5" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair5" )
+
+	db.actor:iterate_inventory(function(dummy, item)
+		if item:section() == "wpn_ballast" then
+			local obj = AI:object(item:id())
+			if obj then AI:release(obj, true) end
+		end
+	end,
+	db.actor)
+-------------------------------------------------------------------------------------------------------------------
+	if has_alife_info( "naxac_test_repair4" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair4" )
+
+	obj = AI:object("radar_kukla")
+	if obj then
+		AI:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+		AI:release(obj, true)
+	end
+
+	obj = snp.object_by_section_offline("good_psy_helmet1")
+	if obj then
+		if obj.parent_id == 65535 then
+			AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+		else
+			AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+		end
+		AI:release(obj, true)
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if has_alife_info( "naxac_test_repair3" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair3" )
+
+	obj = AI:object( "podlovim_chiterov_restrictor" )
+	if obj then AI:release( obj, true ) end
+	obj = AI:object( "podlovim_chiterov1_restrictor" )
+	if obj then AI:release( obj, true ) end
+	start_small_timer( 2000, naxac.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
+-------------------------------------------------------------------------------------------------------------------
+	if has_alife_info( "naxac_test_repair2" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair2" )
+
+	if has_alife_info( "cit_fail_first_task" ) then
+		naxac.hero_rename_start()
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if has_alife_info( "naxac_test_repair1" ) then return end
+	db.actor:give_info_portion( "naxac_test_repair1" )
+
+	if AI:object( "subway_scaner_doc_0001" ) == nil then
+		AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+	end
+end
+
+---------------------------------------------------------------------------------------
+function treasure_ss_1()
+	local items = {
+		['subway_scaner_doc2'] = 1
+	}
+	naxac.create_treasure( vector():set( -394.92098999023,0.49698415398598,52.124488830566 ), 146089, 3664, items )
+end
+function treasure_ss_2()
+	local obj = AI:create( "inventory_box", vector():set(447.53710449219,31.134944915771,-455.5447265625),1427937,3745)
+	local code = ""
+	for i = 1,10 do
+		code = code..tostring( math.random( 0, 9 ) )
+	end
+	local t = {}
+	t.visual_name = "physics\\equipment_cache\\equipment_seif_01_case"
+	t.custom_data = "[logic]\n"..
+					"cfg = scripts\\code_inventory_box.ltx\n"..
+					"[password]\n"..
+					"code = "..code
+	netpk:modify( obj, t, netpk.fState )
+	obj = AI:object( obj.id )
+	obj:use_ai_locations( false )
+
+	AI:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+	AI:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+end
+function ss_teleports()
+	AI:create( "ss_tele_1", vector():set(-427.43768310547,35.865772247314,-323.46566772461),137286,3664)
+	AI:create( "ss_tele_2", vector():set(-418.9528503418,0.43205073475838,17.969646453857),146089,3664)
+	AI:create( "ss_tele_3", vector():set(-394.98583984375,0.49851682782173,56.047332763672),146089,3664)
+end
+function del_ss_teleports()
+	bind_mteleport.del_teleport( "ss_tele_1" )
+	bind_mteleport.del_teleport( "ss_tele_2" )
+	bind_mteleport.del_teleport( "ss_tele_3" )
+end
+
+-- Чтобы после первого посещения ЧАЭС переход"Припять - ЧАЭС" задавал вопрос о смене уровня
+function lc_question_add()
+	-- Припять - ЧАЭС
+	local obj = AI:story_object(story_ids.lc_pripyat_to_aes)
+	if obj then
+		local t = { silent_mode = 0 }
+		netpk:modify(obj, t, netpk.fState)
+	end
+end
+
+-- Спавним тайник Сыча в Х-10
+function treasure_sysh_spawn()
+	local items = {
+		['ammo_gauss'] = 1,
+		['sysh_document'] = 1,
+		['antirad'] = 4,
+		['medkit_scientic'] = 2,
+		['af_kol_4'] = 1
+	}
+	local hint = "%c[255,238,155,23]Тайник Сыча\\n%c[default]На флешке Сыча была информация о схроне в лаборатории X-10, надо бы его проверить."
+	naxac.create_treasure( vector():set(-1.9939445257187,-34.253723144531,27.17742729187),
+		4256, 2777, items, "treasure", hint)
+end
+
+-- Запускаем фриплей
+function after_credits()
+	-- не знаю, зачем это, но пусть будет
+	if not db.gameover_credits_started then return end
+	db.gameover_credits_started = nil
+
+	if not has_alife_info("snp_rings_done") then
+		get_console():execute("main_menu on")
+		get_console():execute("disconnect")
+		return
+	end
+
+	if not has_alife_info("naxac_freeplay_start") then
+		db.actor:give_info_portion("naxac_freeplay_start")
+		
+		local not_del = {
+			["bolt"] = true,
+			["wpn_binoc"] = true,
+			["device_pda"] = true,
+			['netpacket_pda'] = true,
+			["device_torch"] = true
+		}
+		local obj
+		db.actor:iterate_inventory(function(actor, item)
+			obj = AI:object(item:id())
+			if obj and not_del[item:section()] == nil then
+				AI:release(obj, true)
+			end
+		end,
+		db.actor)
+		
+		db.actor:give_money(1000-db.actor:money())
+		
+		level.disable_input()
+		start_small_timer(2000, this.tele_to_escape)
+	end
+end
+function tele_to_escape()
+	u3_utils.savegame("Финал")
+	start_small_timer(3000, function () spawn_level_changer.jumpTo("exit_ao2") end)
+end
+------------------------------------------------------------------------------------------
+-- Перезаписываем логику рестриктора, если он в онлайне - переинициализируем
+function rewrite_restr_logic( obj_name, logic )
+	local obj = AI:object( obj_name )
+	if obj then
+		local cd = logic and "[logic]\ncfg = "..logic or ""
+		netpk:modify( obj, {custom_data =	cd}, netpk.fState )
+		local rest = level.object_by_id( obj.id )
+		if rest then
+			local st = db.storage[rest:id()]
+			st = {}
+			xr_logic.initialize_obj( rest, st, false, db.actor, modules.stype_restrictor, (logic or "scripts\\dummy.ltx") )
+		end
+	end
+end
+
+-- Спавним тайник по заданным координатам
+function create_treasure( pos, lv, gv, items, mapspot, hint )
+	local ruck = AI:create( "m_inventory_box", pos, lv, gv )
+
+	local id = ruck.id
+	for sect, n in pairs(items) do
+		for i = 1, n do
+			AI:create(sect, pos, lv, gv, id)
+		end
+	end
+
+	local t = netpk:get( ruck, netpk.fState )
+	t.custom_data  = "[logic]\n".."cfg = scripts\\new_inventory_box.ltx"
+	t.object_flags = bit_and( t.object_flags, bit_not(197) )
+	netpk:set( ruck, t )
+	ruck = AI:object( id )
+	ruck:use_ai_locations( false )
+
+	if mapspot then
+		level.map_add_object_spot_ser( id, mapspot, (hint or "Тайник") )
+	end
+	return ruck
+end
+-----------------------------------------------------------------------------------------------
+-- Изменение имени ГГ
+local new_name = nil
+function hero_rename_start()
+	new_name = "Стрелок"
+	netpk:modify( AI:actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
+end
+function hero_rename( pk )
+	if not new_name then return end
+	-- запишем новое имя в клиентский объект актёра, смещение [39]
+	local t = {}
+	pk:r_seek(0)
+	table.insert( t, pk:r_u16() )		-- 2 байта
+	for i = 1,37 do
+		table.insert( t, pk:r_u8() )	-- + ещё 37 раз по 1
+	end
+	local n = pk:r_stringZ()			-- читаем имя
+--	log( "old name of hero: [%s]", n )
+	table.insert( t, new_name )			-- сохраняем вместо старого новое
+	while not pk:r_eof() do				-- вычитываем остаток пакета побайтово
+		table.insert( t, pk:r_u8() )
+	end
+
+	pk:w_begin(t[1])					-- теперь записываем всё обратно
+	for i = 2, #t, 1 do
+		n = t[i]
+		if type( n ) == "string" then
+			pk:w_stringZ( n )
+		else
+			pk:w_u8( n )
+		end
+	end
+
+	log( "- New name of hero successfully saved" )
+end
