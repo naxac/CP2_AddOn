@@ -81,19 +81,19 @@ function spawn_star(actor,npc,p1,p2)
 	else
 		m_where = "здесь, на кордоне"
 	end
-	db.actor:give_talk_message(m_where.." скорее всего поискать стоит. Где-то там он, точно говорю.", "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
+	Actor:give_talk_message(m_where.." скорее всего поискать стоит. Где-то там он, точно говорю.", "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
 	
 	local task = CGameTask()
 	task:load("esc_test_art_task")
 	local objective = task:get_objective(0)
 	objective:set_article_id("esc_test_art_task_"..n)
-	db.actor:give_task(task, -1, true)
+	Actor:give_task(task, -1, true)
 end
 
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **        FIRST_RUN          **   **   **   **   **    **   **   **   ** 
 --'*******************************************************************************
--- іта функция вvзvвается первой. +нлайновvе объектv недоступнv! db.actor недоступен!
+-- Эта функция вызывается первой. Онлайновvе объекты недоступны! Actor недоступен!
 function on_game_start()
 	math.randomseed (device ():time_global ())
 end
@@ -105,7 +105,7 @@ function first_run()
 		amk.spawn_item("amk_zapiska",vector():set(21.6,-3.94,-18.28),1140,5991)
 		AI:create("amk_zapiska",vector():set(124.86881256104,31.754182815552,-13.352614402771),7186,1543)
 		sak.add_new_lcitem()
-		
+
 		spawn_military_btr()	
 		spawn_fuel()
 
@@ -115,7 +115,7 @@ function first_run()
 
 		braad_test.marsh_band_spawn()
 
-		db.actor:give_info_portion("x_first_run")
+		Actor:give_info_portion("x_first_run")
 	end
 
 	-- фикс пропадания таймеров (гг не хочет спать)
@@ -169,7 +169,7 @@ function check_spawn()
 	end
   
 --	if sname=="l01_escape" and lname=="l04_darkvalley" then
---		db.actor:set_actor_position(vector():set(-44.38, 0.43, -541.47))
+--		Actor:set_actor_position(vector():set(-44.38, 0.43, -541.47))
 --	end
 
 	if weather_types[lname]==0 then
@@ -196,7 +196,7 @@ function check_spawn()
 	end
 
 	if not has_alife_info("game_over") then
-		local flame = db.actor:object("wpn_flame")
+		local flame = Actor:object("wpn_flame")
 		if flame then
 			local sobj = AI:object(flame:id())
 			if sobj then AI:release(sobj) end
@@ -225,37 +225,26 @@ function show_news()
 		or news_main.isIsolatedLevel(level.name()))
 	then
 		-- вероятности поставлены по примерному количеству СМС в каждом файле
+		local news_text, sender
 		if math_random()>0.92 then
 			if math_random()>0.40 then
-				local dolg_news=amk_dolg.get_strings()
-				db.actor:give_game_news(dolg_news, "ui\\ui_iconsTotal", Frect():set(498,141,83,47), 0, 6000)
-				xr_sound.get_safe_sound_object([[device\pda\pda_tip]]):play(db.actor, 0, sound_object.s2d)
+				news_text = amk_dolg.get_strings()
+				sender = "dolg"
 			else
-				local freedom_news=amk_freedom.get_strings()
-				db.actor:give_game_news(freedom_news, "ui\\ui_iconsTotal", Frect():set(498,94,83,47), 0, 6000)
-				xr_sound.get_safe_sound_object([[device\pda\pda_tip]]):play(db.actor, 0, sound_object.s2d)
+				news_text = amk_freedom.get_strings()
+				sender = "freedom"
 			end
 		else
 			if math_random()>0.53 then    
-				local uniq=amk_uniq_news_lists.get_strings()
+				local uniq = amk_uniq_news_lists.get_strings()
 				local name = amk_names_lists.get_strings(true)
-				amk.send_tip(uniq,name,nil,6,"uniq")
+				news_text = "%c[gray2]"..name.."\\n%c[default]"..uniq
+				sender = "uniq"
 			else
-				local mod_news=amk_modders.get_strings()
-				
-				-- попробуем подобрать иконку
-				local x,y, pos
-				pos = string_find(mod_news,"[default]",1,true)
-				if pos then
-					x,y = news_manager.get_sender_icon(string_sub(mod_news,1,pos-5)..":")
-				else
-					x,y = 498,47
-				end
-				
-				db.actor:give_game_news(mod_news, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), 0, 6000)
-				xr_sound.get_safe_sound_object([[device\pda\pda_tip]]):play(db.actor, 0, sound_object.s2d)
+				news_text = amk_modders.get_strings()
 			end
 		end
+		news_manager.send_tip(news_text, 0, sender, 6000)
 	end
 	xr_timers.start_game_timer("show_news",0,0,math_random(50,70))
 end
@@ -298,7 +287,7 @@ end
 function sleep_force()
 --	local need_sleep = amk.load_variable("gg_need_sleep",0)/10
 	local need_sleep_nrg = amk.load_variable("gg_need_sleep_nrg",0)
-	db.actor.satiety = 0.4
+	Actor.satiety = 0.4
 	sleep_manager.main( 5 + need_sleep_nrg )
 end
 
@@ -330,12 +319,12 @@ function test_for_need_sleep_nrg()
 		amk.save_variable("gg_need_sleep", math.max(v, 0)) 
 		test_sleep_pp(v)
 	else
-		local p = db.actor.power
+		local p = Actor.power
 		start_small_timer( 400, function()
-			db.actor.power = p - 1 + energy_drink_power/(n - 1)
+			Actor.power = p - 1 + energy_drink_power/(n - 1)
 		end )
 		if n == 4 then
-			amk.send_tip("Что-то энергетик уже не помогает нихрена, надо бы отдохнуть...",db.actor:character_name(),5,8,"str")
+			amk.send_tip("Что-то энергетик уже не помогает нихрена, надо бы отдохнуть...",Actor:character_name(),5,8,"str")
 		end
 	end
 	amk.remove_timer("block_sleep_menu")
@@ -351,14 +340,12 @@ end
 function test_for_need_sleep_matras()
 	amk.spawn_item_in_inv("matras")
 
-	local actor = db.actor
-	
 	-- Проверка на врагов
-	local actorPos = actor:position()
+	local actorPos = Actor:position()
 	for npcId, obj in pairs(db.creatures) do
 		if obj and obj:alive()
-			and obj:position():distance_to(actorPos) < 70 and obj:see(actor)
-			and ( ( IAmAStalker[obj:clsid()] and obj:relation(actor)==game_object.enemy )
+			and obj:position():distance_to(actorPos) < 70 and obj:see(Actor)
+			and ( ( IAmAStalker[obj:clsid()] and obj:relation(Actor)==game_object.enemy )
 			or IAmAMonster[obj:clsid()] )
 		then
 			amk.send_tip(game.translate_string("not_need_sleep_enemy"),nil,nil,5,"nano")
@@ -394,7 +381,7 @@ function test_for_need_sleep_matras()
 	if v > 1/6 then		-- можно ли хотя бы вздремнуть 10 минут
 		-- звуковое сопровождение
 		local snd = xr_sound.get_safe_sound_object("zwuk\\inv_sleeping")
-		snd:play_no_feedback(actor, sound_object.s2d, 0, vector(), 2.0)
+		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.0)
 		local spwn=ui_sleep_menu.UISleepWnd(v)
 		level.start_stop_menu(spwn,true)
 		return true
@@ -410,7 +397,7 @@ end
 -- подключаем только на Радаре - через xr_s
 function check_radar_off()
 	if not has_alife_info("bar_deactivate_radar_done") then
-		local pos = db.actor:position()
+		local pos = Actor:position()
 		if pos.z>65 and pos.x>350 and pos.x<410 then
 			if amk.load_variable("radar_fix",0)==0 then
 				level.add_pp_effector("fire_hit.ppe", 1523, true)
@@ -424,9 +411,9 @@ end
 
 function radar_fix()
 	level.remove_pp_effector(1523)
-	local pos = db.actor:position()
+	local pos = Actor:position()
 	if pos.z>65 and pos.x>350 and pos.x<410 then
-		db.actor:kill(db.actor)
+		Actor:kill(Actor)
 	end
 	amk.del_variable("radar_fix")
 end
@@ -448,12 +435,11 @@ local tramsform_items = {
 -- проверка на упавший предмет/артефакт
 function check_for_item_drop(obj)
 	local obj_sect = obj:section()
-	local actor = db.actor
 	
-	if tramsform_items[obj_sect] and actor:has_info(tramsform_items[obj_sect].info) then
+	if tramsform_items[obj_sect] and Actor:has_info(tramsform_items[obj_sect].info) then
 		local lv = obj:level_vertex_id()
 		local gv = obj:game_vertex_id()
-		if gv == 65535 then gv = actor:game_vertex_id() end
+		if gv == 65535 then gv = Actor:game_vertex_id() end
 		if gv == 65535 then return end -- похоже, что рядом нету вертекса
 		
 		-- предмет подходит - отправляем его на экспертизу
@@ -632,7 +618,7 @@ function check_for_af_drop(obj)
 			local lv = level.object_by_id(anom_id):level_vertex_id()
 			local gv = level.object_by_id(anom_id):game_vertex_id()
 			if gv == 65535 then gv = obj:game_vertex_id() end
-			if gv == 65535 then gv = db.actor:game_vertex_id() end
+			if gv == 65535 then gv = Actor:game_vertex_id() end
 			if gv == 65535 then return end -- похоже, что рядом нету вертекса
 			
 			-- предмет подходит - отправляем его на экспертизу
@@ -1577,8 +1563,6 @@ end
 -- проверяет рецепты и компонеты
 -- если всё в порядке - запускает варку/мутацию
 function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, anom_radius, lv, gv)
-	local actor = db.actor
-	
 	--поиск по аномалиям
 	local finish = false -- флаг для выхода из циклов
 	for anom, recepti in pairs(anom_recept_komp["anomalii"]) do
@@ -1588,7 +1572,7 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 			
 			-- собираем рецепты, в которых участвует данный компонент
 			for info, recept in pairs(recepti["recepti"]) do
-				if actor:has_info(info) and recept["komp"][af_sect] == true then --есть рецепт и этот компонент в нїм участвует
+				if Actor:has_info(info) and recept["komp"][af_sect] == true then --есть рецепт и этот компонент в нїм участвует
 					recept_podhodit = true
 					-- копируем рецепт
 					recepti_est[info] = table.copy( {}, recept )
@@ -1704,7 +1688,7 @@ local transform_params = nil
 function as_start_universal_transform_timer(rec_name, result, udacha, pos, vremya, gv, lv, info_portion, remove_anomaly_id)
 	-- сохраняемые данные
 	if transform_params == nil then
-		transform_params = xr_logic.pstor_get_custom(db.actor, "af_var", "af_var")
+		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
 	end
 
 	if rec_name == info_portion then
@@ -1733,7 +1717,7 @@ end
 -- может быть много результатов
 function af_transform_universal_end(var)
 	if transform_params == nil then
-		transform_params = xr_logic.pstor_get_custom(db.actor, "af_var", "af_var")
+		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
 	end
 	local params = transform_params[var]
 		or abort("af_transform_universal_end: not found params for transform: %s", utils.to_str(var))
@@ -1741,7 +1725,7 @@ function af_transform_universal_end(var)
 	local rec_name = string.match(var, "^([^:]+)")
 	-- если есть результаты
 	if table.size(params.result) > 0 then
-		if db.actor:position():distance_to(params.pos) < 15 then
+		if Actor:position():distance_to(params.pos) < 15 then
 			level.add_pp_effector("teleport.ppe", 1524, false)
 		end
 
@@ -1779,8 +1763,8 @@ function af_transform_universal_end(var)
 	
 	-- даём инфопорцию, если есть
 	local info = params.info or rec_name
-	if db.actor:dont_has_info(info) then
-		db.actor:give_info_portion(info)
+	if Actor:dont_has_info(info) then
+		Actor:give_info_portion(info)
 	end
 	
 	-- удаляем аномалии, если нужно и она не в исключениях
@@ -1797,7 +1781,7 @@ function af_transform_universal_end(var)
 
 	transform_params[var] = nil
 	if table.size(transform_params) == 0 then
-		xr_logic.pstor_clear_custom(db.actor, "af_var")
+		xr_logic.pstor_clear_custom(Actor, "af_var")
 		transform_params = nil
 	end
 end
@@ -1984,7 +1968,7 @@ end
 local shoot_helper=0  
 
 function calc_adrenaline(act,obj,typ) 
-	local dist = obj:position():distance_to(db.actor:position()) 
+	local dist = obj:position():distance_to(Actor:position()) 
 
 	if act=="actor_see_enemy" then
 		music_stor.actor_see_enemy=music_stor.actor_see_enemy+50/dist
@@ -2076,7 +2060,7 @@ function blowout_phantoms()
 						local yaw	 			= math_pi*2.0*math_random()
 						local radius 			= phantoms.radius*(math_random()/2.0+0.5)
 						local height 			= phantoms.height*math_random()
-						local a_pos 			= db.actor:position()
+						local a_pos 			= Actor:position()
 						local pos 				= vector():set(math_sin(yaw)*radius+a_pos.x,a_pos.y+height,math_cos(yaw)*radius+a_pos.z)
 						phantom_manager.spawn_phantom(pos)
 					end
@@ -2094,7 +2078,7 @@ function blowout_scary_sounds()
 		a.x=math_random(0,10)
 		a.y=math_random(0,10)
 		a.z=math_random(0,10)
-		snd_obj:play_at_pos(db.actor, db.actor:position():add(a))
+		snd_obj:play_at_pos(Actor, Actor:position():add(a))
 		xr_timers.start_real_timer("blowout_ss",math_random(10,30),0)
 	end
 end
@@ -2102,7 +2086,7 @@ end
 function blowout_psy_sound(action)
 	if action=="start" then
 		snd_obj_eq = sound_object([[ambient\earthquake]],sound_object.looped+sound_object.s2d)
-    snd_obj_eq:play(db.actor, 4, sound_object.looped+sound_object.s2d)
+    snd_obj_eq:play(Actor, 4, sound_object.looped+sound_object.s2d)
 	end
 	if action == "stop" then
 		if snd_obj_eq then snd_obj_eq:stop() end
@@ -2116,8 +2100,8 @@ function blowout_psy_sound(action)
 	if action=="start" then
 		local level_vol=amk_hideouts.blowouts_phantoms[lname].level_vol or 1				
 		sound_obj_right, sound_obj_left = xr_sound.get_sound_object("psy_voices", "random")
-		sound_obj_left:play_at_pos (db.actor, vector():set(-1, 0, 1), 0, sound_object.s2d + sound_object.looped)
-		sound_obj_right:play_at_pos(db.actor, vector():set( 1, 0, 1), 0, sound_object.s2d + sound_object.looped)
+		sound_obj_left:play_at_pos (Actor, vector():set(-1, 0, 1), 0, sound_object.s2d + sound_object.looped)
+		sound_obj_right:play_at_pos(Actor, vector():set( 1, 0, 1), 0, sound_object.s2d + sound_object.looped)
 		snd_volume	= level.get_snd_volume()
 		level.set_snd_volume( level_vol )
 	end
@@ -2140,7 +2124,7 @@ function Run_Blowout_pp()
 			level.add_pp_effector("monolith_off.ppe", 2003, false)
 			level.add_cam_effector("camera_effects\\shell_shock.anm", 2004, false, "")
 			local snd_obj = xr_sound.get_safe_sound_object([[ambient\organic_moan1]])
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		end
 		xr_timers.start_real_timer( "blowout_ss" ,math_random( 5, 15 ), 0 )
 		xr_timers.start_real_timer( "blowout", 11, 0 )
@@ -2182,7 +2166,7 @@ local blow = amk.load_variable("blowout", 0)
 local bt=blowout_type()
 if blow > 0 and blow < 4 and bt == 2 then xr_timers.start_game_timer("blowout", 0, 0, 3, 4) end
 	if phase==0 then
-		db.actor.blowout_outside = true
+		Actor.blowout_outside = true
 		amk_anoms.pre_blow_off()
 		if bt<1 then
 			level.set_weather("pre_blow",true)
@@ -2191,10 +2175,10 @@ if blow > 0 and blow < 4 and bt == 2 then xr_timers.start_game_timer("blowout", 
 xr_timers.start_game_timer("blowout", 0, 0, resuls, 1)
 		elseif phase==1 then
 		local snd_obj = xr_sound.get_safe_sound_object([[ambient\earthquake]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		level.add_cam_effector("camera_effects\\earthquake.anm", 2002, true, "")
 		snd_obj = xr_sound.get_safe_sound_object([[anomaly\blowout]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		blowout_psy_sound("start")
 		if bt < 1 then
 			level.add_pp_effector("vibros.ppe", 2001, true)
@@ -2235,16 +2219,16 @@ xr_timers.start_game_timer("blowout", 0, 0, resuls, 4)
 		level.set_weather(amk.load_variable("weather","default1"))
 		if bt<1 then
 			local snd_obj = xr_sound.get_safe_sound_object([[anomaly\teleport_work2]])
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		end
 		amk.del_variable("blowout")
 		xr_s.unsubscribe("update", amk_mod.on_blowout_hit_actor)
         if game_options.ZombieTeam then
             tag_spb.zombie_team()
         end 
-		if db.actor.blowout_outside then
+		if Actor.blowout_outside then
 			archievements.acv_count_event("acv_blow", 5, "Выброшенный")
-			db.actor.blowout_outside = nil
+			Actor.blowout_outside = nil
 		end
 		amk.save_variable( "BLT", amk.load_variable( "BLT", 0 ) + 1 )
    		xr_timers.start_real_timer("autosave_data", 10, "Выброс") -- autosave
@@ -2255,7 +2239,7 @@ local next_actor_hit_time=0
 function on_blowout_hit_actor()
 	if next_actor_hit_time<time_global() then
 		next_actor_hit_time=time_global()+1000
-		on_blowout_hit(db.actor)
+		on_blowout_hit(Actor)
 		blowout_phantoms()
 	end
 end
@@ -2263,7 +2247,7 @@ end
 function on_blowout_hit(npc,hide)
 	local bt=blowout_type()
 	if bt>0 or amk.load_variable("blowout",-1)~=3 then 
-		if npc:id()==db.actor:id() then in_hide = true end
+		if npc:id()==Actor:id() then in_hide = true end
 		return false
 	end
 	
@@ -2306,9 +2290,9 @@ function on_blowout_hit(npc,hide)
 		end
 	end
 
-    if npc:id()==db.actor:id() then
+    if npc:id()==Actor:id() then
 		if not need_hit then
-			db.actor.blowout_outside = nil
+			Actor.blowout_outside = nil
 		end
 		if outfit_hideout() then -- защита от выброса броником
 			need_hit = false
@@ -2342,7 +2326,7 @@ function outfit_hideout()
 		["voshod_outfit"] = true,
 		["exo_knight_outfit"] = true
 	}
-	return db.actor:item_in_slot( inventory_slots.OUTFIT ) and outfits[db.actor:item_in_slot( inventory_slots.OUTFIT ):section()]
+	return Actor:item_in_slot( inventory_slots.OUTFIT ) and outfits[Actor:item_in_slot( inventory_slots.OUTFIT ):section()]
 end
 
 function check_npc_in_hideout(npc,hide)
@@ -2811,7 +2795,7 @@ end
 --'*******************************************************************************
 
 function repair_armor(val)
-	local armor = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local armor = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if armor then
 		armor:set_condition(val)
 		inventory.force_update(armor:section())
@@ -2831,9 +2815,9 @@ function check_armor(section)
 		local wpn
 		local chck_slots = { inventory_slots.PISTOL, inventory_slots.RIFLE }
 		for i, v in ipairs( chck_slots ) do
-			wpn = db.actor:item_in_slot(v)
+			wpn = Actor:item_in_slot(v)
 			if wpn and exo_wpns[wpn:section()] then
-				db.actor:move_to_ruck(wpn)
+				Actor:move_to_ruck(wpn)
 				news_manager.send_tip("wpn-m_134-no_exo_message", nil, "nano", 5000)
 			end
 		end
@@ -2895,19 +2879,19 @@ function zomby_blow(obj)
 				pos=obj:position(),
 				sound=[[weapons\t_rgd5_explosion]]
 			})
-		local dist = db.actor:position():distance_to(obj:position())
+		local dist = Actor:position():distance_to(obj:position())
 		if dist < 15 then
 			local h = hit()
 			h.impulse = 5
-			h.draftsman = db.actor
+			h.draftsman = Actor
 			h.direction = vector():set(0,0,0)
 			h:bone("bip01_spine") -- чтобv учитvвалась броня
 			h.power = 1/dist
 			h.type = hit.strike --chemical_burn
-			db.actor:hit(h)
+			Actor:hit(h)
 			h.power = 15/dist
 			h.type = hit.burn
-			db.actor:hit(h)
+			Actor:hit(h)
 		end
 		AI:release(sobj)
 		return
@@ -2919,19 +2903,19 @@ function zomby_blow(obj)
 			pos=obj:bone_position("bip01_head"),
 			sound="anomaly\\anomaly_gravy_hit1"
 		})
-		local dist = db.actor:position():distance_to(obj:position())
+		local dist = Actor:position():distance_to(obj:position())
 		if dist < 20 then
 			local h = hit()
 			h.impulse = 1
-			h.draftsman = db.actor
+			h.draftsman = Actor
 			h.direction = vector():set(0,0,0)
 			h:bone("bip01_spine")
 			h.power = 1/dist
 			h.type = hit.strike
-			db.actor:hit(h)
+			Actor:hit(h)
 			h.power = 10/dist
 			h.type = hit.chemical_burn
-			db.actor:hit(h)
+			Actor:hit(h)
 		end
 		local se_obj = AI:object( obj:id() )
 		if se_obj then
@@ -2946,7 +2930,7 @@ function repair_weapon (arr)
 	local slot = arr[3]
 	if AI:object(oid)==nil then
 		local repair_coef = 0                                   
-		local item_in_slot = db.actor:item_in_slot(slot)  
+		local item_in_slot = Actor:item_in_slot(slot)  
 		if repbox_health==1 then                                 
 			repair_coef=0.25                                           
 		elseif repbox_health<1 then                       
@@ -3004,16 +2988,16 @@ end
 -- На апдейте перебирать весь инвентарь... Гениальное решение!
 function firebat_ammo()
 
---	local ammo=db.actor:object("ammo_flame") -- фикс перезарядок огнемета Шурупа и Шмеля
-	local ammo=db.actor:object("ammo_rpo-a")
+--	local ammo=Actor:object("ammo_flame") -- фикс перезарядок огнемета Шурупа и Шмеля
+	local ammo=Actor:object("ammo_rpo-a")
 	if ammo then
-		db.actor:iterate_inventory(
+		Actor:iterate_inventory(
 			function(dummy,item)
 --				if item:section()=="ammo_flame" then -- фикс перезарядок огнемета Шурупа и Шмеля
 				if item:section()=="ammo_rpo-a" then
 					AI:release(AI:object(item:id()))
 				end
 			end
-			, db.actor)
+			, Actor)
 	end
 end
