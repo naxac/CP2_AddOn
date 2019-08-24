@@ -1,3 +1,4 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 -- stealth
 function stealth_start()
 	xr_timers.start_real_timer("run",1.0,"kostya_dialog.stealth_start2()")
@@ -2139,121 +2140,26 @@ function kostya_taynik_pda21_done(task, objective)
 		netpk:modify(obj, params, netpk.fState)
 		AI:create("zone_event_horisont",vector():set(a.eh.x,a.eh.y+1.7,a.eh.z),a.eh.lv,a.eh.gv)
 
-		create_eh_lc(220000+i, vector():set(a.lc.x,a.lc.y,a.lc.z),a.lc.lv,a.lc.gv,
-			vector():set(a.to.x,a.to.y,a.to.z),a.to.lv,a.to.gv,
-			vector():set(a.dir.x,a.dir.y,a.dir.z),
-			a.level,
-			0)
+		obj = AI:create("level_changer", vector():set(a.lc.x,a.lc.y,a.lc.z), a.lc.lv, a.lc.gv)
+		params = {}
+		params.object_flags	= bit_not(193)
+		params.story_id = 220000 + i
+		params.shapes = {
+			[1] = {
+				shtype = 0,
+				center = vector():set(0,0,0),
+				radius = 0.5
+			}
+		}
+		params.restrictor_type = 3
+		params.dest_game_vertex_id	= a.to.gv
+		params.dest_level_vertex_id	= a.to.lv
+		params.dest_position		= vector():set(a.to.x,a.to.y,a.to.z)
+		params.dest_direction		= vector():set(a.dir.x,a.dir.y,a.dir.z)
+		params.dest_level_name		= a.level
+		params.silent_mode			= 0
+		netpk:modify(obj, params, netpk.fState)
 	end
-end
-
-function create_eh_lc(
-	p_story_id,	-- STORY_ID нового level_changer (понадобится нам позже)
-	
-	p_position,	-- вектор, координаты точки, в которой будет располагаться центр нового level_changer
-	p_lvertex_id,	-- level_vertext_id  - идентифицируют уровень, на котором будет создан level_changer
-	p_gvertex_id,	-- game_vertext_id   	
- 
-	p_dest_pos,	-- координаты точки, в которой на новом уровне окажется игрок
-	p_dest_lv,	-- level_vertex_id   - идентифицируют уровень, на который level_changer будет перебрасывать игрока 
-	p_dest_gv,	-- game_vertex_id
-	p_dest_dir,	-- направрение взгляда игрока
-	p_dest_level,	-- название уровня, например "L11_Pripyat"
-	p_silent	-- следует задать 1, чтобы подавить вопрос о смене уровня (автоматический переход)
-)
-	local obj = AI:create("level_changer", p_position, p_lvertex_id, p_gvertex_id)
- 
-	local packet = net_packet()
-	obj:STATE_Write(packet)
- 
-	-- свойства cse_alife_object
-	local game_vertex_id 			= packet:r_u16()
-	local cse_alife_object__unk1_f32 	= packet:r_float()
-	local cse_alife_object__unk2_u32 	= packet:r_u32()
-	local level_vertex_id 			= packet:r_u32()
-	local object_flags 			= packet:r_u32()
-	local custom_data 			= packet:r_stringZ()
-	local story_id 				= packet:r_u32()
-	local spawn_story_id			= packet:r_u32()
- 
-	-- свойства cse_shape
-	local shape_count 			= packet:r_u8()
-	for i=1,shape_count do
-		local shape_type 		= packet:r_u8()
-		if shape_type == 0 then
-			-- sphere
-			local center 		= packet:r_vec3()
-			local radius 		= packet:r_float()
-		else
-			-- box
-			local axis_x_x = packet:r_float()
-			local axis_x_y = packet:r_float()
-			local axis_x_z = packet:r_float()
-			local axis_y_x = packet:r_float()
-			local axis_y_y = packet:r_float()
-			local axis_y_z = packet:r_float()
-			local axis_z_x = packet:r_float()
-			local axis_z_y = packet:r_float()
-			local axis_z_z = packet:r_float()
-			local offset_x = packet:r_float()
-			local offset_y = packet:r_float()
-			local offset_z = packet:r_float()
-		end
-	end
- 
-	-- свойства cse_alife_space_restrictor
-	local restrictor_type 			= packet:r_u8()
- 
-	-- свойства cse_level_changer
-	local dest_game_vertex_id		= packet:r_u16()  
-	local dest_level_vertex_id 		= packet:r_u32()  
-	local dest_position 			= packet:r_vec3()
-	local dest_direction 			= packet:r_vec3()
-	local dest_level_name 			= packet:r_stringZ()
-	local dest_graph_point 			= packet:r_stringZ()
-	local silent_mode 			= packet:r_u8()
- 
- 
-	packet:w_begin(game_vertex_id)			-- game_vertex_id
-	packet:w_float(cse_alife_object__unk1_f32)
-	packet:w_u32(cse_alife_object__unk2_u32) 
-	packet:w_u32(level_vertex_id)			-- level_vertex_id
-	packet:w_u32( bit_not(193) )			-- object_flags = -193 = 0xFFFFFF3E
-	packet:w_stringZ(custom_data)
-	packet:w_u32(p_story_id)			-- story_id
-	packet:w_u32(spawn_story_id)
- 
-	packet:w_u8(1)			-- количество фигур
-		packet:w_u8(0)			-- тип фигуры: сфера
-		packet:w_vec3(vector():set(0, 0, 0))  -- sphere_center
-		packet:w_float(0.5)
---[[
-	packet:w_u8(1)			-- тип фигуры: box
-	packet:w_float(2)	   -- axis_x_x
-	packet:w_float(0)	   -- axis_x_y
-	packet:w_float(0)	   -- axis_x_z
-	packet:w_float(0)	   -- axis_y_x
-	packet:w_float(4)	   -- axis_y_y
-	packet:w_float(0)	   -- axis_y_z
-	packet:w_float(0)	   -- axis_z_x
-	packet:w_float(0)	   -- axis_z_y
-	packet:w_float(4)	   -- axis_z_z
-	packet:w_float(0)	   -- offset_x
-	packet:w_float(0)	   -- offset_y
-	packet:w_float(0)          -- offset_z
-]]
-	packet:w_u8(3)	 	   -- restrictor_type
- 
-	packet:w_u16(p_dest_gv)			-- destination game_vertex_id
-	packet:w_s32(p_dest_lv)			-- destination level_vertex_id
-	packet:w_vec3(p_dest_pos)		-- destination position
-	packet:w_vec3(p_dest_dir)		-- destination direction (направление взгляда)
-	packet:w_stringZ(p_dest_level)		-- destination level name
-	packet:w_stringZ("start_actor_02")	-- some string, always const
-	packet:w_u8(p_silent)			-- 1 for silent level changing
- 
-	packet:r_seek(0)
-	obj:STATE_Read(packet, packet:w_tell())
 end
 
 function t_inventory_box2()

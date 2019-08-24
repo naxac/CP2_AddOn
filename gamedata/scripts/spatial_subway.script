@@ -11,19 +11,14 @@ function init()
 	if not has_alife_info( "spatial_subway_start" ) then return end
 
 	local lname = level.name()
-	
-	local se_obj = AI:story_object(story_ids.spatial_subway_level_changer)
-	if se_obj then
-		AI:release(se_obj, true)
-	end
-	
+
 	local t = n_vertexes.get_locations( true )
 	for i, lvl in ipairs( t ) do
 		if levels[ lvl ] == nil then
 			levels[ lvl ] = false
 		end
 	end
-	
+
 	if levels[lname] ~= nil and not has_alife_info(lname.."_subway") then
 		db.actor:give_info_portion(lname.."_subway")
 
@@ -104,7 +99,7 @@ function go_to(lname, id)
 		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)	
 		db.actor:set_actor_position(point.pos)
 	else
-		spatial_subway.create_level_changer(point.pos, point.lv, point.gv, lname)
+		level_changers.create_teleport_on_actor(point.pos, point.lv, point.gv)
 	end
 end
 
@@ -123,34 +118,5 @@ function create_zone_subway( pos, new_lv, new_gv )
 	data.restrictor_type = 3  -- RestrictorTypeNone
 	netpk:modify( se_obj, data, netpk.fState )
 	return se_obj
-end
-
-
-function create_level_changer( pos, lv, gv, lname )
-	local obj = AI:create( "level_changer", db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id() )
-
-	local data = {}
-	data.story_id = story_ids.spatial_subway_level_changer
-	data.shapes = {
-		[1] = {
-			["shtype"]         = 1,
-			["box_matrix"] = matrix():set(
-				vector():set(4, 0, 0),
-				vector():set(0, 4, 0),
-				vector():set(0, 0, 4),
-				vector():set(0, 0, 0)
-			)
-		}
-	}
-	data.restrictor_type = 3  -- RestrictorTypeNone
-	data.dest_game_vertex_id = gv
-	data.dest_level_vertex_id = lv
-	data.dest_position = pos
-	data.dest_level_name = lname
-	data.dest_graph_point = "start_actor_99"
-	data.silent_mode = 1
-
-	netpk:modify( obj, data, netpk.fState )
-	bind_lc.shift_send_sms()
 end
 
