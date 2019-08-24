@@ -35,7 +35,7 @@ function teleportator_menu:FillList()
 	for	i = 1, 36 do	-- 36 территорий
 		obj_sect = "arhara_obman"..tostring(i)
 		if has_alife_info(obj_sect) then
-			place = spawn_level_changer.teleport_name(obj_sect)
+			place = teleport_manager.teleport_name(obj_sect)
 			table.insert(tmp, {
 				name = game.translate_string(place.autosave),
 				index = i
@@ -122,7 +122,7 @@ function teleportator_menu:on_ok()
 
 	if self.level_id[index+1] then
 		local section = "arhara_obman"..tostring(self.level_id[index+1])
-		local place = spawn_level_changer.get_place_by_teleport(section)
+		local place = teleport_manager.get_place_by_teleport(section)
 		if not place then
 			log( "! %s: ERROR! Not found place for teleport section [%s]", script_name(), section )
 			return
@@ -137,7 +137,7 @@ function teleportator_menu:on_ok()
 		if need_charge <= cond then
 			self:on_quit()
 
-			if spawn_level_changer.do_teleport(section, true) then
+			if teleport_manager.do_teleport(section, true) then
 				local new_cond = cond - need_charge
 				obj:set_condition( new_cond )
 				netpk:modify( AI:object( obj:id() ), { condition = new_cond }, netpk.fState )
