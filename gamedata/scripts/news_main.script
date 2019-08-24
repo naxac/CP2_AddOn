@@ -145,7 +145,7 @@ function do_debug(title, text)
 		local m_text = ""
 		if title then m_title = title end
 		if text then m_text = text end
-		do_news(m_text, m_title, nil, 7, "gen_info")
+		do_news(m_text, m_title, nil, 7)
 	end
 	mylog(title..": "..text)
 end
@@ -179,7 +179,7 @@ function on_spawn_group(community, level, position, count, o_type)
 				else
 					m_str = format_template_spawn_group(level, position, get_monster_name_by_string(mon, 6), count)
 				end
-				do_news(m_str, s_author, math_random(timer_spawn, timer_spawn*5), 7, "gen_info", author.id)
+				do_news(m_str, s_author, math_random(timer_spawn, timer_spawn*5), 7, nil, author.id)
 			end
 		elseif (o_type == 1) then
 			if (math_random() < prob) then
@@ -203,7 +203,7 @@ function on_spawn_group(community, level, position, count, o_type)
 				else
 					m_str = format_template_spawn_group(level, position, m_who, count)					
 				end
-				do_news(m_str, s_author, math_random(timer_spawn, timer_spawn*5), 7, "gen_info", author.id)
+				do_news(m_str, s_author, math_random(timer_spawn, timer_spawn*5), 7, nil, author.id)
 			end
 		end
 	end
@@ -239,7 +239,7 @@ function on_abuse(obj)
 	--	m_name = name.." "..sname
 		m_name = amk_names_lists.get_strings()
 	end
-	do_news(str, m_name, math_random(timer_spawn, timer_spawn*5), 7, "stalker", act:id())	
+	do_news(str, m_name, math_random(timer_spawn, timer_spawn*5), 7, nil, act:id())	
 end
 
 function on_death(victim, killer)
@@ -361,7 +361,7 @@ function on_stalker_death(victim_, killer_)
 			m_str = format_death_hear_sounds(victim, killer)
 		end
 		if (m_str ~= "") then
-			do_news(m_str, s_author, math_random(timer_corpse*2, timer_corpse *5), 7, "gen_info", author.id)
+			do_news(m_str, s_author, math_random(timer_corpse*2, timer_corpse *5), 7, nil, author.id)
 		end
 	end
 end
@@ -445,7 +445,7 @@ function on_npc_death(victim_, killer_)
 		end
 		if (m_str ~= "" and s_from ~= "") then
 			if (_debug == true and author) then amk.add_spot_on_map(author.id, "red_location", s_from..": "..m_str) end
-			do_news(m_str, s_from, math_random(timer_corpse*2, timer_corpse * 5), 7, "gen_info", aid)
+			do_news(m_str, s_from, math_random(timer_corpse*2, timer_corpse * 5), 7, nil, aid)
 		end
 	end
 end
@@ -1697,7 +1697,7 @@ function on_weather_change(old_weather, new_weather)
 					--mylog("on_weather_change ["..s_weather.."] "..s_text)
 				--	show_news(s_text, name.." "..sname, math_random(timer_weather, timer_weather * 5), 15, "gen_info")
 					local name = amk_names_lists.get_strings()
-					show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7, "gen_info")
+					show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
 					timer_weather_showed = amk.game_minutes()
 				end
 			end
@@ -1717,7 +1717,7 @@ function on_daytime()
 			if (math_random() < prob) then
 				s_text = news_data.morning_templates[math_random(#news_data.morning_templates)]
 				local name = amk_names_lists.get_strings(true)
-				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7, "gen_info")
+				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
 				timer_daytime_showed = amk.game_minutes()
 			end
 		elseif(m_t >= 20*60+30 and m_t <= 22*60) then 
@@ -1725,7 +1725,7 @@ function on_daytime()
 			if (math_random() < prob) then
 				s_text = table_random(news_data.evening_templates)
 				local name = amk_names_lists.get_strings(true)
-				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7, "gen_info")
+				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
 				timer_daytime_showed = amk.game_minutes()
 			end
 		elseif(m_t >= 23*60 and m_t <= 24*60) or (m_t >= 0*60 and m_t <= 4*60) then 
@@ -1740,19 +1740,19 @@ function on_daytime()
 					local name = "[источник неизвестен]"
 					local i = 0
 					for k, v in pairs(texts) do
-					if (comments == nil) then
-					--	local name_, sname_ = amk_names_lists.get_strings(true)
-					--	name = name_.." "..sname_
-						name = amk_names_lists.get_strings(true)
-					end
+						if (comments == nil) then
+						--	local name_, sname_ = amk_names_lists.get_strings(true)
+						--	name = name_.." "..sname_
+							name = amk_names_lists.get_strings(true)
+						end
 						s_text = v
-						show_news(s_text, name, base_wait + k * 2, 5, "uniq")
+						show_news(s_text, name, base_wait + k * 2, 5)
 						i = i + 1
 					end
 					if (probl and comments and news_data.comments_templates[comments] and math_random() < probl) then
 						s_text = table_random(news_data.comments_templates[comments])
 						local name = amk_names_lists.get_strings(true)
-						show_news(s_text, name, base_wait + (i+1) * 3, 7, "gen_info")
+						show_news(s_text, name, base_wait + (i+1) * 3, 7)
 					end
 					timer_daytime_showed = amk.game_minutes()
 				end				 
@@ -1795,7 +1795,7 @@ function on_hero_seen(community, level, position, count, o_type)
 				else
 					m_str = format_template_actor_seen_group(level, position, get_monster_name_by_string(mon, 6), count)
 				end
-				do_news(m_str, s_author, math_random(timer_corpse*5, timer_corpse*10), 7, "gen_info", aid)
+				do_news(m_str, s_author, math_random(timer_corpse*5, timer_corpse*10), 7, nil, aid)
 			end
 		elseif(o_type == 1) then
 			if (math_random() < prob) then
@@ -1817,7 +1817,7 @@ function on_hero_seen(community, level, position, count, o_type)
 				else
 					m_str = format_template_actor_seen_group(level, position, m_who, count)
 				end
-				do_news(m_str, s_author, math_random(timer_corpse*5, timer_corpse*10), 7, "gen_info", aid)
+				do_news(m_str, s_author, math_random(timer_corpse*5, timer_corpse*10), 7, nil, aid)
 			end
 		end
 	end	
@@ -1840,7 +1840,7 @@ function on_heli_combat(obj)
 					return
 				end
 				--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
-				do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, "gen_info", author.id, 1)
+				do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
 				timer_heli_showed = amk.game_minutes()
 			end
 		end
@@ -1862,7 +1862,7 @@ function on_heli_seen(obj)
 				return
 			end
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
-			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, "gen_info", author.id, 1)
+			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
 			timer_heli_showed = amk.game_minutes()
 		end
 	end
@@ -1883,7 +1883,7 @@ function on_heli_flame(obj)
 				return
 			end
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
-			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, "gen_info", author.id, 1)
+			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
 			timer_heli_showed = amk.game_minutes()
 		end
 	end
@@ -1904,7 +1904,7 @@ function on_heli_die(obj)
 				return
 			end			
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
-			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, "gen_info", author.id, 1)
+			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
 			timer_heli_showed = amk.game_minutes()
 		end
 	end
@@ -1925,7 +1925,7 @@ function on_heli_retreat(obj)
 				return
 			end			
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
-			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, "gen_info", author.id, 1)
+			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
 			timer_heli_showed = amk.game_minutes()
 		end
 	end
@@ -2125,7 +2125,7 @@ function on_wound(obj)
 					end
 				end
 				--show_news(m_s, sfrom, math_random(timer_stalker_death, timer_stalker_death * 2), 10, "gen_info")
-				do_news(m_s, sfrom, math_random(timer_stalker_death, timer_stalker_death * 2), 5, "gen_info", author_id, 1)
+				do_news(m_s, sfrom, math_random(timer_stalker_death, timer_stalker_death * 2), 5, nil, author_id, 1)
 				if (isGameObject(obj)) then
 					if (_debug) then amk.add_spot_on_map(obj:id(), "red_location", m_s) end
 				else
@@ -2220,7 +2220,7 @@ function do_blow_news()
 		local sfrom = ""
 	--	local name, sname = amk_names_lists.get_strings()
 		sfrom = amk_names_lists.get_strings(true, 'nebo', 'trader', 'green', 'stalker', 'ecolog', 'freedom', 'dolg')	--name.." "..sname					
-		show_news(stext, sfrom, math_random(10, timer_general), 5, "gen_info")
+		show_news(stext, sfrom, math_random(10, timer_general), 5)
 		timer_blow_showed = amk.game_minutes()
    end
  end
@@ -2483,7 +2483,7 @@ function on_offline_stalker_death(victim_, killer_, weapon_)
 		end
 		if (m_str ~= "" and s_author ~= "") then
 			if _debug == true then mylog("Offline: "..s_author.." "..m_str)  end
-			do_news(m_str, s_author, math_random(timer_corpse, timer_corpse *5), 7, "gen_info", aid)
+			do_news(m_str, s_author, math_random(timer_corpse, timer_corpse *5), 7, nil, aid)
 		end
 	end
 end
@@ -2541,7 +2541,7 @@ function on_offline_npc_death(victim_, killer_, weapon_)
 			m_str = format_death_hear_sounds(victim_, killer_, weapon_)
 		end
 		if (m_str ~= "" and s_from ~= "") then
-			do_news(m_str, s_from, math_random(timer_corpse, timer_corpse *5), 7, "gen_info", aid)
+			do_news(m_str, s_from, math_random(timer_corpse, timer_corpse *5), 7, nil, aid)
 			if _debug == true then mylog("Offline: "..s_from.." "..m_str) end
 		end
 	end
@@ -2580,7 +2580,7 @@ function on_offline_corpse_found(who, object)
 			if (s_corpse == nil) then s_corpse = "" end
 			local s_from = get_npc_name(who)
 			if (s_from and s_corpse and s_corpse ~= "" and s_from ~= "") then
-				do_news(s_corpse, s_from, math_random(timer_corpse, timer_corpse *5), 7, "gen_info")
+				do_news(s_corpse, s_from, math_random(timer_corpse, timer_corpse *5), 7)
 			end
 			-- amk.mylog("Offline: "..get_npc_community(who).." found a corpse. "..s_corpse)
 		end
