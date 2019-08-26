@@ -26,14 +26,11 @@ function savegame(save_name, save_anyway)
 	end
 	if amk.load_variable("no_save", false) then
 --        cant_save("Автосохранение не создано - прошло мало времени с момента последней загрузки")
-		log("~ u3_utils.savegame: Can't save: too little timeout while loading")
+		log("~ [u3_utils.savegame]: Can't save [%s]: too small timeout while loading", save_name)
         return
     end
-	
+
 	save_name = save_name:clear()
-	-- if string.len(save_name)>60 then
-		-- save_name = string.sub(save_name,1,58).."..."
-	-- end
 	get_console():execute("save "..save_name)
 	show_game_saved( save_name )
 end
@@ -144,4 +141,17 @@ function show_game_saved( save_name )
 		cs.m_endTime = time_global()/1000 + 4
 	end
 end
+---------------------------------------------------------------------------------
 
+function start_timer_no_save()
+	if amk.load_variable("no_save", false) then
+		return
+	end
+	amk.save_variable("no_save", true)
+	xr_timers.start_real_timer("no_save", 5)
+	local st = get_hud():AddCustomStatic("cs_inviz", true)
+	local wnd = st:wnd()
+	wnd:SetTextComplexMode(true)
+	wnd:SetTextST("st_no_save")
+	st.m_endTime = -1
+end
