@@ -218,6 +218,28 @@ end
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **      NEWS_AMK          **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
+local tmp_news = {}
+function show_tmp_news()
+	if #tmp_news == 0 then return end
+	news_manager.send_tip(tmp_news[1], 0, sender, 5000, nil, nil, "amk_mod.show_tmp_news()")
+	table.remove(tmp_news, 1)
+end
+function explode_news_str(text)
+	tmp_news = {}
+	local f
+	while true do
+		f = string.find(text, "%c[gray2]", 9, true)
+		if f == nil then
+			break
+		end
+		table.insert( tmp_news, string.sub(text, 1, f-1) )
+		text = string.sub(text, f)
+	end
+	if #text > 0 then
+		table.insert( tmp_news, text )
+	end
+end
+
 function show_news()
 	news_main.on_news()
 
@@ -244,7 +266,12 @@ function show_news()
 				news_text = amk_modders.get_strings()
 			end
 		end
-		news_manager.send_tip(news_text, 0, sender, 6000)
+		this.explode_news_str(news_text)
+		if #tmp_news == 1 then
+			news_manager.send_tip(news_text, 0, sender, 6000)
+		else
+			show_tmp_news()
+		end
 	end
 	xr_timers.start_game_timer("show_news",0,0,math_random(50,70))
 end
