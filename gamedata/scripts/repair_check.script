@@ -96,7 +96,7 @@ function is_item6()	return is_item( inventory_slots.OUTFIT ) end
 
 -- слишком убитый предмет?
 function too_bad_item(slt)
-	return db.actor:item_in_slot(slt):condition() < min_cond_item
+	return Actor:item_in_slot(slt):condition() < min_cond_item
 end
 function too_bad_item1() return too_bad_item( inventory_slots.PISTOL ) end
 function too_bad_item2() return too_bad_item( inventory_slots.RIFLE ) end
@@ -104,7 +104,7 @@ function too_bad_item6() return too_bad_item( inventory_slots.OUTFIT ) end
 
 -- полностью исправный предмет?
 function ok(slt)
-	return db.actor:item_in_slot(slt):condition() > cond_ok
+	return Actor:item_in_slot(slt):condition() > cond_ok
 end
 function ok1() return ok( inventory_slots.PISTOL ) end
 function ok2() return ok( inventory_slots.RIFLE ) end
@@ -121,7 +121,7 @@ function need6() return need( inventory_slots.OUTFIT ) end
 -- что нужно для ремонта?
 function talk_parts(slt)
 	slot = slt
-	item = db.actor:item_in_slot(slot)
+	item = Actor:item_in_slot(slot)
 	cond = item:condition()
 	count = 1
 	local text = ""
@@ -143,7 +143,7 @@ function talk_parts(slt)
 	end
 
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
-	db.actor:give_talk_message(text, task_texture, task_rect, "simple_answer_item")
+	Actor:give_talk_message(text, task_texture, task_rect, "simple_answer_item")
 end
 function talk_parts1() return talk_parts( inventory_slots.PISTOL ) end
 function talk_parts2() return talk_parts( inventory_slots.RIFLE ) end
@@ -178,17 +178,17 @@ end
 
 -- все ли есть для ремонта?
 function kalibr_count(actor, itm)
-	if  (not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
-		(not db.actor:item_in_slot( inventory_slots.RIFLE ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.RIFLE ):id()) and
-		itm:condition() and itm:condition() > min_cond_parts and
-		kalibr_ok(itm)
+	if itm:is_weapon()
+		and (not Actor:is_in_slot(itm))
+		and itm:condition() > min_cond_parts
+		and kalibr_ok(itm)
 	then
 		have = have+1
 	end
 end
 function have_all()
 	-- деньги
-	if db.actor:money() < pay then
+	if Actor:money() < pay then
 		return false
 	end
 	
@@ -203,7 +203,7 @@ function have_all()
 	if slot ~= 6 then
 		ammo = sys_ini:r_list(item:section(), "ammo_class")[1]
 		have = 0
-		db.actor:iterate_inventory(kalibr_count,db.actor)
+		Actor:iterate_inventory(kalibr_count,Actor)
 		
 		if have < count then
 			return false
@@ -216,13 +216,13 @@ function not_have_all() return not have_all() end
 
 -- Ремонт предмета ремонтником. Все данные к этому моменту уже проверены и заполнены
 function kalibr_remove(actor, itm)
-	if have < count and
-		(not db.actor:item_in_slot( inventory_slots.PISTOL ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.PISTOL ):id()) and 
-		(not db.actor:item_in_slot( inventory_slots.RIFLE ) or itm:id() ~= db.actor:item_in_slot( inventory_slots.RIFLE ):id()) and
-		itm:condition() and itm:condition() > min_cond_parts and
-		kalibr_ok(itm)
+	if have < count
+		and itm:is_weapon()
+		and (not Actor:is_in_slot(itm))
+		and itm:condition() > min_cond_parts
+		and kalibr_ok(itm)
 	then
-		news_manager.relocate_item(db.actor, "out", itm:section())
+		news_manager.relocate_item(actor, "out", itm:section())
         amk.remove_item_from_inventory(itm, actor)
 		have = have+1
 	end
@@ -237,7 +237,7 @@ function npc_repair(first_speaker, second_speaker)
 	-- отбираем стволы и ремонтируем
 	if slot ~= 6 then
 		have = 0
-		db.actor:iterate_inventory(kalibr_remove,db.actor)
+		Actor:iterate_inventory(kalibr_remove,Actor)
 		item:set_condition(1)
 		inventory.force_update(item:section())
 	else
@@ -248,7 +248,8 @@ end
 -- проверка калибра
 function kalibr_ok(itm)
 	local ammos = sys_ini:r_list(itm:section(), "ammo_class")
-	
+	if not ammos then return end
+
 	for i=1,#ammos do
 		if ammos[i] == ammo then
 			return true
@@ -394,8 +395,8 @@ function trader_upgrade_precond(actor, trader)
 		return false 
 	end
 
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
 	if (item_in_slot_1 ~= nil) then 
 		return true
 	elseif (item_in_slot_2 ~= nil) then 
@@ -475,7 +476,7 @@ function is_upgrade_ves(wpn)
 end
 
 function is_upgrade_1st_stvol_kalibr(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_flag =  is_upgrade_kalibr(item_in_slot_1:section())
@@ -489,7 +490,7 @@ function is_upgrade_1st_stvol_kalibr(actor, trader)
 end
 
 function is_upgrade_1st_stvol_otdaca(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_flag =  is_upgrade_otdaca(item_in_slot_1:section())
@@ -503,7 +504,7 @@ function is_upgrade_1st_stvol_otdaca(actor, trader)
 end
 
 function is_upgrade_1st_stvol_ves(actor, trader)
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
 	local wep_flag = nil
 	if item_in_slot_1 ~= nil then
 		wep_1 =  is_upgrade_ves(item_in_slot_1:section())
@@ -528,7 +529,7 @@ end
 
 
 function is_upgrade_2st_stvol_kalibr(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_kalibr(item_in_slot_2:section())
@@ -542,7 +543,7 @@ function is_upgrade_2st_stvol_kalibr(actor, trader)
 end
 
 function is_upgrade_2st_stvol_otdaca(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_otdaca(item_in_slot_2:section())
@@ -555,7 +556,7 @@ function is_upgrade_2st_stvol_otdaca(actor, trader)
 	return false
 end
 function is_upgrade_2st_stvol_ves(actor, trader)
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
 	local wep_flag = nil
 	if item_in_slot_2 ~= nil then
 		wep_1 =  is_upgrade_ves(item_in_slot_2:section())
@@ -586,108 +587,106 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 	local str_text_1 = nil
 	local str_text_2 = nil
 
-	if db.actor ~= nil then 
-		local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
-		local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
-		local money = db.actor:money()
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
+	local money = Actor:money()
 
-		if item_in_slot_1 ~= nil then
-			local wep_1 =  is_upgrade_kalibr(item_in_slot_1:section())
-			local wep_2 =  is_upgrade_otdaca(item_in_slot_1:section())
-			local wep_3 =  is_upgrade_ves(item_in_slot_1:section())
-			local item_upgr_cost1 = math.floor( item_in_slot_1:cost() )
-			local name1 = get_inv_name(item_in_slot_1:section())
-			
-			if wep_1 == nil and wep_2 == nil and wep_3 == nil then
-				db.actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
-			elseif (0.96 >= item_in_slot_1:condition() + 0.01) then
-				db.actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
-			else
-				str_text_1 = "Так, первый ствол у нас это "..game.translate_string(name1)..". Для него могу предложить следующие варианты:"
-				if wep_1 ~= nil then
-					if (nomer_massiva == 1) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-					elseif (nomer_massiva == 1) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 2) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-					elseif (nomer_massiva == 2) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 3) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-					elseif (nomer_massiva == 3) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 4) and (money >= item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-					elseif (nomer_massiva == 4) and (money < item_upgr_cost1) then
-						str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
-					end
-				end
-				if (wep_2 ~= nil) and (money >= item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-				elseif (wep_2 ~= nil) and (money < item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
-				end
-				if (wep_3 ~= nil) and (money >= item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
-				elseif (wep_3 ~= nil) and (money < item_upgr_cost1) then
-					str_text_1 = str_text_1.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+	if item_in_slot_1 ~= nil then
+		local wep_1 =  is_upgrade_kalibr(item_in_slot_1:section())
+		local wep_2 =  is_upgrade_otdaca(item_in_slot_1:section())
+		local wep_3 =  is_upgrade_ves(item_in_slot_1:section())
+		local item_upgr_cost1 = math.floor( item_in_slot_1:cost() )
+		local name1 = get_inv_name(item_in_slot_1:section())
+		
+		if wep_1 == nil and wep_2 == nil and wep_3 == nil then
+			Actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
+		elseif (0.96 >= item_in_slot_1:condition() + 0.01) then
+			Actor:give_talk_message("Так, первый ствол у нас это "..game.translate_string(name1)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
+		else
+			str_text_1 = "Так, первый ствол у нас это "..game.translate_string(name1)..". Для него могу предложить следующие варианты:"
+			if wep_1 ~= nil then
+				if (nomer_massiva == 1) and (money >= item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+				elseif (nomer_massiva == 1) and (money < item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 2) and (money >= item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+				elseif (nomer_massiva == 2) and (money < item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 3) and (money >= item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+				elseif (nomer_massiva == 3) and (money < item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 4) and (money >= item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+				elseif (nomer_massiva == 4) and (money < item_upgr_cost1) then
+					str_text_1 = str_text_1.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
-
-			if str_text_1 ~= nil then
-				db.actor:give_talk_message(str_text_1 , task_texture, task_rect, "simple_answer_item")
+			if (wep_2 ~= nil) and (money >= item_upgr_cost1) then
+				str_text_1 = str_text_1.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+			elseif (wep_2 ~= nil) and (money < item_upgr_cost1) then
+				str_text_1 = str_text_1.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
+			end
+			if (wep_3 ~= nil) and (money >= item_upgr_cost1) then
+				str_text_1 = str_text_1.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost1.." рублей%c[default]."
+			elseif (wep_3 ~= nil) and (money < item_upgr_cost1) then
+				str_text_1 = str_text_1.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost1.." рублей%c[default], но у тебя столько денег нету."
 			end
 		end
-		if item_in_slot_2 ~= nil then
-			local wep_1 =  is_upgrade_kalibr(item_in_slot_2:section())
-			local wep_2 =  is_upgrade_otdaca(item_in_slot_2:section())
-			local wep_3 =  is_upgrade_ves(item_in_slot_2:section())
-			local item_upgr_cost2 = math.floor( item_in_slot_2:cost() )
-			local name2 = get_inv_name(item_in_slot_2:section())
-			
-			if wep_1 == nil and wep_2 == nil and wep_3 == nil then
+
+		if str_text_1 ~= nil then
+			Actor:give_talk_message(str_text_1 , task_texture, task_rect, "simple_answer_item")
+		end
+	end
+	if item_in_slot_2 ~= nil then
+		local wep_1 =  is_upgrade_kalibr(item_in_slot_2:section())
+		local wep_2 =  is_upgrade_otdaca(item_in_slot_2:section())
+		local wep_3 =  is_upgrade_ves(item_in_slot_2:section())
+		local item_upgr_cost2 = math.floor( item_in_slot_2:cost() )
+		local name2 = get_inv_name(item_in_slot_2:section())
+		
+		if wep_1 == nil and wep_2 == nil and wep_3 == nil then
 --				get_console():execute("1") -- закомментено в ОП-2
 
-				db.actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
-			elseif (0.96 >= item_in_slot_2:condition() + 0.01) then
-				db.actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
-			else
-				str_text_2 = "Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него могу предложить следующие варианты:"
-				if wep_1 ~= nil then
-					if (nomer_massiva == 1) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-					elseif (nomer_massiva == 1) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 2) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-					elseif (nomer_massiva == 2) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 3) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-					elseif (nomer_massiva == 3) and (money < item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
-					elseif (nomer_massiva == 4) and (money >= item_upgr_cost2) then
-						str_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-					elseif (nomer_massiva == 4) and (money < item_upgr_cost2) then
-						dstr_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
-					end
-				end
-				if (wep_2 ~= nil) and (money >= item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-				elseif (wep_2 ~= nil) and (money < item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
-				end
-				if (wep_3 ~= nil) and (money >= item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
-				elseif (wep_3 ~= nil) and (money < item_upgr_cost2) then
-					str_text_2 = str_text_2.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+			Actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него ничего не могу предложить."   , task_texture, task_rect, "simple_answer_item")
+		elseif (0.96 >= item_in_slot_2:condition() + 0.01) then
+			Actor:give_talk_message("Ага, второй ствол у нас это "..game.translate_string(name2)..". Он у тебя довольно изношен - за апгрейд я не возьмусь. Почини его сначала, а потом я смогу его модернизировать." , task_texture, task_rect, "simple_answer_item")
+		else
+			str_text_2 = "Ага, второй ствол у нас это "..game.translate_string(name2)..". Для него могу предложить следующие варианты:"
+			if wep_1 ~= nil then
+				if (nomer_massiva == 1) and (money >= item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+				elseif (nomer_massiva == 1) and (money < item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 5.45х39 на 5.56x45. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 2) and (money >= item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+				elseif (nomer_massiva == 2) and (money < item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 9х18 на 9х19. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 3) and (money >= item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+				elseif (nomer_massiva == 3) and (money < item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 9х19 на 9х18. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+				elseif (nomer_massiva == 4) and (money >= item_upgr_cost2) then
+					str_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это будет стоить \\n%c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+				elseif (nomer_massiva == 4) and (money < item_upgr_cost2) then
+					dstr_text_2 = str_text_2.."\\n   - изменение калибра с 5.56x45 на 5.45х39. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
+			if (wep_2 ~= nil) and (money >= item_upgr_cost2) then
+				str_text_2 = str_text_2.."\\n   - увеличение кучности. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+			elseif (wep_2 ~= nil) and (money < item_upgr_cost2) then
+				str_text_2 = str_text_2.."\\n   - увеличение кучности. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+			end
+			if (wep_3 ~= nil) and (money >= item_upgr_cost2) then
+				str_text_2 = str_text_2.."\\n   - cнижение веса. Это будет стоить %c[255,238,155,23]"..item_upgr_cost2.." рублей%c[default]."
+			elseif (wep_3 ~= nil) and (money < item_upgr_cost2) then
+				str_text_2 = str_text_2.."\\n   - cнижение веса. Это обошлось бы тебе в \\n%c[255,255,32,23]"..item_upgr_cost2.." рублей%c[default], но у тебя столько денег нету."
+			end
+		end
 
-			if str_text_2 ~= nil then
-				db.actor:give_talk_message(str_text_2 , task_texture, task_rect, "simple_answer_item")
-			end
+		if str_text_2 ~= nil then
+			Actor:give_talk_message(str_text_2 , task_texture, task_rect, "simple_answer_item")
 		end
 	end
 end
@@ -697,11 +696,11 @@ end
 -- а есть ли бабло на апгрейд
 
 function trader_check_money_upgr_s1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 
 	if (item_in_slot ~= nil) then 
 		local item_upgr_cost1 = math.floor(item_in_slot:cost())
-		if (item_upgr_cost1 > 0) and (db.actor:money() >= item_upgr_cost1) and (0.96 < item_in_slot:condition() + 0.01) then
+		if (item_upgr_cost1 > 0) and (Actor:money() >= item_upgr_cost1) and (0.96 < item_in_slot:condition() + 0.01) then
 			return true
 		else 
 			return false
@@ -710,11 +709,11 @@ function trader_check_money_upgr_s1(actor, trader)
 end
 
 function trader_check_money_upgr_s2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 
 	if (item_in_slot ~= nil) then 
 		local item_upgr_cost2 = math.floor(item_in_slot:cost())
-		if (item_upgr_cost2 > 0) and (db.actor:money() >= item_upgr_cost2) and (0.96 < item_in_slot:condition() + 0.01) then
+		if (item_upgr_cost2 > 0) and (Actor:money() >= item_upgr_cost2) and (0.96 < item_in_slot:condition() + 0.01) then
 			return true
 		else 
 			return false
@@ -726,7 +725,7 @@ end
 -- забираем бабло, стартуем таймер апгрейда
 
 function trader_upgrade_weapon_s1_kalibr(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -745,7 +744,7 @@ function trader_upgrade_weapon_s1_kalibr(actor, trader)
 end
 
 function trader_upgrade_weapon_s1_otdaca(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -764,7 +763,7 @@ function trader_upgrade_weapon_s1_otdaca(actor, trader)
 end
 
 function trader_upgrade_weapon_s1_ves(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -785,7 +784,7 @@ end
 
 
 function trader_upgrade_weapon_s2_kalibr(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -804,7 +803,7 @@ function trader_upgrade_weapon_s2_kalibr(actor, trader)
 end
 
 function trader_upgrade_weapon_s2_otdaca(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -823,7 +822,7 @@ function trader_upgrade_weapon_s2_otdaca(actor, trader)
 end
 
 function trader_upgrade_weapon_s2_ves(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local var = repairmasterlist[trader:name()][1]
 		local wpn = item_in_slot:section()
@@ -846,13 +845,13 @@ end
 
 function remove_repairitem_to_upgrade(slt)
 	if slt ~= nil then
-		local iis = db.actor:item_in_slot(slt)
+		local iis = Actor:item_in_slot(slt)
 		local wpn = iis:section()
 		recheck = iis:id()
 		local sobj = AI:object(recheck)
 		release_addons(sobj,wpn,iis) 
 		AI:release(sobj, true)
-		news_manager.relocate_item(db.actor, "out", wpn)
+		news_manager.relocate_item(Actor, "out", wpn)
 		recheck=nil
 	end
 end
@@ -875,9 +874,9 @@ function trader_repair_precond(actor, trader)
 --	get_console():execute(rem_name)
 	get_vars(var)
 	if stcode>=1 and wpnsec~=nil then return false end
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
-	local item_in_slot_6 = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_6 = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot_1 ~= nil and 0.96 > item_in_slot_1:condition() + 0.01 then return true
 	elseif item_in_slot_2 ~= nil and 0.96 > item_in_slot_2:condition() + 0.01 then return true
 	elseif item_in_slot_6 ~= nil and 0.96 > item_in_slot_6:condition() + 0.01 then return true
@@ -889,7 +888,7 @@ end
 
 function trader_check_money_s1(actor, trader)
 	rem_ubit_stvol_1  = 0
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.PISTOL)
 
 	local is_upgr = 0
 	if (item_in_slot ~= nil) then 
@@ -901,7 +900,7 @@ function trader_check_money_s1(actor, trader)
 	if (rem_name ~= "hnd_weap_04") and (item_in_slot ~= nil) and (0.11 < item_in_slot:condition() + 0.01) and (is_upgr ~= 1) then 
 		weapon_profit_margin = repairmasterlist[trader:name()][2]
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
 			tmpcode = 0
 			return check_secondary(item_in_slot:section())
 		end 
@@ -911,7 +910,7 @@ function trader_check_money_s1(actor, trader)
 		if (is_upgr == 1) then
 			item_repair_cost = item_repair_cost * 2
 		end
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
 			tmpcode = 0
 
 			if ((item_in_slot:condition()+0.01)<=0.11) then
@@ -927,7 +926,7 @@ end
 function trader_check_money_s2(actor, trader)
 	rem_ubit_stvol_2  = 0
 	
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.RIFLE)
 
 	local is_upgr = 0
 	if (item_in_slot ~= nil) then 
@@ -939,7 +938,7 @@ function trader_check_money_s2(actor, trader)
 	if (rem_name ~= "hnd_weap_04") and  (item_in_slot ~= nil) and (0.11 < item_in_slot:condition() + 0.01) and (is_upgr ~= 1) then 
 		weapon_profit_margin = repairmasterlist[trader:name()][2]
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
 			tmpcode = 0
 			return check_secondary(item_in_slot:section())
 		end 
@@ -949,7 +948,7 @@ function trader_check_money_s2(actor, trader)
 		if (is_upgr == 1) then
 			item_repair_cost = item_repair_cost * 2
 		end
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
 			tmpcode = 0
 
 			if ((item_in_slot:condition()+0.01)<=0.11) then
@@ -963,11 +962,11 @@ function trader_check_money_s2(actor, trader)
 end
 
 function trader_check_money_s6(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then 
 		armor_profit_margin = repairmasterlist[trader:name()][3]
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 0.95 > item_in_slot:condition() then
 			return true
 		end 
 	end
@@ -977,7 +976,7 @@ end
 -- забираем бабло, стартуем таймер ремонта. время ремонтов правим под себя
 
 function trader_repiar_weapon_s1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local wpn = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1023,7 +1022,7 @@ function trader_repiar_weapon_s1(actor, trader)
 end
 
 function trader_repiar_weapon_s2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local wpn = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1069,7 +1068,7 @@ function trader_repiar_weapon_s2(actor, trader)
 end
 
 function trader_repiar_armor_s6(actor, trader)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then
 		local arm = item_in_slot:section()
 		local var = repairmasterlist[trader:name()][1]
@@ -1099,11 +1098,11 @@ end
 
 function remove_repair_bronik_item(slt)
 	if slt ~= nil then
-		local iis = db.actor:item_in_slot(slt)
+		local iis = Actor:item_in_slot(slt)
 		local wpn = iis:section()
 		recheck = iis:id()
 		AI:release(AI:object(iis:id()), true)
-		news_manager.relocate_item(db.actor, "out", wpn)
+		news_manager.relocate_item(Actor, "out", wpn)
 		recheck=nil
 	end
 end
@@ -1346,7 +1345,7 @@ wpn_temp = wpn3
  end
  end
 		if check_sec ~= 0 then
-			db.actor:iterate_inventory(
+			Actor:iterate_inventory(
 			function(dummy, item) 
 				j = table.getn(wpn_temp) 
 				for i=1,j do 
@@ -1392,7 +1391,7 @@ end
 
 function remove_repairitem(slt)
 	if slt ~= nil then
-		local iis = db.actor:item_in_slot(slt)
+		local iis = Actor:item_in_slot(slt)
 		local wpn = iis:section()
 		recheck = iis:id()
 		check_sec=0
@@ -1400,9 +1399,9 @@ function remove_repairitem(slt)
 		local sobj = AI:object(recheck)
 		release_addons(sobj,wpn,iis) 
 		AI:release(sobj, true)
-		news_manager.relocate_item(db.actor, "out", wpn)
+		news_manager.relocate_item(Actor, "out", wpn)
 		tmpcode = 0
-		db.actor:iterate_inventory(function(dummy, item) remove_secondary(item,check_sec) end, nil)
+		Actor:iterate_inventory(function(dummy, item) remove_secondary(item,check_sec) end, nil)
 		recheck=nil
 		check_sec = 0
 	end
@@ -1424,7 +1423,7 @@ function remove_secondary(item,checker)
 		if (finder~=nil) and (cond > 0.11) and (tmpcode == 0) then --and (cond < 0.96) then
 			if item:id()~=recheck then
 				tmpcode=1
-				news_manager.relocate_item(db.actor, "out", item:section())
+				news_manager.relocate_item(Actor, "out", item:section())
 				local sobj = AI:object(item:id())
 				release_addons(sobj,sec,item)
 				AI:release(sobj, true)
@@ -1467,29 +1466,29 @@ end
 
 function release_addons(sobj,wpn,obj)
 	if sobj ~= nil then
-		local t = netpk:get(sobj, netpk.fState)
+		local afl = obj:get_addon_flags()
 		
 		local addon = sys_ini:r_u32_ex(wpn,"scope_status",0)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"scope_name",nil)
-			if addon ~= nil and bit_and(t.addon_flags, addon_flags.scope) ~= 0 then
-				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+			if addon ~= nil and bit_and(afl, addon_flags.scope) ~= 0 then
+				AI:create(addon, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(),Actor:id())
 			end
 		end
 		
 		addon = sys_ini:r_u32_ex(wpn,"silencer_status",0)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"silencer_name",nil)
-			if addon ~= nil and bit_and(t.addon_flags, addon_flags.silencer) ~= 0 then
-				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+			if addon ~= nil and bit_and(afl, addon_flags.silencer) ~= 0 then
+				AI:create(addon, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(),Actor:id())
 			end
 		end
 		
 		addon = sys_ini:r_u32_ex(wpn,"grenade_launcher_status",0)
 		if addon == 2 then
 			addon = sys_ini:r_string_ex(wpn,"grenade_launcher_name",nil)
-			if addon ~= nil and bit_and(t.addon_flags, addon_flags.grenade_launcher) ~= 0 then
-				AI:create(addon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),db.actor:id())
+			if addon ~= nil and bit_and(afl, addon_flags.grenade_launcher) ~= 0 then
+				AI:create(addon, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(),Actor:id())
 			end
 		end
 		
@@ -1502,7 +1501,7 @@ function release_addons(sobj,wpn,obj)
 		
 		if #sections_ammo > 0 then
 			local ammo_sect = sections_ammo[t.ammo_type+1]
-			amk.spawn_ammo_in_inv(ammo_sect, ammo, db.actor)
+			amk.spawn_ammo_in_inv(ammo_sect, ammo, Actor)
 		end
 	end
 end
@@ -1519,10 +1518,10 @@ function give_weapon_to_player(trader, actor)
 	get_vars(var)
 	if wpnsec ~= nil then
 		amk.del_variable(var)
-		local wpn_c = AI:create(wpnsec, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		local wpn_c = AI:create(wpnsec, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
 	--	xr_timers.start_real_timer("unload_rep_weapon",1,wpn_c.id)
 		level.client_spawn_manager():add(wpn_c.id, 0, repair_check.weapon_unload)
-		news_manager.relocate_item(db.actor, "in", wpnsec)
+		news_manager.relocate_item(Actor, "in", wpnsec)
 	end
 end
 
@@ -1617,116 +1616,116 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 	
 	local item_name_and_price1
 	local item_name_and_price2
-	if db.actor ~= nil then 
-		local item_in_slot_1 = db.actor:item_in_slot(inventory_slots.PISTOL)
-		local item_in_slot_2 = db.actor:item_in_slot(inventory_slots.RIFLE)
-		local item_in_slot_6 = db.actor:item_in_slot(inventory_slots.OUTFIT)
-		local iznos
-		local is_upgr = 0
-		local money = db.actor:money()
 
-		if item_in_slot_1 ~= nil then 
-			if ((item_in_slot_1:condition()+0.01)<=0.11) then
-				rem_ubit_stvol_1  = 1
+	local item_in_slot_1 = Actor:item_in_slot(inventory_slots.PISTOL)
+	local item_in_slot_2 = Actor:item_in_slot(inventory_slots.RIFLE)
+	local item_in_slot_6 = Actor:item_in_slot(inventory_slots.OUTFIT)
+	local iznos
+	local is_upgr = 0
+	local money = Actor:money()
+
+	if item_in_slot_1 ~= nil then 
+		if ((item_in_slot_1:condition()+0.01)<=0.11) then
+			rem_ubit_stvol_1  = 1
+		end
+		is_perv = 1
+		local item_repair_cost1 = math.floor( (1-item_in_slot_1:condition()) * item_in_slot_1:cost() * weapon_profit_margin )
+		iznos = math.floor(100*(1-item_in_slot_1:condition()) )
+		tmpcode = 0
+		local checksec1 = check_secondary(item_in_slot_1:section())
+		local name1 = get_inv_name(item_in_slot_1:section())
+
+		is_upgr = 0
+
+		if (string.find(item_in_slot_1:section(),"kalibr")~=nil) or (string.find(item_in_slot_1:section(),"otdaca")~=nil) or (string.find(item_in_slot_1:section(),"ves")~=nil) then
+			is_upgr = 1
+			item_repair_cost1 = item_repair_cost1 * 2
+		end 
+
+		if (item_repair_cost1 > 0)  and (0.96 > item_in_slot_1:condition() + 0.01) then
+			if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
+				is_upgr = 0
+				item_name_and_price1 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
+			elseif (money >= item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "За ремонт "..game.translate_string(name1).." плати мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд и\n давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money < item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money >= item_repair_cost1) and (checksec1==false) and (0.11 < item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя нету похожего ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money < item_repair_cost1) and (checksec1==false) and (0.1 < item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+
+			elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "Отремонтировать "..game.translate_string(name1).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_1:cost()*0.05).."рублей) и\n избавлю тебя от неё."
+			
+			elseif (rem_name == "hnd_weap_04") and (0.1 >= item_in_slot_1:condition() + 0.01)  and (checksec1==true) and (money >= item_repair_cost1) then
+				item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти."
+			elseif (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01)  and (checksec1==false) and (money >= item_repair_cost1) then
+				item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. Я бы взял за ремонт %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
+			elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==true) and (0.11 >= item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету."
+			elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==false) and (0.11 >= item_in_slot_1:condition() + 0.01) then
+				item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
 			end
-			is_perv = 1
-			local item_repair_cost1 = math.floor( (1-item_in_slot_1:condition()) * item_in_slot_1:cost() * weapon_profit_margin )
-			iznos = math.floor(100*(1-item_in_slot_1:condition()) )
-			tmpcode = 0
-			local checksec1 = check_secondary(item_in_slot_1:section())
-			local name1 = get_inv_name(item_in_slot_1:section())
-
-			is_upgr = 0
-
-			if (string.find(item_in_slot_1:section(),"kalibr")~=nil) or (string.find(item_in_slot_1:section(),"otdaca")~=nil) or (string.find(item_in_slot_1:section(),"ves")~=nil) then
-				is_upgr = 1
-				item_repair_cost1 = item_repair_cost1 * 2
-			end 
-
-			if (item_repair_cost1 > 0)  and (0.96 > item_in_slot_1:condition() + 0.01) then
-				if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
-					is_upgr = 0
-					item_name_and_price1 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
-				elseif (money >= item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." плати мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд и\n давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money < item_repair_cost1) and (checksec1==true) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money >= item_repair_cost1) and (checksec1==false) and (0.11 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя нету похожего ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money < item_repair_cost1) and (checksec1==false) and (0.1 < item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "За ремонт "..game.translate_string(name1).." я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но у\n тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-
-				elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Отремонтировать "..game.translate_string(name1).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_1:cost()*0.05).."рублей) и\n избавлю тебя от неё."
-				
-				elseif (rem_name == "hnd_weap_04") and (0.1 >= item_in_slot_1:condition() + 0.01)  and (checksec1==true) and (money >= item_repair_cost1) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost1.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти."
-				elseif (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_1:condition() + 0.01)  and (checksec1==false) and (money >= item_repair_cost1) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. Я бы взял за ремонт %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
-				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==true) and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету."
-				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost1) and (checksec1==false) and (0.11 >= item_in_slot_1:condition() + 0.01) then
-					item_name_and_price1 = "Да, убил ты "..game.translate_string(name1).." просто в хлам.\n Но сделать кое-что можно. За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost1.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
-				end
-				if item_name_and_price1 ~= nil then
-					db.actor:give_talk_message(item_name_and_price1, task_texture, task_rect, "simple_answer_item")
-				end
+			if item_name_and_price1 ~= nil then
+				Actor:give_talk_message(item_name_and_price1, task_texture, task_rect, "simple_answer_item")
 			end
 		end
-		if item_in_slot_2 ~= nil then
-			if ((item_in_slot_2:condition()+0.01)<=0.11) then
-				rem_ubit_stvol_2  = 1
+	end
+	if item_in_slot_2 ~= nil then
+		if ((item_in_slot_2:condition()+0.01)<=0.11) then
+			rem_ubit_stvol_2  = 1
+		end
+		is_vtor = 1
+		local item_repair_cost2 = math.floor( (1-item_in_slot_2:condition()) * item_in_slot_2:cost() * weapon_profit_margin )
+		iznos = math.floor(100*(1-item_in_slot_2:condition()) )
+		tmpcode = 0
+		local checksec2 = check_secondary(item_in_slot_2:section())
+		local name2 = get_inv_name(item_in_slot_2:section())
+
+		is_upgr = 0
+		if (string.find(item_in_slot_2:section(),"kalibr")~=nil) or (string.find(item_in_slot_2:section(),"otdaca")~=nil) or (string.find(item_in_slot_2:section(),"ves")~=nil) then
+			is_upgr = 1
+			item_repair_cost2 = item_repair_cost2 * 2
+		end 
+
+
+		if (item_repair_cost2 > 0)  and (0.96 > item_in_slot_2:condition() + 0.01) then
+			if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
+				is_upgr = 0
+				item_name_and_price2 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
+			elseif (money >= item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "За ремонт "..game.translate_string(name2).." плати мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money < item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money >= item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету сравнимого ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+			elseif (money < item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
+
+			elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "Отремонтировать "..game.translate_string(name2).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_2:cost()*0.05).." рублей) и избавлю тебя от неё."
+
+			elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==true) and (money >= item_repair_cost2) then
+				item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд и\n похожий ствол на запчасти."
+			elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==false) and (money >= item_repair_cost2) then
+				item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n Я бы взял за ремонт  %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
+			elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==true) and (0.11 >= item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и сравнимый ствол на запчасти,\n но у тебя столько денег нету."
+			elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==false) and (0.11 >= item_in_slot_2:condition() + 0.01) then
+				item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт  я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
 			end
-			is_vtor = 1
-			local item_repair_cost2 = math.floor( (1-item_in_slot_2:condition()) * item_in_slot_2:cost() * weapon_profit_margin )
-			iznos = math.floor(100*(1-item_in_slot_2:condition()) )
-			tmpcode = 0
-			local checksec2 = check_secondary(item_in_slot_2:section())
-			local name2 = get_inv_name(item_in_slot_2:section())
-
-			is_upgr = 0
-			if (string.find(item_in_slot_2:section(),"kalibr")~=nil) or (string.find(item_in_slot_2:section(),"otdaca")~=nil) or (string.find(item_in_slot_2:section(),"ves")~=nil) then
-				is_upgr = 1
-				item_repair_cost2 = item_repair_cost2 * 2
-			end 
-
-
-			if (item_repair_cost2 > 0)  and (0.96 > item_in_slot_2:condition() + 0.01) then
-				if (rem_name ~= "hnd_weap_04") and (is_upgr == 1) then
-					is_upgr = 0
-					item_name_and_price2 = "Что это у тебя за ствол странный такой? Это тебе этот ботан Долговязый сделал?\n Я за ремонт такого оружия даже браться боюсь. Хочешь отремонтировать - чеши к этому спецу в Бар и ремонтируй.\n Хм, он бы еще педали к оружию приделал."
-				elseif (money >= item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." плати мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд\n и давай похожий ствол на запчасти. Да смотри не отдай для этих целей более крутую пушку - а то пожалеешь потом.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money < item_repair_cost2) and (checksec2==true) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и\n сравнимый ствол на запчасти, но у тебя столько денег нету.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money >= item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету сравнимого ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-				elseif (money < item_repair_cost2) and (checksec2==false) and (0.11 < item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "За ремонт "..game.translate_string(name2).." я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти.\n Кстати, ствол убит где-то процентов на "..iznos.."."
-
-				elseif (rem_name ~= "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Отремонтировать "..game.translate_string(name2).." я уже не смогу. Слишком ты этот ствол ушатал.\n Если хочешь, я тебе дам за эту железку скажем... 5 процентов от стоимости ("..math.floor(item_in_slot_2:cost()*0.05).." рублей) и избавлю тебя от неё."
-
-				elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==true) and (money >= item_repair_cost2) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам.\n Ладно, посмотрим что можно сделать.\n Давай мне %c[255,238,155,23]"..item_repair_cost2.." рублей%c[default] вперёд и\n похожий ствол на запчасти."
-				elseif  (rem_name == "hnd_weap_04") and (0.11 >= item_in_slot_2:condition() + 0.01) and (checksec2==false) and (money >= item_repair_cost2) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n Я бы взял за ремонт  %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя нету похожего ствола на запчасти."
-				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==true) and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default] и сравнимый ствол на запчасти,\n но у тебя столько денег нету."
-				elseif (rem_name == "hnd_weap_04") and (money < item_repair_cost2) and (checksec2==false) and (0.11 >= item_in_slot_2:condition() + 0.01) then
-					item_name_and_price2 = "Да, убил ты "..game.translate_string(name2).." просто в хлам,\n но сделать кое-что можно.\n За ремонт  я бы взял %c[255,255,32,23]"..item_repair_cost2.." рублей%c[default], но\n у тебя ни денег столько нету, ни ствола на запчасти."
-				end
-				if item_name_and_price2 ~= nil then
-					db.actor:give_talk_message(item_name_and_price2, task_texture, task_rect, "simple_answer_item")
-				end
+			if item_name_and_price2 ~= nil then
+				Actor:give_talk_message(item_name_and_price2, task_texture, task_rect, "simple_answer_item")
 			end
 		end
+	end
 
 
-		armor_profit_margin = repairmasterlist[trader:name()][3]
+	armor_profit_margin = repairmasterlist[trader:name()][3]
 
-	--	local var = repairmasterlist[trader:name()][1]
-		if rem_name ~= "hnd_weap_01" then
+--	local var = repairmasterlist[trader:name()][1]
+	if rem_name ~= "hnd_weap_01" then
 
 		if item_in_slot_6 ~= nil then
 			local item_repair_cost = math.floor( (1-item_in_slot_6:condition()) * item_in_slot_6:cost() * armor_profit_margin )
@@ -1735,22 +1734,21 @@ function repair_costs(trader, actor, first_speaker, second_speaker)
 			if (item_repair_cost > 0) and (money >= item_repair_cost) and (item_in_slot_6:condition()) < 0.95 then
 						-- list_trader_repair_2 это Стоимость починки брони:
 				local item_name_and_price = "Износ брони: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]. Согласен?"
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
 
 			elseif (item_repair_cost > 0) and (money < item_repair_cost) then
 						-- list_trader_repair_2 это Стоимость починки брони:
 				local item_name_and_price = "Износ брони: "..iznos.."%. "..game.translate_string("list_trader_repair_2").." %c[255,255,32,23]"..item_repair_cost.." рублей%c[default]. Зайди попозже - сейчас у тебя денег столько нету."
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "simple_answer_item")
 			end
 		end
-	  end
 	end
 end
 
 -- проверяем, не забиты ли стволы в хлам
 
 function check_damaged1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.PISTOL)
 	if item_in_slot ~= nil then
 		if (rem_name ~= "hnd_weap_04") and (0.11 > item_in_slot:condition() + 0.01) then return true end
 	end
@@ -1758,7 +1756,7 @@ function check_damaged1(actor, trader)
 end
 
 function check_damaged2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.RIFLE)
 	if item_in_slot ~= nil then
 		if (rem_name ~= "hnd_weap_04") and (0.11 > item_in_slot:condition() + 0.01) then return true end
 	end
@@ -1768,10 +1766,10 @@ end
 -- чинить хлам безполезно, дам тебе за него пирожок и иди с ТНБ
 
 function pay_damaged1(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.PISTOL)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.PISTOL)
 	if item_in_slot ~= nil then
-		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
-		news_manager.relocate_item(db.actor, "out", item_in_slot:section())
+		dialogs.relocate_money(Actor, math.floor(item_in_slot:cost()*0.05), "in")
+		news_manager.relocate_item(Actor, "out", item_in_slot:section())
 		local obj = AI:object(item_in_slot:id())
 		if obj then AI:release(obj, true) end
 	end
@@ -1779,10 +1777,10 @@ function pay_damaged1(actor, trader)
 end
 
 function pay_damaged2(actor, trader)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.RIFLE)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.RIFLE)
 	if item_in_slot ~= nil then
-		dialogs.relocate_money(db.actor, math.floor(item_in_slot:cost()*0.05), "in")
-		news_manager.relocate_item(db.actor, "out", item_in_slot:section())
+		dialogs.relocate_money(Actor, math.floor(item_in_slot:cost()*0.05), "in")
+		news_manager.relocate_item(Actor, "out", item_in_slot:section())
 		local obj = AI:object(item_in_slot:id())
 		if obj then AI:release(obj, true) end
 	end
