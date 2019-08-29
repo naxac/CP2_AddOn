@@ -196,7 +196,7 @@ function configure_schemes(npc, ini, ini_filename, stype, section_logic, gulag_n
       actual_ini = ini -- персонаж не обязательно должен иметь секцию logic
     else
       -- Иначе это персонаж Gulag-а и ему не задали работу:
-      abort("ERROR: object '%s': unable to find section '%s'", npc:name(), section_logic)
+      abort("[xr_logic.configure_schemes] ERROR: object '%s': unable to find section '%s'", npc:name(), section_logic)
     end
   else
     local filename = utils.cfg_get_string(ini, section_logic, "cfg", npc, false, "")
@@ -257,11 +257,11 @@ function determine_section_to_activate(npc, ini, section_logic, actor)
   local active_section_cond = cfg_get_condlist(ini, section_logic, "active", npc)
   local active_section
   if not active_section_cond then
-    abort("object '%s': section '%s': unable to find field 'active'", npc:name(), section_logic)
+    abort("[xr_logic.determine_section_to_activate] object '%s': section '%s': unable to find field 'active'", npc:name(), section_logic)
   else
     active_section = pick_section_from_condlist(actor, npc, active_section_cond.condlist)
     if not active_section then
-      abort("object '%s': section '%s': section 'active' has no conditionless else clause",
+      abort("[xr_logic.determine_section_to_activate] object '%s': section '%s': section 'active' has no conditionless else clause",
         npc:name(), section_logic)
     end
   end
@@ -399,12 +399,12 @@ function activate_by_section(npc, ini, section, loading)
 	printf("DEBUG: object '%s': activate_by_section: looking for section '%s'", npc:name(), section)
 
 	if loading == nil then
-		abort("xr_logic: activate_by_section: loading field is nil, true or false expected")
+		abort("[xr_logic.activate_by_section] : loading field is nil, true or false expected")
 	end
 
 	local st = db.storage[npc:id()]
 	if st.active_section then
-		abort("xr_logic: activate_by_section: while processing section '%s': character '%s': trying to " ..
+		abort("[xr_logic.activate_by_section] : while processing section '%s': character '%s': trying to " ..
 			"activate more than one schemes at once (section '%s' is active)",
 			section, npc:name(), st.active_section)
 	end
@@ -430,7 +430,7 @@ function activate_by_section(npc, ini, section, loading)
 	--	local scheme = utils.get_scheme_by_section(section)
 		local scheme = string.match( section, "^[_%a]+" )
 		if scheme == nil then
-			abort("object '%s': unable to determine scheme name from section name '%s'",
+			abort("[xr_logic.activate_by_section] object '%s': unable to determine scheme name from section name '%s'",
 				npc:name(), section)
 		end
 
@@ -443,7 +443,7 @@ function activate_by_section(npc, ini, section, loading)
 		-- schemes[scheme] даст имя файла (модуля), в котором реализована схема
 		-- _G[] даст указатель на неймспейс (таблицу) этого модуля
 		local mdl = _G[ schemes[scheme] ]
-			or abort( "activate_by_section, invalid module[script]: [%s] (%s)", scheme, npc:name() )
+			or abort( "[xr_logic.activate_by_section] invalid module[script]: [%s] (%s)", scheme, npc:name() )
 		
 		mdl.set_scheme(npc, ini, scheme, section, st["gulag_name"])
 		--printf("DEBUG: activate_by_section: scheme '%s' activated from section '%s'", scheme, section)
@@ -458,7 +458,7 @@ function activate_by_section(npc, ini, section, loading)
 			issue_event(npc, st[scheme], "reset_scheme", loading, npc)
 		end
 	else
-		abort("object '%s': activate_by_section: section '%s' does not exist", npc:name(), section)
+		abort("[xr_logic.activate_by_section] object '%s': activate_by_section: section '%s' does not exist", npc:name(), section)
 	end
 end
 
@@ -605,7 +605,7 @@ function pick_section_from_condlist(actor, npc, condlist)
 				end
 				--printf("_bp: infop.func = %s", infop.func)
 				if not func then
-					abort("object '%s': pick_section_from_condlist: function '%s' is " ..
+					abort("[xr_logic.pick_section_from_condlist] object '%s': function '%s' is " ..
 						"not defined in xr_conditions.script", (npc and npc:name() or "<nil>"), infop.func)
 				end
 
@@ -654,7 +654,7 @@ function pick_section_from_condlist(actor, npc, condlist)
 						end
 					end
 					if not func then
-						abort("object '%s': pick_section_from_condlist: function '%s' is " ..
+						abort("[xr_logic.pick_section_from_condlist] object '%s': function '%s' is " ..
 							"not defined in xr_effects.script", (npc and npc:name() or "<nil>"), infop.func)
 					end
 					func(actor, npc, infop.params)
@@ -711,13 +711,13 @@ end
 
 function try_switch_to_another_section(npc, st, actor)
     if not actor then
-        abort("try_switch_to_another_section: error in implementation of scheme '%s': actor is nil", st.scheme)
+        abort("[xr_logic.try_switch_to_another_section]: error in implementation of scheme '%s': actor is nil", st.scheme)
     end
     
     local l = st.logic
 
     if not l then
-        abort("Can't find script switching information in storage, scheme '%s'", st.scheme or "<nil>")
+        abort("[xr_logic.try_switch_to_another_section] Can't find script switching information in storage, scheme '%s'", st.scheme or "<nil>")
     end
 
     local npc_id = npc:id()
@@ -755,7 +755,7 @@ function try_switch_to_another_section(npc, st, actor)
         elseif name == "on_actor_outside" then
             switched = not utils.npc_in_zone(actor, npc)
         else
-            abort("try_switch_to_another_section: invalid condition: [%s] (%s)", c.name, npc:name())
+            abort("[xr_logic.try_switch_to_another_section]: invalid condition: [%s] (%s)", c.name, npc:name())
         end
 
 		if switched
@@ -770,7 +770,7 @@ end
 
 function is_active(npc, st)
   if st.section == nil then
-    abort("npc '%s': st.section is nil, active section is '%s'",
+    abort("[xr_logic.is_active] npc '%s': st.section is nil, active section is '%s'",
       npc:name(), utils.to_str(db.storage[npc:id()].active_section))
   end
   local is_act = (st.section == db.storage[npc:id()].active_section)
@@ -781,7 +781,7 @@ end
 
 
 function abort_syntax_error_in_cond(npc, section, field)
-  abort("object '%s': section '%s': field '%s': syntax error in switch condition",
+  abort("[xr_logic.abort_syntax_error_in_cond] object '%s': section '%s': field '%s': syntax error in switch condition",
     (npc and npc:name() or "<nil>"), section or "<nil>", field or "<nil>")
 end
 
@@ -808,7 +808,7 @@ function parse_infop1(rslt, str)
       elseif sign == "!" then
         rslt[infop_n] = { func = infop_name, expected = false }
       else
-        abort("wrong condlist %s", str)
+        abort("[xr_logic.parse_infop1] wrong condlist %s", str)
       end
       infop_n = infop_n + 1
     end
@@ -842,7 +842,7 @@ function parse_infop(rslt, str)
       at = string.find(infop_name, "%(")
       if at then
         if string.sub(infop_name, -1) ~= ")" then
-          abort("wrong condlist %s", str)
+          abort("[xr_logic.parse_infop] wrong condlist %s", str)
         end
         if at < string.len(infop_name) - 1 then
           params = parse_func_params(string.sub(infop_name, at + 1, -2))
@@ -865,7 +865,7 @@ function parse_infop(rslt, str)
         --printf("_bp: n = %s; r = %s", infop_name, utils.to_str(params))
         rslt[infop_n] = { func = infop_name, expected = false, params = params }
       else
-        abort("wrong condlist %s", str)
+        abort("[xr_logic.parse_infop] wrong condlist %s", str)
       end
       infop_n = infop_n + 1
     end
@@ -1134,7 +1134,7 @@ end
 
 function mob_capture(mob, reset_actions)
   if reset_actions == nil then
-    abort("mob_capture: reset_actions parameter's value is not specified")
+    abort("[xr_logic.mob_capture]: reset_actions parameter's value is not specified")
   end
 
   if reset_actions then
@@ -1219,10 +1219,10 @@ function pstor_store(obj, varname, val)
 		elseif pstor_types[type(val)] then
 			ps[varname] = val
 		else
-			abort( "pstor_store: invalid type: %s [%s]", type(val), varname )
+			abort( "[xr_logic.pstor_store]: invalid type: %s [%s]", type(val), varname )
 		end
 	else
-		abort( "pstor_store: [%s = %s] no storage for object [%s] !", tostring(varname), tostring(val), (obj and obj:name() or "<nil>") )
+		abort( "[xr_logic.pstor_store]: [%s = %s] no storage for object [%s] !", tostring(varname), tostring(val), (obj and obj:name() or "<nil>") )
 	end
 end
 ------------------------------
@@ -1295,11 +1295,11 @@ function save_pstor_table(pk, tbl, obj)
 					pk:w_stringZ(v.classname)
 					v:save(pk)
 				else
-					abort("xr_logic.save_pstor_table for %s: attempt to save unknown userdata, variable name = %s",
+					abort("[xr_logic.save_pstor_table] object %s: attempt to save unknown userdata, variable name = %s",
 						obj:name(), k)
 				end
 			else
-				abort("xr_logic.save_pstor_table for %s: not registered type '%s' encountered [ %s :: %s ]",
+				abort("[xr_logic.save_pstor_table] object %s: not registered type '%s' encountered [ %s :: %s ]",
 					obj:name(), tv, k, utils.to_str(v))
 			end
 		end

@@ -1892,6 +1892,7 @@ C++ class CALifeHumanBrain : CALifeMonsterBrain {
 C++ class CALifeMonsterBrain {
     function movement(const CALifeMonsterBrain*);
     function update();
+	function can_choose_alife_tasks(bool)
 };
 
 C++ class CALifeMonsterDetailPathManager {
