@@ -252,3 +252,37 @@ function hero_rename( pk )
 
 	log( "- New name of hero successfully saved" )
 end
+----------------------------------------------------------------------------------
+local rnd_tbl = {}
+
+function get_precondition_rnd(count, name, reset)
+	local t = rnd_tbl[name]
+	if t == nil then
+		t = {}
+		rnd_tbl[name] = t
+		t.num = nil
+	end
+
+	local ret = t.num
+	if ret == nil then
+		ret = math.random( 1, count )
+		t.num = ret
+	end
+
+	if reset then
+		t.count = (t.count or 0) + 1
+		if t.count == count then
+			t.num = nil
+			t.count = 0
+		end
+	end
+
+	return ret
+end
+-- Гарик, смена фраз
+function bar_guard_precond_1()
+	return get_precondition_rnd(2, "garik", true) == 1
+end
+function bar_guard_precond_2()
+	return get_precondition_rnd(2, "garik", true) == 2
+end
