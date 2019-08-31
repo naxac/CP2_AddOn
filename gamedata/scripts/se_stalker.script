@@ -30,6 +30,7 @@ function se_stalker:__init (section) super (section)
 
   self.death_droped = false --'Генерил ли персонаж выпадаемые предметы или нет.
   self.treasure_processed = false
+  self.linspiro_traded = false
 
   --' Test for dima
   self.dont_spawn_online = false
@@ -129,6 +130,7 @@ function se_stalker:STATE_Write (packet)
 	if self.death_droped		then ddw = bit_or(ddw, 1) end
 	if self.wounded				then ddw = bit_or(ddw, 2) end
 	if self.treasure_processed	then ddw = bit_or(ddw, 4) end
+	if self.linspiro_traded		then ddw = bit_or(ddw, 8) end
 	packet:w_u8(ddw)
 	
 	-- Trade
@@ -140,33 +142,27 @@ end
 function se_stalker:STATE_Read (packet, size)
 	cse_alife_human_stalker.STATE_Read (self, packet, size)
 
---	if self.script_version >= 3 then
-		local t = packet:r_u8()
-		t=bit_and(t,3) -- Задел на будущее
-		if t == 0 then
-			self.job_online = true
-		elseif t == 1 then
-			self.job_online = false
-		elseif t == 2 then
-			self.job_online = nil
-		else
-			self.job_online_condlist = packet:r_stringZ()
+	local t = packet:r_u8()
+	t=bit_and(t,3) -- Задел на будущее
+	if t == 0 then
+		self.job_online = true
+	elseif t == 1 then
+		self.job_online = false
+	elseif t == 2 then
+		self.job_online = nil
+	else
+		self.job_online_condlist = packet:r_stringZ()
 
-			self.job_online = xr_logic.parse_condlist(nil, "se_stalker:STATE_Read", "job_online", self.job_online_condlist)
-		end
---	end
+		self.job_online = xr_logic.parse_condlist(nil, "se_stalker:STATE_Read", "job_online", self.job_online_condlist)
+	end
 
---	if self.script_version >= 5 then
-		self.was_in_smart_terrain = packet:r_bool()
---	end
+	self.was_in_smart_terrain = packet:r_bool()
 
---	if self.script_version >= 6 then
-		-- Прочитаем состояние раненности.
-		local ddw = packet:r_u8()
-		self.death_droped		= bit_and(ddw,1)==1
-		self.wounded			= bit_and(ddw,2)==2
-		self.treasure_processed	= bit_and(ddw,4)==4
---	end
+	local ddw = packet:r_u8()
+	self.death_droped		= bit_and(ddw,1) ~= 0
+	self.wounded			= bit_and(ddw,2) ~= 0	-- Прочитаем состояние раненности.
+	self.treasure_processed	= bit_and(ddw,4) ~= 0
+	self.linspiro_traded	= bit_and(ddw,8) ~= 0
 
 	local _time = packet:r_s16()
 	self.resupply_time = amk.game_hours() + _time
