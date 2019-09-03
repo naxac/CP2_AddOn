@@ -7,9 +7,10 @@
 
 Использованы работы:
 
-- Rulix (aka Bak) - Ai Additions 2.0
 - проект X-Ray Extensions (r232)
+- RvP (xrLua fix)
 - OGSE-Team
+- Rulix (aka Bak) - Ai Additions 2.0
 - ARC (New Radiation & Cardiography Mod)
 - идеи и реализации некоторых товарищей с АМК-форума (dsh, Dennis_Chikin, Charsi, Нанобот и многие другие)
 
