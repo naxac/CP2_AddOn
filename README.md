@@ -12,6 +12,7 @@
 - OGSE-Team
 - Rulix (aka Bak) - Ai Additions 2.0
 - ARC (New Radiation & Cardiography Mod)
+- bardak (bug fix attempt, all.spawn cdc)
 - идеи и реализации некоторых товарищей с АМК-форума (dsh, Dennis_Chikin, Charsi, Нанобот и многие другие)
 
 Отдельное спасибо всем, кто играет с моим дополнением и присылает сообщения об ошибках. Благодаря Вам мод становится лучше)
