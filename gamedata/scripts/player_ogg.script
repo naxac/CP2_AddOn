@@ -28,7 +28,7 @@ function set_rnd_track(rnd_flash)
 		local t = {}
 		local has_actor = {}
 		for i = 1, 16 do
-			if db.actor:object("ogg_flash_"..i) then
+			if Actor:object("ogg_flash_"..i) then
 				table.insert(has_actor, i)
 				for ii = 1,12 do
 					if rep_flash[i][ii] == nil then
@@ -69,7 +69,7 @@ function set_rnd_track(rnd_flash)
 	rep_flash[work_flash][work_trek] = true
 end
 
-function used_item(delta)
+function update(delta)
 	--Разбираемся с плеером
 	if lost_id > 0 then
 		if not menu_show then
@@ -85,7 +85,7 @@ function used_item(delta)
 	if flash_id then
 		if AI:object(flash_id)==nil then
 			amk.spawn_item_in_inv("ogg_flash_"..spawn_flash)	--Флешку "съели" и восстанавливаем её в инвенторе
-			if db.actor:object("player") then
+			if Actor:object("player") then
 				s_stop(false)
 				set_show_flash(spawn_flash)
 				s_play("ogg_player\\flash_"..tostring(work_flash).."\\sound_1",1)
@@ -160,7 +160,7 @@ end
 function get_flash()
 	--Проверяю наличие флешек в мешке
 	for i = 1,16 do
-		slot_flash[i] = db.actor:object("ogg_flash_"..i) and 1 or 0
+		slot_flash[i] = Actor:object("ogg_flash_"..i) and 1 or 0
 	end
 
 	-- Проверяю рабочий слот
@@ -218,7 +218,7 @@ function get_work_trek()
 end
 
 function s_stop(del)
-	db.actor:disable_info_portion("u_6")
+	Actor:disable_info_portion("u_6")
 
 	if snd_obj and snd_obj:playing()==true then 
 		snd_obj:stop() 
@@ -234,11 +234,11 @@ end
 function s_play(path, trek)
 	s_stop(false)
 	snd_obj = xr_sound.get_safe_sound_object(path)
-	snd_obj:play(db.actor, 0, sound_object.s2d)
+	snd_obj:play(Actor, 0, sound_object.s2d)
 	snd_obj.volume = sound_vol
 	work_trek = trek
 	
-	db.actor:give_info_portion("u_6")
+	Actor:give_info_portion("u_6")
 	ui_cheat_player.reset_timer()
 
 	if work_flash ~= nil and work_trek ~= 0 then
@@ -255,6 +255,7 @@ function s_play(path, trek)
 	end
 
 	this.save_player()
+	this.show_work_track()
 end
 
 function save_player()
@@ -281,16 +282,16 @@ function get_prev_track()
 end
 
 function start_pleer_post_save()
-	if db.actor:has_info("u_6") then
-		if db.actor:object("player") then
+	if Actor:has_info("u_6") then
+		if Actor:object("player") then
 			local t = amk.load_table("ogg")
 			if #t == 0 then
-				db.actor:disable_info_portion("u_6")
+				Actor:disable_info_portion("u_6")
 				return
 			end
 			work_flash = t[1] 	-- Рабочий слот: номер вставленной флешки. 	
 			if work_flash then
-				if db.actor:object("ogg_flash_"..work_flash) then
+				if Actor:object("ogg_flash_"..work_flash) then
 					work_trek = t[2]	-- Номер проигрываемого трека
 					if work_trek ~= 0 then
 						set_show_flash(work_flash)
@@ -302,4 +303,53 @@ function start_pleer_post_save()
 			end
 		end
 	end
+end
+-------------------------------------------------------------------------
+local wnd = nil
+local wnd_alpha = 255
+
+function show_work_track()
+	if work_trek == 0 then return end
+
+	if wnd == nil then
+		wnd = CUIStatic()
+		wnd:Init(0, 0, 1024, 70)
+		wnd:InitTexture("intro\\intro_back")
+		wnd:SetStretchTexture(true)
+		wnd:SetText("track")
+		wnd:SetTextComplexMode(true)
+		wnd:SetFont( GetFontGraffiti22Russian() )
+		wnd:SetTextAlign(CGameFont.alCenter)
+		wnd:SetVTextAlign(CGameFont.alVCenter)
+		get_hud():AddDialogToRender(wnd)
+	end
+
+	wnd_alpha = 255
+	local fl = ui_cheat_player.get_flash_descr(work_flash)
+	local text = string.format( "%s\\n%02d. %s", fl.name, work_trek, fl.tracks[work_trek] )
+	wnd:SetText(text)
+
+	xr_s.subscribe("update", this.update_hide_wnd)
+	xr_s.subscribe("net_destroy", this.remove_wnd)
+end
+
+function remove_wnd()
+	if wnd then
+		get_hud():RemoveDialogToRender(wnd)
+		wnd = nil
+		xr_s.unsubscribe("update", this.update_hide_wnd)
+		xr_s.unsubscribe("net_destroy", this.remove_wnd)
+	end
+end
+
+function update_hide_wnd(delta)
+	if wnd_alpha <= 0 then
+		this.remove_wnd()
+		return
+	end
+
+	wnd:SetColor( GetARGB(wnd_alpha,255,255,255) )
+	wnd:SetTextColor(wnd_alpha,255,255,255)
+
+	wnd_alpha = wnd_alpha - delta/25
 end
