@@ -219,9 +219,11 @@ end
 --'   **   **   **   **   **    **   **   **      NEWS_AMK          **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
 local tmp_news = {}
-function show_tmp_news()
+function show_tmp_news(sender)
 	if #tmp_news == 0 then return end
-	news_manager.send_tip(tmp_news[1], 0, sender, 5000, nil, nil, "amk_mod.show_tmp_news()")
+	news_manager.send_tip(tmp_news[1], 0, sender, 5000, nil, nil,
+		'amk_mod.show_tmp_news('..(sender and '"'..sender..'"' or '')..')'
+	)
 	table.remove(tmp_news, 1)
 end
 function explode_news_str(text)
@@ -261,13 +263,13 @@ function show_news()
 				local uniq = amk_uniq_news_lists.get_strings()
 				local name = amk_names_lists.get_strings(true)
 				news_text = "%c[gray2]"..name.."\\n%c[default]"..uniq
-				sender = "uniq"
 			else
 				news_text = amk_modders.get_strings()
 			end
+			sender = "uniq"
 		end
 		this.explode_news_str(news_text)
-		this.show_tmp_news()
+		this.show_tmp_news(sender)
 	end
 	xr_timers.start_game_timer("show_news",0,0,math_random(50,70))
 end
