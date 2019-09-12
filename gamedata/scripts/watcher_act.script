@@ -186,7 +186,7 @@ function ev_see_stuff:evaluate()
 
 --	if actsch then	--and actsch~="walker" and actsch~="kamp" then
 	--	log1(npc:name().." : "..actsch)
---		xr_logic.try_switch_to_another_section(npc, stor[actsch], db.actor)
+--		xr_logic.try_switch_to_another_section(npc, stor[actsch], Actor)
 --	end
 
 	if ( not npc:alive() ) or xr_wounded.is_wounded(npc)
@@ -197,15 +197,15 @@ function ev_see_stuff:evaluate()
 		return false
 	end
 	
-	if npc:relation(db.actor) == game_object.enemy and db.actor:see(npc) then
+	if npc:relation(Actor) == game_object.enemy and Actor:see(npc) then
 		if res then
 			freeGObject(self.st)
 			local wpn = npc:active_item() or npc:best_weapon()
 			npc:set_item(object.idle, wpn)
-			local dir = db.actor:position():sub(npc:position()):add(vector():set(0,1,0))
+			local dir = Actor:position():sub(npc:position()):add(vector():set(0,1,0))
 			npc:set_sight(look.direction, dir)
 			npc:set_mental_state(anim.danger)
-		--	local pos = db.actor:position()
+		--	local pos = Actor:position()
 		--	npc:set_sight(look.point,pos)
 		--	npc:set_desired_direction(pos:sub(npc:position()))
 		end
@@ -222,7 +222,7 @@ function ev_see_stuff:evaluate()
 
 	timed(self.st,"tm1",5000+math_random()*10000,
 		function ()
-			local min_dist=100000
+			local min_dist=math.huge
 			local function check_item(o)
 				local obj=o:object()
 				if not obj then return end
@@ -241,8 +241,8 @@ function ev_see_stuff:evaluate()
 					and ( obj_owner[obj_id]==nil
 					or obj_owner[obj_id]==npc_id )
 					and npc:accessible(obj:level_vertex_id())
-				--	and ( db.actor:alive()==false
-				--	or db.actor:position():distance_to_sqr(obj:position())>6 )
+				--	and ( Actor:alive()==false
+				--	or Actor:position():distance_to_sqr(obj:position())>6 )
 				then
 					local valuable,corpse=isValuable(obj)
 					if valuable then
