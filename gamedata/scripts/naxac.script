@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 1
+local current_fix = 2
 
 function repair()
 	local fix = amk.load_variable("nfx", 0)
@@ -7,20 +7,44 @@ function repair()
 
 	amk.save_variable( "nfx", bit_or(fix, current_fix) )
 -------------------------------------------------------------------------------------------------------------------
---	if bit_and(fix, 1) ~= 0 then return end
+	if bit_and(fix, 2) ~= 0 then return end
+	local obj
 
-	local obj = AI:story_object(story_ids.lc_escape_to_darkvalley)
-	if obj then
-		AI:release(obj, true)
-		obj = AI:create( AI:spawn_id(story_ids.lc_escape_to_darkvalley) )
-		level.map_add_object_spot_ser(obj.id, "level_changer2", "to_darkvalley")
+	--Если переходов нет, значит локацию только добавили - нужно заспавнить её содержимое
+	if AI:story_object(story_ids.lc_darkscape_to_escape) == nil
+		and AI:story_object(story_ids.lc_darkscape_to_darkvalley) == nil
+	then
+		-- спавним по номеру секции в спавне: придётся обновлять каждый раз при редактировании спавна.
+		for i = 12412, 12537, 1 do
+			AI:create(i)
+		end
+		-- отметим переходы
+		obj = AI:story_object(story_ids.lc_darkscape_to_escape)
+		if obj then
+			level.map_add_object_spot_ser(obj.id, "level_changer4", "to_escape")
+		end
+		obj = AI:story_object(story_ids.lc_darkscape_to_darkvalley)
+		if obj then
+			level.map_add_object_spot_ser(obj.id, "level_changer1", "to_darkvalley")
+		end
+		-- переспавним переходы ТД-Кордон и Кордон-ТД: теперь это ТД-ТЛ и Кордон-ТЛ
+		obj = AI:story_object(story_ids.lc_escape_to_darkscape)
+		if obj then
+			AI:release(obj, true)
+			obj = AI:create( AI:spawn_id(story_ids.lc_escape_to_darkscape) )
+			level.map_add_object_spot_ser(obj.id, "level_changer2", "to_darkscape")
+		end
+		obj = AI:story_object(story_ids.lc_darkvalley_to_darkscape)
+		if obj then
+			AI:release(obj, true)
+			obj = AI:create( AI:spawn_id(story_ids.lc_darkvalley_to_darkscape) )
+			level.map_add_object_spot_ser(obj.id, "level_changer3", "to_darkscape")
+		end
+		-- телепорт к дому
+		AI:create("darkscape_teleport_01",vector():set(-248.57592773438,12.540954589844,-329.14068603516),139494,3997)
 	end
-
-	obj = AI:story_object(story_ids.lc_darkvalley_to_escape)
-	if obj and level.map_has_object_spot(obj.id, "level_changer2") ~= 0 then
-		level.map_remove_object_spot(obj.id, "level_changer2")
-		level.map_add_object_spot_ser(obj.id, "level_changer3", "to_escape")
-	end
+-------------------------------------------------------------------------------------------------------------------
+	if bit_and(fix, 1) ~= 0 then return end
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair5" ) then return end
 	db.actor:give_info_portion( "naxac_test_repair5" )

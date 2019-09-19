@@ -2434,7 +2434,12 @@ sub spawn_read {
 					bless $self->{cse_object}, $class_name;
 					$self->{cse_object}->state_read($packet);
 					$packet->length() == 0 or die "data left in $self->{cse_object}->{name}";
-					print "section_name==name:$self->{cse_object}->{name}\n" if $self->{cse_object}->{name} eq $self->{cse_object}->{section_name};
+					if ($self->{cse_object}->{name} eq $self->{cse_object}->{section_name})
+					{
+						print "section_name==name:$self->{cse_object}->{name}\n";
+						my $levelname = levels::name_by_gvid($self->{cse_object}->{game_vertex_id});
+						print "object level: $levelname\n";
+					};
 				} elsif ($index == 1) {
 					cse_abstract::update_read($self->{cse_object}, $packet);
 					UNIVERSAL::can($self->{cse_object}, 'update_read') && do {
@@ -2723,6 +2728,7 @@ package levels;
 use strict;
 use constant levels_info => (
 	{ gvid0 => 10000, },
+	{ gvid0 => 3851,    name => 'l41_darkscape_ogse' },
 	{ gvid0 => 3830,    name => 'labx8' },
 	{ gvid0 => 3771,    name => 'jupiter_underground' },
 	{ gvid0 => 3748,    name => 'pripyat' },
