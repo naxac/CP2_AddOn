@@ -756,8 +756,14 @@ function CTreasure:dialog(npc)
 	
 	for k,v in pairs(self.treasure_info) do
 		if v.done == false and v.active == false then
-			--local treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc, v.condlist)
-			treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc, xr_logic.parse_condlist(db.actor, "treasure_manager", "condlist", utils.cfg_get_string(self.ini, k, "condlist", nil, true, "")))
+			--local treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc, v.condlist)
+			treasure_prob = xr_logic.pick_section_from_condlist(
+				Actor, npc,
+				xr_logic.parse_condlist(
+					Actor, "treasure_manager", "condlist",
+					self.ini:r_string_ex(k, "condlist", "")
+				)
+			)
 			if treasure_prob == "" or treasure_prob == nil then
 				treasure_prob = 0
 			end
