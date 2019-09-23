@@ -1,4 +1,6 @@
--- monster_effects.script 
+-- monster_effects.script
+bloodsucker_vampire_captured = nil
+
 local snd = xr_sound.get_safe_sound_object("monsters\\pseudodog\\psy_affect_0",	sound_object.s2d)
 local time_next_attack = 2000
 local time_cam_effect = 700
@@ -7,9 +9,6 @@ local time_burer_next_attack = 6000
 local time_cat_next_attack = 5000
 local time_boar_next_attack = 400
 local time_zombi_radiation = 700
-
-local sucker_attack_delay = 4000
-local sucker_attack_interval = 18000
 
 local cat_kulon_timer = 2000 -- Akill квест на ловлю котов, время через какое кот пойман
 
@@ -71,115 +70,126 @@ function ef_insect_stop(sect)
 	insect_particle:stop()
 end
 	
--- Поцелуй кровососа (Авторы: Artos, Charsi, Shadows)
+-- Поцелуй кровососа (Ray Twitty aka Shadows)
 class "ef_bloodsucker"
+
+local bloodsucker_vampire_timer = 0
+local BLOODSUCKER_VAMPIRE_DIST = 1.5
 
 function ef_bloodsucker:__init(obj)
 	self.object = obj
-	self.timer_anim = 0
-	self.NextAttack = 0
-	self.RestoreTimer = 0
-	self.oTarget = nil
-	self.captured = nil
-	self.Release = false
 end
 
 function ef_bloodsucker:update(iTime)
-	if self.timer_anim < iTime or self.NextAttack < iTime then
-		self.timer_anim = iTime + 2000
+	if self:check_conditions() then
+		bloodsucker_vampire_captured = self.object:id()
+		start_small_timer(300, self.bloodsucker_vampire_start, self)
+		start_small_timer(7300, self.bloodsucker_vampire_end, self)
+		start_small_timer(7400,
+			function()
+				AI:teleport_object(
+					nil,
+					self.object:position(),
+					self.object:level_vertex_id(),
+					self.object:game_vertex_id(),
+					self.object:id()
+				)
+			end
+		)
+		xr_effects.disable_ui()
+		self.last_camera_type = xr_actor.get_camera_type()
+		xr_actor.set_camera_type(0)
+		xr_logic.mob_capture(self.object, false)
+		level.add_complex_effector("effector_bloodsucker_vampire_grasp", 3000)
+		naxac.camera_rotate_on_position(self.object:position(), 15)
+		action(self.object, look(look.direction, Actor:bone_position("bip01_head"):sub(self.object:position())), cond(cond.time_end, 300))
+		action(self.object, anim("vampire_0"), sound("monsters\\bloodsucker\\vampire_grasp", "bip01_head"), cond(cond.time_end, 800))
+		action(self.object, anim("vampire_1"), sound("monsters\\bloodsucker\\vampire_sucking", "bip01_head", vector(), vector(), true), cond(cond.time_end, 5200))
+		action(self.object, anim("vampire_2"), sound("monsters\\bloodsucker\\vampire_hit", "bip01_head"), cond(cond.time_end, 1500))
+	end
+end
 
-		if self.oTarget == nil then
-			self.oTarget = self.object:get_enemy()
-		end
-
-		if self.oTarget and IAmAStalker[self.oTarget:clsid()] and self.object:see(self.oTarget) then
-			local iDist = self.object:position():distance_to(self.oTarget:position())
-			if iDist <= 3 then
-				if self.NextAttack < iTime then	-- and self.object.health < 0.5 then
-					if self.captured == nil then
-						self.NextAttack = self.NextAttack + 500
-						self.captured = true
-					elseif self.captured == true then
-						self.NextAttack = iTime + sucker_attack_interval
-						self.RestoreTimer = iTime + sucker_attack_delay
-						if self.oTarget:id() == 0 then
-							bind_actor.hide_weapon("bloodsucker")
-							level.disable_input()
-							level.add_pp_effector("escape.ppe",1975,true)
-							level.add_cam_effector("camera_effects\\drunk.anm",1978,false,"")
-							set_actor_dir(self.object)
-						end
-						xr_s.subscribe("update", self.bloodsucker_vampire_timer,
-							{ self = self, timeout = sucker_attack_delay, once = true }
-						)
-						local oSnd = sound_object("monsters\\bloodsucker\\vampire_sucking")
-						if not (oSnd and oSnd:playing()) then
-							oSnd:play_at_pos(Actor, self.object:position(), 0, sound_object.s3d)
-						end
-						self.object:clear_animations()
-						self.object:play_cycle("vampire_0")
-						self.captured = false
-					end
+function ef_bloodsucker:check_conditions()
+	-- check last attack timer
+	if bloodsucker_vampire_timer >= time_global() then
+		return false
+	end
+	-- check actor visible
+	if not self.object:see(Actor) then
+		return false
+	end
+	-- check distance
+	if distance_between(self.object, Actor) > BLOODSUCKER_VAMPIRE_DIST then
+		return false
+	end
+	-- check height difference
+	if math.abs(Actor:position().y - self.object:position().y) > 0.5 then
+		return false
+	end
+	-- check bloodsucker health
+	-- if self.object.health > sys_ini:r_float(self.object:section(), "Vampire_Max_Health", 0.6) then
+		-- return false
+	-- end
+	-- check actor state
+	if not (Actor:is_actor_normal() or Actor:is_actor_walking() or Actor:is_actor_running()) then
+		return false
+	end
+	-- check actor in car
+	if Actor:get_current_holder() then
+		return false
+	end
+	-- check bloodsuckers near
+	local mob_id = self.object:id()
+	local actor_id = Actor:id()
+	for k, v in pairs(db.creatures) do
+		if k ~= mob_id and AI:object(k) then
+			if v and v:alive() and get_clsid(v) == clsid.bloodsucker_s and distance_between(v, Actor) <= 30 then
+				local enemy = v:best_enemy()
+				if enemy and enemy:id() == actor_id then
+					return false
 				end
 			end
 		end
-	elseif self.Release then
-		self.Release = false
-		self.captured = nil
-		self.object:clear_animations()
-		local h = hit()
-		h.power = 0.01
-		h.direction = vector():set(0, 0, 0)
-		h.impulse = 1
-		h.draftsman = self.object
-		h.type = hit.wound
-		self.oTarget:hit(h)
-		if self.oTarget:id()==0 then
-			set_actor_dir(self.object)
-		end
-		self.oTarget = nil
 	end
-	if self.RestoreTimer > iTime and self.oTarget then
-		self.oTarget.health = -0.003
-		self.object.health = 0.008
-		if self.object:position():distance_to(self.oTarget:position()) > 4 then
-			self:bloodsucker_vampire_timer()
-			xr_s.unsubscribe("update", self.bloodsucker_vampire_timer)
-		end
-	end
+	return true
+end
+
+function ef_bloodsucker:bloodsucker_vampire_start()
+	level.add_complex_effector("effector_bloodsucker_vampire_sucking", 3001)
+	level.add_complex_effector("effector_bloodsucker_vampire_fade", 3002)
+end
+
+function ef_bloodsucker:bloodsucker_vampire_end()
+	if bloodsucker_vampire_captured ~= self.object:id() then return end
+	bloodsucker_vampire_captured = nil
+	xr_effects.enable_ui()
+	xr_logic.mob_release(self.object)
+	level.add_complex_effector("effector_head_shot", 3003)
+	xr_actor.set_camera_type(self.last_camera_type)
+
+	local h = hit()
+	h.type = hit.wound
+	h.direction = self.object:direction()
+	h.power = sys_ini:r_float(self.object:section(), "Vampire_Wound")
+	h.impulse = 5000
+	h.draftsman = self.object
+	Actor:hit(h)
+
+	self.object.health = sys_ini:r_float(self.object:section(), "Vampire_Gain_Health")
+	bloodsucker_vampire_timer = time_global() + sys_ini:r_float(self.object:section(), "Vampire_Delay")
 end
 
 function ef_bloodsucker:on_death()
-	if self.RestoreTimer > time_global() then
-		self:bloodsucker_vampire_timer()
-		xr_s.unsubscribe("update", self.bloodsucker_vampire_timer)
-		self.oTarget = nil
-		self.captured = nil
+	if bloodsucker_vampire_captured == self.object:id() then
+		bloodsucker_vampire_captured = nil
+		xr_effects.enable_ui()
+		xr_actor.set_camera_type(self.last_camera_type)
+		xr_logic.mob_release(self.object)
+		bloodsucker_vampire_timer = time_global() + sys_ini:r_float(self.object:section(), "Vampire_Delay")
 	end
 end
 
-function ef_bloodsucker:bloodsucker_vampire_timer(delta)
-	self.RestoreTimer = 0
-	self.Release = true
-    if self.oTarget:id() == 0 then
-		bind_actor.restore_weapon("bloodsucker")
-		level.enable_input()
-		level.remove_pp_effector(1975)
-		level.remove_cam_effector(1978)
-	end
-	local snd = xr_sound.get_safe_sound_object("monsters\\bloodsucker\\vampire_hit")
-	snd:play_at_pos(Actor, self.object:position(), 0, sound_object.s3d)
-end
-
-function set_actor_dir(mob)
-	local pos = mob:position()
-	local vDir = pos:sub(Actor:position())
-	Actor:set_actor_direction(-vDir:getH())
-	vDir:normalize()
-	pos = mob:position():sub(vDir)
-	Actor:set_actor_position(pos)
-end
-
+-------------------------------------------------------------------------------------------------------------------
 function ef_controller(binder)
 	local npc = binder.object
 	local target = npc:get_enemy()

@@ -277,6 +277,39 @@ function hero_rename( pk )
 	log( "- New name of hero successfully saved" )
 end
 ----------------------------------------------------------------------------------
+-- by Shadows aka Ray Twitty
+function camera_rotate_on_position(pos, speed, action, ...)
+	if pos and speed >= 1 and speed <= 20 then
+		local args = {...}
+		local dev = device()
+		local current_dir = dev.cam_dir:mul(level.get_target_dist())
+		local end_dir = pos:sub(dev.cam_pos)
+		local current_angle = -current_dir:getH()
+		local end_angle = -end_dir:getH()
+		if vector():crossproduct(end_dir, dev.cam_dir).y > 0 then
+			speed = -speed
+		end
+		level.add_call(
+			function()
+				if current_angle > 1.57 then
+					current_angle = -4.71
+				elseif current_angle < -4.71 then
+					current_angle = 1.57
+				end
+				current_angle = current_angle + speed / 1000
+				db.actor:set_camera_direction(vector():set(current_angle, 0, 0))
+				return math.abs(current_angle - end_angle) < 0.01
+			end,
+			function()
+				if action then
+					loadstring("return function(args) "..action.."(unpack(args)) end")()(args)
+				end
+			end
+		)
+	end
+end
+
+----------------------------------------------------------------------------------
 local rnd_tbl = {}
 
 function get_precondition_rnd(count, name, reset)
