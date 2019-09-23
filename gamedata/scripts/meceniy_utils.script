@@ -11,11 +11,7 @@ function on_actor_update_callback()
 end
 
 --функция для чтения  версии мода(от Artos'a)
--- local arch_names = {
-	-- { arch = "dbh_player",		name = "Музыкальные флешки"				},
-	-- { arch = "dbh_radio",		name = 'Радио "Чернобыльский Апрель"'	},
-	-- { arch = "dbh_rusty_zone",	name = '"Ржавая Зона"'					}
--- }
+
 function read_mod_ver()
 	local s = ""
 	s = s..game.translate_string( "mod_ver_type" )
@@ -28,21 +24,16 @@ function read_mod_ver()
 	local path = fs:update_path( "$fs_root$", "gamedata.dbh" )
 	local attr = lfs.attributes( path )
 	if not attr then
+		path = fs:update_path( "$fs_root$", "gamedata.dbh_patch" )
+		attr = lfs.attributes( path )
+	end
+	if not attr then
 		path = fs:update_path( "$fs_root$", "gamedata.dbh_addon" )
 		attr = lfs.attributes( path )
 	end
 	if attr then
-		s = s..os.date( " от [%d/%m/%Y %H:%M]", attr.modification )
+		s = s..os.date( " [%d/%m/%Y]", attr.modification )
 	end
-
-	-- дополнения
-	-- for i, v in pairs(arch_names) do
-		-- path = fs:update_path( "$fs_root$", "gamedata."..v.arch )
-		-- attr = lfs.attributes( path )
-		-- if attr then
-			-- s = s.." .. + .. "..v.name
-		-- end
-	-- end
 
 	return s
 end
