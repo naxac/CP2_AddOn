@@ -6,7 +6,7 @@ DOSE_DEADLY = 35000
 
 DOSE_DEC_DIV = 15
 
-local rad_dose = 0
+RAD_DOSE = 0
 
 local last_anom_hit_time = 0
 
@@ -103,43 +103,31 @@ function on_actor_update(delta)
 end
 
 function save_rad_dose()
-	amk.save_variable("rad_dose", rad_dose)
+	amk.save_variable("rad_dose", RAD_DOSE)
 end
 	
 function get_rad_level()
 	return (arts_rad + anom_rad) / 0.1
 end
 
-function get_rad_dose()
-	return rad_dose
-end
-
-function get_critical_dose()
-	return DOSE_HARMFUL
-end
-
-function get_deadly_dose()
-	return DOSE_DEADLY
-end
-
 function get_dose_string()
-	return string.format("%6.2f", rad_dose/100)
+	return string.format("%6.2f", RAD_DOSE/100)
 end
 
 function get_dose_string_color()
-	local rd = rad_dose / DOSE_DEADLY
+	local rd = RAD_DOSE / DOSE_DEADLY
 	return math.min(round(196+196*rd),255), math.max(round(255-255*rd),0), math.max(round(196-255*rd),0)
 end
 
 function set_rad_dose(new_dose)
 	if new_dose > 0 then
-		rad_dose = new_dose
+		RAD_DOSE = new_dose
 	else
-		rad_dose = 0
+		RAD_DOSE = 0
 	end
 	
 	local rd
-	rd = (rad_dose > DOSE_HARMFUL) and (rad_dose - DOSE_HARMFUL) / (DOSE_DEADLY - DOSE_HARMFUL) or 0
+	rd = (RAD_DOSE > DOSE_HARMFUL) and (RAD_DOSE - DOSE_HARMFUL) / (DOSE_DEADLY - DOSE_HARMFUL) or 0
 	if rd<1 then
 		arc_health.set_health_threshold(1-rd*rd)
 	else
@@ -148,7 +136,7 @@ function set_rad_dose(new_dose)
 	
 	arc_health.set_psy_threshold(1-rd/3)
 	
-	rd = (rad_dose > DOSE_TIRING) and (rad_dose - DOSE_TIRING) / (DOSE_DEADLY - DOSE_TIRING) or 0
+	rd = (RAD_DOSE > DOSE_TIRING) and (RAD_DOSE - DOSE_TIRING) / (DOSE_DEADLY - DOSE_TIRING) or 0
 	
 	arc_health.set_power_penalty(rd*1.5)
 end
@@ -160,7 +148,7 @@ function mod_rad_dose(dose_delta)
 		dose_delta = dose_delta / DOSE_DEC_DIV
 	end
 	
-	set_rad_dose(rad_dose+dose_delta)
+	set_rad_dose(RAD_DOSE+dose_delta)
 end
 -----------------------------------------------------------------------------------
 function use_antirad(delta)
@@ -191,7 +179,7 @@ function spawn_telepatic()
 end
 -----------------------------------------------------------------------------------
 function init()
-	rad_dose = amk.load_variable("rad_dose", 0)
+	RAD_DOSE = amk.load_variable("rad_dose", 0)
 end
 
 function attach()
