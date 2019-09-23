@@ -6,6 +6,33 @@
  Last edit		: 15.08.2013
 --]]------------------------------------------------------------------------------------------------------------------------------------
 -- РѕР·РІСѓС‡РєР° РІС‹РєРёРЅСѓС‚Р° - РµРµ РІСЃРµ СЂР°РІРЅРѕ РЅРµ СЃР»С‹С€РЅРѕ, С‚РѕР»СЊРєРѕ Р°РїРґРµР№С‚ РіСЂСѓР·РёС‚.
+-- СѓСЂРѕРІРЅРё, РЅР° РєРѕС‚РѕСЂС‹С… СЂРµСЃРїР°РІРЅСЏС‚СЃСЏ РІРѕСЂРѕРЅС‹: РёРјСЏ_СѓСЂРѕРІРЅСЏ = РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ
+local level_for_crows = {
+	l01_escape = 15,
+	l02_garbage = 15,
+	l03_agroprom = 10,
+	l04_darkvalley = 15,
+	l05_bar = 9,
+	l06_rostok = 9,
+	l08_yantar = 5,
+	l07_military = 15,
+	l10_radar = 5,
+	l11_pripyat = 7,
+	atp_for_test22 = 10,
+	puzir = 15,
+	aver = 12,
+	limansk = 10,
+	generators = 15,
+	red_forest = 15,
+	lost_village = 10,
+	marsh = 15,
+	dead_city = 15,
+	zaton = 15,
+	jupiter = 15,
+	pripyat = 15,
+	l41_darkscape_ogse = 15
+}
+local level_crows = {}
 
 function init(obj)
 	obj:bind_object(crow_binder(obj))
@@ -14,7 +41,23 @@ end
 class "crow_binder" (object_binder)
 
 function crow_binder:__init(obj) super(obj)
-end 
+end
+
+function crow_binder:net_spawn(data)
+	if not object_binder.net_spawn(self, data) then
+		return false
+	end
+
+	level_crows[self.object:id()] = self
+
+	return true
+end
+
+function crow_binder:net_destroy()
+	level_crows[self.object:id()] = nil
+
+	object_binder.net_destroy(self)
+end
 
 function crow_binder:update(delta)
 	object_binder.update(self, delta)
@@ -28,4 +71,37 @@ function crow_binder:update(delta)
 			AI:create("mutant_crow", self.object:position(), self.object:level_vertex_id(), self.object:game_vertex_id())
 		end
 	end
+end
+
+
+function blowout_hit()
+	local cr
+	local h = hit()
+	h.type = hit.strike
+	h.power = 1000
+	h.impulse = 1000
+	for id, binder in pairs(level_crows) do
+		cr = binder.object
+		if cr and cr:alive() and math.random() < 0.7 then
+			h.draftsman = cr
+			h.direction = cr:direction()
+			cr:hit(h)
+		end
+	end
+end
+
+function respawn_crows()
+	if  table.size(level_crows) < (level_for_crows[level.name()] or 0)
+	then
+		AI:create("m_crow", vector():set(0,0,0), Actor:level_vertex_id(), Actor:game_vertex_id())
+		start_small_timer(30000, bind_crow.respawn_crows)
+	end
+--	log("[bind_crow.respawn_crows]: crows count: %s", table.size(level_crows))
+end
+
+function attach()
+	if level.name() == "l10_radar" and not has_alife_info("bar_deactivate_radar_done") then
+		return
+	end
+	xr_timers.get_mgr():start_small_timer(25000, bind_crow.respawn_crows)
 end
