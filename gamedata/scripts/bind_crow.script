@@ -1,12 +1,13 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 --[[---------------------------------------------------------------------------------------------------------------------------------
  File			: bind_crow.script
- Description	: Р‘РёРЅРґРµСЂ РІРѕСЂРѕРЅ - РѕР·РІСѓС‡РєР°, Рё РїРѕРґР±РёСЂР°РµРјС‹Рµ С‚СѓС€РєРё.
- Copyright		: 2013 В© boryan67
+ Description	: Биндер ворон - озвучка, и подбираемые тушки.
+ Copyright		: 2013 © boryan67
  Author			: boryan67 - scripts & mauvais - sounds
  Last edit		: 15.08.2013
 --]]------------------------------------------------------------------------------------------------------------------------------------
--- РѕР·РІСѓС‡РєР° РІС‹РєРёРЅСѓС‚Р° - РµРµ РІСЃРµ СЂР°РІРЅРѕ РЅРµ СЃР»С‹С€РЅРѕ, С‚РѕР»СЊРєРѕ Р°РїРґРµР№С‚ РіСЂСѓР·РёС‚.
--- СѓСЂРѕРІРЅРё, РЅР° РєРѕС‚РѕСЂС‹С… СЂРµСЃРїР°РІРЅСЏС‚СЃСЏ РІРѕСЂРѕРЅС‹: РёРјСЏ_СѓСЂРѕРІРЅСЏ = РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ
+-- озвучка выкинута - ее все равно не слышно, только апдейт грузит.
+-- уровни, на которых респавнятся вороны: имя_уровня = максимальное количество
 local level_for_crows = {
 	l01_escape = 15,
 	l02_garbage = 15,
@@ -66,7 +67,7 @@ function crow_binder:update(delta)
 		self.dead = true
 
 		if not amk.has_variable("blowout") then
-			-- СѓРґР°Р»РёРј РІРѕСЂРѕРЅСѓ Рё Р·Р°СЃРїР°РІРЅРёРј С‚СѓС€РєСѓ
+			-- удалим ворону и заспавним тушку
 			AI:release(AI:object(self.object:id()))
 			AI:create("mutant_crow", self.object:position(), self.object:level_vertex_id(), self.object:game_vertex_id())
 		end
@@ -91,8 +92,7 @@ function blowout_hit()
 end
 
 function respawn_crows()
-	if  table.size(level_crows) < (level_for_crows[level.name()] or 0)
-	then
+	if  table.size(level_crows) < (level_for_crows[level.name()] or 0) then
 		AI:create("m_crow", vector():set(0,0,0), Actor:level_vertex_id(), Actor:game_vertex_id())
 		start_small_timer(30000, bind_crow.respawn_crows)
 	end
