@@ -209,10 +209,10 @@ local tips_icons = {
 	noi 		= {498,1598,"ной:"},
 	norman 		= {166,1457,"норман:"},
     nodata   	= {249,940,"источник неизвестен:"},
-    nodata   	= {249,940,"[источник неизвестен]"},
+    nodata   	= {249,940,"%[источник неизвестен%]"},
 	o_soznanie 	= {415,893,"о-сознание:"},
 	obmorok 	= {166,1504,"обморок:"},
-	op2	 		= {332,987,"команда создателей оп-2:"},
+	op2	 		= {332,987,"команда создателей оп%-2:"},
 	osvedomitel	= {498,987,"осведомитель:"},
 	otshelnik 	= {0,1833,"отшельник:"},
 	oz 			= {913,611,"профессор озерский:"},
@@ -298,18 +298,25 @@ function get_sender_icon(text, sender)
 		-- пробуем найти иконку по заголовку СМС
 		sender = "default"
 		text = string.lower(text)
-		local f = string.find(text, "\\n%c[", 1, true)
-		if f then
-			text = string.sub(text, 1, f-1)..":"
+		-- Получаем заголовок
+		local f1 = string.find(text, "]", 1, true)
+		if f1 then
+			local f2 = string.find(text, "\\n%c[", f1, true)
+			if f2 then
+				local caption = string.sub(text, f1+1, f2-1)..":"
+				if #caption > 2 then
+					text = caption
+				end
+			end
 		end
 		for k,v in pairs(tips_icons) do
-			if (v[3] and string.find(text, v[3], 1, true)) then
+			if (v[3] and string.find(text, "^"..v[3])) then
 				sender = k
 				break
 			end
 		end
 	end
-	
+
 	return tips_icons[sender][1], tips_icons[sender][2]
 end
 
