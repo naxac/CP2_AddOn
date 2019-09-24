@@ -3,6 +3,9 @@
 -- Какой смысл "взрывать" что-то в оффлане? Очередная имитация оффлайн-алайфа?
 -- Да нафиг надо. Напишем биндер, пусть обрабатываются только онлайновые объекты.
 
+-- Актёр можнет подойти к мине только с зажатым Shift.
+-- Устанавливать мины, соответственно, тоже надо с зажатым Shift.
+
 local EXPLODE_DIST_SQR = 0.5^2
 
 function init(obj)
@@ -20,6 +23,7 @@ function mine_binder:net_spawn(data)
     if not object_binder.net_spawn(self, data) then
         return false
     end
+	return true
 end
 
 function mine_binder:net_destroy()
@@ -38,7 +42,7 @@ function mine_binder:update(delta)
 	-- проверим всё онлайн-живое
 	for k, v in pairs(db.creatures) do
 		if AI:object(k) and v:alive() and v:position():distance_to_sqr(mine_pos) < EXPLODE_DIST_SQR then
-			if k == 0 and ShiftPressed() then	-- Актёр можнет подойти к мине только с зажатым Shift (шагом, в общем)
+			if k == 0 and ShiftPressed() then
 				return true
 			end
 			self.object:explode(0)

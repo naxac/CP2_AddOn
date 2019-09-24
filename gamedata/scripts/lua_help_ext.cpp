@@ -42,47 +42,160 @@ class callback {
 };
 
 class game_object {
-	property satiety;
-
-	// CEntityAlive
-	bool	is_alive();
-	bool	is_wounded();
+	// CGameObjet
+	float			get_go_float(int<offset>);
+	void			set_go_float(vector*, float<value>, int<offset>);
+	int				get_go_int();
+	int				get_go_int(string, int<offset>)
+	void			set_go_int(int<value>, int<offset>)
+	int				get_go_int16(string, int<offset>)
+	void			set_go_int16(int<value>, int<offset>)
+	string			get_go_shared_str();	// offset set with set_int_arg0(int<offset>)
+	int				cast_car();
+	int				cast_game_object();
+	int				cast_hud_item();
+	int				cast_inventory_box();
+	int				cast_inventory_item();
+	int				cast_weapon();
+	bool			is_game_object();
+	bool			is_car();
+	bool			is_helicopter();
+	bool			is_holder();
+	bool			is_entity_alive();
+	bool			is_inventory_item();
+	bool			is_inventory_owner();
+	bool			is_actor();
+	bool			is_custom_monster();
+	bool			is_weapon();
+	bool			is_weapon_gl();
+	bool			is_inventory_box();
+	bool			is_medkit();
+	bool			is_eatable_item();
+	bool			is_antirad();
+	bool			is_outfit();
+	bool			is_scope();
+	bool			is_silencer();
+	bool			is_grenade_launcher();
+	bool			is_weapon_magazined();
+	bool			is_space_restrictor();
+	bool			is_stalker();
+	bool			is_anomaly();
+	bool			is_monster();
+	bool			is_script_zone();
+	bool			is_projector();
+	bool			is_trader();
+	bool			is_hud_item();
+	bool			is_food_item();
+	bool			is_artefact();
+	bool			is_ammo();
+	bool			is_missile();
+	bool			is_physics_shell_holder();
+	bool			is_grenade();
+	bool			is_bottle_item();
+	bool			is_hanging_lamp();
+	bool			is_knife();
+	bool			is_binoculars();
+	bool			is_weapon_pistol();
+	bool			is_weapon_shotgun();
 	// CActor
-	float	get_inventory_weight();
-	float	get_actor_max_weight();
-	float	get_actor_max_walk_weight();
-	void	set_actor_max_weight(float);
-	void	set_actor_max_walk_weight(float);
-	bool	is_actor_running();
-	bool	is_actor_crouching();
-	bool	is_actor_sprinting();
-	bool	is_actor_creeping();
-	bool	is_actor_climbing();
-	bool	is_actor_walking();
-	float	get_actor_float(int<shift>);
-	void	set_actor_float(NULL, float<value>, int<shift>);
-	void	set_actor_condition_float(NULL, float<value>, int<shift>);
-	int		get_actor_int(NULL, int<shift>);
+	property		satiety;
+	float			get_inventory_weight();
+	float			get_actor_max_weight();
+	float			get_actor_max_walk_weight();
+	void			set_actor_max_weight(float);
+	void			set_actor_max_walk_weight(float);
+	void			set_sprint_factor(float<factor>);
+	float			get_sprint_factor();
+	int				actor_body_state();
+	float			get_actor_take_dist();
+	void			set_actor_take_dist(float);
+	int				belt_count();
+	int				ruck_count();
+	int				slot_number();
+	game_object*	item_on_belt(int);
+	game_object*	item_in_ruck(int);
+	bool			is_on_belt(game_object*);
+	bool			is_in_ruck(game_object*);
+	bool			is_in_slot(game_object*);
+	void			move_to_ruck(game_object*);
+	void			move_to_belt(game_object*);
+	void			move_to_slot(game_object*);
+	void			move_to_slot_and_activate(game_object*);
+	bool			is_actor_normal();
+	bool			is_actor_crouch();
+	bool			is_actor_creep();
+	bool			is_actor_climb();
+	bool			is_actor_running();
+	bool			is_actor_crouching();
+	bool			is_actor_sprinting();
+	bool			is_actor_creeping();
+	bool			is_actor_climbing();
+	bool			is_actor_walking();
+	float			get_actor_float(int<offset>);
+	void			set_actor_float(vector*, float<value>, int<offset>);
+	float			get_actor_condition_float(int);
+	void			set_actor_condition_float(vector*, float<value>, int<offset>);
+	string			get_actor_shared_str();	// offset set with set_int_arg0(int<offset>)
+	int				get_actor_int(string, int<offset>);
+	float			get_camera_fov();
+	void			set_camera_fov(float<fov>);
+	float			get_hud_fov();
+	void			set_hud_fov(float<fov>);
+	void			set_actor_visual(string<visual>);
+	void			open_inventory_box(game_object*<box>);
+	void			enable_car_panel(bool);
+	// CAIStalker, CActor
+	string			specific_character();
+	// CEntityAlive
+	void			heal_wounds(float<factor>);
+	void			update_condition();
+	bool			is_alive();
+	bool			is_wounded();
+	// CProjector
+	void			projector_on();
+	void			projector_off();
+	bool			projector_is_on();
+	void			switch_projector(bool);
 	// CInventoryItem
-	void	set_inventory_item_flags(int<mask>, bool<value>);
-	bool	has_inventory_item_flags(int<mask>);
-	void	set_custom_color_ids(int<color_index>);
-	int		get_slot();
-	void	set_slot(int<slot>);
-	void	set_cost(int<cost>);
-	float	get_weight();
-	void	set_weight(float<weight>);
+	float			get_inventory_item_float(int<offset>);
+	void			set_inventory_item_float(vector, float<value>, int<offset>);
+	int				get_inventory_item_int(string, int<offset>);
+	void			set_inventory_item_int(int<value>, int<offset>);
+	int				get_inventory_item_int8(string, int<offset>);
+	void			set_inventory_item_int8(int<value>, int<offset>);
+	int				get_inventory_item_int16(string, int<offset>);
+	void			set_inventory_item_int16(int<value>, int<offset>);
+	string			get_inventory_item_shared_str();	// offset set with set_int_arg0(int<offset>)
+	int				set_inventory_item_shared_str(string<value>, int<offset>);
+	void			set_inventory_item_flags(int<mask>, bool<value>);
+	bool			has_inventory_item_flags(int<mask>);
+	void			set_custom_color_ids(int<color_index>);
+	int				get_slot();
+	void			set_slot(int<slot>);
+	void			set_cost(int<cost>);
+	float			get_weight();
+	void			set_weight(float<weight>);
 	// CWeaponAmmo
-	int		get_ammo_left();
+	int				get_ammo_left();
 	// CWeapon
-	int		get_addon_flags();
-	void	set_addon_flags(int<flag>);
-	void	add_addon_flags(int<flag>);
-	int		get_ammo_type();
+	int				get_addon_flags();
+	void			set_addon_flags(int<flag>);
+	void			add_addon_flags(int<flag>);
+	int				get_ammo_type();
 	// CInventoryBox
 	game_object*	object_from_inv_box(int<index>);
 	int				inv_box_count();
-	
+	// CTorch
+	void			switch_torch(bool<switch_on>);			//переключает фонарь.
+	bool			is_torch_enabled();						//возвратит true, если фонарь включён.
+	void			set_torch_range(float<range>);			//устанавливает дальность основного света фонаря.
+	void			set_torch_color(vector<R, G, B>);		//устанавливает цвет основного света от фонаря.
+	void			set_torch_omni_range(float<range>);		//устанавливает дальность амбиент-света фонаря.
+	void			set_torch_omni_color(vector<R, G, B>);	//устанавливает цвет амбиент-света от фонаря.
+	void			set_torch_glow_radius(float<radius>);	//устанавливает радиус глоу-эффекта от фонарика.
+	void			set_torch_spot_angle(float<angle>);		//устанавливает радиус светового пятна от фонарика.
+	void			set_torch_color_animator(string<path>);	//устанавливает путь до аниматора цвета.
+	void			switch_night_vision(bool<switch_on>);	//переключает состояние ПНВ.
 };
 
 class ini_file {
