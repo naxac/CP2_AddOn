@@ -185,8 +185,8 @@ end
 
 
 -- обновление выбора погоды
--- используется при загрузке игры / смене уровня с force = 0 для возобновления последней погоды
--- и по времени обновления с force = 1, для обновления динамической погоды
+-- используется при загрузке игры / смене уровня с force = false для возобновления последней погоды
+-- и по времени обновления с force = true, для обновления динамической погоды
 function WeatherManager:select_weather(force)
     local tmp_dyn_weather = self.dyn_weather
     if force then
@@ -357,10 +357,10 @@ function WeatherManager:load(F)
     self.cycle_time = math.floor(composite / 1440)
     self.time = dayminute()
 
-    -- recover current cycle name as first element of the saved info string
+	-- восстановим имя текущего цикла из первого элемента сохраненной строки
     self.dyn_weather = string.sub(info_str, string.find(info_str, "^[%w-_]*"))
 
-    -- load the skip counters from the remaining portion of the string
+    -- загрузим счетчики пропусков из оставшейся части строки
     for name, skipped in string.gmatch(info_str, "([%w-_]+):(%d+)") do
         local cycle_id = self.cycle_idx[name]
 
@@ -368,7 +368,7 @@ function WeatherManager:load(F)
             self.cycles[cycle_id].skipped = skipped
         else
             --self:dbgmsg("Warning: unknown cycle '%s' with skip count %d", name, skipped)
-            lastidx = 0    -- set to invalid value so the savedgame is "converted"
+            lastidx = 0    -- установим недопустимое значение, чтобы сохранение «конвертировалось»
         end
     end
 
@@ -380,14 +380,10 @@ function WeatherManager:load(F)
         self.cur_weather = self:current_weather()
         self:update_times(lastidx)
 
-        -- allow up to 5 minute tolerance
+        -- допуск до 5 минут
         if is_time_between(self.time, self.last_time, self.next_time)
            or delta_time(self.time, self.next_time) <= 5
         then
-            -- set default weather in DEXXX's blowout mod script
-            if ogsm_funcs then
-                ogsm_funcs.wthr = self.cur_weather
-            end
             return
         end        
     end
@@ -398,45 +394,43 @@ function WeatherManager:load(F)
 end
 
 
--- update function called from bind_actor.script
+-- функция обновления, вызывается из bind_actor.script
 function WeatherManager:update()
     local time = dayminute()
     local update_flag = 0
 
-    -- weather is not what it should be so unless a blowout is underway
-    -- the correct weather should be resumed
-
+    -- погода не та, какой она должна быть, поэтому, если выброс не начался,
+	-- правильная погода должна быть возобновлена
     if level.get_weather() ~= self.cur_weather
-       and ((olp_mod and amk.load_variable("blowout_happened", 0) ~= 0)
-            or (blowout and blowout.GetBlowout().is_blowout_on == false))
+       and (amk.load_variable("blowout",0) == 0)
     then
         --self:dbgmsg("restoring weather after blowout")
         update_flag = 1
     end
 
-    -- check if time has increased by at least one minute
-    -- care must be taken around midnight when time wraps around
+    -- проверим, увеличилось ли время хотя бы на одну минуту
+	-- нужно подстраховаться на случай, если время приближается к полуночи
     if time <= self.time and self.time < time + 1380 and update_flag == 0 then
-        -- don't do anyhitng this minute
+        -- ничего не делаем
         return
     else
         self.time = time
     end
 
-    -- time of next available transition is reached
+    -- достигнуто время следующего доступного перехода
     if self.time == self.next_time
        or not is_time_between(self.time, self.last_time, self.next_time)
     then
         self:select_weather(true)
 
-    -- something makes it necessary to update now (e.g. post-blowout state)
+    -- по какой-то причине необходимо обновить погоду (например, закончился выброс)
     elseif update_flag ~= 0 then
         self:select_weather(false)
     end
 end
 
 
--- singleton object
+-- здесь храним экземпляр класса
 local weather_manager = nil
 
 
