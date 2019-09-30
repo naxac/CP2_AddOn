@@ -16,6 +16,7 @@ local arts_rad = 0
 local anom_rad = 0
 -----------------------------------------------------------------------------------
 local inv_arts_radiation = 0
+local belt_arts_radiation = 0
 local arts_satiety = 0
 
 local game_ms = 1000 / level.get_time_factor()
@@ -24,9 +25,16 @@ function change_arts_satiety(delta)
 	arts_satiety = arts_satiety + delta
 end
 
-function change_inv_radiation(delta)
+function change_inv_radiation(delta, belt)
 	inv_arts_radiation = inv_arts_radiation + delta
---	log("[arc_radiation.change_inv_radiation] delta = %s, inv_arts_radiation = %s", delta, inv_arts_radiation)
+	if belt then
+		belt_arts_radiation = belt_arts_radiation - delta
+	end
+--	log("[arc_radiation.change_inv_radiation]:\n - delta = %s\n -  inv_arts_radiation = %s\n - belt_arts_radiation = %s", delta, inv_arts_radiation, belt_arts_radiation)
+end
+function change_belt_radiation(delta)
+	belt_arts_radiation = belt_arts_radiation + delta
+--	log("[arc_radiation.change_belt_radiation]:\n - delta = %s\n -  belt_arts_radiation = %s", delta, belt_arts_radiation)
 end
 -----------------------------------------------------------------------------------
 local arts_upd_time = 100
@@ -46,10 +54,12 @@ function on_actor_update(delta)
 		
 		local add_rad = 0
 		if inv_arts_radiation ~= 0
-		--	and not cars_radiation_fix.actor_inside_car()
 			and not Actor:get_current_holder()
 		then
 			add_rad = inv_arts_radiation*f
+			if belt_arts_radiation < 0 then
+				add_rad = add_rad + (belt_arts_radiation*f/DOSE_DEC_DIV)
+			end
 		end
 		
 		local r = Actor.radiation

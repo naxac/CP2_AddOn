@@ -53,7 +53,11 @@ function remove_from_belt( item )
 	end
 
 	if t.radiation then
-		arc_radiation.change_inv_radiation( t.radiation )
+		if t.radiation > 0 then
+			arc_radiation.change_inv_radiation( t.radiation, true )
+		else
+			arc_radiation.change_belt_radiation( -t.radiation )
+		end
 	end
 
 	if t.add_weight then
@@ -92,9 +96,13 @@ function add_on_belt( item )
 		end
 		
 		n = sys_ini:r_float( sect, "radiation_restore_speed" )
-		if n > 0 then
+		if n ~= 0 then
 			t.radiation = n
-			arc_radiation.change_inv_radiation( -n )
+			if n > 0 then
+				arc_radiation.change_inv_radiation( -n, true )
+			else
+				arc_radiation.change_belt_radiation( n )
+			end
 		end
 
 		if sys_ini:line_exist( sect, "additional_inventory_weight" ) then

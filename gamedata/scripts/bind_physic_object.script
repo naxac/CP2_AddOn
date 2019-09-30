@@ -6,11 +6,6 @@
 ----------------------------------------------------------------------------------------------------
 
 
--- local actor_inside_car = false    
--- function restore_actor_inside_car()   
-    -- actor_inside_car = false       
--- end 
-
 function init(obj)
 --	printf("_bp: init(): name='%s'", obj:name())
 
@@ -135,10 +130,6 @@ function generic_physics_binder:update(delta)
 		  end
 		end
 	end
-	-- if actor_inside_car==false and self.object:clsid() == clsid.car_s and self.object:get_car():engaged() then
-        -- cars_radiation_fix.on_vehicle_input(self.object:id())
-		-- actor_inside_car = true
-	-- end
 end
 
 function generic_physics_binder:net_spawn(data)
@@ -157,7 +148,16 @@ function generic_physics_binder:net_spawn(data)
 		self.box_items = xr_box.ph_item_box(self.object)
 	end
 
-	cars_radiation_fix.car_physic_fix(self.object)
+	-- car_physic_fix
+	if self.object:clsid() == clsid.car_s and self.object:section() ~= "vehicle_btr" then
+		local h = hit()
+		h.draftsman = self.object
+		h.type = hit.strike
+		h.direction = vector()
+		h.power = 0.0001
+		h.impulse = 0.0001
+		self.object:hit(h)
+	end
 
 	amk.on_net_spawn(self.object)
 
