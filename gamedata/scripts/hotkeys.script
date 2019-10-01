@@ -158,6 +158,30 @@ function CUICarbodyAddons:__init(owner, used_box) super()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.subscribe(k, self[v], {self = self} )
 	end
+	self:ShowOthersWeight()
+end
+
+function CUICarbodyAddons:ShowOthersWeight()
+	if self.others_weight == nil then
+		self.others_weight = 0
+		local box = self.used_box
+		if box:clsid() == clsid.inventory_box then
+			local item
+			for i = 0, box:inv_box_count()-1 do
+				item = box:object_from_inv_box(i)
+				self.others_weight = self.others_weight + item:get_weight()
+			end
+		else
+			box:iterate_inventory(
+				function (dummy, item)
+					self.others_weight = self.others_weight + item:get_weight()
+				end,
+			nil)
+		end
+	end
+
+	self.others_weight = math.max(self.others_weight, 0)
+	self.weight_st:SetText( string.format("%.02f кг", self.others_weight) )
 end
 
 function CUICarbodyAddons:InitControls()
@@ -166,20 +190,14 @@ function CUICarbodyAddons:InitControls()
 
 	local xml = CScriptXmlInit()
 	xml:ParseFile("carbody_addons.xml")
+
 	self:Register(xml:Init3tButton("move_btn", self), "move_btn")
 	self.owner:AttachChild(self)
 	self:AddCallbackEx("move_btn", ui_events.BUTTON_CLICKED, self.move_items)
-	
-	if self.used_box:clsid()==clsid.inventory_box then
-		self:Register(xml:Init3tButton("repack_btn", self), "repack_btn")
-		self:AddCallbackEx("repack_btn", ui_events.BUTTON_CLICKED, self.repack_ammo)
-	end
+
+	self.weight_st = xml:InitStatic("others_weight", self)
 	
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
-end
-
-function CUICarbodyAddons:repack_ammo()
-	dunin_ammo.repack_in_box(self.used_box)
 end
 
 function CUICarbodyAddons:Remove()
@@ -190,10 +208,16 @@ function CUICarbodyAddons:Remove()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.unsubscribe(k, self[v])
 	end
-	akill.check_habar_in_box1(used_box)
+	akill.check_habar_in_box1(self.used_box)
+	if self.used_box:clsid() == clsid.inventory_box then
+		dunin_ammo.repack_in_box(self.used_box)
+	end
+	self.used_box = nil
 end
 
 function CUICarbodyAddons:move_items()
+	self.moved = true
+
 	local box = self.used_box
 	local actor = db.actor
 	if self.droped_section then
@@ -223,6 +247,11 @@ function CUICarbodyAddons:move_items()
 
 	self.droped_section = nil
 	self.taken_section = nil
+	start_small_timer(300,
+		function(s)
+			s.moved = nil
+		end,
+	self)
 end
 
 function CUICarbodyAddons:on_item_drop(obj)
@@ -234,6 +263,13 @@ function CUICarbodyAddons:on_item_drop(obj)
 
 	self.droped_section = s
 	self.taken_section = nil
+
+	self.others_weight = self.others_weight + obj:get_weight()
+	self:ShowOthersWeight()
+
+	if ShiftPressed() and not self.moved then
+		self:move_items()
+	end
 end
 
 function CUICarbodyAddons:on_item_take(obj)
@@ -245,6 +281,13 @@ function CUICarbodyAddons:on_item_take(obj)
 
 	self.taken_section = s
 	self.droped_section = nil
+
+	self.others_weight = self.others_weight - obj:get_weight()
+	self:ShowOthersWeight()
+
+	if ShiftPressed() and not self.moved then
+		self:move_items()
+	end
 end
 
 
