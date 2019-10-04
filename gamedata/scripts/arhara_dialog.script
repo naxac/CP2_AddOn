@@ -703,6 +703,20 @@ function sahar_info_have()
 	return inventory.search("telefon",1) ~= false
 end
 
+function ecolog_has_phone(first_speaker, second_speaker)
+	local npc = first_speaker:id() == 0 and second_speaker or first_speaker
+	return npc:object("telefon") ~= nil
+end
+
+function ecolog_out_phone(first_speaker, second_speaker)
+	local npc = first_speaker:id() == 0 and second_speaker or first_speaker
+	local obj = npc:object("telefon")
+	if obj then
+		npc:transfer_item(obj, Actor)
+		news_manager.relocate_item(Actor, "in", "telefon")
+	end
+end
+
 --' отдадим телефон Сахару и Сахар друг
 function sahar_info_done(first_speaker, second_speaker)
 	inventory.out_items("telefon",1)
