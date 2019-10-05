@@ -308,7 +308,6 @@ function drop_manager:create_release_item()
 		end
 	end
 	, self.npc)
-	self.npc:set_callback(callback.on_item_take, this.on_take_after_death, {self.npc, cond, cond_add, time_global()+1000})
 	
 	--' Проверка на отсутствие спауна лута
 	if ini and ini:section_exist("dont_spawn_loot") then
@@ -430,21 +429,4 @@ end
 
 function get_keep_items()
 	return table.copy({}, always_keep_item)
-end
-
-function on_take_after_death(p, item)
-	if p[4] < time_global() then return end
-
-	local npc = p[1]
-	local sect = item:section()
-	if item:condition() < 1 then return end
-	if (not isMagazinedWeapon(item)) or unique_wpn[item:section()] then return end
-	log("[death_manager.on_take_after_death]: npc '%s' take Magazined Weapon '%s'", npc:name(), item:name())
-
-	local cond = p[2]
-	local cond_add = p[3]
-	--	Оставляем немного патронов в магазине
-	local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
-	item:set_ammo_elapsed(n)
-	item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
 end
