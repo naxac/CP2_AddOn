@@ -569,6 +569,7 @@ local afs={
 ["snp_prime_maz"] = true,
 ["sweetness"] = true,
 ["vodka"] = true,
+["wpn_bizon"] = true,
 -- все эмбрионы нужные для варки
 ["mutant_boar_cocoon"] = true,
 ["mutant_burer_cocoon"] = true,
@@ -1340,6 +1341,15 @@ local anom_recept_komp = {
 			},
 			
 			recepti = {
+				["anom_bizon_info"] = { -- артефакт удалит аномалиі без результатов варки/мутации
+					komp = {["wpn_bizon"]=true},
+					cel = {["wpn_bizon1"]=true},
+					vremya = {3,14,0},
+					v_udachi = 80,
+					v_virogd = 0,
+					keep_cond = true,
+					not_for_mutator = true
+				},
 				["info_izomorf_kompas"] = { -- артефакт удалит аномалиі без результатов варки/мутации
 					komp = {["izomorf_kompas"]=true},
 					cel = {["izomorf_kompas"]=true},
@@ -1728,11 +1738,13 @@ function af_transform_universal_end(var)
 
 		-- формируем строку с названиями компонентов
 		local komp = {}
+		local keep_cond
 		for k,v in pairs(anom_recept_komp.anomalii) do
 			if v['recepti'] and v['recepti'][rec_name] then
 				for sect in pairs(v['recepti'][rec_name]['komp']) do
 					table.insert( komp, game.translate_string(get_inv_name(sect)) )
 				end
+				keep_cond = v['recepti'][rec_name]['keep_cond']
 				break
 			end
 		end
@@ -1746,6 +1758,13 @@ function af_transform_universal_end(var)
 			obj:use_ai_locations(false)
 			obj.is_transformed = true
 			amk.add_spot_on_map(obj.id, "red_location", game.translate_string("trans_finished_title").." из %c[255,255,0,0]"..from_komp)
+			if keep_cond then
+				local tt = {}
+				local cond = math.random(20, 80)/100
+				tt.condition = cond
+				tt.upd = {condition = cond}
+				netpk:modify(obj, tt)
+			end
 			
 			if params.udacha and string_find(sect, "^af_") then
 				archievements.acv_count_event("acv_art", 100, "Сварщик")
