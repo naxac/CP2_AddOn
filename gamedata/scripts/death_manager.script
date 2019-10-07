@@ -249,20 +249,18 @@ function init_drop_settings()
 --	tmr:get("read letters", true)
 end
 
-class "drop_manager"
-function drop_manager:__init(npc)
-	self.npc = npc
+function on_npc_death(npc)
 end
 
-function drop_manager:create_release_item()
-	if self.npc == nil then return end
+function create_release_items(npc)
+	if npc == nil then return end
 	
 	--' Спрашиваем у серверного объекта генерились ли предметы
-	local se_obj = AI:object(self.npc:id())
+	local se_obj = AI:object(npc:id())
 	if (se_obj == nil) or (se_obj.death_droped == true) then return end
 	se_obj.death_droped = true
 
-	local data = data_by_community.communities[self.npc:character_community()]
+	local data = data_by_community.communities[npc:character_community()]
 	if not data then
 		data = data_by_community.default
 	end
@@ -270,14 +268,15 @@ function drop_manager:create_release_item()
 	local cond = data.condition
 	local cond_add = 5*(3-level.get_game_difficulty())
 	
-	local ini = self.npc:spawn_ini()
+	local ini = npc:spawn_ini()
 	local totally_broken_weapon = ( ini and ini:section_exist("totally_broken_weapon") )
 
-	local active_item_id = self.npc:active_item() and self.npc:active_item():id()
+	local active_item_id = npc:active_item() and npc:active_item():id()
 	
     --' Запускаем итератор на удаление предметов
 	local se_item, sect, item_id
-    self.npc:iterate_inventory(function (nepis, item)
+    npc:iterate_inventory(function (nepis, item)
+		if item:condition() < 0.99 then return end
 		item_id = item:id()
 		se_item = AI:object(item_id)
 		if se_item == nil then return end
@@ -307,7 +306,9 @@ function drop_manager:create_release_item()
 			end
 		end
 	end
-	, self.npc)
+	, npc)
+
+	start_small_timer(1000, death_manager.set_wpn_cond, npc, cond.min, cond.max, cond_add)
 	
 	--' Проверка на отсутствие спауна лута
 	if ini and ini:section_exist("dont_spawn_loot") then
@@ -316,38 +317,38 @@ function drop_manager:create_release_item()
 
 	--' Доспавниваем необходимое количество итемов:
 	--' Необходимо составить список объектов которые могут быть заспавнены для персонажа
-	local spawn_items = item_by_community[self.npc:character_community()]
+	local spawn_items = item_by_community[npc:character_community()]
 	if spawn_items then
 		local number
-		local tCnt = count_by_rank[ ranks.get_obj_rank_name(self.npc) ]
+		local tCnt = count_by_rank[ ranks.get_obj_rank_name(npc) ]
 		for k, v in pairs(spawn_items) do
 			--' По каждому объекту необходимо получить зависимости		
-			if check_item_dependence(self.npc, k) == true then
+			if check_item_dependence(npc, k) == true then
 				--' По каждому объекту необходимо получить количество
 				number = math.ceil( math_random(tCnt[k].min, tCnt[k].max) )
 				--' Необходимо заспавнить нужное количество.
-				create_items(self.npc, k, number, v) 
+				create_items(npc, k, number, v) 
 			end
 		end
 	end
 	
 	--' Даем письмо
-	give_letter(self.npc)
+	this.give_letter(npc)
 	
 	local vis = nil
-	local npc_name = protected_items.get_obj_name(self.npc)
-	if (not string.find(self.npc:section(), "arena")) and
-		self.npc:character_community() ~= "arena_enemy" and
+	local npc_name = protected_items.get_obj_name(npc)
+	if (not string.find(npc:section(), "arena")) and
+		npc:character_community() ~= "arena_enemy" and
 		npc_name ~= "yan_specnaz_dead" and
 		npc_name ~= "x16_stalker_ghost" then
-		local visual = string.explode(self.npc:get_visual_name(), "\\")
+		local visual = string.explode(npc:get_visual_name(), "\\")
 		vis = visual[#visual]
 	end
 	
 	if vis then
 		sect = xrs_armor.get_suit_sect(vis, npc_name)
 		if sect then
-			se_item = create_items(self.npc, sect, 1, data.probability_outfit * 10)
+			se_item = create_items(npc, sect, 1, data.probability_outfit * 10)
 			if se_item then
 				xr_timers.start_real_timer("outfit_cond",1,{se_item.id, cond.min, cond.max})
 			end
@@ -358,6 +359,27 @@ function drop_manager:create_release_item()
 	if info and db.actor:dont_has_info(info) then
 		db.actor:give_info_portion(info)
 	end
+end
+
+function set_wpn_cond(npc, cond_min, cond_max, cond_add, totally_broken_weapon)
+	if AI:object(npc:id()) == nil then return end
+
+    npc:iterate_inventory(function (nepis, item)
+		if item:condition() < 0.99 then return end
+		if  isMagazinedWeapon(item) and unique_wpn[sect] == nil then
+			--	Оставляем немного патронов в магазине
+			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond_min) / 100 )
+			item:set_ammo_elapsed(n)
+			if totally_broken_weapon then
+				item:set_condition(0.01)
+			else
+				item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
+			end
+		elseif sect == "wpn_knife" then
+			item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
+		end
+	end
+	, npc)
 end
 
 --' Функция спавнит необходимое число предметов
