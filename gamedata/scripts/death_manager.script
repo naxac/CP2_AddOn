@@ -364,18 +364,22 @@ end
 function set_wpn_cond(npc, cond_min, cond_max, cond_add, totally_broken_weapon)
 	if AI:object(npc:id()) == nil then return end
 
+	local section
     npc:iterate_inventory(function (nepis, item)
+		if not ( item and item.id and AI:object( item:id() ) ) then return end
 		if item:condition() < 0.99 then return end
-		if  isMagazinedWeapon(item) and unique_wpn[sect] == nil then
+
+		section = item:section()
+		if  isMagazinedWeapon(item) and unique_wpn[section] == nil then
 			--	Оставляем немного патронов в магазине
-			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond_min) / 100 )
+			local n = math.floor( sys_ini:r_u32(section, "ammo_mag_size") * math_random(0, cond_min) / 100 )
 			item:set_ammo_elapsed(n)
 			if totally_broken_weapon then
 				item:set_condition(0.01)
 			else
 				item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
 			end
-		elseif sect == "wpn_knife" then
+		elseif section == "wpn_knife" then
 			item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
 		end
 	end
