@@ -1,6 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Награды за стволы
-local actor_name = Actor:character_name()
 
 local nagrad = {
   
@@ -292,7 +291,7 @@ local voron_wpn = {
 	{"wpn_winch1887", 3},
 	{"wpn_wincheaster1300_ves", 4},
 	{"wpn_winchester_m1", 2},
-	{"wpn_zastava_m77", 4},
+	{"wpn_zastava_m77", 4}
 }
 
 local voron_text_give = {
@@ -331,20 +330,20 @@ local voron_text_give = {
 	{"Уникальный ", " одного местного умельца. Возьмёшь?"},
 	{"Нашёл вот раритетный ", ". Возьмешь?"},
 	{"Выискал ", ". Подойдёт?"},
-	{"Чудом нашёл ", "! Классный ствол, жалко расставаться..."},
+	{"Чудом нашёл ", "! Классный ствол, жалко расставаться..."}
 }
 
 local voron_text_take = {
-	"Конечно, "..actor_name..", клиент будет доволен! Держи награду!",
-	"Ну, "..actor_name..", молодец! Спасибо!",
-	"Ух ты, "..actor_name..", давай скорее!",
+	"Конечно, $actor$, клиент будет доволен! Держи награду!",
+	"Ну, $actor$, молодец! Спасибо!",
+	"Ух ты, $actor$, давай скорее!",
 	"Неплохой ствол, беру.",
-	"Сойдёт, "..actor_name..", беру!",
-	"Конечно, "..actor_name..", получи награду!",
-	"Ну, "..actor_name..", молодец! Конечно!",
+	"Сойдёт, $actor$, беру!",
+	"Конечно, $actor$, получи награду!",
+	"Ну, $actor$, молодец! Конечно!",
 	"Отлично, беру!",
 	"Конечно! Ещё спрашиваешь!",
-	"Ну, "..actor_name..", и не жалко тебе такой агрегат? Беру!",
+	"Ну, $actor$, и не жалко тебе такой агрегат? Беру!",
 	"О, это моя мечта! Беру конечно.",
 	"Ну конечно беру, о чём речь!",
 	"Отличный ствол, беру!",
@@ -352,20 +351,20 @@ local voron_text_take = {
 	"И правда классный! Беру!",
 	"И не жалко тебе такой ствол отдавать? Беру!",
 	"Мощный аппарат! Беру!",
-	"Конечно, "..actor_name..", эти стволы можешь нести без раздумья!",
+	"Конечно, $actor$, эти стволы можешь нести без раздумья!",
 	"Хорош! Такой подарок -вообще замечательно!",
 	"Отлично, давно мечтал из него пошмалять!",
 	"Действительно, редкий экземпляр, возьму!",
 	"Ого, классная штука! Отлично, беру!",
-	"Отлично, "..actor_name..", очень надо!",
+	"Отлично, $actor$, очень надо!",
 	"Обожаю их! Беру!",
-	"Ну, "..actor_name..", молодец! Спасибо!",
+	"Ну, $actor$, молодец! Спасибо!",
 	"Ого! И не жалко тебе? Беру!",
 	"Ух ты, да это же моя мечта! За него я тебя отблагодарю по особенному!",
 	"Ух ты, неплохой экземплярчик! Сойдёт!",
 	"Ух ты, конечно возьму!",
 	"Отличная игрушка, беру!",
-	"Прекрасный аппарат! Давай!",
+	"Прекрасный аппарат! Давай!"
 }
 
 -- Создание диалога Ворона
@@ -375,13 +374,16 @@ function init_mosinka_dialog(dlg)
 	phrase_script:AddGiveInfo("price_voron_mosin")
 
 	phr = dlg:AddPhrase("mosinka_1","1","0",-10000)
-		
+
+	local str
+	local actor_name = Actor:character_name()
 	for i = 1, #voron_wpn do
-		phr = dlg:AddPhrase(voron_text_give[math.random(#voron_text_give)][1]..game.translate_string(get_inv_name(voron_wpn[i][1]))..voron_text_give[math.random(#voron_text_give)][2], tostring(1000+i), "1", -10000)		
+		phr = dlg:AddPhrase(table.random(voron_text_give)[1]..game.translate_string(get_inv_name(voron_wpn[i][1]))..table.random(voron_text_give)[2], tostring(1000+i), "1", -10000)		
 		phrase_script = phr:GetPhraseScript()
 		phrase_script:AddPrecondition("wawka_dialog.v_have_good_wpn")
 
-		phr = dlg:AddPhrase(voron_text_take[math.random(#voron_text_take)], tostring(2000+i), tostring(1000+i), -10000)		
+		str = string.gsub(table.random(voron_text_take), "%$actor%$", actor_name)
+		phr = dlg:AddPhrase(str, tostring(2000+i), tostring(1000+i), -10000)		
 		phrase_script = phr:GetPhraseScript()
 		phrase_script:AddAction("wawka_dialog.v_take_wpn")
 	end
