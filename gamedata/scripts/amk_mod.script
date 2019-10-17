@@ -1344,11 +1344,10 @@ local anom_recept_komp = {
 			recepti = {
 				["anom_bizon_info"] = {
 					komp = {["wpn_bizon"]=true},
-					cel = {["af_bizon1"]=true},
-					vremya = {3,14,0},
+					cel = {["wpn_bizon1"]=true},
+					vremya = {{3,14,15}},
 					v_udachi = 80,
 					v_virogd = 0,
-					keep_cond = true,
 					not_for_mutator = true
 				},
 				["info_izomorf_kompas"] = { -- артефакт удалит аномалию без результатов варки/мутации
@@ -1739,13 +1738,11 @@ function af_transform_universal_end(var)
 
 		-- формируем строку с названиями компонентов
 		local komp = {}
-		local keep_cond
 		for k,v in pairs(anom_recept_komp.anomalii) do
 			if v['recepti'] and v['recepti'][rec_name] then
 				for sect in pairs(v['recepti'][rec_name]['komp']) do
 					table.insert( komp, game.translate_string(get_inv_name(sect)) )
 				end
-				keep_cond = v['recepti'][rec_name]['keep_cond']
 				break
 			end
 		end
@@ -1759,12 +1756,8 @@ function af_transform_universal_end(var)
 			obj:use_ai_locations(false)
 			obj.is_transformed = true
 			amk.add_spot_on_map(obj.id, "red_location", game.translate_string("trans_finished_title").." из %c[255,255,0,0]"..from_komp)
-			if keep_cond then
-				local tt = {}
-				local cond = math.random(20, 80)/100
-				tt.condition = cond
-				tt.upd = {condition = cond}
-				netpk:modify(obj, tt)
+			if isWeapon(obj) then
+				this.set_wpn_after_transform(obj)
 			end
 			
 			if params.udacha and string_find(sect, "^af_") then
@@ -1803,6 +1796,22 @@ function af_transform_universal_end(var)
 	end
 end
 
+function set_wpn_after_transform(sobj)
+	local tt = {}
+	local cond = math.random(20, 80)/100
+	tt.condition = cond
+	tt.ammo_elapsed = 0
+	tt.upd = {}
+	tt.upd.condition = cond
+	tt.upd.ammo_elapsed = 0
+	netpk:modify(sobj, tt)
+	level.client_spawn_manager():add(sobj.id, -1,
+		function(id, item)
+			item:set_condition(cond)
+			item:unload_magazine()
+		end
+	)
+end
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **   **    AMK_METKA     **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
