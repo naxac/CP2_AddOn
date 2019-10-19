@@ -829,28 +829,29 @@ function CAmkTransmutacion:CreateAtrefact()
 	local vremya 			= amk_mod.get_af_transform_param("vremya", tmp, aRecipts)
 	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
 	local remove_anomaly_id = remove_anomaly and aAnomId or nil
-	local result, udacha 	= amk_mod.af_select_result(v_udachi, v_virogd, virogd, cel, komp)
-	local info              = iInfo
+	local result, udacha 	= amk_mod.af_select_result(v_udachi, v_virogd)
 	local lv 				= db.actor:level_vertex_id()
 	local gv 				= db.actor:game_vertex_id()
 	local pos 				= db.actor:position()	
 	
 	if cel == nil or v_udachi == nil or v_virogd == nil
 		or virogd == nil or vremya == nil or remove_anomaly == nil 
-		or cel == nil and remove_anomaly == false
-		or v_udachi + v_virogd > 100 then		
-		-- кривой рецепт  - выходим
+		or (cel == nil and remove_anomaly == false)
+		or (v_udachi + v_virogd > 100)
+	then
+		-- кривой рецепт  - выходим с сообщением в лог
+		log("! Wrong transform recipe found: %s", iInfo)
+		table.print(tmp)
 		oDevice:Quit()
 	end
 
 	-- неудача
-	if udacha == false then
-		remove_anomaly = false
-		info = nil
+	if result ~= 2 then
+		remove_anomaly_id = nil
 	end
 	level.add_pp_effector("teleport.ppe", 1524, false)
 
-	amk_mod.as_start_universal_transform_timer(iInfo, result, udacha, pos, vremya, gv, lv, info, remove_anomaly_id)
+	amk_mod.as_start_universal_transform_timer(iInfo, result, vremya, pos, gv, lv, remove_anomaly_id)
 	
 	-- на случай если захотим сварить такой же арт (для корректной строки недостающих компонентов)
 	if aReciptsHave[iInfo] then

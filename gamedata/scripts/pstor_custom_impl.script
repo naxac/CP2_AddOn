@@ -68,15 +68,10 @@ function af_var:save(pk)
 	pk:w_u8(table.size(self.st))
 	for k, v in pairs(self.st) do
 		pk:w_stringZ(k)
-		pk:w_u8(table.size(v.result))
-		for s in pairs(v.result) do
-			pk:w_stringZ(s)
-		end
-		pk:w_bool(v.udacha)
+		pk:w_u8(v.result)
 		pk:w_vec3(v.pos)
 		pk:w_s16(v.gv)
 		pk:w_s32(v.lv)
-		pk:w_stringZ(v.info or "")
 		pk:w_u16(v.rem_anom or 0)
 	end
 end
@@ -96,21 +91,11 @@ function af_var:load(pk)
 		local t = {}
 		self.st[v] = t
 
-		t.result = {}
-		v = pk:r_u8()
-		if v > 0 then
-			for ii = 1, v do
-				t.result[pk:r_stringZ()] = true
-			end
-		end
-
-		t.udacha = pk:r_bool()
+		t.result = pk:r_u8()
 		t.pos = vector()
 		pk:r_vec3(t.pos)
 		t.gv = pk:r_s16()
 		t.lv = pk:r_s32()
-		v = pk:r_stringZ()
-		if v ~= "" then t.info = v end
 		v = pk:r_u16()
 		if v ~= 0 then t.rem_anom = v end
 	end

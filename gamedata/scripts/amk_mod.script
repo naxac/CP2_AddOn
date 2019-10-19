@@ -1525,6 +1525,14 @@ local anom_recept_komp = {
 		}
 	}
 }
+-- Может быть только три вида результата: значит, сохраняем только индекс,
+-- а остальное вычитаем на финише из таблицы с рецептами.
+-- Это же скольки-кратная экономия!
+local res2key = {
+	[0] = "komp",	-- отторжение
+	[1] = "virogd",	-- вырождение
+	[2] = "cel"		-- удача
+}
 
 -- возвращает значение, возможно из умолчаний
 function get_af_transform_param(name, recept, recepti)
@@ -1617,8 +1625,7 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 										local remove_anomaly	= get_af_transform_param("remove_anomaly", recept, recepti)
 										local remove_anomaly_id = remove_anomaly and anom_id or nil
 										local komp		= recept["komp"]
-										local result, udacha 	= af_select_result(v_udachi, v_virogd, virogd, cel, komp)
-										local info_portion	= recept["info"]
+										local result 	= af_select_result(v_udachi, v_virogd)
 										
 										if cel == nil or v_udachi == nil or v_virogd == nil
 											or virogd == nil or vremya == nil or remove_anomaly == nil 
@@ -1633,15 +1640,14 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 										end
 										
 										-- неудача
-										if udacha == false then
+										if result ~= 2 then
 											remove_anomaly_id = nil
-											info_portion = nil
 										end
 
 										level.add_pp_effector("teleport.ppe", 1524, false)
 										
 										-- запускаем варку/мутацию
-										as_start_universal_transform_timer(info, result, udacha, obj_pos, vremya, gv, lv, info_portion, remove_anomaly_id)
+										as_start_universal_transform_timer(info, result, vremya, obj_pos, gv, lv, remove_anomaly_id)
 										
 										-- удаляем из игры компоненты рецепта
 										shiftCheckDropItem()
@@ -1675,16 +1681,16 @@ function af_flash(af)
 end
 
 -- случайно выбирает результат, возвращает таблицу с секциями результатов
-function af_select_result(v_udachi, v_virogd, virogd, cel, komp)
+function af_select_result(v_udachi, v_virogd)
 	local rnd=math_random(0,100)
 	if rnd > v_udachi then --неудача
 		if rnd > v_virogd + v_udachi then -- отторжение
-			return komp, false
+			return 0
 		else -- вырождение
-			return virogd, false
+			return 1
 		end
 	else -- удача
-		return cel, true
+		return 2
 	end
 end
 
@@ -1692,15 +1698,12 @@ end
 -- результаты могут быть многочисленны (несколько целей, полное отторжение компонентов, несколько вырождений)
 local transform_params = nil
 
-function as_start_universal_transform_timer(rec_name, result, udacha, pos, vremya, gv, lv, info_portion, remove_anomaly_id)
+function as_start_universal_transform_timer(rec_name, result, vremya, pos, gv, lv, remove_anomaly_id)
 	-- сохраняемые данные
 	if transform_params == nil then
 		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
 	end
 
-	if rec_name == info_portion then
-		info_portion = nil
-	end
 	-- для возможности запускать несколько варок по одному и тому же рецепту...
 	local i = 0
 	local var = rec_name
@@ -1709,12 +1712,10 @@ function as_start_universal_transform_timer(rec_name, result, udacha, pos, vremy
 		i = i + 1
 	end
 	transform_params[var] = {
-		result	= result or {},
-		udacha	= udacha,
+		result	= result,
 		pos		= pos,
 		gv		= gv,
 		lv		= lv,
-		info	= info_portion,
 		rem_anom = remove_anomaly_id,
 	}
 	xr_timers.start_game_timer("af_transform_universal", vremya[1], vremya[2], vremya[3], var)
@@ -1730,37 +1731,54 @@ function af_transform_universal_end(var)
 		or abort("af_transform_universal_end: not found params for transform: %s", utils.to_str(var))
 
 	local rec_name = string.match(var, "^([^:]+)")
+
+	-- Прочитаем из таблицы, что же у нас сварилось
+	local recept, info = nil, nil
+	local result = {}
+	for k,v in pairs(anom_recept_komp.anomalii) do
+		if v['recepti'] and v['recepti'][rec_name] then
+			recept = v['recepti'][rec_name]
+			result = get_af_transform_param(res2key[params.result], recept, v)
+			info = recept['info']
+			break
+		end
+	end
+
+	if recept == nil then
+		abort("[amk_mod.af_transform_universal_end]: recept '%s' not found in [anom_recept_komp]", rec_name)
+	end
+
+	if info == nil then
+		info = rec_name
+	end
+
 	-- если есть результаты
-	if table.size(params.result) > 0 then
+	if table.size(result) > 0 then
 		if Actor:position():distance_to(params.pos) < 15 then
 			level.add_pp_effector("teleport.ppe", 1524, false)
 		end
 
 		-- формируем строку с названиями компонентов
 		local komp = {}
-		for k,v in pairs(anom_recept_komp.anomalii) do
-			if v['recepti'] and v['recepti'][rec_name] then
-				for sect in pairs(v['recepti'][rec_name]['komp']) do
-					table.insert( komp, game.translate_string(get_inv_name(sect)) )
-				end
-				break
-			end
+		for sect in pairs(recept['komp']) do
+			table.insert( komp, game.translate_string(get_inv_name(sect)) )
 		end
 		local from_komp = table.concat(komp, ", ")
+		local text = game.translate_string("trans_finished_title").." из %c[red]"..from_komp
 		
 		-- спавним результат(ы)
 		local obj
-		for sect in pairs(params.result) do
+		for sect in pairs(result) do
 			obj = AI:create(sect, params.pos:add(vector():set(0,1,0)), params.lv, params.gv)
 			obj = AI:object(obj.id)
 			obj:use_ai_locations(false)
 			obj.is_transformed = true
-			amk.add_spot_on_map(obj.id, "red_location", game.translate_string("trans_finished_title").." из %c[255,255,0,0]"..from_komp)
+			amk.add_spot_on_map(obj.id, "red_location", text)
 			if isWeapon(obj) then
 				this.set_wpn_after_transform(obj)
 			end
 			
-			if params.udacha and string_find(sect, "^af_") then
+			if params.result == 2 and string_find(sect, "^af_") then
 				archievements.acv_count_event("acv_art", 100, "Сварщик")
 				actor_stats.add_points( "artefacts_2", get_inv_name(sect), 1, 1 )
 				xr_statistic.add_actor_rank( xr_statistic.get_af_rank(sect) )
@@ -1768,12 +1786,11 @@ function af_transform_universal_end(var)
 			xr_statistic.set_id( obj.id, true )
 		end
 	
-		amk.send_tip(game.translate_string("trans_finished_title").." из %c[255,255,0,0]"..from_komp)
+		amk.send_tip(text, nil, nil, nil, "nano")
 	end
 	
 	-- даём инфопорцию, если есть
-	local info = params.info or rec_name
-	if Actor:dont_has_info(info) then
+	if Actor:dont_has_info(info) and params.result == 2 then
 		Actor:give_info_portion(info)
 	end
 	
