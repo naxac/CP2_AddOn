@@ -1,24 +1,12 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- [[ Dynamic Weather v0.9.5 script ]] --
 
--- enable/disable printing debug messages to console
-local debug = 0
+-- включение/отключение вывода отладочных сообщений в консоль
+local is_debug = false
 
-
--- stubs for OL2.2
-function dynamic_weather_time(level_name)
-    return false
-end
-
-function dynamic_weather_level(level_name)
-    return false
-end
--- end of OL2.2 stubs
-
-
--- check if level name corresponds to one of the levels
--- that should use special indoor level as configured
--- in game_maps_single.ltx
+-- проверим, соответствует ли имя уровня одному из уровней
+-- которые должны использовать специальную погоду, 
+-- как настроено в game_maps_single.ltx
 local function is_indoor(level_name)
     return (level_name == "l03u_agr_underground"
             or level_name == "l04u_labx18"
@@ -35,20 +23,20 @@ local function is_indoor(level_name)
 end
 
 
--- time in minutes since midnight
+-- время в минутах с полуночи
 local function dayminute()
     return level.get_time_hours() * 60 + level.get_time_minutes()
 end
 
 
--- returns true if t1 <= t <= t2 assuming 24 hour clock
+-- возвратит true если t1 <= t <= t2, учитывая 24-часовой формат времени
 local function is_time_between(t, t1, t2)
     return (t1 < t2 and (t >= t1 and t <= t2))
         or (t1 > t2 and (t >= t1 or  t <= t2))
 end
 
 
--- absolute time difference between two times in minutes
+-- абсолютная разница во времени между двумя значениями в минутах
 local function delta_time(t1, t2)
     return (t2 + 1440 - t1) % 1440
 end
@@ -130,17 +118,17 @@ function WeatherManager:__init()
 end
 
 
--- функция вывода сообщения отладки - можно отключить, установив для debug значение false
+-- функция вывода сообщения отладки - можно отключить, установив для is_debug значение false
 function WeatherManager:dbgmsg(fmt, ...)
-    if debug ~= 0 then
+    if is_debug then
         local msgtext = string.format("%02d:%02d idx:%d->%d,time:%02d:%02d->%02d:%02d ",
                                       level.get_time_hours(), level.get_time_minutes(),
                                       self.last_time_idx, self.next_time_idx,
-                                      math.floor(self.last_time / 60), self.last_time % 60, 
+                                      math.floor(self.last_time / 60), self.last_time % 60,
                                       math.floor(self.next_time / 60), self.next_time % 60)
 
         msgtext = msgtext .. string.format(fmt, ...)
-        log("~ [level_weathers]: "..msgtext)
+		log("~ [level_weathers]: "..msgtext)
     end
 end
 
@@ -291,6 +279,7 @@ function WeatherManager:select_weather(force)
     self.cur_weather = self:current_weather()
 	if amk.load_variable("blowout", 0) == 0 then
 		level.set_weather(self.cur_weather)
+	--	log("[WeatherManager:select_weather]: set new weather [%s]", self.cur_weather)
 	end
 
     --self:dbgmsg("weather:%s,cycle_time:%d", level.get_weather(), self.cycle_time)
@@ -325,6 +314,7 @@ function WeatherManager:reset()
     end
 
     self:select_weather(false)
+--	log("[WeatherManager:reset]: select_weather(false)")
 end
 
 
@@ -422,10 +412,12 @@ function WeatherManager:update()
        or not is_time_between(self.time, self.last_time, self.next_time)
     then
         self:select_weather(true)
+	--	log("[WeatherManager:update]: select_weather(true)")
 
     -- по какой-то причине необходимо обновить погоду (например, закончился выброс)
     elseif update_flag ~= 0 then
         self:select_weather(false)
+	--	log("[WeatherManager:update]: select_weather(false)")
     end
 end
 
