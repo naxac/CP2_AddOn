@@ -45,6 +45,25 @@ function mil_task_crazy_flash_have (task_id, subtask)
     return false    
 end
 
+function crazy_flash_task_active()
+	return ( has_alife_info("voronin_flesh_start") and not has_alife_info("voronin_flesh_have") )
+		or ( has_alife_info("mil_max_job") and not has_alife_info("mil_max_flash_get") )
+end
+function crazy_flash_task_no_active()
+	return not crazy_flash_task_active()
+end
+
+function crazy_flash_to_actor()
+	local npc = level_object_by_sid(story_ids.Mil_Crazy)
+	if npc then
+		local item = npc:object("crazy_flash")
+		if item then
+			npc:transfer_item(item, Actor)
+			news_manager.relocate_item(Actor, "in", "crazy_flash")
+		end
+	end
+end
+
 function switch_mutants_online (task_id, subtask)
     db.actor:disable_info_portion ("mil_mutants_offline")
 end
