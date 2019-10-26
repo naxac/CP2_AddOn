@@ -637,10 +637,12 @@ end
 
 -- Помощь раненому
 function help_wounded(npc)
-	if npc:name()=="esc_vagon_wounded"				-- Толик
-		or npc:name()=="val_escort_bandit_halfdead"	-- Жила
-		or npc:name()=="esc_bridge_soldier5"		-- Кузнецов
-	then return end
+	local npc_name = npc:name()
+	if npc_name == "esc_vagon_wounded"				-- Толик
+		or npc_name == "val_escort_bandit_halfdead"	-- Жила
+		or npc_name == "esc_bridge_soldier5"		-- Кузнецов
+	then return
+
 	elseif npc_name == "mil_stalker0012" then		-- Сумасшедший Сталкер
 		if not has_alife_info("psih_flash_enemy") then
 			relation_registry.set_goodwill(npc:id(), Actor:id(), 2500)
@@ -653,8 +655,8 @@ function help_wounded(npc)
 	xr_timers.start_real_timer( "healing_enemies", math_random(20,30),
 		{npc:id(), npc:character_community()} )
 	npc:set_character_community( "stalker", 0, 0 )
-	npc:set_relation( game_object.friend, db.actor )
-	npc:enable_memory_object( db.actor, false )
+	npc:set_relation( game_object.friend, Actor )
+	npc:enable_memory_object( Actor, false )
 	local sobj = AI:object( npc:id() )
 	if sobj then
 		sobj:brain():can_choose_alife_tasks( false )
@@ -668,7 +670,7 @@ function help_wounded_delayed( id, comm )
 	if npc and npc:alive() and not npc:wounded() then
 		if math_random() < 0.25 then
 			npc:set_character_community( comm )
-			npc:set_relation( game_object.enemy, db.actor )
+			npc:set_relation( game_object.enemy, Actor )
 		else
 			if npc:character_reputation() < 0 then
 				npc:change_character_reputation( 0 - npc:character_reputation() )
