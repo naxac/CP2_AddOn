@@ -146,6 +146,9 @@ class game_object {
 	void			enable_car_panel(bool);
 	// CAIStalker, CActor
 	string			specific_character();
+	// CAIStalker
+	bool			get_anomaly_invisibility();
+	void			set_anomaly_invisibility(bool<visibility>);
 	// CEntityAlive
 	void			heal_wounds(float<factor>);
 	void			update_condition();
@@ -247,6 +250,7 @@ class key_bindings {
 };
 
 class key_bindings {
+	const DIK_keys.DUMMY		= 0;
 	const DIK_LMOUSE			= 337;
 	const DIK_RMOUSE			= 338;
 	const DIK_WMOUSE			= 339;
@@ -258,9 +262,39 @@ class CGameFont {
 	const alVBottom	= 2;
 };
 
+class CUIWindow {
+	void		DetachFromParent();
+	void		BringToTop();
+	void		Update();
+	float<x>	GetVPos();
+	float<y>	GetHPos();
+	float<x>	GetCursorX();
+	float<y>	GetCursorY();
+	float<x>	GetAbsolutePosX();
+	float<y>	GetAbsolutePosY();
+};
+
+class CUIComboBox : CUIWindow {
+	void	AddItem(char<text>);
+	char	GetText();
+};
+
+class CUIListWnd : CUIWindow {
+	void	SetSelectedItem(int<index>);
+};
+
+class CUITrackBar : CUIWindow {
+	float	GetFValue();
+	bool	IsChanged();
+};
+
 class CUIStatic : CUIWindow {
 	void	SetTextComplexMode(bool);
 	void	SetVTextAlign(int<CGameFont*>);
+	void	AdjustHeightToText();	// xml: adjust_height_to_text
+	void	AdjustWeigthToText();	// xml: adjust_width_to_text
+	void	SetTextPos(float<x>, float<y>);
+	bool	CanRotate();
 };
 
 class CUIScriptWnd : CUIDialogWnd,DLL_Pure {
@@ -278,9 +312,34 @@ End of list of the classes exported to LUA
 List of the namespaces exported to LUA
 
 namespace {
+	void			log1(char<message>);
+	void			fail(char<message>);
+	void			flush_log();
 	void			set_input_language(int<mode>);	// 1 - RU, 0 - EN
 	int				get_input_language();
     int<DIK_keys*>	bind_to_dik(int<key_bindings*>);
+	void			set_extensions_flags(int<flags>);
+	int<flags>		get_extensions_flags();
+	void			set_actor_flags(int<>);
+	int				get_actor_flags();
+	void			set_trade_filtration_on();
+	void			set_trade_filtration_off();
+	void			set_manual_grouping_on();
+	void			set_manual_grouping_off();
+	void			set_manual_highlight_on();
+	void			set_manual_highlight_off();
+	int				get_manual_highlight();
+	void			set_highlight_color(int, int);
+	int				sum_args(int<arg1>, int<arg2>);
+	int				sub_args(int<arg1>, int<arg2>);
+	int<goodwill>	GetGoodwill(int<who_id>, int<to_whom_id>);
+	void			update_inventory_window();
+	void			print_level_time();
+	void			print_alife_time();
+	void			screenshot0();
+	void			screenshot1();
+	void			screenshot2();
+	void			screenshot3();
 	
 	namespace level {
 		const invalid_vertex_id = 4294967296;
