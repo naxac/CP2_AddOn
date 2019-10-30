@@ -5,14 +5,11 @@ local snd_obj = nil
 local lost_id = -1
 local menu_show = false
 
+local flash_total = 16	-- общее количество флешек
 local slot_flash = {} 	-- флешки
 local rep_flash = {}	-- прослушанные треки (чтобы не повторялись при случайном выборе)
-local played = {}
-for  i = 1,16 do
-	slot_flash[i]= 0	-- если 0 - флешки в слоте нет, 1 - флешка есть
-	rep_flash[i] = {}
-end
-
+local played = {}		-- здесь храним воспроизведённые треки в порядке воспроизведения, чтобы можно было отмотать назад
+local tracks_count = {}	-- число треков на флешках
 
 local work_flash 		-- Рабочий слот: номер вставленной флешки. Если nil, то флешка не вставленна
 local work_trek = 0		-- Номер проигрываемого трекаю. Если 0, то либо ничего не играет, либо  иргает не с флешки (радио)
@@ -23,15 +20,16 @@ local sound_vol = 0.4
 -- устанавливаю первоначальное значение повтора
 local rpt = "on"	-- может быть 'on', 'off', 'one', 'rnd' или 'rnd2'
 
+
 function set_rnd_track(rnd_flash)
 	if rnd_flash then	-- нужно загрузить рандомно из любой имеющейся флешки
 		local t = {}
 		local has_actor = {}
-		for i = 1, 16 do
+		for i = 1, flash_total do
 			if Actor:object("ogg_flash_"..i) then
 				table.insert(has_actor, i)
-				for ii = 1,12 do
-					if rep_flash[i][ii] == nil then
+				for j = 1, tracks_count[i] do
+					if rep_flash[i][j] == nil then
 						table.insert(t, i)
 						break
 					end
@@ -44,7 +42,7 @@ function set_rnd_track(rnd_flash)
 			ui_cheat_player.change_flash(n, work_flash)
 		else	-- треки кончились - сброс
 			set_show_flash(table.random(has_actor))
-			for i = 1,16 do rep_flash[i] = {} end
+			for i = 1, flash_total do rep_flash[i] = {} end
 			ui_cheat_player.change_flash(n, work_flash)
 			set_rnd_track(false)		-- выбираем по-новой
 			return
@@ -52,7 +50,7 @@ function set_rnd_track(rnd_flash)
 	end
 
 	local tmp = {}
-	for i = 1,12 do
+	for i = 1, tracks_count[work_flash] do
 		if rep_flash[work_flash][i] == nil then
 			table.insert(tmp, i)
 		end
@@ -62,7 +60,7 @@ function set_rnd_track(rnd_flash)
 	else
 		local n = work_trek
 		while work_trek == n do
-			work_trek = math.random(1, 12)
+			work_trek = math.random(1, tracks_count[work_flash])
 		end
 		rep_flash[work_flash] = {}
 	end
@@ -139,7 +137,7 @@ function play_next()
 	if rpt ~= "off" and work_trek ~= 0 then
 		if rpt == "on" then		-- играем по кругу из этой флешки
 			work_trek = work_trek+1
-			if work_trek > 12 then work_trek = 1 end
+			if work_trek > tracks_count[work_flash] then work_trek = 1 end
 	--	elseif rpt == "one" then	-- играем по кругу один трек
 		elseif rpt == "rnd" then	-- играем случайный трек с работающей флешки
 			set_rnd_track(false)
@@ -159,7 +157,7 @@ end
 
 function get_flash()
 	--Проверяю наличие флешек в мешке
-	for i = 1,16 do
+	for i = 1, flash_total do
 		slot_flash[i] = Actor:object("ogg_flash_"..i) and 1 or 0
 	end
 
@@ -178,7 +176,7 @@ function return_slot(t)
 	return slot_flash[t]
 end
 
-function set_show_flash(n)			-- n - номер флешки. Закрывает иконку флешки и перемешает флешку в рабочий слот
+function set_show_flash(n)			-- n - номер флешки. Закрывает иконку флешки и перемещает флешку в рабочий слот
 	if work_flash then
 		slot_flash[work_flash] = 1
 	end
@@ -186,6 +184,14 @@ function set_show_flash(n)			-- n - номер флешки. Закрывает 
 		slot_flash[n] = 0
 	end
 	work_flash = n
+end
+
+function get_flash_total()
+	return flash_total
+end
+
+function get_flash_tracks_count(f)
+	return tracks_count[f]
 end
 
 function work_flash_return()
@@ -210,6 +216,7 @@ end
 
 function set_repeat(mode)
 	rpt = mode
+	played = {}
 	save_player()
 end
 
@@ -265,7 +272,7 @@ function save_player()
 	end
 
 	local trek = work_trek + 1
-	if trek > 12 then trek = 1 end
+	if trek > tracks_count[work_flash] then trek = 1 end
 	amk.save_table( "ogg", {work_flash, trek, rpt, sound_vol} )
 end
 
@@ -282,6 +289,20 @@ function get_prev_track()
 end
 
 function start_pleer_post_save()
+	local fs = getFS()
+	for i = 1, flash_total do
+		slot_flash[i]= 0	-- если 0 - флешки в слоте нет, 1 - флешка есть
+		rep_flash[i] = {}
+		local n = 0
+		while true do
+			n = n + 1
+			if fs:exist("$game_sounds$", "ogg_player\\flash_"..i.."\\sound_"..n..".ogg") == nil then
+				tracks_count[i] = n - 1
+				break
+			end
+		end
+	end
+
 	if Actor:has_info("u_6") then
 		if Actor:object("player") then
 			local t = amk.load_table("ogg")
