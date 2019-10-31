@@ -1,4 +1,6 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 --Vergas player
+-- Last update: naxac /30.10.2019/
 
 local snd_obj = nil
 
@@ -133,7 +135,7 @@ function lose_flash(obj)
 end
 
 function play_next()
-	local tr = work_trek
+	local old_track = work_trek
 	if rpt ~= "off" and work_trek ~= 0 then
 		if rpt == "on" then		-- играем по кругу из этой флешки
 			work_trek = work_trek+1
@@ -148,7 +150,7 @@ function play_next()
 	else
 		s_stop(true)
 	end
-	ui_cheat_player.change_track(tr, work_trek)
+	ui_cheat_player.change_track(old_track, work_trek)
 end
 
 function set_menu_show(b)
@@ -271,9 +273,7 @@ function save_player()
 		return
 	end
 
-	local trek = work_trek + 1
-	if trek > tracks_count[work_flash] then trek = 1 end
-	amk.save_table( "ogg", {work_flash, trek, rpt, sound_vol} )
+	amk.save_table( "ogg", {work_flash, work_trek, rpt, sound_vol} )
 end
 
 function get_prev_track()
@@ -318,7 +318,7 @@ function start_pleer_post_save()
 						set_show_flash(work_flash)
 						rpt = t[3] or "on"
 						sound_vol = t[4] or 0.4
-						s_play("ogg_player\\flash_"..tostring(work_flash).."\\sound_"..tostring(work_trek), work_trek)
+						play_next()
 					end
 				end
 			end
