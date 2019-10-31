@@ -214,9 +214,9 @@ function action_launch_grenade:initialize()
 		local dist = self.target_point:distance_to(npc:center())
 		self.fixd = dist > 80 and 40
 		if st.target_lvid then
-			local c_back = 1-level.cover_in_direction(st.target_lvid,dir)
+			local c_back = 1 - (level.cover_in_direction(st.target_lvid,dir) or 1)
 			if c_back > 0.75 and math.abs(dir.y) < dist/6 then
-				local c_front = 1-level.cover_in_direction(st.target_lvid,vector():invert(dir))
+				local c_front = 1 - (level.cover_in_direction(st.target_lvid,vector():invert(dir)) or 1)
 				local cor = math.max(0.5,c_back-c_front)
 				self.target_point:add(vector():set(0,cor,0))
 			end
@@ -385,10 +385,10 @@ function action_launch_grenade:execute()
 			-- проверка открытости цели
 			local is_graph_avail = not rx_utils.is_actor(target_obj) or level.vertex_position(target_lvid):distance_to_sqr(target_point) < 3
 			if not npc:see(target_obj) then
-				if level.cover_in_direction(npc:level_vertex_id(),dir) < 0.2 then
+				if (level.cover_in_direction(npc:level_vertex_id(),dir) or 1) < 0.2 then
 					self:cancel(1000)	-- не стрелять, если зашёл за стену
 					return
-				elseif not is_graph_avail or level.cover_in_direction(target_lvid,vector():invert(dir)) < 0.2 then
+				elseif not is_graph_avail or (level.cover_in_direction(target_lvid,vector():invert(dir)) or 1) < 0.2 then
 					self.aim_time = 0
 					if self.target_lvid then
 						target_lvid = self.target_lvid
@@ -415,7 +415,7 @@ function action_launch_grenade:execute()
 							local atrgp = level.vertex_position(alvid)
 							adist = atrgp:distance_to(level.vertex_position(target_lvid))
 							local _,adir = TransferenceAndThrowVelToThrowDir(vector():sub(atrgp,npc:center()),vel,world_gravity)
-							if level.cover_in_direction(alvid,vector():invert(adir)) > 0.3 then
+							if (level.cover_in_direction(alvid,vector():invert(adir)) or 1) > 0.3 then
 								target_lvid = alvid
 								target_point = atrgp
 								dir = adir
@@ -423,9 +423,9 @@ function action_launch_grenade:execute()
 						end
 					end
 					-- взять поправку по укрытости цели
-					local c_back = 1-level.cover_in_direction(target_lvid,dir)
+					local c_back = 1 - (level.cover_in_direction(target_lvid,dir) or 1)
 					if c_back > 0.75 and math.abs(vector():sub(target_point,npc:center()).y) < dist/6 then
-						local c_front = 1-level.cover_in_direction(target_lvid,vector():invert(dir))
+						local c_front = 1 - (level.cover_in_direction(target_lvid,vector():invert(dir)) or 1)
 						local cor = math.max(0.5,c_back-c_front)
 						target_point:add(vector():set(0,cor,0))
 					end
@@ -647,7 +647,7 @@ function safe_to_reload(npc,st)
 		local id = obj and obj:id() or -1
 		if id == actorid and obj:alive() and npc:relation(obj) == game_object.enemy
 			and actor_aiming_at_me(npc) and
-			level.cover_in_direction(npc:level_vertex_id(),vector():invert(device().cam_dir)) > 0.1
+			(level.cover_in_direction(npc:level_vertex_id(),vector():invert(device().cam_dir)) or 1) > 0.1
 		then
 --			printf("safe_to_reload[%s]:actor_aiming_at_me",npc:character_name())
 			st.evn = false
@@ -681,7 +681,7 @@ function safe_to_reload(npc,st)
 	for i,enemy in ipairs(enemies) do
 		local dir = enemy:position():sub(npc:position())
 		local dist = dir:magnitude()
-		local cover = level.cover_in_direction(npc_lvid,dir)
+		local cover = level.cover_in_direction(npc_lvid,dir) or 1
 --		printf("safe_to_reload[%s]:check enemy %s! see %s",npc:character_name(),enemy:name(),enemy:see(npc))
 		if dist < 10
 			or ( enemy:see(npc)
@@ -894,7 +894,7 @@ function pick_covert_target(npc,radius,squad)
 			if embe[3]+10000 > tg then
 				local pos = embe[1]
 				local dist = npc_pos:distance_to_sqr(pos)
-				if dist < max_dist and dist > min_dist and level.cover_in_direction(npc_lvid,vector():sub(pos,npc_pos)) > 0.2 then
+				if dist < max_dist and dist > min_dist and (level.cover_in_direction(npc_lvid,vector():sub(pos,npc_pos)) or 1) > 0.2 then
 					for i,fpos in ipairs(get_friendspos_list(npc)) do
 						if fpos:distance_to_sqr(pos) < radius then
 							return nil, nil
@@ -919,7 +919,7 @@ function pick_covert_target(npc,radius,squad)
 				local obj = t[4]
 				if not (obj and obj:is_alive() and not obj:is_wounded()) then
 					rem[id] = true
-				elseif level.cover_in_direction(npc_lvid,vector():sub(pos,npc_pos)) > 0.2 then
+				elseif (level.cover_in_direction(npc_lvid,vector():sub(pos,npc_pos)) or 1) > 0.2 then
 					local cres = true
 					for i=1,#friends do
 						if friends[i]:distance_to_sqr(pos) < radius then
