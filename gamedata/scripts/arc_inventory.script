@@ -6,21 +6,22 @@ cur_rad_protection = 0
 crp_changed = false
 
 local detectors = {"detector_simple", "detector_advances", "detector_elite", "detector_elite_sak", "detector_elite_john"}
-local bDetected = false
+local cur_detector = nil
 
 function on_actor_update(delta)
 	local obj = db.actor:item_in_slot( inventory_slots.DETECTOR )	-- детектор костюма перенесён в слот
-	bDetected = (obj~=nil and obj:section()=='detector_suit')
-	if bDetected==false then
+	cur_detector = (obj~=nil and obj:section()=='detector_suit' and 'detector_suit') or nil
+
+	if not cur_detector then
 		for _,v in ipairs(detectors) do
 			if inventory.on_belt(v) then
-				bDetected = true
+				cur_detector = v
 				break
 			end
 		end
 	end
 	
-	arc_ui_dosimeter.enabled = bDetected
+	arc_ui_dosimeter.set_detector(cur_detector)
 	
 	crp_changed = false
 	
@@ -52,5 +53,9 @@ function on_actor_update(delta)
 end
 
 function IsRadDetected()
-	return bDetected
+	return cur_detector ~= nil
+end
+
+function get_current_detector()
+	return cur_detector
 end

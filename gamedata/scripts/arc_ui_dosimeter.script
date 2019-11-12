@@ -11,6 +11,8 @@ local monitor_y = 720
 local is_fading = false
 local fade_delay, fade_total_time, fade_time_left
 
+local no_show_scale = (game_options.CurrentHUD == "ns_pda_script")
+
 enabled = false
 
 function show()
@@ -63,7 +65,19 @@ function show_dosimeter(delta) -- FIXME
 			return
 		end
 	end
+
+	dosimeter.monitor:SetText(arc_radiation.get_dose_string())
 	
+	local a = (enabled and alpha) or 0
+	
+	dosimeter.monitor:SetTextColor(a*0.7, arc_radiation.get_dose_string_color())
+	dosimeter.monitor:SetColor(GetARGB(a,255,255,255))
+
+	if no_show_scale then return end
+
+	dosimeter.scale:SetColor(GetARGB(a,255,255,255))
+	dosimeter.arrow:SetColor(GetARGB(a,255,255,255))
+
 	local r = arc_radiation.get_rad_level()
 	
 	arrow_velocity = arrow_velocity*math.pow(0.995, delta) + (r - arrow_position)*delta/2000
@@ -81,14 +95,6 @@ function show_dosimeter(delta) -- FIXME
 	local pos = round(655-486-arrow_position*(145))
 	
 	dosimeter.arrow:SetWndPos(-5, pos)
-	dosimeter.monitor:SetText(arc_radiation.get_dose_string())
-	
-	local a = (enabled and alpha) or 0
-	
-	dosimeter.monitor:SetTextColor(a*0.7, arc_radiation.get_dose_string_color())
-	dosimeter.monitor:SetColor(GetARGB(a,255,255,255))
-	dosimeter.scale:SetColor(GetARGB(a,255,255,255))
-	dosimeter.arrow:SetColor(GetARGB(a,255,255,255))
 end
 
 function init_dosimeter()
@@ -104,6 +110,27 @@ function init_dosimeter()
 	
 	local w = arc_hud:wnd()
 	
+	if no_show_scale then
+		local s = arc_inventory.get_current_detector()
+		if s == "detector_suit" then s = "detector_elite_john" end
+		local i = GetIconParams(s)
+		local m = CUIStatic()
+		m.detector = s
+		m:SetAutoDelete(true)
+		m:SetStretchTexture(true)
+		m:Init(965,monitor_y,40*kScreen,40)
+		m:InitTexture("ui\\ui_icon_equipment")
+		m:SetOriginalRect(i.x,i.y,i.w,i.h)
+		m:SetText("0")
+		m:SetTextAlign(CGameFont.alCenter)
+		m:SetVTextAlign(CGameFont.alVCenter)
+		m:SetTextColor(128,255,200,200)
+		m:SetFont(GetFontLetterica18Russian())
+		w:AttachChild(m)
+		dosimeter.monitor = m
+		return true
+	end
+
 	local m = CUIStatic()
 	m:SetAutoDelete(true)
 	m:SetStretchTexture(true)
@@ -115,7 +142,7 @@ function init_dosimeter()
 	m:SetFont(GetFontGraffiti32Russian())
 	w:AttachChild(m)
 	dosimeter.monitor = m
-	
+
 	local s = CUIStatic()
 	s:SetAutoDelete(true)
 	s:SetStretchTexture(true)
@@ -153,6 +180,27 @@ end
 
 function on_options_change()
 	start_small_timer(300, this.reload)
+end
+
+function set_detector(det)
+	if det then
+		enabled = true
+
+		if not no_show_scale then return end
+	
+		local m = dosimeter and dosimeter.monitor
+		if not m then return end
+
+		if det == "detector_suit" then det = "detector_elite_john" end
+
+		if m.detector ~= det then
+			local i = GetIconParams(det)
+			m:SetOriginalRect(i.x,i.y,i.w,i.h)
+			m.detector = det
+		end
+	else
+		enabled = false
+	end
 end
 
 -- DebugInfo:
