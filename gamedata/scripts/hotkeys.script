@@ -4,6 +4,8 @@ local get_wnd = level.main_input_receiver
 local binds_actions = {}
 local dik_actions = {}
 
+local DROP_ITEM_RND = 0.6
+
 local keys = {
 	[1]		= 'ESCAPE',	[21]	= 'Y',			[41]	= 'GRAVE',		[61]	= 'F3',			[81]	= 'NUMPAD3',		[151]	= 'UNLABELED',		[221] = 'APPS',
 	[2]		= '1',		[22]	= 'U',			[42]	= 'LSHIFT',		[62]	= 'F4',			[82]	= 'NUMPAD0',		[156]	= 'NUMPADENTER',	[337] = 'MOUSE1',
@@ -34,6 +36,7 @@ function dik2key(dik)
 	return keys[dik]
 end
 
+-------------------------------------------------------------------------------------------
 -- фикс смены типа гранаты
 local grenades = {
 	"grenade_rgd5",
@@ -54,16 +57,23 @@ for i, v in ipairs(grenades) do
 end
 
 function switch_grenade()
-	local a = db.actor
-	if not a:alive() then return end
-	if a:active_slot() ~= inventory_slots.GRENADE then return end
+	if not Actor:alive() then return end
 
-	local itm = a:item_in_slot( inventory_slots.GRENADE )
+	if Actor:active_slot() ~= inventory_slots.GRENADE then return end
+
+	if actor_active_item and Actor:is_actor_sprinting() then
+		if math.random() < DROP_ITEM_RND then
+			Actor:drop_item(actor_active_item)
+			return
+		end
+	end
+
+	local itm = Actor:item_in_slot( inventory_slots.GRENADE )
 	if itm == nil then
 		for k,v in pairs( grenades ) do
-			itm = a:object(v)
+			itm = Actor:object(v)
 			if itm then
-				a:move_to_slot_and_activate( itm )
+				Actor:move_to_slot_and_activate( itm )
 				break
 			end
 		end
@@ -82,24 +92,24 @@ function switch_grenade()
 	local n = #grenades
 	for i = pos, pos + n - 2 do
 		local j = math.fmod( i, n ) + 1
-		local gr = a:object( grenades[j] )
+		local gr = Actor:object( grenades[j] )
 		if gr then
-			a:move_to_ruck( itm )
-			a:move_to_slot_and_activate( gr )
+			Actor:move_to_ruck( itm )
+			Actor:move_to_slot_and_activate( gr )
 			break
 		end
 	end
 end
 
 function use_from_slot(n)
-	if not db.actor:alive() then return end
+	if not Actor:alive() then return end
 
 	local slots = ui_inv_add.getSlots()
 	local s = slots[n]
 	if s then
-		local item = db.actor:object(s)
+		local item = Actor:object(s)
 		if item then
-			db.actor:eat(item)
+			Actor:eat(item)
 			show_use_item(s)
 		end
 	end
@@ -112,6 +122,7 @@ function show_use_item(section)
 end
 
 
+-------------------------------------------------------------------------------------------
 -- Групповой перенос предметов в/из нычки/трупа
 local carbody_addons, used_box
 local reg_callbacks = {
@@ -146,8 +157,8 @@ end
 function clear_used_box()
 	used_box = nil
 end
-	
--------------------------
+
+-------------------------------------------------------------------------------------------
 class "CUICarbodyAddons" (CUIScriptWnd)
 
 function CUICarbodyAddons:__init(owner, used_box) super()
@@ -219,11 +230,10 @@ function CUICarbodyAddons:move_items()
 	self.moved = true
 
 	local box = self.used_box
-	local actor = db.actor
 	if self.droped_section then
-		actor:iterate_inventory(function (dummy, item)
+		Actor:iterate_inventory(function (dummy, item)
 			if item:section() == self.droped_section then
-				actor:transfer_item(item, box)
+				Actor:transfer_item(item, box)
 			end 
 		end, nil)
 
@@ -233,13 +243,13 @@ function CUICarbodyAddons:move_items()
 			for i=0, box:inv_box_count()-1 do
 				item = box:object_from_inv_box(i)
 				if item:section() == self.taken_section then
-					box:transfer_item(item, actor)
+					box:transfer_item(item, Actor)
 				end
 			end
 		else
 			box:iterate_inventory(function (dummy, item)
 				if item:section() == self.taken_section then
-					box:transfer_item(item, actor)
+					box:transfer_item(item, Actor)
 				end 
 			end, nil)
 		end
@@ -276,7 +286,7 @@ function CUICarbodyAddons:on_item_take(obj)
 	local s = obj:section()
 	if s == "separator" then return end
 
-	local outfit = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local outfit = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if outfit and outfit:id() == obj:id() then return end
 
 	self.taken_section = s
@@ -301,9 +311,8 @@ local wpn_power	= {
 	['wpn_kukri']	= true
 }
 function steel_arms()
-	local actor = db.actor
-	if not actor:alive() then return end
-	if actor:active_slot() ~= inventory_slots.KNIFE then return end
+	if not Actor:alive() then return end
+	if Actor:active_slot() ~= inventory_slots.KNIFE then return end
 	if time_shift > time_global() then return end
 	
 	if actor_active_item == nil then return end
@@ -315,7 +324,7 @@ function steel_arms()
 	-- все ножи не проверяем, только самое тяжелое
 	local dif = level.get_game_difficulty() + 1
 	if wpn_power[sec] then
-		actor.power = - dif * actor_active_item:get_weight() * 0.01
+		Actor.power = - dif * actor_active_item:get_weight() * 0.01
 	end
 
 	if level.get_target_dist() > sys_ini:r_float(sec, "fire_distance") + 0.1 then return end
@@ -332,9 +341,10 @@ function knife_deterioration(obj, dec)
 		start_small_timer(200, function() kostya_dialog.remove_wpn(obj:id()) end)
 	end
 end
+-------------------------------------------------------------------------------------------
 -- runner/returner
 function run_or_return()
-	if not db.actor:alive() then return end
+	if not Actor:alive() then return end
 	if ShiftPressed() then
 		this.set_input_key()
 	elseif inventory.on_belt("runner_tele") then
@@ -380,7 +390,7 @@ binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_NEXT] = hotkeys.switch_grenade
 binds_actions[key_bindings.kNIGHT_VISION] = function()
-	if not db.actor:alive() then return end
+	if not Actor:alive() then return end
 	nightvision.switch_pnv()
 end
 binds_actions[key_bindings.kUSE_BANDAGE] = function() use_from_slot(2) end
@@ -394,7 +404,7 @@ binds_actions[key_bindings.kQUICK_LOAD] = function()
 	u3_utils.load_quicksave()
 end
 binds_actions[key_bindings.kSCORES] = function()
-	if not db.actor:alive() then return end
+	if not Actor:alive() then return end
 	if device():is_paused() then return end
 	reminder.start_remind()
 	if game_options.HudRad then
@@ -414,7 +424,8 @@ binds_actions[key_bindings.kTORCH] = function()
 	end
 end
 binds_actions[key_bindings.kWPN_RELOAD] = function()
-	if not db.actor:is_actor_sprinting() then return end
+	if not Actor:is_actor_sprinting() then return end
+	if math.random() > DROP_ITEM_RND then return end
 	if actor_active_item and isMagazinedWeapon(actor_active_item) then
 		if actor_active_item:get_ammo_in_magazine() == sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
 			return
