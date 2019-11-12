@@ -229,11 +229,29 @@ class net_packet {
 	void		w_CTime(CTime*);
 };
 
+class vector2 {
+	vector2();
+
+	property	x;
+	property	y;
+
+	vector2*	set(float<x>, float<y>);
+	vector2*	add(vector2);
+	vector2*	sub(vector2);
+	vector2*	mul(float<x>, float<y>);
+	vector2*	div(float<x>, float<y>);
+	float<x>,float<y>	get();
+};
+
 class Frect {
-	Frect*	mul(float<x>, float<y>*);
-	Frect*	div(float<x>, float<y>*);
-	float	width();
-	float	height();
+	Frect*		mul(float<x>, float<y>*);
+	Frect*		div(float<x>, float<y>*);
+	float		width();
+	float		height();
+	Frect*		shrink(float<x>, float<y>);
+	Frect*		grow(float<x>, float<y>);
+	Frect*		intersected(Frect*<check_rect>);
+	vector2*	center();
 };
 
 class key_bindings {
@@ -289,16 +307,17 @@ class CUITrackBar : CUIWindow {
 };
 
 class CUIStatic : CUIWindow {
-	void	SetTextComplexMode(bool);
-	void	SetVTextAlign(int<CGameFont*>);
-	void	AdjustHeightToText();	// xml: adjust_height_to_text
-	void	AdjustWeigthToText();	// xml: adjust_width_to_text
-	void	SetTextPos(float<x>, float<y>);
-	bool	CanRotate();
+	void		SetTextComplexMode(bool);
+	void		SetVTextAlign(int<CGameFont*>);
+	void		AdjustHeightToText();	// xml: adjust_height_to_text
+	void		AdjustWeigthToText();	// xml: adjust_width_to_text
+	void		SetTextPos(float<x>, float<y>);
+	bool		CanRotate();
+	vector2*	GetWndSize();
 };
 
 class CUIScriptWnd : CUIDialogWnd,DLL_Pure {
-	void			AddCallbackEx(char<ui_name>, char<ui_event>, Lua_function<func>, <args>*);
+	void			AddCallbackEx(char<ui_name>, int<ui_events*>, Lua_function<func>, <args>*);
 	void			ClearCallbacks();
 	void			RegisterChild(CUIScriptWnd*);
 	CUIScriptWnd*	InitEditBoxEx(CUIWindow*<stat>, float<pos_x>, float<pos_y>, float<width>*, char<type>*);

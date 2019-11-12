@@ -5,7 +5,7 @@
 RvP()	-- init Lua extension
 
 _G.sys_ini = system_ini()
-_G.kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
+_G.kScreen = math.min( (device().height/device().width/0.75), 1 )
 _G.isWideScreen = (device().width/device().height) > 1.56
 
 game_options.load_game_options()
@@ -501,6 +501,25 @@ end
 Frect.height = function ( rect )
 	return rect.y2 - rect.y1
 end
+Frect.shrink = function ( rect, x, y )
+	rect.x1=rect.x1+x; rect.y1=rect.y1+y;
+	rect.x2=rect.x2-x; rect.y2=rect.y2-y;
+	return rect
+end
+Frect.grow = function ( rect, x, y )
+	rect.x1=rect.x1-x; rect.y1=rect.y1-y;
+	rect.x2=rect.x2+x; rect.y2=rect.y2+y;
+	return rect
+end
+Frect.intersected = function ( r1, r2 )
+	return r1.x1>r2.x2 or r1.x2<r2.x1 or r1.y1>r2.y2 or r1.y2<r2.y1
+end
+Frect.center = function ( rect )
+	return vector2():set(
+		(rect.x2 - rect.x1) /2,
+		(rect.y2 - rect.y1) /2
+	)
+end
 
 -- class 'CGameFont'
 CGameFont.alVTop	= 0
@@ -587,6 +606,11 @@ CUIScriptWnd.InitSpinStr = function ( self, stat, pos_x, pos_y, width, p )
 	local w = ui_spin_str.CUISpinStr( stat, pos_x, pos_y, width, p )
 	self:RegisterChild( w )
 	return w
+end
+
+-- class 'CUIStatic'
+CUIStatic.GetWndSize = function(wnd)
+	return vector2():set( wnd:GetWidth(), wnd:GetHeight() )
 end
 
 -- namespace 'level'
