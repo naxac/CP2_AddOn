@@ -5672,6 +5672,7 @@ C++ class CScriptXmlInit {
     function InitComboBox(string, CUIWindow*);
     function InitButton(string, CUIWindow*);
     function InitFrame(string, CUIWindow*);
+	function InitProgressBar(string, CUIWindow*);
 };
 
 C++ class ce_script_zone : DLL_Pure {
@@ -6931,6 +6932,8 @@ C++ class CUIProgressBar : CUIWindow {
     function ResetPPMode();
     function SetFont(CGameFont*);
     function IsAutoDelete();
+	function SetProgressPos(number);
+	function GetProgressPos();
 };
 
 C++ class CUIPropertiesBox : CUIFrameWindow {
