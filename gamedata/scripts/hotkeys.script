@@ -367,7 +367,15 @@ function wait_key( dik, bind )
 	local msg = "На управление возвращателем/ускорителем назначена клавиша "..dik_name..".\\nДля изменения клавиши нажмите Shift + "..dik_name.."."
 	ShowMessageBox( "ok_info", msg )
 end
-------------------------------
+-------------------------------------------------------------------------------------------
+local function on_slot_change(slot)
+	if Actor:item_in_slot(slot) == nil then return end
+	if not Actor:is_actor_sprinting() then return end
+	if math.random() > DROP_ITEM_RND then return end
+	if not actor_active_item then return end
+	Actor:drop_item(actor_active_item)
+end
+-------------------------------------------------------------------------------------------
 binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_NEXT] = hotkeys.switch_grenade
@@ -403,12 +411,22 @@ end
 binds_actions[key_bindings.kWPN_RELOAD] = function()
 	if not db.actor:is_actor_sprinting() then return end
 	if actor_active_item and isMagazinedWeapon(actor_active_item) then
-		if math.random() < 0.6 then
-			if actor_active_item:get_ammo_in_magazine() == sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
-				return
-			end
-			db.actor:drop_item(actor_active_item)
+		if actor_active_item:get_ammo_in_magazine() == sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
+			return
 		end
+		Actor:drop_item(actor_active_item)
+	end
+end
+binds_actions[key_bindings.kWPN_FUNC] = function()
+	if not Actor:is_actor_sprinting() then return end
+	if math.random() > DROP_ITEM_RND then return end
+	if actor_active_item and actor_active_item:is_weapon_gl() then
+		Actor:drop_item(actor_active_item)
+	end
+end
+for i = 1, 5 do
+	binds_actions[ key_bindings["kWPN_"..i] ] = function()
+		on_slot_change(i)
 	end
 end
 
