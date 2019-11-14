@@ -240,6 +240,7 @@ class vector2 {
 	vector2*	sub(vector2);
 	vector2*	mul(float<x>, float<y>);
 	vector2*	div(float<x>, float<y>);
+	float		distance_to(vector2)
 	float<x>,float<y>	get();
 };
 
