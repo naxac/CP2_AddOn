@@ -44,8 +44,7 @@ function UIScriptHUD:__init()
 	self.map = xml:InitStatic("level_map", self.map_frame)
 	local w = self.bound_rect:width() *map_zoom
 	local h = self.bound_rect:height() *map_zoom
-	self.map:SetWndRect( 0, 0, w*kScreen, h )
---	self.map:SetTextureOffset( 10, 0 )
+	self.map:SetWndRect( 0, 0, w, h )
 	self.map:InitTexture(map_texture)
 	self.map_center = vector2():set( w/2, h/2 )
 
@@ -77,6 +76,8 @@ function UIScriptHUD:__init()
 	st = xml:InitStatic("static_radiation", self)
 	self.progress_radiation = xml:InitProgressBar("progress_bar_radiation", st)
 
+	self.time_static = xml:InitStatic("time_static", self)
+
 	xr_s.subscribe("update", self.Update, {self = self})
 	self.need_update = false
 end
@@ -103,18 +104,24 @@ function UIScriptHUD:UpdateIndicators()
 	if Actor:get_current_outfit() then
 		self.progress_armor:SetProgressPos( Actor:get_current_outfit():condition() * 100 )
 	end
+
+	self.time_static:SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
 end
 
 function UIScriptHUD:UpdateMap()
 	self.dir = -dev.cam_dir:getH()
 
 	-- Update map position
-	local pos = self:ConvertRealToLocal( dev.cam_pos )
+	self.map:SetHeading(self.dir)
+	local pos = self:ConvertRealToLocal( Actor:position() )
 	local new_pos = vector2()
 	new_pos:sub(pos)
 	new_pos:add(self.clip_center)
 	self.map:SetWndPos( new_pos:get() )
-	self.map:SetHeading(self.dir)
+	-- log("pos: %s, %s", pos:get())
+	-- log("dir: %s", self.dir)
+	-- log("map pos: %s, %s", new_pos:get())
+--	self.map:SetTextureOffset( new_pos.x*math.cos(self.dir), 0 )
 
 	-- Update map spots
 	local del = {}
@@ -124,13 +131,13 @@ function UIScriptHUD:UpdateMap()
 		if AI:object(id)
 			and obj:position():distance_to_sqr( Actor:position() ) < map_dist_sqr
 		then
-			if st == nil then
+			if not st then
 				self.map_spots[id] = self:DrawSpot(obj)
-			elseif st then
+			else
 				local clr = get_point_color(obj)
 				if clr then
 					st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(self.spot_offset):get() )
-					st:SetColor( get_point_color(obj) )
+					st:SetColor(clr)
 				else
 					table.insert(del, id)
 				end
@@ -140,8 +147,10 @@ function UIScriptHUD:UpdateMap()
 		end
 	end
 	for i, v in ipairs(del) do
-		self.map:DetachChild(self.map_spots[v])
-		self.map_spots[v] = nil
+		if v then
+			self.map:DetachChild(self.map_spots[v])
+			self.map_spots[v] = nil
+		end
 	end
 end
 
@@ -154,7 +163,7 @@ function UIScriptHUD:ConvertRealToLocal(pos)
 	rotation(res, self.dir)
 	res:add(self.map_center)
 
-	res:mul(kScreen, 1)
+--	res:mul(kScreen, 1)
 	return res
 end
 
@@ -291,7 +300,9 @@ end
 function on_key_press(dik, bind)
 	if bind == key_bindings.kSCORES then
 		if not wnd then init() end
-		if level.main_input_receiver() ~= nil then return end
+		if level.main_input_receiver() ~= nil
+			or bind_actor.scopeUsed
+		then return end
 		wnd:Show(true)
 		wnd.need_update = true
 	end
