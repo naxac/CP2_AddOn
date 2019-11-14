@@ -129,7 +129,7 @@ local base_fp = 1400			-- Эталон firepower\distance при distance = 1 к
 
 local dist_coeff = 8			-- Коэффициент для расстояния
 
-local sell_limit = 7000			-- Вещи дешевле продает торговцам, дороже - через новости
+local sell_limit = 5000			-- Вещи дешевле продает торговцам, дороже - через новости
 
 local rate_kill_base = 100		-- Рейтинг за убийство. При убийстве более слабого - 0.5 * rate_kill_base, более сильного - 2 * rate_kill_base
 local rate_art_found = 100		-- Рейтинг за артефакты
@@ -304,10 +304,11 @@ end
 
 --генерируем оффлайн события
 function offline_alife()
+	amk.oau_reason="cn offline_alife start"
 	local lname = table.random(maps)
 --	update_tables(lname)
 --	log("# Offline_alife -> %s", lname)
-	amk.oau_reason="cn offline_alife chp1"
+	-- amk.oau_reason="cn offline_alife chp1"
 
 	local st = 0
 	local npcs = off_npcs[lname]
@@ -315,72 +316,72 @@ function offline_alife()
 	if st == 0 then return end
 
 --	log("stalkers found [%s]", st)
-	amk.oau_reason="cn offline_alife chp2"
+	-- amk.oau_reason="cn offline_alife chp2"
 	local idxs = {}
 	for i = 1, st do
 		table.insert(idxs, i)
 	end
 	local rnd, idx = 0, 0
 	for search = 1, math.min(st, search_intensivity) do
-		amk.oau_reason="cn offline_alife chp3"
+		-- amk.oau_reason="cn offline_alife chp3"
 		idx = math_random(#idxs)
 		rnd = idxs[idx]
 		table.remove(idxs, idx)
-		amk.oau_reason="cn offline_alife chp4"
+		-- amk.oau_reason="cn offline_alife chp4"
 		if npcs.stalkers[rnd] then 
-			amk.oau_reason="cn offline_alife chp5"
+			-- amk.oau_reason="cn offline_alife chp5"
 			local victim = AI:object(npcs.stalkers[rnd].id)
-			amk.oau_reason="cn offline_alife chp6"
+			-- amk.oau_reason="cn offline_alife chp6"
 			local victim_name = victim and victim:name()
 			if victim and (not victim.online) and victim.health and victim.can_switch_online
 				and victim:health()>0 and victim:can_switch_online()
 				and victim_name == npcs.stalkers[rnd].name
 			then
 			--	log("- process offline_alife for [%s]", victim_name)
-				amk.oau_reason="cn offline_alife chp7 "..victim_name
+				-- amk.oau_reason="cn offline_alife chp7 "..victim_name
 				local vdata = collect_info(victim,lname)
-				amk.oau_reason="cn offline_alife chp8 "..victim_name
+				-- amk.oau_reason="cn offline_alife chp8 "..victim_name
 			--	table.print(vdata)
 				if #vdata.enemies>0 then
 					--есть вражина - воюем нах!
-					amk.oau_reason="cn offline_alife chp9 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp9 "..victim_name
 					on_enemies_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.monsters>0 then
 					--есть монстрятина - видели, слышали, убили, сдохли...
-					amk.oau_reason="cn offline_alife chp10 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp10 "..victim_name
 					on_monsters_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.corpses.stalkers>0 then
 					--есть труп сталкера
-					amk.oau_reason="cn offline_alife chp11 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp11 "..victim_name
 					on_npc_corpses_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.corpses.monsters>0 then
 					--есть труп монстра
-					amk.oau_reason="cn offline_alife chp12 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp12 "..victim_name
 					on_monster_corpses_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.weapons.seen>0 then
 					--есть бесхозное оружие
-					amk.oau_reason="cn offline_alife chp13 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp13 "..victim_name
 					on_weapons_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.artefacts>0 then
 					--есть арты
-					amk.oau_reason="cn offline_alife chp14 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp14 "..victim_name
 					on_artifacts_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif #vdata.inv_boxes>0 then
 					--есть контейнеры. Надо обыскать.
-					amk.oau_reason="cn offline_alife chp18 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp18 "..victim_name
 					on_inv_boxes_found(victim, vdata)
 					break	--прерываем цикл - событие отработано
 				elseif items[victim.id] and #items[victim.id] > 0 then
 					--попробуем продать всякого
-					amk.oau_reason="cn offline_alife chp15 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp15 "..victim_name
 					-- amk.mylog("Offline: lets trade")
-					amk.oau_reason="cn offline_alife chp17 "..victim_name
+					-- amk.oau_reason="cn offline_alife chp17 "..victim_name
 					process_trade(victim)
 					-- amk.mylog("Offline: trade done")
 					break
@@ -821,7 +822,7 @@ end
 
 -- Вокруг монстры! Что же делать..
 function on_monsters_found(victim, vdata)
-  amk.oau_reason="on_monsters_found begin"
+ -- amk.oau_reason="on_monsters_found begin"
 	if (victim == nil or vdata == nil) then return end
 	if (amk.is_debug == true) then
 		local lname = news_main.get_object_levelname(victim)
@@ -839,7 +840,7 @@ function on_monsters_found(victim, vdata)
 	local firepower = get_weapon_firepower(wpn)
 	local player = {player = victim, weapon = wpn, rank = rank, health = health, firepower = firepower, flags = get_flags(victim.id)}
 	table.insert(team_A, player)
-  amk.oau_reason="on_monsters_found chp1"
+ -- amk.oau_reason="on_monsters_found chp1"
 	if (vdata.friends and #vdata.friends > 0) then
 		for i=1, #vdata.friends do
 			v_obj = vdata.friends[i]
@@ -854,37 +855,37 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
-  amk.oau_reason="on_monsters_found chp2"
+ -- amk.oau_reason="on_monsters_found chp2"
 	local params
 	for i=1, #vdata.monsters do
-  amk.oau_reason="on_monsters_found chp2.1"
+ -- amk.oau_reason="on_monsters_found chp2.1"
 		v_obj = vdata.monsters[i]
 		obj = AI:object(v_obj.id)
-  amk.oau_reason="on_monsters_found chp2.2"
+ -- amk.oau_reason="on_monsters_found chp2.2"
 		if (obj and obj:name() == v_obj.name) then
-  amk.oau_reason="on_monsters_found chp2.3"
+ -- amk.oau_reason="on_monsters_found chp2.3"
 			params = get_monster_params(obj)
-  amk.oau_reason="on_monsters_found chp2.4"
+ -- amk.oau_reason="on_monsters_found chp2.4"
 			if (params) then
-  amk.oau_reason="on_monsters_found chp2.5"
+ -- amk.oau_reason="on_monsters_found chp2.5"
 				rank = obj:rank()
-  amk.oau_reason="on_monsters_found chp2.6"
+ -- amk.oau_reason="on_monsters_found chp2.6"
 				health = obj:health()
-  amk.oau_reason="on_monsters_found chp2.7"
+ -- amk.oau_reason="on_monsters_found chp2.7"
 				firepower = params.attack * base_fp
-  amk.oau_reason="on_monsters_found chp2.8"
+ -- amk.oau_reason="on_monsters_found chp2.8"
 				player = {player = obj, speed = params.speed, attack_dist = params.dist, immunity = params.immunity, rank = rank, health = health, firepower = firepower, flags = get_flags(obj.id) }
-  amk.oau_reason="on_monsters_found chp2.9"
+ -- amk.oau_reason="on_monsters_found chp2.9"
 				table.insert(team_B, player)
-  amk.oau_reason="on_monsters_found chp2.10"
+ -- amk.oau_reason="on_monsters_found chp2.10"
 			else
-  amk.oau_reason="on_monsters_found chp2.11"
+ -- amk.oau_reason="on_monsters_found chp2.11"
 				-- amk.mylog("get_monster_params returns nil for "..obj:name())
-  amk.oau_reason="on_monsters_found chp2.12"
+ -- amk.oau_reason="on_monsters_found chp2.12"
 		end
 	end
 	end
-  amk.oau_reason="on_monsters_found chp3"
+ -- amk.oau_reason="on_monsters_found chp3"
 	local distances = {}
 	for a=1, #team_A do
 		local from = team_A[a].player
@@ -902,7 +903,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
-  amk.oau_reason="on_monsters_found chp4"
+ -- amk.oau_reason="on_monsters_found chp4"
 	-- Берем тех, у кого самый высокий rank и мин. distance
 	table_sort(team_A, function(a,b) return a.rank > b.rank end)
 	table_sort(team_B, function(a,b) return a.rank > b.rank end)
@@ -911,7 +912,7 @@ function on_monsters_found(victim, vdata)
 	local size_B = #team_B
 	local died_A = 0
 	local died_B = 0
-  amk.oau_reason="on_monsters_found chp5"
+ -- amk.oau_reason="on_monsters_found chp5"
 	for i=1, max_rounds do
 		if (#team_A >0 and #team_B > 0) then
 			local index = #team_A
@@ -922,11 +923,11 @@ function on_monsters_found(victim, vdata)
 			local distance_hit_chance
 			local hit_chance
 			if (#team_B > index) then index = #team_B end
-  amk.oau_reason="on_monsters_found chp5.1 : "..i
+ -- amk.oau_reason="on_monsters_found chp5.1 : "..i
 			for j = 1, index do
 				attacker = team_A[j]
 				defender = team_B[math_random(#team_B)]
-  amk.oau_reason="on_monsters_found chp5.2 : "..i..":"..j
+ -- amk.oau_reason="on_monsters_found chp5.2 : "..i..":"..j
 				if (attacker and defender and attacker.player and defender.player and attacker.health>0 and defender.health>0 and distances[attacker.player.id][defender.player.id]) then
 					-- amk.mylog(attacker.player:name().." [team_A] нападает на "..defender.player:name().." [team_B] ("..defender.health..")")
 					attack_info = distances[attacker.player.id][defender.player.id]
@@ -938,7 +939,7 @@ function on_monsters_found(victim, vdata)
 					hit_chance = distance_hit_chance + rank_hit_chance
 					if ((math_random() * 100) < hit_chance) then
 						-- Попал таки, гад. Посмотрим, как сильно.
-  amk.oau_reason="on_monsters_found chp5.3 : "..i..":"..j
+ -- amk.oau_reason="on_monsters_found chp5.3 : "..i..":"..j
 						if ( math_floor(attack_info.fp * defender.immunity) >= base_fp) then
 							-- Все, убил.
 							defender.health = 0
@@ -964,7 +965,7 @@ function on_monsters_found(victim, vdata)
 								-- amk.mylog("on_offline_death - "..defender.player:name()..", "..attacker.player:name()..", "..attacker.weapon:name())
 								news_main.on_offline_death(defender.player, attacker.player, attacker.weapon)
 								-- Заберем вещички с трупа
-  amk.oau_reason="on_monsters_found chp5.4 : "..i..":"..j
+ -- amk.oau_reason="on_monsters_found chp5.4 : "..i..":"..j
 								local itA, v_itA
 								local l_objA
 								if (items[defender.player.id] and #items[defender.player.id] > 0) then
@@ -993,7 +994,7 @@ function on_monsters_found(victim, vdata)
 						--amk.mylog(attacker.player:name().." [team_A] промазал в "..defender.player:name().." [team_B] ("..defender.health..")")
 					end
 				end
-  amk.oau_reason="on_monsters_found chp5.5 : "..i
+ -- amk.oau_reason="on_monsters_found chp5.5 : "..i
 				-- team_B - защищается
 				if (team_B[j] ~= nil) then
 					attacker = team_B[j]
@@ -1042,7 +1043,7 @@ function on_monsters_found(victim, vdata)
 			-- Теперь и событие можно сформировать для новостей
 			break
 		end
-  amk.oau_reason="on_monsters_found chp5.6 : "..i
+ -- amk.oau_reason="on_monsters_found chp5.6 : "..i
 		-- Почистим таблицы от трупов
 		for kk, vv in pairs(team_A) do
 			if (vv.health <=0) then
@@ -1057,7 +1058,7 @@ function on_monsters_found(victim, vdata)
 				table_remove(team_A, kk)
 			end
 		end
-  amk.oau_reason="on_monsters_found chp5.7 : "..i
+ -- amk.oau_reason="on_monsters_found chp5.7 : "..i
 		for kk, vv in pairs(team_B) do
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды B погиб. "..vv.player:name())
@@ -1072,7 +1073,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end		
 	end	
-  amk.oau_reason="on_monsters_found end"
+ -- amk.oau_reason="on_monsters_found end"
 	-- amk.mylog("Бой с монстрами закончен. Команда А - было "..size_A.." осталось "..size_A-died_A..". Команда Б - было "..size_B.." осталось "..size_B-died_B..".")
 end
 
@@ -1391,7 +1392,7 @@ end
 
 function get_item_cost(item)
 	if item then
-		result = sys_ini:r_float_ex(item:section_name(), "cost", 0)
+		return sys_ini:r_float_ex(item:section_name(), "cost", 0)
 	end
 	return 0
 end
@@ -1673,7 +1674,7 @@ function process_trade(npc)
 		--	log("\ncheck weapon types:")
 		--	table.print(weapons_types)
 			-- Так, теперь у нас отсортированны все пушки НПС. Найдем ту, для которой есть патроны...
-			local wpn_cnt = 3	-- максимальное количество оружия, которое оставим нпс
+			local wpn_cnt = 2	-- максимальное количество оружия, которое оставим нпс
 		--	local npc_wpns = {}
 			for k,v in pairs(weapons_types) do
 				table_sort(v,function(a,b) return a.prm > b.prm end)
@@ -1727,7 +1728,7 @@ function process_trade(npc)
 				local zz = sell_list[1]
 				if zz and b_stalker == true and (get_item_cost(zz) >= sell_limit) then
 					-- Продадим через новости.
-				--	log("~ news_main.on_offline_trade: %s", zz:name())
+				--	log("~ news_main.on_offline_trade: %s -> %s", npc:name(), zz:name())
 					news_main.on_offline_trade(npc, zz)
 					table_remove(sell_list, 1)
 				end
@@ -1768,57 +1769,57 @@ end
 -- Поучаем immunities_sect
 -- В immunities_sect читаем fire_wound_immunity. Все повреждения множим на него.
 function get_monster_params(obj)
-  amk.oau_reason="get_monster_params chp1"
+ -- amk.oau_reason="get_monster_params chp1"
   local sect = obj:section_name()
 	if (obj and IAmAMonster[obj:clsid()]) or (obj and obj.community and obj:community()=="zombied") then
-  amk.oau_reason="get_monster_params chp2"
+ -- amk.oau_reason="get_monster_params chp2"
 		if (monster_params and monster_params[sect]) then
-  amk.oau_reason="get_monster_params chp3"
+ -- amk.oau_reason="get_monster_params chp3"
 			return monster_params[sect]
 		else
-  amk.oau_reason="get_monster_params chp4"
+ -- amk.oau_reason="get_monster_params chp4"
 			-- local speed 	= utils.cfg_get_number(sys_ini, obj:section_name(), "MaxSpeed", obj, false, 5)
 			local speed 	= sys_ini:r_float_ex(sect, "MaxSpeed", 5)
-  amk.oau_reason="get_monster_params chp5"
+ -- amk.oau_reason="get_monster_params chp5"
 			-- local dist 	= utils.cfg_get_number(sys_ini, obj:section_name(), "MaxAttackDist", obj, false, 3)
 			local dist 		= sys_ini:r_float_ex(sect, "MaxAttackDist", 3)
-  amk.oau_reason="get_monster_params chp6"
+ -- amk.oau_reason="get_monster_params chp6"
 			-- local imm_sect = utils.cfg_get_string(sys_ini, obj:section_name(), "immunities_sect", obj, false, "", "")
 			local imm_sect 	= sys_ini:r_string_ex(sect, "immunities_sect", "")
-  amk.oau_reason="get_monster_params chp7"
+ -- amk.oau_reason="get_monster_params chp7"
 			-- local immunity 	= utils.cfg_get_number(sys_ini, imm_sect, "fire_wound_immunity", obj, false, 1)
 			local immunity 	= sys_ini:r_float_ex(imm_sect, "fire_wound_immunity", 1)
-  amk.oau_reason="get_monster_params chp8"
+ -- amk.oau_reason="get_monster_params chp8"
 			-- local att_sect 	= utils.cfg_get_string(sys_ini, obj:section_name(), "attack_params", obj, false, "", "")
 			local att_sect 	= sys_ini:r_string_ex(sect, "attack_params", "")
-  amk.oau_reason="get_monster_params chp9"
+ -- amk.oau_reason="get_monster_params chp9"
 			local attack	= 0
-  amk.oau_reason="get_monster_params chp10 "..tostring(att_sect)
+ -- amk.oau_reason="get_monster_params chp10 "..tostring(att_sect)
 			if (sys_ini:section_exist(att_sect)) then
-  amk.oau_reason="get_monster_params chp11"
+ -- amk.oau_reason="get_monster_params chp11"
 				local result, id, value = nil, nil, nil
 				local max_attack = 0
-  amk.oau_reason="get_monster_params chp12"
+ -- amk.oau_reason="get_monster_params chp12"
 				for a=0, sys_ini:line_count(att_sect)-1 do
-  amk.oau_reason="get_monster_params chp13"
+ -- amk.oau_reason="get_monster_params chp13"
 					result, id, value = sys_ini:r_line(att_sect,a,"","")
-  amk.oau_reason="get_monster_params chp14"
+ -- amk.oau_reason="get_monster_params chp14"
 					if id~=nil and trim(id)~="" and trim(id)~=nil and value~=nil then
-  amk.oau_reason="get_monster_params chp15"
+ -- amk.oau_reason="get_monster_params chp15"
 						local m_value = string.explode(trim(value), ",", true)
-  amk.oau_reason="get_monster_params chp16"
+ -- amk.oau_reason="get_monster_params chp16"
 						if (m_value and #m_value>2) then
-  amk.oau_reason="get_monster_params chp17"
+ -- amk.oau_reason="get_monster_params chp17"
 							local v = tonumber(m_value[2])
-  amk.oau_reason="get_monster_params chp18"
+ -- amk.oau_reason="get_monster_params chp18"
 							if (v and v > max_attack) then					
-  amk.oau_reason="get_monster_params chp19"
+ -- amk.oau_reason="get_monster_params chp19"
 								max_attack = v
 							end
 						end
 					end
 				end
-  amk.oau_reason="get_monster_params chp20"
+ -- amk.oau_reason="get_monster_params chp20"
 				attack = max_attack
 			end
       -- amk.mylog("speed for "..obj:section_name().." is "..tostring(speed))
