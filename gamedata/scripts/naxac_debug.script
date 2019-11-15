@@ -27,3 +27,101 @@ end
 function start_timer(msg)
 	return n_timer(msg)
 end
+
+---------------------------------------------------
+local wnd = nil
+
+function show_obj_info()
+	local obj = level.get_target_obj()
+	if obj == nil then return end
+
+	if wnd == nil then
+		wnd = CUIStatic()
+		wnd:Init(10,30,1000,738)
+		wnd:SetAutoDelete(true)
+		wnd:SetTextComplexMode(true)
+		get_hud():AddDialogToRender(wnd)
+
+		xr_s.subscribe("key_press", this.on_key_press)
+		xr_s.subscribe("net_destroy", this.remove_obj_info)
+	end
+
+	local obj_id = obj:id()
+	local pos = obj:position()
+	local angle = -obj:direction():getH()
+	local cls = obj:clsid()
+	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
+					"%c[yellow]------- OBJECT INFO -------\\n"..
+					"%c[default]name: %c[gray]"..obj:name().."\\n"..
+					"%c[default]section: %c[gray]"..obj:section().."\\n"..
+					"%c[default]clsid: %c[gray]"..naxac_netpk.get_str_clsid(cls).." ["..tostring(cls).."]\\n"..
+					"%c[default]id: %c[gray]"..tostring(obj_id).."\\n"..
+					"%c[default]story id: %c[gray]"..tostring( obj:story_id() ).."\\n"..
+					"%c[default]position: %c[gray]"..string.format("%s, %s, %s", pos.x, pos.y, pos.z).."\\n"..
+					"%c[default]level vertex:  %c[gray]"..tostring( obj:level_vertex_id() ).."\\n"..
+					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"..
+					"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"
+	
+	if obj:is_stalker() or obj:is_monster() then
+		text = text.."%c[default]health: %c[gray]"..tostring( obj.health and obj.health or "unknown" ).."\\n"..
+					"%c[default]rank: %c[gray]"..tostring(
+											(obj.rank and obj:rank())
+											or (obj.character_rank and obj:character_rank())
+											or "unknown"
+										).."\\n"..
+					"%c[default]rank name: %c[gray]"..tostring( ranks.get_obj_rank_name(obj) ).."\\n"
+	elseif obj.condition then
+		text = text.."%c[default]condition: %c[gray]"..tostring( obj:condition() ).."\\n"
+	end
+
+	local st = db.storage[obj_id]
+	if st then
+		text = text.."%c[yellow]------- LOGIC INFO -------\\n"..
+					"%c[default]stype: %c[gray]"..(st.stype or "<nil>").."\\n"..
+					"%c[default]ini_filename: %c[gray]"..(st.ini_filename or "<nil>").."\\n"..
+					"%c[default]gulag name: %c[gray]"..(st.gulag_name or "<nil>").."\\n"..
+					"%c[default]section logic: %c[gray]"..(st.section_logic or "<nil>").."\\n"..
+					"%c[default]active scheme: %c[gray]"..(st.active_scheme or "<nil>").."\\n"..
+					"%c[default]active section: %c[gray]"..(st.active_section or "<nil>").."\\n"..
+					"%c[default]pstor size: %c[gray]"..tostring( st.pstor and table.size(st.pstor) or 0 ).."\\n"
+		if st.pstor then
+			for k,v in pairs(st.pstor) do
+				text = text.."      "..tostring(k).." = "..tostring(v).."\\n"
+			end
+		end
+	end
+
+	local sobj = AI:object(obj_id) 
+	if sobj then
+		local data = netpk:get(sobj)
+	--	local t = naxac_netpk.get_object_flags_names(data.object_flags)
+		text = text.."%c[yellow]------- NET PACKET INFO -------\\n"..
+					"%c[default]object_flags: %c[gray]"..tostring(data.object_flags).."\\n"..
+				--	"      "..table.concat(t, ", ").."\\n"..
+					"%c[default]custom_data:\\n"..
+					"%c[gray]    "..( string.gsub(data.custom_data, "\n", "\\n    ") ).."\\n"
+		if data.character_name then
+			text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
+		end
+		if data.fixed_bones then
+			text = text.."%c[default]fixed_bones: %c[gray]"..data.fixed_bones.."\\n"
+		end
+	end
+
+	wnd:SetText(text)
+end
+
+function remove_obj_info()
+	if wnd == nil then return end
+
+	get_hud():RemoveDialogToRender(wnd)
+	wnd = nil
+
+	xr_s.unsubscribe("key_press", this.on_key_press)
+	xr_s.unsubscribe("net_destroy", this.remove_obj_info)
+end
+
+function on_key_press(dik, bind)
+	if dik ~= DIK_keys.DIK_DELETE then return end
+	remove_obj_info()
+end
