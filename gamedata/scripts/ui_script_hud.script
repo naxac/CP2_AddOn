@@ -146,11 +146,15 @@ function UIScriptHUD:UpdateMap()
 			table.insert(del, id)
 		end
 	end
-	for i, v in ipairs(del) do
-		if v then
-			self.map:DetachChild(self.map_spots[v])
-			self.map_spots[v] = nil
+	-- удалим неактуальные метки
+	for id, st in pairs(self.map_spots) do
+		if db.creatures[id] == nil then
+			table.insert(del, id)
 		end
+	end
+	for i, v in ipairs(del) do
+		self.map:DetachChild( self.map_spots[v] )
+		self.map_spots[v] = nil
 	end
 end
 
@@ -163,14 +167,13 @@ function UIScriptHUD:ConvertRealToLocal(pos)
 	rotation(res, self.dir)
 	res:add(self.map_center)
 
---	res:mul(kScreen, 1)
 	return res
 end
 
 function UIScriptHUD:DrawSpot(obj)
 	local clr = get_point_color(obj)
 	if not clr then
-		return false
+		return nil
 	end
 
 	local pos = self:ConvertRealToLocal( obj:position() )
@@ -244,11 +247,11 @@ function get_body_state_texture()
 end
 
 local id2color = {
-	[0] = GetARGB(255,255,0,0),
-	[1] = GetARGB(255,255,200,0),
-	[2] = GetARGB(255,50,255,0),
-	[3] = GetARGB(255,168,168,168),
-	[4] = GetARGB(255,255,75,170)
+	[0] = GetARGB(255,255,0,0),		-- enemy
+	[1] = GetARGB(255,255,200,0),	-- neutral
+	[2] = GetARGB(255,50,255,0),	-- friend
+	[3] = GetARGB(255,168,168,168),	-- corpse
+	[4] = GetARGB(255,255,75,170)	-- monster
 }
 function get_point_color(obj)
 	local colorID = nil
@@ -266,8 +269,12 @@ function get_point_color(obj)
 		elseif show_corpse then
 			colorID = 3
 		end
-	elseif show_monsters and obj:is_monster() and obj:alive() then
-		colorID = 4
+	elseif show_monsters and obj:is_monster() then
+		if obj:alive() then
+			colorID = 4
+		else
+			colorID = 3
+		end
 	end
 
 	if colorID == nil then return false end
