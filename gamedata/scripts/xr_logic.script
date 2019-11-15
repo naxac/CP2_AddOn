@@ -353,9 +353,9 @@ function enable_generic_schemes(ini, npc, stype, section)
       xr_combat_ignore.set_combat_ignore_checker(npc, ini, "combat_ignore", combat_ignore_section)
     end
 
-                if watcher_act then
-                        watcher_act.set_scheme(npc,ini,"watcher_act","watcher_act")
-                end
+    if watcher_act then
+      watcher_act.set_scheme(npc,ini,"watcher_act","watcher_act")
+    end
 
   if xrs_ai then xrs_ai.enable_schemes(ini, npc, stype, section) end
   if rx_ai then rx_ai.enable_schemes(ini,npc) end
@@ -1151,27 +1151,21 @@ function mob_captured(mob)
 end
 
 function save_logic(obj, packet)
-  local npc_id = obj:id()
-  local cur_tm = time_global()
+  local st = db.storage[obj:id()]
 
-  local activation_time = db.storage[npc_id].activation_time
-  if not activation_time then
-    activation_time = 0
-  end
-  packet:w_s32(activation_time - cur_tm)
+  packet:w_s32( (st.activation_time or 0) - time_global() )
 
   -- GAMETIME added by Stohe.
-  utils.w_CTime(packet, db.storage[npc_id].activation_game_time)
+  utils.w_CTime(packet, st.activation_game_time)
 end
 
 function load_logic(obj, reader)
-  local npc_id = obj:id()
-  local cur_tm = time_global()
+  local st = db.storage[obj:id()]
 
-  db.storage[npc_id].activation_time = reader:r_s32() + cur_tm
+  st.activation_time = reader:r_s32() + time_global()
 
   -- GAMETIME added by Stohe.
-  db.storage[npc_id].activation_game_time = utils.r_CTime(reader)
+  st.activation_game_time = utils.r_CTime(reader)
 end
 
 local pstor_number = 0
