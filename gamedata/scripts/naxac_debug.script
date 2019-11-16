@@ -60,7 +60,8 @@ function show_obj_info()
 					"%c[default]position: %c[gray]"..string.format("%s, %s, %s", pos.x, pos.y, pos.z).."\\n"..
 					"%c[default]level vertex:  %c[gray]"..tostring( obj:level_vertex_id() ).."\\n"..
 					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"..
-					"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"
+					"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"..
+					"%c[default]visual: %c[gray]"..( obj.get_visual_name and obj:get_visual_name() or "none" ).."\\n"
 	
 	if obj:is_stalker() or obj:is_monster() then
 		text = text.."%c[default]health: %c[gray]"..tostring( obj.health and obj.health or "unknown" ).."\\n"..
@@ -72,6 +73,12 @@ function show_obj_info()
 					"%c[default]rank name: %c[gray]"..tostring( ranks.get_obj_rank_name(obj) ).."\\n"
 	elseif obj.condition then
 		text = text.."%c[default]condition: %c[gray]"..tostring( obj:condition() ).."\\n"
+		if obj:is_ammo() then
+			text = text.."%c[default]ammo left: %c[gray]"..tostring( obj:get_ammo_left() ).."\\n"
+		elseif isMagazinedWeapon(nil, cls) then
+			text = text.."%c[default]addon flags: %c[gray]"..tostring( obj:get_addon_flags() ).."\\n"..
+						"%c[default]ammo in magazine: %c[gray]"..tostring( obj:get_ammo_in_magazine() ).."\\n"
+		end
 	end
 
 	local st = db.storage[obj_id]
