@@ -216,7 +216,7 @@ function getColor(obj,cls)
 	if obj:id() == 0 then
 		return colors["actor"]
 	else
-		if IsHuman[cls] then
+		if IsHuman[cls or obj:clsid()] then
 			if obj:alive() then
 				return colors["stalker"]
 			else
@@ -272,10 +272,21 @@ end
 
 function switch_bioradar( f )
 	need_update = f
+	if not f then
+		ui_script_hud.bioradar_off()
+	end
+end
+
+function get_state()
+	return need_update
 end
 
 local upd_shift, upd_num = 10, 0
 function update(delta)
+	if (not need_update)
+		or game_options.CurrentHUD == "ns_pda_script"
+	then return end
+
 	-- для равномерности вращения локатора при разных значениях FPS
 	if delta < upd_shift then
 		if upd_num < upd_shift then
@@ -288,7 +299,7 @@ function update(delta)
 
 --    local t = profile_timer()
 --    t:start()
-	if need_update and not bind_actor.scopeUsed then
+	if not bind_actor.scopeUsed then
 		detectorShowed = true
 		
 		amk.oau_watchdog = 18101
