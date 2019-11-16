@@ -29,40 +29,40 @@ end
 function PDAAdd:InitControls()
 	local xml = CScriptXmlInit()
 	xml:ParseFile("ui_pda_add.xml")
-	
+
 	if has_alife_info("pda_dont_work") then		-- or amk.load_variable("blowout",0)>0 then
 		self.owner:Show(false)
-		
+
 		xml:InitStatic("bsod_back", self)
 		xml:InitStatic("bsod", self)
-		
+
 		self.OnQuit = function()
 			self:GetHolder():start_stop_menu(self, true)
 			level.start_stop_menu(self.owner, true)
 		end
 		self:Register(xml:InitButton("btn_off", self), "button_off")
 		self:AddCallbackEx("button_off", ui_events.BUTTON_CLICKED, self.OnQuit)
-			
+
 		level.start_stop_menu(self, true)
 	else
 		self.stat = CUIStatic()
 		self.stat:Init(0, 0, 1024, 768)
 		self.owner:AttachChild(self.stat)
 		self.stat:Show(true)
-		
+
 		local btn = xml:InitButton("btn_off", self.stat)
 		self:Register(btn, "button_off")
 		self:AddCallback("button_off", ui_events.BUTTON_CLICKED,
 			function() level.start_stop_menu(level.main_input_receiver(), true) end )
-	
+
 		btn = xml:InitButton("btn_show_message_dlg", self.stat)
 		self:Register(btn, "button_msg")
 		self:AddCallbackEx("button_msg", ui_events.BUTTON_CLICKED, self.ShowSmsDlg)
-		
+
 		btn = xml:InitButton("btn_show_notepad", self.stat)
 		self:Register(btn, "button_notes")
 		self:AddCallbackEx("button_notes", ui_events.BUTTON_CLICKED, self.ShowNotepadDlg)
-		
+
 		btn = xml:InitButton("btn_show_timer", self.stat)
 		self:Register(btn, "button_timer")
 		self:AddCallbackEx("button_timer", ui_events.BUTTON_CLICKED, self.ShowTimerDlg)
