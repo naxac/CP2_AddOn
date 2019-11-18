@@ -13,7 +13,7 @@ local string_gsub = string.gsub
 local is_gps_debug = false -- для включения локальной отладочной информации
 local max_comments_strings_on_screen = 35 -- сколько строк комментариев максимально влезает в экран на ПДА
 
-local labels = {} -- в таблице ссылки на тайники помеченные маячками, а также реквизиты маячка (время до заряда  и т.д.). содержит всегда актуальные значения
+labels = {} -- в таблице ссылки на тайники помеченные маячками, а также реквизиты маячка (время до заряда  и т.д.). содержит всегда актуальные значения
 local items_in_box = {}
 
 local fake_box = {}
@@ -359,6 +359,7 @@ function recharge_gps(item, box)
 	labels[boxId].wh = 0 -- не предупреждали о гибели npc
 	
 	amk.save_table("gps_labels", labels)
+	ui_script_hud.remove_spot(boxId)
 	-- mylog("RECHARGE_GPS: перезарядили маячок в тайнике [" .. tostring(boxId) .. "]")
 end
 
@@ -469,6 +470,7 @@ function update_gps_stalker(box, boxId, is_new_metka)
 	
 	if is_save_table then
 		amk.save_table("gps_labels", labels)
+		ui_script_hud.remove_spot(boxId)
 	end
 end
 
@@ -535,6 +537,7 @@ function update_gps_habar(boxId)
 		remove_all_spots(boxId)
 		remove_label(boxId)
 		amk.save_table("gps_labels", labels)
+		ui_script_hud.remove_spot(boxId)
 		return
 	end
 
@@ -548,6 +551,7 @@ function update_gps_habar(boxId)
 		fl_send_tip_msg = true -- надо сообщить что ставим новую метку
 		labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0}
 		amk.save_table("gps_labels", labels)
+		ui_script_hud.remove_spot(boxId)
 		-- mylog("UPDATE_GPS_HABAR: уст. новая метка с хабаром на тайник. " .. tableinfo(labels[boxId]))
 	end
 
@@ -674,7 +678,7 @@ function update_gps_habar(boxId)
 	
 	-- добавим инфу о разряде
 	if habar_list_mode and labels_item.at > 0 then
-		text_metki = get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
+		text_metki = "Осталось: "..get_local_time(labels_item.gt + labels_item.at - gh) .. ".\\n" .. text_metki
 	end
 	
 	--апдейтим список
@@ -732,6 +736,7 @@ function update_gps_state()
 				remove_all_spots(i)
 				remove_label(i)
 				is_save_table = true
+				ui_script_hud.remove_spot(i)
 			end	
 		end
 	end
@@ -851,6 +856,7 @@ function update_gps_spot_on_fake(has_gps, boxId, items)
 		remove_all_spots(boxId)
 		remove_label(boxId)
 		amk.save_table("gps_labels", labels)
+		ui_script_hud.remove_spot(boxId)
 		return
 	end
 		
@@ -864,6 +870,7 @@ function update_gps_spot_on_fake(has_gps, boxId, items)
 		fl_send_tip_msg = true -- надо сообщить что ставим новую метку
 		labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0, fk = true}
 		amk.save_table("gps_labels", labels)
+		ui_script_hud.remove_spot(boxId)
 	end
 
 	local itemsbox = {}
@@ -983,3 +990,7 @@ function has_label(box_id)
 	return labels[box_id] ~= nil
 end
 
+
+function get_labels()
+	return labels
+end

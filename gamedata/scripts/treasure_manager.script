@@ -626,7 +626,7 @@ function CTreasure:give_treasure(k)
 end
 --' Снимаем отметку с тайника
 function CTreasure:treasure_empty(box, box_story_id)
-	printf("!!! treasure empty")
+--	printf("!!! treasure empty")
 	local k = self.treasure_by_target[box_story_id]
 
 	if k == nil or self.treasure_info[k] == nil then 
@@ -636,6 +636,7 @@ function CTreasure:treasure_empty(box, box_story_id)
 	if self.treasure_info[k].active then
 		self.treasure_info[k].active = false
 		actor_stats.add_points("treasures", level.name(), 1, 1)
+		ui_script_hud.remove_spot( box:id() )
 	end
 	
 	-- если тайник не именной, то переведен его в онлайн для следующей выдачи
@@ -741,6 +742,18 @@ function load(p)
 end
 function clear_treasure_manager()
 	treasure_manager = nil
+end
+
+function is_active_treasure(box_story_id)
+	local mgr = get_treasure_manager()
+	local k = mgr.treasure_by_target[box_story_id]
+	if not k then return false end
+
+	if mgr.treasure_info[k] and mgr.treasure_info[k].active then
+		return true
+	end
+
+	return false
 end
 
 function CTreasure:dialog(npc)

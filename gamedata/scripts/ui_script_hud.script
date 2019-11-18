@@ -7,6 +7,10 @@ local show_treasures = true
 local biodetector_mode = false
 
 local dev = device()
+local level_object = level.object_by_id
+local spot_offset = vector2():set(6*kScreen, 6)
+local spot_offset_npc = vector2():set(1.5*kScreen, 1.5)
+
 local wnd = nil
 
 local step_angle = 1.5/180/math.pi -- шаг за апдейт в радианах (скорость поворота)
@@ -62,7 +66,7 @@ function UIScriptHUD:__init()
 	)
 
 	self.map_spots = {}
-	self.spot_offset = vector2():set(1.5, 1.5)
+	self.del_spots = {}
 
 	xml:InitStatic("background", self)
 
@@ -93,6 +97,13 @@ function UIScriptHUD:__finalize()
 end
 
 function UIScriptHUD:Update(delta)
+	if biodetector_mode then
+		self.sweep_angle = self.sweep_angle - step_angle*delta/7
+		if self.sweep_angle < 0 then
+			self.sweep_angle = self.sweep_angle + two_pi
+		end
+	end
+
 	if not self.need_update then return end
 
 	self:UpdateIndicators()
@@ -116,6 +127,9 @@ function UIScriptHUD:UpdateIndicators()
 end
 
 function UIScriptHUD:UpdateMap()
+	local t = profile_timer()
+	t:start()
+
 	self.dir = -dev.cam_dir:getH()
 
 	-- Update map position
@@ -126,55 +140,93 @@ function UIScriptHUD:UpdateMap()
 	new_pos:add(self.clip_center)
 	self.map:SetWndPos( new_pos:get() )
 
-	if self.biodetector_mode then
-		self.sweep_angle = self.sweep_angle - step_angle
-		if self.sweep_angle < 0 then
-			self.sweep_angle = self.sweep_angle + two_pi
-		end
-		self.sweep:SetHeading(self.sweep_angle) -- поворачиваем локатор
+	if biodetector_mode then
+		self.sweep:SetHeading(self.sweep_angle)
 	end
 
-	self:UpdateNPCSpots()
-	self:UpdateGPSSpots()
+	t:stop()
+	log("Update map position: %s", t:time())
+	t:start()
+
+	self:UpdateSpots()
+
+	t:stop()
+	log("UpdateSpots: %s", t:time())
+	t:start()
+
+	-- удалим неактуальные метки
+	for id, st in pairs(self.map_spots) do
+		if db.storage[id] == nil then
+			table.insert(self.del_spots, id)
+		end
+	end
+	for i, v in ipairs(self.del_spots) do
+		self.map:DetachChild( self.map_spots[v] )
+		self.map_spots[v] = nil
+	end
+	self.del_spots = {}
+
+	t:stop()
+	log("Total: %s", t:time())
 end
 
-function UIScriptHUD:UpdateGPSSpots()
+function UIScriptHUD:RemoveAllSpots()
+	for id in pairs(self.map_spots) do
+		table.insert(self.del_spots, id)
+	end
+	for i, v in ipairs(self.del_spots) do
+		self.map:DetachChild( self.map_spots[v] )
+		self.map_spots[v] = nil
+	end
+	self.del_spots = {}
 end
 
-function UIScriptHUD:UpdateNPCSpots()
-	-- Update map spots
-	local del = {}
-	local st
+function UIScriptHUD:UpdateSpots()
+	local st, obj, tex, sz
 	local actor_pos = Actor:position()
-	for id, obj in pairs(db.creatures) do
+
+	for id in pairs(db.storage) do
 		st = self.map_spots[id]
-		if AI:object(id)
+		obj = level_object(id)
+		if obj and AI:object(id)
 			and obj:position():distance_to_xz(actor_pos) < map_dist
 		then
 			if not st then
-				self.map_spots[id] = self:DrawSpot(obj)
+				tex, sz = nil, nil
+				if obj:is_inventory_box() and not biodetector_mode then
+					if show_gps and gps_habar.labels[id] then
+						tex = get_GPS_texture(id)
+					elseif show_treasures and treasure_manager.is_active_treasure( obj:story_id() ) then
+						tex = "ui_mapPDA_treasure"
+					end
+					sz = vector2():set(12*kScreen, 12)
+				elseif obj:is_entity_alive() then
+					tex = "ui_minimap_point"
+					sz = vector2():set(3*kScreen, 3)
+				end
+				if tex and sz then
+					self.map_spots[id] = self:DrawSpot( obj, tex, sz:get() )
+				end
 			else
-				local clr = get_point_color(obj)
-				if clr then
-					st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(self.spot_offset):get() )
-					st:SetColor(clr)
-				else
-					table.insert(del, id)
+				if obj:is_inventory_box() then
+					if biodetector_mode then
+						table.insert(self.del_spots, id)
+					else
+						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset):get() )
+					end
+				elseif obj:is_entity_alive() then
+					local clr = get_point_color(obj)
+					if clr then
+						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
+						st:SetColor(clr)
+					else
+						table.insert(self.del_spots, id)
+					end
 				end
 			end
 		elseif st then
-			table.insert(del, id)
+			table.insert(self.del_spots, id)
 		end
-	end
-	-- удалим неактуальные метки
-	for id, st in pairs(self.map_spots) do
-		if db.creatures[id] == nil then
-			table.insert(del, id)
-		end
-	end
-	for i, v in ipairs(del) do
-		self.map:DetachChild( self.map_spots[v] )
-		self.map_spots[v] = nil
 	end
 end
 
@@ -190,20 +242,27 @@ function UIScriptHUD:ConvertRealToLocal(pos)
 	return res
 end
 
-function UIScriptHUD:DrawSpot(obj)
-	local clr = get_point_color(obj)
-	if not clr then
-		return nil
+function UIScriptHUD:DrawSpot(obj, tex, w, h)
+	if tex == nil then return  nil end
+
+	local clr
+	if tex == "ui_minimap_point" then
+		clr = get_point_color(obj)
+		if not clr then
+			return nil
+		end
 	end
 
 	local pos = self:ConvertRealToLocal( obj:position() )
-	pos:sub(self.spot_offset)
 
 	local st = CUIStatic()
-	st:Init("ui_minimap_point", pos.x, pos.y, 3, 3)
+	st:Init(tex, pos.x, pos.y, w, h)
 	st:SetAutoDelete(true)
 	st:SetStretchTexture(true)
-	st:SetColor(clr)
+	if clr then
+		st:SetColor(clr)
+		st.is_npc = true
+	end
 	self.map:AttachChild(st)
 	st:Show(true)
 
@@ -214,15 +273,20 @@ function UIScriptHUD:SwitchBioradar()
 	if self.biodetector_mode == biodetector_mode then return end
 	self.biodetector_mode = biodetector_mode
 
-	if self.biodetector_mode then
-		self.map:InitTexture("intro\\intro_back")
+	if biodetector_mode then
+		self.map:InitTexture("abc\\hud_empty")
+		self.map_frame:InitTexture("intro\\intro_back")
 		self.sweep:Show(true)
 	else
 		self.map:InitTexture(self.map_texture)
+		self.map_frame:InitTexture("abc\\hud_empty")
 		self.sweep:Show(false)
 	end
 end
 
+function UIScriptHUD:RemoveSpot(obj_id)
+	table.insert(self.del_spots, obj_id)
+end
 ---------------------------------------------------------------------------
 function get_level_bound_rect()
 	local vol = level.get_bounding_volume()
@@ -276,6 +340,23 @@ function get_body_state_texture()
 	end
 end
 
+local spot2texture = {
+	gps_stalker = "ui_mapPDA_gps_stalker",
+	habar_location = "ui_mapPDA_habar_small",
+	habar_location_w = "ui_icons_mapPDA_habar_small_w",
+	habar_clear_location = "ui_mapPDA_habar_clear",
+	habar_clear_location_w = "ui_icons_mapPDA_habar_clear_small_w"
+}
+local has_spot = level.map_has_object_spot
+function get_GPS_texture(obj_id)
+	for k, v in pairs(spot2texture)do
+		if has_spot(obj_id, k) ~= 0 then
+			return v
+		end
+	end
+	return nil
+end
+
 local id2color = {
 	[0] = GetARGB(255,255,0,0),		-- enemy
 	[1] = GetARGB(255,255,200,0),	-- neutral
@@ -325,6 +406,12 @@ function rotation(pos, angle)
 end
 
 ---------------------------------------------------------------------------
+function remove_spot(id)
+	if wnd then
+		wnd:RemoveSpot(id)
+	end
+end
+
 function init()
 	this.init_settings()
 
@@ -366,7 +453,10 @@ end
 function bioradar_off()
 	Actor:disable_info_portion("pda_biodetector_mode")
 	biodetector_mode = false
-	wnd:SwitchBioradar()
+	if wnd then
+		wnd:SwitchBioradar()
+		wnd:RemoveAllSpots()
+	end
 end
 
 function init_settings()
@@ -378,6 +468,7 @@ function init_settings()
 
 	if wnd then
 		wnd:SwitchBioradar()
+		wnd:RemoveAllSpots()
 	end
 end
 
