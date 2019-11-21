@@ -80,9 +80,13 @@ end
 function turret_binder:check_health()
 	if self.st.alive and self.heli:GetfHealth() <= 0.005 then
 		explode_turret(self.object)
+		self.st.release_time = time_global() + 4000
 	end
-	if not self.st.alive and not self.heli:isVisible(db.actor) then
-		table.insert( rx_ai.ids_to_remove,self.se_obj.id )
+	if (not self.st.alive)
+		and (not self.heli:isVisible(Actor))
+		and (self.st.release_time or 0) < time_global()
+	then
+		 AI:release(self.se_obj, true)
 	end
 end
 
