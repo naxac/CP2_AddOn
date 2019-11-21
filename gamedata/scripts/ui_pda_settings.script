@@ -13,44 +13,68 @@ function UISettingsWnd:InitControls()
 	xml:ParseFile("ui_pda_settings.xml")
 
 	self.back = xml:InitFrame("back_frame", self)
+	local frame_h = self.back:GetHeight() - 10
 
 	xml:InitStatic("caption", self.back)
+	xml:InitStatic("minimap_settings", self.back)
 
-	self.minimap_cap = xml:InitStatic("minimap_settings", self.back)
 	self.show_npc = xml:InitCheck("check_show_npc", self.back)
-	self.show_corpse = xml:InitCheck("check_show_corpse", self.back)
+	self.show_npc:SetCheck( Actor:has_info("pda_show_npc") )
+	self.show_npc:SetWndPos(15, frame_h)
+	frame_h = frame_h + 22
+
+	local dif = level.get_game_difficulty()
+	if dif == game_difficulty.novice then
+		self.show_enemy = xml:InitCheck("check_show_enemy", self.back)
+		self.show_enemy:SetCheck( Actor:has_info("pda_show_enemy") )
+		self.show_enemy:SetWndPos(15, frame_h)
+		frame_h = frame_h + 22
+	elseif Actor:has_info("pda_show_enemy") then
+		Actor:disable_info_portion("pda_show_enemy")
+	end
+
+	if dif ~= game_difficulty.master then
+		self.show_corpse = xml:InitCheck("check_show_corpse", self.back)
+		self.show_corpse:SetCheck( Actor:has_info("pda_show_corpse") )
+		self.show_corpse:SetWndPos(15, frame_h)
+		frame_h = frame_h + 22
+	elseif Actor:has_info("pda_show_corpse") then
+		Actor:disable_info_portion("pda_show_corpse")
+	end
+
 	self.show_gps = xml:InitCheck("check_show_gps", self.back)
+	self.show_gps:SetCheck( Actor:has_info("pda_show_gps") )
+	self.show_gps:SetWndPos(15, frame_h)
+	frame_h = frame_h + 22
+
 	self.show_treasures = xml:InitCheck("check_show_treasures", self.back)
-	self.biodetector = xml:InitCheck("check_biodetector", self.back)
+	self.show_treasures:SetCheck( Actor:has_info("pda_show_treasures") )
+	self.show_treasures:SetWndPos(15, frame_h)
+	frame_h = frame_h + 22
+
+	self.show_time = xml:InitCheck("check_show_time", self.back)
+	self.show_time:SetCheck( Actor:has_info("pda_show_time") )
+	self.show_time:SetWndPos(15, frame_h)
+	frame_h = frame_h + 22
+
+	if inventory.on_belt("bioradar") or inventory.on_belt("bioradar2") then
+		self.biodetector = xml:InitCheck("check_biodetector", self.back)
+		self.biodetector:SetCheck( Actor:has_info("pda_biodetector_mode") )
+		self.biodetector:SetWndPos(15, frame_h)
+		frame_h = frame_h + 22
+	end
+
+	self.back:SetHeight(frame_h + 10)
 
 	local btn = xml:InitButton("btn_quit", self.back)
 	self:Register(btn, "button_quit")
 	self:AddCallbackEx("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit)
-
-	self:LoadSettings()
-end
-
-function UISettingsWnd:LoadSettings()
-	local frame_h = 154
-	if inventory.on_belt("bioradar") or inventory.on_belt("bioradar2") then
-		self.biodetector:Show(true)
-		self.biodetector:SetCheck( has_alife_info("pda_biodetector_mode") )
-		frame_h = frame_h + 22
-	else
-		self.biodetector:SetCheck(false)
-		self.biodetector:Show(false)
-	end
-	self.back:SetHeight(frame_h)
-
-	self.show_npc:SetCheck( has_alife_info("pda_show_npc") )
-	self.show_corpse:SetCheck( has_alife_info("pda_show_corpse") )
-	self.show_gps:SetCheck( has_alife_info("pda_show_gps") )
-	self.show_treasures:SetCheck( has_alife_info("pda_show_treasures") )
 end
 
 function UISettingsWnd:SaveSettings()
 	local function check_option(ctrl, info)
-		local has = has_alife_info(info)
+		if ctrl == nil then return end
+		local has = Actor:has_info(info)
 		local chk = ctrl:GetCheck() 
 		if chk and not has then
 			Actor:give_info_portion(info)
@@ -60,9 +84,11 @@ function UISettingsWnd:SaveSettings()
 	end
 
 	check_option(self.show_npc, "pda_show_npc")
+	check_option(self.show_enemy, "pda_show_enemy")
 	check_option(self.show_corpse, "pda_show_corpse")
 	check_option(self.show_gps, "pda_show_gps")
 	check_option(self.show_treasures, "pda_show_treasures")
+	check_option(self.show_time, "pda_show_time")
 	check_option(self.biodetector, "pda_biodetector_mode")
 
 	ui_script_hud.init_settings()

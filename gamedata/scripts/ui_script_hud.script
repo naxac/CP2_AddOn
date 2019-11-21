@@ -1,19 +1,23 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Options
 local show_npc = true
+local show_enemy = false
 local show_corpse = true
 local show_gps = true
 local show_treasures = true
+local show_time = true
 local biodetector_mode = false
 
 local dev = device()
 local level_object = level.object_by_id
+local has_spot = level.map_has_object_spot
+
 local spot_offset = vector2():set(6*kScreen, 6)
 local spot_offset_npc = vector2():set(1.5*kScreen, 1.5)
 
 local wnd = nil
 
-local step_angle = 1.5/180/math.pi -- шаг за апдейт в радианах (скорость поворота)
+local step_angle = 1.5/(180/math.pi) -- шаг за апдейт в радианах (скорость поворота)
 local two_pi = 2*math.pi
 
 local map_zoom = 2
@@ -91,6 +95,10 @@ function UIScriptHUD:__init()
 
 	xr_s.subscribe("update", self.Update, {self = self})
 	self.need_update = false
+
+	if has_alife_info("pda_biodetector_mode") then
+		self:SwitchBioradar()
+	end
 end
 
 function UIScriptHUD:__finalize()
@@ -98,7 +106,7 @@ end
 
 function UIScriptHUD:Update(delta)
 	if biodetector_mode then
-		self.sweep_angle = self.sweep_angle - step_angle*delta/7
+		self.sweep_angle = self.sweep_angle - step_angle*delta/20
 		if self.sweep_angle < 0 then
 			self.sweep_angle = self.sweep_angle + two_pi
 		end
@@ -123,17 +131,19 @@ function UIScriptHUD:UpdateIndicators()
 		self.progress_armor:SetProgressPos( Actor:get_current_outfit():condition() * 100 )
 	end
 
-	self.time_static:SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
+	if show_time then
+		self.time_static:SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
+	end
 end
 
 function UIScriptHUD:UpdateMap()
-	local t = profile_timer()
-	t:start()
+	-- local t = profile_timer()
+	-- t:start()
 
-	self.dir = -dev.cam_dir:getH()
+	self.map_angle = -dev.cam_dir:getH()
 
 	-- Update map position
-	self.map:SetHeading(self.dir)
+	self.map:SetHeading(self.map_angle)
 	local pos = self:ConvertRealToLocal( Actor:position() )
 	local new_pos = vector2()
 	new_pos:sub(pos)
@@ -144,15 +154,9 @@ function UIScriptHUD:UpdateMap()
 		self.sweep:SetHeading(self.sweep_angle)
 	end
 
-	t:stop()
-	log("Update map position: %s", t:time())
-	t:start()
-
-	self:UpdateSpots()
-
-	t:stop()
-	log("UpdateSpots: %s", t:time())
-	t:start()
+	-- t:stop()
+	-- log("Update map position: %s", t:time())
+	-- t:start()
 
 	-- удалим неактуальные метки
 	for id, st in pairs(self.map_spots) do
@@ -166,8 +170,14 @@ function UIScriptHUD:UpdateMap()
 	end
 	self.del_spots = {}
 
-	t:stop()
-	log("Total: %s", t:time())
+	-- t:stop()
+	-- log("del_spots: %s", t:time())
+	-- t:start()
+
+	self:UpdateSpots()
+
+	-- t:stop()
+	-- log("Total: %s", t:time())
 end
 
 function UIScriptHUD:RemoveAllSpots()
@@ -196,7 +206,7 @@ function UIScriptHUD:UpdateSpots()
 				if obj:is_inventory_box() and not biodetector_mode then
 					if show_gps and gps_habar.labels[id] then
 						tex = get_GPS_texture(id)
-					elseif show_treasures and treasure_manager.is_active_treasure( obj:story_id() ) then
+					elseif show_treasures and has_spot(id, "treasure")~=0 then
 						tex = "ui_mapPDA_treasure"
 					end
 					sz = vector2():set(12*kScreen, 12)
@@ -236,7 +246,7 @@ function UIScriptHUD:ConvertRealToLocal(pos)
 	res.y = ( self.bound_rect:height() - (pos.z - self.bound_rect.y1) ) *map_zoom
 
 	res:sub(self.map_center)
-	rotation(res, self.dir)
+	rotation(res, self.map_angle)
 	res:add(self.map_center)
 
 	return res
@@ -270,6 +280,10 @@ function UIScriptHUD:DrawSpot(obj, tex, w, h)
 end
 
 function UIScriptHUD:SwitchBioradar()
+	if not show_time then
+		self.time_static:SetText("")
+	end
+
 	if self.biodetector_mode == biodetector_mode then return end
 	self.biodetector_mode = biodetector_mode
 
@@ -347,7 +361,6 @@ local spot2texture = {
 	habar_clear_location = "ui_mapPDA_habar_clear",
 	habar_clear_location_w = "ui_icons_mapPDA_habar_clear_small_w"
 }
-local has_spot = level.map_has_object_spot
 function get_GPS_texture(obj_id)
 	for k, v in pairs(spot2texture)do
 		if has_spot(obj_id, k) ~= 0 then
@@ -382,6 +395,8 @@ function get_point_color(obj)
 				colorID = 2
 			elseif rel == game_object.neutral then
 				colorID = 1
+			elseif show_enemy and rel == game_object.enemy then
+				colorID = 0
 			else
 				return nil
 			end
@@ -450,9 +465,8 @@ function on_key_release(dik, bind)
 	end
 end
 
-function bioradar_off()
-	Actor:disable_info_portion("pda_biodetector_mode")
-	biodetector_mode = false
+function switch_bioradar(mode)
+	biodetector_mode = mode
 	if wnd then
 		wnd:SwitchBioradar()
 		wnd:RemoveAllSpots()
@@ -460,11 +474,15 @@ function bioradar_off()
 end
 
 function init_settings()
+	local dif = level.get_game_difficulty()
 	show_npc = has_alife_info("pda_show_npc")
-	show_corpse = has_alife_info("pda_show_corpse")
+	show_enemy = has_alife_info("pda_show_enemy") and dif == game_difficulty.novice
+	show_corpse = has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
 	show_gps = has_alife_info("pda_show_gps")
 	show_treasures = has_alife_info("pda_show_treasures")
+	show_time = has_alife_info("pda_show_time")
 	biodetector_mode = has_alife_info("pda_biodetector_mode")
+		and ( inventory.on_belt("bioradar") or inventory.on_belt("bioradar2") )
 
 	if wnd then
 		wnd:SwitchBioradar()
