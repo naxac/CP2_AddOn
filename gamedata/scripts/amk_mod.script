@@ -1598,11 +1598,12 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 				--как только какой-то рецепт остаётся без компонентов - рецепт сработал
 				local obj
 				local level_object = level.object_by_id
+				local obj_sect
 				for i=1,65534 do
 					obj = level_object(i)
 					if obj and AI:object(i) and afs[obj:section()]~=nil then
 						if obj:parent() == nil and ((anom_radius - obj:position():distance_to(anom_pos)) > -2) then
-							local obj_sect = obj:section()
+							obj_sect = obj:section()
 							--проверяем отобраннvе рецепты
 							for info, recept in pairs(recepti_est) do
 								-- если компонент есть в рецепте
@@ -1611,6 +1612,12 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 									recept["komp"][obj_sect] = obj:id()
 									-- уменьшаем количество компонентов в рецепте
 									recept["count"] = recept["count"] - 1
+									-- проверяем состояние артефактов
+									if recept["comp_cond"] then
+										recept["comp_cond"] = (recept["comp_cond"] + obj:condition())/2
+									else
+										recept["comp_cond"] = obj:condition()
+									end
 									-- если рецепт пуст, то он сработал
 									if recept["count"] == 0 then
 										-- устанавливаем все параметры для рецепта, возможно из умолчаний
@@ -1622,7 +1629,7 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 										local remove_anomaly	= get_af_transform_param("remove_anomaly", recept, recepti)
 										local remove_anomaly_id = remove_anomaly and anom_id or nil
 										local komp		= recept["komp"]
-										local result 	= af_select_result(v_udachi, v_virogd)
+										local result 	= af_select_result(v_udachi, v_virogd, recept["comp_cond"])
 										
 										if cel == nil or v_udachi == nil or v_virogd == nil
 											or virogd == nil or vremya == nil or remove_anomaly == nil 
@@ -1677,9 +1684,10 @@ function af_flash(af)
 	amk.remove_item(af)
 end
 
--- случайно выбирает результат, возвращает таблицу с секциями результатов
-function af_select_result(v_udachi, v_virogd)
+-- случайно выбирает результат, возвращает индекс результата
+function af_select_result(v_udachi, v_virogd, k_cond)
 	local rnd=math_random(0,100)
+	v_udachi = v_udachi * k_cond	-- если компоненты имеют среднее состояние меньше 1, то уменьшаем вероятность удачного исхода
 	if rnd > v_udachi then --неудача
 		if rnd > v_virogd + v_udachi then -- отторжение
 			return 0
