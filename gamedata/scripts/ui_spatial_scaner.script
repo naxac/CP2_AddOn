@@ -19,7 +19,7 @@ class "UIPdaTeleport" (CUIScriptWnd)
 function UIPdaTeleport:__init(in_zone, cond) super()
 	self.level_maps = {}
 	self.anoms = {}
-	self.ini = ini_file("game_maps_single.ltx")
+	self.ini = game_ini()
 
 	self.in_zone = in_zone
 	self.cond_scaner = cond
@@ -324,7 +324,6 @@ function UIPdaTeleport:GetFrect(section, line)
 		for n in string.gmatch(self.ini:r_string(section, line), "[%d%-%.]+") do
 			t[#t+1] = tonumber(n)
 		end
-		if #t~=4 then abort("GetFrect: incorrect rect string: '%s'", str) end
 	else
 		t = { -10, -10, 0, 0 }
 	end
@@ -432,6 +431,7 @@ function UIPdaTeleport:on_quit()
 
 	xr_s.unsubscribe( "mouse_wheel", self.OnMouseWheel )
 
+	self.ini = nil
 	self:ClearCallbacks()
 	self:GetHolder():start_stop_menu(self, true)
 end
