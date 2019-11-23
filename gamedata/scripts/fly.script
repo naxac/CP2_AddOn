@@ -4,7 +4,7 @@ local vel = 24		-- скорость в м/с
 local delta = 40	-- интервал обновления в мс. не должен быть меньше 20 и произведение vel*delta должно быть не меньше 900, иначе картинка будет дергаться
 local time = time_global()
 local last_time = time
-local last_pos = db.actor:position()
+local last_pos = Actor:position()
 local dt = nil
 
 function start(obj)
@@ -13,14 +13,14 @@ function start(obj)
 
 	-- временный запрет полета - возвращаем предмет
 	if has_alife_info("no_gravigun") or (has_alife_info("snp_vesker_start_done") and not has_alife_info("snp_profi_done")) then
-		amk.spawn_item_in_inv("anom_egg", db.actor)
+		amk.spawn_item_in_inv("anom_egg", Actor)
 		news_manager.send_tip("%c[gray2]ВОЛАЗАР:\\n%c[red_sms]Что-то не получается взлететь. Попробуй в другой раз.", nil, nil, 15000) 
 		return
 	end
 
 	if actor_outfit or actor_active_item then
 		-- одета броня или не убран ствол
-		amk.spawn_item_in_inv("anom_egg", db.actor)
+		amk.spawn_item_in_inv("anom_egg", Actor)
 		news_manager.send_tip("%c[gray2]ВОЛАЗАР:\\n%c[red_sms]$actor$, чтобы взлететь, ты должен снять броню и убрать оружие.", nil, nil, 10000) 
 		return
 	end
@@ -30,10 +30,10 @@ function start(obj)
 		snp.invul_on()
 	end
 
-	last_pos = db.actor:position()
+	last_pos = Actor:position()
 	last_time = time_global()
 	xr_s.subscribe( "update", this.update )
-	db.actor:give_info_portion("actor_fly")
+	Actor:give_info_portion("actor_fly")
 end
 
 function update()
@@ -48,15 +48,15 @@ function update()
 	time = time_global()
 	if time > last_time+delta then
 		dt = time-last_time
-		db.actor:set_actor_position(vector():mad(last_pos,device().cam_dir,vel/1000*dt))
-		last_pos = db.actor:position()
+		Actor:set_actor_position(vector():mad(last_pos,device().cam_dir,vel/1000*dt))
+		last_pos = Actor:position()
 		last_time = time
 	end
 end
 
 function stop()
 	-- остановка полета
-	db.actor:disable_info_portion("actor_fly")
+	Actor:disable_info_portion("actor_fly")
 	xr_s.unsubscribe( "update", this.update )
 	
 	if has_alife_info("vol_fly") then
@@ -75,8 +75,8 @@ end
 -- Ускоритель ГГ
 function runner()
 	if not run_allowed() then
-		local obj = db.actor:object("runner_tele")
-		if obj then db.actor:move_to_ruck(obj) end
+		local obj = Actor:object("runner_tele")
+		if obj then Actor:move_to_ruck(obj) end
 		return
 	end
 
@@ -86,15 +86,15 @@ end
 function do_run()
 	fly.stop()
 
-	local pos = db.actor:position()
-	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-	local new_pos = level.vertex_position(level.vertex_in_direction( db.actor:level_vertex_id(), device().cam_dir, 900) )
-	if db.actor:get_inventory_weight() > 350 and math.random() > 0.85 then
+	local pos = Actor:position()
+	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+	local new_pos = level.vertex_position(level.vertex_in_direction( Actor:level_vertex_id(), device().cam_dir, 900) )
+	if Actor:get_inventory_weight() > 350 and math.random() > 0.85 then
 		new_pos = new_pos:add( vector():set( 0, math.random(5, 25), 0 ) )
 	end
-	db.actor:set_actor_position( new_pos )
+	Actor:set_actor_position( new_pos )
 	
-	local path = math.ceil( pos:distance_to(db.actor:position()) )
+	local path = math.ceil( pos:distance_to(Actor:position()) )
 	archievements.acv_count_event("acv_run", 30000, "Электровеник", path)
 end
 
@@ -102,7 +102,7 @@ local sended = false
 function run_allowed()
 	if game_options.RunnerForever then return true end
 
-	if db.actor:get_inventory_weight() > 350 and not sended then
+	if Actor:get_inventory_weight() > 350 and not sended then
 		news_manager.send_tip("Большой вес! Возможен сбой.", nil, "nano", 15000)
 		sended = true
 	else
@@ -122,7 +122,7 @@ function run_allowed()
 	if actor_active_item and math.random() > 0.8
 		and actor_active_item:section() ~= "bolt"
 	then
-		db.actor:drop_item( actor_active_item )
+		Actor:drop_item( actor_active_item )
 	end
 	return true
 end
@@ -154,7 +154,7 @@ function returner()
 	else
 		-- первое нажатие
 		single_click = true
-		returner_temp_pos = db.actor:position()
+		returner_temp_pos = Actor:position()
 		xr_s.subscribe( "update", this.returner_update, { timeout = click_timeout, once = true } )
 	end
 end
@@ -172,7 +172,7 @@ end
 function returner_set_pos()
 	fly.stop()
 
-	returner_pos = db.actor:position()
+	returner_pos = Actor:position()
 	news_manager.send_tip("Позиция сохранена.", nil, "nano")
 end
 
@@ -189,7 +189,7 @@ function set_pos_allowed()
 		return false
 	elseif actor_is_in_danger() then
 		return false
-	elseif returner_temp_pos:distance_to(db.actor:position()) > 0.005 then 
+	elseif returner_temp_pos:distance_to(Actor:position()) > 0.005 then 
 		news_manager.send_tip("Ошибка установки позиции. При задании позиции нельзя перемещаться.", nil, "nano", 5000)
 		return false
 	end
@@ -202,11 +202,11 @@ function do_returner()
 	if actor_active_item and math.random() > 0.8
 		and actor_active_item:section() ~= "bolt"
 	then
-		db.actor:drop_item( actor_active_item )
+		Actor:drop_item( actor_active_item )
 	end
 	
-	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-	db.actor:set_actor_position(returner_pos)
+	xr_sound.get_safe_sound_object([[device\bed_2]]):play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+	Actor:set_actor_position(returner_pos)
 end
 
 function returner_allowed()
@@ -223,11 +223,11 @@ function returner_allowed()
 		return false
 	elseif actor_is_in_danger() then
 		return false
-	elseif returner_pos:distance_to_xz(db.actor:position()) > 70 then
+	elseif returner_pos:distance_to_xz(Actor:position()) > 70 then
 		local key = hotkeys.dik2key( game_options.RunnerKey )
 		news_manager.send_tip("Возвращение невозможно из-за слишком большого расстояния. Для смены позиции нажмите дважды клавишу "..key..".", nil, "nano", 5000)
 		return false
-	elseif returner_pos:distance_to(db.actor:position()) < 0.6 then 
+	elseif returner_pos:distance_to(Actor:position()) < 0.6 then 
 		news_manager.send_tip("Слишком малое расстояние между текущей и заданной позицией. Для выполнения возвращения нужно отойти подальше.", nil, "nano", 5000)
 		return false
 	end
