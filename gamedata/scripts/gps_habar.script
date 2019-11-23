@@ -190,12 +190,9 @@ function remove_item(boxId, item, is_need_msg_warning)
 	-- если было ограбление и нет мода Заминированные тайники, предупреждаем ГГ
 	if is_need_msg_warning and is_msg_warning then
 		local seBox = AI:object(boxId)
-	  if not IsHuman[seBox:clsid()] then
-		local lvname = "Зоны Отчуждения"
-		if boxId and GGraph:valid_vertex_id(seBox.m_game_vertex_id) then
-			lvname = game.translate_string(object_level_name(seBox))
-		end
-		amk.send_tip("%c[255,255,128,128]На территории " .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
+	  if seBox and not IsHuman[seBox:clsid()] then
+		local lvname = news_data.level_name[ object_level_name(seBox) ][2]
+		amk.send_tip("%c[red_sms]" .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
 	  end
 	  update_gps(nil, nil, boxId)
 	end
@@ -444,7 +441,7 @@ function update_gps_stalker(box, boxId, is_new_metka)
 		if is_warning_on_death and aobj and get_health(aobj) <= 0 and labels[boxId].wh == 0 then
 			labels[boxId].wh = 1
 			is_save_table = true
-			amk.send_tip("%c[255,255,128,128]Погиб сталкер " .. npc_name .. " с GPS-маячком", "GPS", nil, 20, "nano")
+			amk.send_tip("%c[red_sms]Погиб сталкер " .. npc_name .. " с GPS-маячком", "GPS", nil, 20, "nano")
 		end
 		
 		-- на сталкера вешаем другие метки, чем на тайник
@@ -698,13 +695,8 @@ function update_gps_state()
 		for i, v in pairs(labels) do
 			-- если надо предупредить о разряде сообщением
 			if v.at > 0 and v.wt > 0 and v.wr == 0 and gh - v.gt > v.at - v.wt then
-				aobj = AI:object(i)
-				lvname = ""
-				if aobj and GGraph:valid_vertex_id(aobj.m_game_vertex_id) then
-					lvname = game.translate_string(object_level_name(aobj))
-				end
-
 --					mylog("i = " .. i)
+				aobj = AI:object(i)
 				v.wr = 1
 				lvname = news_data.level_name[ object_level_name(aobj) ][2]
 				amk.send_tip("%c[red_sms]"..lvname.." через ".. tostring(v.gt + v.at - gh) .. " ч. на маячке надо сменить батарею.", "GPS", nil, 20, "nano")
@@ -728,11 +720,8 @@ function update_gps_state()
 			-- если время вышло, выключаем метку
 			if v.at > 0 and gh - v.gt > v.at then
 				aobj = AI:object(i)
-				lvname = ""
-				if aobj and GGraph:valid_vertex_id(aobj.m_game_vertex_id) then
-					lvname = game.translate_string(object_level_name(aobj))
-				end
-				amk.send_tip("%c[255,255,128,128]На маячке на территории " .. lvname .. " села батарея. Связь потеряна.", "GPS", nil, 20, "nano")
+				lvname = news_data.level_name[ object_level_name(aobj) ][2]
+				amk.send_tip("%c[red_sms]"..lvname.." на маячке села батарея. Связь потеряна.", "GPS", nil, 20, "nano")
 
 				remove_all_spots(i)
 				remove_label(i)
@@ -979,7 +968,7 @@ function update_gps_spot_on_fake(has_gps, boxId, items)
 	
 	-- добавим инфу о разряде
 	if habar_list_mode and labels_item.at > 0 then
-		text_metki = get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
+		text_metki = "Осталось: "..get_local_time(labels_item.gt + labels_item.at - gh) .. ". " .. text_metki
 	end
 	
 	--апдейтим список
