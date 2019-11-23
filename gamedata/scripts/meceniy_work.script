@@ -76,18 +76,17 @@ end
 -- конец зомбирования
 
 --Невидимость В Костюме
-local idle_time, game_time, outfit_act, prev_outfit_act, time_to_set_range
+local idle_time, game_time, prev_outfit_act, time_to_set_range
 local invisible = nil
 local warning90 = nil
 local gravisak = nil
 
 function set_invisible()
-	outfit_act = db.actor:item_in_slot( inventory_slots.OUTFIT )
-	local section = outfit_act and outfit_act:section()
+	local section = actor_outfit and actor_outfit:section()
 
-	if outfit_act and section=="meceniy_outfit_new" then
+	if section=="meceniy_outfit_new" then
 		if not invisible then
-			invisible_on(outfit_act:condition())
+			invisible_on(actor_outfit:condition())
 			invisible = true
 			time_to_set_range = time_global()
 			
@@ -103,8 +102,8 @@ function set_invisible()
 
 		elseif game.get_game_time():diffSec(game_time) >= idle_time then
 			invisible_off()
-			make_meceniy_outfit_used(outfit_act)
-			db.actor:move_to_ruck(outfit_act)
+			make_meceniy_outfit_used(actor_outfit)
+			db.actor:move_to_ruck(actor_outfit)
 			invisible = nil
 			time_to_set_range = nil
 		end
@@ -124,7 +123,7 @@ function set_invisible()
 		end
 	end
 
-	if outfit_act and section:find("soldier_outfit") then
+	if actor_outfit and section:find("soldier_outfit") then
 		if not gravisak then
 			bind_actor.hide_weapon("gravisak")
 			gravisak = true
@@ -136,7 +135,7 @@ function set_invisible()
 		end
 	end
 
-	prev_outfit_act = outfit_act
+	prev_outfit_act = actor_outfit
 end
 
 function invisible_on(v)
