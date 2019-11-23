@@ -802,6 +802,9 @@ function CAmkTransmutacion:CreateAtrefact()
 	local komp = {}
 	local cel = {}
 	
+	local tmp = aRecipts[iInfo]
+	tmp["comp_cond"] = nil
+
 	shiftCheckDropItem()
 	for i = 1, table.getn(aCmpnSlots) do
 		if aCmpnSlots[i].iSectIndex ~= nil then
@@ -809,7 +812,12 @@ function CAmkTransmutacion:CreateAtrefact()
 			local aArtInfo = aArtsInfo[aButton.iSectIndex]
 			--	Вытащить артефакт из базы компонентов.
 			local oObject = aArtInfo.aArts[table.getn(aArtInfo.aArts)]
-			local obj_sect = oObject:section()
+		--	local obj_sect = oObject:section()
+			if tmp["comp_cond"] == nil then
+				tmp["comp_cond"] = oObject:condition()
+			else
+				tmp["comp_cond"] = ( tmp["comp_cond"] + oObject:condition() ) /2
+			end
 			table.remove(aArtInfo.aArts, table.getn(aArtInfo.aArts))
 			--	Удалить артефакт и очистить слот.
 			amkDelObj(oObject:id())
@@ -819,8 +827,6 @@ function CAmkTransmutacion:CreateAtrefact()
 		end
 	end
 
-	local tmp = aRecipts[iInfo]
-
 	local cel				= self.sTransmutants
 	local komp 				= tmp["komp"]
 	local v_udachi 			= amk_mod.get_af_transform_param("v_udachi", tmp, aRecipts)
@@ -829,7 +835,7 @@ function CAmkTransmutacion:CreateAtrefact()
 	local vremya 			= amk_mod.get_af_transform_param("vremya", tmp, aRecipts)
 	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
 	local remove_anomaly_id = remove_anomaly and aAnomId or nil
-	local result, udacha 	= amk_mod.af_select_result(v_udachi, v_virogd)
+	local result		 	= amk_mod.af_select_result(v_udachi, v_virogd, tmp["comp_cond"])
 	local lv 				= db.actor:level_vertex_id()
 	local gv 				= db.actor:game_vertex_id()
 	local pos 				= db.actor:position()	
