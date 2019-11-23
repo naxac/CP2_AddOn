@@ -10,6 +10,7 @@
 local use_tradability_restrictions = game_options.TradeCondition
 local lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
 local ungroup_belt_slot_items      = true
+local min_trade_condition          = 0.1		-- неписи не покупают предметы с состоянием меньше указанного здесь
 
 local clr = {
 	red = 0,
@@ -83,7 +84,9 @@ local item_place = {
 function treat_item(item, place, npc)
 	-- если есть собеседник, т.е. идёт разговор или торговля, 
 	-- и он не купит предмет из-за плохого состояния
-	if use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item) then
+	if (use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item))
+		or (npc and min_trade_condition > item:condition())
+	then
 		-- то делаем предмет негруппируемым, подсвеченным и непродаваемым
 		local fl = ii_flags.ungroupable + ii_flags.always_untradable + ii_flags.manual_highlighting
 		item:set_inventory_item_flags(fl, true)
@@ -93,6 +96,7 @@ function treat_item(item, place, npc)
 		-- условие продаваемости. Если предмет не продаётся по движковому условию (т.е. запрещён
 		-- к продаже конфигом), то будет закрашен движковым цветом (красным)
 		return
+	
 	end
 	-- собеседника нет или предмет разрешён к продаже,
 	-- проверяем размещение
