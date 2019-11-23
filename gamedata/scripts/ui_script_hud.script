@@ -41,13 +41,8 @@ function UIScriptHUD:__init()
 	local level_name = level.name()
 	self.map_texture = ini:r_string_ex(level_name, "texture", "ui\\ui_nomap2")
 
-	local tmp = ini:r_string_ex(level_name, "bound_rect", nil)
-	if tmp then
-		tmp = string.explode(tmp, ",", true)
-	else
-		tmp = {10000, 10000, -10000, -10000}
-	end
-	self.bound_rect = Frect():set( unpack(tmp) )
+	self.bound_rect = ini:r_rect(level_name, "bound_rect")
+		or Frect():set(10000, 10000, -10000, -10000)
 
 	self.map_frame = xml:InitStatic("level_frame", self)
 	self.map_frame:ClipperOn()
