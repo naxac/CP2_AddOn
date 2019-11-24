@@ -1,23 +1,32 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 3
+local current_fix = 4
 
 function repair()
 	local fix = amk.load_variable("nfx", 0)
 	if fix == current_fix then return end
 
 	amk.save_variable( "nfx", current_fix )
+	local obj
+
+--=======   FIX #4   ==============================================================================================
+	if fix >= 4 then return end
+	obj = AI:object("escape_to_marsh")
+	if obj then
+		local data = { dest_direction = vector():set(0,1.1001601219177,0) }
+		netpk:modify(obj, data, netpk.fState)
+	end
 
 --=======   FIX #3   ==============================================================================================
-	if fix > 3 then return end
+	if fix >= 3 then return end
 -------------------------------------------------------------------------------------------------------------------
 	naxac.rewrite_restr_logic( "yantar_psi_radiotion_sound", "scripts\\yan\\yantar_psi_radiotion_sound.ltx" )
 -------------------------------------------------------------------------------------------------------------------
-	local obj = AI:object("yantar_arhara_mine1")
+	obj = AI:object("yantar_arhara_mine1")
 	if obj and has_alife_info("sms_barmen_otvet") then
 		AI:release(obj, true)
 	end
 --=======   FIX #2   ==============================================================================================
-	if fix > 2 then return end
+	if fix >= 2 then return end
 -------------------------------------------------------------------------------------------------------------------
 	local obj
 	--Если переходов нет, значит локацию только добавили - нужно заспавнить её содержимое
@@ -54,7 +63,7 @@ function repair()
 		AI:create("darkscape_teleport_01",vector():set(-248.57592773438,12.540954589844,-329.14068603516),139494,3997)
 	end
 --=======   FIX #1   ==============================================================================================
-	if fix > 1 then return end
+	if fix >= 1 then return end
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair5" ) then return end
 	db.actor:give_info_portion( "naxac_test_repair5" )
