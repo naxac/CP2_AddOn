@@ -347,16 +347,17 @@ function recharge_gps(item, box)
 	if not labels[boxId] then
 		return
 	end
-	
+
+	local t = labels[boxId]
 	-- перезаряка новыми значениями
-	labels[boxId].at = activity_time
-	labels[boxId].wr = 0 -- не предупреждали о разряде сообщением
-	labels[boxId].wi = 0 -- не предупреждали о разряде цветом
-	labels[boxId].wt = warning_time
-	labels[boxId].wit = warning_icons_time
-	labels[boxId].gt = amk.game_hours()
-	labels[boxId].upd = amk.game_minutes()
-	labels[boxId].wh = 0 -- не предупреждали о гибели npc
+	t.at = activity_time
+	t.wr = 0 -- не предупреждали о разряде сообщением
+	t.wi = 0 -- не предупреждали о разряде цветом
+	t.wt = warning_time
+	t.wit = warning_icons_time
+	t.gt = amk.game_hours()
+	t.upd = amk.game_minutes()
+	t.wh = 0 -- не предупреждали о гибели npc
 	
 	amk.save_table("gps_labels", labels)
 	ui_script_hud.remove_spot(boxId)
@@ -686,7 +687,9 @@ function update_gps_habar(boxId)
 	amk.add_spot_on_map(boxId, location, text_metki)
 end
 
-function update_gps_state()
+--колбэк на апдейт ГГ (удобно для проверки условий, так как вызывается постоянно, нельзя перегружать, а то будут лаги)
+-- вызываем из amk.script
+function on_actor_update(delta)
 	local aobj, lvname
 	local is_save_table = false
 	
@@ -771,22 +774,42 @@ function on_game_load()
 
 	local gps_ini = ini_file("misc\\gps_habar.ltx")
 	
-	activity_time = tonumber(gps_ini:r_string("amk_metka", "activity_time"))
-	warning_time = tonumber(gps_ini:r_string("amk_metka", "warning_time"))
-	warning_icons_time = tonumber(gps_ini:r_string("amk_metka", "warning_icons_time"))
-	habar_list_mode = toboolean(gps_ini:r_string("amk_metka", "habar_list_mode"))
-	auto_recharge = toboolean(gps_ini:r_string("amk_metka", "auto_recharge"))
-	is_show_quantity = toboolean(gps_ini:r_string("amk_metka", "show_quantity"))
-	is_update_on_time = toboolean(gps_ini:r_string("amk_metka", "update_on_time"))
-	is_color_and_sort_list = toboolean(gps_ini:r_string("amk_metka", "color_and_sort_list"))
+	activity_time          = gps_ini:r_float("amk_metka", "activity_time")
+	warning_time		   = gps_ini:r_float("amk_metka", "warning_time")
+	warning_icons_time     = gps_ini:r_float("amk_metka", "warning_icons_time")
+	habar_list_mode        = gps_ini:r_bool("amk_metka", "habar_list_mode")
+	auto_recharge          = gps_ini:r_bool("amk_metka", "auto_recharge")
+	is_show_quantity       = gps_ini:r_bool("amk_metka", "show_quantity")
+	is_update_on_time      = gps_ini:r_bool("amk_metka", "update_on_time")
+	is_color_and_sort_list = gps_ini:r_bool("amk_metka", "color_and_sort_list")
 	
 	-- метки на сталкерах
-	is_set_label_on_npc = toboolean(gps_ini:r_string("amk_metka", "set_label_on_npc"))
-	is_show_health = toboolean(gps_ini:r_string("amk_metka", "show_health"))
-	is_warning_on_death = toboolean(gps_ini:r_string("amk_metka", "warning_on_death"))
+	is_set_label_on_npc   = gps_ini:r_bool("amk_metka", "set_label_on_npc")
+	is_show_health        = gps_ini:r_bool("amk_metka", "show_health")
+	is_warning_on_death   = gps_ini:r_bool("amk_metka", "warning_on_death")
 	
 	-- загружаем таблицу привязки ящиков к меткам.
 	labels = amk.load_table("gps_labels")
+
+--	log("gps_labels: %s", table.size(labels))
+	local is_save_table = false
+	local obj
+	for id in pairs(labels) do
+		obj = AI:object(id)
+		if obj == nil
+			or ( obj:clsid() ~= clsid.inventory_box
+			and IsHuman[obj:clsid()] == nil )
+		then
+		--	log(obj and obj:name() or "nil")
+			remove_all_spots(id)
+			remove_label(id)
+			is_save_table = true
+		end
+	end
+	if is_save_table then
+		amk.save_table("gps_labels", labels)
+	--	log("gps_labels cleaning: %s", table.size(labels))
+	end
 	-- mylog("Загрузили таблицу меток: " .. tableinfo(labels))
 end
 
@@ -834,12 +857,6 @@ function on_item_drop(obj)
 	show_dlg_dots_npc(obj)
 	recharge_gps(obj, nil)
 	update_gps(obj, nil, nil)
-end
-
---колбэк на апдейт ГГ (удобно для проверки условий, так как вызывается постоянно, нельзя перегружать, а то будут лаги)
--- вызываем из amk.script
-function on_actor_update(delta)
-	update_gps_state()
 end
 
 
