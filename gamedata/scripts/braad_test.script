@@ -317,12 +317,35 @@ end
 function kalmyak_tele( actor, npc)
 end
 function kalmyak_tele2()
-   level.add_pp_effector ("blink.ppe", 234, false)       
-   level.add_pp_effector("teleport.ppe", 2006, false) 
-   db.actor:set_actor_position(patrol("kalmyak_tele_walk"):point(0))
-   local dir = patrol("kalmyak_tele_look"):point(0):sub(patrol("kalmyak_tele_look"):point(0))
-   db.actor:set_actor_direction(-dir:getH())
-   db.actor:give_info_portion("kalmyak_vstreca_start")
+	level.add_pp_effector ("blink.ppe", 234, false)       
+	level.add_pp_effector("teleport.ppe", 2006, false) 
+	Actor:set_actor_position(patrol("kalmyak_tele_walk"):point(0))
+	local dir = patrol("kalmyak_tele_look"):point(0):sub(patrol("kalmyak_tele_look"):point(0))
+	Actor:set_actor_direction(-dir:getH())
+	Actor:give_info_portion("kalmyak_vstreca_start")
+
+	-- отберём все шмотки у ГГ и положим их в ящик под замок
+	local obj = AI:object("mar_smart_terrain_5_8_box")
+	if not obj then return end
+	local box_id = obj.id
+	local box = level.object_by_id(box_id)
+	if not box then return end
+
+	-- оставим только предметы на поясе и броник, а то всё-таки в радиацию лезть, мы ж не звери
+	local outfit_id = actor_outfit and actor_outfit:id()
+	shiftCheckDropItem()
+	Actor:iterate_inventory(function (actor, item)
+		if not ( protected_items.actor_items_keep( item:section() )
+			or Actor:is_on_belt(item)
+			or outfit_id == item:id() )
+		then
+			actor:transfer_item(item, box)
+		end
+	end,
+	Actor)
+
+	local code = naxac.close_lock_box( box_id )
+	amk.save_variable("kalmyk_code", code)
 end
 ------------------------------ НЕ ИСПОЛЬЗУЕТСЯ!
 function delete_obj_restrictor()
@@ -370,8 +393,27 @@ end
 
 function kalmyak_spawn()
 	local obj = AI:create("kalmyak_ruk",vector():set(-199.24903869629,0.60609865188599,130.58129),38203,3383)
-	amk.add_spot_on_map(obj.id,"crlc_big","Рюкзак Калмыка") 
-	create_kalmyak_restr()
+	amk.add_spot_on_map(obj.id,"crlc_big","Рюкзак Калмыка")
+	local angle = math.random(0, 2000*math.pi) /1000
+	local logic = "[logic]\n"..
+		"active = sr_idle\n"..
+		"[sr_idle]\n"..
+		"on_actor_inside = sr_idle@check_dir\n"..
+		"on_info = {+kalmyak_need_done} nil\n"..
+		"[sr_idle@check_dir]\n"..
+		"on_info = {!naxac.check_direction("..tostring(angle)..")} sr_teleport\n"..
+		"on_info2 = {+kalmyak_need_done} nil\n"..
+		"[sr_teleport]\n"..
+		"point1 = kalmyak_ruk_walk\n"..
+		"look1 = kalmyak_ruk_look\n"..
+		"timeout = 0\n"..
+		"on_actor_outside = sr_idle\n"..
+		"on_info = {+kalmyak_need_done} nil"
+	netpk:create_restrictor(
+		vector():set(-199.24903869629,0.60609865188599,130.58129),38203,3383,
+		logic, 15.0
+	)
+--	create_kalmyak_restr()
 --	set_kalmyak_ruk()
 end
 

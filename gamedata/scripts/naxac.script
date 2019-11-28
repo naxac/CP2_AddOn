@@ -251,6 +251,48 @@ function rewrite_restr_logic( obj_name, logic )
 	end
 end
 
+-- Закрываем тайник на замок
+function close_lock_box(box_id, code)
+	local se_box = AI:object(box_id)
+	if se_box == nil then
+		log("! [naxac.close_lock_box]: box [%s] not found!", box_id)
+		return
+	end
+
+	-- если пароль не задан, то сгенерируем случайный из семи цифр
+	if code == nil then
+		code = ""
+		for i = 1,7 do
+			code = code..tostring( math.random(0,9) )
+		end
+	end
+
+	local data = netpk:get(se_box, netpk.fState)
+	local cd = netpk:parse_custom_data(data.custom_data)
+	cd.password = { code = code }
+	data.custom_data = netpk:gen_custom_data(cd)
+	netpk:set(se_box, data)
+	zamok.restore(se_box, 1, code)
+
+	local box = level.object_by_id(box_id)
+	if box then
+		local zz = AI:create( "zamok", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id() )
+		start_small_timer(500, function()
+			local obj = level.object_by_id(zz.id)
+			if obj then
+				Actor:transfer_item(obj, box)
+			end
+		end)
+		local st = db.storage[box_id]
+		st = {}
+		xr_logic.initialize_obj(box, st, false, Actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
+	else
+		AI:create( "zamok", se_box.position, se_box.m_level_vertex_id, se_box.m_game_vertex_id, box_id )
+	end
+
+	return code
+end
+
 -- Спавним тайник по заданным координатам
 function create_treasure( pos, lv, gv, items, mapspot, hint )
 	local ruck = AI:create( "m_inventory_box", pos, lv, gv )
@@ -273,6 +315,34 @@ function create_treasure( pos, lv, gv, items, mapspot, hint )
 		level.map_add_object_spot_ser( id, mapspot, (hint or "Тайник") )
 	end
 	return ruck
+end
+-----------------------------------------------------------------------------------------------
+local pi = math.pi
+local pi2 = pi*2
+local chk_sec = pi2/16
+function angle_clamp(angle)
+	if angle < 0 then
+		return angle + pi2
+	elseif angle > pi2 then
+		return angle - pi2
+	else
+		return angle
+	end
+end
+-- проверка для логики: с той ли стороны мы приближаемся к объекту,
+-- проверяется сектор 45% по заданному углу поворота
+-- 0 - с востока, 1/2*pi - с севера, pi - с запада, 3/2*pi - с юга
+-- on_info = {=naxac.check_direction(2.89)}
+function check_direction(actor, npc, p)
+	local check_angle = tonumber( p[1] )
+	local angle = actor:position():sub(npc:position()):getH() + pi/2
+	local chk_max = angle_clamp(check_angle + chk_sec)
+	local chk_min = angle_clamp(check_angle - chk_sec)
+--	log("[naxac.check_direction]: check_angle = %s, angle = %s, min = %s, max = %s", check_angle, angle, chk_min, chk_max)
+	if chk_max < chk_min then
+		return not (chk_max < angle and chk_min > angle)
+	end
+	return chk_max > angle and chk_min < angle
 end
 -----------------------------------------------------------------------------------------------
 -- Изменение имени ГГ
