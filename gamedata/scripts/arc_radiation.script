@@ -9,6 +9,7 @@ DOSE_DEC_DIV = 15
 RAD_DOSE = 0
 
 local last_anom_hit_time = 0
+local detector_snd = false
 
 local art_hits = {}
 
@@ -106,6 +107,19 @@ function on_actor_update(delta)
 			amk.oau_watchdog=30011
 			amk.oau_reason="arc_ui_dosimeter.update"
 			arc_ui_dosimeter.update(update_time)
+		end
+
+		if RAD_DOSE > DOSE_TIRING and arc_inventory.IsRadDetected() then
+			if not detector_snd then
+				detector_snd = table.copy({}, sound_theme.actor_theme.level_border_detector)
+			end
+			if time_global() >= (detector_snd.next_time or -1) then
+				table.random(detector_snd.sounds):play(Actor, 0, sound_object.s2d)
+				local factor = 20*DOSE_TIRING/RAD_DOSE
+				detector_snd.next_time = time_global() + math.random(detector_snd.min_snd*factor, detector_snd.max_snd*factor)
+			end
+		elseif detector_snd then
+			detector_snd = nil
 		end
 
 		update_time = 0
