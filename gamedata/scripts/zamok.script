@@ -20,18 +20,24 @@ local can_lock_visuals = {
 	[ "seif_01" ]                           = true
 }
 
-function restore(se_box, box_id, zamok_count)
+function restore(se_box, zamok_count, code)
+	local box_id = se_box.id
 	local t = zamok_box[box_id]
 	if t == nil then
 		t = {}
 		zamok_box[box_id] = t
 		if zamok_code then
-			local data = netpk:get(se_box, netpk.fState)
-			local tt = netpk:parse_custom_data(data.custom_data)
-			if tt[ "password" ] then
-			--	log1("add protected box: "..se_box:name())
-				t.code = tt[ "password" ][ "code" ]
+			if code then
+				t.code = code
 				table.insert(amk_offline_alife.protected.ids, box_id)
+			else
+				local data = netpk:get(se_box, netpk.fState)
+				local cd = netpk:parse_custom_data(data.custom_data)
+				if cd[ "password" ] then
+				--	log1("add protected box: "..se_box:name())
+					t.code = cd[ "password" ][ "code" ]
+					table.insert(amk_offline_alife.protected.ids, box_id)
+				end
 			end
 		else
 			table.insert(amk_offline_alife.protected.ids, box_id)
