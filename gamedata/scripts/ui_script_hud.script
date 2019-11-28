@@ -5,15 +5,19 @@ local show_enemy = false
 local show_corpse = true
 local show_gps = true
 local show_treasures = true
+local show_lc = true
 local show_time = true
 local biodetector_mode = false
 
 local dev = device()
-local level_object = level.object_by_id
 local has_spot = level.map_has_object_spot
 
-local spot_offset = vector2():set(6*kScreen, 6)
-local spot_offset_npc = vector2():set(1.5*kScreen, 1.5)
+local spot_size_1     = vector2():set(12*kScreen, 12)
+local spot_size_2     = vector2():set(16*kScreen, 16)
+local spot_size_npc   = vector2():set(3*kScreen, 3)
+local spot_offset_1   = vector2():set(spot_size_1.x/2, spot_size_1.y/2)
+local spot_offset_2   = vector2():set(spot_size_2.x/2, spot_size_2.y/2)
+local spot_offset_npc = vector2():set(spot_size_npc.x/2, spot_size_npc.y/2)
 
 local wnd = nil
 
@@ -114,13 +118,12 @@ function UIScriptHUD:Update(delta)
 end
 
 function UIScriptHUD:UpdateIndicators()
-	local tex = "ui_hud_soldier_"..get_body_state_texture()
-	self.body_state:InitTexture(tex)
+	self.body_state:InitTexture( "ui_hud_soldier_"..get_body_state_texture() )
 
 	self.progress_power:SetProgressPos( Actor.power * 100 )
 	self.progress_health:SetProgressPos( Actor.health * 100 )
 	if arc_inventory.IsRadDetected() then
-		self.progress_radiation:SetProgressPos( 100 * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY )
+		self.progress_radiation:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
 	end
 	if actor_outfit then
 		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
@@ -155,7 +158,7 @@ function UIScriptHUD:UpdateMap()
 
 	-- удалим неактуальные метки
 	for id, st in pairs(self.map_spots) do
-		if db.storage[id] == nil then
+		if db.for_map[id] == nil then
 			table.insert(self.del_spots, id)
 		end
 	end
@@ -187,45 +190,55 @@ function UIScriptHUD:RemoveAllSpots()
 end
 
 function UIScriptHUD:UpdateSpots()
-	local st, obj, tex, sz
+	local st, tex, sz
 	local actor_pos = Actor:position()
+	local lc_clsid = clsid.level_changer
 
-	for id in pairs(db.storage) do
+	for id, obj in pairs(db.for_map) do
 		st = self.map_spots[id]
-		obj = level_object(id)
 		if obj and AI:object(id)
 			and obj:position():distance_to_xz(actor_pos) < map_dist
 		then
+			tex, sz = nil, nil
 			if not st then
-				tex, sz = nil, nil
-				if obj:is_inventory_box() and not biodetector_mode then
-					if show_gps and gps_habar.get_labels()[id] then
-						tex = get_GPS_texture(id)
-					elseif show_treasures and has_spot(id, "treasure")~=0 then
-						tex = "ui_mapPDA_treasure"
-					end
-					sz = vector2():set(12*kScreen, 12)
-				elseif obj:is_entity_alive() then
+				if obj:is_entity_alive() then
 					tex = "ui_minimap_point"
-					sz = vector2():set(3*kScreen, 3)
+					sz = spot_size_npc
+				elseif not biodetector_mode then
+					if obj:is_inventory_box() then
+						if show_gps and gps_habar.get_labels()[id] then
+							tex = get_GPS_texture(id)
+						elseif show_treasures and has_spot(id, "treasure")~=0 then
+							tex = "ui_mapPDA_treasure"
+						end
+						sz = spot_size_1
+					elseif show_lc and obj:clsid() == lc_clsid then
+						tex = "ui_mapPDA_level_changer5"
+						sz = spot_size_2
+					end
 				end
 				if tex and sz then
 					self.map_spots[id] = self:DrawSpot( obj, tex, sz:get() )
 				end
 			else
-				if obj:is_inventory_box() then
-					if biodetector_mode then
-						table.insert(self.del_spots, id)
-					else
-						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset):get() )
-					end
-				elseif obj:is_entity_alive() then
+				if obj:is_entity_alive() then
 					local clr = get_point_color(obj)
 					if clr then
 						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
 						st:SetColor(clr)
 					else
 						table.insert(self.del_spots, id)
+					end
+				elseif biodetector_mode then
+					table.insert(self.del_spots, id)
+				else
+					if obj:is_inventory_box() then
+						sz = spot_offset_1
+					elseif obj:clsid() == lc_clsid then
+						sz = spot_offset_2
+					end
+					if sz then
+						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
 					end
 				end
 			end
@@ -266,7 +279,6 @@ function UIScriptHUD:DrawSpot(obj, tex, w, h)
 	st:SetStretchTexture(true)
 	if clr then
 		st:SetColor(clr)
-		st.is_npc = true
 	end
 	self.map:AttachChild(st)
 	st:Show(true)
@@ -478,6 +490,7 @@ function init_settings()
 	show_corpse = has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
 	show_gps = has_alife_info("pda_show_gps")
 	show_treasures = has_alife_info("pda_show_treasures")
+	show_lc = has_alife_info("pda_show_level_changers")
 	show_time = has_alife_info("pda_show_time")
 	biodetector_mode = has_alife_info("pda_biodetector_mode")
 		and ( inventory.on_belt("bioradar") or inventory.on_belt("bioradar2") )

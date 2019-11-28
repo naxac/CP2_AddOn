@@ -52,10 +52,9 @@ function inv_box_binder:net_spawn(data)
 	if not object_binder.net_spawn(self, data) then
 		return false
 	end
-
 	-- прозрачные рюкзаки
 	transparent_treasure.net_spawn(self.object)
-
+	db.add_on_map(self.object)
 	return true
 end
 
@@ -67,6 +66,7 @@ function inv_box_binder:net_destroy()
 
 	db.storage[self.object:id()] = nil
 	self.object:set_callback(callback.use_object, nil)
+	db.del_from_map(self.object)
 	
 	object_binder.net_destroy(self)
 end
