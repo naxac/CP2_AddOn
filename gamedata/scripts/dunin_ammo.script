@@ -118,7 +118,7 @@ function repack_in_box(box)
 	for i = 0, n-1 do
 		obj = box:object_from_inv_box(i)
 		sect = obj:section()
-		if obj:is_ammo() and ammo[sect] then
+		if ammo[sect] then
 			sz = obj:get_ammo_left()
 			if sz < ammo[sect].box then
 				if ammo_to_repack[sect] == nil then ammo_to_repack[sect] = {} end
@@ -130,13 +130,15 @@ function repack_in_box(box)
 
 	local spawn_ammo = {}
 	for s, t in pairs(ammo_to_repack) do
-		n = 0
-		for i,v in pairs(t) do
-			obj = AI:object(i)
-			if obj then AI:release(obj, true) end
-			n = n + v
+		if table.size(t) > 1 then
+			n = 0
+			for i,v in pairs(t) do
+				obj = AI:object(i)
+				if obj then AI:release(obj, true) end
+				n = n + v
+			end
+			spawn_ammo[s] = n
 		end
-		spawn_ammo[s] = n
 	end
 --	table.print(spawn_ammo)
 
