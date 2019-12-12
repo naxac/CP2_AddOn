@@ -96,6 +96,7 @@ function CRandomTask:__init()
     if not self.task_ini:section_exist(id) then
       abort("There is no section [%s] in task_manager.ltx", id)
     end   
+	local need_get_ct_hash = not has_alife_info("task_save_fix")
 
 		self.task_info[tostring(id)]			= {}
 		local curr_task_info					= self.task_info[tostring(id)]
@@ -113,14 +114,17 @@ function CRandomTask:__init()
 			curr_task_info.parent		= "nil"
 			curr_task_info.complex_type = curr_task_info.type
 		end
-    local ct=curr_task_info.complex_type
-    local cthash=stringhash(ct)
-    if hash_to_ct[cthash] and hash_to_ct[cthash]~=ct then
-      abort("Collision! Hash:%d ct1:%s ct2:%s",hash,hash_to_id[hash],id)
-    end
-    hash_to_ct[cthash]=ct
-    ct_to_hash[ct]=cthash
-    
+
+        if need_get_ct_hash then
+			local ct=curr_task_info.complex_type
+			local cthash=stringhash(ct)
+			if hash_to_ct[cthash] and hash_to_ct[cthash]~=ct then
+			  abort("Collision! Hash:%d ct1:%s ct2:%s",hash,hash_to_id[hash],id)
+			end
+			hash_to_ct[cthash]=ct
+			ct_to_hash[ct]=cthash
+		end
+
 		if self.task_ini:line_exist(id, "target") then
 			curr_task_info.target		= self.task_ini:r_string(id, "target")
 			if self.task_ini:line_exist(id, "target_count") then
@@ -278,9 +282,11 @@ local num_to_status={[0]="normal", [1]="selected", [2]="completed", [3]="refused
 
 -- Будем записывать не id задания а его хеш - семикратная экономия.
 function CRandomTask:save(p)
---	log("^^^ SAVE")
+	-- log("^^^ [CRandomTask:save]")
 	--' Считаем количество записей
-	p:w_u8(table.size(self.task_info))
+	-- log("tasks: %s", table.size(self.task_info))
+	-- log("active_task_by_type: %s", table.size(self.active_task_by_type))
+	p:w_u16(table.size(self.task_info))
 	local f = 0
 	for k,v in pairs(self.task_info) do
 		if not id_to_hash[k] then
@@ -288,41 +294,87 @@ function CRandomTask:save(p)
 		end
 		p:w_u16(id_to_hash[k])
 
-		f = 0
+		f = status_to_num[v.status]
+		if not f then
+			abort("CRandomTask:save :: Wrong status '%s' for task %s!", v.status, k)
+		end
+
 		if v.enabled then f = bit_or(f, 8) end
 		if v.enabled_props then f = bit_or(f, 16) end
-		if not status_to_num[v.status] then
-			abort("CRandomTask:save :: Wrong status '%s' for task %s!",v.status,k)
+
+		-- selected_target и defend_target сохраняем только если они есть
+		-- активен ли таск - сохранм тут же одним битом
+		-- хрен-знает-сколькикратная экономия
+		if v.selected_target then f = bit_or(f, 32) end
+		if v.defend_target then f = bit_or(f, 64) end
+		if self.active_task_by_type[v.complex_type] == k then
+			f = bit_or(f, 128)
 		end
-		f = f + status_to_num[v.status]
+
 		p:w_u8(f)
 
-		p:w_u16(v.selected_target or 0)		-- id, u16
-		p:w_u32(v.defend_target or 0)		-- story_id, u32
+		if v.selected_target then
+			p:w_u16(v.selected_target)		-- id, u16
+		end
+		if v.defend_target then
+			p:w_u32(v.defend_target)		-- story_id, u32
+		end
 		utils.w_CTime(p, v.last_task_time)
-	end
-
-	--' Та же самая процедура с активными тасками
-	p:w_u8(table.size(self.active_task_by_type))
-	for k,v in pairs(self.active_task_by_type) do
-		if not ct_to_hash[k] then
-			abort("CRandomTask:save :: Cannot find hash for complex type %s!",k)
-		end
-		p:w_u16(ct_to_hash[k]) 
-		if not id_to_hash[v] then
-			abort("CRandomTask:save :: Cannot find hash for task id %s!",v)
-		end
-		p:w_u16(id_to_hash[v])
 	end
 end
 
 --' Загрузка
 function CRandomTask:load(p)
---	log("^^^ LOAD")
+	if not has_alife_info("task_save_fix") then
+		-- log("^^^ [CRandomTask:load_old]")
+		self:load_old(p)
+		Actor:give_info_portion("task_save_fix")
+		return
+	end
+
+	-- log("^^^ [CRandomTask:load]")
 	--' Считаем количество записей
---	local rt0=p:r_tell()
+	local rt0=p:r_tell()
+	local i = p:r_u16()
+	-- log("tasks: %s", i)
+	local f, id, hash
+	for k = 1,i do
+		hash = p:r_u16() 
+		id = hash_to_id[hash] or abort("[CRandomTask:load] Cannot find id for hash %d!",hash)
+		local t = self.task_info[id] or abort("[CRandomTask:load] Cannot find task for id %s!",id)
+		local f = p:r_u8()
+		t.enabled = bit_and(f, 8)~=0
+		t.enabled_props = bit_and(f, 16)~=0
+
+		if bit_and(f, 32) ~= 0 then
+			t.selected_target = p:r_u16()
+		end
+		if bit_and(f, 64) ~= 0 then
+			t.defend_target = p:r_u32()
+		end
+		if bit_and(f, 128) ~= 0 then
+			if self.active_task_by_type[t.complex_type] ~= nil then
+				abort("[CRandomTask:load] Error with load active task[%s]: task with type '%s' already loaded: %s",
+					id, t.complex_type, self.active_task_by_type[t.complex_type])
+			end
+			self.active_task_by_type[t.complex_type] = id
+		end
+
+		f = bit_and( f, bit_not(8+16+32+64+128) )
+		t.status = num_to_status[f]
+
+		t.last_task_time = utils.r_CTime(p)
+	end
+	-- log("active_task_by_type: %s", table.size(self.active_task_by_type))
+	-- log("data size: %s", p:r_tell()-rt0)
+end
+--' Загрузка, старый вариант - для совместимости
+function CRandomTask:load_old(p)
+	-- log("^^^ LOAD")
+	--' Считаем количество записей
+	local rt0=p:r_tell()
 	local i = p:r_u8()
---	log("tasks "..i)
+	-- log("tasks "..i)
 	local v, id, hash
 	for k = 1,i do
 		hash = p:r_u16() 
@@ -346,7 +398,7 @@ function CRandomTask:load(p)
 	end
 	--' Та же самая процедура с активными тасками
 	i = p:r_u8()  
---	log("active "..i)
+	-- log("active "..i)
 	for k = 1,i do
 		v = p:r_u16()
 		id = hash_to_ct[v]
@@ -355,8 +407,9 @@ function CRandomTask:load(p)
 		self.active_task_by_type[id] = hash_to_id[hash]
 			or abort("CRandomTask:load :: Cannot find task id for hash %d!",hash)
 	end
---	log("size "..p:r_tell()-rt0)
+	-- log("size "..tostring((p:r_tell()-rt0)))
 end
+
 --' Генератор уникальных ID для фраз
 function CRandomTask:gen_phrase_id()
 	self.task_phrase_id = self.task_phrase_id + 1
