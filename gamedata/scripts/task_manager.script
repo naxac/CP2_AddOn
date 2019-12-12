@@ -69,40 +69,42 @@ end
 
 class "CRandomTask"
 function CRandomTask:__init()
-  --' На конструкторе вычитываем LTX и создаем заготовки квестов.
-  self.task_ini = ini_file("misc\\task_manager.ltx")
-  self.task_phrase_id = 100
+	--' На конструкторе вычитываем LTX и создаем заготовки квестов.
+	self.task_ini = ini_file("misc\\task_manager.ltx")
+	self.task_phrase_id = 100
 
-  --' Итерируемся по всем настройкам фраз
-  if not self.task_ini:section_exist("list") then
-    abort("There is no section [list] in task_manager.ltx")
-  end
-  local n = self.task_ini:line_count("list")
-  local result, id, value = "","",""
+	--' Итерируемся по всем настройкам фраз
+	if not self.task_ini:section_exist("list") then
+		abort("There is no section [list] in task_manager.ltx")
+	end
 
-  --' начальная установка
-  self.task_info = {}
-  
-  for i=0,n-1 do
-    result, id, value = self.task_ini:r_line("list",i,"","")
-    local hash=stringhash(id)
-    if hash_to_id[hash] then
-      abort("Collision! Hash:%d id1:%s id2:%s",hash,hash_to_id[hash],id)
-    end
-    hash_to_id[hash]=id
-    id_to_hash[id]=hash
-    -- amk.mylog("id:"..id.." hash:"..hash)
-    
-    if not self.task_ini:section_exist(id) then
-      abort("There is no section [%s] in task_manager.ltx", id)
-    end   
+	local n = self.task_ini:line_count("list")
+	local result, id, value = "","",""
+
+	--' начальная установка
+	self.task_info = {}
+
 	local need_get_ct_hash = not has_alife_info("task_save_fix")
+
+	for i=0,n-1 do
+		result, id, value = self.task_ini:r_line("list",i,"","")
+		local hash=stringhash(id)
+		if hash_to_id[hash] then
+			abort("Collision! Hash:%d id1:%s id2:%s",hash,hash_to_id[hash],id)
+		end
+		hash_to_id[hash]=id
+		id_to_hash[id]=hash
+		-- amk.mylog("id:"..id.." hash:"..hash)
+
+		if not self.task_ini:section_exist(id) then
+			abort("There is no section [%s] in task_manager.ltx", id)
+		end   
 
 		self.task_info[tostring(id)]			= {}
 		local curr_task_info					= self.task_info[tostring(id)]
-    if not self.task_ini:line_exist(id, "type") then
-      abort("Task manager error: no type in section [%s]", id)
-    end
+		if not self.task_ini:line_exist(id, "type") then
+			abort("Task manager error: no type in section [%s]", id)
+		end
 
 		curr_task_info.type			= self.task_ini:r_string(id, "type")			
 
@@ -197,40 +199,40 @@ function CRandomTask:__init()
 		curr_task_info.status				= "normal"
 	end
 
-  --' Создание дополнительных ассоциативных таблиц для облегчения поиска
-  self.task_id_by_type = {}
-  self.task_id_by_parent = {}
-  self.task_id_by_yes_phrase_id = {}
-  self.task_id_by_completed_phrase_id = {}
-  self.task_id_by_desc_phrase_id = {}
-  self.task_id_by_init_phrase_id = {}
-  self.active_task_by_type = {}
-  self.task_id_self_inited = {}
-  for k,v in pairs(self.task_info) do
-    --' По типу квеста
-    if self.task_id_by_type[v.type] == nil then
-      self.task_id_by_type[v.type] = {}
-    end
-    self.task_id_by_type[v.type][#self.task_id_by_type[v.type]+1] = k
+	--' Создание дополнительных ассоциативных таблиц для облегчения поиска
+	self.task_id_by_type = {}
+	self.task_id_by_parent = {}
+	self.task_id_by_yes_phrase_id = {}
+	self.task_id_by_completed_phrase_id = {}
+	self.task_id_by_desc_phrase_id = {}
+	self.task_id_by_init_phrase_id = {}
+	self.active_task_by_type = {}
+	self.task_id_self_inited = {}
+	for k,v in pairs(self.task_info) do
+		--' По типу квеста
+		if self.task_id_by_type[v.type] == nil then
+			self.task_id_by_type[v.type] = {}
+		end
+		self.task_id_by_type[v.type][#self.task_id_by_type[v.type]+1] = k
 
-    --' По типу вендора
-    if self.task_id_by_parent[v.parent] == nil then
-      self.task_id_by_parent[v.parent] = {}
-    end
-    self.task_id_by_parent[v.parent][#self.task_id_by_parent[v.parent]+1] = k
+		--' По типу вендора
+		if self.task_id_by_parent[v.parent] == nil then
+			self.task_id_by_parent[v.parent] = {}
+		end
+		self.task_id_by_parent[v.parent][#self.task_id_by_parent[v.parent]+1] = k
 
-    --' По id фразы согласия на квест
-    self.task_id_by_yes_phrase_id[tostring(v.yes_phrase_id)] = k
-    self.task_id_by_completed_phrase_id[v.completed_phrase_id] = k
-    self.task_id_by_desc_phrase_id[v.desc_phrase_id] = k
---    amk.mylog("task "..v.complex_type .. " id " .. v.completed_phrase_id)
-    --' По id фразы выдачи квеста.
+		--' По id фразы согласия на квест
+		self.task_id_by_yes_phrase_id[tostring(v.yes_phrase_id)] = k
+		self.task_id_by_completed_phrase_id[v.completed_phrase_id] = k
+		self.task_id_by_desc_phrase_id[v.desc_phrase_id] = k
+		-- amk.mylog("task "..v.complex_type .. " id " .. v.completed_phrase_id)
+		--' По id фразы выдачи квеста.
 		self.task_id_by_init_phrase_id[tostring(v.init_phrase_id)] = k
-    --' По самовыдаваемости
-    if v.init_condition ~= nil then
-      self.task_id_self_inited[#self.task_id_self_inited+1] = k
-    end
-  end
+		--' По самовыдаваемости
+		if v.init_condition ~= nil then
+			self.task_id_self_inited[#self.task_id_self_inited+1] = k
+		end
+	end
 end
 
 --------- Награда информацией --------
@@ -241,7 +243,7 @@ function CRandomTask:read_info_reward_section(tbl)
 	local section = tbl.reward_info
 	local rip = self.task_ini:r_string_ex(section, "info_portion", nil)
 	if rip == nil then
-		log("! CRandomTask:read_info_reward_section: error! Section [%s] not exist in task_manager.ltx or line 'info_portion' not exist in this", section)
+		log("! [CRandomTask:read_info_reward_section] Error! Section [%s] not exist in task_manager.ltx or line 'info_portion' not exist in this", section)
 		tbl.reward_info = nil
 		return false
 	else
@@ -275,10 +277,8 @@ end
 --------------------------------------
 --' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
 -- Ну и замечательно. Запишем его числом. - семикратная экономия.
-local status_to_num={normal=0, selected=1, completed=2, refused=3, 
-  failed=4, rewarded=5}
-local num_to_status={[0]="normal", [1]="selected", [2]="completed", [3]="refused", 
-  [4]="failed", [5]="rewarded"}
+local status_to_num={normal=0, selected=1, completed=2, refused=3, failed=4, rewarded=5}
+local num_to_status={[0]="normal", [1]="selected", [2]="completed", [3]="refused", [4]="failed", [5]="rewarded"}
 
 -- Будем записывать не id задания а его хеш - семикратная экономия.
 function CRandomTask:save(p)
