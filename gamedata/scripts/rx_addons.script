@@ -173,13 +173,14 @@ function npc_switch_offline(npc)
 end
 
 function npc_update(npc,st)
-	if addons_sets.enabled ~= true then
+	if addons_sets.enabled ~= true or st.addons_time == false then
 		return
 	end
 	local tg = time_global()
 	if st.addons_time == nil then
 		if addons_sets.forbiddens.factions[npc:character_community()] or addons_sets.forbiddens.npcs[npc:name()] or rx_utils.IsTrader(npc) then
 			st.addons_time = false
+			-- log("[rx_addons.npc_update] Disable scheme for %s", npc:name())
 		else
 			st.addons_time = tg+math.random(addons_sets.check_prd)
 		end
