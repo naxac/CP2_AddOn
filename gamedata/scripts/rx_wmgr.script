@@ -6,13 +6,14 @@ local math_random = math.random
 local string_find = string.find
 local string_sub = string.sub
 local string_format = string.format
+local level_object = level.object_by_id
 
 function printf(s,...)
---	rx_ai.printf("wm:"..s,...)
+	rx_utils.printf("wm:"..s,...)
 end
 
 function printw(s,...)
-	rx_ai.printf("wm:"..s.."!!!",...)
+	rx_utils.printf("wm:"..s.."!!!",...)
 end
 
 function read_from_ini(iniFileName,sec,val,def,typ)
@@ -122,7 +123,7 @@ end
 function weapon_manager:initialize()
 	if rx_ai.IsTrader(self.npc) then
 		self.disabled = true
---		printf(":initialize[%s]: disabled(trader)", self.npc:character_name())
+		-- printf(":initialize[%s]: disabled(trader)", self.npc:character_name())
 		return
 	end
 	self.modes = read_wm_modes(self.npc:character_community(),ranks.get_obj_rank_name(self.npc),self.npc:section())
@@ -148,7 +149,7 @@ function weapon_manager:update()
 	end
 	local enemy,cwpn = self.npc:best_enemy(),nil
 	if self.weapon_id then
-		cwpn = level.object_by_id(self.weapon_id)
+		cwpn = level_object(self.weapon_id)
 	end
 	if cwpn then
 		local parent = cwpn:parent()
@@ -222,7 +223,7 @@ end
 
 function weapon_manager:get_weapon()
 	self:update()
-	local wpn = (self.weapon_id and level.object_by_id(self.weapon_id)) or self.npc:best_weapon()
+	local wpn = (self.weapon_id and level_object(self.weapon_id)) or self.npc:best_weapon()
 --	self:output(wpn)
 	return wpn
 end
@@ -279,7 +280,7 @@ function weapon_manager:set_weapon(wpn)
 		for k,v in pairs(self.weapons) do
 			for i,w in ipairs(v) do
 				if w.id ~= self.weapon_id then
-					local item = level.object_by_id(w.id)
+					local item = level_object(w.id)
 					local p = item and item:parent()
 					if p and p:id() == self.npc_id then
 --						printf("set_weapon[%s]:process %s[%s]",self.npc:character_name(),w.id,w.sec)
@@ -296,7 +297,7 @@ function weapon_manager:set_weapon(wpn)
 end
 
 function weapon_manager:reload()
-	local curwpn = level.object_by_id(self.weapon_id)
+	local curwpn = level_object(self.weapon_id)
 	if curwpn and curwpn:get_ammo_in_magazine() < read_wpn_params(curwpn:section()).mag then
 		return
 	end
@@ -311,7 +312,7 @@ function weapon_manager:reload()
 		for k,t in ipairs(self.modes.types) do
 			if types[t.t] then
 				for q,w in ipairs(self.weapons[t.t]) do
-					local wpn = level.object_by_id(w.id)
+					local wpn = level_object(w.id)
 --					printf("reload[%s]: check[%s]:%s", self.npc:character_name(), wpn:section(),wpn:get_ammo_in_magazine())
 					if wpn:get_ammo_in_magazine() < read_wpn_params(wpn:section()).mag then
 						self:set_weapon(wpn)
@@ -334,10 +335,10 @@ function weapon_manager:update_weapon()
 	if cnt == 1 then
 		for k,v in pairs(self.weapons) do
 			if v[1] and v[1].sec then
-				if not level.object_by_id(v[1].id) then
+				if not level_object(v[1].id) then
 --					printw("update_weapon(cnt == 1):weapon not exist!,sec[%s]",v[1].sec)
 				end
-				self:set_weapon(level.object_by_id(v[1].id))
+				self:set_weapon(level_object(v[1].id))
 				return
 			end
 		end
@@ -349,7 +350,7 @@ function weapon_manager:update_weapon()
 			end
 		end
 		local be = self.npc:best_enemy()
-		local curwpn = level.object_by_id(self.weapon_id)
+		local curwpn = level_object(self.weapon_id)
 		if not be then
 			if self.modes.mode2_idle == "1" then
 				local weapons = {}
@@ -359,15 +360,15 @@ function weapon_manager:update_weapon()
 					end
 				end
 				table_sort(weapons,function(a,b) return a.prm > b.prm end)
-				self:set_weapon(level.object_by_id(weapons[1].id))
+				self:set_weapon(level_object(weapons[1].id))
 				return
 			elseif self.modes.mode2_idle == "2" then
 				for k,t in ipairs(self.modes.types) do
 					if types[t.t] then
-						if not level.object_by_id(self.weapons[t.t][1].id) then
+						if not level_object(self.weapons[t.t][1].id) then
 --							printw("update_weapon(cnt > 1,not enemy):weapon not exist!,id[%s]",self.weapons[t.t][1].id)
 						end
-						self:set_weapon(level.object_by_id(self.weapons[t.t][1].id))
+						self:set_weapon(level_object(self.weapons[t.t][1].id))
 						return
 					end
 				end
@@ -379,7 +380,7 @@ function weapon_manager:update_weapon()
 						if types[t.t] then
 							if self:check_conditions(0) then
 								for q,w in ipairs(self.weapons[t.t]) do
-									local wpn = level.object_by_id(w.id)
+									local wpn = level_object(w.id)
 									if wpn:get_ammo_in_magazine() > 0 then
 										self:set_weapon(wpn)
 										return
@@ -391,7 +392,7 @@ function weapon_manager:update_weapon()
 					for k,t in ipairs(self.modes.types) do
 						if types[t.t] then
 							if self:check_conditions(2) then
-								local wpn = level.object_by_id(self.weapons[t.t][1].id)
+								local wpn = level_object(self.weapons[t.t][1].id)
 								self:set_weapon(wpn)
 								return
 							end
@@ -400,7 +401,7 @@ function weapon_manager:update_weapon()
 				end
 			elseif self.modes.mode2 == "1" or self.modes.mode2 == "3" then
 				if self.last_change and curwpn and curwpn:get_ammo_in_magazine() ~= 0 and self.last_change+self.modes.change_rest_time > time_global() then
-					printf("update_wpn[%s]:change_rest_time[%s]",curwpn:section())
+				--	printf("update_wpn[%s]:change_rest_time[%s]",curwpn:section())
 					return
 				end
 				local function becls_to_pr(sect,cls)
@@ -473,7 +474,7 @@ function weapon_manager:update_weapon()
 				end
 				if self.modes.mode2 == "1" then
 					table_sort(weapons,function(a,b) return a.prm > b.prm end)
-					self:set_weapon(level.object_by_id(weapons[1].id))
+					self:set_weapon(level_object(weapons[1].id))
 					return
 				end
 				local wpnp = {}
@@ -496,7 +497,7 @@ function weapon_manager:update_weapon()
 					if curwpn and curwpn:id() == w.id then
 						pr = pr + w.prm*self.modes.active_add/100
 					end
-					local wpn = level.object_by_id(w.id)
+					local wpn = level_object(w.id)
 					local amm1,amm2 = wpn:get_ammo_in_magazine(),weapon_params[w.sec].mag
 					if amm1 == 0 then
 						local bebe = be:best_enemy()
@@ -532,7 +533,7 @@ function weapon_manager:update_weapon()
 					table.insert(wpnp,{id = w.id,p = w.prm+pr})
 				end
 				table_sort(wpnp,function(a,b) return a.p > b.p end)
-				local wpn = (wpnp[1] and level.object_by_id(wpnp[1].id))
+				local wpn = (wpnp[1] and level_object(wpnp[1].id))
 				if curwpn and wpnp[1].id ~= curwpn:id() then
 					self.last_change = time_global()
 				end
@@ -582,7 +583,7 @@ end
 function weapon_manager:update_weapon_list()
 	local function weapon_iterator(id,item)
 		if id and not item then
-			item = level.object_by_id(id)
+			item = level_object(id)
 		end
 		if not item then
 --			printf("weapon_iterator:pr weapon [%s] not exist", tostring(id))
@@ -719,7 +720,7 @@ function weapon_manager:return_items(id)
 --			printw("return_items: not box[%s]",tostring(boxid))
 			return
 		end
-		local obj = level.object_by_id(id)
+		local obj = level_object(id)
 		if obj and self.npc_id and AI:object(self.npc_id) and AI:object(self.npc_id).online then
 			if not rx_utils.item_is_fa(obj) then
 --				printw("transfer_to_npc[%s]:%s[%s]:obj not isWeapon", self.npc:character_name(),obj:section(),obj:id())
@@ -873,10 +874,10 @@ function global_update(tg)
 	end
 	local rem = {}
 	for k,v in pairs(item_parents) do
-		local item = level.object_by_id(k)
+		local item = level_object(k)
 		if item then
 			local p = item:parent()
-			local rp = level.object_by_id(tonumber(v))
+			local rp = level_object(tonumber(v))
 			if ((not p) or (p:id() ~= tonumber(v))) and rp then
 				if type(v) == "string" then
 --					printw("item_parents:transfer %s[%s](p:%s) to %s[%s]",item:section(),item:id(),tostring(p and p:id()),rp:section(),rp:id())
@@ -969,13 +970,13 @@ function read_wm_modes(comm,rank,sect)
 			wm_modes.sect.custom[sect] = cm
 		else
 			wm_modes.sect.custom[sect] = wm_modes.sect.default
-			printf("read_wm_modes[%s]: set default",sect)
+			-- printf("read_wm_modes[%s]: set default",sect)
 		end
 		return wm_modes.sect.custom[sect]
 	else
 		if  rp[1] > 0 or rp[2] > 0 or rp[3] > 0 then
 			wm_modes.sect[comm][rank] = cm
-			printf("read_wm_modes[%s][%s]: set default",comm,rank)
+			-- printf("read_wm_modes[%s][%s]: set default",comm,rank)
 		else
 			wm_modes.sect[comm][rank] = wm_modes.sect.default
 		end
@@ -1180,7 +1181,7 @@ function get_rsect(section)
 end
 
 function get_box()
-	return boxid and level.object_by_id(boxid)
+	return boxid and level_object(boxid)
 end
 
 function manage_box()

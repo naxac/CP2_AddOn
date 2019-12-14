@@ -277,8 +277,18 @@ end
 --------------------------------------
 --' Статус квеста, может быть: "normal", "selected", "completed", "refused", "failed", "rewarded"
 -- Ну и замечательно. Запишем его числом. - семикратная экономия.
-local status_to_num={normal=0, selected=1, completed=2, refused=3, failed=4, rewarded=5}
-local num_to_status={[0]="normal", [1]="selected", [2]="completed", [3]="refused", [4]="failed", [5]="rewarded"}
+local status_to_num = {
+	["normal"]		= 0,
+	["selected"]	= 1,
+	["completed"]	= 2,
+	["refused"]		= 3,
+	["failed"]		= 4,
+	["rewarded"]	= 5
+}
+local num_to_status={}
+for k, v in pairs(status_to_num) do
+	num_to_status[v] = k
+end
 
 -- Будем записывать не id задания а его хеш - семикратная экономия.
 function CRandomTask:save(p)
@@ -291,14 +301,11 @@ function CRandomTask:save(p)
 
 	for k,v in pairs(self.task_info) do
 		if not id_to_hash[k] then
-			abort("[CRandomTask:save] Cannot find hash for id %s!",k)
+			abort("[CRandomTask:save] Cannot find hash for id %s!", k)
 		end
 		p:w_u16(id_to_hash[k])
 
-		n = status_to_num[v.status]
-		if not n then
-			abort("[CRandomTask:save] Wrong status '%s' for task %s!", v.status, k)
-		end
+		n = status_to_num[v.status] or abort("[CRandomTask:save] Wrong status '%s' for task %s!", v.status, k)
 
 		if v.enabled then n = bit_or(n, 8) end
 		if v.enabled_props then n = bit_or(n, 16) end
@@ -320,6 +327,7 @@ function CRandomTask:save(p)
 		if v.defend_target then
 			p:w_u32(v.defend_target)		-- story_id, u32
 		end
+
 		utils.w_CTime(p, v.last_task_time)
 	end
 end
@@ -362,7 +370,7 @@ function CRandomTask:load(p)
 		end
 
 		n = bit_and( n, bit_not(8+16+32+64+128) )
-		t.status = num_to_status[n]
+		t.status = num_to_status[n] or abort("[CRandomTask:load] Error with loading task [%s] status: %s", id, n)
 
 		t.last_task_time = utils.r_CTime(p)
 	end
@@ -377,10 +385,10 @@ function CRandomTask:load_old(p)
 	local i = p:r_u8()
 	-- log("tasks "..i)
 	local v, id, hash
-	for k = 1,i do
+	for k = 1, i do
 		hash = p:r_u16() 
-		id = hash_to_id[hash] or abort("CRandomTask:load :: Cannot find id for hash %d!",hash)
-		local t = self.task_info[id] or abort("CRandomTask:load :: Cannot find task for id %s!",id)
+		id = hash_to_id[hash] or abort("[CRandomTask:load] Cannot find id for hash %d!", hash)
+		local t = self.task_info[id] or abort("[CRandomTask:load] Cannot find task for id %s!", id)
 		local f = p:r_u8()
 		t.enabled = bit_and(f, 8)~=0
 		t.enabled_props = bit_and(f, 16)~=0
@@ -403,10 +411,10 @@ function CRandomTask:load_old(p)
 	for k = 1,i do
 		v = p:r_u16()
 		id = hash_to_ct[v]
-			or abort("CRandomTask:load :: Cannot find complex type for hash %d!",v)
-		hash=p:r_u16()
+			or abort("[CRandomTask:load] Cannot find complex type for hash %d!", v)
+		hash = p:r_u16()
 		self.active_task_by_type[id] = hash_to_id[hash]
-			or abort("CRandomTask:load :: Cannot find task id for hash %d!",hash)
+			or abort("[CRandomTask:load] Cannot find task id for hash %d!", hash)
 	end
 	-- log("size "..tostring((p:r_tell()-rt0)))
 end
