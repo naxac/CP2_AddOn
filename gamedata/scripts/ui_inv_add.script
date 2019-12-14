@@ -22,8 +22,24 @@ local repkits = {
 		if item:is_weapon() then
 			repair_check.repair_repkit(repkit, item)
 		end
+	end,
+	["doc_1"] = function(doc, outfit)
+		if outfit:section() == "exo_mil_exoskeleton" then
+			meceniy_outfit.doc_use(outfit, doc)
+		end
+	end,
+	["doc_8"] = function(doc, outfit)
+		if outfit:section() == "exo_mil_exoskeleton_add" then
+			meceniy_outfit.doc_use_2(outfit, doc)
+		end
+	end,
+	["doc_10"] = function(doc, outfit)
+		if outfit:section() == "exo_mil_exoskeleton_addrs" then
+			meceniy_outfit.doc_use_3(outfit, doc)
+		end
 	end
 }
+	
 
 function inventory_open()
 	if not wnd then	
@@ -177,6 +193,7 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 	if drop_on_item then
 		if repkits[section] then
 			repkits[section](drag_item, drop_on_item)
+			return
 		end
 
 		local sec = drop_on_item:section()
@@ -192,8 +209,7 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 					if binder:charge( drag_item:condition() ) then
 						drop_on_item:set_weight( drop_on_item:get_weight() + drag_item:get_weight() )
 
-						local se_obj = AI:object( drag_item:id() )
-						if se_obj then AI:release(se_obj, true) end
+						del_obj_by_id( drag_item:id() )
 						zvuki.use_snd(section)
 					end
 				end
@@ -391,7 +407,7 @@ end
 function getSlots()	return slot2section	end
 function getSlotKey(slot) return slot2key[slot] end
 ------------------------------------------------------------------------------------------
-function show_inv_msg( text, type )
+function show_inv_msg( text, type, showtime )
 	if wnd then
 		wnd.DescrWnd:HideDescription()
 		BlockUIDescr( true )
@@ -400,7 +416,7 @@ function show_inv_msg( text, type )
 	if type then
 		msgbox_type = "ok_"..type
 	end
-	start_small_timer( 200, ShowMessageBox, msgbox_type, text, false, false, 3000 )
+	start_small_timer( 200, ShowMessageBox, msgbox_type, text, false, false, showtime or 3000 )
 end
 ------------------------------------------------------------------------------------------
 function charge_device( art, device )
