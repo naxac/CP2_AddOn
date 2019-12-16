@@ -11,12 +11,15 @@ local biodetector_mode = false
 ---------------------------------------------------------------------------
 local dev = device()
 local has_spot = level.map_has_object_spot
+local math_cos = math.cos
+local math_sin = math.sin
+local table_insert = table.insert
 
-local spot_size_1     = vector2():set(12*kScreen, 12)
-local spot_size_2     = vector2():set(16*kScreen, 16)
+local spot_size_12     = vector2():set(12*kScreen, 12)
+local spot_size_16     = vector2():set(16*kScreen, 16)
 local spot_size_npc   = vector2():set(3*kScreen, 3)
-local spot_offset_1   = vector2():set(spot_size_1.x/2, spot_size_1.y/2)
-local spot_offset_2   = vector2():set(spot_size_2.x/2, spot_size_2.y/2)
+local spot_offset_1   = vector2():set(spot_size_12.x/2, spot_size_12.y/2)
+local spot_offset_2   = vector2():set(spot_size_16.x/2, spot_size_16.y/2)
 local spot_offset_npc = vector2():set(spot_size_npc.x/2, spot_size_npc.y/2)
 
 local wnd = nil
@@ -118,17 +121,23 @@ function UIScriptHUD:Update(delta)
 
 	amk.oau_watchdog=18811
 	self:UpdateIndicators()
+
 	amk.oau_watchdog=18812
 	self:UpdateMap()
 end
 
 function UIScriptHUD:UpdateIndicators()
-	self.body_state:InitTexture( "ui_hud_soldier_"..get_body_state_texture() )
+	local tex = get_body_state_texture()
+	if tex then
+		self.body_state:InitTexture("ui_hud_soldier_"..tex)
+	end
 
 	self.progress_power:SetProgressPos( Actor.power * 100 )
 	self.progress_health:SetProgressPos( Actor.health * 100 )
 	if arc_inventory.IsRadDetected() then
 		self.progress_radiation:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
+	else
+		self.progress_radiation:SetProgressPos(0)
 	end
 	if actor_outfit then
 		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
@@ -161,22 +170,6 @@ function UIScriptHUD:UpdateMap()
 	-- log("Update map position: %s", t:time())
 	-- t:start()
 
-	-- удалим неактуальные метки
-	for id, st in pairs(self.map_spots) do
-		if db.for_map[id] == nil then
-			table.insert(self.del_spots, id)
-		end
-	end
-	for i, v in ipairs(self.del_spots) do
-		self.map:DetachChild( self.map_spots[v] )
-		self.map_spots[v] = nil
-	end
-	self.del_spots = {}
-
-	-- t:stop()
-	-- log("del_spots: %s", t:time())
-	-- t:start()
-
 	self:UpdateSpots()
 
 	-- t:stop()
@@ -185,7 +178,7 @@ end
 
 function UIScriptHUD:RemoveAllSpots()
 	for id in pairs(self.map_spots) do
-		table.insert(self.del_spots, id)
+		table_insert(self.del_spots, id)
 	end
 	for i, v in ipairs(self.del_spots) do
 		self.map:DetachChild( self.map_spots[v] )
@@ -194,12 +187,26 @@ function UIScriptHUD:RemoveAllSpots()
 	self.del_spots = {}
 end
 
+local lc_clsid = clsid.level_changer
+local inv_box_clsid = clsid.inventory_box
 function UIScriptHUD:UpdateSpots()
 	amk.oau_watchdog=18813
+	-- удалим неактуальные метки
+	for id, st in pairs(self.map_spots) do
+		if db.for_map[id] == nil then
+			table_insert(self.del_spots, id)
+		end
+	end
+	for i, v in ipairs(self.del_spots) do
+		self.map:DetachChild( self.map_spots[v] )
+		self.map_spots[v] = nil
+	end
+	self.del_spots = {}
+
+	amk.oau_watchdog=18814
+
 	local spot, tex, sz, cls
 	local actor_pos = Actor:position()
-	local lc_clsid = clsid.level_changer
-	local inv_box_clsid = clsid.inventory_box
 
 	for id, obj in pairs(db.for_map) do
 		spot = self.map_spots[id]
@@ -207,27 +214,27 @@ function UIScriptHUD:UpdateSpots()
 			and obj:position():distance_to_xz(actor_pos) < map_dist
 		then
 			tex, sz = nil, nil
-			cls = obj:clsid()
 			if not spot then
 				if obj:is_entity_alive() then
 					tex = "ui_minimap_point"
 					sz = spot_size_npc
 				elseif not biodetector_mode then
+					cls = obj:clsid()
 					if cls == inv_box_clsid then
 						if show_gps and gps_habar.get_labels()[id] then
 							tex = get_GPS_texture(id)
 						elseif show_treasures and has_spot(id, "treasure")~=0 then
 							tex = "ui_mapPDA_treasure"
 						end
-						sz = spot_size_1
+						sz = spot_size_12
 					elseif cls == lc_clsid then
 						if show_lc and check_lc_spot(id) then
 							tex = "ui_mapPDA_level_changer5"
-							sz = spot_size_2
+							sz = spot_size_16
 						end
 					elseif IsAnomaly(nil, cls) and detector then
 						tex = get_anom_texture(id)
-						sz = spot_size_2
+						sz = spot_size_16
 					end
 				end
 				if tex and sz then
@@ -240,11 +247,12 @@ function UIScriptHUD:UpdateSpots()
 						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
 						spot:SetColor(clr)
 					else
-						table.insert(self.del_spots, id)
+						table_insert(self.del_spots, id)
 					end
 				elseif biodetector_mode then
-					table.insert(self.del_spots, id)
+					table_insert(self.del_spots, id)
 				else
+					cls = obj:clsid()
 					if cls == inv_box_clsid then
 						sz = spot_offset_1
 					elseif (cls == lc_clsid) then
@@ -257,12 +265,12 @@ function UIScriptHUD:UpdateSpots()
 					if sz then
 						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
 					else
-						table.insert(self.del_spots, id)
+						table_insert(self.del_spots, id)
 					end
 				end
 			end
 		elseif spot then
-			table.insert(self.del_spots, id)
+			table_insert(self.del_spots, id)
 		end
 	end
 end
@@ -325,7 +333,7 @@ function UIScriptHUD:SwitchBioradar()
 end
 
 function UIScriptHUD:RemoveSpot(obj_id)
-	table.insert(self.del_spots, obj_id)
+	table_insert(self.del_spots, obj_id)
 end
 ---------------------------------------------------------------------------
 function get_level_bound_rect()
@@ -339,6 +347,7 @@ function get_level_bound_rect()
 end
 -- флажки состояния тела актера
 local body_states = {
+	current		= -1,
 	fwd			= 1,
 	back		= 2,
 	l_strafe	= 4,
@@ -353,10 +362,17 @@ local body_states = {
 	climb		= 2048,
 	sprint		= 4096,
 	l_lookout	= 8192,
-	r_lookout	= 16384
+	r_lookout	= 16384,
+	any_move	= 1+2+4+8
 }
 function get_body_state_texture()
 	local state = Actor:actor_body_state()
+
+	if body_states.current == state then
+		return nil
+	end
+	body_states.current = state
+
 	if bit_and(state, body_states.climb) ~= 0 then
 		return "climb"
 	else
@@ -370,10 +386,12 @@ function get_body_state_texture()
 			if bit_and(state, body_states.sprint) ~= 0 then
 				return "sprint"
 			else
-				if bit_and(state, body_states.accel) ~= 0 then
-					return "normal"
-				else
+				if bit_and(state, body_states.any_move) ~= 0
+					and bit_and(state, body_states.accel) == 0
+				then
 					return "run"
+				else
+					return "normal"
 				end
 			end
 		end
@@ -428,6 +446,7 @@ function check_lc_spot(obj_id)
 			return true
 		end
 	end
+	return false
 end
 
 function set_detector(det)
@@ -460,7 +479,7 @@ function get_point_color(obj)
 
 	local colorID = nil
 
-	if obj:is_stalker() or obj:is_trader() then
+	if IsHuman[obj:clsid()] then
 		if obj:character_community() == "zombied" then
 			return nil
 		end
@@ -488,8 +507,8 @@ function get_point_color(obj)
 end
 
 function rotation(pos, angle)
-	local _sc = math.cos(angle)
-	local _sn = math.sin(angle)
+	local _sc = math_cos(angle)
+	local _sn = math_sin(angle)
 	local x = pos.x*_sc + pos.y*_sn
 	local y = pos.y*_sc - pos.x*_sn
 	return pos:set(x, y)
@@ -550,15 +569,17 @@ end
 
 function init_settings()
 	local dif = level.get_game_difficulty()
-	show_npc = has_alife_info("pda_show_npc")
-	show_enemy = has_alife_info("pda_show_enemy") and dif == game_difficulty.novice
-	show_corpse = has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
-	show_gps = has_alife_info("pda_show_gps")
-	show_treasures = has_alife_info("pda_show_treasures")
-	show_lc = has_alife_info("pda_show_level_changers")
-	show_time = has_alife_info("pda_show_time")
-	biodetector_mode = has_alife_info("pda_biodetector_mode")
-		and ( inventory.on_belt("bioradar") or inventory.on_belt("bioradar2") )
+
+	show_npc			= has_alife_info("pda_show_npc")
+	show_enemy			= has_alife_info("pda_show_enemy") and dif == game_difficulty.novice
+	show_corpse			= has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
+	show_gps			= has_alife_info("pda_show_gps")
+	show_treasures		= has_alife_info("pda_show_treasures")
+	show_lc				= has_alife_info("pda_show_level_changers")
+	show_time			= has_alife_info("pda_show_time")
+	biodetector_mode	= has_alife_info("pda_biodetector_mode")
+							and ( inventory.on_belt("bioradar")
+							or inventory.on_belt("bioradar2") )
 
 	if wnd then
 		wnd:SwitchBioradar()
