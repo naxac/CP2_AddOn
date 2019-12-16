@@ -10,18 +10,22 @@ local cur_detector = nil
 
 function on_actor_update(delta)
 	local obj = db.actor:item_in_slot( inventory_slots.DETECTOR )	-- детектор костюма перенесён в слот
-	cur_detector = (obj~=nil and obj:section()=='detector_suit' and 'detector_suit') or nil
+	local det = (obj~=nil and obj:section()=='detector_suit' and 'detector_suit') or nil
 
-	if not cur_detector then
+	if not det then
 		for _,v in ipairs(detectors) do
 			if inventory.on_belt(v) then
-				cur_detector = v
+				det = v
 				break
 			end
 		end
 	end
-	
-	arc_ui_dosimeter.set_detector(cur_detector)
+
+	if det ~= cur_detector then
+		arc_ui_dosimeter.set_detector(det)
+	end
+
+	cur_detector = det
 	
 	crp_changed = false
 
