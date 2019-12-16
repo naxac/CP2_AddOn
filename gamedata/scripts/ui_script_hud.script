@@ -8,7 +8,7 @@ local show_treasures = true
 local show_lc = true
 local show_time = true
 local biodetector_mode = false
-
+---------------------------------------------------------------------------
 local dev = device()
 local has_spot = level.map_has_object_spot
 
@@ -27,6 +27,7 @@ local two_pi = 2*math.pi
 local map_zoom = 2
 local map_dist = 150/map_zoom
 
+local detector = nil
 ---------------------------------------------------------------------------
 class "UIScriptHUD" (CUIWindow)
 
@@ -190,30 +191,37 @@ function UIScriptHUD:RemoveAllSpots()
 end
 
 function UIScriptHUD:UpdateSpots()
-	local st, tex, sz
+	local spot, tex, sz, cls
 	local actor_pos = Actor:position()
 	local lc_clsid = clsid.level_changer
+	local inv_box_clsid = clsid.inventory_box
 
 	for id, obj in pairs(db.for_map) do
-		st = self.map_spots[id]
+		spot = self.map_spots[id]
 		if obj and AI:object(id)
 			and obj:position():distance_to_xz(actor_pos) < map_dist
 		then
 			tex, sz = nil, nil
-			if not st then
+			cls = obj:clsid()
+			if not spot then
 				if obj:is_entity_alive() then
 					tex = "ui_minimap_point"
 					sz = spot_size_npc
 				elseif not biodetector_mode then
-					if obj:is_inventory_box() then
+					if cls == inv_box_clsid then
 						if show_gps and gps_habar.get_labels()[id] then
 							tex = get_GPS_texture(id)
 						elseif show_treasures and has_spot(id, "treasure")~=0 then
 							tex = "ui_mapPDA_treasure"
 						end
 						sz = spot_size_1
-					elseif show_lc and obj:clsid() == lc_clsid then
-						tex = "ui_mapPDA_level_changer5"
+					elseif cls == lc_clsid then
+						if show_lc and check_lc_spot(id) then
+							tex = "ui_mapPDA_level_changer5"
+							sz = spot_size_2
+						end
+					elseif IsAnomaly(nil, cls) and detector then
+						tex = get_anom_texture(id)
 						sz = spot_size_2
 					end
 				end
@@ -224,25 +232,31 @@ function UIScriptHUD:UpdateSpots()
 				if obj:is_entity_alive() then
 					local clr = get_point_color(obj)
 					if clr then
-						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
-						st:SetColor(clr)
+						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
+						spot:SetColor(clr)
 					else
 						table.insert(self.del_spots, id)
 					end
 				elseif biodetector_mode then
 					table.insert(self.del_spots, id)
 				else
-					if obj:is_inventory_box() then
+					if cls == inv_box_clsid then
 						sz = spot_offset_1
-					elseif obj:clsid() == lc_clsid then
+					elseif (cls == lc_clsid) then
 						sz = spot_offset_2
+					elseif IsAnomaly(nil, cls) then
+						if get_anom_texture(id) then
+							sz = spot_offset_2
+						end
 					end
 					if sz then
-						st:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
+						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
+					else
+						table.insert(self.del_spots, id)
 					end
 				end
 			end
-		elseif st then
+		elseif spot then
 			table.insert(self.del_spots, id)
 		end
 	end
@@ -274,7 +288,7 @@ function UIScriptHUD:DrawSpot(obj, tex, w, h)
 	local pos = self:ConvertRealToLocal( obj:position() )
 
 	local st = CUIStatic()
-	st:Init(tex, pos.x, pos.y, w, h)
+	st:Init(tex, pos.x-w/2, pos.y-h/2, w, h)
 	st:SetAutoDelete(true)
 	st:SetStretchTexture(true)
 	if clr then
@@ -361,7 +375,7 @@ function get_body_state_texture()
 	end
 end
 
-local spot2texture = {
+local gps_spot2texture = {
 	gps_stalker = "ui_mapPDA_gps_stalker",
 	habar_location = "ui_mapPDA_habar_small",
 	habar_location_w = "ui_icons_mapPDA_habar_small_w",
@@ -369,12 +383,58 @@ local spot2texture = {
 	habar_clear_location_w = "ui_icons_mapPDA_habar_clear_small_w"
 }
 function get_GPS_texture(obj_id)
-	for k, v in pairs(spot2texture)do
+	for k, v in pairs(gps_spot2texture)do
 		if has_spot(obj_id, k) ~= 0 then
 			return v
 		end
 	end
 	return nil
+end
+
+local anom_spot2texture = {
+	anomaly_zone_location = "anomaly_zone",
+	anomaly_bald_location = "anomaly_bald",
+	anomaly_minc_location = "anomaly_mincer",
+	anomaly_grav_location = "anomaly_gravi",
+	anomaly_rad_location = "anomaly_radiation",
+	anomaly_elec_location = "anomaly_electra",
+--	anomaly_mine_location = "anomaly_mine",
+	anomaly_burn_location = "anomaly_burn",
+	anomaly_ice_location = "anomaly_ice",
+	anomaly_ameba_location = "anomaly_ameba",
+--	anomaly_buzz_location = "anomaly_buzz",
+	anomaly_sakbuzz_location = "anomaly_sakbuzz",
+	anomaly_fountain_location = "anomaly_fountain",
+	anomaly_sphere_location = "anomaly_sphere",
+	anomaly_smallrain_location = "anomaly_smallrain"
+}
+function get_anom_texture(obj_id)
+	for k, v in pairs(anom_spot2texture)do
+		if has_spot(obj_id, k) ~= 0 then
+			return v
+		end
+	end
+	return nil
+end
+
+function check_lc_spot(obj_id)
+	for i = 1, 5 do
+		if has_spot(obj_id, "level_changer"..i) ~= 0 then
+			return true
+		end
+	end
+end
+
+function set_detector(det)
+	if det == "detector_elite"
+		or det == "detector_elite_sak"
+		or det == "detector_elite_john"
+		or det == "detector_suit"
+	then
+		detector = det
+	else
+		detector = nil
+	end
 end
 
 local id2color = {
