@@ -4,17 +4,6 @@ local table_sort=table.sort
 local math_random=math.random
 local string_find=string.find
 
-local anoms_classes={
-	[clsid.zone_buzz_s]=true,
-	[clsid.zone_bfuzz_s]=true,
-	[clsid.zone_electra_s]=true,
-	[clsid.zone_galant_s]=true,
-	[clsid.zone_ice_s]=true,
-	[clsid.zone_mbald_s]=true,
-	[clsid.zone_mincer_s]=true,
-	[clsid.zone_zharka_s]=true,
-	[clsid.zone_radioactive]=true
-}
 local anoms_difficulty_koef={
 	[0]=0.75,
 	[1]=1.0,
@@ -158,7 +147,7 @@ function pre_blow_off()
 	local sobj, map
 	for i=1,65534 do
 		sobj=AI:object(i)
-		if sobj and anoms_classes[sobj:clsid()] then
+		if sobj and IsAnomaly(nil, sobj:clsid(), true) then
 			if can_remove_anom(sobj, object_level_name(sobj)) then
 				AI:release(sobj,true)
 			end
@@ -386,10 +375,6 @@ function check_coordinates(pos, lname)
 		if pos:distance_to(v[1])<=v[2] then return false end
 	end
 	return true
-end
-
-function is_anomaly(class_id)
-	return (class_id and anoms_classes[class_id]==true)
 end
 
 function set_online_anomaly_status(obj_id,status)
