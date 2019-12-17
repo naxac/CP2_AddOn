@@ -562,14 +562,33 @@ function unreg_in_anom_manager(npc)
 end
 
 function bind(obj)
+	obj:bind_object(dynamic_anom_binder(obj))
+end
+function bind_ordinary(obj)
 	obj:bind_object(anom_binder(obj))
 end
 
 class "anom_binder" ( object_binder )
-
-function anom_binder:__init(obj) super(obj) end
-
+function anom_binder:__init(obj)
+	super(obj)
+end
 function anom_binder:net_spawn(sobj)
+	if not object_binder.net_spawn(self, sobj) then
+		return false
+	end
+	db.add_on_map(self.object)
+	return true
+end
+function anom_binder:net_destroy()
+	db.del_from_map(self.object)
+	object_binder.net_destroy(self)
+end
+
+class "dynamic_anom_binder" ( object_binder )
+
+function dynamic_anom_binder:__init(obj) super(obj) end
+
+function dynamic_anom_binder:net_spawn(sobj)
 	if not object_binder.net_spawn( self,sobj ) then return false end
 
 	amk_anoms.add_anomaly(sobj.id,sobj.position,sobj.radius)
@@ -577,7 +596,7 @@ function anom_binder:net_spawn(sobj)
 	return true
 end
 
-function anom_binder:net_destroy()
+function dynamic_anom_binder:net_destroy()
 	amk_anoms.remove_anomaly(self.object:id())
 	db.del_from_map(self.object)
 	object_binder.net_destroy(self)
