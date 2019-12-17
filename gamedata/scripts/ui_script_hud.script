@@ -221,7 +221,7 @@ function UIScriptHUD:UpdateSpots()
 				elseif not biodetector_mode then
 					cls = obj:clsid()
 					if cls == inv_box_clsid then
-						if show_gps and gps_habar.get_labels()[id] then
+						if show_gps and gps_habar.has_label(id) then
 							tex = get_GPS_texture(id)
 						elseif show_treasures and has_spot(id, "treasure")~=0 then
 							tex = "ui_mapPDA_treasure"
@@ -258,7 +258,7 @@ function UIScriptHUD:UpdateSpots()
 					elseif (cls == lc_clsid) then
 						sz = spot_offset_2
 					elseif IsAnomaly(nil, cls) then
-						if get_anom_texture(id) then
+						if has_spot(id, spot.spot_name) ~= 0 then
 							sz = spot_offset_2
 						end
 					end
@@ -309,6 +309,7 @@ function UIScriptHUD:DrawSpot(obj, tex, w, h)
 	end
 	self.map:AttachChild(st)
 	st:Show(true)
+	st.spot_name = get_spot_by_texture(tex)
 
 	return st
 end
@@ -362,9 +363,10 @@ local body_states = {
 	climb		= 2048,
 	sprint		= 4096,
 	l_lookout	= 8192,
-	r_lookout	= 16384,
-	any_move	= 1+2+4+8
+	r_lookout	= 16384
 }
+body_states.any_move = body_states.fwd + body_states.back + body_states.l_strafe + body_states.r_strafe
+
 function get_body_state_texture()
 	local state = Actor:actor_body_state()
 
@@ -398,46 +400,57 @@ function get_body_state_texture()
 	end
 end
 
-local gps_spot2texture = {
-	gps_stalker = "ui_mapPDA_gps_stalker",
-	habar_location = "ui_mapPDA_habar_small",
-	habar_location_w = "ui_icons_mapPDA_habar_small_w",
-	habar_clear_location = "ui_mapPDA_habar_clear",
-	habar_clear_location_w = "ui_icons_mapPDA_habar_clear_small_w"
+local spot2texture = {
+	gps = {
+		gps_stalker = "ui_mapPDA_gps_stalker",
+		habar_location = "ui_mapPDA_habar_small",
+		habar_location_w = "ui_icons_mapPDA_habar_small_w",
+		habar_clear_location = "ui_mapPDA_habar_clear",
+		habar_clear_location_w = "ui_icons_mapPDA_habar_clear_small_w"
+	},
+	anom = {
+		anomaly_zone_location = "anomaly_zone",
+		anomaly_bald_location = "anomaly_bald",
+		anomaly_minc_location = "anomaly_mincer",
+		anomaly_grav_location = "anomaly_gravi",
+		anomaly_rad_location = "anomaly_radiation",
+		anomaly_elec_location = "anomaly_electra",
+	--	anomaly_mine_location = "anomaly_mine",
+		anomaly_burn_location = "anomaly_burn",
+		anomaly_ice_location = "anomaly_ice",
+		anomaly_ameba_location = "anomaly_ameba",
+	--	anomaly_buzz_location = "anomaly_buzz",
+		anomaly_sakbuzz_location = "anomaly_sakbuzz",
+		anomaly_fountain_location = "anomaly_fountain",
+		anomaly_sphere_location = "anomaly_sphere",
+		anomaly_smallrain_location = "anomaly_smallrain"
+	}
 }
+local texture2spot = {}
+for k, t in pairs(spot2texture) do
+	for spot, tex in pairs(t) do
+		texture2spot[tex] = spot
+	end
+end
+
 function get_GPS_texture(obj_id)
-	for k, v in pairs(gps_spot2texture)do
+	for k, v in pairs(spot2texture.gps)do
 		if has_spot(obj_id, k) ~= 0 then
 			return v
 		end
 	end
 	return nil
 end
-
-local anom_spot2texture = {
-	anomaly_zone_location = "anomaly_zone",
-	anomaly_bald_location = "anomaly_bald",
-	anomaly_minc_location = "anomaly_mincer",
-	anomaly_grav_location = "anomaly_gravi",
-	anomaly_rad_location = "anomaly_radiation",
-	anomaly_elec_location = "anomaly_electra",
---	anomaly_mine_location = "anomaly_mine",
-	anomaly_burn_location = "anomaly_burn",
-	anomaly_ice_location = "anomaly_ice",
-	anomaly_ameba_location = "anomaly_ameba",
---	anomaly_buzz_location = "anomaly_buzz",
-	anomaly_sakbuzz_location = "anomaly_sakbuzz",
-	anomaly_fountain_location = "anomaly_fountain",
-	anomaly_sphere_location = "anomaly_sphere",
-	anomaly_smallrain_location = "anomaly_smallrain"
-}
 function get_anom_texture(obj_id)
-	for k, v in pairs(anom_spot2texture)do
+	for k, v in pairs(spot2texture.anom)do
 		if has_spot(obj_id, k) ~= 0 then
 			return v
 		end
 	end
 	return nil
+end
+function get_spot_by_texture(tex)
+	return texture2spot[tex]
 end
 
 function check_lc_spot(obj_id)
