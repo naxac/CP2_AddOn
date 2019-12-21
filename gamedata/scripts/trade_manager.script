@@ -1,11 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local pick_from_condlist = xr_logic.pick_section_from_condlist
 local parse_condlist = xr_logic.parse_condlist
-local cfg_get_str = utils.cfg_get_string
 
 -- game hours
-local DEF_RESUPLY_TIME = 40
-local DEF_RESUPLY_RND = 10
+local DEF_RESUPLY_TIME = 50
+local DEF_RESUPLY_RND = 20
 
 local trade_manager = {}
 
@@ -117,7 +116,14 @@ function first_update(npc)
 
 			local resuply_time = t.resuply_time or DEF_RESUPLY_TIME
 			local resuply_rnd = t.resuply_rnd or DEF_RESUPLY_RND
-			se_obj.resupply_time = hours + resuply_time + math.random(-resuply_rnd, resuply_rnd)
+			local time_shift = resuply_time + math.random(-resuply_rnd, resuply_rnd)
+			se_obj.resupply_time = hours + time_shift
+
+			if npc:is_trader() then
+				local npc_id = npc:id()
+				xr_timers.remove_timer_by_parameter("rspl", npc_id)
+				xr_timers.start_game_timer("rspl", 0, time_shift, 0, npc_id)
+			end
 
 			-- Обновляем бартер
 			if lim then
@@ -176,6 +182,25 @@ function get_item_condition(npc)
 		return t.item_condition
 	end
 	return def_item_condition
+end
+--------------------------------------------------------------------------
+local resupply_msgs = {
+	"Час назад вертушка закинула мне новую партию товара, так что милости прошу.",
+	"У меня сегодня пополнение запасов, заходите, выбирайте, покупайте.",
+	"Приветствую всех. Мне сегодня нового товара подкинули, заходите, если кому что надо.",
+	"Сегодня из-за кордона прибыла посылка с грузом. Тем, кто что-нибудь заказывал, просьба поспешить.",
+	"Посыльный сегодня приволок нового товара, забегайте, если кому что надо.",
+	"Сегодня прибыл караван из-за кордона. Патроны, гранаты, навесы, медикаменты - всё в наличии.",
+	"Вояки подогнали товара, всё лучшего качества. Оптовикам скидки.",
+	"Кто заказывал снарягу - просьба поспешить, товар прибыл. Долго держать не буду, о сроках договаривались.",
+	"Сегодня в продаже свежие продукты и даже коньяк. Спешите, разлетается, как горячие пирожки.",
+	"Завезли товара, поэтому двери на замке, стучитесь.",
+	"Приобрёл новую партию снаряжения, так что сегодня скидки и акции, не пропустите."
+}
+function send_resupply(sobj)
+	local trader_name = task_manager.get_parent_name(sobj, sobj.m_story_id)
+	local sms = "%c[gray]"..trader_name.."\\n%c[red_sms]"..table.random(resupply_msgs)
+	news_manager.send_tip(sms)
 end
 
 --------------------------------------------------------------------------

@@ -9,104 +9,110 @@
 class "se_stalker"  (cse_alife_human_stalker)
 --------------------
 function se_stalker:__init (section) super (section)
-  self.ini = nil
-  self.ini_initialized = false
+	self.ini = nil
+	self.ini_initialized = false
 
-  self.spawner_present = false
+	self.spawner_present = false
 
-  self.smart_terrain_conditions = nil
-  self.smart_terrain_conditions_initialized = false
+	self.smart_terrain_conditions = nil
+	self.smart_terrain_conditions_initialized = false
 
-  -- этот флаг берётся из работы смарта
-  -- true     = всегда в онлайне
-  -- false    = всегда в офлайне
-  -- condlist = условие, которое отпределяет true или false
-  -- nil      = смарту всё равно
-  self.job_online          = nil
-  self.job_online_condlist = nil
+	-- этот флаг берётся из работы смарта
+	-- true     = всегда в онлайне
+	-- false    = всегда в офлайне
+	-- condlist = условие, которое отпределяет true или false
+	-- nil      = смарту всё равно
+	self.job_online          = nil
+	self.job_online_condlist = nil
 
-  -- посещал ли сталкер хоть один smart_terrain
-  self.was_in_smart_terrain = false
+	-- посещал ли сталкер хоть один smart_terrain
+	self.was_in_smart_terrain = false
 
-  self.death_droped = false --'Генерил ли персонаж выпадаемые предметы или нет.
-  self.treasure_processed = false
-  self.linspiro_traded = false
+	self.death_droped = false --'Генерил ли персонаж выпадаемые предметы или нет.
+	self.treasure_processed = false
+	self.linspiro_traded = false
 
-  --' Test for dima
-  self.dont_spawn_online = false
-  
-  -- Trade
-  self.resupply_time = 0
+	--' Test for dima
+	self.dont_spawn_online = false
+
+	-- Trade
+	self.resupply_time = 0
+	self.wait_resupply = false
 end
 --------------------
 function se_stalker:get_ini()
-  if not self.ini_initialized then
-    self.ini             = self:spawn_ini ()
-    self.ini_initialized = true
+	if not self.ini_initialized then
+		self.ini             = self:spawn_ini ()
+		self.ini_initialized = true
 
-    if self.ini:section_exist("spawner") then
-      self.spawner = xr_logic.parse_condlist(db.actor, "spawner", "cond", self.ini:r_string("spawner", "cond"))
-    end
-  end
+		if self.ini:section_exist("spawner") then
+			self.spawner = xr_logic.parse_condlist(db.actor, "spawner", "cond", self.ini:r_string("spawner", "cond"))
+		end
+	end
 end
 --------------------
 function se_stalker:get_job_online()
-  if self.job_online_condlist == nil then
-    return self.job_online
-  else
-    return xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.job_online) ~= nil
-  end
+	if self.job_online_condlist == nil then
+		return self.job_online
+	else
+		return xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.job_online) ~= nil
+	end
 end
 --------------------
 function se_stalker:can_switch_offline ()
-  if amk.convert_npc[self.id]==true then 
-    return true 
---  elseif amk.convert_npc[self.id]==false then
-  --  return false
-  end
-  local job = self:get_job_online()
-  if job ~= nil then
-    return not job
-  else
-    return cse_alife_human_stalker.can_switch_offline (self)
-  end
+	if amk.convert_npc[self.id]==true then 
+		return true 
+	end
+
+	local job = self:get_job_online()
+	if job ~= nil then
+		return not job
+	else
+		return cse_alife_human_stalker.can_switch_offline (self)
+	end
+end
+--------------------
+function se_stalker:update()
+	cse_alife_human_stalker.update(self)
+
+	if self.wait_resupply and game_time_hours then
+	--	log("[se_stalker:update] update resuply time for %s, time left: %s", self:name(), tostring(self.resupply_time - game_time_hours))
+		if game_time_hours > self.resupply_time then
+			trade_manager.send_resupply(self)
+			self.wait_resupply = false
+		end
+	end
 end
 --------------------
 function se_stalker:can_switch_online ()
-  -- local ecolog=string.find(self:name(),"bar_ecolog")
-  -- if ecolog then amk.mylog("chp1 "..self:name()) end
-  if amk.convert_npc[self.id]==true then 
-    return false
---  elseif amk.convert_npc[self.id]==false then 
-   -- return true
-  end
-  if self.dont_spawn_online == true then
-    return false
-  end
+	if amk.convert_npc[self.id]==true then 
+		return false
+	end
+	if self.dont_spawn_online == true then
+		return false
+	end
 
-  local job = self:get_job_online()
-  if job ~= nil then
-    return job
-  end
+	local job = self:get_job_online()
+	if job ~= nil then
+		return job
+	end
 
-  if self.ini == nil or self.spawner == nil then
-    return cse_alife_human_stalker.can_switch_online(self)
-  end
-    
-    if db.actor ~= nil and db.actor:alive () == false then
-    return self.online
-    end    
-    
-  if self.online == false then
-    -- if ecolog then amk.dump_table(self.spawner) end
-    return (xr_logic.pick_section_from_condlist(db.actor, self, self.spawner) ~= nil) and cse_alife_human_stalker.can_switch_online(self)
-  else
-    -- if ecolog then amk.dump_table(self.spawner) end
-    if xr_logic.pick_section_from_condlist(db.actor, self, self.spawner) ~= nil then 
-      return true
-    end
-    return false
-  end         
+	if self.ini == nil or self.spawner == nil then
+		return cse_alife_human_stalker.can_switch_online(self)
+	end
+
+	if Actor ~= nil and Actor:alive () == false then
+		return self.online
+	end    
+
+	if self.online == false then
+		return (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil) and cse_alife_human_stalker.can_switch_online(self)
+	else
+		if xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil then 
+			return true
+		end
+		return false
+	end         
 end
 --------------------
 function se_stalker:STATE_Write (packet)
@@ -135,8 +141,8 @@ function se_stalker:STATE_Write (packet)
 	
 	-- Trade
 	local _time = self.resupply_time - amk.game_hours()
-	packet:w_s16(math.max(_time, -1))
---	log1("se_stalker:STATE_Write["..self:name().."] -> saved resupply_time = ".._time)
+	packet:w_s16(_time)
+--	log("[se_stalker:STATE_Write] %s -> saved resupply_time = %s", self:name(), _time)
 end
 --------------------
 function se_stalker:STATE_Read (packet, size)
@@ -165,32 +171,36 @@ function se_stalker:STATE_Read (packet, size)
 	self.linspiro_traded	= bit_and(ddw,8) ~= 0
 
 	local _time = packet:r_s16()
-	self.resupply_time = amk.game_hours() + _time
-	--	log1("se_stalker:STATE_Read["..self:name().."] -> resupply_time = "..self.resupply_time)
+	local gh = amk.game_hours()
+	self.resupply_time = gh + _time
+	-- log("[se_stalker:STATE_Read] %s -> resupply_time = %s", self:name(), _time)
+	if self.resupply_time > gh then
+		self.wait_resupply = true
+	end
 end
 --------------------
 function se_stalker:on_before_register()
-  self:fill_exclusives()
+	self:fill_exclusives()
 end
 --------------------
 function se_stalker:on_register()
 	-- Чистим рестрикторы
 	netpk:modify( self, { dynamic_in_restrictions = {} }, net_packet.fState )
 	
-  cse_alife_human_stalker.on_register( self )
+	cse_alife_human_stalker.on_register( self )
 
-  if(actor_stats.add_to_ranking~=nil)then
-    local community = self:community()
-    if not(community == "zombied" or
-   --    community == "monolith" or
-       community == "arena_enemy")
-    then
-      actor_stats.add_to_ranking(self.id)
-    end
-  end
+	if(actor_stats.add_to_ranking~=nil)then
+		local community = self:community()
+		if not(community == "zombied"
+			-- or community == "monolith"
+			or community == "arena_enemy")
+		then
+			actor_stats.add_to_ranking(self.id)
+		end
+	end
 
-  --' Регистрация в таскменеджере
-  task_manager.get_random_task():register_target(self)
+	--' Регистрация в таскменеджере
+	task_manager.get_random_task():register_target(self)
 
 	if self:alive() then
 		if self:smart_terrain_id() == 65535 then
@@ -201,66 +211,46 @@ function se_stalker:on_register()
 	-- dsh: Принудительно установим мобам flInteractive
 	-- Есть подозрение, что те, у кого этот флаг сброшен, а таких полно в all.spawn, не обходят аномалии.
 	AI:set_interactive( self, true )
-  --' Нарисовать мапспот с собой
---' if sim_statistic.show_stalker_spot == true and self:alive() then
---'   local community, rank = sim_statistic.getNpcType(self)
---'   level.map_add_object_spot_ser(self.id, "alife_presentation_"..community, self:name().." "..community)
---' end
 end
 --------------------
 function se_stalker:on_unregister()
-  cse_alife_human_stalker.on_unregister(self)
+	cse_alife_human_stalker.on_unregister(self)
 
-  --' Убрать мапспот с собой
---' if sim_statistic.show_stalker_spot == true then
---'   local community, rank = sim_statistic.getNpcType(self)
---'   level.map_remove_object_spot(self.id, "alife_presentation_"..community)
---' end
+	smart_terrain.unregister_npc(self)
 
-  smart_terrain.unregister_npc(self)
+	--' Отрегистрация в таскменеджере
+	task_manager.get_random_task():unregister_target(self)
 
-  --' Отрегистрация в таскменеджере
-  task_manager.get_random_task():unregister_target(self)
-  
-  if(actor_stats.remove_from_ranking~=nil)then
-    local community = self:community()
-    if community == "zombied" or
-       community == "monolith" or
-       community == "arena_enemy"
-    then
-      return
-    end
-    actor_stats.remove_from_ranking(self.id)
-  end
+	if(actor_stats.remove_from_ranking~=nil)then
+		local community = self:community()
+		if community == "zombied"
+			-- or community == "monolith"
+			or community == "arena_enemy"
+		then
+			return
+		end
+		actor_stats.remove_from_ranking(self.id)
+	end
 end
 --------------------
 function se_stalker:on_spawn()
-  cse_alife_human_stalker.on_spawn(self)
-
+	cse_alife_human_stalker.on_spawn(self)
 end
 --------------------
 function se_stalker:on_death(killer)
-  cse_alife_human_stalker.on_death(self, killer)
-
---        --' Убрать мапспот с собой
---	if sim_statistic.show_stalker_spot == true then
---		local community, rank = sim_statistic.getNpcType(self)
---		level.map_remove_object_spot(self.id, "alife_presentation_"..community)
---	end
+	cse_alife_human_stalker.on_death(self, killer)
 end
 --------------------
 function se_stalker:fill_exclusives()
-  self:get_ini()
-  self.smart_terrain_conditions             = smart_terrain.read_smart_terrain_conditions( self )
+	self:get_ini()
+	self.smart_terrain_conditions = smart_terrain.read_smart_terrain_conditions( self )
 
-  if self.smart_terrain_conditions then
-    for name, condlist in pairs(self.smart_terrain_conditions) do
-      smart_terrain.exclusives[name] = (smart_terrain.exclusives[name] or 0) + 1
-    end
-  end
+	if self.smart_terrain_conditions then
+		for name, condlist in pairs(self.smart_terrain_conditions) do
+			smart_terrain.exclusives[name] = (smart_terrain.exclusives[name] or 0) + 1
+		end
+	end
 end
-
-
 
 
 
@@ -276,13 +266,13 @@ function se_trader:STATE_Write (packet)
 	cse_alife_trader.STATE_Write (self, packet)
 
 	local _time = self.resupply_time - amk.game_hours()
-	packet:w_s16(math.max(_time, -1))
---	log1("se_trader:STATE_Write["..self:name().."] -> saved resupply_time = ".._time)
+	packet:w_s16(_time)
+	-- log("[se_trader:STATE_Write] %s -> saved resupply_time = %s", self:name(), _time)
 end
 function se_trader:STATE_Read (packet, size)
 	cse_alife_trader.STATE_Read (self, packet, size)
 
 	local _time = packet:r_s16()
 	self.resupply_time = amk.game_hours() + _time
-	--	log1("se_trader:STATE_Read["..self:name().."] -> resupply_time = "..self.resupply_time)
+	-- log("[se_trader:STATE_Read] %s -> resupply_time = %s", self:name(), _time)
 end
