@@ -391,11 +391,16 @@ check_tbl['mushroom'] = function (item)
 
 	arc_radiation.change_inv_radiation(0.001)
 
+	if not xr_timers.has_timer("mux") then
+		xr_timers.start_game_timer("mux", 0, 1, 0)	-- проверяем мухоморы раз в игровой час
+		xr_timers.remove_timer("mushroom")
+		xr_timers.remove_timer("del_m")
+	end
+	local t = amk.load_table("mux")
 	local id = item:id()
-	if not ( amk.has_timer_par("mushroom", id)
-		or amk.has_timer_par("del_m", id) )
-	then
-		xr_timers.start_game_timer("mushroom", 0, math.random(5,7), math.random(5,55), id)
+	if t[id] == nil then
+		t[id] = amk.game_hours()
+		amk.save_table("mux", t)
 	end
 end
 check_tbl['case_nebo'] = function (item)

@@ -1289,6 +1289,45 @@ function del_mushroom()
 	    end
 	end
 end
+
+function check_grib()
+	local grib = amk.load_table("mux")
+	local game_hours = amk.game_hours()
+	local grib_time = 24
+	local obj, sobj, condition
+	local del = {}
+
+	for id, h in pairs(grib) do
+		sobj = AI:object(id)
+		if sobj == nil or sobj:section_name() ~= "mushroom" then
+			table.insert(del, id)
+		else
+			if (game_hours - h) >= grib_time then
+				AI:release(sobj, true)
+				table.insert(del, id)
+			else
+				condition = (game_hours - h)/grib_time
+				netpk:modify(sobj, {condition = condition}, netpk.fState)
+				obj = level.object_by_id(id)
+				if obj then
+					obj:set_condition(condition)
+				end
+			end
+		end
+	end
+
+	for i, v in ipairs(del) do
+		grib[v] = nil
+	end
+
+	if table.size(grib) == 0 then
+		amk.del_variable("mux")
+		return
+	end
+
+	amk.save_table("mux", grib)
+	xr_timers.start_game_timer("mux", 0, 1, 0)
+end
 --------------------------------------------------------ГРИБЫ---------------------------------------------------------------
 
 function set_green()
