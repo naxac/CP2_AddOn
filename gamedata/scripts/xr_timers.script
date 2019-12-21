@@ -1,5 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local game_milliseconds = amk.game_milliseconds
 local mgr = nil
 
 class "nTimers"
@@ -13,7 +12,7 @@ end
 
 function nTimers:load_timers()
 	local tmp = amk.load_table( "timers" )
-	local ms = game_milliseconds()
+	local ms = amk.game_milliseconds()
 	local tg = time_global()
 	for i, v in ipairs( tmp ) do
 		local t = {}
@@ -28,12 +27,10 @@ end
 
 function nTimers:save_timers()
 	local tmp = {}
-	local ms = game_milliseconds()
-	local tg = time_global()
 	local tm
 	for i, v in ipairs( self.timers ) do
 		if v.no_save == nil then
-			tm = v.time - (v.real and tg or ms)
+			tm = v.time - (v.real and real_time_ms or game_time_ms)
 			table.insert( tmp, { v.name, tm, v.params, v.real} )
 		end
 	end
@@ -52,11 +49,9 @@ function nTimers:check_timers()
 	end
 
 	local tmr, f = nil, false
-	local ms = game_milliseconds()
-	local tg = time_global()
 	for i = #self.timers, 1, -1 do
 		tmr = self.timers[i]
-		if (tmr.real and tg or ms) > tmr.time then
+		if (tmr.real and real_time_ms or game_time_ms) > tmr.time then
 			f = true
 			table.insert( self.to_start, { n = tmr.name, p = tmr.params, f = tmr.func } )
 			table.remove( self.timers, i )
@@ -81,11 +76,11 @@ function nTimers:get_timer( name )
 	for i, v in ipairs( self.timers ) do
 		if v.name == name then
 			local t = table.copy( {}, v )
-			t.time_shift = t.time - game_milliseconds()
+			t.time_shift = t.time - game_time_ms
 			return t
 		end
 	end
-	log( "! nTimers:get_timer: timer [%s] not found!", name )
+--	log( "! nTimers:get_timer: timer [%s] not found!", name )
 	return nil
 end
 
@@ -98,30 +93,39 @@ function nTimers:has_timer( name )
 	return false
 end
 
-function nTimers:has_timer_parameter(name, parameter)
-	local res = false
-	for i, v in ipairs( self.timers ) do
-		if v.name == name and v.params == parameter then
-			res = true
-			break
-		end
-	end
-	return res
-end
-
 function nTimers:remove_timer( name )
 	for i = #self.timers, 1, -1 do
 		if self.timers[i].name == name then
 			table.remove( self.timers, i )
+			self.need_sort = true
 		end
 	end
-	self.need_sort = true
+end
+
+function nTimers:has_timer_by_parameter(name, parameter)
+	for i, v in ipairs( self.timers ) do
+		if v.name == name and v.params == parameter then
+			return true
+		end
+	end
+	return false
+end
+
+function nTimers:remove_timer_by_parameter(name, parameter)
+	local v
+	for i = #self.timers, 1, -1 do
+		v = self.timers[i]
+		if v.name == name and v.params == parameter then
+			table.remove(self.timers, i)
+			self.need_sort = true
+		end
+	end
 end
 
 function nTimers:start_timer( name, time, params, real )
 	local t = {}
 	t.name = name
-	t.time = time + (real and time_global() or game_milliseconds())
+	t.time = time + ( real and time_global() or amk.game_milliseconds() )
 	t.params = params or ""
 	t.real = real
 	table.insert( self.timers, t )
@@ -184,8 +188,12 @@ function get_timer( name )
 	return get_mgr():get_timer( name )
 end
 
-function has_timer_par( name, p )
-	return get_mgr():has_timer_parameter( name, p )
+function has_timer_by_parameter( name, p )
+	return get_mgr():has_timer_by_parameter( name, p )
+end
+
+function remove_timer_by_parameter( name, p )
+	return get_mgr():remove_timer_by_parameter( name, p )
 end
 
 -- небольшой несохраняемый таймер в реальном времени
