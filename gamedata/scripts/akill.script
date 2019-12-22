@@ -8133,6 +8133,10 @@ function foto_ohota_have_all()
 		db.actor:has_info("foto_ohota_oboroten") and 
 		db.actor:has_info("foto_ohota_new_hell")
 end
+function foto_ohota_have_some(first_speaker, second_speaker)
+	return ( Actor:has_info("foto_anomaly_done") and Actor:dont_has_info("foto_ohota_done") )
+		or ( Actor:has_info("foto_ohota_done") and Actor:dont_has_info("foto_anomaly_done") )
+end
 function start_foto_sidor(first_speaker, second_speaker)
 	local gtime = amk.game_minutes()
 	amk.save_variable("foto_sidor", gtime + math.random(23, 24) * 60)
@@ -8153,24 +8157,11 @@ function clear_foto_sidor(first_speaker, second_speaker)
 	inventory.give_items("wpn_protecta_col",1)
 	inventory.give_items("wpn_9a91",1)
 	amk.del_variable("foto_sidor")
-	local obj
-	for a=1,65534,1 do
-	obj=AI:object(a)
-	if obj and string.find(obj:name(),"journalist_npc") then
-	AI:release(obj,true)
-	break
-	end
-	end
+	this.delete_journalist_npc()
 end
 function delete_journalist_npc()
-	local obj
-	for a=1,65534,1 do
-	obj=AI:object(a)
-	if obj and string.find(obj:name(),"journalist_npc") then
-	AI:release(obj,true)
-	break
-	end
-	end
+	local obj = AI:story_object(story_ids.journalist_npc)
+	if obj then AI:release(obj,true) end
 end
 
 -- ФОТО АНОМАЛИЙ
