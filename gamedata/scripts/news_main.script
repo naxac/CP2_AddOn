@@ -1569,14 +1569,14 @@ function add_spawned_object(obj)
 			s_id = obj.id
 		end	
 		-- Проверим, не фильтруется ли он по smart_terrain
-		if (news_data.smart_filters and #news_data.smart_filters>0) then
+		if (news_data.smart_filters[s_comm] and #news_data.smart_filters[s_comm]>0) then
 			local m_obj = nil
 			if (obj.smart_terrain_id) then
 				m_obj = obj
 			else
 				m_obj = AI:object(s_id)
 			end
-			if (m_obj and m_obj.smart_terrain_id and m_obj:smart_terrain_id() and m_obj:smart_terrain_id()~=65535 and news_data.smart_filters[s_comm]) then
+			if (m_obj and m_obj.smart_terrain_id and m_obj:smart_terrain_id() and m_obj:smart_terrain_id()~=65535) then
 				local sm = AI:object(m_obj:smart_terrain_id())
 				if (sm and sm.name and sm:name()) then
 					local sn = sm:name()
@@ -2033,7 +2033,7 @@ function do_seen_monster()
 									end
 								end
 								if IAmAMonster[obj:clsid()] then
-									local tbl = netpk:get(obj)
+									local tbl = netpk:get(obj, netpk.fState)
 									local cd = netpk:parse_custom_data(tbl.custom_data)
 									if not cd.smart_terrains then cd.smart_terrains={} end
 									cd.smart_terrains.none = "true"
@@ -2057,10 +2057,11 @@ function do_seen_monster()
 										end
 										s_from = string_gsub(s_author, " ", "_")
 										cd.microquest.reward_from = s_from
+										cd.microquest.trader = z.reward.from
 										if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", text) end
 									end
 									tbl.custom_data = netpk:gen_custom_data(cd)
-									netpk:set(obj, tbl)
+									netpk:set(obj, tbl, netpk.fState)
 								end
 								b_ok = true
 							end
@@ -2086,6 +2087,66 @@ function do_seen_monster()
 			v.enabled = true
 		end
 	end
+end
+
+local from2sid = {
+	["trader"] = story_ids.Escape_Trader,
+	["barman"] = story_ids.bar_Barman
+}
+function check_microquest(monster)
+	local obj = AI:object( monster:id() )
+	if obj then
+		local data = netpk:get(obj, netpk.fState)
+		local cd = netpk:parse_custom_data(data.custom_data)
+		if cd.microquest and from2sid[cd.microquest.trader] then
+			local trader = AI:story_object( from2sid[cd.microquest.trader] )
+			local tdata = netpk:get(obj, netpk.fState)
+			local tcd = netpk:parse_custom_data(tdata.custom_data)
+			tcd.microquest = table.copy({}, cd.microquest)
+			tdata.custom_data = netpk:gen_custom_data(tcd)
+			netpk:set(trader, tdata, netpk.fState)
+			local target_name = xr_statistic.get_monster_name(monster:section())
+			if target_name == nil then
+				target_name = "какого-то монстра"
+			end
+			xr_timers.start_real_timer(
+				"miniquest", math.random(15, 30),
+				{cd.microquest.trader, cd.microquest.reward_from, target_name}
+			)
+		end
+	end
+end
+
+function miniquest_reward_news(tbl)
+	local trader = tbl[1]
+	local trader_name = news_data.reward_phrases_authors[trader]
+	if trader_name == nil then
+		return
+	end
+
+	local rewarder = tbl[2]
+	if rewarder == "[источник неизвестен]" then
+		rewarder = "какой-то сталкер"
+	elseif rewarder == "\"Долг\"" then
+		rewarder = "полковник Петренко"
+	elseif rewarder == "Сахаров" then
+		rewarder = "человечек от учёных с Янтаря"
+	end
+
+	local target_name = game.translate_string( tbl[3] )
+
+	local text = table_random(news_data.reward_phrases_templates[trader])
+	if string_find(text,"$actor") then
+		text = string_gsub(text, "$actor", Actor:character_name())
+	end
+	if string_find(text,"$who") then
+		text = string_gsub(text, "$who", rewarder)
+	end
+	if string_find(text,"$target") then
+		text = string_gsub(text, "$target", target_name)
+	end
+	
+	news_manager.send_tip("%c[gray]"..trader_name.."\\n%c[red_sms]"..text, 0, trader, 12000)
 end
 
 function on_wound(obj)
@@ -2603,6 +2664,13 @@ function on_offline_trade(npc, item)
 	end
 end
 
+function send_resupply(sobj)
+	local trader_name = task_manager.get_parent_name(sobj, sobj.m_story_id)
+	local sms = "%c[gray]"..trader_name.."\\n%c[red_sms]"..table.random(news_data.resupply_msgs)
+	news_manager.send_tip(sms, nil, nil, 12000)
+end
+
+
 function create_treasurebox()
 	local actor = db.actor
 	local obj = AI:create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
@@ -2619,15 +2687,6 @@ function create_treasurebox()
 	netpk:set(obj, t)
 	obj = AI:object( obj.id )
 	obj:use_ai_locations( false )
-end
-
-function get_spawn_t(t)
-	local ret = {}
-	for k,v in pairs(t) do
-		if ret[v] == nil then ret[v] = 1
-		else ret[v] = ret[v] + 1 end
-	end
-	return ret
 end
 
 function on_miniquest_reward(trader)
@@ -2654,7 +2713,10 @@ function on_miniquest_reward(trader)
 				if (money and items and money > 0 and items ~= "") then
 					dialogs.relocate_money(trader, money, "in")
 					local tbl = string.explode(items, ",", true)
-					local spawn = get_spawn_t(tbl)
+					local spawn = {}
+					for i,v in ipairs(tbl) do
+						table.add(spawn, v)
+					end
 					for k,v in pairs(spawn) do
 						inventory.give_items(k,v)
 					end
@@ -2662,7 +2724,7 @@ function on_miniquest_reward(trader)
 					cd.microquest.reward_money = 0
 					cd.microquest.reward_items = ""
 					t.custom_data = netpk:gen_custom_data(cd)
-					netpk:set(obj, t)
+					netpk:set(obj, t, netpk.fState)
 				end
 			end	
 		else
