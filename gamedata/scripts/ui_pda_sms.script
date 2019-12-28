@@ -8,7 +8,7 @@ function UIMsgWnd:__init(owner) super()
 	self.lang_mode = true
 	self.txt = cur
 	self.cost = 0
-	self.actor_money = db.actor:money()
+	self.actor_money = Actor:money()
 	self:InitControls()
 	self:InitCallbacks()
 end
@@ -67,9 +67,9 @@ function UIMsgWnd:OnButtonSend()
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	elseif #self.txt>1 then
 		local text = self.txt:gsub(cur, "")
-		amk.send_tip("%c[255,255,128,128]"..text, db.actor:character_name(), nil, 10, "meceniy")
-		db.actor:give_money(-self.cost)
-	--	news_manager.relocate_money(db.actor, "out", self.cost)
+		amk.send_tip("%c[255,255,128,128]"..text, Actor:character_name(), nil, 10, "meceniy")
+		Actor:give_money(-self.cost)
+	--	news_manager.relocate_money(Actor, "out", self.cost)
 		self:OnButtonQuit()
 		find_answer(text)
 	else
@@ -189,7 +189,7 @@ function find_answer(text)
 	local ask = {"привет","здоров","здаров","драсьте","здравствуйте"}
 	for i, v in ipairs(ask) do
 		if string.find(text, v) then
-			local act_name = db.actor:character_name()
+			local act_name = Actor:character_name()
 			local t = {
 				"Здорово, коль не шутишь.",
 				"Приветствую. Как оно?",
@@ -205,7 +205,7 @@ end
 
 function do_blow_msg()
 	local timer = xr_timers.get_timer("blow_shift")
-	local act_name = db.actor:character_name()
+	local act_name = Actor:character_name()
 	
 	local h = math.floor(timer.time_shift/(3600000))
 	local d = math.floor(h/24)

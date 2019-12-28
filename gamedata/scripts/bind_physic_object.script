@@ -65,9 +65,9 @@ end
 function generic_physics_binder:update(delta)
 	object_binder.update(self, delta)
 
-	if not self.initialized and db.actor then
+	if (not self.initialized) and Actor then
 		self.initialized = true
-		xr_logic.initialize_obj(self.object, self.st, self.loaded, db.actor, modules.stype_item)        
+		xr_logic.initialize_obj(self.object, self.st, self.loaded, Actor, modules.stype_item)        
 
         --' Запускаем ассоциированный с объектом партикл.
         local particle = utils.cfg_get_string(self.st.ini, self.st.section_logic, "particle", self.object, false, "", nil)
@@ -124,7 +124,7 @@ function generic_physics_binder:update(delta)
 			
 				-- amk.mylog("health decrease for "..self.object:name())
 				self.health=health
-				self:hit_callback(self.object, self.health-health, vector():set(1,0,0), db.actor, 0)
+				self:hit_callback(self.object, self.health-health, vector():set(1,0,0), Actor, 0)
 				self.nofixonhit=nil
 			end
 		  end
@@ -220,10 +220,10 @@ function generic_physics_binder:use_callback(obj, who)
 	--AMK UTILS--
 	if string.find(obj:section(),"vehicle_btr") then
 		local snd = sound_object("weapons\\pm\\pm_shoot")
-		snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		snd = sound_object("characters_voice\\human_02\\military\\fight\\fire\\fire_"..tostring(math.random(1,5)))
-		snd:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-		db.actor:kill(obj)
+		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		Actor:kill(obj)
 	end
 	--AMK UTILS--
 end
@@ -267,15 +267,15 @@ function generic_physics_binder:btr_death_callback()
 		db.del_btr(self.object)
 		xr_statistic.addKillCount(self.object)
 		
-		if self.object:position():distance_to(db.actor:position()) < 10 then
+		if self.object:position():distance_to(Actor:position()) < 10 then
 			local h = hit()
-			h.draftsman = db.actor
-			h.direction = vector_rotate_y(db.actor:direction(), 180) 
+			h.draftsman = Actor
+			h.direction = vector_rotate_y(Actor:direction(), 180) 
 			h:bone("bip01_spine")
 			h.type = hit.explosion
 			h.power = 1000
 			h.impulse = 2000
-			db.actor:hit(h)
+			Actor:hit(h)
 		end
 	end
 end

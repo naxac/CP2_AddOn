@@ -6,12 +6,12 @@ function drink_vodka_chunk()
 	local limit = iif(has_alife_info("acv_alk"),6,5)
 	
 	if #alc > limit then
-		db.actor:stop_talk()
-		amk.send_tip(game.translate_string("alc_too_much_die"), db.actor:character_name()..":", nil, 10)
+		Actor:stop_talk()
+		amk.send_tip(game.translate_string("alc_too_much_die"), Actor:character_name()..":", nil, 10)
 		xr_timers.start_real_timer("zonedocs_gg_kill",14.5,0)
 		level.add_cam_effector("camera_effects\\radar_stop.anm", 2507, false, "")
 	elseif #alc > limit-1 then
-		amk.send_tip(game.translate_string("alc_too_much"), db.actor:character_name()..":", nil, 10)
+		amk.send_tip(game.translate_string("alc_too_much"), Actor:character_name()..":", nil, 10)
 		-- вырубаемся через 15-20 минут на 10 часов
 		xr_timers.start_game_timer("run", 0, math.random(15, 20), 0, "sleep_manager.main(10)")
 	end
@@ -341,7 +341,7 @@ end
 --смерть от передоза --тестовая функция, надо доработать эффекторы
 function amk_alcohol_poison_death()
 	level.add_cam_effector("camera_effects\\head_shot.anm", 5001, false, "")
-	db.actor:kill(db.actor)
+	Actor:kill(Actor)
 end
 --
 --ГГ засыпает с перепоя
@@ -354,12 +354,12 @@ end
 --ГГ "получает" похмелье
 function amk_alcohol_good_morning()
 	local h = hit()
-	h.draftsman = db.actor
+	h.draftsman = Actor
 	h.type = hit.fire_wound
 	h.direction = vector():set(0, 0, 0)
 	h.power = alc_hp_lose_after_sober
 	h.impulse = 1
-	db.actor:hit(h)
+	Actor:hit(h)
 	level.add_pp_effector("alcohol.ppe", 3000, false)
    	ap.a = 0
 end
@@ -383,12 +383,12 @@ end
 function amk_lose_hp(game_time)	
 	if ap.b0 == 1 then
 		local h = hit()
-		h.draftsman = db.actor
+		h.draftsman = Actor
 		h.type = hit.fire_wound
 		h.direction = vector():set(0, 0, 0)
 		h.power = alc_hp_lose
 		h.impulse = 1
-		db.actor:hit(h)
+		Actor:hit(h)
 		ap.d0 = 1
 		ap.d1 = game_time + alc_time_lose_hp*60 --hours
 		amk.send_tip(game.translate_string("alc_need_drink_big"),nil,nil,5)

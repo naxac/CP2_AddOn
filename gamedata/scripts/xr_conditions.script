@@ -25,12 +25,12 @@ end
 
 -- 
 function is_actor_sleeping(actor, npc)
-    return db.actor:is_actor_sleeping()
+    return Actor:is_actor_sleeping()
 end
 
 -- проверка, что актер жив
 function actor_alive(actor, npc)
-    if db.actor and db.actor:alive() then
+    if Actor and Actor:alive() then
 	    return true
 	end
 	return false
@@ -38,7 +38,7 @@ end
 
 -- проверка, что актер мертв
 function actor_dead(actor, npc)
-    if db.actor and not db.actor:alive() then
+    if Actor and not Actor:alive() then
 	    return true
 	end
 	return false
@@ -123,14 +123,14 @@ end
 
 function actor_in_zone(actor, npc, p)
 	local zone = db.zone_by_name[p[1]]
-	return utils.npc_in_zone(db.actor, zone)
+	return utils.npc_in_zone(Actor, zone)
 end
 function actor_out_zone(actor, npc, p)
 	local zone = db.zone_by_name[p[1]]
 	if zone == nil then
 		return false
 	end
-	return not utils.npc_in_zone(db.actor, db.zone_by_name[p[1]])
+	return not utils.npc_in_zone(Actor, db.zone_by_name[p[1]])
 end
 
 -- true, если здоровье npc <= заданному значению
@@ -891,7 +891,7 @@ function gar_not_damaged_bandits(actor, npc)
 end
 
 function gar_bandits_seryi_die()
-	if db.actor then
+	if Actor then
 		if gulag_population_active(actor, npc, {"gar_seryi_bandits"}) == 0 then
 			return true			
 		else
@@ -1165,8 +1165,8 @@ end
 ------------------------------------------------------------------------------------
 function bar_arena_actor_inside(actor,npc)
 	local t = db.zone_by_name["bar_arena_waiter"]
-	if t and db.actor then
-		if t:inside(db.actor:position()) then
+	if t and Actor then
+		if t:inside(Actor:position()) then
 			return true
 		end
 	end
@@ -1175,9 +1175,9 @@ end
 function bar_arena_actor_fight(actor,npc)
 	local t = db.zone_by_name["bar_arena_sr"]
 	local tt = db.zone_by_name["bar_arena_waiter"]
-	if t and tt and db.actor then
-		if t:inside(db.actor:position()) and
-		   not tt:inside(db.actor:position())
+	if t and tt and Actor then
+		if t:inside(Actor:position()) and
+		   not tt:inside(Actor:position())
 		then
 			return true
 		end
@@ -1186,8 +1186,8 @@ function bar_arena_actor_fight(actor,npc)
 end
 function bar_arena_actor_outside(actor,npc)
 	local t = db.zone_by_name["bar_arena_waiter_out"]
-	if t and db.actor then
-		if t:inside(db.actor:position()) then
+	if t and Actor then
+		if t:inside(Actor:position()) then
 			return true
 		end
 	end
@@ -1392,7 +1392,6 @@ function rostok_gulag_2_inactive(actor, npc)
 end
 
 function rostok_dist_to_actor_le(actor, npc, p)
-    local actor = db.actor
     if actor then
 	    return npc:position():distance_to_sqr(actor:position()) < p[1]*p[1]
 	end
@@ -1403,7 +1402,7 @@ function see_actor_and_kruglov(actor, npc)
     return npc:see(actor) or npc:see(kruglov)
 end
 function has_ghost_pda ()
-		return db.actor:object ("yantar_ghost_pda") ~= nil
+		return Actor:object ("yantar_ghost_pda") ~= nil
 end
 
 
@@ -1444,14 +1443,14 @@ local trade_by_level = {
 	l10_radar = "radar",
 	l10u_bunker = "radar",
 	l11_pripyat = "radar",
-atp_for_test22 = "atp_for_test22r",
-peshera = "peshera",
-puzir = "puzir",
-aver = "aver",
-warlab = "warlab",
-lost_village = "lost_village",
-av_peshera = "av_peshera"
-	}
+	atp_for_test22 = "atp_for_test22r",
+	peshera = "peshera",
+	puzir = "puzir",
+	aver = "aver",
+	warlab = "warlab",
+	lost_village = "lost_village",
+	av_peshera = "av_peshera"
+}
 function npc_trade_by_level(actor, npc, p)
 	local trade = trade_by_level[level.name()]	
 
@@ -1467,14 +1466,14 @@ function npc_trade_by_level(actor, npc, p)
 end
 
 function actor_in_dolg(actor, npc)
-	if db.actor then
-		return db.actor:character_community() == "actor_dolg"
+	if Actor then
+		return Actor:character_community() == "actor_dolg"
 	end
 	return false
 end
 function actor_in_freedom(actor, npc)
-	if db.actor then
-		return db.actor:character_community() == "actor_freedom"
+	if Actor then
+		return Actor:character_community() == "actor_freedom"
 	end
 	return false
 end
@@ -1489,37 +1488,41 @@ function treasure_exist(actor, npc, p)
 end
 
 function can_send_tutorial(actor, npc, p)
-	if db.actor:is_talking() then
+	if Actor:is_talking() then
 		return false
 	end
 	if game.has_active_tutorial() then
 		return false
 	end
-	if db.actor:has_info("ui_inventory") then
+	if Actor:has_info("ui_inventory") then
 		return false
 	end
-	if db.actor:has_info("ui_pda") then
+	if Actor:has_info("ui_pda") then
 		return false
 	end
 	return true
 end
 
+function actor_rank_novice(actor, npc)
+	return Actor:character_rank() <= 300
+end
+function actor_rank_stalker(actor, npc)
+	return Actor:character_rank() <= 600
+end
 ---------------------------------------------------------------ARENA_EXTENSION_MOD------------------------------------------------------------------
 -- Эти две функции не должны дублироваться в данном файле
 -- оригинальные следует удалить
 
 function bar_actor_rank_stalker (actor,npc)
-	local actor = db.actor
-	if actor:character_rank() > 300 or
-		actor:has_info("bar_arena_fight_8_done") then
+	if Actor:character_rank() > 300 or
+		Actor:has_info("bar_arena_fight_8_done") then
 		return true
 	end
 end
 
 function bar_actor_rank_veteran (actor,npc)
-	local actor = db.actor
-	if actor:character_rank() > 600 or
-		actor:has_info("bar_arena_fight_8_done") then
+	if Actor:character_rank() > 600 or
+		Actor:has_info("bar_arena_fight_8_done") then
 		return true
 	end
 end
@@ -1596,8 +1599,8 @@ end
 -- для сюжета по Теням
 function in_timer_pftp(actor, npc, p)
 	return in_timer(actor, npc, p)
-		and db.actor:item_in_slot( inventory_slots.PISTOL )
-		and db.actor:item_in_slot( inventory_slots.PISTOL ):section() == "snp_pftp"
+		and Actor:item_in_slot( inventory_slots.PISTOL )
+		and Actor:item_in_slot( inventory_slots.PISTOL ):section() == "snp_pftp"
 end
 
 -- для парада Монолита проверка того что дистанция до обьекта <= заданной

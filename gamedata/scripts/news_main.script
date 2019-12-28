@@ -429,7 +429,7 @@ function on_npc_death(victim_, killer_)
 				aid = author.id
 			end
 		else
-			if (math_random() < 0.5 and db.actor and db.actor:id() ~= killer:id()) and (IsNpcStalker(killer)) then
+			if (math_random() < 0.5 and Actor and Actor:id() ~= killer:id()) and (IsNpcStalker(killer)) then
 				m_str = format_template_killer_act(victim)
 				s_from = get_npc_name(killer)
 			else
@@ -2042,7 +2042,7 @@ function do_seen_monster()
 										if not cd.microquest then cd.microquest={} end
 										cd.microquest.reward_money = math_random(z.reward.c_min, z.reward.c_max) * 100
 										cd.microquest.reward_items = ""
-										local rank = get_npc_rank(db.actor)
+										local rank = get_npc_rank(Actor)
 										if (rank and news_data.miniquest_rewards and news_data.miniquest_rewards[rank]) then
 											for i=1, 3 do
 												local section = table_random(news_data.miniquest_rewards[rank])
@@ -2055,8 +2055,7 @@ function do_seen_monster()
 												end
 											end
 										end
-										s_from = string_gsub(s_author, " ", "_")
-										cd.microquest.reward_from = s_from
+										cd.microquest.reward_from = s_author
 										cd.microquest.trader = z.reward.from
 										if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", text) end
 									end
@@ -2098,19 +2097,20 @@ function check_microquest(monster)
 	if obj then
 		local data = netpk:get(obj, netpk.fState)
 		local cd = netpk:parse_custom_data(data.custom_data)
-		if cd.microquest and from2sid[cd.microquest.trader] then
+		if cd.microquest then
+			if cd.microquest.trader == nil then
+				cd.microquest.trader = "trader"
+			end
 			local trader = AI:story_object( from2sid[cd.microquest.trader] )
-			local tdata = netpk:get(obj, netpk.fState)
+			local tdata = netpk:get(trader, netpk.fState)
 			local tcd = netpk:parse_custom_data(tdata.custom_data)
 			tcd.microquest = table.copy({}, cd.microquest)
 			tdata.custom_data = netpk:gen_custom_data(tcd)
 			netpk:set(trader, tdata, netpk.fState)
-			local target_name = xr_statistic.get_monster_name(monster:section())
-			if target_name == nil then
-				target_name = "какого-то монстра"
-			end
+			local target_name = news_data.monster_classes[obj:clsid()][4]
+
 			xr_timers.start_real_timer(
-				"miniquest", math.random(15, 30),
+				"miniquest", math.random(120, 240),
 				{cd.microquest.trader, cd.microquest.reward_from, target_name}
 			)
 		end
@@ -2666,13 +2666,13 @@ end
 
 function send_resupply(sobj)
 	local trader_name = task_manager.get_parent_name(sobj, sobj.m_story_id)
-	local sms = "%c[gray]"..trader_name.."\\n%c[red_sms]"..table.random(news_data.resupply_msgs)
+	local sms = "%c[gray]"..trader_name.."\\n%c[default]"..table.random(news_data.resupply_msgs)
 	news_manager.send_tip(sms, nil, nil, 12000)
 end
 
 
 function create_treasurebox()
-	local actor = db.actor
+	local actor = Actor
 	local obj = AI:create("m_inventory_box", actor:position(), actor:level_vertex_id(), actor:game_vertex_id())
 	if not obj then return false end
 	
@@ -2690,7 +2690,7 @@ function create_treasurebox()
 end
 
 function on_miniquest_reward(trader)
-	if (trader and db.actor) then
+	if (trader and Actor) then
 		local money = 0
 		local items = ""
 		local story_id = -1
@@ -2736,14 +2736,13 @@ end
 
 
 function point_is_far(point, lv, gv, distance)
-	local actor = db.actor
 	local result = true
-	if (actor and point and lv and gv and distance and GGraph:valid_vertex_id(gv)) then
+	if (Actor and point and lv and gv and distance and GGraph:valid_vertex_id(gv)) then
 		-- на одном ли уровне?
 		local map = AI:level_name(GGraph:vertex(gv):level_id())
 		if (map and level.name() == map) then
 			-- Достаточно ли далеко?
-			if (point:distance_to(actor:position()) < distance) then
+			if (point:distance_to(Actor:position()) < distance) then
 				result = false
 			end
 		end
@@ -2762,7 +2761,7 @@ function get_nearest_stalker(level, point, dist_max, dist_min)
 			if v then
 				local stalker = AI:object(v.id)
 				-- На одном ли уровне?
-				if stalker and stalker.id ~= db.actor:id() and stalker.health and stalker.can_switch_online and stalker:can_switch_online() and stalker.m_game_vertex_id and GGraph:valid_vertex_id(stalker.m_game_vertex_id) then
+				if stalker and stalker.id ~= Actor:id() and stalker.health and stalker.can_switch_online and stalker:can_switch_online() and stalker.m_game_vertex_id and GGraph:valid_vertex_id(stalker.m_game_vertex_id) then
 					local s_map = object_level_name(stalker)
 					if (map == s_map) then
 						if (stalker:health() > 0 and stalker.alive and stalker:alive()==true) then

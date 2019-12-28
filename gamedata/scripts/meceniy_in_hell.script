@@ -180,8 +180,8 @@ function horrortime(delta)
 
 	--побудка, сирена и автосейв
 	if (timeh == horror_begin_time.h) and (timem == horror_begin_time.m) then
-		if db.actor:dont_has_info("horror_time_begin") then
-			db.actor:give_info_portion("horror_time_begin")
+		if Actor:dont_has_info("horror_time_begin") then
+			Actor:give_info_portion("horror_time_begin")
 			
 			if sleep_manager.is_sleep_active() then
 				sleep_manager.stopper()
@@ -190,13 +190,13 @@ function horrortime(delta)
 			end
 		end
 		local sound = sound_object([[meceniy\hell\hellsilent_hill_alarm]])
-		sound:play_at_pos(db.actor, db.actor:position(), 0)
+		sound:play_at_pos(Actor, Actor:position(), 0)
 	end
 
 	-- звук обратного отсчета
 	if timeh == horror_begin_time.h and timem >= horror_begin_time.m and timem <= horror_begin_time.m + 2 then
 		local snd_obj = xr_sound.get_safe_sound_object([[meceniy\hell\hellsilent_hill_alarm]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 2.5)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.5)
 	end
 
 	-- неписи становятся в стойку с выставленным стволом
@@ -221,8 +221,8 @@ function horrortime(delta)
 
 	--сообщение о старте
 	if timeh == horror_begin_time.h and timem == (horror_begin_time.m + 1) then
-		if db.actor:dont_has_info("random_pre_news") then
-			db.actor:give_info_portion("random_pre_news")
+		if Actor:dont_has_info("random_pre_news") then
+			Actor:give_info_portion("random_pre_news")
 			random_news_number = math.random(table.getn(tabl_mess_begin))
 			presoobj()
 		end
@@ -230,9 +230,9 @@ function horrortime(delta)
 	
 	--включение установки или её сбой
 	if (timeh == horror_time.h and timem == horror_time.m)  then
-		if db.actor:dont_has_info("horror") then
+		if Actor:dont_has_info("horror") then
 			game_reloaded = false
-			db.actor:give_info_portion("horror")
+			Actor:give_info_portion("horror")
 
 			-- расслабляем неписей только на территории, где есть ЧУ
 			if tabl_horror_by_level[level.name()] then
@@ -263,7 +263,7 @@ function horrortime(delta)
 					random_reaction()
 				end
 			else -- неудачный запуск
-				db.actor:give_info_portion("horror_fail")
+				Actor:give_info_portion("horror_fail")
 				presoobjFAIL()
 			end
 			--meceniy_dinrad.disable() -- может это делать перед выбросом ?
@@ -272,7 +272,7 @@ function horrortime(delta)
 	end
 
 	-- перезапуск спецэффектов в случае перезапуска игры
-	if timeh == horror_time.h and timem >= horror_time.m and timem < horror_end_time.m and game_reloaded and db.actor:dont_has_info("horror_fail") then
+	if timeh == horror_time.h and timem >= horror_time.m and timem < horror_end_time.m and game_reloaded and Actor:dont_has_info("horror_fail") then
 		game_reloaded = false
 		-- возвращаем спецэффекты только на территории, где есть ЧУ
 		if tabl_horror_by_level[level.name()] then
@@ -284,10 +284,10 @@ function horrortime(delta)
 	
 	--окончание ЧУ
 	if (timeh == horror_end_time.h and timem == horror_end_time.m) then
-		if db.actor:dont_has_info("horror_time_end") then
-			db.actor:give_info_portion("horror_time_end")
+		if Actor:dont_has_info("horror_time_end") then
+			Actor:give_info_portion("horror_time_end")
 			
-			if db.actor:dont_has_info("horror_fail") then
+			if Actor:dont_has_info("horror_fail") then
 				-- вспышка окончания ЧУ только на территории, где есть ЧУ
 				if tabl_horror_by_level[level.name()] then
 				level.add_pp_effector ("teleport.ppe", 77777777, false)
@@ -306,14 +306,14 @@ function horrortime(delta)
 	
 	--убираем за доктором
 	if timeh == horror_end_time.h and timem >= (horror_end_time.m + 1) then
-		db.actor:disable_info_portion("horror_time_begin")
-		db.actor:disable_info_portion("random_pre_news")
-		db.actor:disable_info_portion("horror")
-		if db.actor:has_info("horror_fail") then
-			db.actor:disable_info_portion("horror_fail")
+		Actor:disable_info_portion("horror_time_begin")
+		Actor:disable_info_portion("random_pre_news")
+		Actor:disable_info_portion("horror")
+		if Actor:has_info("horror_fail") then
+			Actor:disable_info_portion("horror_fail")
 		--	level.remove_pp_effector(77777777)
 		end
-		db.actor:disable_info_portion("horror_time_end")
+		Actor:disable_info_portion("horror_time_end")
 	end
 end
 
@@ -346,7 +346,7 @@ end
 -- Выбираем Рандомный звук
 function horror_sound()
 	local snd_obj = xr_sound.get_safe_sound_object(table.random(tabl_sound_spawn))
-snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 2.5)
+snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.5)
 end
 
 -- Наносим хит с учётом территории
@@ -356,18 +356,18 @@ function hit_actor(level_name)
 	horror_hit.impulse = 0.3
 	horror_hit.power = 0.4
 	horror_hit.type = hit.telepatic
-	horror_hit.draftsman = db.actor
-	db.actor:hit(horror_hit)
+	horror_hit.draftsman = Actor
+	Actor:hit(horror_hit)
 
 	horror_hit.impulse = 0
 	
 	horror_hit.power = tabl_horror_by_level[level_name]["actor_hit_power"]["radiation"]
 	horror_hit.type = hit.radiation
-	db.actor:hit(horror_hit)
+	Actor:hit(horror_hit)
 	
 	horror_hit.power = tabl_horror_by_level[level_name]["actor_hit_power"]["shock"]
 	horror_hit.type = hit.shock
-	db.actor:hit(horror_hit)
+	Actor:hit(horror_hit)
 end
 
 -- Выбор Эффектора
@@ -377,9 +377,9 @@ end
 
 -- Основной Спавн с Учётом Территории
 function horrorspawn(level_name)
-	local ap = db.actor:position()
-	local lv = db.actor:level_vertex_id()
-	local gv = db.actor:game_vertex_id()
+	local ap = Actor:position()
+	local lv = Actor:level_vertex_id()
+	local gv = Actor:game_vertex_id()
 	local n = tabl_horror_by_level[level_name]["spawn"]
 	local rnd = math.random
 	
@@ -391,7 +391,7 @@ end
 
 -- Фантомы 
 function spawn_phantom()
-	local a_pos = db.actor:position()
+	local a_pos = Actor:position()
 	local pos
 	for i = 1, math.random(5,15) do
 		pos = vector():set(math.random(-30, 30) + a_pos.x, a_pos.y + 2.5 * math.random(), math.random(-30, 30) + a_pos.z)

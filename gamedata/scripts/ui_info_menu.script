@@ -42,7 +42,7 @@ class "CUIInfoMenu" (CUIScriptWnd)
 function CUIInfoMenu:__init()
 	super()
 
-	self.is_actor_alive = db.actor and db.actor:alive()
+	self.is_actor_alive = Actor and Actor:alive()
 	
 	collect_info_portions.main()
 	self.info_portions = cheat_base.list_info.info_portions
@@ -130,7 +130,7 @@ function CUIInfoMenu:InitCallBacks()
 	self:AddCallbackEx( "list_info",     ui_events.LIST_ITEM_CLICKED,        self.OnListInfoClicked      )
 	self:AddCallbackEx( "button_quit",   ui_events.BUTTON_CLICKED,           self.OnButtonQuitClicked    )
 
-	if not ( db.actor and db.actor:alive() ) then return end
+	if not ( Actor and Actor:alive() ) then return end
 
 	self:AddCallbackEx( "list_disable",   ui_events.LIST_ITEM_CLICKED,       self.OnListDisableClicked   )
 	self:AddCallbackEx( "list_action",    ui_events.LIST_ITEM_CLICKED,       self.OnListActionClicked    )
@@ -304,7 +304,7 @@ function CUIInfoMenu:OnListTaskClicked()
 	local st, status
 	local n = t:get_objectives_cnt() - 1
 	for i = 0, n do
-		st = db.actor:get_task_state(task_id, i)
+		st = Actor:get_task_state(task_id, i)
 		if st == task.in_progress then
 			status = "активно"
 			break
@@ -391,7 +391,7 @@ end
 
 function CUIInfoMenu:OnButtonGiveClicked()
 	if self.selected_info and not has_alife_info( self.selected_info ) then
-		db.actor:give_info_portion( self.selected_info )
+		Actor:give_info_portion( self.selected_info )
 		local item = self.list_info:GetItem( self.info_index )
 		if item then
 			item.btn:InitTexture( "ui_radio_h" )
@@ -403,7 +403,7 @@ end
 
 function CUIInfoMenu:OnButtonDisableClicked()
 	if self.selected_info and has_alife_info( self.selected_info ) then
-		db.actor:disable_info_portion( self.selected_info )
+		Actor:disable_info_portion( self.selected_info )
 		local item = self.list_info:GetItem( self.info_index )
 		if item then
 			item.btn:InitTexture( "ui_radio_d" )

@@ -59,13 +59,7 @@ function _log(sMsg)
 	if sMsg == nil then
 		return 
 	end
-	if db and db.actor and get_console() then
-
-		-- get_console():execute(string.gsub(tostring(sMsg), "%s", ".."))
-		get_console():execute("load ~#I#: "..string.format(sMsg))
-		get_console():execute("flush")
-
-	end
+	log1( string.format("[%s]: %s", script_name(), sMsg) )
 end
 
 function dump_table(tbl)
@@ -88,7 +82,7 @@ end
 -- 	@param     	string           sItemSection     	Секция предмета который нужно заспавнить.
 function amkCreateItemActor(sItemSection)
 	if AI and sItemSection then
-		return AI:create(sItemSection, db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+		return AI:create(sItemSection, Actor:position(),Actor:level_vertex_id(),Actor:game_vertex_id(),Actor:id())
 	end
 end
 
@@ -105,7 +99,7 @@ end
 --	Включить девайс...
 --	@param	integer	iLevelDevice	Уровень девайса. (нужно для апгрейда)
 function amkEnableDevice(iLevelDevice)
-	if oDevice or db.actor==nil or db.actor:alive()~=true then return end
+	if oDevice or Actor:alive()~=true then return end
 	amkCreateItemActor("amk_transmutator")
 	
 	aArtsInfo = {}
@@ -114,7 +108,7 @@ function amkEnableDevice(iLevelDevice)
 	aArtsInventory = {}
 	aInterval = {1,6}
 	aRecInterval = {1,4}	
-	local aid,apos,arad,adist=amk_anoms.get_nearest_anomaly(db.actor) 
+	local aid,apos,arad,adist=amk_anoms.get_nearest_anomaly(Actor) 
 	if aid and arad - adist > -2 then
 		local an = level.object_by_id(aid)
 		if an then
@@ -129,7 +123,7 @@ function amkEnableDevice(iLevelDevice)
 		if type(aRecipts)=="table" then
 			-- dump_table(aRecipts)	
 			for info, recept in pairs(aRecipts) do
-				if db.actor:has_info(info) then -- у ГГ есть такой рецепт: заносим в таблицу
+				if Actor:has_info(info) then -- у ГГ есть такой рецепт: заносим в таблицу
 					aReciptsHave[info] = {}
 					for k, v in pairs(recept) do -- копируем рецепт
 						if type(v) == "table" then
@@ -224,12 +218,12 @@ end
 
 --	Итерация по инвентарю актора и поиск в нем артов.
 function CAmkMergerArtefact:IterateInventory()
-	db.actor:iterate_inventory(function(npc, item)
+	Actor:iterate_inventory(function(npc, item)
 		-- if (item:clsid() == clsid.artefact or item:clsid() == clsid.artefact_s or amk_mod.is_komponent(item:section())) and not string.find(item:section(), "cocoon") then
 		if amk_mod.is_komponent(item:section()) then		
 			table.insert(aArtsInventory, item)
 		end 
-	end, db.actor)
+	end, Actor)
 end
 
 --	Собираем и сохраняем в нужном нам виде информацию об артах и рецептах.
@@ -671,7 +665,7 @@ function CAmkDeviceTransmutator:AddArtefact(iSectIndex, iBarName)
 			oNotkomp:SetFont(GetFontLetterica18Russian())
 			oNotkomp:Init(83,122,470,20)
 			self:AttachChild(oNotkomp)			
-			-- sound_object("device\pda\pda_sos"):play_at_pos(db.actor, db.actor:position())
+			-- sound_object("device\pda\pda_sos"):play_at_pos(Actor, Actor:position())
 		-- показываем строку времени варки по рецепту
 		elseif string.len(txtVremya) > 0 then
 			oNotkomp = CUIStatic()
@@ -836,9 +830,9 @@ function CAmkTransmutacion:CreateAtrefact()
 	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
 	local remove_anomaly_id = remove_anomaly and aAnomId or nil
 	local result		 	= amk_mod.af_select_result(v_udachi, v_virogd, tmp["comp_cond"])
-	local lv 				= db.actor:level_vertex_id()
-	local gv 				= db.actor:game_vertex_id()
-	local pos 				= db.actor:position()	
+	local lv 				= Actor:level_vertex_id()
+	local gv 				= Actor:game_vertex_id()
+	local pos 				= Actor:position()	
 	
 	if cel == nil or v_udachi == nil or v_virogd == nil
 		or virogd == nil or vremya == nil or remove_anomaly == nil 
@@ -874,15 +868,15 @@ function CAmkTransmutacion:Shooting()
 --	_log("Shemes not Found")
 	oDevice:Quit()
 	level.add_pp_effector("blink.ppe", 234, false)
-	local posActor = db.actor:position()
+	local posActor = Actor:position()
 	particles_object("anomaly2\\electra2_blast"):play_at_pos(posActor)
-	sound_object("anomaly\\electra_blast1"):play_at_pos(db.actor, posActor)
+	sound_object("anomaly\\electra_blast1"):play_at_pos(Actor, posActor)
 	local h = hit()
 	h.impulse = 0
-	h.draftsman = db.actor
+	h.draftsman = Actor
 	h.direction = vector():set(0,0,0)
 	h:bone("bip01_spine")
 	h.power = 0.3
 	h.type = hit.shock 
-	db.actor:hit(h)
+	Actor:hit(h)
 end

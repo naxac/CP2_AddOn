@@ -1,3 +1,4 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 -----------------------------------------------------------------------------------
 -- Monster binding
 -----------------------------------------------------------------------------------
@@ -140,13 +141,13 @@ function generic_object_binder:update(delta)
 		and _time > self.last_update and not is_fake
 	then 
 		if self.object:alive() and self.object.health>0.03 then
-			if self.object:see(db.actor)
-				and db.actor:position():distance_to(self.object:position())<40
+			if self.object:see(Actor)
+				and Actor:position():distance_to(self.object:position())<40
 			then
 				amk.enemy_see_actor(self.object,"monster")
 			end 
-			if db.actor:see(self.object)
-				and db.actor:position():distance_to(self.object:position())<80
+			if Actor:see(self.object)
+				and Actor:position():distance_to(self.object:position())<80
 			then 
 				amk.actor_see_enemy(self.object,"monster") 
 			end 
@@ -225,7 +226,7 @@ function generic_object_binder:death_callback(victim, who)
 
 	db.del_monster(self.object) -- убираем из онлайн-живых
 
-	if who:id() == db.actor:id() then 
+	if who:id() == Actor:id() then 
 		kostya_dialog.kuv_hit()
 		
 		xr_statistic.addKillCount(self.object) 
@@ -252,7 +253,7 @@ function generic_object_binder:death_callback(victim, who)
 	local h = hit() 
 	h.draftsman = self.object 
 	h.type = hit.fire_wound 
-	h.direction = db.actor:position():sub(self.object:position()) 
+	h.direction = Actor:position():sub(self.object:position()) 
 	h:bone("pelvis") 
 	h.power = 1 
 	h.impulse = 10 
@@ -536,8 +537,8 @@ function transfer_all_desired()
 	if has_alife_info("ui_car_body") then
 		shiftCheckDropItem()
 		out_object:iterate_inventory(function(npc, item)
-			out_object:transfer_item(item, db.actor)
-		end, db.actor)
+			out_object:transfer_item(item, Actor)
+		end, Actor)
 	end
 	out_object = nil
 end

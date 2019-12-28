@@ -18,7 +18,7 @@ function evaluator_karavan:__init(name,storage) super (nil, name)
   self.st = storage
 end
 function evaluator_karavan:evaluate()
-	return db.actor and xr_logic.is_active(self.object,self.st) and self.st.enabled == true
+	return Actor and xr_logic.is_active(self.object,self.st) and self.st.enabled == true
 end
 
 class "action_karavan" (action_base)
@@ -38,10 +38,10 @@ end
 function action_karavan:execute()
 	action_base.execute(self)
 	local npc = self.object
-	if xr_logic.try_switch_to_another_section(npc,self.st,db.actor) then
+	if xr_logic.try_switch_to_another_section(npc,self.st,Actor) then
 		return
 	end
-	local dist = db.actor:position():distance_to(npc:position())
+	local dist = Actor:position():distance_to(npc:position())
 	local state,look,anim = state_mgr.get_state(npc)
 	if dist <= self.st.radius then
 		state,look,anim = self.st.close_state,nil,true
@@ -58,7 +58,7 @@ function action_karavan:execute()
 		look = true
 	end
 	if look == true then
-		look = {look_object = db.actor}
+		look = {look_object = Actor}
 	end
 	if anim == true then
 		anim = {animation = true}
@@ -67,7 +67,7 @@ function action_karavan:execute()
 		state_mgr.set_state(npc,state,nil,nil,look,anim)
 	end
 	if state_lib.states[state].movement ~= move.stand then
-		local vertex_id = level.vertex_in_direction(db.actor:level_vertex_id(),self.offset,self.st.radius)
+		local vertex_id = level.vertex_in_direction(Actor:level_vertex_id(),self.offset,self.st.radius)
 		utils.send_to_nearest_accessible_vertex(npc,vertex_id)
 	end
 end

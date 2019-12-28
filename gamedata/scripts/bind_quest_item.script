@@ -13,12 +13,12 @@ function item_binder:reinit()
 
 	local str = sys_ini:r_string_ex(section, "quest_item_condlist", nil)
 	if str then
-		self.quest_item_condlist = xr_logic.parse_condlist(db.actor, section, "quest_item_condlist", str)
+		self.quest_item_condlist = xr_logic.parse_condlist(Actor, section, "quest_item_condlist", str)
 	end
 
 	str = sys_ini:r_string_ex(section, "can_take_condlist", nil)
 	if str then
-		self.can_take_condlist = xr_logic.parse_condlist(db.actor, section, "can_take_condlist", str)
+		self.can_take_condlist = xr_logic.parse_condlist(Actor, section, "can_take_condlist", str)
 	end
 end
 
@@ -26,11 +26,11 @@ function item_binder:net_spawn(obj)
 	if not object_binder.net_spawn(self,obj) then return false end
 	
 	if self.quest_item_condlist then
-		local res = xr_logic.pick_section_from_condlist(db.actor, self.object, self.quest_item_condlist)
+		local res = xr_logic.pick_section_from_condlist(Actor, self.object, self.quest_item_condlist)
 		self.object:set_inventory_item_flags(ii_flags.is_quest_item, res~=nil)
 	end
 	if self.can_take_condlist then
-		local res = xr_logic.pick_section_from_condlist(db.actor, self.object, self.can_take_condlist)
+		local res = xr_logic.pick_section_from_condlist(Actor, self.object, self.can_take_condlist)
 		start_small_timer(1000, self.set_can_take, self, res~=nil)
 	end
 

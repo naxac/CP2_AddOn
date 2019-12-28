@@ -191,7 +191,7 @@ function ggun_binder:OnRButtonDown(no_sound)
 	if not no_sound then
 		self.block_nohold = nil
 		if not self.sound_open:playing() then
-			self.sound_open:play_at_pos(db.actor, self.gun_end_pos)
+			self.sound_open:play_at_pos(Actor, self.gun_end_pos)
 		end
 	else
 		self.block_nohold = true
@@ -224,7 +224,7 @@ function ggun_binder:capture(dist)
 	else
 		if not self.sound_nohold:playing() then
 			if not self.block_nohold then
-				self.sound_nohold:play_at_pos(db.actor, self.gun_end_pos)
+				self.sound_nohold:play_at_pos(Actor, self.gun_end_pos)
 				self.block_nohold = true
 			end
 		end
@@ -235,7 +235,7 @@ function ggun_binder:OnRButtonHold(delta)
 	if self.captured then
 		if not self.sound_pickup:playing() then
 			if not self.sound_hold:playing() then
-				self.sound_hold:play_at_pos(db.actor, self.gun_end_pos, 0, 1)
+				self.sound_hold:play_at_pos(Actor, self.gun_end_pos, 0, 1)
 			end
 		end
 	end
@@ -282,7 +282,7 @@ function ggun_binder:OnRButtonHold(delta)
 		if not self.captured and (r < 0.5 or device().cam_pos:distance_to_sqr(self.target:center()) < 5) then -- если объект в первый раз подошел к точке удержания, считаем его захваченным 
 			self.captured = true
 			if not self.sound_pickup:playing() then
-				self.sound_pickup:play_at_pos(db.actor, self.gun_end_pos)
+				self.sound_pickup:play_at_pos(Actor, self.gun_end_pos)
 			end
 		end
 		-- надо дать такой пинок, чтобы при следуюшем апдейте объект очутился в точке назначения
@@ -341,7 +341,7 @@ function ggun_binder:OnRButtonUp() -- was L
 		self.sound_hold:stop_deffered()
 	end
 	if not self.sound_close:playing() then
-		self.sound_close:play_at_pos(db.actor, self.gun_end_pos)
+		self.sound_close:play_at_pos(Actor, self.gun_end_pos)
 	end
 	
 	if self.particle_hold:playing() then
@@ -351,7 +351,7 @@ function ggun_binder:OnRButtonUp() -- was L
 	if self.captured then
 		self.captured = nil
 		if not self.sound_drop:playing() then
-			self.sound_drop:play_at_pos(db.actor, self.gun_end_pos)
+			self.sound_drop:play_at_pos(Actor, self.gun_end_pos)
 		end
 	end
 	
@@ -379,7 +379,7 @@ function ggun_binder:OnLButtonDown() -- was R
 		self.throw_time = time_global()
 		self.target = nil
 		self.target_id = nil
-		self.sound_fire:play_at_pos(db.actor, self.gun_end_pos)
+		self.sound_fire:play_at_pos(Actor, self.gun_end_pos)
 		self.particle_fire:play_at_pos(self.gun_end_pos)
 		self:OnRButtonUp()
 	else
@@ -392,10 +392,10 @@ function ggun_binder:OnLButtonDown() -- was R
 			self.target = nil
 			self.target_id = nil
 			self.particle_fire:play_at_pos(self.gun_end_pos)
-			self.sound_fire:play_at_pos(db.actor, self.gun_end_pos)
+			self.sound_fire:play_at_pos(Actor, self.gun_end_pos)
 		else
 			self.nofire_stop_time = time_global() + 100
-			self.sound_nofire:play_at_pos(db.actor, self.gun_end_pos)
+			self.sound_nofire:play_at_pos(Actor, self.gun_end_pos)
 		end
 	end
 --	log("ggun_binder:OnLButtonDown")
@@ -442,13 +442,13 @@ function ggun_binder:OnHold(delta)
 		not has_alife_info("snp_kamen_udachy_have") and
 		level.name() == "zaton" and
 		self.object:position():distance_to_xz(vector():set(212.95657348633,6.79461145401,12.555778503418)) < 20 then
-			db.actor:give_info_portion("snp_kamen_udachy_not_found")
+			Actor:give_info_portion("snp_kamen_udachy_not_found")
 	end
 	if has_alife_info("shodka_agro_done") and
 		not has_alife_info("snpt_agro1_have") and
 		level.name() == "l03_agroprom" and
 		self.object:position():distance_to_xz(vector():set(290.7509765625,0.39019677042961,14.648055076599)) < 18 then
-			db.actor:give_info_portion("snpt_agro1_fail")
+			Actor:give_info_portion("snpt_agro1_fail")
 	end
 end
 
@@ -585,7 +585,7 @@ function af_activate(sect,pos,id)
 	local anomaly_params = string.explode(strng, ",", true)
 	local radius = math.random((anomaly_params[2]*100),(anomaly_params[3]*100))/100
 	local power = math.random((anomaly_params[4]*100),(anomaly_params[5]*100))/100
-	an_spawn(anomaly_params[1],radius,pos,db.actor:level_vertex_id(),db.actor:game_vertex_id(),power)
+	an_spawn(anomaly_params[1],radius,pos,Actor:level_vertex_id(),Actor:game_vertex_id(),power)
 	if sys_ini:line_exist(anomaly_params[1], "blowout_particles") then
 		local part = sys_ini:r_string(anomaly_params[1], "blowout_particles")
 		local particle = particles_object(part)

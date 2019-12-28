@@ -5204,12 +5204,12 @@ function show_must_go_on(data)
 	end
 
 	sector = get_sector()
-	db.actor:give_info_portion("battle")
+	Actor:give_info_portion("battle")
 
 	-- проверяем, не заныкался ли где гг в закутке - можно ли заспавнить на нормальном расстоянии от него
 	if cur_wave.dist then
 		pos, lv = get_pos(cur_wave.dist, sector)
-		if pos:distance_to(db.actor:position()) < min_good_distance then
+		if pos:distance_to(Actor:position()) < min_good_distance then
 			-- заныкался - откладываем спавн, пока гг не выйдет из укрытия
 			xr_timers.start_real_timer("battle", min_good_distance_timeout, {lvl, btl, wave})
 			return
@@ -5221,7 +5221,7 @@ function show_must_go_on(data)
 		for s,p in pairs(cur_wave["enemy"]) do
 			for i=1,p do
 				pos, lv = get_pos(cur_wave.dist, sector)
-				AI:create(s, pos, lv, db.actor:game_vertex_id())
+				AI:create(s, pos, lv, Actor:game_vertex_id())
 				monster_cnt = monster_cnt+1
 			end
 		end
@@ -5242,7 +5242,7 @@ function show_must_go_on(data)
 
 	if cur_wave.info then
 		-- выдаем поршень
-		db.actor:give_info_portion(cur_wave.info)
+		Actor:give_info_portion(cur_wave.info)
 	end
 	if cur_wave.func then
 		-- выполняем функцию
@@ -5280,7 +5280,7 @@ function reinforcement(data)
 	
 	-- рюкзак спавним с меткой и не далее 10 м от гг, чтобы нашел
 	pos, lv = get_pos(math.random(3,10))
-	local ruk = AI:create("m_inventory_box", pos, lv, db.actor:game_vertex_id())
+	local ruk = AI:create("m_inventory_box", pos, lv, Actor:game_vertex_id())
 	local t = netpk:get(ruk, netpk.fState)
 	-- Устанавливаем флаги, чтобы объект не уходил в оффлайн
 	-- Use Switches + Switch Online + Interactive + Visible For AI +
@@ -5305,7 +5305,7 @@ function reinforcement(data)
 	if cur_wave.ammo or cur_wave.podstvol then
 		local slots = { inventory_slots.RIFLE, inventory_slots.PISTOL }
 		for j, i in ipairs (slots) do
-			wpn = db.actor:item_in_slot(i)
+			wpn = Actor:item_in_slot(i)
 			if wpn then
 				
 				if cur_wave.ammo then
@@ -5360,8 +5360,8 @@ function get_pos(dist, sector)
 	local math_pi_180 = 180/math.pi
 	local dir = device().cam_dir
 	local actor_dir														-- вектор взгляда актора, выравненный горизонтально
-	local actor_pos = db.actor:position()
-	local actor_lv = db.actor:level_vertex_id()
+	local actor_pos = Actor:position()
+	local actor_lv = Actor:level_vertex_id()
 	local pos															-- нужная нам позиция
 	local dist_ok = 1.4													-- двойной шаг АИ сетки
 	local vert_ok														-- ближайший подходящий вертекс, предложенный движком
@@ -5436,13 +5436,13 @@ end
 
 function show_off()
 	monster_cnt = 0
-	db.actor:disable_info_portion("battle")
+	Actor:disable_info_portion("battle")
 end
 
 -- "быстрый" уборщик
 -- ускоренное удаление трупов при очень больших битвах. вызывается из апдейта монстров
 function cleanup(obj)
-    if has_alife_info("battle") and db.actor:position():distance_to(obj:position()) > cleanup_distance then
+    if has_alife_info("battle") and Actor:position():distance_to(obj:position()) > cleanup_distance then
 		local sobj = AI:object(obj:id())
 		if sobj then AI:release(sobj, true) end
 	end

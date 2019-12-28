@@ -7,13 +7,13 @@ local box_parad = nil
 
 -- начало парада
 function parad_start()
-	db.actor:give_info_portion("no_teleport_near_heli_btr")
+	Actor:give_info_portion("no_teleport_near_heli_btr")
 	remove_spot()
 	box_parad = AI:create("m_inventory_box_parad",vector():set(163.03491210938,27.185247421265,-184.96360778809),990519,3735)
 
 	-- Запускаем логику
 	netpk:create_restrictor(
-		db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(),
+		Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(),
 		"[logic]\n".."cfg = scripts\\snp\\parad.ltx",
 		1.0
 	)
@@ -22,8 +22,8 @@ end
 -- конец парада
 function parad_end()
 	xr_actor.change_move("parad", true)
-	db.actor:give_info_portion("snp_parad_done")
-	db.actor:disable_info_portion("no_teleport_near_heli_btr")
+	Actor:give_info_portion("snp_parad_done")
+	Actor:disable_info_portion("no_teleport_near_heli_btr")
 	news_manager.send_tip("%c[gray2]".."ТЕНЬ МОНОЛИТА:".."\\n".."%c[red_sms]Вот и все, $actor$ - ты свободен. Вещи свои найдёшь в рюкзаке под кустом неподалёку.".."\n", nil, nil, 15000)
 end
 
@@ -38,19 +38,19 @@ function prepare()
 	box_parad = level.object_by_id(box_parad.id)
 	
 	shiftCheckDropItem()
-	db.actor:iterate_inventory(
+	Actor:iterate_inventory(
 		function(dummy,item)
 			section = item:section()
 			if not protected_items.is_grab_body_item_keep(item:section()) then
-				db.actor:transfer_item(level.object_by_id(item:id()), box_parad)
+				Actor:transfer_item(level.object_by_id(item:id()), box_parad)
 			end
 		end
-	,db.actor)
+	,Actor)
 	
 	xr_actor.change_move("parad", false)
 
-	db.actor:set_actor_position(vector():set(173,27.353050231934,-192),1010186,3735)
-	db.actor:set_actor_direction(3.14)
+	Actor:set_actor_position(vector():set(173,27.353050231934,-192),1010186,3735)
+	Actor:set_actor_direction(3.14)
 end
 
 -- пошли верты
@@ -818,7 +818,7 @@ end
 
 -- Монолит нейтрал
 function monolit_neytral()
-	relation_registry.set_community_goodwill("monolith", db.actor:id(), 1250)
+	relation_registry.set_community_goodwill("monolith", Actor:id(), 1250)
 end
 
 -- получение клиентского объекта Тени Монолита

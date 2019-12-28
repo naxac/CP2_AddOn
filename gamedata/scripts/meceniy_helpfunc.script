@@ -23,10 +23,10 @@ sounds=pda_task
 else
 sounds=pda_tips
 end    
-sounds:play(db.actor, timeout, sound_object.s2d) 
+sounds:play(Actor, timeout, sound_object.s2d) 
 local news_text = "%c[gray2]"..header.."\\n".."%c[default]"..text
 local x,y = news_manager.get_sender_icon(news_text, sender)
-db.actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime*1000)
+Actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime*1000)
 return true
 end
 -- Коорднаты места положения ГГ
@@ -36,9 +36,9 @@ local vid
 local gvid
 local a = vector()
 local text
-a    = db.actor:position()
-vid  = db.actor:level_vertex_id() 
-gvid = db.actor:game_vertex_id() 
+a    = Actor:position()
+vid  = Actor:level_vertex_id() 
+gvid = Actor:game_vertex_id() 
 text = "Позиция:\\nX= "..a.x.."\\nY= "..a.y.."\\nZ= "..a.z.."\\nlevel_vertex= "..vid.."\\ngame_vertex_id= "..gvid
 news_manager.send_tip(text, nil, nil, 30000)
 end
@@ -49,16 +49,16 @@ end
 function s_play(path)
 s_stop()
 snd_obj2 = xr_sound.get_safe_sound_object(path)
-snd_obj2:play_at_pos(db.actor, vector ():set (0, 0, 0), 0, sound_object.s2d)
+snd_obj2:play_at_pos(Actor, vector ():set (0, 0, 0), 0, sound_object.s2d)
 end
 -- Сравниваем 
 function distance(obj1, obj2)
-obj1 = db.actor
+obj1 = Actor
 return obj1:position():distance_to(obj2:position())
 end
 -- Координаты в лог
 function log_coords()
-local lvid, gvid = db.actor:level_vertex_id(), db.actor:game_vertex_id()
+local lvid, gvid = Actor:level_vertex_id(), Actor:game_vertex_id()
 local pos = level.vertex_position(lvid)
 get_console():execute(string.format("(%.3f,%.3f,%.3f),%d,%d",pos.x,pos.y,pos.z,lvid,gvid))
 get_console():execute("flush")
@@ -66,7 +66,7 @@ end
 -- Спавн в инвентарь
 function spawn_in_inv(item,count)
 for i=1,count do
-AI:create(item,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+AI:create(item,Actor:position(),Actor:level_vertex_id(),Actor:game_vertex_id(),Actor:id())
 end
 end
 -- Проверяем нужное нам кол-во предметов в инвенторе ГГ
@@ -75,21 +75,21 @@ function have_item_count_from_inv(item,need)
 end
 -- (из АМК)
 function relocate_n_items_section(victim, section, type, n)
-if db.actor and victim then
+if Actor and victim then
 local cnt = n
 if type == "in" then
 for i=1,n do
-AI:create(section,db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+AI:create(section,Actor:position(),Actor:level_vertex_id(),Actor:game_vertex_id(),Actor:id())
 end
 elseif type == "out" then
-db.actor:iterate_inventory(function (dummy,item)
+Actor:iterate_inventory(function (dummy,item)
 if item:section()==section and n>0 then 
 AI:release(AI:object(item:id()))
 n=n-1
 end
 end, nil)
 end
-news_manager.relocate_item(db.actor, type, section, cnt)
+news_manager.relocate_item(Actor, type, section, cnt)
 end
 end
 -- Reward
@@ -102,7 +102,7 @@ dialogs.relocate_item_section(first_speaker, item, "out")
 end
 -- Удаляем что-то из инвенторя
 function remove_item(item_section)
-AI:release(AI:object(db.actor:object(item_section):id()), true)
+AI:release(AI:object(Actor:object(item_section):id()), true)
 end
 -- Удаляем ЧТО_ТО
 function remove_obj(obj_id)
@@ -110,16 +110,16 @@ AI:release(AI:object(obj_id), true)
 end
 -- Функции для работы с инфопоршнями
 function have_info(info)
-return db.actor:has_info(info)
+return Actor:has_info(info)
 end
 function dont_info(info)
-return db.actor:dont_has_info(info)
+return Actor:dont_has_info(info)
 end
 function give_info(info)
-return db.actor:give_info_portion(info)
+return Actor:give_info_portion(info)
 end
 function dis_info(info)
-return db.actor:disable_info_portion(info)
+return Actor:disable_info_portion(info)
 end
 --задаем зжоровье НПСу
 function set_npc_health(obj, health)
@@ -139,7 +139,7 @@ for i=1,10000,1 do
 local obj = AI:object(i)
 if  (obj and IAmAStalker[obj:clsid()] and not obj:alive()) then
 if obj:character_community() == "zombied" then
-if obj.position:distance_to(db.actor:position()) < 10 then
+if obj.position:distance_to(Actor:position()) < 10 then
 set_npc_health(obj, 0.5)
 end
 end
@@ -152,7 +152,7 @@ for a=1,10000,1 do
 local obj=AI:object(a)
 if  (obj and IAmAStalker[obj:clsid()] and not obj:alive()) then
 local posobj=obj.position
-local actorpos=db.actor:position()
+local actorpos=Actor:position()
 if (posobj:distance_to(actorpos) < 2) then
 set_npc_health(obj, 1)
 end

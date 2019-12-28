@@ -116,7 +116,7 @@ function UIPdaTeleport:DrawMap()
 		self.level_maps[string.lower(map)] = true
 	end
 	-- Рисуем карты  уровней и места положения аномалий
-	local actor_pos = db.actor:position()
+	local actor_pos = Actor:position()
 	local level_name = level.name()
 	local show_anom = scale>scale_show
 	local w = spot_size/2
@@ -156,7 +156,7 @@ function UIPdaTeleport:DrawMap()
 	if map == nil then return end
 	rect = self:GetFrect( level_name, "bound_rect" )
 	self.zoom = map:GetWidth() / rect:width()
-	local pos = self:ConvertPosToPixel( db.actor:position(), rect )
+	local pos = self:ConvertPosToPixel( Actor:position(), rect )
 	local a = CUIStatic()
 	a:SetAutoDelete(true)
 	a:Init( "ui_icons_mapPDA_persBig_e", pos.x-w, pos.y-w, spot_size, spot_size )
@@ -216,12 +216,12 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 	local t = spatial_subway.levels[ lvl ][ id ]
 		or abort( "%s: zone %s not found on level %s", script_name(), id, lvl )
 
-	local dist, max_dist = map_distance.calculate_dist( level.name(), db.actor:position(), lvl, t.pos )
+	local dist, max_dist = map_distance.calculate_dist( level.name(), Actor:position(), lvl, t.pos )
 	local need_charge = dist / max_dist
 	if need_charge <= self.cond_scaner then
 		self:on_quit()
 
-		local obj = db.actor:object( "device_scaner" )
+		local obj = Actor:object( "device_scaner" )
 			or abort( "%s: actor has not device_scaner", script_name() )
 		local new_cond = self.cond_scaner - need_charge
 		obj:set_condition( new_cond )
@@ -231,7 +231,7 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 		bind_subway.block_sms( true )
 		level.add_pp_effector ("teleport.ppe", 2006, false)
 		local snd_obj = sound_object("anomaly\\teleport_work_1")
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		start_small_timer(400, spatial_subway.go_to, lvl, id)
 		start_small_timer(700, bind_subway.block_sms, false )
 	else
@@ -281,7 +281,7 @@ function UIPdaTeleport:ResizeMap()
 	if wnd == nil then return end
 	rect = self:GetFrect( level.name(), "bound_rect" )
 	self.zoom = wnd:GetWidth() / rect:width()
-	pos = self:ConvertPosToPixel( db.actor:position(), rect )
+	pos = self:ConvertPosToPixel( Actor:position(), rect )
 	self.actor_spot:SetWndPos( pos.x-w/2, pos.y-spot_size/2 )
 end
 

@@ -41,7 +41,7 @@ function on_part_take(obj)
 		hotkeys.knife_deterioration(knife, gd*d)
 
 		snd = xr_sound.get_safe_sound_object("zwuk\\inv_mutant_loot_"..math.random(1,9))
-		snd:play_at_pos(db.actor, vector(), 0, sound_object.s2d)
+		snd:play_at_pos(Actor, vector(), 0, sound_object.s2d)
 		archievements.acv_count_event("acv_gvdr", 1000, "Живодёр")
 
 		if gd > game_difficulty.novice then
@@ -50,7 +50,7 @@ function on_part_take(obj)
 			local t = {
 				timer = time_global() + gd*2000,	--snd:length(),
 				parent = monster:id(),
-				pos = db.actor:position()
+				pos = Actor:position()
 			}
 			xr_s.subscribe( "update", monster_parts.check_move, { userobj = t } )
 
@@ -61,7 +61,7 @@ function on_part_take(obj)
 			timer_start = true
 		end
 	else
-		db.actor:transfer_item(obj, monster)
+		Actor:transfer_item(obj, monster)
 		if dont_take_timer > time_global() then return end
 		dont_take_timer = time_global() + 500
 		ShowMessageBox("ok_alarm", "Для отрезания трофеев нужен нож.", false, false, 2500)
@@ -69,7 +69,7 @@ function on_part_take(obj)
 end
 
 function actor_has_knife()
-	local item = db.actor:item_in_slot(inventory_slots.KNIFE)
+	local item = Actor:item_in_slot(inventory_slots.KNIFE)
 	if item and table.find(knives, item:section()) then
 		return item
 	end
@@ -92,7 +92,7 @@ end
 
 function check_move(delta, p)
 	if p.timer > time_global() then
-		if db.actor:position():distance_to_sqr(p.pos) > 0.06
+		if Actor:position():distance_to_sqr(p.pos) > 0.06
 			or (monster~=nil and monster:id()~=p.parent)
 		then
 			bind_actor.restore_weapon("monter_parts")
@@ -103,7 +103,7 @@ function check_move(delta, p)
 			if npc then
 				for i in pairs(parts) do
 					item = level.object_by_id(i)
-					if item then db.actor:transfer_item(item, npc) end
+					if item then Actor:transfer_item(item, npc) end
 				end
 			else  -- мутант куда-то пропал?
 				for i in pairs( parts ) do
@@ -142,6 +142,6 @@ function send_trophy()
 	sms = sms:sub(1, -3)
 	
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_thing")
-	db.actor:give_game_news(sms, task_texture, task_rect, 0, 5000)
+	Actor:give_game_news(sms, task_texture, task_rect, 0, 5000)
 end
 

@@ -229,8 +229,7 @@ function weapon_manager:get_weapon()
 end
 
 function weapon_manager:output(wpn)
-	local actor = db.actor
-	if actor and actor:position():distance_to(self.npc:position()) < 4 then
+	if Actor and Actor:position():distance_to(self.npc:position()) < 4 then
 		if (self.outtime or 0) < time_global() then
 			local name = self.npc:character_name()
 			local reload = tostring(self.reloadc)
@@ -239,7 +238,7 @@ function weapon_manager:output(wpn)
 				local wpn_section = wpn:section()
 				local params = weapon_params[wpn_section]
 				if not params then
-					actor:give_game_news(name..": "..string_format("wpn: %s[%s], params not readed",wpn_section, wpn_id),"ui\\ui_iconsTotal",Frect():set(0,235,83,47),0,1000)
+					Actor:give_game_news(name..": "..string_format("wpn: %s[%s], params not readed",wpn_section, wpn_id),"ui\\ui_iconsTotal",Frect():set(0,235,83,47),0,1000)
 					return
 				end
 				local cost = params.cst
@@ -258,9 +257,9 @@ function weapon_manager:output(wpn)
 					prior = pr[wpn_section] or 0
 				end
 				local res = self:get_weapon_prior(wpn)
-				actor:give_game_news(name..": "..string_format("wpn: %s[%s] aminmag %s(%s), reload is %s, cost[%s], eff[%s], prior[%s], res[%s]", wpn_section, wpn_id, wpn:get_ammo_in_magazine(), read_wpn_params(wpn_section).mag, reload, cost, eff, prior,res), "ui\\ui_iconsTotal", Frect():set(0,235,83,47), 0, 1000)
+				Actor:give_game_news(name..": "..string_format("wpn: %s[%s] aminmag %s(%s), reload is %s, cost[%s], eff[%s], prior[%s], res[%s]", wpn_section, wpn_id, wpn:get_ammo_in_magazine(), read_wpn_params(wpn_section).mag, reload, cost, eff, prior,res), "ui\\ui_iconsTotal", Frect():set(0,235,83,47), 0, 1000)
 			else
-				actor:give_game_news(name..": "..string_format("wpn: %s reload is %s", tostring(wpn), reload), "ui\\ui_iconsTotal", Frect():set(0,235,83,47), 0, 1000)
+				Actor:give_game_news(name..": "..string_format("wpn: %s reload is %s", tostring(wpn), reload), "ui\\ui_iconsTotal", Frect():set(0,235,83,47), 0, 1000)
 			end
 			self.outtime = time_global() + 1000
 		end
@@ -452,8 +451,8 @@ function weapon_manager:update_weapon()
 						return false
 					end
 					local bepos = be:position()
-					if self.npc:relation(db.actor) ~= game_object.enemy
-						and db.actor:position():distance_to_sqr(bepos) < radius
+					if self.npc:relation(Actor) ~= game_object.enemy
+						and Actor:position():distance_to_sqr(bepos) < radius
 					then
 						return false
 					end
@@ -501,7 +500,7 @@ function weapon_manager:update_weapon()
 					local amm1,amm2 = wpn:get_ammo_in_magazine(),weapon_params[w.sec].mag
 					if amm1 == 0 then
 						local bebe = be:best_enemy()
-						if be:see(self.npc) and ((bebe and bebe:id() == self.npc_id) or (db.actor and db.actor:id() == be:id())) then
+						if be:see(self.npc) and ((bebe and bebe:id() == self.npc_id) or (Actor and Actor:id() == be:id())) then
 							pr = pr - w.prm*self.modes.mag_lowering_fc/100
 						else
 							pr = pr - w.prm*self.modes.mag_lowering/100
@@ -513,7 +512,7 @@ function weapon_manager:update_weapon()
 						if curwpn and curwpn:id() == w.id and self.last_change and (wm_modes.types.line ~= "ef_weapon_type" or weapon_params[curwpn:section()].typ ~= "8") then
 							local tg = time_global()
 							local bebe = be:best_enemy()
-							if be:see(self.npc) and ((bebe and bebe:id() == self.npc_id) or (db.actor and db.actor:id() == be:id())) and self.last_change+self.modes.tchange_time_fc > tg then
+							if be:see(self.npc) and ((bebe and bebe:id() == self.npc_id) or (Actor and Actor:id() == be:id())) and self.last_change+self.modes.tchange_time_fc > tg then
 								local add = (self.last_change+self.modes.tchange_time_fc-tg)/40
 --								printf("update_weapon_new:proc last_change[%s]!!: pr=%s,add=%s",w.sec,pr,w.prm*add/100)
 								pr = pr + w.prm*add/100
@@ -1189,10 +1188,10 @@ function manage_box()
 	if not (get_box() and box) then
 	--	printf("manage_box:find")
 		boxid = nil
-		if not GGraph:valid_vertex_id(db.actor:game_vertex_id()) then
+		if not GGraph:valid_vertex_id(Actor:game_vertex_id()) then
 			return
 		end
-		local clid = GGraph:vertex(db.actor:game_vertex_id()):level_id()
+		local clid = GGraph:vertex(Actor:game_vertex_id()):level_id()
 		local obj
 		for id=1,65534 do
 			obj = AI:object(id)
@@ -1219,8 +1218,8 @@ end
 
 function create_box()
 	local pos = vector():set(0,-300,0)
-	if db.actor then
-		local obj = AI:create("inventory_box",pos,db.actor:level_vertex_id(),db.actor:game_vertex_id())
+	if Actor then
+		local obj = AI:create("inventory_box",pos,Actor:level_vertex_id(),Actor:game_vertex_id())
 		if obj then
 			boxid = obj.id
 		--	printf("box[%s] created on level '%s'",tostring(obj.id),tostring(level.name()))
@@ -1229,7 +1228,7 @@ function create_box()
 end
 
 function net_spawn()
---	local boxid = xr_logic.pstor_retrieve(db.actor,"wm_boxid_"..level.name(),nil)
+--	local boxid = xr_logic.pstor_retrieve(Actor,"wm_boxid_"..level.name(),nil)
 	if boxid then
 		local sobj
 		for i=1,65534 do

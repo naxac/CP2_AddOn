@@ -25,18 +25,16 @@ end
 
 function good_bye(first_speaker, second_speaker)
 	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+	if Actor and Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
 	dialogs.relocate_item_section(trader, "af_fireball", "out")
 	dialogs.relocate_item_section(trader, "trubka", "out")
 	dialogs.relocate_item_section(trader, "gorelka", "out")
 	dialogs.relocate_item_section(trader, "manometr", "out")
-	flamethrower.relocate_n_items_section(trader, "vodka", "out", 10)
+	inventory.out_items("vodka", 10)
 	dialogs.relocate_item_section(trader, "flamethrower_bad", "out")
 end
 
@@ -49,32 +47,29 @@ function have_10_vodka()
 end
 
 function have_bablo()
-	return db.actor:money()>=25000
+	return Actor:money()>=25000
 end
 
 function give_flamethrower_worked(first_speaker, second_speaker)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+	local trader
+	if Actor and Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
 	dialogs.relocate_item_section(trader, "wpn_flame", "in")
   	dialogs.relocate_money(trader, 25000, "out")
 	clear_parts(first_speaker, second_speaker)
-	if actor then
-		local flame = actor:object("wpn_flame")
-		if flame ~= nil then
-			flame:set_ammo_elapsed(max_fuel)
-		end
+
+	local flame = Actor:object("wpn_flame")
+	if flame ~= nil then
+		flame:set_ammo_elapsed(max_fuel)
 	end	
 end
 
 function clear_parts(first_speaker, second_speaker)	
 	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
+	if Actor and Actor:id() == first_speaker:id() then
 		actor = first_speaker
 		trader = second_speaker
 	else
@@ -104,12 +99,10 @@ function clear_parts(first_speaker, second_speaker)
 end
 
 function clear_fuel(first_speaker, second_speaker)	
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+	local trader
+	if Actor and Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
 	trader:iterate_inventory( function (dummy,item)
@@ -191,8 +184,7 @@ function have_a_af_fireball(stalker, player)
 end
 
 function have_a_drink()
-    local actor = db.actor
-    if actor ~= nil and actor:object("vodka") ~= nil then
+    if Actor ~= nil and Actor:object("vodka") ~= nil then
 		return true
 	end
 	return false
@@ -203,7 +195,7 @@ function have_a_fuel()
 end
 
 function have_30000()
-	if db.actor and db.actor:money() >= 30000 then
+	if Actor and Actor:money() >= 30000 then
 		return true
 	else
 		return false
@@ -211,7 +203,7 @@ function have_30000()
 end
 
 function have_2000()
-	if db.actor and db.actor:money() >= 2000 then
+	if Actor and Actor:money() >= 2000 then
 		return true
 	else
 		return false
@@ -219,24 +211,21 @@ function have_2000()
 end
 
 function have_a_ballon()
-    local actor = db.actor
-    if actor ~= nil and actor:object("amk_ballon") ~= nil then
+    if Actor ~= nil and Actor:object("amk_ballon") ~= nil then
 		return true
 	end
 	return false
 end
 
 function have_a_kanistra()
-    local actor = db.actor
-    if actor ~= nil and actor:object("amk_kanistra") ~= nil then
+    if Actor ~= nil and Actor:object("amk_kanistra") ~= nil then
 		return true
 	end
 	return false
 end
 
 function have_a_flamethrower()
-    local actor = db.actor
-    if actor ~= nil and actor:object("wpn_flame") ~= nil then
+    if Actor ~= nil and Actor:object("wpn_flame") ~= nil then
 		return true
 	end
 	return false
@@ -300,7 +289,6 @@ end
 
 function start_reload(first_speaker, second_speaker)
 	local trader = (first_speaker:id() == 0 and second_speaker) or first_speaker
-	local actor = db.actor
 	dialogs.relocate_money(trader, 2000, "out")
 	dialogs.relocate_item_section(trader, "vodka", "out")	
 	dialogs.relocate_item_section(trader, "wpn_flame", "out")	
@@ -309,20 +297,19 @@ function start_reload(first_speaker, second_speaker)
 	dialogs.relocate_item_section(trader, "amk_kanistra", "out")
 	dialogs.relocate_item_section(trader, "amk_ballon", "out")
 	amk.save_variable("flame_reload_count", max_fuel)
---	calc_reload(actor, trader)
-	clear_flame(actor)
+--	calc_reload(Actor, trader)
+	clear_flame(Actor)
 end
 
 function start_find_and_reload(first_speaker, second_speaker)
 	local trader = (first_speaker:id() == 0 and second_speaker) or first_speaker
-	local actor = db.actor
 	dialogs.relocate_money(trader, 30000, "out")
 	dialogs.relocate_item_section(trader, "vodka", "out")	
 	dialogs.relocate_item_section(trader, "wpn_flame", "out")	
 	local gtime = amk.game_minutes()
 	amk.save_variable("flame_reload", gtime + math_random(12, 24) * 60)
 	amk.save_variable("flame_reload_count", max_fuel)
-	clear_flame(actor)
+	clear_flame(Actor)
 end
 
 function is_reload_ready(first_speaker, second_speaker)
@@ -366,26 +353,25 @@ function clear_reload(first_speaker, second_speaker)
 end
 
 function relocate_n_items_section(victim, section, type, n)
-    if db.actor and victim then
-		local act = db.actor
-		local cnt = n
+    if Actor and victim then
+	local cnt = n or 1
 	if type == "in" then
         for i=1,n do
 			AI:create(section,     
-					act:position(),
-					act:level_vertex_id(),     
-					act:game_vertex_id(),
-					act:id())
+					Actor:position(),
+					Actor:level_vertex_id(),     
+					Actor:game_vertex_id(),
+					Actor:id())
 		end
     elseif type == "out" then
-		act:iterate_inventory(function (dummy,item)
+		Actor:iterate_inventory(function (dummy,item)
 			if item:section()==section and n>0 then 
 				AI:release(AI:object(item:id()))
 				n=n-1
 			end
 		end, nil)
 	end
-	news_manager.relocate_item(act, type, section, cnt)
+	news_manager.relocate_item(Actor, type, section, cnt)
 	end
 end
 
@@ -409,8 +395,8 @@ function calc_reload(actor, trader)
 			--rpm в конфиге 300, значит полминуты - 150, а минута 300.
 			amk.save_variable("flame_reload_count", min_fuel)
 		elseif mm >= 2 then
-			flamethrower.relocate_n_items_section(trader, "amk_kanistra", "out", 2)
-			flamethrower.relocate_n_items_section(trader, "amk_ballon", "out", 2)
+			inventory.out_items("amk_kanistra", 2)
+			inventory.out_items("amk_ballon", 2)
 			amk.save_variable("flame_reload_count", max_fuel)
 		end
 	end
@@ -418,7 +404,7 @@ end
 
 function reload(first_speaker, second_speaker)
 	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
+	if Actor and Actor:id() == first_speaker:id() then
 		actor = first_speaker
 		trader = second_speaker
 	else
@@ -430,7 +416,7 @@ function reload(first_speaker, second_speaker)
 end
 
 function set_flame_ammo(ammo)
-	local flame = db.actor:object("wpn_flame")
+	local flame = Actor:object("wpn_flame")
 	if flame ~= nil then
 		flame:set_ammo_elapsed(ammo)
 	end
@@ -444,20 +430,10 @@ function clear_flame(person)
 end
 
 function set_ammo(first_speaker, second_speaker)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
-		trader = second_speaker
-	else
-		actor = second_speaker
-		trader = first_speaker
-	end
-	if actor then
-		local flame = actor:object("wpn_flame")
-		if flame ~= nil then
-			local ammo = amk.load_variable("flame_reload_count", 0)
-			flame:set_ammo_elapsed(ammo)
-		end
+	local flame = Actor:object("wpn_flame")
+	if flame ~= nil then
+		local ammo = amk.load_variable("flame_reload_count", 0)
+		flame:set_ammo_elapsed(ammo)
 	end
 	amk.del_variable("flame_reload_count")
 end

@@ -114,7 +114,7 @@ local artefacts = {
 	["af_fallen_angel"] = { lvl = 6, power = 0.3, hType = "chemical_burn" },
 	["af_pero"] = { lvl = 5, power = 0.1, hType = "chemical_burn" },
 	["af_vinograd"] = { lvl = 6, power = 0.4, hType = "chemical_burn" },
-	["af_kletka"] = { lvl = 6, power = 0.5, hType = "chemical_burn" },
+	["af_kletka"] = { info = {"privet_leshyi_done"}, lvl = 6, power = 0.5, hType = "chemical_burn" },
 	["af_mayak"] = { lvl = 6, power = 0.3, hType = "chemical_burn" },
 	["af_parazit"] = { lvl = 6, power = 0.3, hType = "chemical_burn" },
 	["af_propeller"] = { lvl = 6, power = 0.4, hType = "chemical_burn" },
@@ -241,7 +241,7 @@ function hit_by_art(obj)
 	if artefacts[s] and level.main_input_receiver() == nil then
 		local propusk = 1
 
-		local perchatki = db.actor:item_in_slot( inventory_slots.KNIFE )
+		local perchatki = Actor:item_in_slot( inventory_slots.KNIFE )
 		if perchatki then
 			propusk = perchatki_propusk[perchatki:section()] or 1
 		end
@@ -253,7 +253,7 @@ function hit_by_art(obj)
 		local p = propusk * get_art_power(s)
 		if p > 0 then
 			local h = hit()
-			h.draftsman = db.actor
+			h.draftsman = Actor
 			h.direction = vector():set(0,0,0)
 			h.impulse = 0.3
 			h.type = hit[ artefacts[s].hType or "shock" ]
@@ -261,7 +261,7 @@ function hit_by_art(obj)
 
 			local cameffs ={"hit_front","hit_back","hit_front_left","hit_back_left","hit_front_right","hit_back_right"}
 			level.add_cam_effector("camera_effects\\"..table.random(cameffs)..".anm", 999, false, "")
-			db.actor:hit(h)
+			Actor:hit(h)
 		end
 	end
 end
@@ -270,12 +270,12 @@ function on_slot(item)
 	local sect = item:section()
 	if perchatki_propusk[sect] then
 		if actor_outfit and scient[actor_outfit:section()]~=nil then
-			db.actor:move_to_ruck(item)
+			Actor:move_to_ruck(item)
 		end
 	elseif scient[sect] then
-		local knife = db.actor:item_in_slot( inventory_slots.KNIFE )
+		local knife = Actor:item_in_slot( inventory_slots.KNIFE )
 		if knife and perchatki_propusk[knife:section()] then
-			db.actor:move_to_ruck(knife)
+			Actor:move_to_ruck(knife)
 		end
 	end
 end
@@ -307,10 +307,10 @@ function add_art_info(art)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_locations", "ui_iconsTotal_locations")
 	local news_text = "%c[gray2]Получена информация об артефакте:\\n"..
 		"%c[255,255,255,0]"..game.translate_string( get_inv_name(art) )
-	db.actor:give_game_news(news_text, task_texture, task_rect, 0, 5000)
-	if db.actor:is_talking() then
+	Actor:give_game_news(news_text, task_texture, task_rect, 0, 5000)
+	if Actor:is_talking() then
 		local icon = GetIconParams(art)
-		db.actor:give_talk_message(news_text, "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
+		Actor:give_talk_message(news_text, "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
 	end	
 end
 
@@ -427,7 +427,7 @@ local phr_it = {
 
 function init_known_art_dialog( dlg, trader )
 	local p = "known_art_"..trader
-	local actor_name = db.actor:character_name()
+	local actor_name = Actor:character_name()
 
 	local phr = dlg:AddPhrase( p.."_0", "0", "", -10000 )
 	local phrase_script
@@ -488,15 +488,15 @@ end
 function show_art_icon(first_speaker, second_speaker, dialog_id, phrase_id)
 	local art = id2art[ tonumber(phrase_id) - 1000 ]
 	local icon = GetIconParams(art)
-	db.actor:give_talk_message("", "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
+	Actor:give_talk_message("", "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
 end
 function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
 	local art = id2art[ tonumber(phrase_id) - 1000 ]
-	local obj = db.actor:object( art )
+	local obj = Actor:object( art )
 	if not obj then
 		if art2child[art] then
 			for i, v in ipairs( art2child[art] ) do
-				obj = db.actor:object(v)
+				obj = Actor:object(v)
 				if obj then break end
 			end
 		end
@@ -504,7 +504,7 @@ function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev
 
 	if obj then
 		return artefacts[art].known == false
-			and db.actor:money() >= obj:cost()*trader2level[ string.match(dialog_id, "^[^_]+") ].pay
+			and Actor:money() >= obj:cost()*trader2level[ string.match(dialog_id, "^[^_]+") ].pay
 	end
 
 	return false
@@ -523,7 +523,7 @@ end
 function has_unknown_arts()
 	local sect
 	local res = false
-	db.actor:iterate_inventory(function (dummy, item)
+	Actor:iterate_inventory(function (dummy, item)
 		sect = item:section()
 		if artefacts[sect] and not artefacts[sect].known then
 			res = true

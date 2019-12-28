@@ -166,12 +166,12 @@ function messg(news_text, header)
 	if not news_text or not header then return end
 	local player=xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 	if player then
-	player:play(db.actor, 0, sound_object.s2d)
+	player:play(Actor, 0, sound_object.s2d)
 	local news_text = "%c[gray2]"..header.."\\n".."%c[default]"..news_text
-		if db.actor then
-	db.actor:give_game_news(news_text, "ui\\ui_VDGicon", Frect():set(0,47,83,47), 0, 5000)
+		if Actor then
+	Actor:give_game_news(news_text, "ui\\ui_VDGicon", Frect():set(0,47,83,47), 0, 5000)
 		else
-			get_console():execute("load ~~~ function messg(news_text, header) - db.actor == nil")
+			get_console():execute("load ~~~ function messg(news_text, header) - Actor == nil")
 		end
 	else
 		get_console():execute("load ~~~ function messg(news_text, header) - sound not found: "..[[device\pda\pda_tip]])
@@ -214,13 +214,12 @@ function explodeBombsByDetonator(sect)
 				return
 			end
 		end
-		local actor = db.actor
 		local level_object_by_id = level.object_by_id
 		local radius = detonator["distance"]
 		local anyBombsExploded = false
-		local actorPos = actor:position()
+		local actorPos = Actor:position()
 		local invBoxExploded
-		if actor and AI and GGraph:valid_vertex_id(actor:game_vertex_id()) then
+		if Actor and AI and GGraph:valid_vertex_id(Actor:game_vertex_id()) then
 			--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 1")
 			collectExplosivesAll()
 			--get_console():execute("load ~~~ explodeBombsByDetonator(sect): 1.2")
@@ -321,13 +320,12 @@ function dropTimeBomb(tbl)
 	if timeBombs["sect"][tbl.sect] then
 		local obj = level.object_by_id(tbl.id)
 		if obj then
-			local actor = db.actor
 			local sect = timeBombs["sect"][tbl.sect]["base"]
 			local pos = obj:position()
 			local lv = obj:level_vertex_id()
 			local gv = obj:game_vertex_id()
 			if not GGraph:valid_vertex_id(gv) then
-				gv = actor:game_vertex_id()
+				gv = Actor:game_vertex_id()
 				if not GGraph:valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
 					messg("Здесь странное место...", "Локальная сеть")
 					return
@@ -359,7 +357,7 @@ function relocateTimeBomb(tbl)
 				local lv = se_parent.m_level_vertex_id
 				local gv = se_parent.m_game_vertex_id
 				if not GGraph:valid_vertex_id(gv) then
-					gv = db.actor:game_vertex_id()
+					gv = Actor:game_vertex_id()
 					if not GGraph:valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
 						messg("Здесь странное место...", "Локальная сеть")
 						return
@@ -383,12 +381,12 @@ end
 function transferTimeBomb(id)
 	--get_console():execute("load ~~~ function transferTimeBomb(id)")
 	local obj = level.object_by_id(id)
-	if obj and db.actor then
+	if obj and Actor then
 		local invBox = obj:parent()
 		if invBox then
 			transferredBombs[id] = true
-			invBox:transfer_item(obj, db.actor)
-			db.actor:transfer_item(obj, invBox)
+			invBox:transfer_item(obj, Actor)
+			Actor:transfer_item(obj, invBox)
 
 		--	inventory.on_inventory_info("ui_inventory_hide")
 		--	inventory.on_inventory_info("ui_inventory")
@@ -414,7 +412,7 @@ function on_item_take(obj)
 				local lv = parent:level_vertex_id()
 				local gv = parent:game_vertex_id()
 				if not GGraph:valid_vertex_id(gv) then
-					gv = db.actor:game_vertex_id()
+					gv = Actor:game_vertex_id()
 					if not GGraph:valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
 						messg("Здесь странное место...", "Локальная сеть")
 						return
@@ -435,18 +433,17 @@ function useTimeBomb(tbl)
 	end
 	if transferredBombs[tbl.id] then
 		transferredBombs[tbl.id] = nil
-	elseif db.actor then
-		local actor = db.actor
+	elseif Actor then
 		local newSect = timeBombs["sect"][tbl.sect]["activated"]
 		local delay = timeBombsActivated[newSect]["delay"]
-		local pos = actor:position()
-		local lv = actor:level_vertex_id()
-		local gv = actor:game_vertex_id()
+		local pos = Actor:position()
+		local lv = Actor:level_vertex_id()
+		local gv = Actor:game_vertex_id()
 		if not GGraph:valid_vertex_id(gv) then -- похоже, что рядом нету вертекса
 			messg("Здесь странное место...", "Локальная сеть")
 			return
 		end
-		se_obj = AI:create(newSect, pos, lv, gv, actor:id())
+		se_obj = AI:create(newSect, pos, lv, gv, Actor:id())
 		xr_timers.start_real_timer("babah_timeBomb_activated", delay, se_obj.id)
 		messg("Таймер запущен! Нужно срочно выложить взрывчатку и отойти на безопасное расстояние.", "Взрывчатка")
 	end
@@ -630,11 +627,11 @@ function explode_r(ob)
 				local h = hit()
 				h.power = 100
 				h.impulse = 0
-				h.draftsman = db.actor
+				h.draftsman = Actor
 				h.direction = vector():set(0,0,0)
 				h.type = hit.fire_wound
 				obj:hit(h)
-				db.actor:set_character_community("monolith", 0, 0)
+				Actor:set_character_community("monolith", 0, 0)
 				return
 			end
 			--if obj:clsid() == clsid.inventory_box then
@@ -668,7 +665,7 @@ function explode_r(ob)
 					obj
 				)
 			else -- для тайников и трупов
-				if db.actor then
+				if Actor then
 					local packet
 					local sect, se_obj
 					local items = {}
@@ -691,7 +688,7 @@ function explode_r(ob)
 											if timeBombs["sect"][sect] or timeBombsActivated[sect] or timeBombsBase[sect] then
 												transferredBombs[i] = true
 											end
-											obj:transfer_item(inv_obj, db.actor)
+											obj:transfer_item(inv_obj, Actor)
 											-- собираем предметы для следующей переброски обратно в тайник, иначе - вылет, если какой-то из предметов подходит в пустой слот оружия и ГГ не имеет в данный момент активного предмета в руках
 											table.insert(itemsTransferBack, se_obj.id)
 										end
@@ -741,7 +738,7 @@ function itemsTransferBackToInventory(tbl)
 			se_obj = AI:object(tbl.itemsTransferBack[i])
 			if obj and se_obj and obj:parent() and obj:parent():id() == 0 then
 				sect = obj:section()
-				db.actor:transfer_item(obj, inventory)
+				Actor:transfer_item(obj, inventory)
 				packet = net_packet() -- создаём пустой пакет
 				se_obj:STATE_Write(packet) -- загрузили в наш пакет состояние серверного объекта
 				-- используя методы класса net_packet меняем нужные нам значения.

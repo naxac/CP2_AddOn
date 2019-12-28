@@ -93,18 +93,18 @@ function repair()
 	if fix >= 1 then return end
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair5" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair5" )
+	Actor:give_info_portion( "naxac_test_repair5" )
 
-	db.actor:iterate_inventory(function(dummy, item)
+	Actor:iterate_inventory(function(dummy, item)
 		if item:section() == "wpn_ballast" then
 			local obj = AI:object(item:id())
 			if obj then AI:release(obj, true) end
 		end
 	end,
-	db.actor)
+	Actor)
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair4" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair4" )
+	Actor:give_info_portion( "naxac_test_repair4" )
 
 	obj = AI:object("radar_kukla")
 	if obj then
@@ -123,7 +123,7 @@ function repair()
 	end
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair3" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair3" )
+	Actor:give_info_portion( "naxac_test_repair3" )
 
 	obj = AI:object( "podlovim_chiterov_restrictor" )
 	if obj then AI:release( obj, true ) end
@@ -132,14 +132,14 @@ function repair()
 	start_small_timer( 2000, naxac.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair2" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair2" )
+	Actor:give_info_portion( "naxac_test_repair2" )
 
 	if has_alife_info( "cit_fail_first_task" ) then
 		naxac.hero_rename_start()
 	end
 -------------------------------------------------------------------------------------------------------------------
 	if has_alife_info( "naxac_test_repair1" ) then return end
-	db.actor:give_info_portion( "naxac_test_repair1" )
+	Actor:give_info_portion( "naxac_test_repair1" )
 
 	if AI:object( "subway_scaner_doc_0001" ) == nil then
 		AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
@@ -220,7 +220,7 @@ function after_credits()
 	end
 
 	if not has_alife_info("naxac_freeplay_start") then
-		db.actor:give_info_portion("naxac_freeplay_start")
+		Actor:give_info_portion("naxac_freeplay_start")
 		
 		local not_del = {
 			["bolt"] = true,
@@ -230,15 +230,15 @@ function after_credits()
 			["device_torch"] = true
 		}
 		local obj
-		db.actor:iterate_inventory(function(actor, item)
+		Actor:iterate_inventory(function(actor, item)
 			obj = AI:object(item:id())
 			if obj and not_del[item:section()] == nil then
 				AI:release(obj, true)
 			end
 		end,
-		db.actor)
+		Actor)
 		
-		db.actor:give_money(1000-db.actor:money())
+		Actor:give_money(1000-Actor:money())
 		
 		level.disable_input()
 		start_small_timer(2000, this.tele_to_escape)
@@ -259,7 +259,7 @@ function rewrite_restr_logic( obj_name, logic )
 		if rest then
 			local st = db.storage[rest:id()]
 			st = {}
-			xr_logic.initialize_obj( rest, st, false, db.actor, modules.stype_restrictor, (logic or "scripts\\dummy.ltx") )
+			xr_logic.initialize_obj( rest, st, false, Actor, modules.stype_restrictor, (logic or "scripts\\dummy.ltx") )
 		end
 	end
 end
@@ -413,7 +413,7 @@ function camera_rotate_on_position(pos, speed, action, ...)
 					current_angle = 1.57
 				end
 				current_angle = current_angle + speed / 1000
-				db.actor:set_camera_direction(vector():set(current_angle, 0, 0))
+				Actor:set_camera_direction(vector():set(current_angle, 0, 0))
 				return math.abs(current_angle - end_angle) < 0.01
 			end,
 			function()

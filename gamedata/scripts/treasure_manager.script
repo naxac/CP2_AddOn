@@ -131,6 +131,7 @@ local rare_list = {
  "mutant_poltergeist_cocoon",
  "amk_kanistra",
  "grenade_flash",
+ "acumm"
  },
 
  veteran_section = {
@@ -184,7 +185,8 @@ local rare_list = {
  "mutant_chimera_cocoon",
  "amk_ballon",
  "grenade_flash",
- "grenade_gd-05"
+ "grenade_gd-05",
+ "ekza_akkumul"
  },
 
 master_section = {
@@ -242,6 +244,8 @@ master_section = {
  "medkit_scientic",
  "mutant_gigant_cocoon",
  "mutant_controller_cocoon",
+ "ekza_akkumul",
+ "acumm"
  }
 }
 
@@ -313,7 +317,8 @@ experienced_section = {
  "antirad",
  "energy_drink",
  "conserva",
- "grenade_flash"
+ "grenade_flash",
+ "acumm"
  },
 
  veteran_section = {
@@ -348,7 +353,8 @@ experienced_section = {
  "medkit_army",
  "antirad",
  "grenade_gd-05",
- "grenade_flash"
+ "grenade_flash",
+ "acumm"
  },
 
  master_section = {
@@ -380,7 +386,8 @@ experienced_section = {
  "mutant_krovosos_jaw",
  "mutant_burer_hand",
  "medkit_army",
- "medkit_scientic"
+ "medkit_scientic",
+ "ekza_akkumul"
  }
 }
 
@@ -440,17 +447,20 @@ function CTreasure:__init()
 
 	for i=0,n-1 do
 		result, id, value	= self.ini:r_line("list",i,"","")
-		
+
 		self.treasure_info[id] = {}
+		local t = self.treasure_info[id]
 
-		self.treasure_info[id].target		= self.ini:r_u32(id, "target")
-		self.treasure_info[id].named		= self.ini:r_bool_ex(id, "named", false)
-		self.treasure_info[id].name			= self.ini:r_string(id, "name")
-		
+		t.target		= self.ini:r_u32(id, "target")
+		t.named			= self.ini:r_bool_ex(id, "named", false)
+		t.name			= self.ini:r_string(id, "name")
 		--' Отметим тайник как новый
-		self.treasure_info[id].active = false
-		self.treasure_info[id].done = false
+		t.active = false
+		t.done = false
 
+		if t.target > 65535 then	-- вдруг забуду
+			log("[CTreasure:__init]: treasure %s story_id [%s]: it more than 65535! It cannot be saved!", id, t.target)
+		end
 		--print_table(self.treasure_info)
 	end
 
@@ -501,9 +511,9 @@ function CTreasure:use(npc)
 
 	for k,v in pairs(self.treasure_info) do
 		if v.done == false and v.active == false then
-			--local treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc, v.condlist)
-			treasure_prob = xr_logic.pick_section_from_condlist(db.actor, npc,
-				xr_logic.parse_condlist(db.actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
+			--local treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc, v.condlist)
+			treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc,
+				xr_logic.parse_condlist(Actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
 			)
 
 			if treasure_prob == "" or treasure_prob == nil then
@@ -549,20 +559,20 @@ end
 function CTreasure:remind()
 	local obj
 	local have = false
-	local sms = "%c[255,255,120,160]Тайники:\\n%c[190,200,200,200]"
+	local text = "%c[255,255,120,160]Тайники:\\n%c[190,200,200,200]"
 	
 	for k,v in pairs(self.treasure_info) do
 		if v.active then
 			obj = AI:story_object(v.target)
 			if obj and GGraph:vertex(obj.m_game_vertex_id):level_id() == AI:level_id() then
-				sms = sms..game.translate_string(v.name).."\\n"
+				text = text..game.translate_string(v.name).."\\n"
 				have = true
 			end
 		end
 	end
 	
 	if have then
-		reminder.send_info(sms)
+		reminder.send_info(text)
 	end
 end
 function CTreasure:set_treasure_rank(r)
@@ -576,20 +586,21 @@ function CTreasure:give_treasure(k)
 		if obj:clsid() ~= clsid.inventory_box then
 			abort("Story object [%s] is not an inventory box", v.target)
 		end
-		
+
 		local lname = object_level_name(obj)
 		news_manager.send_treasure(v.name, lname)
 
 		--' Пометить на карте		
 		local text = "%c[255,238,155,23]"..game.translate_string(v.name).."\\n"..
 			"%c[default]"..game.translate_string(self.ini:r_string(k, "description"))
---    if not level.map_has_object_spot(obj.id,"treasure") then
-      level.map_add_object_spot_ser(obj.id, "treasure", text)
---    else
---      amk.mylog("Blocking mapspot for "..obj:name())
---    end
 
-	-- проверка, какой тип тайника выбран
+		if level.map_has_object_spot(obj.id, "treasure") == 0 then
+			level.map_add_object_spot_ser(obj.id, "treasure", text)
+		else
+			log("~ Treasure %s[%s] already has mapspot", k, obj:name())
+		end
+
+		-- проверка, какой тип тайника выбран
 		-- если тайник не классический и не именной, то заменим содержимое
 		if game_options.AmkTrs ~= 0 and v.named == false then
 		   v.items = self:give_item_list()
@@ -599,29 +610,27 @@ function CTreasure:give_treasure(k)
 		
 		--' Сгенерить вещи
 		for kk,vv in pairs(v.items) do
-				for i=1,vv.prob do
-					AI:create(vv.section,
-							obj.position,
-							obj.m_level_vertex_id,	
-							obj.m_game_vertex_id,
-							obj.id)
-				end
+			for i=1,vv.prob do
+				AI:create(vv.section,
+						obj.position,
+						obj.m_level_vertex_id,	
+						obj.m_game_vertex_id,
+						obj.id)
+			end
 		end
-		
+
 		--' Пометим тайник как выданный
-		self.treasure_info[k].active = true
-		self.treasure_info[k].done = true
-    -- Отправим тайник в оффлайн
-    local AI = alife ()
-    if AI ~= nil and obj.online then
-       AI:set_switch_online  (obj.id, false)
-       AI:set_switch_offline (obj.id, true)
---       AI:set_switch_online  (obj.id, true)
---       AI:set_switch_offline (obj.id, false)
-       amk.convert_npc[obj.id]=1 -- ставим в очередь на вывод в онлайн
-    end
+		v.active = true
+		v.done = true
+		-- Отправим тайник в оффлайн
+		local AI = alife ()
+		if AI ~= nil and obj.online then
+			AI:set_switch_online  (obj.id, false)
+			AI:set_switch_offline (obj.id, true)
+			amk.convert_npc[obj.id]=1 -- ставим в очередь на вывод в онлайн
+		end
 	else
-		printf("TREASURE %s, target doesnt exist", k)
+		log("TREASURE %s, target doesnt exist", k)
 	end
 end
 --' Снимаем отметку с тайника
@@ -633,18 +642,19 @@ function CTreasure:treasure_empty(box, box_story_id)
 		return
 	end
 
-	if self.treasure_info[k].active then
-		self.treasure_info[k].active = false
-		actor_stats.add_points("treasures", level.name(), 1, 1)
-		ui_script_hud.remove_spot( box:id() )
+	local v = self.treasure_info[k]
+	if v.active then
+		v.active = false
+		actor_stats.add_points("treasures", v.name, 1, 1)
 	end
-	
+
 	-- если тайник не именной, то переведен его в онлайн для следующей выдачи
-	if self.treasure_info[k].named == false then
-	  self.treasure_info[k].done = false
+	if v.named == false then
+		v.done = false
 	end
-	
-	level.map_remove_object_spot(box:id(), "treasure")
+
+	level.map_remove_object_spot( box:id(), "treasure" )
+	ui_script_hud.remove_spot( box:id() )
 end
 --' Сохранение
 function CTreasure:save(p)

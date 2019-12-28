@@ -22,15 +22,15 @@ function item_take(section)
   elseif section:find("сhess_course") then
     sms_obmen(tonumber(section:sub(14)))
   elseif bio_info[section] then
-    db.actor:give_info_portion(bio_info[section])
+    Actor:give_info_portion(bio_info[section])
   end
 end
 
 function sms_obmen(n)
-  if db.actor:dont_has_info("info_chess_course_"..n) then
+  if Actor:dont_has_info("info_chess_course_"..n) then
     news_manager.send_tip("%c[gray2]".."СТРЕЛОК:".."\\n".."%c[red_sms]"..game.translate_string("gg_hod_"..n), nil, nil, 30000)
     news_manager.send_tip("%c[gray2]".."КОСТЯ:".."\\n".."%c[red_sms]"..game.translate_string("kostya_hod_"..n), 10, nil, 30000)
-    db.actor:give_info_portion("info_chess_course_"..n)
+    Actor:give_info_portion("info_chess_course_"..n)
   end
 end
 
@@ -40,9 +40,9 @@ local snd
 
 function active_dictofon()
   if actor_active_item ~= nil and string.find(actor_active_item:section(), "dictofon_") then
-    db.actor:give_info_portion("start_record")
-  elseif db.actor:has_info("start_record") then
-    db.actor:disable_info_portion("start_record")
+    Actor:give_info_portion("start_record")
+  elseif Actor:has_info("start_record") then
+    Actor:disable_info_portion("start_record")
       if snd and snd:playing() then
        snd:stop()
      end
@@ -57,10 +57,10 @@ end
 
 function sms_record(section)
 	local n = string.sub(section,10,-1)
-	db.actor:give_info_portion("info_dictofon_"..n)
+	Actor:give_info_portion("info_dictofon_"..n)
 	news_manager.send_tip("%c[gray2]".."ШАХМАТИСТ:".."\\n".."%c[red_sms]"..game.translate_string("record_"..n), nil, nil, 30000) 
 	snd = sound_object("chess_voice\\dicto_"..n)
-	snd:play(db.actor, 0, sound_object.s2d)
+	snd:play(Actor, 0, sound_object.s2d)
 end
 
 --   ***ЗАПИСКИ***
@@ -308,7 +308,7 @@ end
 function next_taynik()
   local i
   for i = 17, 1, -1 do
-    if db.actor:has_info("info_dictofon_"..i) then
+    if Actor:has_info("info_dictofon_"..i) then
       spawn_taynik(i)
       break
     end
@@ -318,10 +318,10 @@ end
 function kogot_hit()
 local h = hit()
 h.impulse = 2.5
-h.draftsman = db.actor
+h.draftsman = Actor
 h.direction = vector():set(0,0,0)
 h:bone("bip01_spine")
 h.power = 4.5
 h.type = hit.explosion
-db.actor:hit(h)
+Actor:hit(h)
 end

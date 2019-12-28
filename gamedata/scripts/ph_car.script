@@ -195,8 +195,8 @@ function action_car:reset_scheme(loading)
 	        if self.st.fire_target == "points" then
 	            self.state_firetarget = state_firetarget_points
 	        else
-	            if self.st.fire_target == "actor" and db.actor:alive() then
-	                self.target_obj = db.actor
+	            if self.st.fire_target == "actor" and Actor:alive() then
+	                self.target_obj = Actor
 	                self.state_firetarget = state_firetarget_enemy
 	            else
 	                n = tonumber(self.st.fire_target) or story_ids[self.st.fire_target]
@@ -217,7 +217,7 @@ function action_car:reset_scheme(loading)
 	        if self.st.on_target_vis then
 	            vis = self.st.on_target_vis
 	            if vis.v1 == "actor" then
-	                vis.v1 = db.actor
+	                vis.v1 = Actor
 	                self.on_target_vis = vis
 	                printf("car <vis>: target actor")
 	            else
@@ -235,7 +235,7 @@ function action_car:reset_scheme(loading)
 	        if self.st.on_target_nvis then
 	            nvis = self.st.on_target_nvis
 	            if nvis.v1 == "actor" then
-	                nvis.v1 = db.actor
+	                nvis.v1 = Actor
 	                self.on_target_nvis = nvis
 	                printf("car <nvis>: target actor")
 	            else
@@ -305,7 +305,7 @@ function action_car:reset_scheme(loading)
 	            printf("car <state>: firetarget = enemy")
 	            self.state_shooting = state_none
 	            self.state_cannon = state_cannon_follow
-	            --self.target_fire_pt = db.actor:position()
+	            --self.target_fire_pt = Actor:position()
 		        --self:rot_to_firepoint(self.target_fire_pt)
 	        else
 	            printf("car <state>: firetarget = none")
@@ -905,7 +905,7 @@ function action_car:fastcall()
 	end
 	
 	if self.usable ~= nil then
-	    local cu = xr_logic.pick_section_from_condlist(db.actor, self.object, self.usable.condlist)
+	    local cu = xr_logic.pick_section_from_condlist(Actor, self.object, self.usable.condlist)
 	    local u = (cu == "true" or cu == "")
 
 	    if u then
@@ -927,7 +927,7 @@ end
 function action_car:update(delta)
 	self:update_friends_and_target()
 		
-	if xr_logic.try_switch_to_another_section(self.object, self.st, db.actor) then
+	if xr_logic.try_switch_to_another_section(self.object, self.st, Actor) then
 		return
 	end
 	
@@ -960,7 +960,7 @@ function action_car:destroy_car()
 
 	xr_logic.mob_release(self.object)
 	if self.st.on_death_info ~= nil then
-	    db.actor:give_info_portion(self.st.on_death_info)
+	    Actor:give_info_portion(self.st.on_death_info)
 	    printf("car <destroy>: on_death_info [%s]", self.st.on_death_info)
 	end
 	if self.st.on_death_func then
@@ -1015,7 +1015,7 @@ function action_car:fast_update()
 			--xr_logic.mob_release(self.object)
 	        --if self.st.on_death_info ~= nil then
 	        --    printf("car <death>: stopped")
-	        --    db.actor:give_info_portion(self.st.on_death_info)
+	        --    Actor:give_info_portion(self.st.on_death_info)
 	        --end
 	        printf("car <state>: stopped")
 	        self:destroy_car()
@@ -1090,7 +1090,7 @@ function action_car:fast_update()
     --printf("car <fire>: target(%d)", self.state_firetarget)
 		if self.on_target_vis and self.on_target_vis.v1:alive() and self.car:IsObjectVisible(self.on_target_vis.v1) then
 			--printf("car <vis>: try")
-			local new_section = xr_logic.pick_section_from_condlist(db.actor, self.object, self.on_target_vis.condlist)
+			local new_section = xr_logic.pick_section_from_condlist(Actor, self.object, self.on_target_vis.condlist)
 			if new_section then
 				printf("car <vis>: switch to section [%s]", new_section)
 				xr_logic.switch_to_section(self.object, self.st, new_section)
@@ -1099,7 +1099,7 @@ function action_car:fast_update()
 
 		if self.on_target_nvis and self.on_target_nvis.v1:alive() and not self.car:IsObjectVisible(self.on_target_nvis.v1) then
 			--printf("car <nvis>: try")
-			local new_section = xr_logic.pick_section_from_condlist(db.actor, self.object, self.on_target_nvis.condlist)
+			local new_section = xr_logic.pick_section_from_condlist(Actor, self.object, self.on_target_nvis.condlist)
 			if new_section then
 				printf("car <nvis>: switch to section [%s]", new_section)
 				xr_logic.switch_to_section(self.object, self.st, new_section)
@@ -1140,7 +1140,7 @@ function action_car:fast_update()
 
 				self.target_fire_pt = self:extrapolate_pos(self.target_obj)
 				--[[
-				if self.target_obj:id() ~= db.actor:id() then
+				if self.target_obj:id() ~= Actor:id() then
 				  if self.target_obj:target_body_state() == move.crouch then
 					  self.target_fire_pt.y = self.target_fire_pt.y + 0.6 -- FAKE
 				  elseif not xr_wounded.is_heavy_wounded_by_id(self.target_obj:id()) then
@@ -1217,7 +1217,7 @@ function action_car:net_destroy()
 	if self.object and xr_logic.mob_captured(self.object) then
 	    xr_logic.mob_release(self.object)
 	    if self.st.on_death_info ~= nil then
-	        db.actor:give_info_portion(self.st.on_death_info)
+	        Actor:give_info_portion(self.st.on_death_info)
 	        printf("car <death>: give info")
 	    end
 		if self.st.on_death_func then

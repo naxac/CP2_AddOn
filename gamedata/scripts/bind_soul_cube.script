@@ -58,7 +58,7 @@ end
 function soul_cube_binder:update(delta)
 	object_binder.update(self, delta)
 	-- проверяем, у актора ли куб
-	if self.object:parent() and self.object:parent():id() == db.actor:id() then
+	if self.object:parent() and self.object:parent():id() == Actor:id() then
 		self.souls = self.souls + souls -- подзаряжаем куб
 		if self.cube and souls ~= 0 then
 			self:OnRemove()
@@ -67,7 +67,7 @@ function soul_cube_binder:update(delta)
 		if self.souls >= 5 then
 			self.souls = 5
 			if not self.charged then
-				self.sound_energize:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 0.5)
+				self.sound_energize:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 0.5)
 				self.charged = true
 			end
 		end
@@ -75,7 +75,7 @@ function soul_cube_binder:update(delta)
 	souls = 0 -- обнуляем счетчик убитых
 	
 	local ammo_elapsed = self.object:get_ammo_in_magazine()
-	local accuracy = db.actor:accuracy()
+	local accuracy = Actor:accuracy()
 	--позиция партиклов и звуков
 
 	if self.first_update then
@@ -126,14 +126,14 @@ function soul_cube_binder:update(delta)
 	if self.bint_id1 then
 		local bint1 = level.object_by_id(self.bint_id1)
 		if bint1 then
-			db.actor:eat(bint1)
+			Actor:eat(bint1)
 			self.bint_id1 = nil
 		end
 	end
 	if self.bint_id2 then
 		local bint2 = level.object_by_id(self.bint_id2)
 		if bint2 then
-			db.actor:eat(bint2)
+			Actor:eat(bint2)
 			self.bint_id2 = nil
 		end
 	end
@@ -199,7 +199,7 @@ function soul_cube_binder:seek_target() -- поиск цели
 		if AI:object( k ) ~= nil then
 			local rvec = v:position():sub(device().cam_pos)
 			local r = rvec:magnitude()
-			if r <= dist_search and db.actor:see(v) and v:clsid() ~= clsid.boar_s then -- если цель в зоне поражения
+			if r <= dist_search and Actor:see(v) and v:clsid() ~= clsid.boar_s then -- если цель в зоне поражения
 				local proj = rvec:dotproduct(device().cam_dir)
 				local cos_a = proj/r
 				if cos_a >= cone_min then -- объект ближе к оси прицеливания
@@ -246,9 +246,9 @@ function soul_cube_binder:OnTake(cube_type)
 		end
 		cube_type = tostring(self.souls)
 	end
-	self.sound_idle:play_at_pos(db.actor, device().cam_pos:mad(device().cam_dir, 1.5))
+	self.sound_idle:play_at_pos(Actor, device().cam_pos:mad(device().cam_dir, 1.5))
 	local cube_section = "soulcube_"..cube_type
-	local cube = AI:create(cube_section,(device().cam_pos:mad(device().cam_dir, 1.5)),db.actor:level_vertex_id(),db.actor:game_vertex_id())
+	local cube = AI:create(cube_section,(device().cam_pos:mad(device().cam_dir, 1.5)),Actor:level_vertex_id(),Actor:game_vertex_id())
 	self.cube_id = cube.id
 --	self:ShowCrosshair() -- отключен худ
 end
@@ -281,7 +281,7 @@ function soul_cube_binder:OnHold(delta)
 		if not self.attack then
 			self:hold_cycle(delta)
 			if not self.sound_idle:playing() then
-				self.sound_idle:play_at_pos(db.actor,self.cube:position())
+				self.sound_idle:play_at_pos(Actor,self.cube:position())
 			end
 		end
 	end
@@ -315,11 +315,11 @@ function soul_cube_binder:attack_cycle(delta)
 		self.hang_pos = device().cam_pos:mad(device().cam_dir, 2):mad(device().cam_top, -0.25)
 		self.attack = true
 		self.sound_idle:stop()
-		self.sound_fly_start:play_at_pos(db.actor,self.hang_pos)
+		self.sound_fly_start:play_at_pos(Actor,self.hang_pos)
 	end
 	if not self.cube then return end
 	if not self.sound_fly_start:playing() and not self.sound_fly_loop:playing() then
-		self.sound_fly_loop:play_at_pos(db.actor,self.cube:position())
+		self.sound_fly_loop:play_at_pos(Actor,self.cube:position())
 	end
 	local mode = ""
 	local cube_pos = self.cube:position()
@@ -345,7 +345,7 @@ function soul_cube_binder:attack_cycle(delta)
 			self.charged = false
 			self.souls = 0
 			self.sound_fly_loop:stop()
-			self.sound_fly_end:play_at_pos(db.actor,self.cube:position())
+			self.sound_fly_end:play_at_pos(Actor,self.cube:position())
 			self:OnRemove()
 			self:OnTake()
 			archievements.acv_count_event("acv_soul", 5, "Ловец душ")
@@ -361,17 +361,17 @@ function soul_cube_binder:slash_target(target_obj)
 			health = health_rate
 		end
 		target_obj.health = -1*health
-		self.sound_health_up:play_at_pos(db.actor, device().cam_pos)
-		db.actor.health = health
-		db.actor.power = health
-		db.actor.psy_health = health
-		db.actor.radiation = -1*health
+		self.sound_health_up:play_at_pos(Actor, device().cam_pos)
+		Actor.health = health
+		Actor.power = health
+		Actor.psy_health = health
+		Actor.radiation = -1*health
 		if not self.bint_id1 then
-			local bint1 = AI:create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+			local bint1 = AI:create("bleeding_heal",Actor:position(),Actor:level_vertex_id(),Actor:game_vertex_id(),Actor:id())
 			self.bint_id1 = bint1.id
 		end
 		if not self.bint_id2 then
-			local bint2 = AI:create("bleeding_heal",db.actor:position(),db.actor:level_vertex_id(),db.actor:game_vertex_id(),db.actor:id())
+			local bint2 = AI:create("bleeding_heal",Actor:position(),Actor:level_vertex_id(),Actor:game_vertex_id(),Actor:id())
 			self.bint_id2 = bint2.id
 		end
 		self.slash_time = time_global() + self.sound_health_up:length()/2

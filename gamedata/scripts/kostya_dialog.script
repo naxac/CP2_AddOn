@@ -5,7 +5,7 @@ function stealth_start()
 end
 function stealth_start2()
 	level.add_pp_effector ("teleport.ppe", 2006, false)
-	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	AI:create("tm_brother_labirint",vector():set(-313.31903076172,62.234169006348,202.46311950684),38734,2987)
 end
 function stealth1_have()
@@ -13,14 +13,14 @@ function stealth1_have()
 	if obj then
 		AI:release(obj)
 	end
-	news_manager.relocate_item(db.actor, "out", "arhara_seif")
+	news_manager.relocate_item(Actor, "out", "arhara_seif")
 end
 function stealth1_done()
 	xr_timers.start_real_timer( "run",0.5,"kostya_dialog.stealth1_done2()" )
 end
 function stealth1_done2()
 	level.add_pp_effector ("teleport.ppe", 2006, false)
-	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	local obj = snp.object_by_section("tm_brother_labirint")
 	if obj then
 		local sobj = AI:object(obj:id())
@@ -51,15 +51,15 @@ function stealth5_done()
 end
 -- проверка на провал при убийстве, сняти амулета или одевании маскхалата
 function stealth_fail_task(victim, who)
-	if has_alife_info("stealth2_done") and not has_alife_info("stealth_find_pda_done") and (not who or who:id() == db.actor:id()) then
-		db.actor:give_info_portion("stealth_find_pda_fail")
+	if has_alife_info("stealth2_done") and not has_alife_info("stealth_find_pda_done") and (not who or who:id() == Actor:id()) then
+		Actor:give_info_portion("stealth_find_pda_fail")
 	end
 end
 -- подъем рюкзака
 function stealth_on_take(box)
 	local section = box:section()
 	if string.find(section, "s_inventory_box_stealth") then
-		db.actor:give_info_portion("stealth_find_pda_have"..string.sub(section,24,24))
+		Actor:give_info_portion("stealth_find_pda_have"..string.sub(section,24,24))
 	end
 end
 -- сдача ПДА
@@ -86,7 +86,7 @@ local peshera_table
 function init_peshera_table()
 	if has_alife_info("peshera_go") then
 		xr_s.subscribe("item_take", kostya_dialog.peshera_go)
-		peshera_table = xr_logic.pstor_get_custom(db.actor, "peshera_clear", "peshera_clear")
+		peshera_table = xr_logic.pstor_get_custom(Actor, "peshera_clear", "peshera_clear")
 	end
 end
 
@@ -102,20 +102,20 @@ function peshera_start()
 	local box = obj_by_name("level_prefix_inventory_box_0003")
 	if box then
 		shiftCheckDropItem()
-		db.actor:iterate_inventory(
+		Actor:iterate_inventory(
 			function(dummy,item)
 				if AI:object(item:id()) == nil then return end
 				if not protected_items.actor_items_keep(item:section()) then
-					db.actor:transfer_item(item, box)
+					Actor:transfer_item(item, box)
 				end
 			end
-		,db.actor)
+		,Actor)
 		AI:create("zamok", vector():set(0,0,0), 0, 0, box:id())
 	end
 	
 	create_teleport("peshera_blok_tp",vector():set(-112.609199523926,-9.9281539916992,-34.9218902587891),12288,2868)
 
-	db.actor:give_info_portion("peshera_go")
+	Actor:give_info_portion("peshera_go")
 	if peshera_table == nil then init_peshera_table() end
 	if level.get_game_difficulty() < 2 then
 		snp.invul_on()
@@ -126,23 +126,23 @@ function peshera_end()
 	snp.invul_off()
 	shiftCheckDropItem()
 	local obj
-	db.actor:iterate_inventory(
+	Actor:iterate_inventory(
 		function(dummy,item)
 			if not protected_items.actor_items_keep(item:section()) then
 				obj = AI:object(item:id())
 				if obj then AI:release(obj, true) end
 			end
 		end
-	,db.actor)
+	,Actor)
 	
 	if peshera_table == nil then init_peshera_table() end
 	for k,v in pairs(peshera_table) do
 		obj = AI:object(k)
-		if obj and obj.parent_id ~= db.actor:id() and not protected_items.actor_items_keep(obj:section_name()) then
+		if obj and obj.parent_id ~= Actor:id() and not protected_items.actor_items_keep(obj:section_name()) then
 			AI:release(obj)
 		end
 	end
-	xr_logic.pstor_clear_custom(db.actor, "peshera_clear")
+	xr_logic.pstor_clear_custom(Actor, "peshera_clear")
 
 	for id,obj in pairs(db.creatures) do
 		if obj and IAmAMonster[obj:clsid()] then
@@ -160,7 +160,7 @@ function peshera_end()
 	end
 
 	delete_teleport("peshera_blok_tp")
-	db.actor:disable_info_portion("peshera_go")
+	Actor:disable_info_portion("peshera_go")
 end
 
 -- Поиск онлайнового объекта по его name в all.spawn
@@ -186,19 +186,19 @@ function kuv_hit()
 	if cond < 0.1 and math.random() < 0.2-cond*2 and sect ~= "wpn_shmel" then
 		amk_particle.amk_particle({
 			particle="explosions\\explosion_fuelcan",
-			pos=db.actor:position(),
+			pos=Actor:position(),
 			sound=[[weapons\t_rgd5_explosion]]
 		})
 		level.add_pp_effector("amk_shoot.ppe", 2011, false)
 
 		local h = hit()
-		h.draftsman = db.actor
-		h.direction = vector_rotate_y(db.actor:direction(), 180) 
+		h.draftsman = Actor
+		h.direction = vector_rotate_y(Actor:direction(), 180) 
 		h:bone("bip01_spine")
 		h.type = hit.explosion
 		h.power = 8
 		h.impulse = 200
-		db.actor:hit(h)
+		Actor:hit(h)
 
 		start_small_timer(200, function() kostya_dialog.remove_wpn(actor_active_item:id()) end)
 	end
@@ -212,12 +212,12 @@ end
 
 -- Взносы
 function vzn_begin()
-	return db.actor:money()>=2000000 and
+	return Actor:money()>=2000000 and
 		has_alife_info("sar_monolith_destroy")
 end
 function vzn()
 	return
-		db.actor:money()>=2000000 and
+		Actor:money()>=2000000 and
 		has_alife_info("vzn_begin") and 
 		not	has_alife_info("vzn_start") and 
 		not (
@@ -277,21 +277,21 @@ function checking_taken_item_vzn(obj) -- взятие тайника
 		section == "vzn_pensia" or
 		section == "vzn_noty" or
 		section == "vzn_kuvalda" then
-			db.actor:give_info_portion("vzn_have")
+			Actor:give_info_portion("vzn_have")
 	end
 		
 	if section == "vzn_treasure_item" then
 		-- лотерея
-		amk.remove_item_from_inventory_by_name("vzn_treasure_item",db.actor)
-		amk.spawn_item_in_inv("treasure_item", db.actor)
-		amk.spawn_item_in_inv("vzn_medal", db.actor)
-		amk.spawn_item_in_inv(vzn_taynik_stvol(), db.actor)
+		amk.remove_item_from_inventory_by_name("vzn_treasure_item",Actor)
+		amk.spawn_item_in_inv("treasure_item", Actor)
+		amk.spawn_item_in_inv("vzn_medal", Actor)
+		amk.spawn_item_in_inv(vzn_taynik_stvol(), Actor)
 	end
 	if section == "vzn_mladen" then
 		-- младенец
 		local snd = xr_sound.get_safe_sound_object([[characters_voice\scenario\trader\plach]])
 		snd:stop()
-		snd:play_no_feedback(db.actor, sound_object.s2d, 1.0, vector(), 1.0)
+		snd:play_no_feedback(Actor, sound_object.s2d, 1.0, vector(), 1.0)
 	end
 end
 function vzn_fill(vzn) -- создание тайника
@@ -365,7 +365,7 @@ function vzn_fill(vzn) -- создание тайника
 		elseif vzn == 13 then
 			vzn_fill_taynik("vzn_mladen", 3, obj)
 			aem_manager.manage_money(300000, "out")
-			xr_sound.get_safe_sound_object([[characters_voice\scenario\trader\plach]]):play_at_pos(db.actor, obj.position, 0, sound_object.s3d+sound_object.looped)
+			xr_sound.get_safe_sound_object([[characters_voice\scenario\trader\plach]]):play_at_pos(Actor, obj.position, 0, sound_object.s3d+sound_object.looped)
 		elseif vzn == 14 then
 			vzn_fill_taynik("vzn_pensia", 1, obj)
 			vzn_fill_taynik("vzn_polis", 1, obj)
@@ -384,8 +384,8 @@ function vzn_fill(vzn) -- создание тайника
 		end
 	end
 
-	db.actor:give_info_portion("vzn"..tostring(vzn))
-	db.actor:give_info_portion("vzn_start")
+	Actor:give_info_portion("vzn"..tostring(vzn))
+	Actor:give_info_portion("vzn_start")
 end
 function vzn_fill_taynik(section, cnt, obj)
 	for i = 1,cnt do
@@ -452,13 +452,13 @@ function vzn_done(vzn) -- удаление уникального хабара
 		inventory.out_items_all("vzn_krovosos_cocoon")
 	end
 
-	db.actor:give_info_portion("vzn"..tostring(vzn).."_done")
-	db.actor:disable_info_portion("vzn_start")
-	db.actor:disable_info_portion("vzn_have")
-	db.actor:disable_info_portion("vzn_temp1")
-	db.actor:disable_info_portion("vzn_temp2")
-	db.actor:disable_info_portion("vzn_temp3")
-	db.actor:disable_info_portion("vzn_temp4")
+	Actor:give_info_portion("vzn"..tostring(vzn).."_done")
+	Actor:disable_info_portion("vzn_start")
+	Actor:disable_info_portion("vzn_have")
+	Actor:disable_info_portion("vzn_temp1")
+	Actor:disable_info_portion("vzn_temp2")
+	Actor:disable_info_portion("vzn_temp3")
+	Actor:disable_info_portion("vzn_temp4")
 end
 function vzn_taynik_stvol()
 	local vzn_stvol = {
@@ -484,7 +484,7 @@ function vzn_taynik_stvol()
 		i = math.random(#vzn_stvol)
 	until not has_alife_info("vzn_stvol"..tostring(i))
 	
-	db.actor:give_info_portion("vzn_stvol"..tostring(i))
+	Actor:give_info_portion("vzn_stvol"..tostring(i))
 	return vzn_stvol[i]
 end
 
@@ -494,7 +494,7 @@ for i = 1, 16 do
 end
 
 function play_tush()
-	db.actor:give_info_portion("sidor_tush")
+	Actor:give_info_portion("sidor_tush")
 	xr_timers.start_real_timer("stop_tush", 18.3, 0)
 end
 function give_ak_strelka()
@@ -512,11 +512,11 @@ end
 function actor_vzn_back()
 	aem_manager.manage_money(5500000, "in")
 	play_tush()
-	db.actor:give_info_portion("vzn_reset")
-	db.actor:disable_info_portion("vzn_reset")
+	Actor:give_info_portion("vzn_reset")
+	Actor:disable_info_portion("vzn_reset")
 end
 function gg_monolit()
-	db.actor:set_character_community("monolith", 0, 0)
+	Actor:set_character_community("monolith", 0, 0)
 end
 -- Взносы end
 
@@ -540,22 +540,21 @@ end
 function checking_taken_item63(obj)
 	if not (string.sub(obj:section(),1,7)=="tm_docs") then return end
 
-	local act = db.actor
 	for i = 1, 13 do
-		if act:object( "tm_docs"..string.format("%02d",i) ) == nil then
+		if Actor:object( "tm_docs"..string.format("%02d",i) ) == nil then
 			return false
 		end
 	end
 
 	if not has_alife_info("tm_find_all") then 
-		act:give_info_portion("tm_find_all")
-		news_manager.send_tip("%c[gray2]ДРАГУНОВ:\\n%c[red_sms]"..act:character_name()..", пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, $actor$, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.", nil, nil, 30000)
+		Actor:give_info_portion("tm_find_all")
+		news_manager.send_tip("%c[gray2]ДРАГУНОВ:\\n%c[red_sms]"..Actor:character_name()..", пока ты искал записки, я думал над той наводкой, что можно составить из этих слов. У меня получилось следующее:\\nНезыблемое Прекрасное Вечное Озаряет Нас Дарит Покой Счастье Мир Найди Путь Стань Бессмертным\\nОчевидно, что речь идёт об Исполнителе Желаний. Но где там тайник? И ещё: в наводке говорится, что нужно найти путь. Так что, $actor$, похоже, это не всё. Я вижу новый телепорт в центре Саркофага. Думаю, стоит начать с него.", nil, nil, 30000)
 		this.tm_done1()
 		spawn_tm_taynik()
 		local se_obj = AI:create("tm_teleport_1",vector():set(24.6673412323,56.192798614502,-5.0582308769226),5907,2417)
-		xr_logic.pstor_store(act, "tm_teleport_1", se_obj.id)		  
+		xr_logic.pstor_store(Actor, "tm_teleport_1", se_obj.id)		  
 		se_obj = AI:create("tm_teleport_2",vector():set(23.798603057861,70.392623901367,45.316135406494),5395,2417)
-		xr_logic.pstor_store(act, "tm_teleport_2", se_obj.id)		  
+		xr_logic.pstor_store(Actor, "tm_teleport_2", se_obj.id)		  
 		spawn_restrictor.tm_sr1()
 	end
 end
@@ -575,27 +574,27 @@ function tm_spawn1()
 	AI:create("z_inventory_box13",vector():set(51.092010498047,49.359004974365,-17.654895782471),8798,2416)
 end
 function tm_done1()
- 	amk.remove_item_from_inventory_by_name("tm_docs01",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs02",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs03",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs04",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs05",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs06",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs07",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs08",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs09",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs10",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs11",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs12",db.actor)
- 	amk.remove_item_from_inventory_by_name("tm_docs13",db.actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs01",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs02",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs03",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs04",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs05",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs06",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs07",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs08",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs09",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs10",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs11",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs12",Actor)
+ 	amk.remove_item_from_inventory_by_name("tm_docs13",Actor)
 end
 -- перенесено в spawn_teleport.script
 function checking_taken_item64(obj)
 	if obj:section() == "tm_docs14" then
-		db.actor:give_info_portion("tm_find_done")
+		Actor:give_info_portion("tm_find_done")
 		this.delete_teleport("tm_teleport_4")
 		AI:create("z_inventory_box15",vector():set(84.50724029541,69.478454589844,-7.1580576896667),6048,2417)
-		amk.drop_item(db.actor,obj)
+		amk.drop_item(Actor,obj)
 		amk.remove_item(obj)
 	end
 end
@@ -610,12 +609,12 @@ end
 -- универсальная процедура спавна телепортов
 function create_teleport(section, pos, lv, gv)
     local se_obj = AI:create(section, pos, lv, gv)
-	xr_logic.pstor_store(db.actor, section, se_obj.id)
+	xr_logic.pstor_store(Actor, section, se_obj.id)
 	return se_obj
 end
 -- универсальная процедура удаления телепортов
 function delete_teleport(section)
-	local se_obj = AI:object(xr_logic.pstor_retrieve(db.actor, section, -1, true))
+	local se_obj = AI:object(xr_logic.pstor_retrieve(Actor, section, -1, true))
 	if se_obj then
 		AI:release(se_obj, true)
 	end
@@ -626,7 +625,7 @@ end
 function checking_taken_item61(obj)
 	local sect = obj:section()
 	if string.find(sect,"zonedocs") then
-		db.actor:give_info_portion("zonedocs_have"..string.sub(sect,10))
+		Actor:give_info_portion("zonedocs_have"..string.sub(sect,10))
 
 		local total = 60
 		if     has_alife_info("voronin_docs1_start_as") then
@@ -654,12 +653,12 @@ function checking_taken_item61(obj)
 		end
 		
 		if     inventory.search("zone_docs",total-1) then
-			db.actor:give_info_portion("voronin_docs1_have")
+			Actor:give_info_portion("voronin_docs1_have")
 		elseif inventory.search("zone_docs",total-3) then
-			db.actor:give_info_portion("voronin_docs1_almost_have")
+			Actor:give_info_portion("voronin_docs1_almost_have")
 		end
 		
-		amk.remove_item_from_inventory(obj,db.actor)
+		amk.remove_item_from_inventory(obj,Actor)
 		-- удаляем дубликаты
 		local lname = level.name()
 		if  (sect=="zonedocs_26" and lname == "l03u_agr_underground") or 
@@ -684,7 +683,7 @@ end
 
 function zonedocs_buy()
 	inventory.give_items("zonedocs_0",1)
-	db.actor:give_info_portion("acv_docs_fail")
+	Actor:give_info_portion("acv_docs_fail")
 end
 
 function voronin_docs1_done()
@@ -701,90 +700,90 @@ function voronin_docs1_done()
 	
 	if     has_alife_info("voronin_docs1_start_as") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_as")
+			Actor:give_info_portion("voronin_docs1_done_as")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_as")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_as")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_yan") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_yan")
+			Actor:give_info_portion("voronin_docs1_done_yan")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_yan")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_yan")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_dt") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_dt")
+			Actor:give_info_portion("voronin_docs1_done_dt")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_dt")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_dt")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_atp") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_atp")
+			Actor:give_info_portion("voronin_docs1_done_atp")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_atp")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_atp")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_td") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_td")
+			Actor:give_info_portion("voronin_docs1_done_td")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_td")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_td")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_puzir") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_puzir")
+			Actor:give_info_portion("voronin_docs1_done_puzir")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_puzir")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_puzir")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_agro") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_agro")
+			Actor:give_info_portion("voronin_docs1_done_agro")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_agro")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_agro")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_marsh") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_marsh")
+			Actor:give_info_portion("voronin_docs1_done_marsh")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_marsh")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_marsh")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_esc") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_esc")
+			Actor:give_info_portion("voronin_docs1_done_esc")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_esc")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_esc")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_garbage") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_garbage")
+			Actor:give_info_portion("voronin_docs1_done_garbage")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_garbage")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_garbage")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	elseif has_alife_info("voronin_docs1_start_bar") then
 		if has_alife_info("voronin_docs1_have") then
-			db.actor:give_info_portion("voronin_docs1_done_bar")
+			Actor:give_info_portion("voronin_docs1_done_bar")
 		else
-			db.actor:give_info_portion("voronin_docs1_fail_bar")
-			db.actor:give_info_portion("acv_docs_fail")
+			Actor:give_info_portion("voronin_docs1_fail_bar")
+			Actor:give_info_portion("acv_docs_fail")
 		end
 	end
 	
 	if has_alife_info("zonedocs_have0") then
-		db.actor:give_info_portion("acv_docs_fail")
+		Actor:give_info_portion("acv_docs_fail")
 	end
 	if has_alife_info("voronin_docs1_have") then
 		this.give_ammo(3)
 	end
-	db.actor:give_info_portion("voronin_docs1_reset")
+	Actor:give_info_portion("voronin_docs1_reset")
 end
 
 function t_zonedocs_bar()
@@ -823,20 +822,20 @@ end
 
 function zonedocs_give_info_2()
 	if has_alife_info("zonedocs_have1") then
-		db.actor:give_info_portion("zonedocs_have2")
+		Actor:give_info_portion("zonedocs_have2")
 	end
 end
 function zonedocs_dolg_vrag()
-	db.actor:give_info_portion("voronin_docs1_end_fail")
-	relation_registry.set_community_goodwill ("dolg", db.actor:id(), -5000)
+	Actor:give_info_portion("voronin_docs1_end_fail")
+	relation_registry.set_community_goodwill ("dolg", Actor:id(), -5000)
 end
 function zonedocs_gg_death()
-	db.actor:give_info_portion("voronin_docs1_end_fail")
+	Actor:give_info_portion("voronin_docs1_end_fail")
 	xr_timers.start_real_timer("zonedocs_gg_kill",15,0)
 	level.add_cam_effector("camera_effects\\radar_stop.anm", 2506, false, "")
 end
 function zonedocs_gg_kill()
-	db.actor:kill(db.actor)
+	Actor:kill(Actor)
 end
 function zonedocs_gg_reward()
 	this.give_ammo(30)
@@ -856,7 +855,7 @@ function kostya_biznes1_have_all()
 end		
 function kostya_biznes1_have()
 	if kostya_biznes1_have_all() then
-		db.actor:give_info_portion("kostya_biznes1_have")
+		Actor:give_info_portion("kostya_biznes1_have")
 		return true
 	else
 		return false
@@ -864,7 +863,7 @@ function kostya_biznes1_have()
 end
 function kostya_biznes1_done()
 		inventory.out_items("af_buliz",5)
-	db.actor:give_info_portion("info_amk_recipt_power_2")
+	Actor:give_info_portion("info_amk_recipt_power_2")
 end
 
 function sidor_biznes_over()
@@ -917,7 +916,7 @@ function sidor_biznes1_have_all()
 end		
 function sidor_biznes1_have()
 	if sidor_biznes1_have_all() then
-		db.actor:give_info_portion("sidor_biznes1_have")
+		Actor:give_info_portion("sidor_biznes1_have")
 		return true
 	else
 		return false
@@ -974,7 +973,7 @@ function sidor_biznes2_have_all()
 end
 function sidor_biznes2_have()
 	if sidor_biznes2_have_all() then
-		db.actor:give_info_portion("sidor_biznes2_have")
+		Actor:give_info_portion("sidor_biznes2_have")
 		return true
 	else
 		return false
@@ -990,7 +989,7 @@ function sidor_biznes2_done()
 		inventory.out_items("bread_a",3)
 	this.give_ammo(5)
 	inventory.give_items("cube_chip",1)
-	db.actor:give_info_portion("info_amk_recipt_power_3")
+	Actor:give_info_portion("info_amk_recipt_power_3")
 end
 
 function sidor_biznes3_have_all()
@@ -1033,7 +1032,7 @@ function sidor_biznes3_have_all()
 end
 function sidor_biznes3_have()
 	if sidor_biznes3_have_all()	then
-		db.actor:give_info_portion("sidor_biznes3_have")
+		Actor:give_info_portion("sidor_biznes3_have")
 		return true
 	else
 		return false
@@ -1091,7 +1090,7 @@ function sidor_biznes4_have_all()
 end
 function sidor_biznes4_have()
 	if sidor_biznes4_have_all() then
-		db.actor:give_info_portion("sidor_biznes4_have")
+		Actor:give_info_portion("sidor_biznes4_have")
 		return true
 	else
 		return false
@@ -1126,7 +1125,7 @@ function sidor_biznes5_have_all()
 end
 function sidor_biznes5_have()
 	if sidor_biznes5_have_all() then
-		db.actor:give_info_portion("sidor_biznes5_have")
+		Actor:give_info_portion("sidor_biznes5_have")
 		return true
 	else
 		return false
@@ -1168,7 +1167,7 @@ function sidor_biznes6_have_all()
 end
 function sidor_biznes6_have()
 	if sidor_biznes6_have_all() then
-		db.actor:give_info_portion("sidor_biznes6_have")
+		Actor:give_info_portion("sidor_biznes6_have")
 		return true
 	else
 		return false
@@ -1227,7 +1226,7 @@ function sidor_biznes7_have_all()
 end		
 function sidor_biznes7_have()
 	if sidor_biznes7_have_all() then
-		db.actor:give_info_portion("sidor_biznes7_have")
+		Actor:give_info_portion("sidor_biznes7_have")
 		return true
 	else
 		return false
@@ -1275,7 +1274,7 @@ function kuznetsov_biznes1_have_all()
 end		
 function kuznetsov_biznes1_have()
 	if kuznetsov_biznes1_have_all() then
-		db.actor:give_info_portion("kuznetsov_biznes1_have")
+		Actor:give_info_portion("kuznetsov_biznes1_have")
 		return true
 	else
 		return false
@@ -1297,7 +1296,7 @@ function adrenalin_biznes1_have_all1()
 end		
 function adrenalin_biznes1_have1()
 	if adrenalin_biznes1_have_all1() then
-		db.actor:give_info_portion("adrenalin_biznes1_have1")
+		Actor:give_info_portion("adrenalin_biznes1_have1")
 		return true
 	else
 		return false
@@ -1317,7 +1316,7 @@ function adrenalin_biznes1_have_all2()
 end		
 function adrenalin_biznes1_have2()
 	if adrenalin_biznes1_have_all2() then
-		db.actor:give_info_portion("adrenalin_biznes1_have2")
+		Actor:give_info_portion("adrenalin_biznes1_have2")
 		return true
 	else
 		return false
@@ -1336,7 +1335,7 @@ function adrenalin_biznes1_have_all3()
 end		
 function adrenalin_biznes1_have3()
 	if adrenalin_biznes1_have_all3() then
-		db.actor:give_info_portion("adrenalin_biznes1_have3")
+		Actor:give_info_portion("adrenalin_biznes1_have3")
 		return true
 	else
 		return false
@@ -1359,7 +1358,7 @@ function adrenalin_biznes1_done()
 		inventory.give_items("ammo_balon",10)
 		inventory.give_items("grenade_f1_double",30)
 		inventory.give_items("cube_chip",1)
-		db.actor:give_info_portion("adrenalin_biznes1_done")
+		Actor:give_info_portion("adrenalin_biznes1_done")
 	end
 end
 
@@ -1374,7 +1373,7 @@ function zahar_biznes1_have_all()
 end		
 function zahar_biznes1_have()
 	if zahar_biznes1_have_all() then
-		db.actor:give_info_portion("zahar_biznes1_have")
+		Actor:give_info_portion("zahar_biznes1_have")
 		return true
 	else
 		return false
@@ -1404,7 +1403,7 @@ function barman_biznes1_have_all()
 end		
 function barman_biznes1_have()
 	if barman_biznes1_have_all() then
-		db.actor:give_info_portion("barman_biznes1_have")
+		Actor:give_info_portion("barman_biznes1_have")
 		return true
 	else
 		return false
@@ -1416,7 +1415,7 @@ function barman_biznes1_done()
 		inventory.out_items("cigara",50)
 		inventory.out_items("sigaret",100)
 		inventory.out_items("vodka",200)
-	db.actor:give_info_portion("info_amk_recipt_power_1")
+	Actor:give_info_portion("info_amk_recipt_power_1")
 	inventory.give_items("cube_chip",1)
 end
 
@@ -1431,7 +1430,7 @@ function kruglov_biznes1_have_all()
 end		
 function kruglov_biznes1_have()
 	if kruglov_biznes1_have_all() then
-		db.actor:give_info_portion("kruglov_biznes1_have")
+		Actor:give_info_portion("kruglov_biznes1_have")
 		return true
 	else
 		return false
@@ -1456,7 +1455,7 @@ function yakut_biznes1_have_all()
 end		
 function yakut_biznes1_have()
 	if yakut_biznes1_have_all() then
-		db.actor:give_info_portion("yakut_biznes1_have")
+		Actor:give_info_portion("yakut_biznes1_have")
 		return true
 	else
 		return false
@@ -1480,7 +1479,7 @@ function voron_biznes1_have_all()
 end		
 function voron_biznes1_have()
 	if voron_biznes1_have_all() then
-		db.actor:give_info_portion("voron_biznes1_have")
+		Actor:give_info_portion("voron_biznes1_have")
 		return true
 	else
 		return false
@@ -1516,7 +1515,7 @@ function lukash_biznes1_have_all()
 end		
 function lukash_biznes1_have()
 	if lukash_biznes1_have_all() then
-		db.actor:give_info_portion("lukash_biznes1_have")
+		Actor:give_info_portion("lukash_biznes1_have")
 		return true
 	else
 		return false
@@ -1573,7 +1572,7 @@ function sakharov_biznes1_have_all()
 end		
 function sakharov_biznes1_have()
 	if sakharov_biznes1_have_all() then
-		db.actor:give_info_portion("sakharov_biznes1_have")
+		Actor:give_info_portion("sakharov_biznes1_have")
 		return true
 	else
 		return false
@@ -1647,7 +1646,7 @@ function sak_biznes1_have_all()
 end		
 function sak_biznes1_have()
 	if sak_biznes1_have_all() then
-		db.actor:give_info_portion("sak_biznes1_have")
+		Actor:give_info_portion("sak_biznes1_have")
 		return true
 	else
 		return false
@@ -1698,11 +1697,11 @@ function sak_biznes1_done()
 end
 
 function skraga_biznes1_have_all()
-	return db.actor:money()>=2000000	
+	return Actor:money()>=2000000	
 end		
 function skraga_biznes1_have()
 	if skraga_biznes1_have_all() then
-		db.actor:give_info_portion("skraga_biznes1_have")
+		Actor:give_info_portion("skraga_biznes1_have")
 		return true
 	else
 		return false
@@ -1732,7 +1731,7 @@ function doktor_biznes1_have_all()
 end		
 function doktor_biznes1_have()
 	if doktor_biznes1_have_all() then
-		db.actor:give_info_portion("doktor_biznes1_have")
+		Actor:give_info_portion("doktor_biznes1_have")
 		return true
 	else
 		return false
@@ -1781,7 +1780,7 @@ function borov_biznes1_have_all()
 end		
 function borov_biznes1_have()
 	if borov_biznes1_have_all() then
-		db.actor:give_info_portion("borov_biznes1_have")
+		Actor:give_info_portion("borov_biznes1_have")
 		return true
 	else
 		return false
@@ -1818,27 +1817,27 @@ function doktor_lekar1_have()
 		news_manager.send_tip("%c[gray2]".."ДОКТОР:".."\\n".."%c[red_sms]Да, $actor$, именно так и нужно лечить людей - отдавая им аптечку. Носи всегда с собой запасные аптечки, чтобы ты мог помочь не только себе.".."".."\n", nil, nil, 30000)
 		-- Звуковое сопровождение
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 4 then
 		news_manager.send_tip("%c[gray2]".."ДОКТОР:".."\\n".."%c[red_sms]Молодец, $actor$! Приятно видеть, что в Зоне есть добрые люди!".."".."\n", nil, nil, 30000)
 		-- Звуковое сопровождение
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 7 then
 		news_manager.send_tip("%c[gray2]".."ДОКТОР:".."\\n".."%c[red_sms]Продолжай в том же духе, друг мой!".."".."\n", nil, nil, 30000)
 		-- Звуковое сопровождение
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	elseif cnt == 10 then
 		news_manager.send_tip("%c[gray2]".."ДОКТОР:".."\\n".."%c[red_sms]$actor$, ты справился с моим поручением и показал, что на тебя можно положиться. Жду тебя в гости, есть кое-что интересное.".."".."\n", nil, nil, 30000)
 		-- Звуковое сопровождение
 		local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
-		snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-		db.actor:give_info_portion("doktor_lekar1_have")
+		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		Actor:give_info_portion("doktor_lekar1_have")
 	elseif cnt == 20 then
-		db.actor:give_info_portion("acv_lekar")
+		Actor:give_info_portion("acv_lekar")
 	elseif cnt == 30 then
-		db.actor:give_info_portion("acv_lekar2")
+		Actor:give_info_portion("acv_lekar2")
 		amk.del_variable("lekar")
 		return
 	end
@@ -1940,14 +1939,14 @@ function strelok_taynik_pda3_done(first_speaker, second_speaker)
 end
 function strelok_taynik_pda3_drop()
     this.delete_s_teleport3_2()
-	local se_obj = db.actor:object("strelok_taynik_pda3_1")
-	amk.drop_item(db.actor,se_obj)
+	local se_obj = Actor:object("strelok_taynik_pda3_1")
+	amk.drop_item(Actor,se_obj)
 	amk.remove_item(se_obj)
-	se_obj = db.actor:object("strelok_taynik_pda3_2")
-	amk.drop_item(db.actor,se_obj)
+	se_obj = Actor:object("strelok_taynik_pda3_2")
+	amk.drop_item(Actor,se_obj)
 	amk.remove_item(se_obj)
-	se_obj = db.actor:object("strelok_taynik_pda3_3")
-	amk.drop_item(db.actor,se_obj)
+	se_obj = Actor:object("strelok_taynik_pda3_3")
+	amk.drop_item(Actor,se_obj)
 	amk.remove_item(se_obj)
 end
 
@@ -1981,10 +1980,10 @@ end
 
 function spawn_s_teleport1_2()
     local se_obj = AI:create("s_teleport1_2",vector():set(207.23626708984,17.963800430298,48.94217300415),260660,2145)
-	xr_logic.pstor_store(db.actor, "s_teleport1_2", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport1_2", se_obj.id)		  
 end
 function delete_s_teleport1_2()
-	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport1_2", -1, true)
+	local obj_id = xr_logic.pstor_retrieve(Actor, "s_teleport1_2", -1, true)
 	local se_obj = AI : object(obj_id)
 	if se_obj then
 		AI:release(se_obj, true)
@@ -1992,28 +1991,28 @@ function delete_s_teleport1_2()
 end
 function spawn_s_teleport1_3_1()
     local se_obj = AI:create("s_teleport1_3_1",vector():set(98.162727355957,28.547431945801,38.083969116211),225595,2143)
-	xr_logic.pstor_store(db.actor, "s_teleport1_3_1", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport1_3_1", se_obj.id)		  
 end
 function spawn_s_teleport1_3_2()
     local se_obj = AI:create("s_teleport1_3_2",vector():set(-17.820304870605,13.85008430481,11.088830947876),81517,2160)
-	xr_logic.pstor_store(db.actor, "s_teleport1_3_2", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport1_3_2", se_obj.id)		  
 end
 function spawn_s_teleport1_4()
     local se_obj = AI:create("s_teleport1_4",vector():set(-90.959411621094,13.623492240906,28.934303283691),7528,2253)
-	xr_logic.pstor_store(db.actor, "s_teleport1_4", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport1_4", se_obj.id)		  
 end
 function spawn_s_teleport1_5()
     local se_obj = AI:create("s_teleport1_5",vector():set(43.850486755371,11.828426361084,37.138198852539),155631,2225)
 	-- нигде не используется, лишний мусор в псторе
-	--xr_logic.pstor_store(db.actor, "s_teleport1_5", se_obj.id)		  
+	--xr_logic.pstor_store(Actor, "s_teleport1_5", se_obj.id)		  
 end
 
 function spawn_s_teleport3_2()
     local se_obj = AI:create("s_teleport3_2",vector():set(-150.38586425781,-5.7839937210083,-278.90524291992),6896,3238)
-	xr_logic.pstor_store(db.actor, "s_teleport3_2", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport3_2", se_obj.id)		  
 end
 function delete_s_teleport3_2()
-	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport3_2", -1, true)
+	local obj_id = xr_logic.pstor_retrieve(Actor, "s_teleport3_2", -1, true)
 	local se_obj = AI:object(obj_id)
 	if se_obj then
 	  AI:release(se_obj, true)
@@ -2022,10 +2021,10 @@ end
 
 function spawn_s_teleport4_1()
     local se_obj = AI:create("s_teleport4_1",vector():set(308.16702270508,-37.625602722168,-21.087753295898),69058,1930)
-	xr_logic.pstor_store(db.actor, "s_teleport4_1", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport4_1", se_obj.id)		  
 end
 function delete_s_teleport4_1()
-	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport4_1", -1, true)
+	local obj_id = xr_logic.pstor_retrieve(Actor, "s_teleport4_1", -1, true)
 	local se_obj = AI:object(obj_id)
 	if se_obj then
 	  AI:release(se_obj, true)
@@ -2034,10 +2033,10 @@ end
 
 function spawn_s_teleport0_1()
     local se_obj = AI:create("s_teleport0_1",vector():set(-1.5840334892273,5.1518805027008,-44.498065948486),10089,1961)
-	xr_logic.pstor_store(db.actor, "s_teleport0_1", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "s_teleport0_1", se_obj.id)		  
 end
 function delete_s_teleport0_1()
-	local obj_id = xr_logic.pstor_retrieve(db.actor, "s_teleport0_1", -1, true)
+	local obj_id = xr_logic.pstor_retrieve(Actor, "s_teleport0_1", -1, true)
 	local se_obj = AI : object(obj_id)
 	if se_obj then
 	  AI:release(se_obj, true)
@@ -2047,16 +2046,16 @@ end
 function checking_taken_item59(obj)
   local obj_sect = obj:section()
   if string.find(obj_sect,"kostya_taynik_pda1_") then
-	db.actor:give_info_portion("kostya_taynik_pda_have_1_"..string.sub(obj_sect,string.find(obj_sect,"1_")+2))
+	Actor:give_info_portion("kostya_taynik_pda_have_1_"..string.sub(obj_sect,string.find(obj_sect,"1_")+2))
 	if not has_alife_info("kostya_taynik_pda1_tele") then 
 	  news_manager.send_tip("На полях пометка: Чтобы не забыть - телепорт находится в комнате над гастрономом, в которую нельзя попасть по основной лестнице.", nil, nil, 30000)
 	  this.spawn_t_teleport1_1()
-	  db.actor:give_info_portion("kostya_taynik_pda1_tele")
+	  Actor:give_info_portion("kostya_taynik_pda1_tele")
 	end
 	if obj_sect=="kostya_taynik_pda1_2" then 
 	  if not has_alife_info("kostya_taynik_pda1_2_xvatit_spawn") then 
 	    news_manager.send_tip("Внизу примечание: Тайник на первом этаже - в одном из соседних домов.", nil, nil, 30000)
-	    db.actor:give_info_portion("kostya_taynik_pda1_2_xvatit_spawn")
+	    Actor:give_info_portion("kostya_taynik_pda1_2_xvatit_spawn")
 	  end
 	end
     if has_alife_info("kostya_taynik_pda_have_1_1") and has_alife_info("kostya_taynik_pda_have_1_2") and has_alife_info("kostya_taynik_pda_have_1_3") and has_alife_info("kostya_taynik_pda_have_1_4") and has_alife_info("kostya_taynik_pda_have_1_5") then
@@ -2064,7 +2063,7 @@ function checking_taken_item59(obj)
 	    this.delete_t_teleport1_1()
 	    this.spawn_t_teleport1_2()
 	    news_manager.send_tip("В углу надпись: Телепорт на крышу - на разрушенной лестнице в кинотеатре.", nil, nil, 30000)
-        db.actor:give_info_portion("kostya_taynik_pda1_have")
+        Actor:give_info_portion("kostya_taynik_pda1_have")
 	  end
 	end
   end
@@ -2089,7 +2088,7 @@ function t_inventory_box21()
 end
 function kostya_taynik_pda21_have(task, objective)
 	if inventory.search("kostya_taynik_pda21",18) then
-		db.actor:give_info_portion("kostya_taynik_pda21_have")
+		Actor:give_info_portion("kostya_taynik_pda21_have")
 		return true
 	else
 		return false
@@ -2167,7 +2166,7 @@ function t_inventory_box2()
 end
 function kostya_taynik_pda2_have(task, objective)
 	if inventory.search("kostya_taynik_pda2", 1) then
-		db.actor:give_info_portion("kostya_taynik_pda2_have")
+		Actor:give_info_portion("kostya_taynik_pda2_have")
 		return true
 	else
 		return false
@@ -2185,11 +2184,11 @@ function t_inventory_box3()
 end
 function kostya_taynik_pda3_have(task, objective)
 	for i=1,4 do
-		if db.actor:object("kostya_taynik_pda3_"..i) == nil then
+		if Actor:object("kostya_taynik_pda3_"..i) == nil then
 			return false
 		end
 	end
-	db.actor:give_info_portion("kostya_taynik_pda3_have")
+	Actor:give_info_portion("kostya_taynik_pda3_have")
 	return true
 end
 function kostya_taynik_pda3_done(first_speaker, second_speaker)
@@ -2204,7 +2203,7 @@ function t_inventory_box4()
 end
 function kostya_taynik_pda4_have(task, objective)
 	if inventory.search("kostya_taynik_pda4", 1) then
-		db.actor:give_info_portion("kostya_taynik_pda4_have")
+		Actor:give_info_portion("kostya_taynik_pda4_have")
 		return true
 	else
 		return false
@@ -2219,7 +2218,7 @@ function t_inventory_box5()
 end
 function kostya_taynik_pda5_have(task, objective)
 	if inventory.search("kostya_taynik_pda5", 1) then
-		db.actor:give_info_portion("kostya_taynik_pda5_have")
+		Actor:give_info_portion("kostya_taynik_pda5_have")
 		return true
 	else
 		return false
@@ -2237,7 +2236,7 @@ function kostya_taynik_pda6_have(task, objective)
 	if inventory.search("kostya_taynik_pda6_1", 1)
 		and inventory.search("kostya_taynik_pda6_2", 1)
 	then
-		db.actor:give_info_portion("kostya_taynik_pda6_have")
+		Actor:give_info_portion("kostya_taynik_pda6_have")
 		return true
 	end
 	return false
@@ -2252,7 +2251,7 @@ function t_inventory_box7()
 end
 function kostya_taynik_pda7_have(task, objective)
 	if inventory.search("kostya_taynik_pda7", 1) then
-		db.actor:give_info_portion("kostya_taynik_pda7_have")
+		Actor:give_info_portion("kostya_taynik_pda7_have")
 		return true
 	else
 		return false
@@ -2267,7 +2266,7 @@ function t_inventory_box8()
 end
 function kostya_taynik_pda8_have(task, objective)
 	if inventory.search("kostya_taynik_pda8", 1) then
-		db.actor:give_info_portion("kostya_taynik_pda8_have")
+		Actor:give_info_portion("kostya_taynik_pda8_have")
 		return true
 	end
 	return false
@@ -2282,8 +2281,8 @@ function t_inventory_box9()
   taynik_spawn.t_new_inventory9_3()
 end
 function kostya_taynik_pda9_have(task, objective)
-	if db.actor:object("kostya_taynik_pda9_1") ~= nil and db.actor:object("kostya_taynik_pda9_2") ~= nil and db.actor:object("kostya_taynik_pda9_3") ~= nil then
-		db.actor:give_info_portion("kostya_taynik_pda9_have")
+	if Actor:object("kostya_taynik_pda9_1") ~= nil and Actor:object("kostya_taynik_pda9_2") ~= nil and Actor:object("kostya_taynik_pda9_3") ~= nil then
+		Actor:give_info_portion("kostya_taynik_pda9_have")
 		return true
 	else
 		return false
@@ -2303,8 +2302,8 @@ function t_inventory_box10()
   spawn_restrictor.kostya_taynik_pda10_sr1()
 end
 function kostya_taynik_pda10_have(task, objective)
-	if db.actor:object("kostya_taynik_pda10_1") ~= nil and db.actor:object("kostya_taynik_pda10_2") ~= nil and db.actor:object("kostya_taynik_pda10_3") ~= nil and db.actor:object("kostya_taynik_pda10_4") ~= nil then
-		db.actor:give_info_portion("kostya_taynik_pda10_have")
+	if Actor:object("kostya_taynik_pda10_1") ~= nil and Actor:object("kostya_taynik_pda10_2") ~= nil and Actor:object("kostya_taynik_pda10_3") ~= nil and Actor:object("kostya_taynik_pda10_4") ~= nil then
+		Actor:give_info_portion("kostya_taynik_pda10_have")
 		return true
 	else
 		return false
@@ -2323,15 +2322,15 @@ function t_inventory_box11()
   obj = AI:create("t_inventory_box11_3",vector():set(6.5773458480835,8.061222076416,138.07514953613),109702,2147)
 end
 function kostya_taynik_pda11_have(task, objective)
-	if db.actor:object("kostya_taynik_pda11_1") ~= nil and db.actor:object("kostya_taynik_pda11_2") ~= nil and db.actor:object("kostya_taynik_pda11_3") ~= nil then
-		db.actor:give_info_portion("kostya_taynik_pda11_have")
+	if Actor:object("kostya_taynik_pda11_1") ~= nil and Actor:object("kostya_taynik_pda11_2") ~= nil and Actor:object("kostya_taynik_pda11_3") ~= nil then
+		Actor:give_info_portion("kostya_taynik_pda11_have")
 		return true
 	else
 		return false
 	end
 end
 function kostya_taynik_pda11_done(first_speaker, second_speaker)
-  db.actor:give_info_portion("ktdt1")
+  Actor:give_info_portion("ktdt1")
 --  news_manager.send_tip("Найдена информация.", nil, nil, 20000)
   this.spawn_x_teleport1()
   dialogs.relocate_item_section(second_speaker, "kostya_taynik_pda11_1", "out")
@@ -2341,10 +2340,10 @@ end
 
 function spawn_t_teleport1_1()
     local se_obj = AI:create("t_teleport1_1",vector():set(190.83657836914,2.7860803604126,217.42588806152),260274,2219)
-	xr_logic.pstor_store(db.actor, "t_teleport1_1", se_obj.id)		  
+	xr_logic.pstor_store(Actor, "t_teleport1_1", se_obj.id)		  
 end
 function delete_t_teleport1_1()
-	local obj_id = xr_logic.pstor_retrieve(db.actor, "t_teleport1_1", -1, true)
+	local obj_id = xr_logic.pstor_retrieve(Actor, "t_teleport1_1", -1, true)
 	local se_obj = AI:object(obj_id)
 if se_obj then
   AI:release(se_obj, true)
@@ -2353,34 +2352,34 @@ end
 function spawn_t_teleport1_2()
     local se_obj = AI:create("t_teleport1_2",vector():set(23.953285217285,10.699913024902,162.15838623047),131398,2199)
 	-- нигде не используется, лишний мусор в псторе
---	xr_logic.pstor_store(db.actor, "t_teleport1_2", se_obj.id)		  
+--	xr_logic.pstor_store(Actor, "t_teleport1_2", se_obj.id)		  
 end
 
 function spawn_t_teleport4_1()
     local se_obj = AI:create("t_teleport4_1",vector():set(-50.95,-29.72,-139.41),796684,2897)
 	-- нигде не используется, лишний мусор в псторе
---	xr_logic.pstor_store(db.actor, "t_teleport4_1", se_obj.id)		  
+--	xr_logic.pstor_store(Actor, "t_teleport4_1", se_obj.id)		  
 end
 
 function spawn_x_teleport1()
     local se_obj = AI:create("x_teleport1",vector():set(9.4039793014526,11.447186470032,90.041458129883),114619,2142)
-	xr_logic.pstor_store(db.actor, "x_teleport1", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport1", se_obj.id)
 	spawn_restrictor.ktdt1_sr1()
 end
 function spawn_x_teleport2()
     local se_obj = AI:create("x_teleport2",vector():set(-15.461825370789,-3.8673331737518,-5.0735273361206),283384,1593)
-	xr_logic.pstor_store(db.actor, "x_teleport2", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport2", se_obj.id)
 	spawn_restrictor.ktdt2_sr1()
 end
 function spawn_x_teleport3()
     local se_obj = AI:create("x_teleport3",vector():set(47.420116424561,-2.4642562866211,-209.0924987793),63669,1469)
-	xr_logic.pstor_store(db.actor, "x_teleport3", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport3", se_obj.id)
     se_obj = AI:create("x_teleport3_1",vector():set(-47.345569610596,0.74647736549377,-160.83731079102),16808,1490)
-	xr_logic.pstor_store(db.actor, "x_teleport3_1", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport3_1", se_obj.id)
     se_obj = AI:create("x_teleport3_2",vector():set(-25.791805267334,0.7459944486618,-150.2300567627),16808,1490)
-	xr_logic.pstor_store(db.actor, "x_teleport3_2", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport3_2", se_obj.id)
     se_obj = AI:create("x_teleport3_3",vector():set(-67.088394165039,1.2463047504425,-154.01571655273),15216,1490)
-	xr_logic.pstor_store(db.actor, "x_teleport3_3", se_obj.id)
+	xr_logic.pstor_store(Actor, "x_teleport3_3", se_obj.id)
     se_obj = AI:create("x_inventory_box3",vector():set(-27.107929229736,0.74637401103973,-160.10646057129),16808,1490)
 	spawn_restrictor.ktdt3_sr1()
 end
@@ -2391,12 +2390,12 @@ function taynik_kostya2_call()
 	  news_manager.send_tip("%c[gray2]КОСТЯ:\\n%c[red_sms]$actor$! Будешь в наших краях, заходи, есть кое-что интересное.", nil, nil, 30000)
 	  -- Звуковое сопровождение
 	  local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
-      snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+      snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	end
 end
 
 function esc_pda_have(task, objective)
-	return db.actor:object("kostya_pda") ~= nil
+	return Actor:object("kostya_pda") ~= nil
 end
 
 function esc_pda_done(first_speaker, second_speaker)
@@ -2405,7 +2404,7 @@ function esc_pda_done(first_speaker, second_speaker)
 end
 
 function esc_art_have(task, objective)
-	return db.actor:object("kostya_af_gold_fish") ~= nil
+	return Actor:object("kostya_af_gold_fish") ~= nil
 end
 
 function esc_art_done(first_speaker, second_speaker)
@@ -2415,7 +2414,7 @@ end
 
 
 function esc_pda2_have(task, objective)
-	return db.actor:object("kostya_pda2") ~= nil
+	return Actor:object("kostya_pda2") ~= nil
 end
 
 function esc_pda2_done(first_speaker, second_speaker)
@@ -2424,7 +2423,7 @@ end
 
 
 function esc_pda3_have(task, objective)
-	return db.actor:object("kostya_pda3") ~= nil
+	return Actor:object("kostya_pda3") ~= nil
 end
 
 function esc_pda3_done(first_speaker, second_speaker)
@@ -2433,7 +2432,7 @@ end
 
 
 function esc_pda4_have(task, objective)
-	return db.actor:object("kostya_pda4") ~= nil
+	return Actor:object("kostya_pda4") ~= nil
 end
 
 function esc_pda4_done(first_speaker, second_speaker)
@@ -2442,7 +2441,7 @@ end
 
 
 function esc_pda5_have(task, objective)
-	return db.actor:object("kostya_pda5") ~= nil
+	return Actor:object("kostya_pda5") ~= nil
 end
 
 function esc_pda5_done(first_speaker, second_speaker)
@@ -2451,7 +2450,7 @@ end
 
 
 function esc_pda6_have(task, objective)
-	return db.actor:object("kostya_pda6") ~= nil
+	return Actor:object("kostya_pda6") ~= nil
 end
 
 function esc_pda6_done(first_speaker, second_speaker)
@@ -2460,7 +2459,7 @@ end
 
 
 function esc_pda7_have(task, objective)
-	return db.actor:object("kostya_pda7") ~= nil
+	return Actor:object("kostya_pda7") ~= nil
 end
 
 function esc_pda7_done(first_speaker, second_speaker)
@@ -2469,7 +2468,7 @@ end
 
 
 function esc_pda8_have(task, objective)
-	return db.actor:object("kostya_pda8") ~= nil
+	return Actor:object("kostya_pda8") ~= nil
 end
 
 function esc_pda8_done(first_speaker, second_speaker)
@@ -2478,7 +2477,7 @@ end
 
 
 function esc_pda9_have(task, objective)
-	return db.actor:object("kostya_pda9") ~= nil
+	return Actor:object("kostya_pda9") ~= nil
 end
 
 function esc_pda9_done(first_speaker, second_speaker)
@@ -2487,7 +2486,7 @@ end
 
 
 function sacharov_pda_have(task, objective)
-	return db.actor:object("pda_vasilyev") ~= nil
+	return Actor:object("pda_vasilyev") ~= nil
 end
 
 function sacharov_pda_done(first_speaker, second_speaker)
@@ -2495,7 +2494,7 @@ function sacharov_pda_done(first_speaker, second_speaker)
 end
 
 function kostya_art2_have(task, objective)
-	return db.actor:object("af_dummy_battery") ~= nil
+	return Actor:object("af_dummy_battery") ~= nil
 end
 
 function kostya_art2_done(first_speaker, second_speaker)
@@ -2530,7 +2529,7 @@ function probability_05()
 end
 
 function actor_has_money_100000()
-  return db.actor:money()>=100000
+  return Actor:money()>=100000
 end
 function give_money_100000(t1,t2)
   local npc=t1
@@ -2541,7 +2540,7 @@ function give_money_100000(t1,t2)
 end
 
 function actor_has_money_40000()
-  return db.actor:money()>=40000
+  return Actor:money()>=40000
 end
 function give_money_40000(t1,t2)
   local npc=t1
@@ -2552,7 +2551,7 @@ function give_money_40000(t1,t2)
 end
 
 function actor_has_money_20000()
-  return db.actor:money()>=20000
+  return Actor:money()>=20000
 end
 function give_money_20000(t1,t2)
   local npc=t1
@@ -2570,10 +2569,10 @@ function actor_in_money_190000()
 end
 
 function actor_has_money_200000()
-  return db.actor:money() >= 200000
+  return Actor:money() >= 200000
 end
 function actor_dont_has_money_200000()
-  return db.actor:money() < 200000
+  return Actor:money() < 200000
 end
 function give_money_200000(t1,t2)
   local npc=t1
@@ -2584,10 +2583,10 @@ function give_money_200000(t1,t2)
 end
 
 function actor_has_money_20000()
-  return db.actor:money() >= 20000
+  return Actor:money() >= 20000
 end
 function actor_dont_has_money_20000()
-  return db.actor:money() < 20000
+  return Actor:money() < 20000
 end
 function give_money_20000(t1,t2)
   local npc=t1
@@ -2598,10 +2597,10 @@ function give_money_20000(t1,t2)
 end
 
 function actor_has_money_25000()
-  return db.actor:money() >= 25000
+  return Actor:money() >= 25000
 end
 function actor_dont_has_money_25000()
-  return db.actor:money() < 25000
+  return Actor:money() < 25000
 end
 function give_money_25000(t1,t2)
   local npc=t1

@@ -413,14 +413,14 @@ function gulag:update()
 	self:update_objs()
 	self:update_beginning_jobs()
 
-	if self.calculateStates ~= nil and db.actor then
+	if self.calculateStates ~= nil and Actor then
 		self:changeState(self.calculateStates(self))
 	end
 
 	self:updateJob()
 	self:update_beginning_jobs()
 
-	self:print()
+	-- self:print()
 end
 
 -- убирает мёртвых.
@@ -539,7 +539,7 @@ function gulag:obj1_job_suits_obj2( obj_id, npc_info )
 
 	if not job then
 		printf( "job=nil! obj=%s obj_id=%d", self.npc_info[obj_id].name, obj_id )
-		self:print()
+		-- self:print()
 	end
 
 	return not job.predicate or job.predicate( npc_info, self )
@@ -863,7 +863,7 @@ end
 -- obj=game_object
 function gulag:setup_logic( obj, section )
 	xr_logic.configure_schemes( obj, self.ltx, self.ltx_name, self:get_stype(obj:id()), section, self.name )
-	local sect = xr_logic.determine_section_to_activate( obj, self.ltx, section, db.actor )
+	local sect = xr_logic.determine_section_to_activate( obj, self.ltx, section, Actor )
 
 	if utils.get_scheme_by_section( section ) == "nil" then
 		abort( "[smart_terrain %s] section=%s, don't use section 'nil'!", self:name(), sect )
@@ -1087,7 +1087,7 @@ function gulag:free_obj_and_reinit( obj_id )
 
 	local t = self.Object[obj_id]
 	if t ~= nil and t ~= true and self.Object_begin_job[obj_id] then
-		xr_logic.initialize_obj( t, nil, false, db.actor, self:get_stype( obj_id ) )
+		xr_logic.initialize_obj( t, nil, false, Actor, self:get_stype( obj_id ) )
 	end
 end
 
@@ -1188,7 +1188,7 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 			
 			if not strn or strn:clsid() ~= clsid.smart_terrain then
 				local se_obj = AI:object(obj:id())
-				get_console():execute("load ~~~ xr_gulag.script: Обнаружена привязка к несуществующему smart_terrain: "..se_obj:name()..", smart_terrain_id: "..tostring(strn_id)..". Привязка удалена.")
+				log("~ [xr_gulag.setup_gulag_and_logic_on_spawn]: Обнаружена привязка к несуществующему smart_terrain: %s, smart_terrain_id: %s. Привязка удалена.", se_obj:name(), tostring(strn_id))
 				se_obj:clear_smart_terrain()
 				-- sim_statistic.remove(se_obj) -- эта статистка не нужна
 				strn_id = 65535
@@ -1196,7 +1196,7 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 		end
 		-- //
 
-		printf( "setup_gulag_and_logic_on_spawn obj=%s, strn_id=%s", obj:name(), tostring(strn_id) )
+		-- printf( "setup_gulag_and_logic_on_spawn obj=%s, strn_id=%s", obj:name(), tostring(strn_id) )
 
 		if strn_id ~= 65535 then
 			local strn                   = AI:object( strn_id )
@@ -1208,13 +1208,13 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 			strn.gulag:object_setup_online( obj:id(), obj, need_setup_logic, need_setup_restrictors )
 
 			if not need_setup_logic then
-				xr_logic.initialize_obj(obj, st, loaded, db.actor, stype)
+				xr_logic.initialize_obj(obj, st, loaded, Actor, stype)
 			end
 		else
-			xr_logic.initialize_obj(obj, st, loaded, db.actor, stype)
+			xr_logic.initialize_obj(obj, st, loaded, Actor, stype)
 		end
 	else
-		xr_logic.initialize_obj(obj, st, loaded, db.actor, stype)
+		xr_logic.initialize_obj(obj, st, loaded, Actor, stype)
 	end
 end
 
@@ -1269,6 +1269,13 @@ function get_npc_gulag( obj )
 	end
 end
 
+function get_npc_gulag_name(obj)
+	local gg = get_npc_gulag(obj)
+	if gg then
+		return gg.name
+	end
+	return "nil"
+end
 -- получить кол-во населения смарта по имени
 function getGulagPopulation( name_or_sid )
 	local gulag = get_gulag( name_or_sid )
@@ -1322,7 +1329,7 @@ end
 -- освободить персонажа от работы.
 -- obj=game_object
 function resetJob( obj )
-	printf( "gulag resetJob: obj=%s", obj:name() )
+	-- printf( "gulag resetJob: obj=%s", obj:name() )
 
 	local gulag = get_npc_gulag( obj )
 	if gulag then

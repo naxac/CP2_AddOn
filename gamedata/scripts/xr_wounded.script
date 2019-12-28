@@ -112,7 +112,7 @@ function action_wounded:execute ()
 
 	local victim = nil  
 	if wound_manager_victim == "actor" then
-		victim = db.actor
+		victim = Actor
 	elseif tostring(wound_manager_victim) == "nil" then
 		victim = nil
 	else
@@ -189,7 +189,7 @@ function action_wounded:execute ()
 		h.power = 0
 		h.direction = self.object:direction()
 		h.bone = "bip01_spine"
-		h.draftsman = db.actor
+		h.draftsman = Actor
 		h.impulse = 0
 		h.type = hit.wound
 		self.object:hit(h)    
@@ -235,7 +235,7 @@ function action_wounded:execute ()
 
 	local tt = db.storage[self.object:id()]
 	if tt.active_scheme and not self.object:is_talking() then
-		if xr_logic.try_switch_to_another_section(self.object, tt[tt.active_scheme], db.actor) then
+		if xr_logic.try_switch_to_another_section(self.object, tt[tt.active_scheme], Actor) then
 			return
 		end
 	end
@@ -341,7 +341,7 @@ function Cwound_manager:process_fight(hp)
 	key = self:get_key_from_distance(self.a.hp_fight, hp)
 	if key ~= nil then
 		if self.a.hp_fight[key].state then
-			return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_fight[key].state))
+			return tostring(xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_fight[key].state))
 		end
 	end   
 	return "true"
@@ -352,7 +352,7 @@ function Cwound_manager:process_cover(hp)
 	key = self:get_key_from_distance(self.a.hp_cover, hp)
 	if key ~= nil then
 		if self.a.hp_cover[key].state then
-			return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_cover[key].state))
+			return tostring(xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_cover[key].state))
 		end
 	end		
 	return "nil"	--"true"
@@ -363,7 +363,7 @@ function Cwound_manager:process_victim(hp)
 	key = self:get_key_from_distance(self.a.hp_victim, hp)
 	if key ~= nil then
 		if self.a.hp_victim[key].state then
-			return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_victim[key].state))
+			return tostring(xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_victim[key].state))
 		end
 	end   
 	return "nil"
@@ -374,19 +374,19 @@ function Cwound_manager:process_hp_wound(hp)
 	key = self:get_key_from_distance(self.a.hp_state, hp)
 	if key ~= nil then
 		local r1,r2
-		if self.npc:see(db.actor) then
+		if self.npc:see(Actor) then
 			if self.a.hp_state_see[key].state then
-				r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_state_see[key].state)
+				r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_state_see[key].state)
 			end
 			if self.a.hp_state_see[key].sound then
-				r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_state_see[key].sound)
+				r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_state_see[key].sound)
 			end
 		else
 			if self.a.hp_state[key].state then
-				r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_state[key].state)
+				r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_state[key].state)
 			end
 			if self.a.hp_state[key].sound then
-				r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.hp_state[key].sound)
+				r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.hp_state[key].sound)
 			end
 		end
 		return tostring(r1),tostring(r2)
@@ -400,10 +400,10 @@ function Cwound_manager:process_psy_wound(hp)
 	if key ~= nil then
 		local r1,r2
 		if self.a.psy_state[key].state then
-			r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.psy_state[key].state)
+			r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.psy_state[key].state)
 		end
 		if self.a.psy_state[key].sound then
-			r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.psy_state[key].sound)
+			r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.psy_state[key].sound)
 		end
 		return tostring(r1),tostring(r2)
 	end   

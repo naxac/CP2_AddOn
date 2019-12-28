@@ -135,7 +135,7 @@ local no_show_sections = {
 }
 function get_actor_items()
 	local items = {}
-	db.actor:iterate_inventory( function(actor, item)
+	Actor:iterate_inventory( function(actor, item)
 		if actor:is_in_slot(item) then
 			local slot = item:get_slot()
 			if slot == inventory_slots.BOLT
@@ -153,7 +153,7 @@ function get_actor_items()
 		end
 		table.insert(items, item)
 	end,
-	db.actor)
+	Actor)
 	return items
 end
 ----------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ local function spawn_callback(params, id, obj)
 		obj:set_ammo_elapsed(params.ammo)
 	end
 	if params.return_to_actor then
-		db.actor:transfer_item(obj, db.actor)
+		Actor:transfer_item(obj, Actor)
 	end
 end
 
@@ -185,8 +185,8 @@ function take_all_from_box(box)
 			for i, t in ipairs(stor) do
 				local ret = (t.af and t.af~=0)
 				if ret then
-					local spawn_pos = db.actor:position():add(vector():set(2, 2, 2))
-					sobj = AI:create(t.s, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+					local spawn_pos = Actor:position():add(vector():set(2, 2, 2))
+					sobj = AI:create(t.s, spawn_pos, Actor:level_vertex_id(), Actor:game_vertex_id())
 				elseif t.al then
 					sobj = AI:create_ammo(t.s, vector():set(0,0,0), 0, 0, 0, t.al)
 				else

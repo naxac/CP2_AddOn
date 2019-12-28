@@ -229,15 +229,15 @@ function getNpcType(npc)
 		
 		if string.find(section, "gigant") then
 			archievements.acv_count_event("acv_gob", 50, "Гоблин")
-		elseif string.find(section, "chimera") and db.actor:active_slot() == inventory_slots.KNIFE then
+		elseif string.find(section, "chimera") and Actor:active_slot() == inventory_slots.KNIFE then
 			archievements.acv_count_event("acv_ukro", 50, "Укротитель хищников")
 		elseif string.find(section, "rat") then
 			archievements.acv_count_event("acv_krs", 100, "Крысолов")
-		elseif string.find(section, "bloodsucker") and db.actor:active_slot() == inventory_slots.KNIFE then
+		elseif string.find(section, "bloodsucker") and Actor:active_slot() == inventory_slots.KNIFE then
 			archievements.acv_count_event("acv_gum", 50, "Гуманоид")  
 		elseif string.find(section, "vodjanoj") then
 			archievements.acv_count_event("acv_bbk", 40, "Буль-буль карасики") 
-		elseif string.find(section, "deathclaw") and db.actor:active_slot() == inventory_slots.KNIFE then
+		elseif string.find(section, "deathclaw") and Actor:active_slot() == inventory_slots.KNIFE then
 			archievements.acv_count_event("acv_tigr", 10, "Саблезубый тигр")  
 		elseif string.find(section, "controller") then
 			archievements.acv_count_event("acv_mgvd", 50, "Мозговед") 
@@ -308,15 +308,6 @@ function getNpcType(npc)
 
 		return "monsterkills", community
 	end	
-end
-
-function get_monster_name(section)
-	for _,k in ipairs(monster_types) do
-		if string.find(section, k) then
-			return k
-		end
-	end
-	return nil
 end
 
 function addKillCount(npc)
@@ -539,15 +530,15 @@ end
 
 function add_actor_rank(value)
 --	local rank = ranks.change_actor_rank( value )
-	local rank = db.actor:character_rank() + value
-    db.actor:set_character_rank( rank )
+	local rank = Actor:character_rank() + value
+    Actor:set_character_rank( rank )
 	
 	if rank >= 10000 and rank < 10100 then
-		db.actor:give_info_portion("acv_rank1")
+		Actor:give_info_portion("acv_rank1")
 	elseif rank >= 30000 and rank < 30100 then
-		db.actor:give_info_portion("acv_rank2")
+		Actor:give_info_portion("acv_rank2")
 	elseif rank >= 50000 and rank < 50100 then
-		db.actor:give_info_portion("acv_rank3")
+		Actor:give_info_portion("acv_rank3")
 	end
 end
 ----------------------------------------------------------------------------------------------
@@ -568,7 +559,7 @@ function addArtefact(art_id, art_section)
 	if stat_arts_ids[art_id]==nil then
 		stat_arts_ids[art_id] = true
 		-- если получили арт при разговоре, то не считаем
-		if db.actor:is_talking() then return end
+		if Actor:is_talking() then return end
 
 		actor_stats.add_points("artefacts", get_inv_name(art_section), 1, 1)
 		add_actor_rank( get_af_rank(art_section) )

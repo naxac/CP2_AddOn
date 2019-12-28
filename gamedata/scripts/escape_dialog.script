@@ -7,9 +7,9 @@ local weapon_profit_margin = 4
 local armor_profit_margin = 1.5
 
 function trader_repair_precond(trader, actor)
-	local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
-	local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
-	local item_in_slot_6 = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot_6 = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot_1 ~= nil and 1 > item_in_slot_1:condition() + 0.01 then return true
 	elseif item_in_slot_2 ~= nil and 1 > item_in_slot_2:condition() + 0.01 then return true
 	elseif item_in_slot_6 ~= nil and 1 > item_in_slot_6:condition() + 0.01 then return true
@@ -18,10 +18,10 @@ function trader_repair_precond(trader, actor)
 end
 
 function trader_check_money_s1(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then 
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
 			return true
 		end 
 	end
@@ -29,10 +29,10 @@ function trader_check_money_s1(trader, actor)
 end
 
 function trader_check_money_s2(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then 
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
 			return true
 		end 
 	end
@@ -40,10 +40,10 @@ function trader_check_money_s2(trader, actor)
 end
 
 function trader_check_money_s6(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then 
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
 			return true
 		end 
 	end
@@ -51,7 +51,7 @@ function trader_check_money_s6(trader, actor)
 end
 
 function trader_repiar_weapon_s1(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.PISTOL )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.PISTOL )
 	if item_in_slot ~= nil then
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
 		item_in_slot:set_condition(1)
@@ -60,7 +60,7 @@ function trader_repiar_weapon_s1(trader, actor)
 end
 
 function trader_repiar_weapon_s2(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.RIFLE )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.RIFLE )
 	if item_in_slot ~= nil then
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * weapon_profit_margin )
 		item_in_slot:set_condition(1)
@@ -69,7 +69,7 @@ function trader_repiar_weapon_s2(trader, actor)
 end
 
 function trader_repiar_armor_s6(trader, actor)
-	local item_in_slot = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	local item_in_slot = Actor:item_in_slot( inventory_slots.OUTFIT )
 	if item_in_slot ~= nil then
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
 		amk_mod.repair_armor(1)
@@ -82,30 +82,30 @@ function repair_costs(first_speaker, second_speaker)
 	
 	local item_name_and_price = ""
 	local item_repair_cost = 0
-	if db.actor ~= nil then 
-		local item_in_slot_1 = db.actor:item_in_slot( inventory_slots.PISTOL )
-		local item_in_slot_2 = db.actor:item_in_slot( inventory_slots.RIFLE )
-		local item_in_slot_6 = db.actor:item_in_slot( inventory_slots.OUTFIT )
+	if Actor ~= nil then 
+		local item_in_slot_1 = Actor:item_in_slot( inventory_slots.PISTOL )
+		local item_in_slot_2 = Actor:item_in_slot( inventory_slots.RIFLE )
+		local item_in_slot_6 = Actor:item_in_slot( inventory_slots.OUTFIT )
 	
 		if item_in_slot_1 ~= nil then 
 			item_repair_cost = math.floor( (1-item_in_slot_1:condition()) * item_in_slot_1:cost() * weapon_profit_margin )
 			if item_repair_cost > 0 then
 				item_name_and_price = game.translate_string("list_trader_repair_0").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]"
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 			end
 		end
 		if item_in_slot_2 ~= nil then
 			item_repair_cost = math.floor( (1-item_in_slot_2:condition()) * item_in_slot_2:cost() * weapon_profit_margin )
 			if item_repair_cost > 0 then
 				item_name_and_price = game.translate_string("list_trader_repair_1").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]"
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 			end
 		end
 		if item_in_slot_6 ~= nil then
 			item_repair_cost = math.floor( (1-item_in_slot_6:condition()) * item_in_slot_6:cost() * armor_profit_margin )
 			if item_repair_cost > 0 then
 				item_name_and_price = game.translate_string("list_trader_repair_2").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]"
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 			end
 		end
 	end
@@ -127,7 +127,7 @@ end
 
 function trader_check_money_miniquest(trader, actor)
 	local zz = false
-	if (db.actor:money() >= 100) then
+	if (Actor:money() >= 100) then
 		zz = true
 	end
 	return zz
@@ -192,9 +192,8 @@ function otday_art (first_speaker, second_speaker)
 end
 
 function have_a_art()
-    local actor = db.actor
-    if actor ~= nil and actor:object("amk_af_night_star") ~= nil and actor:dont_has_info("test_quest_art_vziat") then
-actor:give_info_portion("test_quest_art_vziat")
+    if Actor ~= nil and Actor:object("amk_af_night_star") ~= nil and Actor:dont_has_info("test_quest_art_vziat") then
+Actor:give_info_portion("test_quest_art_vziat")
     end
 end
 
@@ -218,7 +217,6 @@ function trader_alredy_give_job(trader, actor)
 end
 
 function trader_give_extra_job(trader, actor)
-	local actor = db.actor
 	if has_alife_info("escape_blockpost_case") and not has_alife_info("escape_blockpost_case_done")
 	then
 		return true
@@ -227,7 +225,6 @@ function trader_give_extra_job(trader, actor)
 end
 
 function bandits_die(actor,npc)
-	local actor = db.actor
 	if has_alife_info("esc_kill_bandits_quest_kill") and not has_alife_info("esc_kill_bandits_noquest_kill")
 	then
 		return true
@@ -253,7 +250,7 @@ function is_not_tutorial()
 end
 
 function is_not_tutorial_art(actor, trader)
-	local tutorial_artefact = db.actor:object("af_blood_tutorial")
+	local tutorial_artefact = Actor:object("af_blood_tutorial")
 	if (has_alife_info("tutorial_artefact_start") and not has_alife_info("tutorial_artefact_done")
 		and  tutorial_artefact ~= nil) or has_alife_info("tutorial_artefact_done")
 	then
@@ -263,7 +260,6 @@ function is_not_tutorial_art(actor, trader)
 end
 
 function not_final_job(trader, actor)
-	local actor = db.actor
 	return not has_alife_info("escape_blockpost_case_done")
 end
 
@@ -292,7 +288,6 @@ function not_finalize_quests(first_speaker, second_speaker)
 end
 
 function tutorial_artefact_end(first_speaker, second_speaker)
-	local actor = db.actor
 	local tutorial_artefact = first_speaker:object("af_blood_tutorial")
 	if has_alife_info("tutorial_artefact_start") and 
 	   not has_alife_info("tutorial_artefact_done") and
@@ -304,7 +299,6 @@ function tutorial_artefact_end(first_speaker, second_speaker)
 end
 
 function tutorial_artefact_have_not(first_speaker, second_speaker)
-	local actor = db.actor
 	local tutorial_artefact = first_speaker:object("af_blood_tutorial")
 	if has_alife_info("tutorial_artefact_start") and 
 	   not has_alife_info("tutorial_artefact_done") and
@@ -316,7 +310,6 @@ function tutorial_artefact_have_not(first_speaker, second_speaker)
 end
 
 function tutorial_wounded_end(first_speaker, second_speaker)
-	local actor = db.actor
 	-- local wounded_flash = first_speaker:object("esc_wounded_flash")
 	if has_alife_info("tutorial_wounded_start")	and 
 		has_alife_info("tutorial_wounded_give_info")	and 	
@@ -359,7 +352,7 @@ end
 
 function transfer_medikit_to_fox (player, wounded)
 	wounded:set_relation(game_object.friend, player)
-	db.actor:give_info_portion("escape_fox_heal")
+	Actor:give_info_portion("escape_fox_heal")
 end
 
 function give_weapon_to_actor (trader, actor)
@@ -410,11 +403,10 @@ end
 
 --' Escape trader artefact
 function have_artefact_from_fleshes(first_speaker, second_speaker)
-	local actor = db.actor
-	if actor ~= nil and
-	   (actor:object("af_vyvert") ~= nil or
-	   actor:object("af_gravi") ~= nil or
-	   actor:object("af_gold_fish") ~= nil)
+	if Actor ~= nil and
+	   (Actor:object("af_vyvert") ~= nil or
+	   Actor:object("af_gravi") ~= nil or
+	   Actor:object("af_gold_fish") ~= nil)
 	then
 		return true
 	end
@@ -435,8 +427,7 @@ end
 
 --' tutorial wounded in vagon
 function wounded_need_help(first_speaker, second_speaker)
-	local actor = db.actor
-	return actor ~= nil and not has_alife_info( "tutorial_wounded_help" )
+	return Actor ~= nil and not has_alife_info( "tutorial_wounded_help" )
 end
 
 --' trader needs military documents
@@ -451,7 +442,7 @@ end
 
 --' trader dialog about docs from labx18
 function actor_has_documents (actor, npc)
-	if actor:object("dar_document4") then
+	if Actor:object("dar_document4") then
 		return true
 	else
 		return false
@@ -517,7 +508,7 @@ end
 
 --' Soldiers on bridge
 function has_soldiers_bribe(actor, npc)
-	return actor:money() >= 500
+	return Actor:money() >= 500
 end
 
 function give_soldiers_bribe(actor, npc)
@@ -546,26 +537,26 @@ end
 --------------------------------------------------------------------------------------------------------
 
 function is_actor_stalker()
-	return db.actor:character_community() == "actor"
+	return Actor:character_community() == "actor"
 end
 
 function check_esc_bridge_pay( fs, ss )
-	return db.actor:money() >= 250000
+	return Actor:money() >= 250000
 		and inventory.search( "vodka", 20 )
 end
 function esc_bridge_repair( fs, ss )
 	local npc = (fs:id() == 0 and ss) or fs
 	dialogs.relocate_money( npc, 250000, "out" )
 	inventory.out_items( "vodka",20 )
-	db.actor:disable_info_portion( "esc_bridge_pass_fire" )
+	Actor:disable_info_portion( "esc_bridge_pass_fire" )
 end
 
 function factions_repair_check( community )
-	local chkgoodwill = relation_registry.community_goodwill(community,  db.actor:id())
+	local chkgoodwill = relation_registry.community_goodwill(community,  Actor:id())
 	if chkgoodwill < 0 then
-		if chkgoodwill > -100 and db.actor:money() >= 250000 then return true
-		elseif chkgoodwill > -1000 and  db.actor:money() >= 300000 then return true
-		elseif chkgoodwill <= -1000 and db.actor:money() >= 350000 then return true
+		if chkgoodwill > -100 and Actor:money() >= 250000 then return true
+		elseif chkgoodwill > -1000 and  Actor:money() >= 300000 then return true
+		elseif chkgoodwill <= -1000 and Actor:money() >= 350000 then return true
 		else return false end
 	end
 	return false
@@ -575,14 +566,14 @@ function factions_repair_checkduty_r(trader, actor)
 	return factions_repair_check( "dolg" )
 end
 function factions_repair_checkduty_rr(trader, actor)
-	local rel = relation_registry.community_goodwill ("dolg", db.actor:id ())
-	if rel >= 0 and rel < 500 and db.actor:money() >= 100000 then return true end
+	local rel = relation_registry.community_goodwill ("dolg", Actor:id ())
+	if rel >= 0 and rel < 500 and Actor:money() >= 100000 then return true end
 	return false
 end
 
 function factions_repair_checkduty_j(trader, actor)
-local whatami = db.actor:character_community()
-   if (relation_registry.community_goodwill ("dolg", db.actor:id()) >= 0) and (db.actor:money() >= 250000) and (whatami ~= "actor_dolg") and (whatami == "actor") then return true
+local whatami = Actor:character_community()
+   if (relation_registry.community_goodwill ("dolg", Actor:id()) >= 0) and (Actor:money() >= 250000) and (whatami ~= "actor_dolg") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -591,24 +582,24 @@ function factions_repair_checkfree_r(trader, actor)
 	return factions_repair_check( "freedom" )
 end
 function factions_repair_checkfree_rr(trader, actor)
-	local rel = relation_registry.community_goodwill ("freedom", db.actor:id ())
-	if rel >= 0 and rel < 500 and db.actor:money() >= 100000 then return true end
+	local rel = relation_registry.community_goodwill ("freedom", Actor:id ())
+	if rel >= 0 and rel < 500 and Actor:money() >= 100000 then return true end
 	return false
 end
 
 function factions_repair_checkfree_j(trader, actor)
-	local whatami = db.actor:character_community()
-	if (relation_registry.community_goodwill ("freedom", db.actor:id()) >= 0) and (db.actor:money() >= 250000) and (whatami ~= "actor_freedom") and (whatami == "actor") then return true
+	local whatami = Actor:character_community()
+	if (relation_registry.community_goodwill ("freedom", Actor:id()) >= 0) and (Actor:money() >= 250000) and (whatami ~= "actor_freedom") and (whatami == "actor") then return true
    else return false
    end
 end
 
 function factions_repair_checkstalker_r(trader, actor)
-	local whatami = db.actor:character_community()
+	local whatami = Actor:character_community()
     local gulag = xr_gulag.get_gulag_by_name ("esc_lager")
 	-- logf("testing stalker " .. whatami)
 	if (gulag) then
-		if (gulag:npc_is_enemy_to_anybody(db.actor)) and (db.actor:money() >= 250000) and (whatami ~= "monolith") and (whatami ~= "bandit") and (whatami ~= "military") and (whatami ~= "killer") then
+		if (gulag:npc_is_enemy_to_anybody(Actor)) and (Actor:money() >= 250000) and (whatami ~= "monolith") and (whatami ~= "bandit") and (whatami ~= "military") and (whatami ~= "killer") then
 	       return true
 		end
 	end
@@ -621,9 +612,9 @@ function factions_repair_checkstalker(first_speaker, second_speaker)
 	local howmuch = 250000
     local gulag = xr_gulag.get_gulag_by_name ("esc_lager")
 	if (gulag) then
-		if gulag:npc_is_enemy_to_anybody(db.actor) and db.actor:money() >= 250000 then
+		if gulag:npc_is_enemy_to_anybody(Actor) and Actor:money() >= 250000 then
 			item_name_and_price = game.translate_string("list_factions_repair_4").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-			db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+			Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 		end
 	end
 end
@@ -632,10 +623,10 @@ function factions_repair_setstalker_r(trader, actor)
 	local howmuch = 250000
     local gulag = xr_gulag.get_gulag_by_name ("esc_lager")
 	if (gulag) then
-		if gulag:npc_is_enemy_to_anybody(db.actor) and db.actor:money() >= 250000 then
-			local chkgoodwill = relation_registry.community_goodwill("stalker",  db.actor:id())
-			xr_gulag.setGulagRelation ("esc_lager", game_object.neutral, db.actor)	
-			relation_registry.set_community_goodwill ("stalker", db.actor:id(), 120)	
+		if gulag:npc_is_enemy_to_anybody(Actor) and Actor:money() >= 250000 then
+			local chkgoodwill = relation_registry.community_goodwill("stalker",  Actor:id())
+			xr_gulag.setGulagRelation ("esc_lager", game_object.neutral, Actor)	
+			relation_registry.set_community_goodwill ("stalker", Actor:id(), 120)	
 			dialogs.relocate_money(actor, howmuch, "out")
 			archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 		end
@@ -649,7 +640,7 @@ end
 function factions_repair_show( community )
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local howmuch = 0
-	local rel = relation_registry.community_goodwill (community, db.actor:id())
+	local rel = relation_registry.community_goodwill (community, Actor:id())
 	if rel < -1000 then
 		howmuch = 350000
 	elseif rel < -100 then
@@ -660,7 +651,7 @@ function factions_repair_show( community )
 		howmuch = 100000
 	end
 	local item_name_and_price = game.translate_string("list_factions_repair_0").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-	db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+	Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 end
 
 function factions_repair_checkfree(first_speaker, second_speaker)
@@ -668,8 +659,8 @@ function factions_repair_checkfree(first_speaker, second_speaker)
 end
 
 function factions_repair_checkeco_r(first_speaker, second_speaker)
-	local rel = relation_registry.community_goodwill ("ecolog", db.actor:id ())
-	if rel >= 0 and rel < 500 and db.actor:money() >= 100000 then return true end
+	local rel = relation_registry.community_goodwill ("ecolog", Actor:id ())
+	if rel >= 0 and rel < 500 and Actor:money() >= 100000 then return true end
 	return factions_repair_check( "ecolog" )
 end
 function factions_repair_showeco(first_speaker, second_speaker)
@@ -683,8 +674,8 @@ end
 
 function factions_repair_set( community, npc )
 	local howmuch = 0
-	local chkgoodwill = relation_registry.community_goodwill("dolg",  db.actor:id())
-	local money = db.actor:money()
+	local chkgoodwill = relation_registry.community_goodwill("dolg",  Actor:id())
+	local money = Actor:money()
 	if chkgoodwill >= 0 and money >= 100000 then
 		howmuch = 100000
 	elseif chkgoodwill > -100 and money >= 250000 then
@@ -695,7 +686,7 @@ function factions_repair_set( community, npc )
 		howmuch = 350000
 	end
 	dialogs.relocate_money(npc, howmuch, "out")
-	relation_registry.set_community_goodwill ("dolg", db.actor:id(), 1000)
+	relation_registry.set_community_goodwill ("dolg", Actor:id(), 1000)
 	archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 end
 
@@ -705,15 +696,15 @@ function factions_repair_setduty_r(trader, actor)
 end
 
 function factions_repair_setduty_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 350000, "out")
-		db.actor:set_character_community("actor_dolg", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("dolg",  db.actor:id())
+		Actor:set_character_community("actor_dolg", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("dolg",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("dolg", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("dolg", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("dolg", db.actor:id (), 200)
+			relation_registry.set_community_goodwill ("dolg", Actor:id (), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
@@ -725,24 +716,24 @@ function factions_repair_setfree_r(trader, actor)
 end
 
 function factions_repair_setfree_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 350000, "out")
-		db.actor:set_character_community("actor_freedom", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("freedom",  db.actor:id())
+		Actor:set_character_community("actor_freedom", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("freedom",  Actor:id())
 		if chkgoodwill > 0 then
 			chkgoodwill = chkgoodwill + 250
-			relation_registry.set_community_goodwill ("freedom", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("freedom", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("freedom", db.actor:id(), 250)
+			relation_registry.set_community_goodwill ("freedom", Actor:id(), 250)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
 end
 
 function factions_repair_checkmon_j(trader, actor)
-   local whatami = db.actor:character_community()
-   local playhitemb = db.actor:object("h_2")
-   if (playhitemb ~= nil or db.joinfactions == "yes") and (db.actor:money() >= 250000) and (whatami ~= "monolith") and (whatami == "actor") then return true
+   local whatami = Actor:character_community()
+   local playhitemb = Actor:object("h_2")
+   if (playhitemb ~= nil or db.joinfactions == "yes") and (Actor:money() >= 250000) and (whatami ~= "monolith") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -751,31 +742,31 @@ function factions_repair_checkmonolith(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 250000
-	if  db.actor:money() >= 250000 then
+	if  Actor:money() >= 250000 then
 		item_name_and_price = game.translate_string("list_factions_repair_5").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-		db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+		Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 	end
 end
 
 function factions_repair_setmon_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 250000, "out")
-		db.actor:set_character_community("monolith", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("monolith",  db.actor:id())
+		Actor:set_character_community("monolith", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("monolith",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("monolith", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("monolith", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("monolith", db.actor:id(), 200)
+			relation_registry.set_community_goodwill ("monolith", Actor:id(), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
 end
 
 function factions_repair_bandit_j(trader, actor)
-   local whatami = db.actor:character_community()
-   local playhitemb = db.actor:object("h_2")
-   if (playhitemb ~= nil or db.joinfactions == "yes") and (db.actor:money() >= 250000) and (whatami ~= "bandit") and (whatami == "actor") then return true
+   local whatami = Actor:character_community()
+   local playhitemb = Actor:object("h_2")
+   if (playhitemb ~= nil or db.joinfactions == "yes") and (Actor:money() >= 250000) and (whatami ~= "bandit") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -784,22 +775,22 @@ function factions_repair_checkbandit(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 250000
-	if  db.actor:money() >= 250000 then
+	if  Actor:money() >= 250000 then
 		item_name_and_price = game.translate_string("list_factions_repair_7").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-		db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+		Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 	end
 end
 
 function factions_repair_setbandit_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 250000, "out")
-		db.actor:set_character_community("bandit", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("bandit",  db.actor:id())
+		Actor:set_character_community("bandit", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("bandit",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("bandit", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("bandit", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("bandit", db.actor:id(), 200)
+			relation_registry.set_community_goodwill ("bandit", Actor:id(), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
@@ -807,9 +798,9 @@ end
 
 
 function factions_repair_mil_j(trader, actor)
-   local whatami = db.actor:character_community()
-   local playhitemb = db.actor:object("h_2")
-   if (playhitemb ~= nil or db.joinfactions == "yes") and (db.actor:money() >= 400000) and (whatami ~= "military") and (whatami == "actor") then return true
+   local whatami = Actor:character_community()
+   local playhitemb = Actor:object("h_2")
+   if (playhitemb ~= nil or db.joinfactions == "yes") and (Actor:money() >= 400000) and (whatami ~= "military") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -818,22 +809,22 @@ function factions_repair_checkmil(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 400000
-	if  db.actor:money() >= 400000 then
+	if  Actor:money() >= 400000 then
 		item_name_and_price = game.translate_string("list_factions_repair_6").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-		db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+		Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 	end
 end
 
 function factions_repair_setmil_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 400000, "out")
-		db.actor:set_character_community("military", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("military",  db.actor:id())
+		Actor:set_character_community("military", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("military",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("military", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("military", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("military", db.actor:id(), 200)
+			relation_registry.set_community_goodwill ("military", Actor:id(), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
@@ -841,9 +832,9 @@ end
 
 
 function factions_repair_kill_j(trader, actor)
-   local whatami = db.actor:character_community()
-   local playhitemb = db.actor:object("h_2")
-   if (playhitemb ~= nil or db.joinfactions == "yes") and (db.actor:money() >= 300000) and (whatami ~= "killer") and (whatami == "actor") then return true
+   local whatami = Actor:character_community()
+   local playhitemb = Actor:object("h_2")
+   if (playhitemb ~= nil or db.joinfactions == "yes") and (Actor:money() >= 300000) and (whatami ~= "killer") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -852,22 +843,22 @@ function factions_repair_checkkill(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 300000
-		if  db.actor:money() >= 300000 then
+		if  Actor:money() >= 300000 then
 			item_name_and_price = game.translate_string("list_factions_repair_8").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-			db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+			Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 		end
 end
 
 function factions_repair_setkill_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 300000, "out")
-		db.actor:set_character_community("killer", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("military",  db.actor:id())
+		Actor:set_character_community("killer", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("military",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("killer", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("killer", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("killer", db.actor:id(), 200)
+			relation_registry.set_community_goodwill ("killer", Actor:id(), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
@@ -875,8 +866,8 @@ end
 
 
 function factions_repair_eco_j(trader, actor)
-   local whatami = db.actor:character_community()
-   if (db.actor:money() >= 300000) and (whatami ~= "ecolog") and (whatami == "actor") then return true
+   local whatami = Actor:character_community()
+   if (Actor:money() >= 300000) and (whatami ~= "ecolog") and (whatami == "actor") then return true
    else return false
    end
 end
@@ -885,22 +876,22 @@ function factions_repair_checkeco(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 500000
-		if  db.actor:money() >= 300000 then
+		if  Actor:money() >= 300000 then
 			item_name_and_price = game.translate_string("list_factions_repair_10").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-			db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+			Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 		end
 end
 
 function factions_repair_seteco_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 300000, "out")
-		db.actor:set_character_community("ecolog", 0, 0)
-		local chkgoodwill = relation_registry.community_goodwill("ecolog",  db.actor:id())
+		Actor:set_character_community("ecolog", 0, 0)
+		local chkgoodwill = relation_registry.community_goodwill("ecolog",  Actor:id())
 		if chkgoodwill > 0 then 
 			chkgoodwill = chkgoodwill + 200
-			relation_registry.set_community_goodwill ("ecolog", db.actor:id(), chkgoodwill)
+			relation_registry.set_community_goodwill ("ecolog", Actor:id(), chkgoodwill)
 		else
-			relation_registry.set_community_goodwill ("ecolog", db.actor:id(), 200)
+			relation_registry.set_community_goodwill ("ecolog", Actor:id(), 200)
 		end
 		archievements.acv_count_event("acv_xam", 3, "Хамелеон")
 	end
@@ -908,9 +899,9 @@ end
 
 
 function factions_repair_quit_j(trader, actor)
-   local whatami = db.actor:character_community()
+   local whatami = Actor:character_community()
    if (whatami == "actor_dolg") or (whatami == "actor_freedom") or (whatami == "monolith") or (whatami == "bandit") or (whatami == "military") or (whatami == "killer") or (whatami == "ecolog") then
-	   if (db.actor:money() >= 250000) then return true end
+	   if (Actor:money() >= 250000) then return true end
    end
    return false
 end
@@ -919,16 +910,16 @@ function factions_repair_checkquit(first_speaker, second_speaker)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	local item_name_and_price = ""
 	local howmuch = 250000
-		if  db.actor:money() >= 250000 then
+		if  Actor:money() >= 250000 then
 			item_name_and_price = game.translate_string("list_factions_repair_9").." %c[255,238,155,23]"..howmuch.."Ru%c[default]"
-			db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+			Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 		end
 end
 
 function factions_repair_setquit_j(trader, actor)
-	if db.actor ~= nil then 
+	if Actor ~= nil then 
 		dialogs.relocate_money(actor, 250000, "out")
-		db.actor:set_character_community("actor", 0, 0)
+		Actor:set_character_community("actor", 0, 0)
 	end
 end
 

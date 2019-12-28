@@ -50,7 +50,7 @@ function UICarBodyNew:__init(obj)
 
 	self.wnd = self
 
-	db.actor:give_info_portion("ui_car_body_new")
+	Actor:give_info_portion("ui_car_body_new")
 	bind_actor.hide_weapon("inv")
 end
 
@@ -68,15 +68,15 @@ function UICarBodyNew:InitControls()
 	xml:InitStatic("actor_character:icon_static", st)
 
 	local st2 = xml:InitStatic("actor_character:name_static", st)
-	st2:SetText( db.actor:character_name() )
+	st2:SetText( Actor:character_name() )
 
 	xml:InitStatic("actor_character:rank_caption", st)
 	st2 = xml:InitStatic("actor_character:rank_static", st)
-	st2:SetText( game.translate_string( ranks.get_obj_rank_name(db.actor) ) )
+	st2:SetText( game.translate_string( ranks.get_obj_rank_name(Actor) ) )
 
 	xml:InitStatic("actor_character:community_caption", st)
 	st2 = xml:InitStatic("actor_character:community_static", st)
-	st2:SetText( game.translate_string(db.actor:character_community()) )
+	st2:SetText( game.translate_string(Actor:character_community()) )
 
 	self.actor_ruck = xml:InitStatic("our_bag_static", self)
 	local bag = xml:InitStatic("dragdrop_list_our", self.actor_ruck)
@@ -153,9 +153,8 @@ function UICarBodyNew:OnItemTake(item)
 end
 
 function UICarBodyNew:ShowWeight()
-	local a = db.actor
-	local inv_weight = a:get_inventory_weight()
-	local max_weight = a:get_actor_max_weight()
+	local inv_weight = Actor:get_inventory_weight()
+	local max_weight = Actor:get_actor_max_weight()
 	if actor_outfit then
 		max_weight = max_weight + actor_outfit:get_go_float(504)
 	end
@@ -298,10 +297,10 @@ function UICarBodyNew:ConvertFakeItem(item)
 	if item:is_ammo() then
 		sobj = AI:create_ammo(sect, vector():set(0,0,0), 0, 0, 0, item:get_ammo_left())
 	elseif item.addon_flags and item.addon_flags ~= 0 then
-		local spawn_pos = db.actor:position():add(vector():set(2, 2, 2))
-		sobj = AI:create(sect, spawn_pos, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+		local spawn_pos = Actor:position():add(vector():set(2, 2, 2))
+		sobj = AI:create(sect, spawn_pos, Actor:level_vertex_id(), Actor:game_vertex_id())
 		level.client_spawn_manager():add(sobj.id, -1, function(id, obj)
-			db.actor:transfer_item(obj, db.actor)
+			Actor:transfer_item(obj, Actor)
 		end)
 	else
 		sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
@@ -403,7 +402,7 @@ function UICarBodyNew:Quit()
 	self:GetHolder():start_stop_menu(self, true)
 	self.wnd = nil
 
-	db.actor:give_info_portion("ui_car_body_new_hide")
+	Actor:give_info_portion("ui_car_body_new_hide")
 	bind_actor.restore_weapon("inv")
 end
 

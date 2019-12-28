@@ -3,19 +3,19 @@ function fake_weapon_effect(section, cond)
 --	local length = string.len(section)
 	local real_weapon = section:sub(6)
 --	remove_knife()
-	local obj = AI:create(real_weapon, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+	local obj = AI:create(real_weapon, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
 	update_condition(obj.id, cond)
 	netpk:modify(obj, {condition = cond}, netpk.fState)
 --	hidden_slots.init_btn(1,real_weapon)
 end
 
 function remove_knife()
-	local slot0 = db.actor:item_in_slot( inventory_slots.KNIFE )
+	local slot0 = Actor:item_in_slot( inventory_slots.KNIFE )
 	if slot0 then
 		local sect0 = slot0:section()
 		local cond0 = slot0:condition()
 		AI:release(AI:object(slot0:id()), true)
-		local obj = AI:create("fake_"..sect0, db.actor:position(), db.actor:level_vertex_id(), db.actor:game_vertex_id(), db.actor:id())
+		local obj = AI:create("fake_"..sect0, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
 		update_condition(obj.id, cond0)
 		netpk:modify(obj, {condition = cond0}, netpk.fState)
 	end
@@ -25,9 +25,9 @@ function update_condition(id, cond)
 	level.client_spawn_manager():add(id, 0, 
 		function (cond, id, obj)
 			obj:set_condition(cond)
-			local slObj = db.actor:item_in_slot( inventory_slots.KNIFE )
-			if slObj then db.actor:move_to_ruck(slObj) end
-			db.actor:move_to_slot(obj)
+			local slObj = Actor:item_in_slot( inventory_slots.KNIFE )
+			if slObj then Actor:move_to_ruck(slObj) end
+			Actor:move_to_slot(obj)
 		end
 	, cond)
 end

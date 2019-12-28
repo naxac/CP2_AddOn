@@ -246,7 +246,7 @@ function foto_binder:update(delta)
 		end
 		
         local load = self.object:get_ammo_in_magazine()
-        if load < self.load and not db.actor:has_info("ui_inventory") then -- разряжено, не инвентарь = выстрел
+        if load < self.load and not Actor:has_info("ui_inventory") then -- разряжено, не инвентарь = выстрел
 
 			if db.debug then
 				-- если это сообщение на тесте перестало приходить - завис биндер фотика, смотри лог.
@@ -267,7 +267,7 @@ end
 -- фото местности с указанных точек
 function foto_binder:check_territory_from_places()
 	local a, b
-	local p = db.actor:position()
+	local p = Actor:position()
 	
 	for i=1,#territory_from_places do
 		a = territory_from_places[i]
@@ -281,7 +281,7 @@ function foto_binder:check_territory_from_places()
 				if not has_alife_info(b.info) and p:distance_to(b.position) < b.radius then
 					-- этого снимка еще не было и ракурс правильный - засчитываем фото.
 					news_manager.send_tip(a.sms, nil, nil, 10000)
-					db.actor:give_info_portion(b.info)
+					Actor:give_info_portion(b.info)
 					return true
 				end
 			end
@@ -300,7 +300,7 @@ function foto_binder:check_creatures()
 		section = obj:section()
 		
 		-- монстры
-		if IAmAMonster[clsid] and obj:alive() and db.actor:see(obj) and not protected_items.is_monster_friend(section) then
+		if IAmAMonster[clsid] and obj:alive() and Actor:see(obj) and not protected_items.is_monster_friend(section) then
 			-- сначала смотрим тихую охоту
 			if  (has_alife_info("silent_hunt_start") and not has_alife_info("silent_hunt_done")) and
 				(silent_hunt_monsters[clsid] and not has_alife_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
@@ -309,7 +309,7 @@ function foto_binder:check_creatures()
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip("%c[gray2]".."$actor$:".."\\n".."%c[red_sms]Захар, я подкрался к очередному монстру и успешно его сфотографировал.".."".."\n", nil, nil, 15000)
 				news_manager.send_tip("%c[gray2]".."ЗАХАР:".."\\n".."%c[red_sms]Отлично. Неси фото и ищи следующего.".."\n", 15, nil, 15000)
-				db.actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
+				Actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
 				return true
 				
 			-- затем фото уникальных монстров
@@ -320,7 +320,7 @@ function foto_binder:check_creatures()
 			then
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip("Уникальный монстр сфотографирован.".."\n", nil, nil, 10000)
-				db.actor:give_info_portion(foto_unique_monster[section].info)
+				Actor:give_info_portion(foto_unique_monster[section].info)
 				return true
 
 			-- затем обычную охоту
@@ -330,7 +330,7 @@ function foto_binder:check_creatures()
 			then
 				-- удачный снимок и такого еще не было
 				news_manager.send_tip("Монстр сфотографирован.".."\n", nil, nil, 10000)
-				db.actor:give_info_portion(foto_ohota_monsters[section])
+				Actor:give_info_portion(foto_ohota_monsters[section])
 				return true
 			end
 		end
@@ -343,7 +343,7 @@ end
 function foto_binder:check_anomaly()
 	if not has_alife_info("foto_ohota_start") or has_alife_info("foto_anomaly_done") then return false end
 
-	local anoms = amk_anoms.get_anomaly_list(db.actor, 10)
+	local anoms = amk_anoms.get_anomaly_list(Actor, 10)
 	for anom_sect, info in pairs(foto_ohota_anomaly) do
 		if not has_alife_info(info) then
 			-- такого снимка еще не было, смотрим аномалии
@@ -351,7 +351,7 @@ function foto_binder:check_anomaly()
 				if string.find(anom.name, anom_sect) and ( CheatFoto or self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) ) then
 					-- удачный снимок
 					news_manager.send_tip("Аномалия сфотографирована.".."\n", nil, nil, 10000)
-					db.actor:give_info_portion(info)
+					Actor:give_info_portion(info)
 					return true
 				end
 			end
@@ -406,7 +406,7 @@ end
 
 function foto_binder:check_focus()
 	for id,obj in pairs(db.creatures) do
-		if IAmAMonster[obj:clsid()] and obj:alive() and db.actor:see(obj) then
+		if IAmAMonster[obj:clsid()] and obj:alive() and Actor:see(obj) then
 			if self:obj_in_shot(obj:bone_position("bip01_head"), 0, 2, 3.5, true, nil, false)
 			then return true
 			elseif self:obj_in_shot(obj:center(), 5, 10, 3.0, false, nil, false)
@@ -415,7 +415,7 @@ function foto_binder:check_focus()
 		end
 	end
 	
-	local a = amk_anoms.get_anomaly_list(db.actor, 10)
+	local a = amk_anoms.get_anomaly_list(Actor, 10)
 	for anom_sect in pairs(foto_ohota_anomaly) do
 		for _, anom in ipairs(a) do
 			if string.find(anom.name, anom_sect) and self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) then return true end
@@ -423,7 +423,7 @@ function foto_binder:check_focus()
 	end
 	
 	local b
-	local p = db.actor:position()
+	local p = Actor:position()
 	for i=1,#territory_from_places do
 		a = territory_from_places[i]
 		if self:obj_in_shot(a.position, 0, 1000, a.angle, a.scope, a.loc, false) then

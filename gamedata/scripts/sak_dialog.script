@@ -71,7 +71,7 @@ function can_vodka_start(first_speaker, second_speaker)
 	if has_alife_info("esc_bridge_vodka_start") then return false end
 	local npc = ( first_speaker:id() == 0 and second_speaker ) or first_speaker
 	if npc:profile_name() == "esc_soldier_commander" then
-		return xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0) >= 2
+		return xr_logic.pstor_retrieve(Actor, "kuzvodka", 0) >= 2
 	end
 	return false
 end
@@ -88,8 +88,8 @@ function give_soldiers_bribe(first_speaker, second_speaker)
 	if has_alife_info("esc_bridge_vodka_start") then return end
 	local npc = ( first_speaker:id() == 0 and second_speaker ) or first_speaker
 	if npc:profile_name() == "esc_soldier_commander" then
-		local v = xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0)
-		xr_logic.pstor_store(db.actor, "kuzvodka", v+1)
+		local v = xr_logic.pstor_retrieve(Actor, "kuzvodka", 0)
+		xr_logic.pstor_store(Actor, "kuzvodka", v+1)
 	end
 end
 function have_krysyk_goods()
@@ -284,7 +284,7 @@ function docent_5pda_have()
   	return inventory.search("device_pda_npc",5) ~= false
 end
 function docent_have_have()
-	if db.actor:has_info("sak_gold_fish_have") or db.actor:has_info("sak_find_seif_have") or db.actor:has_info("sak_repair_box_have") or db.actor:has_info("sak_reward_outfit_have") then
+	if Actor:has_info("sak_gold_fish_have") or Actor:has_info("sak_find_seif_have") or Actor:has_info("sak_repair_box_have") or Actor:has_info("sak_reward_outfit_have") then
   	return true
 	else
 	return false
@@ -823,9 +823,15 @@ end
 function gar_dram_novice_mp5_m1_have()
 	return inventory.search("wpn_mp5_m1",1) ~= false
 end
-function give_gar_dram_novice_mp5_m1(first_speaker, second_speaker)
-	dialogs.relocate_item_section(second_speaker, "wpn_mp5_m1", "out")
-	second_speaker:set_relation(game_object.friend, first_speaker)
+function give_gar_dram_novice_mp5_m1_good(first_speaker, second_speaker)
+	local npc = (first_speaker:id() == Actor:id()) and second_speaker or first_speaker
+	dialogs.relocate_item_section(npc, "wpn_mp5_m1", "out")
+	npc:set_relation(game_object.friend, Actor)
+	linspiro.give_treasure(first_speaker, second_speaker)
+end
+function give_gar_dram_novice_mp5_m1_bad(first_speaker, second_speaker)
+	local npc = (first_speaker:id() == Actor:id()) and second_speaker or first_speaker
+	dialogs.relocate_item_section(npc, "wpn_mp5_m1", "out")
 end
 function gar_dram_novice_burer_hand_have()
 	return inventory.search("mutant_burer_hand",1,true) ~= false
@@ -892,7 +898,7 @@ end
 
 function give_esc_bridge_vodka(first_speaker, second_speaker)
 	inventory.out_items("vodka",10)
-	local del = xr_logic.pstor_retrieve(db.actor, "kuzvodka", 0, true)
+	local del = xr_logic.pstor_retrieve(Actor, "kuzvodka", 0, true)
 --	log("give_esc_bridge_vodka: delete variable 'kuzvodka' %d", del)
 end
 function give_esc_bridge_ammo(first_speaker, second_speaker)
@@ -933,7 +939,7 @@ function mil_Svoboda_trader_ammo_have_all()
 end
 function mil_Svoboda_trader_ammo_have()
 	if inventory.search("flash_pda",1) then
-		db.actor:give_info_portion("mil_Svoboda_trader_ammo_have")
+		Actor:give_info_portion("mil_Svoboda_trader_ammo_have")
 		return true
 	else
 		return false
@@ -1031,9 +1037,9 @@ end
 -------------------**********************************************55
 -- Akill begin
 function bar_dolg_petrenko_electra_flash_have(task, info)
-     if db.actor:has_info("petrenko_foto_embrion1") and 
-	db.actor:has_info("petrenko_foto_embrion2") then
-		return db.actor:give_info_portion("bar_dolg_petrenko_electra_flash_have")
+     if Actor:has_info("petrenko_foto_embrion1") and 
+	Actor:has_info("petrenko_foto_embrion2") then
+		return Actor:give_info_portion("bar_dolg_petrenko_electra_flash_have")
      end
 		return false
 end
@@ -1129,7 +1135,7 @@ function sak_reward_outfit_have_all()
 end
 function sak_reward_outfit_have()
 	if inventory.search("flash_disk",1) then
-		db.actor:give_info_portion("sak_reward_outfit_have")
+		Actor:give_info_portion("sak_reward_outfit_have")
 		return true
 	else
 		return false
@@ -1137,14 +1143,14 @@ function sak_reward_outfit_have()
 end
 -- Akill end
 function sak_have_start()
-	if db.actor:has_info("sak_gold_fish_start") or db.actor:has_info("sak_find_seif_start") or db.actor:has_info("sak_repair_box_start") or db.actor:has_info("sak_reward_outfit_start") then
+	if Actor:has_info("sak_gold_fish_start") or Actor:has_info("sak_find_seif_start") or Actor:has_info("sak_repair_box_start") or Actor:has_info("sak_reward_outfit_start") then
   	return true
 	else
 	return false
 	end 
 end
 function sak_have_have()
-	if db.actor:has_info("sak_gold_fish_have") or db.actor:has_info("sak_find_seif_have") or db.actor:has_info("sak_repair_box_have") or db.actor:has_info("sak_reward_outfit_have") then
+	if Actor:has_info("sak_gold_fish_have") or Actor:has_info("sak_find_seif_have") or Actor:has_info("sak_repair_box_have") or Actor:has_info("sak_reward_outfit_have") then
   	return true
 	else
 	return false
@@ -1191,7 +1197,7 @@ function yan_kruglov_art_have_all()
 end
 function yan_kruglov_art_have()
 	if inventory.search("flash_notebook",1) then
-		db.actor:give_info_portion("yan_kruglov_art_have")
+		Actor:give_info_portion("yan_kruglov_art_have")
 		return true
 	else
 		return false
@@ -1226,7 +1232,7 @@ function bar_ivancov_rg6_have_all()
 end
 function bar_ivancov_rg6_have()
 	if inventory.search("flash_computer",1) then
-		db.actor:give_info_portion("bar_ivancov_rg6_have")
+		Actor:give_info_portion("bar_ivancov_rg6_have")
 		return true
 	else
 		return false
@@ -1250,7 +1256,7 @@ function esc_find_groza_have_all()
 end
 function esc_find_groza_have()
 	if esc_find_groza_have_all() then
-		db.actor:give_info_portion("esc_find_groza_have")
+		Actor:give_info_portion("esc_find_groza_have")
 		return true
 	else
 		return false
@@ -1289,24 +1295,24 @@ function bar_dolg_leader_find_case_have()
 end
 local armor_profit_margin = 5
 function sak_repair_precond(trader, actor)
-	local item_in_slot_6 = db.actor:item_in_slot(inventory_slots.OUTFIT)
+	local item_in_slot_6 = Actor:item_in_slot(inventory_slots.OUTFIT)
 	if item_in_slot_6 ~= nil and 1 > item_in_slot_6:condition() + 0.01 then 
 		 return true
 	else return false
 	end	 
 end
 function sak_check_money_s6(trader, actor)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.OUTFIT)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.OUTFIT)
 	if item_in_slot ~= nil then 
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
-		if item_repair_cost > 0 and db.actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
+		if item_repair_cost > 0 and Actor:money() >= item_repair_cost and 1 > item_in_slot:condition() then
 			return true
 		end 
 	end
 	return false
 end
 function sak_repiar_armor_s6(trader, actor)
-	local item_in_slot = db.actor:item_in_slot(inventory_slots.OUTFIT)
+	local item_in_slot = Actor:item_in_slot(inventory_slots.OUTFIT)
 	if item_in_slot ~= nil then
 		local item_repair_cost = math.floor( (1-item_in_slot:condition()) * item_in_slot:cost() * armor_profit_margin )
 		amk_mod.repair_armor(1)
@@ -1318,44 +1324,44 @@ function repair_costs(first_speaker, second_speaker)
 	
 	local item_name_and_price = ""
 	local item_repair_cost = 0
-	if db.actor ~= nil then 
-		local item_in_slot_6 = db.actor:item_in_slot(inventory_slots.OUTFIT)
+	if Actor ~= nil then 
+		local item_in_slot_6 = Actor:item_in_slot(inventory_slots.OUTFIT)
 		if item_in_slot_6 ~= nil then
 			item_repair_cost = math.floor( (1-item_in_slot_6:condition()) * item_in_slot_6:cost() * armor_profit_margin )
 			if item_repair_cost > 0 then
 				item_name_and_price = game.translate_string("list_trader_repair_2").." %c[255,238,155,23]"..item_repair_cost.." рублей%c[default]"
-				db.actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
+				Actor:give_talk_message(item_name_and_price, task_texture, task_rect, "iconed_trade_info")
 			end
 		end
 	end
 end
 
 function actor_has_money_30000()
-  return db.actor:money()>=30000
+  return Actor:money()>=30000
 end
 
 function actor_has_money_40000()
-  return db.actor:money()>=50000
+  return Actor:money()>=50000
 end
 
 function actor_has_money_100000()
-  return db.actor:money()>=100000
+  return Actor:money()>=100000
 end
 function actor_has_money_50000()
-  return db.actor:money()>=50000
+  return Actor:money()>=50000
 end
 function actor_has_money_75000()
-  return db.actor:money()>=75000
+  return Actor:money()>=75000
 end
 function actor_has_money_150000()
-  return db.actor:money()>=150000
+  return Actor:money()>=150000
 end
 function actor_has_money_400000()
-  return db.actor:money()>=400000
+  return Actor:money()>=400000
 end
 function give_money_100000(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,100000,1)
@@ -1363,7 +1369,7 @@ end
 
 function give_money_150000(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,150000,1)
@@ -1371,7 +1377,7 @@ end
 
 function give_money_400000(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,400000,1)
@@ -1379,7 +1385,7 @@ end
 
 function give_money_30000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,30000,1)
@@ -1387,7 +1393,7 @@ end
 
 function give_money_50000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,50000,1)
@@ -1395,7 +1401,7 @@ end
 
 function give_money_75000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,75000,1)
@@ -1403,22 +1409,22 @@ end
 
 function give_money_40000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,50000,1)
 end
 
 function relocate_money(victim, num, type)
-	if db.actor and victim then
+	if Actor and victim then
 		if type == "in" then
-			db.actor:give_money(num)
+			Actor:give_money(num)
 			game_stats.money_quest_update (num) 
 		elseif type == 1 then
-			db.actor:give_money(-num)
+			Actor:give_money(-num)
 			game_stats.money_quest_update (-num) 
 		end
-		news_manager.relocate_money(db.actor, type, num)
+		news_manager.relocate_money(Actor, type, num)
 	end
 end
 
@@ -1447,25 +1453,25 @@ function mica_have()
 	return inventory.search_af("af_ameba_mica",1) ~= false
 end
 function actor_2500_have()
-  return db.actor:money()>=2500
+  return Actor:money()>=2500
 end
 function actor_9000_have()
-  return db.actor:money()>=9000
+  return Actor:money()>=9000
 end
 function actor_20000_have()
-  return db.actor:money()>=20000
+  return Actor:money()>=20000
 end
 function actor_5000_have()
-  return db.actor:money()>=5000
+  return Actor:money()>=5000
 end
 function actor_15000_have()
-  return db.actor:money()>=15000
+  return Actor:money()>=15000
 end
 function actor_10000_have()
-  return db.actor:money()>=10000
+  return Actor:money()>=10000
 end
 function actor_30000_have()
-  return db.actor:money()>=30000
+  return Actor:money()>=30000
 end
 function give_soul(first_speaker, second_speaker)
 	inventory.out_items("af_soul", 1)
@@ -1487,49 +1493,49 @@ function give_mica(first_speaker, second_speaker)
 end
 function give_2500_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,2500,1)
 end
 function give_10000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,10000,1)
 end
 function give_15000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,15000,1)
 end
 function give_5000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,5000,1)
 end
 function give_20000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,20000,1)
 end
 function give_9000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,9000,1)
 end
 function give_30000_money(t1,t2) 
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   relocate_money(npc,30000,1)

@@ -2,23 +2,21 @@
 local det_suit_id = nil
 
 function update()
-	local actor = db.actor
-	local outfit = actor:item_in_slot( inventory_slots.OUTFIT )
-	if outfit and outfit:section() == "exo_doktor_outfit" then
+	if actor_outfit and actor_outfit:section() == "exo_doktor_outfit" then
 		if not det_suit_id then
-			local obj = actor:object("detector_suit")
+			local obj = Actor:object("detector_suit")
 			if obj then
 				det_suit_id = obj:id()
 			else
-				obj = AI:create("detector_suit", actor:position(), actor:level_vertex_id(), actor:game_vertex_id(), 0)
+				obj = AI:create("detector_suit", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), 0)
 				det_suit_id = obj.id
 			end
 		end
 	else
 		if det_suit_id then
-			local obj = actor:object("detector_suit")
+			local obj = Actor:object("detector_suit")
 			if obj then
-				actor:move_to_ruck(obj)
+				Actor:move_to_ruck(obj)
 				local det = AI:object(obj:id())
 				if det then AI:release(det, true) end
 			end

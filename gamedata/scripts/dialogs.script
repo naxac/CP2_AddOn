@@ -138,62 +138,62 @@ local quest_section = {
 
 --' Obsolete, do not use!!!
 function relocate_item(victim, obj, type)
-	if db.actor and victim then
+	if Actor and victim then
 		if type == "in" then
-			victim:transfer_item(obj, db.actor)
+			victim:transfer_item(obj, Actor)
 		elseif type == "out" then
-			db.actor:transfer_item(obj, victim)
+			Actor:transfer_item(obj, victim)
 		end
-		--'news_manager.relocate_item(db.actor, type, obj)
+		--'news_manager.relocate_item(Actor, type, obj)
 	end
 end
 	
 --' Use this function instead.
 function relocate_item_section(victim, section, type)
-	if db.actor and victim then
+	if Actor and victim then
 		if type == "in" then
 
 			--' Трансферить нужно только квестовые предметы.
 			if quest_section[section] == true and
 			   victim:object(section) ~= nil and
-			   victim:id() ~= db.actor:id()
+			   victim:id() ~= Actor:id()
 			then
-				victim:transfer_item(victim:object(section), db.actor)
+				victim:transfer_item(victim:object(section), Actor)
 			else
 				AI:create(section,	
-					    db.actor:position(),
-						db.actor:level_vertex_id(),	
-						db.actor:game_vertex_id(),
-						db.actor:id())
+					    Actor:position(),
+						Actor:level_vertex_id(),	
+						Actor:game_vertex_id(),
+						Actor:id())
 			end
 		elseif type == "out" then
 			--' Трансферить нужно только квестовые предметы.
 			if quest_section[section] == true and
-			   db.actor:object(section) ~= nil 
+			   Actor:object(section) ~= nil 
 			then
-				db.actor:transfer_item(db.actor:object(section), victim)
+				Actor:transfer_item(Actor:object(section), victim)
 			else
-				local obj = db.actor:object(section)
+				local obj = Actor:object(section)
 				if obj then
 					AI:release(AI:object(obj:id()))
 				end
 			end
 		end
-		news_manager.relocate_item(db.actor, type, section)
+		news_manager.relocate_item(Actor, type, section)
 	end
 end
 
 
 function relocate_money(victim, num, type)
-	if db.actor and victim then
+	if Actor and victim then
 		if type == "in" then
-			db.actor:give_money(num)
+			Actor:give_money(num)
 			game_stats.money_quest_update (num) 
 		elseif type == "out" then
-			db.actor:transfer_money(num, victim)
+			Actor:transfer_money(num, victim)
 			game_stats.money_quest_update (-num) 
 		end
-		news_manager.relocate_money(db.actor, type, num)
+		news_manager.relocate_money(Actor, type, num)
 	end
 end
 
@@ -272,8 +272,8 @@ end
 -- Community
 -----------------------------------------------------------------------------------
 function actor_in_dolg(actor, npc)
-	if db.actor then
-		return db.actor:character_community() == "actor_dolg"
+	if Actor then
+		return Actor:character_community() == "actor_dolg"
 	end
 	return false
 end
@@ -282,15 +282,15 @@ function actor_not_in_dolg(actor, npc)
 end
 function actor_set_dolg(actor, npc)
 	printf("ACTOR NOW IN [DOLG] COMMUNITY")
-	if db.actor then
-		db.actor:set_character_community("actor_dolg", 0, 0)
+	if Actor then
+		Actor:set_character_community("actor_dolg", 0, 0)
 	end
 	return true
 end
 function actor_clear_community(actor, npc)
 	printf("ACTOR NOW IN [NEUTRAL] COMMUNITY")
-	if db.actor then
-		db.actor:set_character_community("actor", 0, 0)
+	if Actor then
+		Actor:set_character_community("actor", 0, 0)
 	end
 	return true
 end
@@ -334,7 +334,7 @@ function dialog_count(portion, count)
 	for i=1,count do
 		pname = portion..tostring(i)
 		if not has_alife_info(pname) then 
-			db.actor:give_info_portion(pname)
+			Actor:give_info_portion(pname)
 			return true
 		end
 	end

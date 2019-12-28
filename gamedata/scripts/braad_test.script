@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function marsh_band_spawn()
-	if not db.actor:has_info("marsh_band_spawn") then
+	if not Actor:has_info("marsh_band_spawn") then
 		local v = vector()
 		AI:create("agr_bandit_respawn_1",v:set(299.289,0.59365,-122.695),331636,3531)
 		AI:create("agr_bandit_respawn_2",v:set(299.289,0.59365,-122.695),331636,3531)
@@ -18,14 +18,14 @@ function marsh_band_spawn()
 		spawn_prohod()
 		spawn_prohod_lim()
 		spawn_prohod_hos()
-		db.actor:give_info_portion("marsh_band_spawn")
+		Actor:give_info_portion("marsh_band_spawn")
 	end
 end
 
 function main_braad(npc)
 npc:set_character_community("ecolog", 0, 0)
-npc:set_relation(game_object.friend, db.actor)
-db.actor:give_info_portion( "freeman_braad_one" )
+npc:set_relation(game_object.friend, Actor)
+Actor:give_info_portion( "freeman_braad_one" )
 end
 
 function setGulagEnemy()
@@ -48,7 +48,7 @@ function bloodsucker()
 end
 
 function main_friend(npc)
-npc:set_relation(game_object.friend, db.actor)
+npc:set_relation(game_object.friend, Actor)
 end
 
 function zombie_blow()
@@ -97,7 +97,7 @@ function killactor ()
 	for i, sid in ipairs(sids) do
 		npc = level_object_by_sid (sid)
 		if npc and npc:alive() then
-		   npc:set_relation(game_object.enemy, db.actor) 
+		   npc:set_relation(game_object.enemy, Actor) 
 		end
 	end
 end
@@ -130,10 +130,10 @@ function chern_dogs()
 end
 
 function create_monstr()
-	local position = db.actor:position()
+	local position = Actor:position()
 	position.x = position.x + 13
-	AI:create("burer_strong",	position, db.actor:level_vertex_id(), db.actor:game_vertex_id())
-	AI:create("burer_strong",	position, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+	AI:create("burer_strong",	position, Actor:level_vertex_id(), Actor:game_vertex_id())
+	AI:create("burer_strong",	position, Actor:level_vertex_id(), Actor:game_vertex_id())
 end			
 			
 function kill_npc(sid)
@@ -164,7 +164,7 @@ end
 function release_actor_items()
     local obj
 	shiftCheckDropItem()
-	db.actor:iterate_inventory(
+	Actor:iterate_inventory(
 		function(dummy,item)
 			-- Документы Воронина спецом вынесены отдельно, т.к. почему-то через protected_items 2 штуки все равно удалялись 
 			if item:section()~="zone_docs" and 
@@ -174,7 +174,7 @@ function release_actor_items()
 				if obj then AI:release(obj, true) end
 			end
 		end
-	,db.actor)
+	,Actor)
 
 	sleep_manager.main(5+amk.load_variable("gg_need_sleep_nrg",0))
 
@@ -183,8 +183,8 @@ function release_actor_items()
 end	
 
 function release_actor_money()
-  local num = db.actor:money() 
-  db.actor:give_money(-num)
+  local num = Actor:money() 
+  Actor:give_money(-num)
   game_stats.money_quest_update(-num) 
 end
 
@@ -193,54 +193,52 @@ relation_registry.set_community_goodwill ("stalker", "actor", 2000)
 end
 
 function atak_larger_have(task, info)
-	local actor = db.actor
-  if actor and actor:has_info("snip_esc1_dead") and
-	actor:has_info("snip_esc2_dead") and
-	actor:has_info("snip_esc3_dead") and
-	actor:has_info("snip_esc4_dead") and
-	actor:has_info("snip_esc5_dead") and
-	actor:has_info("snip_esc6_dead")and
-	actor:has_info("snip_esc7_dead") and
-	actor:has_info("snip_esc8_dead") and
-	actor:has_info("snip_esc9_dead") and
-	actor:has_info("snip_esc10_dead") and
-	actor:has_info("snip_esc11_dead") and
-	actor:has_info("snip_esc12_dead") ~= nil then
-		return actor:give_info_portion("atak_larger_have") ~= nil   
+  if Actor and Actor:has_info("snip_esc1_dead") and
+	Actor:has_info("snip_esc2_dead") and
+	Actor:has_info("snip_esc3_dead") and
+	Actor:has_info("snip_esc4_dead") and
+	Actor:has_info("snip_esc5_dead") and
+	Actor:has_info("snip_esc6_dead")and
+	Actor:has_info("snip_esc7_dead") and
+	Actor:has_info("snip_esc8_dead") and
+	Actor:has_info("snip_esc9_dead") and
+	Actor:has_info("snip_esc10_dead") and
+	Actor:has_info("snip_esc11_dead") and
+	Actor:has_info("snip_esc12_dead") ~= nil then
+		return Actor:give_info_portion("atak_larger_have") ~= nil   
   end
 return false
 end
 
 function zahar_naemnik_have(task, info)
-	local actor = db.actor
-  if actor and actor:has_info("naem_zahar1_dead") and
-	actor:has_info("naem_zahar2_dead") and
-	actor:has_info("naem_zahar3_dead") and
-	actor:has_info("naem_zahar4_dead") and
-	actor:has_info("naem_zahar5_dead") and
-	actor:has_info("naem_zahar6_dead") ~= nil then
-		return actor:give_info_portion("zahar_naemnik_have") ~= nil   
+  if Actor and Actor:has_info("naem_zahar1_dead") and
+	Actor:has_info("naem_zahar2_dead") and
+	Actor:has_info("naem_zahar3_dead") and
+	Actor:has_info("naem_zahar4_dead") and
+	Actor:has_info("naem_zahar5_dead") and
+	Actor:has_info("naem_zahar6_dead") ~= nil then
+		return Actor:give_info_portion("zahar_naemnik_have") ~= nil   
   end
 return false
 end
 
 function sms_new()
---    db.actor:give_info_portion("sms_new_dan1")
+--    Actor:give_info_portion("sms_new_dan1")
 	amk.send_tip(game.translate_string("sms_new_dan1_text"),nil,nil,30)
 end
 
 function sms_new1()
---	db.actor:give_info_portion("sms_new_dan2")
+--	Actor:give_info_portion("sms_new_dan2")
     amk.send_tip(game.translate_string("sms_new_dan2_text"),nil,nil,30)
 end
 
 function actor_has_money_30000()
-  return db.actor:money()>=30000
+  return Actor:money()>=30000
 end
 
 function give_money_30000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   dialogs.relocate_money(npc,30000,"out")
@@ -258,14 +256,13 @@ function delete_smart()
 end
 
 function spawn_prohod()
-	local v = vector()
-	local actor = db.actor
-    if not actor:has_info("info_spawn_teleport") then 
+    if not Actor:has_info("info_spawn_teleport") then 
+		local v = vector()
 		local se_obj = AI:create("zone_teleport_new",v:set(-208.9479,0.86408543,-291.8642),37124,3362)
-		xr_logic.pstor_store(actor, "zone_teleport_new", se_obj.id) 
+		xr_logic.pstor_store(Actor, "zone_teleport_new", se_obj.id) 
 		local se_obj = AI:create("zone_teleport_new_out",v:set(34.4663,0.87717,-287.2317),156875,3436)
-		xr_logic.pstor_store(actor, "zone_teleport_new_out", se_obj.id)
-		actor:give_info_portion("info_spawn_teleport")
+		xr_logic.pstor_store(Actor, "zone_teleport_new_out", se_obj.id)
+		Actor:give_info_portion("info_spawn_teleport")
 	end
 end
 
@@ -309,7 +306,7 @@ end
 function mina_band(obj)
 end
 function mina_band3()
-	AI:release(AI:object(db.actor:object("grenade_rgd5_new"):id()))
+	AI:release(AI:object(Actor:object("grenade_rgd5_new"):id()))
 end
 
 
@@ -368,15 +365,15 @@ local in_object
 
 function ograblen_kalm(actor,npc)
 	local inv_box_1 = level_object_by_sid(story_ids.kalmyak)
-	out_object = db.actor
+	out_object = Actor
 	in_object = inv_box_1
 	shiftCheckDropItem()
-	db.actor:inventory_for_each(transfer_object_item)
+	Actor:inventory_for_each(transfer_object_item)
 end
 
 function vozvrat_kalm(actor,npc)
 	local inv_box_1 = level_object_by_sid(story_ids.kalmyak)
-	in_object = db.actor
+	in_object = Actor
 	out_object = inv_box_1
 	shiftCheckDropItem()
 	out_object:inventory_for_each(transfer_object_item)
@@ -604,10 +601,10 @@ end
 
 
 function kot_krovosos()
-local position = db.actor:position()
+local position = Actor:position()
 	position.x = position.x + 25
-local obj = AI:create("bloodsucker_strong",position, db.actor:level_vertex_id(), db.actor:game_vertex_id())
-local obj = AI:create("burer_strong",position, db.actor:level_vertex_id(), db.actor:game_vertex_id())
+local obj = AI:create("bloodsucker_strong",position, Actor:level_vertex_id(), Actor:game_vertex_id())
+local obj = AI:create("burer_strong",position, Actor:level_vertex_id(), Actor:game_vertex_id())
 end
 
 function spawn_blizn_krug1()
@@ -727,7 +724,7 @@ function luis_killself()
 		if npc then
 			npc:kill(npc)
 			local snd_obj = xr_sound.get_safe_sound_object([[weapons\colt\colt1911_shoot]])
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		end
 	end
 end
@@ -739,7 +736,7 @@ function francuz_killself()
 		if npc then
 			npc:kill(npc)
 			local snd_obj = xr_sound.get_safe_sound_object([[weapons\colt\colt1911_shoot]])
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		end
 	end
 end
@@ -748,13 +745,13 @@ function zahar_na_limansk()
   -- создается переход c АС В ЛИМАНСК
 	if (not has_alife_info(	"level_newlimansk" )) then
 		level_changers.create_level_changer("lc_military_to_limansk")
-        db.actor:give_info_portion("level_newlimansk")
+        Actor:give_info_portion("level_newlimansk")
 	end
 end
 
 function spawn_zombi_restr1()
 	local v = vector()
-    if level.name()=="limansk" and not db.actor:has_info("lim_spawn_restr1") then 
+    if level.name()=="limansk" and not Actor:has_info("lim_spawn_restr1") then 
 		AI:create("lim_sniper",v:set(36.775608062744,28.541257858276,197.56105041504),46539,3003)
 		AI:create("lim_sniper_ohr1",v:set(3.7273268699,13.70157623291,196.73896789551),26776,3010)
 		AI:create("lim_sniper_ohr2",v:set(15.121144294,13.698766708374,196.21144104004),34620,3010)
@@ -764,32 +761,32 @@ function spawn_zombi_restr1()
 		AI:create("zombi_restr3",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr4",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr5",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
-    db.actor:give_info_portion("lim_spawn_restr1")
+    Actor:give_info_portion("lim_spawn_restr1")
     end
 end
 
 
 function spawn_zombi_restr2()
 	local v = vector()
-    if level.name()=="limansk" and not db.actor:has_info("lim_spawn_restr2") then 
+    if level.name()=="limansk" and not Actor:has_info("lim_spawn_restr2") then 
 		AI:create("zombi_restr1",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr2",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr3",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr4",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr5",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
-    db.actor:give_info_portion("lim_spawn_restr2")
+    Actor:give_info_portion("lim_spawn_restr2")
     end
 end
 
 function spawn_zombi_restr3()
 	local v = vector()
-    if level.name()=="limansk" and not db.actor:has_info("lim_spawn_restr3") then 
+    if level.name()=="limansk" and not Actor:has_info("lim_spawn_restr3") then 
 		AI:create("zombi_restr1",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr2",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr3",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr4",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
 		AI:create("zombi_restr5",v:set(5.4863138198853,10.999716758728,155.81025695801),28057,3010)
-    db.actor:give_info_portion("lim_spawn_restr3")
+    Actor:give_info_portion("lim_spawn_restr3")
     end
 end
 
@@ -798,14 +795,14 @@ local obj = AI:create("glushitel",vector():set(-6.2885980606079,13.082293510437,
 end
 
 function drop_actor(obj)
-   if obj:section() == "glushitel" and db.actor:has_info("borman_glushitel_restr") then
-      db.actor:give_info_portion("borman_glushitel_have")
+   if obj:section() == "glushitel" and Actor:has_info("borman_glushitel_restr") then
+      Actor:give_info_portion("borman_glushitel_have")
    end 
 end
 
 function start(first_speaker, second_speaker)
 --	local actor, trader
---	if db.actor and db.actor:id() == first_speaker:id() then
+--	if Actor and Actor:id() == first_speaker:id() then
 --		actor = first_speaker
 --		trader = second_speaker
 --	else
@@ -908,16 +905,14 @@ end
 
 
 function speech_xalyava()
-local snd_obj = xr_sound.get_safe_sound_object([[characters_voice\scenario\val\prisoner_help_2]])
-   snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
-news_manager.send_tip("%c[gray2]".."ХАЛЯВА:".."\\n".."%c[red_sms]Братцы, выручайте! Наёмники зажали на ферме!",nil,nil,60000)    
+news_manager.send_tip("%c[gray2]ХАЛЯВА:\\n%c[red_sms]Братцы, выручайте! Наёмники зажали на ферме!",nil,nil,20000,nil,[[characters_voice\scenario\val\prisoner_help_2]])    
 end
 -----------------------------turell---------------------------------------------------
 function test_turrel()
 	local info_name = "info_turret_escape_spawn"
-   if (xr_logic.pstor_retrieve(db.actor, info_name, false) == false) and 
+   if (xr_logic.pstor_retrieve(Actor, info_name, false) == false) and 
    AI and (level.name() == "l01_escape") then
-   xr_logic.pstor_store(db.actor, info_name, true)
+   xr_logic.pstor_store(Actor, info_name, true)
    dbglog("test_turrel(%s)",info_name)
 turret_mgun.create_turret("turret_nato",level_name, vector():set(-201.338,-20.307,-147.54),"bandit", "", 200,100) end
 end
@@ -934,23 +929,23 @@ function alife_dir(section,position,levelvertex,gamevertex,direction)
 end
 
 function lim_turrel()
-    if not db.actor:has_info("lim_spawn_lim_turrel") then 
+    if not Actor:has_info("lim_spawn_lim_turrel") then 
 alife_dir("trenoga_lim1",vector():set(61.824359893799,14.957581520081,246.21290588379),58766,3021,
           vector():set(0.17578122019768,0,0.98442924022675))
-    db.actor:give_info_portion("lim_spawn_lim_turrel")
+    Actor:give_info_portion("lim_spawn_lim_turrel")
     end
 end
 
 -----------------------------turell---------------------------------------------------
 
 function drink_vodka()
-	db.actor:eat(db.actor:object("vodka"))
+	Actor:eat(Actor:object("vodka"))
 end
 
 function rereg_scromnyi() 
-    if not db.actor:has_info("scromnyi_rereg") then
+    if not Actor:has_info("scromnyi_rereg") then
 	   logig_scromnyi()
-       db.actor:give_info_portion("scromnyi_rereg")
+       Actor:give_info_portion("scromnyi_rereg")
     end
 end
 
@@ -977,17 +972,17 @@ function rabi_mad()
 end
 
 function spawn_prohod_lim()
-    if not db.actor:has_info("info_spawn_lim_teleport") then 
+    if not Actor:has_info("info_spawn_lim_teleport") then 
 local se_obj = AI:create("lim_zone_teleport1",vector():set(40.821,11.0686,215.0173),48310,3020)
-xr_logic.pstor_store(db.actor, "lim_zone_teleport1", se_obj.id) 
+xr_logic.pstor_store(Actor, "lim_zone_teleport1", se_obj.id) 
 local se_obj = AI:create("lim_zone_teleport2",vector():set(49.1074,2.948,300.0252),51380,3022)
-xr_logic.pstor_store(db.actor, "lim_zone_teleport2", se_obj.id)
-    db.actor:give_info_portion("info_spawn_lim_teleport")
+xr_logic.pstor_store(Actor, "lim_zone_teleport2", se_obj.id)
+    Actor:give_info_portion("info_spawn_lim_teleport")
 	end
 end
 
 function drop_lim(obj)
-   if obj:section() == "nebo_clear" and db.actor:has_info("nebo_kurier_del") then
+   if obj:section() == "nebo_clear" and Actor:has_info("nebo_kurier_del") then
        del_lim()
       AI:release(AI:object(obj:id()))
 --	  amk.remove_item(obj)
@@ -996,24 +991,24 @@ end
 
 
 function del_lim()
-    if not db.actor:has_info("info_del_lim_teleport") then 
-		local obj_id = xr_logic.pstor_retrieve(db.actor, "lim_zone_teleport1", -1, true)
+    if not Actor:has_info("info_del_lim_teleport") then 
+		local obj_id = xr_logic.pstor_retrieve(Actor, "lim_zone_teleport1", -1, true)
 		local se_obj = AI:object(obj_id)
 		if se_obj then
 			AI:release(se_obj, true)
 		end
-		obj_id = xr_logic.pstor_retrieve(db.actor, "lim_zone_teleport2", -1, true)
+		obj_id = xr_logic.pstor_retrieve(Actor, "lim_zone_teleport2", -1, true)
 		se_obj = AI:object(obj_id)
 		if se_obj then
 			AI:release(se_obj, true)
 		end	
-		db.actor:give_info_portion("info_del_lim_teleport")
+		Actor:give_info_portion("info_del_lim_teleport")
 	end
 end 
 
 function speech_teleport()
 news_manager.send_tip("%c[gray2]".."СВИБЛОВ:".."\\n".."%c[red_sms]$actor$, есть дело срочное, жду тебя.",nil,nil,30000)  
-db.actor:give_info_portion("nebo_kurier_first")  
+Actor:give_info_portion("nebo_kurier_first")  
 end
 
 function kurier_dead()
@@ -1027,9 +1022,9 @@ function kurier_dead()
 end
 
 function kurier_health(obj)
-    if db.actor and db.actor.health then
-		if db.actor.health < 1 then
-		    db.actor.health = db.actor.health + 0.6
+    if Actor and Actor.health then
+		if Actor.health < 1 then
+		    Actor.health = Actor.health + 0.6
 		end
 	end  
 end 
@@ -1039,11 +1034,11 @@ sleep_manager.main(5+amk.load_variable("gg_need_sleep_nrg",0))
 end
 
 function eat_aptec()
-	db.actor:eat(db.actor:object("medkit_scientic"))
+	Actor:eat(Actor:object("medkit_scientic"))
 end
 
 function eat_antirad()
-	db.actor:eat(db.actor:object("antirad"))
+	Actor:eat(Actor:object("antirad"))
 end
 
 function doctor_dal()
@@ -1053,22 +1048,21 @@ end
 
 function spawn_prohod_hos()
 -- Эти ТП в Госпитале "вечные", поэтому нет смысла писать их в пстор - запись закомментена
-	local v = vector()
-	local actor = db.actor
-    if not actor:has_info("info_spawn_hos_teleport") then 
+    if not Actor:has_info("info_spawn_hos_teleport") then 
+		local v = vector()
 		local se_obj = AI:create("hos_zone_teleport1",v:set(-86.273,25.844,674.829),3736,3044)
---		xr_logic.pstor_store(actor, "hos_zone_teleport1", se_obj.id) 
+--		xr_logic.pstor_store(Actor, "hos_zone_teleport1", se_obj.id) 
 		local se_obj = AI:create("hos_zone_teleport2",v:set(-104.113,34.25,615.65),127,3028)
---		xr_logic.pstor_store(actor, "hos_zone_teleport2", se_obj.id)
+--		xr_logic.pstor_store(Actor, "hos_zone_teleport2", se_obj.id)
 		local se_obj = AI:create("hos_zone_teleport3",v:set(-92.780,33.493,719.939),1801,3034)
---		xr_logic.pstor_store(actor, "hos_zone_teleport3", se_obj.id)
-		actor:give_info_portion("info_spawn_hos_teleport")
+--		xr_logic.pstor_store(Actor, "hos_zone_teleport3", se_obj.id)
+		Actor:give_info_portion("info_spawn_hos_teleport")
 	end
 end
 
 --function black_doctor_init_dialod()
    --local black_doctor = level_object_by_sid(story_ids.black_doctor)
-   --db.actor:run_talk_dialog(black_doctor)
+   --Actor:run_talk_dialog(black_doctor)
 --end
 
 --function actor_sleep_black_doctor()
@@ -1079,10 +1073,10 @@ end
 --function bl_doc_tele( actor, npc)
    --level.add_pp_effector ("blink.ppe", 234, false)       
    --level.add_pp_effector("teleport.ppe", 2006, false) 
-   --db.actor:set_actor_position(patrol("black_vozvrat_walk"):point(0))
+   --Actor:set_actor_position(patrol("black_vozvrat_walk"):point(0))
    --local dir = patrol("black_vozvrat_look"):point(0):sub(patrol("black_vozvrat_look"):point(0))
-   --db.actor:set_actor_direction(-dir:getH())
-   --xr_effects.enable_ui(db.actor, nil)
+   --Actor:set_actor_direction(-dir:getH())
+   --xr_effects.enable_ui(Actor, nil)
 --end
 
 function delete_black_doctor()
@@ -1113,7 +1107,7 @@ end
 
 function shadowman_red_spn1() 
 	local v = vector()
-    if not db.actor:has_info("shadowman_red_spn1") then
+    if not Actor:has_info("shadowman_red_spn1") then
 	AI:create("boar_normal_sh1",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh2",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh3",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
@@ -1124,13 +1118,13 @@ function shadowman_red_spn1()
 	AI:create("snork_normal_sh3",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh4",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh5",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
-    db.actor:give_info_portion("shadowman_red_spn1") 
+    Actor:give_info_portion("shadowman_red_spn1") 
 	end
 end
 
 function shadowman_red_spn2() 
 	local v = vector()
-    if not db.actor:has_info("shadowman_red_spn2") then
+    if not Actor:has_info("shadowman_red_spn2") then
 	AI:create("boar_normal_sh6",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh7",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh8",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
@@ -1141,13 +1135,13 @@ function shadowman_red_spn2()
 	AI:create("snork_normal_sh8",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh9",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh10",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
-    db.actor:give_info_portion("shadowman_red_spn2") 
+    Actor:give_info_portion("shadowman_red_spn2") 
 	end
 end
 
 function shadowman_red_spn3() 
 	local v = vector()
-    if not db.actor:has_info("shadowman_red_spn3") then
+    if not Actor:has_info("shadowman_red_spn3") then
 	AI:create("boar_normal_sh11",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh12",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
 	AI:create("boar_normal_sh13",v:set(-9.1997413635254,0.043906480073929,-36.546310424805),60673,3290)
@@ -1158,7 +1152,7 @@ function shadowman_red_spn3()
 	AI:create("snork_normal_sh13",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh14",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
 	AI:create("snork_normal_sh15",v:set(-22.176950454712,0.78433322906494,18.689910888672),49490,3263)
-    db.actor:give_info_portion("shadowman_red_spn3") 
+    Actor:give_info_portion("shadowman_red_spn3") 
 	end
 end
 
@@ -1252,14 +1246,14 @@ function grib_respawn()
 local timeh =level.get_time_hours()
 local times =level.get_time_minutes()
     if (timeh == 22 and times == 1)  then
-        if db.actor:dont_has_info("info_respawn_grib") then
+        if Actor:dont_has_info("info_respawn_grib") then
 		   del_mushroom()
            spawn_grib()
-		   db.actor:give_info_portion("info_respawn_grib")
+		   Actor:give_info_portion("info_respawn_grib")
 		end
     end
     if (timeh == 23 and times == 1) then
-        db.actor:disable_info_portion("info_respawn_grib")
+        Actor:disable_info_portion("info_respawn_grib")
     end
 end	
 
@@ -1273,7 +1267,7 @@ function spawn_grib()
 end
 
 function del_mushroom()
-	local actorpos = db.actor:position()
+	local actorpos = Actor:position()
 	local actor_lvl = level.name()
 	local obj, lvl
     for a=1,65534 do
@@ -1306,7 +1300,7 @@ function check_grib()
 				AI:release(sobj, true)
 				table.insert(del, id)
 			else
-				condition = (game_hours - h)/grib_time
+				condition = (grib_time - game_hours + h)/grib_time
 				netpk:modify(sobj, {condition = condition}, netpk.fState)
 				obj = level.object_by_id(id)
 				if obj then
@@ -1357,7 +1351,7 @@ function grab_set11()
 			if npc then npc:set_character_community("bandit", 0, 0) end
 		end
 	end
-	db.actor:give_info_portion("klyak_forest_doc_scene")
+	Actor:give_info_portion("klyak_forest_doc_scene")
 end
 
 function grab_set2()
@@ -1379,14 +1373,14 @@ function mitya_kill()
 		if npc then
 			npc:kill(npc)
 			local snd_obj = xr_sound.get_safe_sound_object([[weapons\colt\colt1911_shoot]])
-			snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0) 
+			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0) 
 		end
 	end
 end
 
 function mitya_sms()
 news_manager.send_tip("%c[gray2]".."СИДОРОВИЧ:".."\\n".."%c[red_sms]$actor$, зайди, есть посылка любопытная.",nil,nil,30000)  
-db.actor:give_info_portion("mitya_dead_sms_sidor")
+Actor:give_info_portion("mitya_dead_sms_sidor")
 end
 
 function spawn_green()
@@ -1394,9 +1388,8 @@ local obj = AI:create("green_ruk",vector():set(228.335338,-7.298178,67.8218),143
 end
 
 function clear_actor(npc)
-    local npc = db.actor
-    npc:iterate_inventory(__del_item, npc)
-	friendactorstalker(community1, community2)
+    Actor:iterate_inventory(__del_item, Actor)
+	friendactorstalker()
 end
 
 function __del_item(npc, item)
@@ -1409,30 +1402,30 @@ function __del_item(npc, item)
     AI:release(AI:object(item:id()), true)
 end
 
-function friendactorstalker(community1, community2)
+function friendactorstalker()
 relation_registry.set_community_goodwill ("stalker", "actor", 400)
 relation_registry.set_community_goodwill ("green", "actor", 100)
 end
 
 function actor_has_money_50000()
-  return db.actor:money()>=50000
+  return Actor:money()>=50000
 end
 
 function give_money_50000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   dialogs.relocate_money(npc,50000,"out")
 end
 
 function actor_has_money_10000()
-  return db.actor:money()>=10000
+  return Actor:money()>=10000
 end
 
 function give_money_10000(t1,t2)
   local npc=t1
-  if npc:id()==db.actor:id() then
+  if npc:id()==Actor:id() then
     npc=t2
   end
   dialogs.relocate_money(npc,10000,"out")
@@ -1440,20 +1433,20 @@ end
 
 function speech_test()
 --news_manager.send_tip("ЖОПАААААААААААААААААААААААААААААААААААА",nil,nil,60000)  
---db.actor:give_info_portion("mitya_dead_sms_sidor")
+--Actor:give_info_portion("mitya_dead_sms_sidor")
 end
 
 function del_kot_marsh()
 	local se_obj = AI:object("kot")
 	if se_obj then
 		AI:release(se_obj, true)
-		db.actor:give_info_portion("bkot_spawn")
+		Actor:give_info_portion("bkot_spawn")
 	end
 end	
 
 function spawn_zombi_forest() 
 	local v = vector()
-    if not db.actor:has_info("info_contr_spawn") then  
+    if not Actor:has_info("info_contr_spawn") then  
 		AI:create("zombie_beee",v:set(-139.66778564453,-6.2611632347107,-57.55558013916),7320,3240)
 		AI:create("zombie_beee",v:set(-139.66778564453,-6.2611632347107,-57.55558013916),7320,3240)
 		AI:create("zombie_beee",v:set(-139.66778564453,-6.2611632347107,-57.55558013916),7320,3240)
@@ -1463,7 +1456,7 @@ function spawn_zombi_forest()
 		AI:create("zombie_beee",v:set(-150.7121887207,2.2457160949707,-32.752670288086),6685,3240)
 		AI:create("zombie_beee",v:set(-150.7121887207,2.2457160949707,-32.752670288086),6685,3240)
 		AI:create("zombie_beee",v:set(-150.7121887207,2.2457160949707,-32.752670288086),6685,3240)
-    db.actor:give_info_portion("info_contr_spawn")
+    Actor:give_info_portion("info_contr_spawn")
    end	
 end
 
@@ -1557,12 +1550,12 @@ end
 function checking_taken_item60(obj)
   if obj:section()=="bitvakl_pda" then 
     if not has_alife_info("bitvakl_xvatit_spawn") then 
-	  db.actor:give_info_portion("bitvakl_xvatit_spawn")
+	  Actor:give_info_portion("bitvakl_xvatit_spawn")
 	  -- Звуковое сопровождение
 	  local snd_obj = xr_sound.get_safe_sound_object([[monsters\controller\controller_script_attack_0]])
-      snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+      snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	  
-	  amk.drop_item(db.actor,obj)
+	  amk.drop_item(Actor,obj)
 	  amk.remove_item(obj)
 
 	  this.bitvakl_spawn()
@@ -1642,8 +1635,8 @@ end
 function dead_city_atpeshka()
   	if (not has_alife_info("dead_city_atpeshka" )) then
 		level_changers.create_level_changer("lc_dead_city_to_atp_timing")
-        db.actor:give_info_portion("dead_city_atpeshka")
-		db.actor:give_info_portion("spawn_atp_presledovateli")
+        Actor:give_info_portion("dead_city_atpeshka")
+		Actor:give_info_portion("spawn_atp_presledovateli")
     end
 end
 
@@ -1651,7 +1644,7 @@ function gar_pri1()
       -- создается переход с НЗ в Восточную Припять - не используется.
 	if (not has_alife_info(	"info_gar_pri1" )) then
 		level_changers.create_level_changer("lc_aver_to_east_pripyat")
-        db.actor:give_info_portion("info_gar_pri1")
+        Actor:give_info_portion("info_gar_pri1")
 	end
 end
 
@@ -1659,7 +1652,7 @@ function yan_pri1()
       -- создается переход с Янтаря в Восточную Припять
 	if (not has_alife_info(	"info_yan_pri1" )) then
 		level_changers.create_level_changer("lc_yantar_to_east_pripyat")
-        db.actor:give_info_portion("info_yan_pri1")
+        Actor:give_info_portion("info_yan_pri1")
 	end
 end
 
@@ -1667,7 +1660,7 @@ function pri1_forest()
       -- создается переход с Восточной Припяти в Забытый Лес
 	if (not has_alife_info(	"info_pri1_forest" )) then
 		level_changers.create_level_changer("lc_east_pripyat_to_aver")
-		db.actor:give_info_portion("info_pri1_forest")
+		Actor:give_info_portion("info_pri1_forest")
 	end
 end
 
@@ -1675,7 +1668,7 @@ function pri1_lab()
       -- создается переход с Восточной Припяти в X-8
 	if (not has_alife_info(	"info_pri1_lab" )) then
 		level_changers.create_level_changer("lc_east_pripyat_to_labx8")
-        db.actor:give_info_portion("info_pri1_lab")
+        Actor:give_info_portion("info_pri1_lab")
 	end
 end
 
@@ -1683,7 +1676,7 @@ function lab_under()
       -- создается переход с Х8 в Путепровод Припять-1.
 	if (not has_alife_info(	"info_lab_under" )) then
 		level_changers.create_level_changer("lc_labx8_to_jup_underground")
-        db.actor:give_info_portion("info_lab_under")
+        Actor:give_info_portion("info_lab_under")
 	end
 end
 
@@ -1691,7 +1684,7 @@ function under_pri1()
       -- создается переход из Путепровода Припять-1 в Восточную Припять.
 	if (not has_alife_info(	"info_under_pri1" )) then
 		level_changers.create_level_changer("lc_jup_underground_to_east_pripyat")
-        db.actor:give_info_portion("info_under_pri1")
+        Actor:give_info_portion("info_under_pri1")
 	end
 end
 
@@ -1699,7 +1692,7 @@ function pri1_jup()
       -- создается переход с Восточной Припяти на Юпитер.
 	if (not has_alife_info(	"info_pri1_jup" )) then
 		level_changers.create_level_changer("lc_east_pripyat_to_jupiter")
-        db.actor:give_info_portion("info_pri1_jup")
+        Actor:give_info_portion("info_pri1_jup")
 	end
 end
 
@@ -1707,7 +1700,7 @@ function jup_under()
       -- создается переход с Юпитера в Путепровод Припять-1. 
 	if (not has_alife_info(	"info_jup_under" )) then
 		level_changers.create_level_changer("lc_jupiter_to_jup_underground")
-        db.actor:give_info_portion("info_jup_under")
+        Actor:give_info_portion("info_jup_under")
 	end
 end
 
@@ -1715,7 +1708,7 @@ function pri1_zaton()
       -- создается переход с Восточной Припяти на Затон. 
 	if (not has_alife_info(	"info_pri1_zaton" )) then
 		level_changers.create_level_changer("lc_east_pripyat_to_zaton")
-        db.actor:give_info_portion("info_pri1_zaton")
+        Actor:give_info_portion("info_pri1_zaton")
 	end
 end
 
@@ -1725,7 +1718,7 @@ function sva_chaes2()
 		level_changers.create_level_changer("lc_garbage_to_east_pripyat")
 		level_changers.create_level_changer("lc_zaton_to_east_pripyat")
 		level_changers.create_level_changer("lc_labx8_to_east_pripyat")
-        db.actor:give_info_portion("info_sva_chaes2")
+        Actor:give_info_portion("info_sva_chaes2")
 	end
 end
 
@@ -1740,7 +1733,7 @@ function zat_jup()
       -- создается переход с Затона на Юпитер. 
 	if (not has_alife_info(	"info_zat_jup" )) then
 		level_changers.create_level_changer("lc_zaton_to_jupiter")
-        db.actor:give_info_portion("info_zat_jup")
+        Actor:give_info_portion("info_zat_jup")
 	end
 end
 
@@ -1748,7 +1741,7 @@ function jup_zat()
       -- создается переход с Юпитера в Затон. 
 	if (not has_alife_info(	"info_jup_zat" )) then
 		level_changers.create_level_changer("lc_jupiter_to_zaton")
-        db.actor:give_info_portion("info_jup_zat")
+        Actor:give_info_portion("info_jup_zat")
 	end
 end
 
@@ -1756,7 +1749,7 @@ function jup_pri()
 	-- создается переход с Юпитера в Восточную Припять.
 	if (not has_alife_info(	"info_jup_pri" )) then
 		level_changers.create_level_changer("lc_jupiter_to_east_pripyat")
-        db.actor:give_info_portion("info_jup_pri")
+        Actor:give_info_portion("info_jup_pri")
 	end
 end
 

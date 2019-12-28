@@ -168,8 +168,8 @@ end
 
 function pda_take(first_speaker, second_speaker)
 	local npc = first_speaker:id()==0 and second_speaker or first_speaker
-	dialogs.relocate_item_section(db.actor, "bar_tiran_pda", "in")
-	npc:set_relation(game_object.friend, db.actor)
+	dialogs.relocate_item_section(Actor, "bar_tiran_pda", "in")
+	npc:set_relation(game_object.friend, Actor)
 	start_small_timer(2000, function()
 		news_manager.send_tip("%c[gray2]".."КУЗНЕЦОВ:".."\\n".."%c[red_sms]$actor$, здесь у нас на мосту какие-то наймы объявились. Начальство нам приказало их не трогать, видать, проплачены большие бабки, но я был бы не против от них избавиться. Стоят тут, как бельмо на глазу, следят за нами, со сталкерами не пообщаешься, водочки не попьёшь... Не мог бы ты кардинально решить вопрос?", nil, nil, 25000)
 		news_manager.send_tip("%c[gray2]".."$actor$:".."\\n".."%c[red_sms]Надеюсь, они не по мою душу. Разберёмся!", 15, nil, 15000)
@@ -308,61 +308,56 @@ function give_foto_arts()
 		has_alife_info("monster_stealth_done_tushkano_s") and
 		has_alife_info("monster_stealth_done_snork_s")
 	then
-		db.actor:give_info_portion("silent_hunt_done")
+		Actor:give_info_portion("silent_hunt_done")
 	end
 end
 -- Akill end
 
 function dan_grab_have(task, objective) 
-if db.actor ~= nil then
-return db.actor:object("bad_psy_helmet") ~= nil
+if Actor ~= nil then
+return Actor:object("bad_psy_helmet") ~= nil
 end
 return false
 end
 
 
-function dan_grab_done(first_speaker, second_speaker) 
-local item = ""
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+function dan_grab_done(first_speaker, second_speaker)
+	local trader
+	if Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
-	item = table.random(nagrad.level_3)
+	local item = table.random(nagrad.level_3)
 	dialogs.relocate_item_section(trader, "bad_psy_helmet", "out", 1)
-    dialogs.relocate_item_section(actor, item , "in", count)
+    dialogs.relocate_item_section(Actor, item , "in", count)
 end	
 
 function yakut_help_have(task, objective) 
-if db.actor ~= nil then
-return db.actor:object("new_book") ~= nil
+if Actor ~= nil then
+return Actor:object("new_book") ~= nil
 end
 return false
 end
 
 
-function yakut_help_done(first_speaker, second_speaker) 
-    local item = ""
-	local count = math.random(4,5)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+function yakut_help_done(first_speaker, second_speaker)
+	local trader
+	if Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
-	item = table.random(nagrad.level_1)
 	dialogs.relocate_item_section(trader, "new_book", "out", 1)
-    flamethrower.relocate_n_items_section(actor, item , "in", count)
+	local count = math.random(4,5)
+	for i = 1, count do
+		inventory.give_items(table.random(nagrad.level_1))
+	end
 end
 
 function yakut_treasure_have(task, objective) 
-if db.actor ~= nil then
-return db.actor:object("notebook_new") ~= nil
+if Actor ~= nil then
+return Actor:object("notebook_new") ~= nil
 end
 return false
 end
@@ -373,8 +368,8 @@ function yakut_treasure_done(first_speaker, second_speaker)
 end
 
 function dan_flash_have(task, objective) 
-if db.actor ~= nil then
-return db.actor:object("nauch_flash") ~= nil
+if Actor ~= nil then
+return Actor:object("nauch_flash") ~= nil
 end
 return false
 end
@@ -385,7 +380,7 @@ function dan_flash_done(first_speaker, second_speaker)
 end	
 
 function treasure_ecolog_have(task, objective) 
-	return db.actor:object("new_book_prizrak") ~= nil
+	return Actor:object("new_book_prizrak") ~= nil
 end
 
 function treasure_ecolog_spawn(fs, ss)
@@ -403,20 +398,18 @@ function treasure_ecolog_spawn(fs, ss)
 		272017, 694, spawn_items, "crlc_big", "Дневник Призрака" )
 end
 
-function treasure_ecolog_done(first_speaker, second_speaker) 
-    local item = ""
-	local count = math.random(2,3)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+function treasure_ecolog_done(first_speaker, second_speaker)
+	local trader
+	if Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
-	item = table.random(nagrad.level_6)
 	dialogs.relocate_item_section(trader, "new_book_prizrak", "out", 1)
-    flamethrower.relocate_n_items_section(actor, item , "in", count)
+	local count = math.random(2,3)
+	for i = 1, count do
+		inventory.give_items(table.random(nagrad.level_6))
+	end
 end					
 
 function barmen_simbion_have(task, objective)
@@ -431,20 +424,18 @@ function system_ecolog_have(task, objective)
 	return inventory.search("computer_new",1) ~= false
 end
 
-function system_ecolog_done(first_speaker, second_speaker) 
-    local item = ""
-	local count = math.random(2,3)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+function system_ecolog_done(first_speaker, second_speaker)
+	local trader
+	if Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
-	item = table.random(nagrad.level_6)
 	dialogs.relocate_item_section(trader, "computer_new", "out", 1)
-    flamethrower.relocate_n_items_section(actor, item , "in", count)
+	local count = math.random(2,3)
+	for i = 1, count do
+		inventory.give_items(table.random(nagrad.level_6))
+	end
 end	
 
 function prizrak_zver_have(task, objective)
@@ -460,20 +451,18 @@ function prizrak_finalzver_have(task, objective)
 	return inventory.search("new_document_sniper")
 end
 
-function prizrak_finalzver_done(first_speaker, second_speaker) 
-    local item = ""
-	local count = math.random(2,3)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
+function prizrak_finalzver_done(first_speaker, second_speaker)
+	local trader
+	if Actor:id() == first_speaker:id() then
 		trader = second_speaker
 	else
-		actor = second_speaker
 		trader = first_speaker
 	end
-	item = table.random(nagrad.level_6)
-	dialogs.relocate_item_section(trader, "new_document_sniper", "out", 1)
-    flamethrower.relocate_n_items_section(actor, item , "in", count)
+	dialogs.relocate_item_section(trader, "new_document_sniper", "out")
+	local count = math.random(2,3)
+	for i = 1, count do
+		inventory.give_items(table.random(nagrad.level_6))
+	end
 end
 
 function yakut_ograblen_have(task, objective)
@@ -499,18 +488,9 @@ function left_arhara(first_speaker, second_speaker)
     dialogs.relocate_item_section(second_speaker, "device_torch", "in")
 end
 
-function atak_larger_done(first_speaker, second_speaker) 
-    local item = ""
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
-		trader = second_speaker
-	else
-		actor = second_speaker
-		trader = first_speaker
-	end
-	item = table.random(nagrad.level_2)
-	dialogs.relocate_item_section(second_speaker, item , "in")
+function atak_larger_done(first_speaker, second_speaker)
+	local item = table.random(nagrad.level_2)
+	dialogs.relocate_item_section(Actor, item , "in")
 end
 
 function tri_kristal()
@@ -518,18 +498,8 @@ function tri_kristal()
 end
    
 function otdal_kristal(first_speaker, second_speaker)
-	local item = ""
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
-		trader = second_speaker
-	else
-		actor = second_speaker
-		trader = first_speaker
-	end
-	item = table.random(nagrad.level_5)
-	flamethrower.relocate_n_items_section(trader, "af_cristall", "out", 5)
-    dialogs.relocate_item_section(second_speaker, item , "in")
+	inventory.out_items("af_cristall", 5)
+    inventory.give_items(table.random(nagrad.level_5))
 end
 
 function prines_lomot()
@@ -537,18 +507,8 @@ function prines_lomot()
 end
    
 function otdal_lomot(first_speaker, second_speaker)
-	local item = ""
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
-		trader = second_speaker
-	else
-		actor = second_speaker
-		trader = first_speaker
-	end
-	item = table.random(nagrad.level_4)
-	flamethrower.relocate_n_items_section(trader, "af_mincer_meat", "out", 10)
-    dialogs.relocate_item_section(second_speaker, item , "in")
+	inventory.out_items("af_mincer_meat", 10)
+    inventory.give_items(table.random(nagrad.level_4))
 end
 
 function prines_odingrav()
@@ -563,19 +523,13 @@ function nagrada_odingrav(first_speaker, second_speaker)
 	inventory.give_items("antirad",3)
 end
 
-function zahar_naemnik_done(first_speaker, second_speaker) 
-    local item = ""
+function zahar_naemnik_done(first_speaker, second_speaker)
 	local count = math.random(3,4)
-	local actor, trader
-	if db.actor and db.actor:id() == first_speaker:id() then
-		actor = first_speaker
-		trader = second_speaker
-	else
-		actor = second_speaker
-		trader = first_speaker
+	local item
+	for i = 1, count do
+		item = table.random(nagrad.level_1)
+		inventory.give_items(item)
 	end
-	item = table.random(nagrad.level_1)
-	flamethrower.relocate_n_items_section(actor, item , "in", count)
 end
 
 function prapor_apt_have()
@@ -584,7 +538,7 @@ end
    
    
 function prapor_apt_done(first_speaker, second_speaker)
-inventory.out_items("medkit_scientic",10) 
+	inventory.out_items("medkit_scientic",10) 
 end
 
 function barrem_talk_have()
@@ -912,16 +866,16 @@ function holod_two_af_blood_dal(first_speaker, second_speaker)
 end
 
 function xalyava_nebo_have(task, info)
-	if (db.actor:has_info("xalyava_naem1_dead")
-		and db.actor:has_info("xalyava_naem2_dead")
-		and db.actor:has_info("xalyava_naem3_dead")
-		and db.actor:has_info("xalyava_naem4_dead")
-		and db.actor:has_info("xalyava_naem5_dead")
-		and db.actor:has_info("xalyava_naem6_dead")
-		and db.actor:has_info("xalyava_naem7_dead")
-		and db.actor:has_info("xalyava_naem8_dead"))
+	if (Actor:has_info("xalyava_naem1_dead")
+		and Actor:has_info("xalyava_naem2_dead")
+		and Actor:has_info("xalyava_naem3_dead")
+		and Actor:has_info("xalyava_naem4_dead")
+		and Actor:has_info("xalyava_naem5_dead")
+		and Actor:has_info("xalyava_naem6_dead")
+		and Actor:has_info("xalyava_naem7_dead")
+		and Actor:has_info("xalyava_naem8_dead"))
 	then
-		return db.actor:give_info_portion("xalyava_nebo_have") 
+		return Actor:give_info_portion("xalyava_nebo_have") 
 	end
 	return false
 end
@@ -965,13 +919,12 @@ function nebo_kurier_done(first_speaker, second_speaker)
 end
 
 function shadowman_zver_have(task, info)
-	local actor = db.actor
 	for i = 1, 30 do
-		if not actor:has_info("shadowman_zver"..i.."_dead") then
+		if not Actor:has_info("shadowman_zver"..i.."_dead") then
 			return false
 		end
 	end
-	actor:give_info_portion("shadowman_zver_have")
+	Actor:give_info_portion("shadowman_zver_have")
 	return true
 end
 

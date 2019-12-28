@@ -24,7 +24,7 @@ function main()
 	AI:create( "m_teleport_izkanalii_dcity", vector():set( -152.27732849121, -1.6294522285461, 44.664749145508 ), 219201, 3615 )
 	AI:create( "m_inventory_box39", vector():set( -85.708, 38.329, 617.077 ), 3905, 3066 )
 	-- AI:create( "makrogenerator", vector():set( -85.708, 38.329, 617.077 ), 3905, 3066 )
-	db.actor:give_info_portion("new_game_start")
+	Actor:give_info_portion("new_game_start")
 end
 
 --Зомбирование
@@ -56,21 +56,21 @@ function zombie()
 end
 
 function mybrains()
-	if (not zombien) and db.actor.psy_health <= 0.4 then
-		community_last = db.actor:character_community()
-		--db.actor:give_info_portion(zombied_community_last..community_last)
+	if (not zombien) and Actor.psy_health <= 0.4 then
+		community_last = Actor:character_community()
+		--Actor:give_info_portion(zombied_community_last..community_last)
 		amk.save_variable(zombied_community_last, community_last)
-		db.actor:give_info_portion(info_zombien)
-		db.actor:set_character_community("zombied", 0, 0)
+		Actor:give_info_portion(info_zombien)
+		Actor:set_character_community("zombied", 0, 0)
 		zombien = true
 		return
 	end
-	if db.actor.psy_health > 0.9 and zombien then
-		--db.actor:disable_info_portion(zombied_community_last..community_last)
+	if Actor.psy_health > 0.9 and zombien then
+		--Actor:disable_info_portion(zombied_community_last..community_last)
 		amk.del_variable(zombied_community_last)
-		db.actor:disable_info_portion(info_zombien)
+		Actor:disable_info_portion(info_zombien)
 		zombien = false
-		db.actor:set_character_community(community_last, 0, 0)
+		Actor:set_character_community(community_last, 0, 0)
 	end
 end
 -- конец зомбирования
@@ -103,7 +103,7 @@ function set_invisible()
 		elseif game.get_game_time():diffSec(game_time) >= idle_time then
 			invisible_off()
 			make_meceniy_outfit_used(actor_outfit)
-			db.actor:move_to_ruck(actor_outfit)
+			Actor:move_to_ruck(actor_outfit)
 			invisible = nil
 			time_to_set_range = nil
 		end
@@ -204,21 +204,21 @@ end
 
 -- для диалогов: проверяем наличие любой экзы
 function have_meceniy_outfit()
-	return db.actor:object("meceniy_outfit_new") or db.actor:object("meceniy_outfit_used")
+	return Actor:object("meceniy_outfit_new") or Actor:object("meceniy_outfit_used")
 end
 
 -- для диалогов: отдаем экзу. если есть - отдаем использованную.
 function give_meceniy_outfit()
-	if db.actor:object("meceniy_outfit_used") then
-		amk.remove_item_from_inventory_by_name("meceniy_outfit_used",db.actor)
-	elseif db.actor:object("meceniy_outfit_new") then
-		amk.remove_item_from_inventory_by_name("meceniy_outfit_new",db.actor)
+	if Actor:object("meceniy_outfit_used") then
+		amk.remove_item_from_inventory_by_name("meceniy_outfit_used",Actor)
+	elseif Actor:object("meceniy_outfit_new") then
+		amk.remove_item_from_inventory_by_name("meceniy_outfit_new",Actor)
 	end
-	news_manager.relocate_item(db.actor, "out", "meceniy_outfit_new")
+	news_manager.relocate_item(Actor, "out", "meceniy_outfit_new")
 end
 
 function prepare_for_work()
-	zombien = db.actor:has_info(info_zombien)
+	zombien = Actor:has_info(info_zombien)
 	if zombien then
 		-- кем же был ГГ до зомбирования ?
 		community_last = amk.load_variable(zombied_community_last, "actor")

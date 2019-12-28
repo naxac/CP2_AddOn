@@ -35,13 +35,13 @@ local function warn_actor(npc)
 --	if not game_options.DEBUG then return end
 	local gd = level.get_game_difficulty()
 	if gd < 1 then
-		rx_utils.get_sound([[device\pda\pda_alarm]]):play(db.actor,0,sound_object.s2d)
+		rx_utils.get_sound([[device\pda\pda_alarm]]):play(Actor,0,sound_object.s2d)
 	end
 	if gd < 2 then
 		level.map_add_object_spot(npc:id(),"rx_gl_hit_sector","")
 	end
 	if gd < 3 then
-		level.map_add_object_spot(db.actor:id(),"rx_gl_alarm","")
+		level.map_add_object_spot(Actor:id(),"rx_gl_alarm","")
 	end
 end
 
@@ -320,7 +320,7 @@ function action_launch_grenade:execute()
 					config_data[wpn:section()].sswitch:play(npc,npc:center())
 				end
 				-- предупреждение игрока
-				if self.target_point:distance_to(db.actor:position()) < get_shell_radius(st.ammo)+4 then
+				if self.target_point:distance_to(Actor:position()) < get_shell_radius(st.ammo)+4 then
 					warn_actor(npc)
 				end
 				self.aim_time = time_global()+math.max(st.rs.aim*50,900)
@@ -478,7 +478,7 @@ function action_launch_grenade:finalize()
 		test_res[self.test_shell] = nil
 		self.test_shell = nil
 	end
-	level.map_remove_object_spot(db.actor:id(),"rx_gl_alarm")
+	level.map_remove_object_spot(Actor:id(),"rx_gl_alarm")
 	level.map_remove_object_spot(npc:id(),"rx_gl_hit_sector")
 	if not npc:alive() then
 		return
@@ -641,7 +641,7 @@ function safe_to_reload(npc,st)
 		st.wait = tg+2000
 		return true
 	end
-	local actorid = db.actor:id()
+	local actorid = Actor:id()
 	for o in npc:memory_visible_objects() do
 		local obj = o:object()
 		local id = obj and obj:id() or -1

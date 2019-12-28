@@ -30,7 +30,7 @@ end
 function actor_update(delta)
 
 	-- Получим позицию актера (что-бы каждый раз не запрашивать)
-	local acter_poz = db.actor:position()
+	local acter_poz = Actor:position()
 
 	local t = time_global()
 	local s
@@ -52,16 +52,16 @@ function actor_update(delta)
 				if ( not s.fli_code ) or t >= s.time then
 					-- время отведенное на показ спецэфектов прошло
 					-- производим телепортацию
-					db.actor:set_actor_position(s.destination)
+					Actor:set_actor_position(s.destination)
 --					news_manager.send_tip(v.section, nil, nil, 10000) -- какой ТП сработал
 					if s.rotate then
-						db.actor:set_actor_direction(s.rotate)
+						Actor:set_actor_direction(s.rotate)
 					end
 
 					-- выполняем функции рестриктора
 					if s.info then
 						-- выдаем поршень
-						db.actor:give_info_portion(s.info)
+						Actor:give_info_portion(s.info)
 					end
 					if s.func then
 						-- выполняем функцию
@@ -78,7 +78,7 @@ function actor_update(delta)
 			    abs_comp(s.z, acter_poz.z) < s.y_radius  and
 			    abs_comp(s.y, acter_poz.y) < s.z_radius) then
 				-- Актер в зоне действия телепорта, запустим телепорт
-			--	db.actor:give_info_portion("teleport_started")
+			--	Actor:give_info_portion("teleport_started")
 				s["teleporte"] = true
 				s["time"] = t + 1500
 
@@ -94,11 +94,11 @@ function actor_update(delta)
 
 				-- Звуковое сопровождение
 				local snd_obj = xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]])
-				snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)
+				snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 
 				if s.fli_code then
 					-- закидываем актора на остров для спавна кода
-					db.actor:set_actor_position(fly_island.get_actor_pos(s.fli_code))
+					Actor:set_actor_position(fly_island.get_actor_pos(s.fli_code))
 				end
 			end
 	--	end

@@ -80,14 +80,13 @@ local cmd2func = {}
 		elseif not sys_ini:section_exist(section) then
 			return false, "Unknown section: "..section
 		end
-		local a = db.actor
-		local gv = a:game_vertex_id()
+		local gv = Actor:game_vertex_id()
 		if not GGraph:valid_vertex_id(gv) then
 			return false, "Invalid vertex of actor: can't create object"
 		end
-		local pos = a:position():add(a:direction():mul(3))
+		local pos = Actor:position():add(Actor:direction():mul(3))
 		AI:create(section, pos:add(vector():set(0, 0.5, 0)),
-			a:level_vertex_id(), gv)
+			Actor:level_vertex_id(), gv)
 		return true, nil
 	end
 	
@@ -97,7 +96,7 @@ local cmd2func = {}
 		elseif not sys_ini:section_exist(section) then
 			return false, "Unknown section ["..section.."]"
 		end
-		local obj = db.actor:object(section)
+		local obj = Actor:object(section)
 		if obj then
 			local sobj = AI:object(obj:id())
 			if sobj then
@@ -131,7 +130,7 @@ local cmd2func = {}
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: forward"
 		end
-		db.actor:set_actor_position(db.actor:position():add(db.actor:direction():mul(tonumber(n))))
+		Actor:set_actor_position(Actor:position():add(Actor:direction():mul(tonumber(n))))
 		return true, nil
 	end
 	
@@ -142,14 +141,14 @@ local cmd2func = {}
 		then
 			return false, "Incorrect parameters for command: teleport"
 		end
-		db.actor:set_actor_position(vector():set(tonumber(x), tonumber(y), tonumber(z)))
+		Actor:set_actor_position(vector():set(tonumber(x), tonumber(y), tonumber(z)))
 		return true, nil
 	end
 	
 	cmd2func['position'] = function()
-		local pos = db.actor:position()
-		local lv = db.actor:level_vertex_id()
-		local gv = db.actor:game_vertex_id()
+		local pos = Actor:position()
+		local lv = Actor:level_vertex_id()
+		local gv = Actor:game_vertex_id()
 		local msg = "X = "..pos.x.."\\nY = "..pos.y.."\\nZ = "..pos.z.."\\nLevel Vertex = "..lv.."\\nGame Vertex = "..gv.."\\nValid = "..tostring(GGraph:valid_vertex_id(gv))
 		return true, msg
 	end
@@ -158,7 +157,7 @@ local cmd2func = {}
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: power"
 		end
-		db.actor.power = tonumber(n)
+		Actor.power = tonumber(n)
 		return true, nil
 	end
 	
@@ -166,7 +165,7 @@ local cmd2func = {}
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: satiety"
 		end
-		db.actor.satiety = tonumber(n)
+		Actor.satiety = tonumber(n)
 		return true, nil
 	end
 	
@@ -174,7 +173,7 @@ local cmd2func = {}
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: health"
 		end
-		db.actor.health = tonumber(n)
+		Actor.health = tonumber(n)
 		return true, nil
 	end
 	
@@ -182,7 +181,7 @@ local cmd2func = {}
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: money"
 		end
-		db.actor:give_money(tonumber(n))
+		Actor:give_money(tonumber(n))
 		return true, nil
 	end
 	
@@ -192,7 +191,7 @@ local cmd2func = {}
 		elseif has_alife_info(info) then
 			return false, "Actor already has info:"..info
 		end
-		db.actor:give_info_portion(info)
+		Actor:give_info_portion(info)
 		return true, nil
 	end
 	
@@ -202,7 +201,7 @@ local cmd2func = {}
 		elseif not has_alife_info(info) then
 			return false, "Actor already hasn't info:"..info
 		end
-		db.actor:disable_info_portion(info)
+		Actor:disable_info_portion(info)
 		return true, nil
 	end
 	

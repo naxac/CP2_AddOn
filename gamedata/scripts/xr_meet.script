@@ -18,7 +18,7 @@ function evaluator_contact:evaluate()
 
 --	if xrs_armor and xrs_armor.pickupers[self.object:id()]==true then return false end
 
-	if not db.actor:alive() then
+	if not Actor:alive() then
 		return false
 	end
 --	Red75 +
@@ -86,7 +86,7 @@ function action_meet_wait:execute ()
 
 	local victim = nil
 	if meet_manager.victim == "actor" then
-		victim = db.actor
+		victim = Actor
 	elseif meet_manager.victim == "nil" then
 		victim = nil
 --	else
@@ -99,11 +99,11 @@ function action_meet_wait:execute ()
     h.power = 0
     h.direction = self.object:direction()
     h.bone = "bip01_spine"
-    h.draftsman = db.actor
+    h.draftsman = Actor
     h.impulse = 0
     h.type = hit.wound
     self.object:hit(h)
-    self.object:set_relation(game_object.enemy, db.actor)
+    self.object:set_relation(game_object.enemy, Actor)
   else
     -- является ли текущий звук синхронным для текущего стейта
     for k,v in pairs(self.a.syndata) do
@@ -150,13 +150,13 @@ function action_meet_wait:execute ()
 --       not has_alife_info("tutorial_part_15_hide_weapon")
 --  then
     --game.start_tutorial("part_15_hide_weapon")
---    db.actor:give_info_portion("tutorial_part_15_hide_weapon")
+--    Actor:give_info_portion("tutorial_part_15_hide_weapon")
 --  end
 
   local tt = db.storage[self.object:id()]
   if tt.active_scheme then
-    if db.actor then
-      if xr_logic.try_switch_to_another_section(self.object, tt[tt.active_scheme], db.actor) then
+    if Actor then
+      if xr_logic.try_switch_to_another_section(self.object, tt[tt.active_scheme], Actor) then
         return
       end
     end
@@ -191,7 +191,7 @@ function Cmeet_manager:update()
       self.startdialog=kill_dialog
     end
   elseif self.a.meet_dialog ~= nil then
-    local tmp = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.meet_dialog)
+    local tmp = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.meet_dialog)
     if self.startdialog ~= tmp then
       self.startdialog = tmp
 --      printf("*DIALOGS %s* SET [%s]", self.npc:name(), utils.to_str(tmp))
@@ -215,7 +215,7 @@ function Cmeet_manager:update()
     self.sound = "nil"
     return
   end
-  if self.a.precond == "visibility" and (not self.npc:see(db.actor)) and not self.npc:is_talking() then
+  if self.a.precond == "visibility" and (not self.npc:see(Actor)) and not self.npc:is_talking() then
     self.state = "nil"
     self.sound = "nil"
     return
@@ -224,7 +224,7 @@ function Cmeet_manager:update()
   if self.npc:is_talking() then
     self.dist = 0
   else
-    self.dist = self.npc:position():distance_to(db.actor:position())
+    self.dist = self.npc:position():distance_to(Actor:position())
   end
 
   self.victim = self:process_victim()
@@ -239,7 +239,7 @@ function Cmeet_manager:update()
     self.state,self.sound = self:process_meet()
   end
   -- Если актер говорит, и говорит не с нами, то мы не должны говорить звуков.
-  if db.actor:is_talking() and not self.npc:is_talking() then
+  if Actor:is_talking() and not self.npc:is_talking() then
     self.sound = "nil"
   end
   -- printf("MEET [%s], state: [%s], sound: [%s]", self.npc:name(), tostring(self.state), tostring(self.sound))
@@ -251,11 +251,11 @@ function Cmeet_manager:process_zone()
   if key ~= nil then
     local r1,r2
     if self.a.zone[key].state then
-      r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.zone[key].state)
+      r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.zone[key].state)
       self.emerg_state = true
     end
     if self.a.zone[key].sound then
-      r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.zone[key].sound)
+      r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.zone[key].sound)
     end
     return tostring(r1), tostring(r2)
   end
@@ -265,21 +265,21 @@ function Cmeet_manager:process_meet()
   local key
   local is_talking = self.npc:is_talking()
   if actor_active_item and IAmAWeapon[actor_active_item:clsid()] and
-       self.npc:relation(db.actor) ~= game_object.friend and self:actor_targets_npc(self.npc)
+       self.npc:relation(Actor) ~= game_object.friend and self:actor_targets_npc(self.npc)
     then
     key = self:get_key_from_distance(self.a.meet_state_wpn)
     if key ~= nil then
       self.wpn_meet=true
       local r1,r2
       if self.a.meet_state_wpn[key].state then
-        r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.meet_state_wpn[key].state)
+        r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.meet_state_wpn[key].state)
         self.emerg_state = true
       end
       if is_talking then
         r2 = nil
       else
         if self.a.meet_state_wpn[key].sound then
-          r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.meet_state_wpn[key].sound)
+          r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.meet_state_wpn[key].sound)
         end
       end
       return tostring(r1), tostring(r2)
@@ -290,14 +290,14 @@ function Cmeet_manager:process_meet()
     if key ~= nil then
       local r1,r2
       if self.a.meet_state[key].state then
-        r1 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.meet_state[key].state)
+        r1 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.meet_state[key].state)
         self.emerg_state = false
       end
       if is_talking then
         r2 = nil
       else
         if self.a.meet_state[key].sound then
-          r2 = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.meet_state[key].sound)
+          r2 = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.meet_state[key].sound)
         end
       end
       return tostring(r1), tostring(r2)
@@ -310,19 +310,19 @@ function Cmeet_manager:process_victim()
   if actor_active_item and IAmAWeapon[actor_active_item:clsid()] then
     key = self:get_key_from_distance(self.a.victim_wpn)
     if key ~= nil then
-      return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.victim_wpn[key].state))
+      return tostring(xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.victim_wpn[key].state))
     end
   else
     key = self:get_key_from_distance(self.a.victim)
     if key ~= nil then
-      return tostring(xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.victim[key].state))
+      return tostring(xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.victim[key].state))
     end
   end
   return "nil"
 end
 
 function Cmeet_manager:actor_targets_npc(npc)
-  local dangerang=1/npc:position():distance_to(db.actor:position())
+  local dangerang=1/npc:position():distance_to(Actor:position())
   local ang=horz_angle(device().cam_dir,npc:position():sub(device().cam_pos))
   local tgt=ang>-dangerang and ang<dangerang
   if tgt then
@@ -352,7 +352,7 @@ function Cmeet_manager:get_key_from_distance(t)
 end
 function Cmeet_manager:get_key_from_zone(t)
   for k,v in pairs(t) do
-    if utils.npc_in_zone(db.actor, db.zone_by_name[v.zone]) then
+    if utils.npc_in_zone(Actor, db.zone_by_name[v.zone]) then
       return k
     end
   end
@@ -373,17 +373,17 @@ function Cmeet_manager:process_use()
   
   local t
   if actor_active_item and IAmAWeapon[actor_active_item:clsid()] then
-    t = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.use_wpn)
+    t = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.use_wpn)
     if t == "false" then
       self.disable_talk_weapon = true
     end
   else
-    t = xr_logic.pick_section_from_condlist(db.actor, self.npc, self.a.use)
+    t = xr_logic.pick_section_from_condlist(Actor, self.npc, self.a.use)
     self.disable_talk_weapon = false
   end
   -- проверка по дистанции
 --  printf("MM2 %s %s", self.npc:name(), tostring(t))
-  if (is_talking and self.npc:position():distance_to_sqr(db.actor:position()) > 9) and
+  if (is_talking and self.npc:position():distance_to_sqr(Actor:position()) > 9) and
     t ~= "self"
   then
 --    printf("MM3 %s stop talk", self.npc:name())
@@ -401,7 +401,7 @@ function Cmeet_manager:process_use()
   elseif t == "self" then
     if not is_talking then
 --      printf("MM3 %s start talk", self.npc:name())
-      db.actor:run_talk_dialog(self.npc)
+      Actor:run_talk_dialog(self.npc)
 	  self:check_trade()
     end
   end
@@ -813,13 +813,13 @@ function cannot_talk_by_weapon(npc)
       return false
     end
     if st.use then
-      local t = xr_logic.pick_section_from_condlist(db.actor, npc, st.use)
+      local t = xr_logic.pick_section_from_condlist(Actor, npc, st.use)
       if t == "false" then
         return false
       end
     end
     if st.use_wpn then
-      local t = xr_logic.pick_section_from_condlist(db.actor, npc, st.use_wpn)
+      local t = xr_logic.pick_section_from_condlist(Actor, npc, st.use_wpn)
       if t == "false" then
         return true
       end

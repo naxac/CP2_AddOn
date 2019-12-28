@@ -135,9 +135,9 @@ function turret_firmware:alarm_owner_gulag()
 					local h = hit()
 					h.power = 0.001
 					h.impulse = 1
-					h.draftsman = db.actor
+					h.draftsman = Actor
 					h.type = hit.wound
-					h.direction = utils.vector_copy_by_val(obj:position()):sub(db.actor:position())
+					h.direction = utils.vector_copy_by_val(obj:position()):sub(Actor:position())
 					obj:hit(h)
 					stop_play_sound(obj)
 				end
@@ -180,13 +180,13 @@ function turret_firmware:fastcall()--
 end
 
 function turret_firmware:update(delta)
-	if xr_logic.try_switch_to_another_section(self.object, self.st, db.actor) then
+	if xr_logic.try_switch_to_another_section(self.object, self.st, Actor) then
 		return
 	end
 	local _time = time_global()
 	if self.update_time2 < _time then
-		local actor_enemy = self.force_actor_enemy or utils2.community_relation(self.community, db.actor) <= -400
-		if actor_enemy and self:distance_sqr(db.actor) < self.st.explode_dist_sqr then
+		local actor_enemy = self.force_actor_enemy or utils2.community_relation(self.community, Actor) <= -400
+		if actor_enemy and self:distance_sqr(Actor) < self.st.explode_dist_sqr then
 			self.heli:SetfHealth(0)
 			return
 		end
@@ -245,7 +245,7 @@ end
 
 function turret_firmware:hit_callback(obj, amount, local_direction, who, bone_index)
 	if who and string.find(who:name(), "vehicle_btr") then
-		who = db.actor
+		who = Actor
 	end
 	if amount == 0 or who == nil or not IsStalkers(who) then
 		return
@@ -325,7 +325,7 @@ end
 function is_enemy(community, npc)
 	if npc:is_stalker() or npc:is_actor() then
 		if community == "actor" then -- если турель актора, то мочим врагов актора, не смотря не на что!
-			return npc:relation(db.actor) == game_object.enemy
+			return npc:relation(Actor) == game_object.enemy
 		else
 			return utils2.community_relation(community, npc) < -400
 		end

@@ -96,7 +96,7 @@ local inventory_items = {
 function cheat_menu:__init() super()
 	self.menu_index = 1
 	self.search_pos = -1
-	self.is_actor_alive = db.actor and db.actor:alive()
+	self.is_actor_alive = Actor and Actor:alive()
 
 	this.init_cheat_table()
 
@@ -193,7 +193,7 @@ function cheat_menu:InitControls()
 
 		xml:InitStatic("actor_params:caption_health", frame)
 		self.health = self:InitSpinNum( frame, 120, 30, 60, { min = 0, max = 100 } )
-		self.health:SetValue( db.actor.health * 100 )
+		self.health:SetValue( Actor.health * 100 )
 
 		xml:InitStatic("actor_params:caption_rad", frame)
 		self.radiation = self:InitSpinNum( frame, 120, 55, 60, { min = 0 } )
@@ -201,15 +201,15 @@ function cheat_menu:InitControls()
 
 		xml:InitStatic("actor_params:caption_psy_health", frame)
 		self.psy_health = self:InitSpinNum( frame, 120, 80, 60, { min = 0, max = 100 } )
-		self.psy_health:SetValue( db.actor.psy_health * 100 )
+		self.psy_health:SetValue( Actor.psy_health * 100 )
 
 		xml:InitStatic("actor_params:caption_power", frame)
 		self.power = self:InitSpinNum( frame, 120, 105, 60, { min = 0, max = 100 } )
-		self.power:SetValue( db.actor.power * 100 )
+		self.power:SetValue( Actor.power * 100 )
 
 		xml:InitStatic("actor_params:caption_satiety", frame)
 		self.satiety = self:InitSpinNum( frame, 120, 130, 60, { min = 0, max = 100 } )
-		self.satiety:SetValue( db.actor.satiety * 100 )
+		self.satiety:SetValue( Actor.satiety * 100 )
 
 		ctrl = xml:Init3tButton( "actor_params:btn_set_params", frame )
 		self:Register( ctrl, "btn_set_params" )
@@ -274,8 +274,8 @@ function cheat_menu:OnBtnCancel()
 				if k == "radiation" then
 					arc_radiation.set_rad_dose( v )
 				else
-					n = db.actor[ k ]
-					db.actor[ k ] = v - n
+					n = Actor[ k ]
+					Actor[ k ] = v - n
 				end
 			end
 		end
@@ -324,7 +324,7 @@ function cheat_menu:GetDescription(indx)
 	end
 	
 	if self.is_actor_alive then
-		self.btn_del:Enable(db.actor:object(sect)~=nil)
+		self.btn_del:Enable(Actor:object(sect)~=nil)
 	end
 
 	local rect, file = get_icon(sect)
@@ -428,24 +428,23 @@ function cheat_menu:OnBtnSpawn()
 	if itm == nil then return end
 	local sect = itm.sct:GetText()
 	if not sys_ini:section_exist( sect ) then return end
-	
-	local a = db.actor
+
 	local snd = sound_object([[detectors\contact_1]])
-	snd:play(a, 0, sound_object.s2d)
+	snd:play(Actor, 0, sound_object.s2d)
 
 	local sec_type = index2type[self.menu_index]
 	if inventory_items[sec_type] then
 		local num = tonumber( self.edit_box:GetText() )
 		num = math.clamp( math.ceil( num or 1 ), 1 , 20 )
 		for i=1,num do
-			AI:create(sect, a:position(), a:level_vertex_id(), a:game_vertex_id(), 0)
+			AI:create(sect, Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), 0)
 		end
 	else
 		local dist_mul = 5
 		if sec_type == "npc" or sec_type == "mobs" then
 			dist_mul = 25
 		end
-		local sobj = AI:create(sect, a:position():add(a:direction():mul(dist_mul)), a:level_vertex_id(), a:game_vertex_id())
+		local sobj = AI:create(sect, Actor:position():add(Actor:direction():mul(dist_mul)), Actor:level_vertex_id(), Actor:game_vertex_id())
 		if sec_type == "anomalies" then	-- Зададим шейп аномалии, чтобы наносила хит
 			local data = { shapes = {
 				[1] = { shtype = 0, center = vector():set( 0, 0, 0 ), radius = 2.0 }
@@ -465,9 +464,9 @@ function cheat_menu:OnBtnDelete()
 	local itm = self.list:GetItem(itm_index)
 	if itm == nil then return end
 	local sect = itm.sct:GetText()
-	local obj = db.actor:object(sect)
+	local obj = Actor:object(sect)
 	if obj then
-		amk.send_tip("Удалили из инвентаря%c[255,0,255,100] "..itm.fn:GetText())
+		amk.send_tip("Удалили из инвентаря:%c[255,0,255,100] "..itm.fn:GetText())
 		local sobj = AI:object(obj:id())
 		if sobj then AI:release(sobj, true) end
 		get_console():execute("main_menu off")

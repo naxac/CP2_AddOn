@@ -17,12 +17,12 @@ function action_teleport:__init(obj, storage)
 	self.timer = nil
 end
 function action_teleport:update(delta)
-	if not db.actor then
+	if not Actor then
 		return
 	end
 
 	if self.state == teleport_idle then	
-		if self.object:inside(db.actor:position()) then
+		if self.object:inside(Actor:position()) then
 			-- Обработка телепорта
 			self.state = teleport_activated
 			self.timer = time_global()	
@@ -47,13 +47,13 @@ function action_teleport:update(delta)
 				if p <= 0 then
 					-- телепорт в выбранную точку
 					printf("teleporting to [%s] look [%s]", v.point, v.look)
-				--	db.actor:give_info_portion("teleport_started")
-					db.actor:set_actor_position(patrol(v.point):point(0))
+				--	Actor:give_info_portion("teleport_started")
+					Actor:set_actor_position(patrol(v.point):point(0))
 					local dir = patrol(v.look):point(0):sub(patrol(v.point):point(0))
-					db.actor:set_actor_direction(-dir:getH())
-				--	db.actor:give_info_portion("teleport_finished")
+					Actor:set_actor_direction(-dir:getH())
+				--	Actor:give_info_portion("teleport_finished")
 					local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
-					snd_obj:play_no_feedback(db.actor, sound_object.s2d, 0, vector(), 1.0)					
+					snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)					
 					break
 				end
 			end
@@ -62,7 +62,7 @@ function action_teleport:update(delta)
 			return
 		end
 	end
-	if xr_logic.try_switch_to_another_section(self.object, self.st, db.actor) then
+	if xr_logic.try_switch_to_another_section(self.object, self.st, Actor) then
 		return
 	end	
 		
