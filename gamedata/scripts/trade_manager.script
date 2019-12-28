@@ -103,21 +103,26 @@ function first_update(npc)
 	local lim = traders[npc:name()]
 	if t.is_trader or lim then
 		local se_obj = AI:object(npc:id())
-		local hours = amk.game_hours()
-	--	log("trade_manager: npc["..npc:name().."] inited, resupply_time = "..se_obj.resupply_time)
-		if se_obj.resupply_time <= hours then
+		-- log("trade_manager: npc["..npc:name().."] inited, resupply_time = "..se_obj.resupply_time)
+		local next_resupply_time = se_obj.resupply_time
+		if next_resupply_time <= game_time_hours then
 			if t.buy_supplies then
 				local buy_supplies = parse_condlist(npc, "trade_manager", "buy_supplies", t.buy_supplies)
-				local sect = pick_from_condlist(db.actor, npc, buy_supplies)
+				local sect = pick_from_condlist(Actor, npc, buy_supplies)
 				if sect then
 					npc:buy_supplies(t.config, sect)
 				end
 			end
 
-			local time_shift = resuply_time + math.random(-resuply_rnd, resuply_rnd)
-			se_obj.resupply_time = hours + time_shift
 			local resupply_time = t.resupply_time or DEF_RESUPPLY_TIME
 			local resupply_rnd = t.resupply_rnd or DEF_RESUPPLY_RND
+			local time_shift = next_resupply_time - game_time_hours
+			while time_shift <= 0 do
+				time_shift = time_shift + resupply_time + math.random(-resupply_rnd, resupply_rnd)
+			end
+			se_obj.resupply_time = game_time_hours + time_shift
+
+			-- log("[trade_manager.first_update] resupply npc: %s, time_shift = %s", npc:name(), time_shift)
 
 			if npc:is_trader() then
 				local npc_id = npc:id()
