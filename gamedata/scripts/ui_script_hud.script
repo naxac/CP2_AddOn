@@ -7,6 +7,7 @@ local show_gps = true
 local show_treasures = true
 local show_lc = true
 local show_time = true
+local show_outfit_charge = true
 local biodetector_mode = false
 ---------------------------------------------------------------------------
 local dev = device()
@@ -134,13 +135,21 @@ function UIScriptHUD:UpdateIndicators()
 
 	self.progress_power:SetProgressPos( Actor.power * 100 )
 	self.progress_health:SetProgressPos( Actor.health * 100 )
+
 	if arc_inventory.IsRadDetected() then
 		self.progress_radiation:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
 	else
 		self.progress_radiation:SetProgressPos(0)
 	end
+
 	if actor_outfit then
-		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
+		local condidion
+		if show_outfit_charge and sys_ini:r_bool_ex(actor_outfit:section(), "volatile", false) then
+			condidion = actor_outfit:binded_object():get_charge_level()
+		else
+			condidion = actor_outfit:condition()
+		end
+		self.progress_armor:SetProgressPos( condidion * 100 )
 	end
 
 	if show_time then
@@ -590,6 +599,7 @@ function init_settings()
 	show_treasures		= has_alife_info("pda_show_treasures")
 	show_lc				= has_alife_info("pda_show_level_changers")
 	show_time			= has_alife_info("pda_show_time")
+	show_outfit_charge	= has_alife_info("pda_show_outfit_charge")
 	biodetector_mode	= has_alife_info("pda_biodetector_mode")
 							and ( inventory.on_belt("bioradar")
 							or inventory.on_belt("bioradar2") )
