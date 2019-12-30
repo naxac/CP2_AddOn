@@ -214,14 +214,16 @@ function UIScriptHUD:UpdateSpots()
 
 	amk.oau_watchdog=18814
 
-	local spot, tex, sz, cls
+	local spot, tex, sz, cls, sobj
 	local actor_pos = Actor:position()
 
 	for id, obj in pairs(db.for_map) do
 		spot = self.map_spots[id]
-		if obj and AI:object(id)
+		sobj = AI:object(id)
+		if sobj and sobj.online
 			and obj:position():distance_to_xz(actor_pos) < map_dist
 		then
+			amk.oau_reason="UIScriptHUD:UpdateSpots "..id
 			tex, sz = nil, nil
 			if not spot then
 				if obj:is_entity_alive() then
@@ -282,6 +284,8 @@ function UIScriptHUD:UpdateSpots()
 			table_insert(self.del_spots, id)
 		end
 	end
+
+	amk.oau_watchdog=18815
 end
 
 function UIScriptHUD:ConvertRealToLocal(pos)
