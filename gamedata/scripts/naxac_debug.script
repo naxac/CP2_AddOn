@@ -51,7 +51,7 @@ function show_obj_info()
 	local angle = -obj:direction():getH()
 	local cls = obj:clsid()
 	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
-					"%c[yellow]------- OBJECT INFO -------\\n"..
+					"%c[yellow]~~~~~~~ OBJECT INFO ~~~~~~~\\n"..
 					"%c[default]name: %c[gray]"..obj:name().."\\n"..
 					"%c[default]section: %c[gray]"..obj:section().."\\n"..
 					"%c[default]clsid: %c[gray]"..naxac_netpk.get_str_clsid(cls).." ["..tostring(cls).."]\\n"..
@@ -60,10 +60,10 @@ function show_obj_info()
 					"%c[default]position: %c[gray]"..string.format("%s, %s, %s", pos.x, pos.y, pos.z).."\\n"..
 					"%c[default]level vertex:  %c[gray]"..tostring( obj:level_vertex_id() ).."\\n"..
 					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"..
-					"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"..
-					"%c[default]visual: %c[gray]"..( obj.get_visual_name and obj:get_visual_name() or "none" ).."\\n"
+				--	"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"..
+					"%c[default]visual name: %c[gray]"..( obj.get_visual_name and obj:get_visual_name() or "none" ).."\\n"
 	
-	if obj:is_stalker() or obj:is_monster() then
+	if obj:is_entity_alive() then
 		text = text.."%c[default]health: %c[gray]"..tostring( obj.health and obj.health or "unknown" ).."\\n"..
 					"%c[default]rank: %c[gray]"..tostring(
 											(obj.rank and obj:rank())
@@ -71,6 +71,12 @@ function show_obj_info()
 											or "unknown"
 										).."\\n"..
 					"%c[default]rank name: %c[gray]"..tostring( ranks.get_obj_rank_name(obj) ).."\\n"
+		if obj:is_stalker() or obj:is_trader() then
+			text = text.."%c[default]specific character: %c[gray]"..obj:specific_character().."\\n"..
+						"%c[default]profile name: %c[gray]"..obj:profile_name().."\\n"..
+						"%c[default]character community: %c[gray]"..obj:character_community().."\\n"..
+						"%c[default]money: %c[gray]"..obj:money().."\\n"
+		end
 	elseif obj.condition then
 		text = text.."%c[default]condition: %c[gray]"..tostring( obj:condition() ).."\\n"
 		if obj:is_ammo() then
@@ -83,7 +89,7 @@ function show_obj_info()
 
 	local st = db.storage[obj_id]
 	if st then
-		text = text.."%c[yellow]------- LOGIC INFO -------\\n"..
+		text = text.."%c[yellow]~~~~~~~ LOGIC INFO ~~~~~~~\\n"..
 					"%c[default]stype: %c[gray]"..(st.stype or "<nil>").."\\n"..
 					"%c[default]ini_filename: %c[gray]"..(st.ini_filename or "<nil>").."\\n"..
 					"%c[default]gulag name: %c[gray]"..(st.gulag_name or "<nil>").."\\n"..
@@ -102,7 +108,7 @@ function show_obj_info()
 	if sobj then
 		local data = netpk:get(sobj)
 	--	local t = naxac_netpk.get_object_flags_names(data.object_flags)
-		text = text.."%c[yellow]------- NET PACKET INFO -------\\n"..
+		text = text.."%c[yellow]~~~~~~~ NET PACKET INFO ~~~~~~~\\n"..
 					"%c[default]object_flags: %c[gray]"..tostring(data.object_flags).."\\n"..
 				--	"      "..table.concat(t, ", ").."\\n"..
 					"%c[default]custom_data:\\n"..
@@ -127,8 +133,19 @@ function remove_obj_info()
 	xr_s.unsubscribe("key_press", this.on_key_press)
 	xr_s.unsubscribe("net_destroy", this.remove_obj_info)
 end
+function flush_obj_info()
+	local text = wnd and wnd:GetText()
+	if text then
+		text = string.gsub(text, "(%%c%[[%w_%s,]+%])", "")
+		text = string.gsub(text, "\\n", "\n")
+		log1(text)
+	end
+end
 
 function on_key_press(dik, bind)
-	if dik ~= DIK_keys.DIK_DELETE then return end
-	remove_obj_info()
+	if dik == DIK_keys.DIK_DELETE then
+		remove_obj_info()
+	elseif dik == DIK_keys.DIK_RETURN then
+		flush_obj_info()
+	end
 end

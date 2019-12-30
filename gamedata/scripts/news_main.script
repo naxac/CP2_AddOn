@@ -2133,17 +2133,14 @@ function miniquest_reward_news(tbl)
 		rewarder = "человечек от учёных с Янтаря"
 	end
 
-	local target_name = game.translate_string( tbl[3] )
-
 	local text = table_random(news_data.reward_phrases_templates[trader])
-	if string_find(text,"$actor") then
-		text = string_gsub(text, "$actor", Actor:character_name())
-	end
-	if string_find(text,"$who") then
-		text = string_gsub(text, "$who", rewarder)
-	end
-	if string_find(text,"$target") then
-		text = string_gsub(text, "$target", target_name)
+	local t = {
+		["actor"] = Actor:character_name(),
+		["who"] = rewarder,
+		["target"] = tbl[3]
+	}
+	for k, v in pairs(t) do
+		text = string_gsub(text, "%$"..k, v)
 	end
 	
 	news_manager.send_tip("%c[gray]"..trader_name.."\\n%c[red_sms]"..text, 0, trader, 12000)
