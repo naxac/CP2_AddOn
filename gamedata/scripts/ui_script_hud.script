@@ -8,8 +8,10 @@ local show_treasures = true
 local show_lc = true
 local show_time = true
 local show_outfit_charge = true
+local show_quick_slots = false
 local biodetector_mode = false
 ---------------------------------------------------------------------------
+local bind_to_show = key_bindings.kSCORES
 local dev = device()
 local has_spot = level.map_has_object_spot
 local math_cos = math.cos
@@ -562,7 +564,7 @@ function destroy()
 end
 
 function on_key_press(dik, bind)
-	if bind == key_bindings.kSCORES then
+	if bind == bind_to_show then
 		if not wnd then init() end
 
 		if level.main_input_receiver() ~= nil
@@ -572,16 +574,22 @@ function on_key_press(dik, bind)
 		set_static_rescale_factor(1)
 		wnd:Show(true)
 		wnd.need_update = true
+		if not show_quick_slots then
+			ui_hud_slots.ShowSlots(true)
+		end
 	end
 end
 
 function on_key_release(dik, bind)
-	if bind == key_bindings.kSCORES then
+	if bind == bind_to_show then
 		if not wnd then init() end
 		if not wnd:IsShown() then return end
 		set_static_rescale_factor(kScreen)
 		wnd:Show(false)
 		wnd.need_update = false
+		if not show_quick_slots then
+			ui_hud_slots.ShowSlots(false)
+		end
 	end
 end
 
@@ -604,6 +612,7 @@ function init_settings()
 	show_lc				= has_alife_info("pda_show_level_changers")
 	show_time			= has_alife_info("pda_show_time")
 	show_outfit_charge	= has_alife_info("pda_show_outfit_charge")
+	show_quick_slots	= has_alife_info("pda_show_quick_slots") and (game_options.QuickSlotsOnHUD ~= 1)
 	biodetector_mode	= has_alife_info("pda_biodetector_mode")
 							and ( inventory.on_belt("bioradar")
 							or inventory.on_belt("bioradar2") )

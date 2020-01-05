@@ -33,12 +33,12 @@ local tColor ={
 	antirad			={255,255,36,0},      --алый
 	bandage			={255,0,255,0},
 	vodka			={255,255,70,0},
-	--defolt          ={255,255,255,0},     -- желтый
-	--defolt          ={255,255,70,0},    --киноварь(коричнево-оранжевый)
-	--defolt          ={255,255,255,255}, --белый
-	--defolt          ={255,255,0,51},      --карминово-красный
-	defolt			={255,255,215,0},      --золотистый
-	--defolt          ={255,0,255,0},      --зеленый
+	--default          ={255,255,255,0},     -- желтый
+	--default          ={255,255,70,0},    --киноварь(коричнево-оранжевый)
+	--default          ={255,255,255,255}, --белый
+	--default          ={255,255,0,51},      --карминово-красный
+	default			={255,255,215,0},      --золотистый
+	--default          ={255,0,255,0},      --зеленый
 	key				={200,200,200,200}
 }
 
@@ -66,8 +66,7 @@ function OnUpdate()
 		return
 	end
 
-	local bRemove = not Actor:alive()
-	if bRemove then
+	if not Actor:alive() then
 		this.Destroy()
 		return
 	end
@@ -81,6 +80,12 @@ function OnUpdate()
 			tStatics[v] = st
 			hud:AddDialogToRender(st)
 			ChangeCount(nil, v)
+		end
+
+		if game_options.CurrentHUD == "ns_pda_script"
+			and Actor:dont_has_info("pda_show_quick_slots") 
+		then
+			this.ShowSlots(false)
 		end
 	end
 end
@@ -96,11 +101,11 @@ function DrawStatic(section, slot)
 	st:SetStretchTexture(true)
 	st:SetFont(GetFontSmall())
 	if bDefolt then
-		st:SetTextColor( unpack(tColor.defolt) )
+		st:SetTextColor( unpack(tColor.default) )
 	else
-		st:SetTextColor( unpack(tColor[k] or tColor.defolt) )
+		st:SetTextColor( unpack(tColor[k] or tColor.default) )
 	end
-	st:SetTextAlign(0)
+	st:SetTextAlign(CGameFont.alLeft)
 
 	local key_name = hotkeys.dik2key( ui_inv_add.getSlotKey(slot) )
 	local key = CUIStatic()
@@ -109,7 +114,7 @@ function DrawStatic(section, slot)
 	key:SetText(key_name)
 	key:SetFont(GetFontSmall())
 	key:SetTextColor( unpack(tColor.key) )
-	key:SetTextAlign(2)
+	key:SetTextAlign(CGameFont.alCenter)
 	st:AttachChild(key)
 
 	return st
@@ -152,6 +157,11 @@ function CheckChangeItems()
 			ChangeCount(nil, v)
 		end
 	end
+	if game_options.CurrentHUD == "ns_pda_script"
+		and Actor:dont_has_info("pda_show_quick_slots") 
+	then
+		this.ShowSlots(false)
+	end
 end
 
 function init()
@@ -187,10 +197,17 @@ function on_options_change()
 	end
 end
 
+function ShowSlots(bShow)
+	if bIsShown then
+		for k, v in pairs(tStatics) do
+			v:Show(bShow)
+		end
+	end
+end
+
 -----------------------------------------------------------------------------------------------------
 function attach()
 	iCurrentSet = game_options.QuickSlotsOnHUD
 	if iCurrentSet == 1 then return end
-
 	xr_s.subscribe("first_update", this.init)
 end
