@@ -1,59 +1,62 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 ---------------------------- variable and table --------------------------
-local table_sort=table.sort
-local math_random=math.random
-local string_find=string.find
+local table_sort = table.sort
+local table_insert = table.insert
+local math_random = math.random
+local string_find = string.find
+local level_object = level.object_by_id
 
 local anoms_difficulty_koef={
-	[0]=0.75,
-	[1]=1.0,
-	[2]=1.25,
-	[3]=1.5
+	[game_difficulty.novice ]	= 0.75,
+	[game_difficulty.stalker]	= 1.0,
+	[game_difficulty.veteran]	= 1.25,
+	[game_difficulty.master ]	= 1.5
 }
 local anoms_sections={
-	buzz={"buzz",{shtype=0,radius=1.5,center={0,0,0}}},
-	electra={"witches_galantine",{shtype=0,radius=4,center={0,0,0}}},
-	fountain={"fountain",{shtype=0,radius=2.5,center={0,0,0}}},
-	gravi={"gravi_zone",{shtype=0,radius=3,center={0,0,0}}},
-	mincer={"mincer",{shtype=0,radius=3.5,center={0,0,0}}},
-	mosquito_bald={"mosquito_bald",{shtype=0,radius=3,center={0,0,0}}},
-	sakbuzz={"sakbuzz",{shtype=0,radius=4,center={0,0,0}}},
-	smallrain={"smallrain",{shtype=0,radius=4,center={0,0,0}}},
-	sphere={"sphere",{shtype=0,radius=2.8,center={0,0,0}}},
-	zavesa={"zavesa",{shtype=0,radius=3,center={0,0,0}}},
-	zharka_static={"zharka_static",{shtype=1,v1={1,0,0},v2={0,5,0},v3={0,0,1},offset={0,0,0}}},
-	radiation={"radioactive",{shtype=0,radius=5,center={0,0,0}}}
+	buzz			= { "buzz",              {shtype=0, radius=1.5, center={0,0,0}}                         },
+	electra			= { "witches_galantine", {shtype=0, radius=4,   center={0,0,0}}                         },
+	fountain		= { "fountain",          {shtype=0, radius=2.5, center={0,0,0}}                         },
+	gravi			= { "gravi_zone",        {shtype=0, radius=3,   center={0,0,0}}                         },
+	mincer			= { "mincer",            {shtype=0, radius=3.5, center={0,0,0}}                         },
+	mosquito_bald	= { "mosquito_bald",     {shtype=0, radius=3,   center={0,0,0}}                         },
+	sakbuzz			= { "sakbuzz",           {shtype=0, radius=4,   center={0,0,0}}                         },
+	smallrain		= { "smallrain",         {shtype=0, radius=4,   center={0,0,0}}                         },
+	sphere			= { "sphere",            {shtype=0, radius=2.8, center={0,0,0}}                         },
+	zavesa			= { "zavesa",            {shtype=0, radius=3,   center={0,0,0}}                         },
+	zharka_static	= { "zharka_static",     {shtype=1, v1={1,0,0}, v2={0,5,0}, v3={0,0,1}, offset={0,0,0}} },
+	radiation		= { "radioactive",       {shtype=0, radius=5,   center={0,0,0}}                         },
+	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                         }
 }
 
 local anti_spawn_zones={}
 
 local level_anoms={
  l01_escape={50,75,{electra=12, zavesa=2, smallrain=6, fountain=7, gravi=0, mincer=0, buzz=0, sakbuzz=2, mosquito_bald=0, sphere=4}}, 
- l02_garbage={50,75,{radiation=7,mosquito_bald=12, mincer=2, smallrain=5, zavesa=3, electra=15, gravi=10, buzz=12, sakbuzz=3, sphere=3, fountain=2}}, 
- l03_agroprom={35,47,{radiation=5,mosquito_bald=12, mincer=3, smallrain=4, fountain=2, zavesa=2, electra=0, buzz=12, gravi=10, sakbuzz=3, sphere=3}},
- l04_darkvalley={11,15,{radiation=7,mincer=3, mosquito_bald=12, fountain=2, zavesa=3, smallrain=5, electra=0, buzz=10, zharka_static=8, gravi=8, sakbuzz=5, sphere=4}}, 
- l05_bar={35,45,{radiation=1,mosquito_bald=8, mincer=2, zavesa=3, fountain=1, smallrain=4, electra=1, buzz=5, gravi=8, sakbuzz=2, zharka_static=4, sphere=2}}, 
- l06_rostok={30,50,{radiation=4,mincer=3, mosquito_bald=7, smallrain=2, electra=2, zavesa=2, zharka_static=25, gravi=0, sakbuzz=3, buzz=10, sphere=2, fountain=1}}, 
- l08_yantar={50,70,{radiation=4,mosquito_bald=8, mincer=8, fountain=1, smallrain=4, zavesa=3, electra=2, buzz=8, zharka_static=5, gravi=8, sakbuzz=3, sphere=3}},
- l07_military={30,45,{radiation=7,mincer=4 , mosquito_bald=15, fountain=2, smallrain=4, zavesa=3, electra=12, zharka_static=8, gravi=0, sakbuzz=3, buzz=10, sphere=4}}, 
- l10_radar={25,35,{radiation=9,mincer=6, mosquito_bald=11, fountain=10, smallrain=6, electra=2, zavesa=3, buzz=10, zharka_static=12, gravi=10, sakbuzz=5, sphere=4}}, 
- l11_pripyat={20,30,{radiation=8,mincer=10, mosquito_bald=10, zavesa=3, fountain=1, smallrain=1, electra=10,  zharka_static=8, gravi=10, buzz=10, sakbuzz=2, sphere=3}}, 
- l12_stancia={70,90,{radiation=12,mincer=2, mosquito_bald=10, smallrain=6, electra=0, fountain=1, zavesa=3, buzz=10, zharka_static=7, gravi=8, sakbuzz=4, sphere=4}},
+ l02_garbage={50,75,{radiation=7, mosquito_bald=12, mincer=2, smallrain=5, zavesa=3, electra=15, gravi=10, buzz=12, sakbuzz=3, sphere=3, fountain=2}}, 
+ l03_agroprom={35,47,{radiation=5, mosquito_bald=12, mincer=3, smallrain=4, fountain=2, zavesa=2, electra=0, buzz=12, gravi=10, sakbuzz=3, sphere=3}},
+ l04_darkvalley={11,15,{radiation=7, mincer=3, mosquito_bald=12, fountain=2, zavesa=3, smallrain=5, electra=0, buzz=10, zharka_static=8, gravi=8, sakbuzz=5, sphere=4}}, 
+ l05_bar={35,45,{radiation=1, mosquito_bald=8, mincer=2, zavesa=3, fountain=1, smallrain=4, electra=1, buzz=5, gravi=8, sakbuzz=2, zharka_static=4, sphere=2}}, 
+ l06_rostok={30,50,{radiation=4, mincer=3, mosquito_bald=7, smallrain=2, electra=2, zavesa=2, zharka_static=25, gravi=0, sakbuzz=3, buzz=10, sphere=2, fountain=1}}, 
+ l08_yantar={50,70,{radiation=4, mosquito_bald=8, mincer=8, fountain=1, smallrain=4, zavesa=3, electra=2, buzz=8, zharka_static=5, gravi=8, sakbuzz=3, sphere=3}},
+ l07_military={30,45,{radiation=7, mincer=4 , mosquito_bald=15, fountain=2, smallrain=4, zavesa=3, electra=12, zharka_static=8, gravi=0, sakbuzz=3, buzz=10, sphere=4}}, 
+ l10_radar={25,35,{radiation=9, mincer=6, mosquito_bald=11, fountain=10, smallrain=6, electra=2, zavesa=3, buzz=10, zharka_static=12, gravi=10, sakbuzz=5, sphere=4}}, 
+ l11_pripyat={20,30,{radiation=8, mincer=10, mosquito_bald=10, zavesa=3, fountain=1, smallrain=1, electra=10,  zharka_static=8, gravi=10, buzz=10, sakbuzz=2, sphere=3}}, 
+ l12_stancia={70,90,{radiation=12, mincer=2, mosquito_bald=10, smallrain=6, electra=0, fountain=1, zavesa=3, buzz=10, zharka_static=7, gravi=8, sakbuzz=4, sphere=4}},
  l12_stancia_2={15,20,{radiation=1}},
- puzir={150,170,{radiation=5,mincer=12, mosquito_bald=15, smallrain=6, zavesa=3, electra=14, buzz=12, zharka_static=5, gravi=14, sakbuzz=3, sphere=4, fountain=1}},
- aver={23,35,{radiation=6,mincer=14, mosquito_bald=12, smallrain=5, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
- marsh={45,60,{radiation=3,mincer=8, mosquito_bald=12, smallrain=9, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
- limansk={12,20,{radiation=3,mosquito_bald=10, mincer=12, smallrain=2, fountain=16, zavesa=2, electra=0, gravi=10, buzz=10, sakbuzz=2, zharka_static=8, sphere=3}},
- hospital={3,5,{radiation=1,mincer=8, mosquito_bald=8, zavesa=2, fountain=1, electra=7, buzz=8, gravi=5, sakbuzz=2, zharka_static=5, sphere=2}},
- red_forest={24,35,{radiation=5,mincer=8, mosquito_bald=10, zavesa=4, fountain=2, smallrain=6, electra=3, zharka_static=8, gravi=10, buzz=10, sakbuzz=4, sphere=5}},
- lost_village={18,20,{radiation=4,mincer=8, mosquito_bald=8, zavesa=3, fountain=1, smallrain=1, electra=10, zharka_static=5, gravi=5, buzz=5, sakbuzz=2, sphere=3}},
- generators={15,35,{radiation=8,mincer=15, mosquito_bald=11, fountain=1, zavesa=5, smallrain=2, electra=15, zharka_static=5, gravi=10, buzz=16, sakbuzz=6, sphere=4}},
- atp_for_test22={20,30,{radiation=4,mincer=13, mosquito_bald=10, fountain=2, smallrain=2, zavesa=4, electra=15, zharka_static=10, gravi=10, buzz=20, sakbuzz=4, sphere=4}},
- dead_city={25,40,{radiation=5,mincer=10, mosquito_bald=10, zavesa=3, fountain=2, smallrain=2, electra=10, zharka_static=8, gravi=10, buzz=10, sakbuzz=1, sphere=4}},
- zaton={85,110,{radiation=10,electra=25, zavesa=6, smallrain=3, fountain=5, gravi=15, mincer=15, buzz=15, sakbuzz=8, mosquito_bald=15, sphere=12, zharka_static=8}},
- jupiter={85,110,{radiation=12,electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}},
- pripyat={70,100,{radiation=7,electra=15, zavesa=4, smallrain=1, fountain=3, gravi=18, mincer=15, buzz=15, sakbuzz=4, mosquito_bald=18, sphere=10, zharka_static=4}},
- l41_darkscape_ogse={55,75,{radiation=12,electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}}
+ puzir={150,170,{radiation=5, mincer=12, mosquito_bald=15, smallrain=6, zavesa=3, electra=14, buzz=12, zharka_static=5, gravi=14, sakbuzz=3, sphere=4, fountain=1}},
+ aver={23,35,{radiation=6, mincer=14, mosquito_bald=12, smallrain=5, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
+ marsh={45,60,{radiation=3, mincer=8, mosquito_bald=12, smallrain=9, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
+ limansk={12,20,{radiation=3, mosquito_bald=10, mincer=12, smallrain=2, fountain=16, zavesa=2, electra=0, gravi=10, buzz=10, sakbuzz=2, zharka_static=8, sphere=3}},
+ hospital={3,5,{radiation=1, mincer=8, mosquito_bald=8, zavesa=2, fountain=1, electra=7, buzz=8, gravi=5, sakbuzz=2, zharka_static=5, sphere=2}},
+ red_forest={24,35,{radiation=5, mincer=8, mosquito_bald=10, zavesa=4, fountain=2, smallrain=6, electra=3, zharka_static=8, gravi=10, buzz=10, sakbuzz=4, sphere=5}},
+ lost_village={18,20,{radiation=4, mincer=8, mosquito_bald=8, zavesa=3, fountain=1, smallrain=1, electra=10, zharka_static=5, gravi=5, buzz=5, sakbuzz=2, sphere=3}},
+ generators={15,35,{radiation=8, mincer=15, mosquito_bald=11, fountain=1, zavesa=5, smallrain=2, electra=15, zharka_static=5, gravi=10, buzz=16, sakbuzz=6, sphere=4}},
+ atp_for_test22={20,30,{radiation=4, mincer=13, mosquito_bald=10, fountain=2, smallrain=2, zavesa=4, electra=15, zharka_static=10, gravi=10, buzz=20, sakbuzz=4, sphere=4}},
+ dead_city={25,40,{radiation=5, mincer=10, mosquito_bald=10, zavesa=3, fountain=2, smallrain=2, electra=10, zharka_static=8, gravi=10, buzz=10, sakbuzz=1, sphere=4}},
+ zaton={85,110,{radiation=10, electra=25, zavesa=6, smallrain=3, fountain=5, gravi=15, mincer=15, buzz=15, sakbuzz=8, mosquito_bald=15, sphere=12, zharka_static=8}},
+ jupiter={85,110,{radiation=12, electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}},
+ pripyat={70,100,{radiation=7, electra=15, zavesa=4, smallrain=1, fountain=3, gravi=18, mincer=15, buzz=15, sakbuzz=4, mosquito_bald=18, sphere=10, zharka_static=4}},
+ l41_darkscape_ogse={80,110,{radiation=12, electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}}
 }
 
 local level_arts
@@ -70,7 +73,6 @@ function init()
 	vertexes = n_vertexes.getVertexes(lname)
 	
 	local string_gfind = string.gfind
-	local table_insert = table.insert
 	local ini = ini_file("misc\\amk_anoms.ltx")
 	local result, id, value = nil, nil, nil
 	if ini:section_exist(lname) then
@@ -84,7 +86,7 @@ function init()
 				end
 				x,y,z,r = unpack(t)
 				if not (x and y and z and r) then 
-					abort("amk_anoms:init - error while parsing safe zones for [%s] at section's line #%d", lname, (a+1))
+					abort("amk_anoms:init - error while parsing safe zones for section [%s] at line #%d[%s]", lname, (a+1), id)
 				else
 					table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
 				end
@@ -122,18 +124,17 @@ function after_blow_on()
 	for i, lvl in ipairs( n_vertexes.get_locations() ) do
 		Actor:disable_info_portion("testsak_"..lvl)
 	end
-	
-	local lname=level.name()
-	if not level_anoms[lname] then return end
+
+	if not level_anoms[ level.name() ] then return end
 	generate_anoms()
 	move_mgr.invalidate_pp_accessibility()
 end
 
 function can_remove_anom(sobj, map)
-	if not check_exclusion(sobj,map) then
-		set_online_anomaly_status(sobj.id,"del")
+	if not check_exclusion(sobj, map) then
+		set_online_anomaly_status(sobj.id, "del")
 		return true
-	elseif math.random() < 0.2
+	elseif math_random() < 0.2
 		and news_main.isIsolatedLevel(map)
 		and not has_alife_info("testsak_"..map)
 	then
@@ -156,13 +157,61 @@ function pre_blow_off()
 end
 
 function generate_anoms()
-	local lname=level.name()
-	local v=level_anoms[lname]
+	local lname = level.name()
+	local v = level_anoms[lname]
 	if v then
+		local new_lv
+		local actor_pos = Actor:position()
 		local cnt = 0
-		local mxx=math_random(v[1],v[2])*anoms_difficulty_koef[level.get_game_difficulty()]
+		local mxx = math_random(v[1],v[2])*anoms_difficulty_koef[level.get_game_difficulty()]
+		local anoms = level_anoms[lname][3]
+		local max_rnd = 0
+		for k,v in pairs(anoms) do
+			max_rnd = max_rnd + v
+		end
+		local section, t_shape, rnd, sobj
+		local shapes = {}
 		while cnt < mxx do
-			if generate_anomaly() then cnt=cnt+1 end
+			new_lv = math_random(1, vertexes.lvl)
+			local pos = level.vertex_position(new_lv)
+			if actor_pos:distance_to(pos) > 7 and check_coordinates(pos, lname) then
+				local rnd = math_random()*100
+				section = "zone_ice"
+				if 5 < rnd then
+					rnd = math_random(1, max_rnd)
+					for k, v in pairs(anoms) do
+						if rnd <= v then section = k break end
+						rnd = rnd - v
+					end
+					t_shape = anoms_sections[section][2]
+					section = "amk_zone_"..
+							anoms_sections[section][1]..
+							anom_suffix( math_random(1,3) )
+				else
+					t_shape = anoms_sections[section][2]
+				end
+
+				local t = {}
+				shapes[1] = t
+				t.shtype=t_shape.shtype
+				if t.shtype == 0 then
+					t.radius = t_shape.radius
+					t.center = vector():set( unpack(t_shape.center) )
+				else
+					t.box_matrix = matrix():set(
+								vector():set( unpack(t_shape.v1) ),
+								vector():set( unpack(t_shape.v2) ),
+								vector():set( unpack(t_shape.v3) ),
+								vector():set( unpack(t_shape.offset) )
+							)
+				end
+
+				sobj = AI:create( section, pos, new_lv, get_nearest_gv(pos) )
+				if sobj then
+					netpk:modify( sobj, { shapes = shapes }, netpk.fState )
+					cnt = cnt + 1
+				end
+			end
 		end
 	end
 end
@@ -222,11 +271,11 @@ function spawn_anom_art(sobj)
 		local arts = { all = {} }
 		for i = 1, #tmp, 2 do
 			arts[tmp[i]] = tonumber(tmp[i+1])
-			table.insert(arts.all, tmp[i])
+			table_insert(arts.all, tmp[i])
 		end
 		art_section = table.random(arts.all)
 	--	log("[amk_anoms.spawn_anom_art]: attempt to create artefact '%s' in '%s'", art_section, sobj:name())
-		if math.random(1,1000)/1000 > arts[art_section] then
+		if math_random(1,1000)/1000 > arts[art_section] then
 	--		log("! failed")
 			return false
 		end
@@ -235,12 +284,11 @@ function spawn_anom_art(sobj)
 	end
 	if not art_section then return false end
 
-	local pos = sobj.position
-	local x = math.random(-30,30)/100
-	local z = math.random(-30,30)/100
-	local y = math.random(30,50)/100
+	local x = math_random(-30,30)/100
+	local z = math_random(-30,30)/100
+	local y = math_random(30,50)/100
 	local art = AI:create(art_section,
-					    pos:add(vector():set(x,y,z)),
+					    sobj.position:add(vector():set(x,y,z)),
 						sobj.m_level_vertex_id,
 						sobj.m_game_vertex_id)
 	art = AI:object( art.id )
@@ -249,60 +297,6 @@ function spawn_anom_art(sobj)
 	return true
 end
 
-function generate_anomaly()
-	local new_lv=math_random(1,vertexes.lvl)
-	local actor_pos=Actor:position()
-	local pos = level.vertex_position(new_lv)
-	if actor_pos:distance_to(pos)<5 then return false end
-	if not check_coordinates(pos, level.name()) then return false end
-	local new_gv = get_nearest_gv( pos )
-	return spawn_rand_anom(pos,new_gv,new_lv)
-end 
-
-function spawn_rand_anom(pos,gv,lv)
-	local lname=level.name()
-	local shapes,shape1={},{}
-	local section
-	section = "zone_ice"
-	local rnd=math_random()*100
-	if 5>rnd then
-		shape1={shtype=0,radius=4,center={0,0,0}}
-	else
-		local tmp = level_anoms[lname][3]
-		rnd = 0
-		for k,v in pairs(tmp) do
-			rnd = rnd + v
-		end
-		rnd=math_random(1,rnd)
-		for k,v in pairs(tmp) do
-		if rnd<=v then section=anoms_sections[k] break end
-			rnd=rnd-v
-		end
-		local suffix=anom_suffix(math_random(1,3))
-		shape1=section[2]
-		section="amk_zone_"..section[1]..suffix
-	end
-	local t = {}
-	shapes[1] = t
-	t.shtype=shape1.shtype
-	if t.shtype == 0 then
-		t.radius = shape1.radius
-		t.center = vector():set( unpack(shape1.center) )
-	else
-		t.box_matrix = matrix():set(
-					vector():set( unpack(shape1.v1) ),
-					vector():set( unpack(shape1.v2) ),
-					vector():set( unpack(shape1.v3) ),
-					vector():set( unpack(shape1.offset) )
-				)
-	end
-
-	local sobj = AI:create( section, pos, lv, gv )
-	if sobj then
-		netpk:modify( sobj, { shapes = shapes }, netpk.fState )
-	end
-	return sobj
-end
 
 -- аномалии, которые не исчезнут при НИ, да и вообще
 local exclusion_part = {
@@ -326,7 +320,7 @@ local exclusion_part = {
 }
 function check_exclusion(obj,map)
 	local obj_section = obj:section_name()
-	local obj_name=obj:name()
+	local obj_name = obj:name()
 	if string_find(obj_name,"amk_")
 		or obj_section == "zone_ice"
 		or string_find(obj_section,"caps_")
@@ -355,16 +349,16 @@ function anom_suffix(n)
 end
 
 function check_coordinates(pos, lname)
-	local hides=amk_hideouts.hide[lname]
+	local hides = amk_hideouts.hide[lname]
 	if hides then
 		for i,o in ipairs(hides) do
 			if o.zone then
 				for j,v in ipairs(o.zone) do
 					if amk.check_npc_in_box(
 						pos,
-						vector():set(unpack(v.p1)),
-						vector():set(unpack(v.p2)),
-						(v.p3 and vector():set(unpack(v.p3)) )
+						vector():set( unpack(v.p1) ),
+						vector():set( unpack(v.p2) ),
+						(v.p3 and vector():set( unpack(v.p3) ) )
 					)
 					then return false end
 				end
@@ -372,64 +366,63 @@ function check_coordinates(pos, lname)
 		end
 	end
 	for k,v in pairs(anti_spawn_zones) do
-		if pos:distance_to(v[1])<=v[2] then return false end
+		if pos:distance_to( v[1] ) <= v[2] then return false end
 	end
 	return true
 end
 
-function set_online_anomaly_status(obj_id,status)
-	local obj=level.object_by_id(obj_id)
+function set_online_anomaly_status(obj_id, status)
+	local obj = level_object(obj_id)
 	if obj then
-		if status=="off" or status=="del" then
+		if status == "off" or status == "del" then
 			obj:disable_anomaly()
 			amk_anoms.remove_anomaly(obj_id)
-			amk_anoms.restrictor_deleted(obj_id,obj:name())
+			amk_anoms.restrictor_deleted( obj_id, obj:name() )
 		else
 			obj:enable_anomaly()
-			local sobj=AI:object(obj_id)
-			amk_anoms.add_anomaly(obj_id,sobj.position,sobj.radius)
+			local sobj = AI:object(obj_id)
+			amk_anoms.add_anomaly(obj_id, sobj.position, sobj.radius)
 		end
 	end
 end
 ---------------------------- function for spawn ---------------------end--
 ---------------------------- npc and anom_binder -------------------------
-local anoms_for_npc={}
-local npcs_for_anom={}
-local actual_anoms_for_npc={}
-local npc_restrictors_need_update={}
-local
+local anoms_for_npc = {}
+local npcs_for_anom = {}
+local actual_anoms_for_npc = {}
+local npc_restrictors_need_update = {}
 
 function init_if_needed(nid)
-	if (not anoms_for_npc[nid]) then
-		anoms_for_npc[nid]={}
+	if ( not anoms_for_npc[nid] ) then
+		anoms_for_npc[nid] = {}
 	end
-	if (not actual_anoms_for_npc[nid]) then
-		actual_anoms_for_npc[nid]={}
+	if ( not actual_anoms_for_npc[nid] ) then
+		actual_anoms_for_npc[nid] = {}
 	end
-	return anoms_for_npc[nid],actual_anoms_for_npc[nid]
+	return anoms_for_npc[nid], actual_anoms_for_npc[nid]
 end
 
-function add_restriction(npc,id,name)
-	local nid=npc:id()
-	if name==nil then
-		name=(level.object_by_id(id) and level.object_by_id(id):name())
+function add_restriction(npc, id, name)
+	if name == nil then
+		name = ( level_object(id) and level_object(id):name() )
 	end
 	if not name then
 		log("! amk_anoms.add_restriction: Warning! Nonexistent restrictor id %d", id)
 		return
 	end
-	
+
+	local nid = npc:id()
 	init_if_needed(nid)
 	if not anoms_for_npc[nid][id] then
-		anoms_for_npc[nid][id]=name
-		npc_restrictors_need_update[nid]=true
+		anoms_for_npc[nid][id] = name
+		npc_restrictors_need_update[nid] = true
 	end
 end
 
 function remove_restriction(npc,id,name,immed)
-	local nid=npc:id()
-	if name==nil then
-		name=(level.object_by_id(id) and level.object_by_id(id):name())
+	local nid = npc:id()
+	if name == nil then
+		name = ( level_object(id) and level_object(id):name() )
 	end
 	if not name then
 		abort("remove_restriction(): Nonexistent restrictor id:%d", id)
@@ -439,17 +432,17 @@ function remove_restriction(npc,id,name,immed)
 	init_if_needed(nid)
 	if immed then
 		if actual_anoms_for_npc[nid][id] then
-			npc:remove_restrictions("",name)
-			actual_anoms_for_npc[nid][id]=nil
-			npcs_for_anom[id][nid]=nil
+			npc:remove_restrictions("", name)
+			actual_anoms_for_npc[nid][id] = nil
+			npcs_for_anom[id][nid] = nil
 		end
 		if anoms_for_npc[nid][id] then
-			anoms_for_npc[nid][id]=nil
+			anoms_for_npc[nid][id] = nil
 		end
 	else
 		if anoms_for_npc[nid][id] then
-			anoms_for_npc[nid][id]=nil
-			npc_restrictors_need_update[nid]=true
+			anoms_for_npc[nid][id] = nil
+			npc_restrictors_need_update[nid] = true
 		end
 	end
 end
@@ -457,107 +450,86 @@ end
 function restrictor_deleted(id,name)
 	for nid,anoms in pairs(anoms_for_npc) do
 		if anoms[id] then
-			anoms[id]=nil
-			npc_restrictors_need_update[nid]=true
+			anoms[id] = nil
+			npc_restrictors_need_update[nid] = true
 		end
 	end
 end
 
 function clear_to_release(id)
-	local cnt
 	if npcs_for_anom[id] then
-		for nid in pairs(npcs_for_anom[id]) do
-			cnt=cnt+1
-		end
-		return cnt==0
+		return table.size( npcs_for_anom[id] ) == 0
 	else
 		return true
 	end
 end
 
 function have_pending_sync(npc)
-	local nid=npc:id()
-	return npc_restrictors_need_update[nid]==true
+	return npc_restrictors_need_update[ npc:id() ] == true
 end
 
-local max_dynamic_restrictors_count=40
+local max_dynamic_restrictors_count = 40
 
 function syncronize(npc)
-	local nid=npc:id()
-	local cnt=0
-	local anoms,actual=init_if_needed(nid)
-	local disttbl={}
+	local nid = npc:id()
+	local anoms, actual = init_if_needed(nid)
+	local cnt = table.size(anoms)
 
-	for id in pairs(anoms) do cnt=cnt+1 end
-
-	if cnt>max_dynamic_restrictors_count then
-		local disttbl={}
+	if cnt > max_dynamic_restrictors_count then
+		local disttbl = {}
 		local dist, sobj
+		local npc_pos = npc:position()
 		for id in pairs(anoms) do
-			dist=0
-			sobj=AI:object(id)
+			dist = math.huge
+			sobj = AI:object(id)
 			if sobj then
-				dist=npc:position():distance_to_sqr(sobj.position)
-			else
-				dist=1000000
+				dist = npc_pos:distance_to_sqr(sobj.position)
 			end
-			table.insert(disttbl,{id=id,dist=dist})
+			table_insert( disttbl, {id = id, dist = dist} )
 		end
-		table_sort(disttbl,function (a,b) return a.dist>b.dist end)
+		table_sort(disttbl, function (a, b) return a.dist > b.dist end)
 
-		for i=1,cnt-max_dynamic_restrictors_count do
-			anoms[disttbl[i].id]=nil
+		for i = 1, cnt-max_dynamic_restrictors_count do
+			anoms[ disttbl[i].id ]=nil
 		end
 	end
 
-	local add,rem="",""
-	local first=true
-	for id,name in pairs(actual) do
+	local add, rem = {}, {}
+	for id, name in pairs(actual) do
 		if not anoms[id] then
-			if first then
-				first=false
-				rem=name
-			else
-				rem=name..","..rem
-			end
+			table_insert(rem, name)
 			if npcs_for_anom[id] then
-				npcs_for_anom[id][nid]=nil
+				npcs_for_anom[id][nid] = nil
 			end
-			actual[id]=nil
+			actual[id] = nil
 		end
 	end
 
-	first=true
 	for id,name in pairs(anoms) do
 		if not actual[id] then
-			if first then
-				first=false
-				add=name
-			else
-				add=name..","..add
-			end
+			table_insert(add, name)
 			if not npcs_for_anom[id] then
-				npcs_for_anom[id]={}
+				npcs_for_anom[id] = {}
 			end
-			npcs_for_anom[id][nid]=true
-			actual[id]=name
+			npcs_for_anom[id][nid] = true
+			actual[id] = name
 		end
 	end
-	npc:remove_restrictions("",rem)
-	npc:add_restrictions("",add)
-	npc_restrictors_need_update[nid]=false
+	npc:remove_restrictions( "", table.concat(rem, ",") )
+	npc:add_restrictions( "", table.concat(add, ",") )
+	npc_restrictors_need_update[nid] = false
 end
 
 function unreg_in_anom_manager(npc)
-	local nid=npc:id()
-	local anoms=anoms_for_npc[nid]
+	local nid = npc:id()
+	local anoms = anoms_for_npc[nid]
 	if anoms then
 		for aid in pairs(anoms) do
 			if npcs_for_anom[aid] then
-				npcs_for_anom[aid][nid]=nil
+				npcs_for_anom[aid][nid] = nil
 			end
 		end
-		anoms_for_npc[nid]=nil
+		anoms_for_npc[nid] = nil
 	end
 end
 
@@ -591,60 +563,68 @@ function dynamic_anom_binder:__init(obj) super(obj) end
 function dynamic_anom_binder:net_spawn(sobj)
 	if not object_binder.net_spawn( self,sobj ) then return false end
 
-	amk_anoms.add_anomaly(sobj.id,sobj.position,sobj.radius)
+	amk_anoms.add_anomaly(sobj.id, sobj.position, sobj.radius)
 	db.add_on_map(self.object)
 	return true
 end
 
 function dynamic_anom_binder:net_destroy()
-	amk_anoms.remove_anomaly(self.object:id())
+	amk_anoms.remove_anomaly( self.object:id() )
 	db.del_from_map(self.object)
 	object_binder.net_destroy(self)
 end
 
-local anom_list={}
+local anom_list = {}
 
 function add_anomaly(id,pos,radius)
-	if anom_list==nil then anom_list={} end 
-	anom_list[id]={pos=pos,radius=radius or 0.0}
+	if anom_list == nil then anom_list = {} end 
+	anom_list[id] = { pos = pos, radius = radius or 0.0 }
 end
 
 function remove_anomaly(id)
-	if anom_list then anom_list[id]=nil end
+	if anom_list then anom_list[id] = nil end
 end
 
 function get_nearest_anomaly(npc)
-	return get_nearest_anomaly_for_pos(npc:position())
+	return get_nearest_anomaly_for_pos( npc:position() )
 end
 
 function get_nearest_anomaly_for_pos(posn)
-	local anomid,pos,radius,dist
-	local mindist=10000000
-		for id,o in pairs(anom_list) do
-			dist=posn:distance_to(o.pos)-o.radius
-			if dist<mindist then 
-				mindist=dist
-				anomid=id
-				pos=o.pos
-				radius=o.radius
-			end
+	local anomid, pos, radius, dist
+	local mindist = math.huge
+	for id, o in pairs(anom_list) do
+		dist = posn:distance_to(o.pos)-o.radius
+		if dist<mindist then 
+			mindist = dist
+			anomid = id
+			pos = o.pos
+			radius = o.radius
 		end
-	return anomid,pos,radius,mindist
+	end
+	return anomid, pos, radius, mindist
 end
 
-function get_anomaly_list(npc,radius)
-	return get_anomaly_list_for_pos(npc:position(),radius)
+function get_anomaly_list(npc, radius)
+	return get_anomaly_list_for_pos( npc:position(), radius )
 end
 
-function get_anomaly_list_for_pos(posn,radius)
-	local ret={}
+function get_anomaly_list_for_pos(posn, radius)
+	local ret = {}
 	if anom_list then
-		for id,o in pairs(anom_list) do
-			local obj=level.object_by_id(id)
+		local obj, dist
+		for id, o in pairs(anom_list) do
+			obj = level_object(id)
 			if obj then
-				local dist=posn:distance_to(o.pos)-o.radius
-				if dist<radius then
-					table.insert(ret,{id=id,name=obj:name(),pos=o.pos,radius=o.radius})
+				dist = posn:distance_to(o.pos) - o.radius
+				if dist < radius then
+					table_insert(ret,
+						{
+							id = id,
+							name = obj:name(),
+							pos = o.pos,
+							radius = o.radius
+						}
+					)
 				end
 			end
 		end
