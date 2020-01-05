@@ -751,12 +751,15 @@ end
 function killed_by_actor(actor, npc)
 	local t = db.storage[npc:id()].death
 	if t and t.killer then
-		if t.killer == actor:id() then
+		if t.killer == Actor:id() then
 			return true
 		end
 		local obj = level.object_by_id(t.killer)
 		if obj and obj:clsid() == clsid.obj_explosive then
-			return true
+			if (obj.exploder or 0) == Actor:id() then
+				log("[xr_conditions.killed_by_actor]: exploder ID: %s", tostring(obj.exploder or 0))
+				return true
+			end
 		end
 	end
 	return false
