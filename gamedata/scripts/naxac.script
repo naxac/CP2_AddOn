@@ -1,16 +1,30 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 5
+local current_fix = 6
 
-function repair()
-	local fix = amk.load_variable("nfx", 0)
-	if fix == current_fix then return end
-
-	amk.save_variable( "nfx", current_fix )
-	local obj
---=======   FIX #5   ==============================================================================================
-	if fix >= 5 then return end
+function fix_6()
+	-- переспавним награду от Лукаша за мозги контролёра в рюкзак
+	local sect, obj
+	local need_spawn = false
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj then
+			sect = obj:section_name()
+			if (sect == "arhara_tele" or sect == "meceniy_outfit_new" or sect == "wpn_aa12")
+				and obj.parent_id == 65535 and object_level_name(obj) == "l12u_sarcofag"
+			then
+				AI:release(obj, true)
+				need_spawn = true
+			end
+		end
+	end
+	if need_spawn then
+		arhara_dialog.arhara_teleport()
+	end
+end
+function fix_5()
 	Actor:give_info_portion("task_save_fix")
-	obj = AI:object("marsh_moroz_restrictor")
+	-- Уберём ненужный рестриктор и исправим радио Василию на болотах
+	local obj = AI:object("marsh_moroz_restrictor")
 	if obj then
 		AI:release(obj, true)
 		if AI:object("marsh_vasilij_radio") == nil then
@@ -22,9 +36,10 @@ function repair()
 			)
 		end
 	end
---=======   FIX #4   ==============================================================================================
-	if fix >= 4 then return end
-	obj = AI:object("escape_to_marsh")
+end
+function fix_4()
+	-- поправим переход Кордон - Болота
+	local obj = AI:object("escape_to_marsh")
 	if obj then
 		local data = {
 			dest_direction = vector():set(0,1.1001601219177,0),
@@ -34,6 +49,7 @@ function repair()
 		}
 		netpk:modify(obj, data, netpk.fState)
 	end
+	-- поправим переход Болота - Кордон
 	obj = AI:object("mar_level_changer_to_escape_1")
 	if obj then
 		local data = {
@@ -43,20 +59,18 @@ function repair()
 		}
 		netpk:modify(obj, data, netpk.fState)
 	end
---=======   FIX #3   ==============================================================================================
-	if fix >= 3 then return end
--------------------------------------------------------------------------------------------------------------------
+end
+function fix_3()
+	-- исправим рестриктор в Х-16 - стобы при отключенной установке не пищало в голове
 	naxac.rewrite_restr_logic( "yantar_psi_radiotion_sound", "scripts\\yan\\yantar_psi_radiotion_sound.ltx" )
--------------------------------------------------------------------------------------------------------------------
-	obj = AI:object("yantar_arhara_mine1")
+	-- уберём сделавшую своё дело мину на Янтаре
+	local obj = AI:object("yantar_arhara_mine1")
 	if obj and has_alife_info("sms_barmen_otvet") then
 		AI:release(obj, true)
 	end
---=======   FIX #2   ==============================================================================================
-	if fix >= 2 then return end
--------------------------------------------------------------------------------------------------------------------
-	local obj
-	--Если переходов нет, значит локацию только добавили - нужно заспавнить её содержимое
+end
+function fix_2()
+	--Если переходов в Тёмную Лощину нет, значит локацию только добавили - нужно заспавнить её содержимое
 	if AI:story_object(story_ids.lc_darkscape_to_escape) == nil
 		and AI:story_object(story_ids.lc_darkscape_to_darkvalley) == nil
 	then
@@ -65,7 +79,7 @@ function repair()
 			AI:create(i)
 		end
 		-- отметим переходы
-		obj = AI:story_object(story_ids.lc_darkscape_to_escape)
+		local obj = AI:story_object(story_ids.lc_darkscape_to_escape)
 		if obj then
 			level.map_add_object_spot_ser(obj.id, "level_changer4", "to_escape")
 		end
@@ -89,60 +103,77 @@ function repair()
 		-- телепорт к дому
 		AI:create("darkscape_teleport_01",vector():set(-248.57592773438,12.540954589844,-329.14068603516),139494,3997)
 	end
---=======   FIX #1   ==============================================================================================
-	if fix >= 1 then return end
+end
+function fix_1()
+	local obj
+	if not has_alife_info( "naxac_test_repair5" ) then
+		Actor:give_info_portion( "naxac_test_repair5" )
+		-- удаляем ставший не нужным балласт от контеёнеров с артефактами
+		Actor:iterate_inventory(function(dummy, item)
+			if item:section() == "wpn_ballast" then
+				obj = AI:object(item:id())
+				if obj then AI:release(obj, true) end
+			end
+		end,
+		Actor)
+	end
 -------------------------------------------------------------------------------------------------------------------
-	if has_alife_info( "naxac_test_repair5" ) then return end
-	Actor:give_info_portion( "naxac_test_repair5" )
+	if not has_alife_info( "naxac_test_repair4" ) then
+		Actor:give_info_portion( "naxac_test_repair4" )
 
-	Actor:iterate_inventory(function(dummy, item)
-		if item:section() == "wpn_ballast" then
-			local obj = AI:object(item:id())
-			if obj then AI:release(obj, true) end
+		obj = AI:object("radar_kukla")
+		if obj then
+			AI:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+			AI:release(obj, true)
 		end
-	end,
-	Actor)
--------------------------------------------------------------------------------------------------------------------
-	if has_alife_info( "naxac_test_repair4" ) then return end
-	Actor:give_info_portion( "naxac_test_repair4" )
 
-	obj = AI:object("radar_kukla")
-	if obj then
-		AI:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
-		AI:release(obj, true)
-	end
-
-	obj = snp.object_by_section_offline("good_psy_helmet1")
-	if obj then
-		if obj.parent_id == 65535 then
-			AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
-		else
-			AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+		obj = snp.object_by_section_offline("good_psy_helmet1")
+		if obj then
+			if obj.parent_id == 65535 then
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+			else
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+			end
+			AI:release(obj, true)
 		end
-		AI:release(obj, true)
 	end
 -------------------------------------------------------------------------------------------------------------------
-	if has_alife_info( "naxac_test_repair3" ) then return end
-	Actor:give_info_portion( "naxac_test_repair3" )
-
-	obj = AI:object( "podlovim_chiterov_restrictor" )
-	if obj then AI:release( obj, true ) end
-	obj = AI:object( "podlovim_chiterov1_restrictor" )
-	if obj then AI:release( obj, true ) end
-	start_small_timer( 2000, naxac.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
--------------------------------------------------------------------------------------------------------------------
-	if has_alife_info( "naxac_test_repair2" ) then return end
-	Actor:give_info_portion( "naxac_test_repair2" )
-
-	if has_alife_info( "cit_fail_first_task" ) then
-		naxac.hero_rename_start()
+	if not has_alife_info( "naxac_test_repair3" ) then
+		Actor:give_info_portion( "naxac_test_repair3" )
+		-- правим замену артов в Госпитале
+		obj = AI:object( "podlovim_chiterov_restrictor" )
+		if obj then AI:release( obj, true ) end
+		obj = AI:object( "podlovim_chiterov1_restrictor" )
+		if obj then AI:release( obj, true ) end
+		start_small_timer( 2000, naxac.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
 	end
 -------------------------------------------------------------------------------------------------------------------
-	if has_alife_info( "naxac_test_repair1" ) then return end
-	Actor:give_info_portion( "naxac_test_repair1" )
+	if not has_alife_info( "naxac_test_repair2" ) then
+		Actor:give_info_portion( "naxac_test_repair2" )
+		-- меняем имя ГГ, если встреча с Доктором уже была
+		if has_alife_info( "cit_fail_first_task" ) then
+			naxac.hero_rename_start()
+		end
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if not has_alife_info( "naxac_test_repair1" ) then
+		Actor:give_info_portion( "naxac_test_repair1" )
 
-	if AI:object( "subway_scaner_doc_0001" ) == nil then
-		AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+		if AI:object( "subway_scaner_doc_0001" ) == nil then
+			AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+		end
+	end
+end
+
+function repair()
+	local fix = amk.load_variable("nfx", 0)
+	if fix == current_fix then return end
+
+	amk.save_variable( "nfx", current_fix )
+
+	for i = current_fix, 1, -1 do
+		if fix >= i then break end
+		this["fix_"..tostring(i)]()
 	end
 end
 
