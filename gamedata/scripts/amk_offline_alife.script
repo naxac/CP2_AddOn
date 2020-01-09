@@ -1210,7 +1210,7 @@ function inv_box_is_avail(victim, box)
 	if (victim == nil or box == nil or box.id == 0) then return false end
 
 	-- отсекаем сюжетные тайники
-	if transparent_treasure.IsTaken(box:section_name()) and box:section_name() ~= "m_inventory_box" then return false end
+	if box_is_protected(box) then return false end
 	
 --    math.randomseed(math_floor(device():time_global() / box.id))
 	local n_rnd
@@ -1850,8 +1850,19 @@ end
 
 function box_is_protected(v)
 	if v then
+		-- проверяем по секции объекта
+		local chk = v:section_name()
+		-- отсекаем сюжетные тайники
+		if transparent_treasure.IsTaken(chk) and chk ~= "m_inventory_box" then
+			return true
+		end
+
+		for k, o in pairs(protected.sections) do
+			if o == chk then return true end
+		end
+
 		-- проверяем по имени объекта
-		local chk = v:name()
+		chk = v:name()
 		for k, o in pairs(protected.names) do
 			if o == chk then return true end
 		end
@@ -1869,12 +1880,6 @@ function box_is_protected(v)
 		-- проверяем по story ID объекта
 		chk = v.m_story_id
 		for k, o in pairs(protected.story_ids) do
-			if o == chk then return true end
-		end
-
-		-- проверяем по секции объекта
-		chk = v:section_name()
-		for k, o in pairs(protected.sections) do
 			if o == chk then return true end
 		end
 	end
