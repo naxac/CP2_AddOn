@@ -186,7 +186,12 @@ end
 local tmp_news = {}
 function show_tmp_news(sender)
 	if #tmp_news == 0 then return end
-	news_manager.send_tip(tmp_news[1], 0, sender, nil, nil, nil,
+	local x, y, sndr = news_manager.get_sender_icon(tmp_news[1])
+	local icon = sender
+	if sndr ~= "default" then
+		icon = sndr
+	end
+	news_manager.send_tip(tmp_news[1], 0, icon, nil, nil, nil,
 		'amk_mod.show_tmp_news('..(sender and '"'..sender..'"' or '')..')',
 	math_random(2,5) )
 	table.remove(tmp_news, 1)
@@ -231,7 +236,7 @@ function show_news()
 			else
 				news_text = amk_modders.get_strings()
 			end
-		--	sender = "uniq"
+			sender = "uniq"
 		end
 		this.explode_news_str(news_text)
 		this.show_tmp_news(sender)
