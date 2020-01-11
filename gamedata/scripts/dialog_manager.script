@@ -211,10 +211,12 @@ function precondition_help_thanks(npc, actor, p1, p2, p3)
 end
 
 function precondition(npc, actor, tbl, sel_tbl, p1, p2, p3)
+	local npc_id = npc:id()
+
 	--' Надо проверить доступна ли запомненная фраза
-	if ( (sel_tbl ~= nil) and (sel_tbl[npc:id()] ~= nil) ) then
+	if ( (sel_tbl ~= nil) and (sel_tbl[npc_id] ~= nil) ) then
 		
-		local lll = sel_tbl[npc:id()]
+		local lll = sel_tbl[npc_id]
 		if (lll==nil) then
 			abort("[dialog_manager.precondition]: selected phrase for npc %s is nil", npc:name())
 		end
@@ -228,7 +230,7 @@ function precondition(npc, actor, tbl, sel_tbl, p1, p2, p3)
 		--' Если запомненная фраза недоступна - необходимо забыть ее
 		if not calculate_predicate(npc, ttt) then
 			-- printf("*** restore memory phrase")
-			sel_tbl[npc:id()] = nil
+			sel_tbl[npc_id] = nil
 		end
 	end	
 
@@ -237,13 +239,13 @@ function precondition(npc, actor, tbl, sel_tbl, p1, p2, p3)
 
 
 	--' Проверка на повторяемость фраз.
-	if ( (sel_tbl ~= nil) and (sel_tbl[npc:id()] ~= nil) ) then
+	if ( (sel_tbl ~= nil) and (sel_tbl[npc_id] ~= nil) ) then
 		--' Если проверяется не запомненная фраза
-		if (sel_tbl[npc:id()].phrase ~= phrase.phr_id) then
-			printf("*** not memory phrase [%s] ~= [%s]", sel_tbl[npc:id()].phrase, phrase.phr_id)
+		if (sel_tbl[npc_id].phrase ~= phrase.phr_id) then
+		--	printf("*** not memory phrase [%s] ~= [%s]", sel_tbl[npc_id].phrase, phrase.phr_id)
 			return false
 		end
-		if (sel_tbl[npc:id()].count >= 1) then
+		if (sel_tbl[npc_id].count >= 1) then
 			return false
 		end
 	end	
