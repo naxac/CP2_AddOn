@@ -1362,6 +1362,7 @@ C++ class visible_memory_object : game_memory_object {
 
 C++ class FS_item {
     function Modif();
+	function ModifDigitOnly()
     function NameShort();
     function NameFull();
     function Size();
@@ -8097,6 +8098,7 @@ namespace  {
     int GetARGB(number, number, number, number);
     int script_server_object_version();
 	bool IsGameTypeSingle();
+	bool valid_saved_game(LPCSTR<save_name>);
 
     namespace game {
         function translate_string(string);
