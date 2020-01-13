@@ -6,6 +6,8 @@
 -- Author:      Serhiy Vynnychenko (narrator@gsc-game.kiev.ua)
 -- Version:     0.5
 
+local fs = getFS()
+
 class "list_item" (CUIListItemEx)
 
 function list_item:__init() super()
@@ -35,6 +37,7 @@ end
 class "load_save_dialog" (CUIScriptWnd)
 
 function load_save_dialog:__init(can_save) super()
+	set_input_language(1)
 	self.last_index = -1
 	self.can_save = can_save
 	self:InitControls()
@@ -48,8 +51,7 @@ function load_save_dialog:__finalize()
 end
 
 function load_save_dialog:FillList()
-	local f = getFS()
-	local flist = f:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.sav")
+	local flist = fs:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.sav")
 	local f_cnt = flist:Size()
 
 	flist:Sort(FS.FS_sort_by_modif_down)
@@ -135,7 +137,7 @@ end
 function load_save_dialog:delete_autosave_screen()
 	local file = old_user_name().."_autosave.dds"
 	if file_exist(file) then
-		getFS():file_delete("$game_saves$", file)
+		fs:file_delete("$game_saves$", file)
 	end
 end
 
@@ -234,7 +236,6 @@ function load_save_dialog:RenameSelectedFile()
 	local fname		= item.fn:GetText()
 	local new_fname	= self.edit_filename:GetText()
 
-	local fs = getFS()
 	local f1 = fs:update_path("$game_saves$", fname..".sav")
 	local f2 = fs:update_path("$game_saves$", new_fname..".sav")
 	fs:file_rename(f1, f2, true)
@@ -309,8 +310,7 @@ function load_save_dialog:OnButton_save_clicked()
 	end
 	
 	--// check for match name
-	local file_struct = getFS():exist("$game_saves$", self.new_save .. ".sav" )
-	if file_struct ~= nil then
+	if file_exist(self.new_save..".sav") then
 		self.msgbox_id = 2
 		self.message_box:Init("message_box_file_already_exist")
 		self:GetHolder():start_stop_menu(self.message_box, true)
@@ -361,7 +361,7 @@ function load_save_dialog:ChangeInputLanguage()
 	set_input_language( bit_not( l ) )
 end
 
-local kAlt = { [DIK_keys.DIK_LMENU] = true, [DIK_keys.DIK_RMENU] = true }
+local kAlt   = { [DIK_keys.DIK_LMENU]  = true, [DIK_keys.DIK_RMENU]  = true }
 local kShift = { [DIK_keys.DIK_LSHIFT] = true, [DIK_keys.DIK_RSHIFT] = true }
 
 function load_save_dialog:OnKeyboard(dik, keyboard_action)  --virtual function
@@ -398,40 +398,38 @@ end
 
 
 function file_data(fname)
-	local f = getFS();
-	local flist = f:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly) , fname .. ".sav")
-	local f_cnt = flist:Size()
-	
-	if f_cnt > 0 then
-		local file		=	flist:GetAt(0)
+	local ex = fs:exist("$game_saves$", fname..".sav")
+	if ex ~= nil then
 		local sg = CSavedGameWrapper(fname)
 		
 		local y,m,d,h,min,sec,ms = 0,0,0,0,0,0,0
 		y,m,d,h,min,sec,ms = sg:game_time():get(y,m,d,h,min,sec,ms)
 		
-		local date_time = string.format("%02d.%02d.%04d %02d:%02d", d, m, y, h, min)
-		local health = string.format("\\nЗдоровье: %d%%", sg:actor_health()*100)
+		local date_time = string.format( "%02d.%02d.%04d %02d:%02d", d, m, y, h, min )
+		local health = string.format( "%d%%", sg:actor_health()*100 )
+		local save_time = os.date( "%d.%m.%Y %H:%M", ex.modif )
 		
-		return "Уровень: " .. game.translate_string(sg:level_name()) .. "\\nИгровое время: " .. date_time .. health .. "\\nСохранено: " .. string.gsub(file:ModifDigitOnly(), ":", ".", 2)
+		return "Уровень: " .. game.translate_string( sg:level_name() ) ..
+			"\\nИгровое время: " .. date_time .. 
+			"\\nЗдоровье: " .. health ..
+			"\\nСохранено: " .. save_time
 	else
 		return "no file data"
 	end	
 end
 
 function file_exist(fname)
-	return getFS():exist("$game_saves$", fname) ~= nil
+	return fs:exist("$game_saves$", fname) ~= nil
 end
 
 function delete_save_game(filename)
 	local save_file		= filename .. ".sav"
 	local dds_file		= filename .. ".dds"
-	
-	local f = getFS()
-	
-	f:file_delete("$game_saves$",save_file)
-	
+
+	fs:file_delete("$game_saves$",save_file)
+
 	if file_exist(dds_file) then
-		f:file_delete("$game_saves$", dds_file)
+		fs:file_delete("$game_saves$", dds_file)
 	end
 end
 
