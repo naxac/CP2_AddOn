@@ -147,7 +147,7 @@ end
 local InventoryState = {}
 local good_condition = 0.94		-- состояние предмета, при котором считается, что он полностью исправен
 
---Проверка на количество предметов в инвентаре гг
+-- Проверка на количество предметов в инвентаре гг
 function search(iItemSection, iNeededCount, bGood)
 	--Взятие из кеша текущего состояния инвентаря:
 	local tStat = InventoryState[iItemSection]
@@ -338,6 +338,49 @@ function out_ammo(sSection, iNeedCount, bNoMessage)
 
 	if bNoMessage then return end
 	news_manager.relocate_item(Actor, "out", sSection, iNeedCount-out_cnt)
+end
+
+-- эти функции не использовать для тасков, только для диалогов!
+function has_by_condition(section, need_count, min_cond, max_cond)
+	if need_count == nil then need_count = 1 end
+	if min_cond == nil then min_cond = 0 end
+	if max_cond == nil then max_cond = 1 end
+
+	local count = 0
+	Actor:iterate_inventory(
+		function(dummy, item)
+			if count == need_count then return end
+			if item:section() ~= section then return end
+			local cond = item:condition()
+			if cond >= min_cond and cond <= max_cond then
+				count = count + 1
+			end
+		end,
+		Actor
+	)
+	return count == need_count
+end
+function out_by_condition(section, need_count, min_cond, max_cond)
+	if need_count == nil then need_count = 1 end
+	if min_cond == nil then min_cond = 0 end
+	if max_cond == nil then max_cond = 1 end
+
+	local count = 0
+	Actor:iterate_inventory(
+		function(dummy, item)
+			if count == need_count then return end
+			if item:section() ~= section then return end
+			local cond = item:condition()
+			if cond >= min_cond and cond <= max_cond then
+				local obj = AI:object(item:id())
+				if obj then AI:release(obj, true) end
+				count = count + 1
+			end
+		end,
+		Actor
+	)
+
+	news_manager.relocate_item(Actor, "out", section, need_count)
 end
 -------------------------------------------------------------------------------
 
