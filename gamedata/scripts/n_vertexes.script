@@ -1,4 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+local current_vertexes
+
 local level2vertexes = {
 	l01_escape				= { min = 0,    max = 251,  lvl = 595499  },
 	l02_garbage				= { min = 252,  max = 415,  lvl = 382663  },
@@ -39,15 +41,14 @@ local level2vertexes = {
 	l41_darkscape_ogse		= { min = 3851, max = 4173, lvl = 1096051 }
 }
 
-function getVertexes( lvl_name )
-	local t = level2vertexes[ lvl_name ]
-		or abort( "[%s]:getVertexes: vertexes not found for level [%s]", script_name(), lvl_name )
-	return table.copy( {}, t )
+function init()
+	current_vertexes = level2vertexes[ level.name() ]
+	ASSERT( current_vertexes, "[n_vertexes.init]: vertexes not found for level [%s]", level.name() )
 end
 
 function get_max_level_vertex()
-	return level2vertexes[ level.name() ].lvl
-		or abort( "[%s]:get_max_level_vertex: level_vertex not found for level [%s]", script_name(), level.name() )
+	if current_vertexes == nil then init() end
+	return current_vertexes.lvl
 end
 
 function get_locations( no_und )
@@ -58,4 +59,18 @@ function get_locations( no_und )
 		end
 	end
 	return ret
+end
+
+function get_nearest_gv( pos )
+	local min_dist = math.huge
+	local new_gv = 0
+	local dist
+	for a = current_vertexes.min, current_vertexes.max, 1 do 
+		dist = GGraph:vertex( a ):game_point():distance_to( pos )
+		if dist < min_dist then 
+			min_dist = dist
+			new_gv = a
+		end
+	end
+	return new_gv
 end

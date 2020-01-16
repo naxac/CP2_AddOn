@@ -107,8 +107,8 @@ function init()
 		rel_enemy = sys_ini:r_float("game_relations", "goodwill_enemy")
 		rel_friend = sys_ini:r_float("game_relations", "goodwill_friend")
 
-	    if not xr_timers.has_timer("news_check") then
-			xr_timers.start_game_timer("news_check", 0, 0, timer_check_freq)
+	    if not has_timer("news_check") then
+			start_game_timer("news_check", 0, 0, timer_check_freq)
 	    end
     
 		bInit = true
@@ -1528,8 +1528,8 @@ function check_news()
 
 	spammers = {}
 	amk.oau_reason="cn start_timer"	
-  if not xr_timers.has_timer("news_check") then
-    xr_timers.start_game_timer("news_check", 0, 0, timer_check_freq)
+  if not has_timer("news_check") then
+    start_game_timer("news_check", 0, 0, timer_check_freq)
   end  
 end
 
@@ -2110,12 +2110,16 @@ function check_microquest(monster)
 			local trader = AI:story_object( from2sid[cd.microquest.trader] )
 			local tdata = netpk:get(trader, netpk.fState)
 			local tcd = netpk:parse_custom_data(tdata.custom_data)
-			tcd.microquest = table.copy({}, cd.microquest)
+			if tcd.microquest == nil then
+				tcd.microquest = { reward_money = 0, reward_items = "" }
+			end
+			tcd.microquest.reward_money = tcd.microquest.reward_money + (cd.microquest.reward_money or 0)
+			tcd.microquest.reward_items = tcd.microquest.reward_items..","..(cd.microquest.reward_items or "")
 			tdata.custom_data = netpk:gen_custom_data(tcd)
 			netpk:set(trader, tdata, netpk.fState)
 			local target_name = news_data.monster_classes[obj:clsid()][4]
 
-			xr_timers.start_real_timer(
+			start_real_timer(
 				"miniquest", math.random(120, 240),
 				{cd.microquest.trader, cd.microquest.reward_from, target_name}
 			)
@@ -2380,7 +2384,7 @@ function on_news()
 	amk.oau_reason="cn on_news continue"
 
 	if (timer_next_blow == 0) then
-		local timer = xr_timers.get_timer("blow_shift")
+		local timer = get_timer("blow_shift")
 		timer_next_blow = (timer.time or 0)/60000
 	end
 
@@ -2717,8 +2721,10 @@ function on_miniquest_reward(trader)
 					dialogs.relocate_money(trader, money, "in")
 					local tbl = string.explode(items, ",", true)
 					local spawn = {}
-					for i,v in ipairs(tbl) do
-						table.add(spawn, v)
+					for i,v in pairs(tbl) do
+						if v ~= "" then
+							table.add(spawn, v)
+						end
 					end
 					for k,v in pairs(spawn) do
 						inventory.give_items(k,v)

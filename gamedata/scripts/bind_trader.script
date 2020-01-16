@@ -23,16 +23,16 @@ end
 function trader_binder:reinit() 
 	object_binder.reinit(self) 
 
-	db.storage[self.object:id()] = { }
-
+	db.storage[self.object:id()] = {}
 	self.st = db.storage[self.object:id()] 
+
+	-- self.object:set_callback(callback.patrol_path_in_point, self.waypoint_callback, self) 
 	self.object:set_callback(callback.hit, self.hit_callback, self) 
 	self.object:set_callback(callback.death, self.death_callback, self) 
 	self.object:set_callback(callback.use_object, self.use_callback, self)
 end 
 
 function trader_binder:update(delta)
---	db.storage[self.object:id()].us = 100
 	object_binder.update(self, delta) 
 
 	if self.first_update == false then
@@ -41,14 +41,9 @@ function trader_binder:update(delta)
 		trade_manager.first_update(self.object)
 	end
 
---	printf("_bp: trader_binder: UPDATE [name='%s' time=%d]",
---		self.object:name(), time_global())
-
 	if not self.object:alive() then
 		self.object:set_tip_text_default()
-	end 
-
---	db.storage[self.object:id()].us = 0	
+	end
 end
 
 function trader_binder:death_callback(victim, who) 
@@ -121,16 +116,15 @@ function trader_binder:net_spawn(sobject)
 	return true 
 end 
 
-function trader_binder:net_destroy()
-	local id = self.object:id()
-	
+function trader_binder:net_destroy()	
 	amk.on_monster_go_offline(self.object)
 
 	self.object:set_callback(callback.death, nil)
+	-- self.object:set_callback(callback.patrol_path_in_point, nil) 
 	self.object:set_callback(callback.hit, nil)
 	self.object:set_callback(callback.use_object, nil)
 
-	local st = db.storage[id]
+	local st = db.storage[ self.object:id() ]
 	if st and st.active_scheme then 
 		xr_logic.issue_event(self.object, st[st.active_scheme], "net_destroy") 
 	end 
@@ -168,4 +162,10 @@ function trader_binder:use_callback(obj, who)
 
 	xr_s.on_event("npc_use", obj, who)
 end
+
+-- function trader_binder:waypoint_callback(obj, action_type, index) 
+	-- if self.st.active_section ~= nil then 
+		-- xr_logic.issue_event(self.object, self.st[self.st.active_scheme], "waypoint_callback", obj, action_type, index) 
+	-- end 
+-- end 
 

@@ -157,14 +157,16 @@ local tips_icons = {
 	gen_info 	= {498,47},		--{0,658}, -- общая инфа
 	gila		= {332,1786,"жила:"},
 	ginekolog 	= {0,1927,"гинеколог:"},
+	ginekolog2 	= {0,1927,"шура гинеколог:"},
 	gologramma 	= {498,1269,"голограмма:"},
 	grach		= {332,1081,"грач:"},
 	haliava		= {332,1269,"халява:"},
 	himera 		= {83,1927,"химера:"},
 	himik 		= {249,1222,"химик:"},
-	holod 		= {83,1974,"холодов:"},
+	holod 		= {83,1974,"холод:"},
 	iskra 		= {166,1128,"искра:"},
 	ivancov		= {332,329,"иванцов:"},
+	ivancov1	= {332,329,"капитан иванцов:"},
 	kalinin		= {498,1410,"калинин:"},
 	kalmyk		= {249,1927,"калмык:"},
 	kartograf  	= {913,235,"картограф:"},
@@ -172,22 +174,25 @@ local tips_icons = {
 	kidalo		= {249,1833,"санёк разбойник:"},
 	killer   	= {913,940,"наёмники:"},
 	klenov 		= {83,1316,"клёнов:"},
+	klenov1		= {83,1316,"профессор клёнов:"},
 	klyk 		= {83,1034,"клык:"},
 	kolmogor 	= {83,1269,"колмогор:"},
 	korsar		= {332,1081,"корсар:"},
 	korshun		= {498,1739,"коршун:"},
 	kostya		= {332,1598,"костя:"},
-	kostylnuga 	= {83,1175,"костыльнога:"},
+	kostylnuga 	= {83,1175,"сержант костыльнога:"},
 	kotobegemot = {0,987,"котобегемот:"},
 	kot			= {498,1081,"кот:"},
 	krest		= {498,1504,"крест:"},
 	krisyk		= {332,1692,"крысюк:"},
-	kruglov		= {332,1363,"круглов:"},
+	kruglov		= {332,1363,"проф%. круглов:"},
 	kruger		= {249,1692,"крюгер:"},
 	kulinar		= {332,1645,"кулинар:"},
+	kulinar2	= {332,1645,"артём кулинар:"},
 	krot     	= {332,47,"крот:"},
 	kuzmat 		= {166,1927,"кузькина мать:"},
 	kuznecov 	= {332,752,"кузнецов:"},
+	kuznecov2 	= {332,752,"майор кузнецов:"},
 	lesnik 		= {166,1269,"лесник:"},
 	lis 		= {498,1222,"лис:"},
 	lisiy 		= {415,141,"лысый:"},
@@ -213,7 +218,7 @@ local tips_icons = {
 	noi 		= {498,1598,"ной:"},
 	norman 		= {166,1457,"норман:"},
     nodata   	= {249,940,"источник неизвестен:"},
-    nodata   	= {249,940,"%[источник неизвестен%]"},
+    nodata1   	= {249,940,"%[источник неизвестен%]"},
 	o_soznanie 	= {415,893,"о%-сознание:"},
 	obmorok 	= {166,1504,"обморок:"},
 	op2	 		= {332,987,"команда создателей оп%-2:"},
@@ -274,7 +279,8 @@ local tips_icons = {
     tolik		= {249,1504,"толик:"},
 	trade	 	= {0,0}, -- деньги
 	trader   	= {332,893,"сидорович:"}, -- сидорович
-	uniq  	 	= {498,47,"локальная сеть:"},
+	uniq  	 	= {498,47,"общий канал:"},
+	uniq1  	 	= {498,47,"локальная сеть:"},
 	unknown 	= {913,799,"неизвестный сталкер:"},
 	vesker 		= {0,1786,"вескер:"},
 	viking 		= {415,94,"викинг:"},
@@ -283,7 +289,9 @@ local tips_icons = {
 	vol_new 	= {913,564,"волазар:"},
 	volkov	 	= {249,1645,"профессор волков:"},
 	voronin 	= {332,423,"воронин:"},
+	voronin1 	= {332,423,"генерал воронин:"},
 	voron 		= {498,1128,"ворон:"},
+	voron1 		= {498,1128,"витёк ворон:"},
 	vasiliy		= {415,1034,"василий:"},
 	vasya9		= {498,376,"вася девятый:"},
     weaprep 	= {0,517}, -- апгрейд оружия
@@ -314,11 +322,11 @@ function get_sender_icon(text, sender)
 					text = caption
 				end
 			end
-		end
-		for k,v in pairs(tips_icons) do
-			if (v[3] and string.find(text, "^"..v[3])) then
-				sender = k
-				break
+			for k,v in pairs(tips_icons) do
+				if (v[3] and string.find(text, "^"..v[3])) then
+					sender = k
+					break
+				end
 			end
 		end
 	end
@@ -382,7 +390,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func,
 	end
 	
 	if func then
-		xr_timers.start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
+		start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
 	end
 
 	local news_text
@@ -407,8 +415,8 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func,
 	end
 
 	-- Определяем, ГГ как отправитель по игре уже Cтрелок, или еще Меченый
-	if string.find(news_text, "$actor$", 1, true) then
-		news_text = string.gsub(news_text, "%$actor%$", Actor:character_name())
+	if string.find(news_text, "%$actor") then
+		news_text = string.gsub(news_text, "%$actor", Actor:character_name())
 	end
 
 	local x,y,s = get_sender_icon(news_text, sender)
@@ -555,8 +563,8 @@ function send_task(actor, type, task, objective)
 		-- удаляем предыдущий таймер на сохранение при сдаче/получении нескольких квестов в одном диалоге 
 		-- сохраняем только самый последний автосейв по завершении диалога
 		if type == "new" or type == "complete" then
-			amk.remove_timer("autosave")
-			xr_timers.start_real_timer("autosave", 3, news_text_save)
+			remove_timer("autosave")
+			start_real_timer("autosave", 3, news_text_save)
 		end
 	end
 

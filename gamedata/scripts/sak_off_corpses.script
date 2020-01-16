@@ -133,53 +133,40 @@ function off_corpses()
 						table.add( statistic, "dead_monsters" )
 					end
 
-				-- удалем динамические аномалии
+				-- удалем лишние аномалии
 				elseif IsAnomaly(nil, obj_clsid, true) then
-					if is_blowout==false and amk_anoms.can_remove_anom(obj, obj_level) then
+					if is_first_run
+						and (is_blowout == false)
+						and amk_anoms.can_remove_anom(obj, obj_level)
+					then
 						AI:release(obj, true)
 						released = true
 					end
 
 				elseif obj_clsid == clsid.artefact or obj_clsid == clsid.artefact_s then
 					-- детекторы артефактов
-					if obj_level==actor_level then
+					if obj_level == actor_level then
 						bind_det_arts.add_artefact(obj_sect, i)
 					end
 
-					-- удаляем глючные арты только на первой загрузке
 					if is_first_run then
-						-- проблемые арты в Пещере
-						if (obj_level == "peshera")
-							and ( obj_sect == "af_ameba_slime" 
-							or obj_sect == "af_ameba_slug" 
-							or obj_sect == "af_ameba_mica" )
-						then
-							AI:release(obj, true)
-							released = true
-
-						-- проблемые арты в СД
-						elseif (obj_level == "lost_village")
-							and ( obj_sect == "af_life_heart"
-							or obj_sect == "af_rusty_thorn"
-							or obj_sect == "af_rusty_sea-urchin"
-							or obj_sect == "af_rusty_kristall" )
-						then
-							AI:release(obj, true)
-							released = true
-						end
+						-- проблемые арты
+						obj:use_ai_locations( false )
 					end
 
 				-- оружие
 				elseif IAmAWeapon[obj_clsid] then
-					if level_changing and ( protected_items.obj_is_protected(obj,"tabl_wpn_keep","like") == false ) then
-						if (obj_level == "l10_radar" or obj_level == "hospital") and (obj_level ~= actor_level) then
-							--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
-							AI:release(obj, true)
-							released = true
-							table.add( statistic, "remove_weapons" )
-						elseif obj.position:distance_to(actorpos) > dist_to_weapons then 
-							table.insert(tabl_weapons, obj)
-							released = true
+					if level_changing and (obj_level ~= actor_level) then
+						if protected_items.obj_is_protected(obj,"tabl_wpn_keep","like") == false then
+							if (obj_level == "l10_radar" or obj_level == "hospital")  then
+								--убираем на Радаре и в Госпитале безо всяких таблиц, когда ГГ не на Радаре и Госпитале (исключения не трогаем)
+								AI:release(obj, true)
+								released = true
+								table.add( statistic, "remove_weapons" )
+							else
+								table.insert(tabl_weapons, obj)
+								released = true
+							end
 						end
 					end
 					table.add( statistic, "total_weapons" )
