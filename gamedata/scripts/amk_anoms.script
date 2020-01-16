@@ -13,110 +13,532 @@ local anoms_difficulty_koef={
 	[game_difficulty.master ]	= 1.5
 }
 local anoms_sections={
-	buzz			= { "buzz",              {shtype=0, radius=1.5, center={0,0,0}}                         },
-	electra			= { "witches_galantine", {shtype=0, radius=4,   center={0,0,0}}                         },
-	fountain		= { "fountain",          {shtype=0, radius=2.5, center={0,0,0}}                         },
-	gravi			= { "gravi_zone",        {shtype=0, radius=3,   center={0,0,0}}                         },
-	mincer			= { "mincer",            {shtype=0, radius=3.5, center={0,0,0}}                         },
-	mosquito_bald	= { "mosquito_bald",     {shtype=0, radius=3,   center={0,0,0}}                         },
-	sakbuzz			= { "sakbuzz",           {shtype=0, radius=4,   center={0,0,0}}                         },
-	smallrain		= { "smallrain",         {shtype=0, radius=4,   center={0,0,0}}                         },
-	sphere			= { "sphere",            {shtype=0, radius=2.8, center={0,0,0}}                         },
-	zavesa			= { "zavesa",            {shtype=0, radius=3,   center={0,0,0}}                         },
-	zharka_static	= { "zharka_static",     {shtype=1, v1={1,0,0}, v2={0,5,0}, v3={0,0,1}, offset={0,0,0}} },
-	radiation		= { "radioactive",       {shtype=0, radius=5,   center={0,0,0}}                         },
-	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                         }
+	buzz			= { "buzz",              {shtype=0, radius=1.5, center={0,0,0}}                             },
+	electra			= { "witches_galantine", {shtype=0, radius=4,   center={0,0,0}}                             },
+	fountain		= { "fountain",          {shtype=0, radius=2.5, center={0,0,0}}                             },
+	gravi			= { "gravi_zone",        {shtype=0, radius=3,   center={0,0,0}}                             },
+	mincer			= { "mincer",            {shtype=0, radius=3.5, center={0,0,0}}                             },
+	mosquito_bald	= { "mosquito_bald",     {shtype=0, radius=3,   center={0,0,0}}                             },
+	sakbuzz			= { "sakbuzz",           {shtype=0, radius=4,   center={0,0,0}}                             },
+	smallrain		= { "smallrain",         {shtype=0, radius=4,   center={0,0,0}}                             },
+	sphere			= { "sphere",            {shtype=0, radius=2.8, center={0,0,0}}                             },
+	zavesa			= { "zavesa",            {shtype=0, radius=3,   center={0,0,0}}                             },
+	zharka			= { "zharka_static",     {shtype=1, v1={1.5,0,0}, v2={0,5,0}, v3={0,0,1.5}, offset={0,0,0}} },
+	radiation		= { "radioactive",       {shtype=0, radius=5,   center={0,0,0}}                             },
+	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                             }
 }
 
-local anti_spawn_zones={}
+local anti_spawn_zones = {}
 
-local level_anoms={
- l01_escape={50,75,{electra=12, zavesa=2, smallrain=6, fountain=7, gravi=0, mincer=0, buzz=0, sakbuzz=2, mosquito_bald=0, sphere=4}}, 
- l02_garbage={50,75,{radiation=7, mosquito_bald=12, mincer=2, smallrain=5, zavesa=3, electra=15, gravi=10, buzz=12, sakbuzz=3, sphere=3, fountain=2}}, 
- l03_agroprom={35,47,{radiation=5, mosquito_bald=12, mincer=3, smallrain=4, fountain=2, zavesa=2, electra=0, buzz=12, gravi=10, sakbuzz=3, sphere=3}},
- l04_darkvalley={11,15,{radiation=7, mincer=3, mosquito_bald=12, fountain=2, zavesa=3, smallrain=5, electra=0, buzz=10, zharka_static=8, gravi=8, sakbuzz=5, sphere=4}}, 
- l05_bar={35,45,{radiation=1, mosquito_bald=8, mincer=2, zavesa=3, fountain=1, smallrain=4, electra=1, buzz=5, gravi=8, sakbuzz=2, zharka_static=4, sphere=2}}, 
- l06_rostok={30,50,{radiation=4, mincer=3, mosquito_bald=7, smallrain=2, electra=2, zavesa=2, zharka_static=25, gravi=0, sakbuzz=3, buzz=10, sphere=2, fountain=1}}, 
- l08_yantar={50,70,{radiation=4, mosquito_bald=8, mincer=8, fountain=1, smallrain=4, zavesa=3, electra=2, buzz=8, zharka_static=5, gravi=8, sakbuzz=3, sphere=3}},
- l07_military={30,45,{radiation=7, mincer=4 , mosquito_bald=15, fountain=2, smallrain=4, zavesa=3, electra=12, zharka_static=8, gravi=0, sakbuzz=3, buzz=10, sphere=4}}, 
- l10_radar={25,35,{radiation=9, mincer=6, mosquito_bald=11, fountain=10, smallrain=6, electra=2, zavesa=3, buzz=10, zharka_static=12, gravi=10, sakbuzz=5, sphere=4}}, 
- l11_pripyat={20,30,{radiation=8, mincer=10, mosquito_bald=10, zavesa=3, fountain=1, smallrain=1, electra=10,  zharka_static=8, gravi=10, buzz=10, sakbuzz=2, sphere=3}}, 
- l12_stancia={70,90,{radiation=12, mincer=2, mosquito_bald=10, smallrain=6, electra=0, fountain=1, zavesa=3, buzz=10, zharka_static=7, gravi=8, sakbuzz=4, sphere=4}},
- l12_stancia_2={15,20,{radiation=1}},
- puzir={150,170,{radiation=5, mincer=12, mosquito_bald=15, smallrain=6, zavesa=3, electra=14, buzz=12, zharka_static=5, gravi=14, sakbuzz=3, sphere=4, fountain=1}},
- aver={23,35,{radiation=6, mincer=14, mosquito_bald=12, smallrain=5, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
- marsh={45,60,{radiation=3, mincer=8, mosquito_bald=12, smallrain=9, electra=0, zavesa=4, buzz=15, zharka_static=5, gravi=15, sakbuzz=4, sphere=5, fountain=1}},
- limansk={12,20,{radiation=3, mosquito_bald=10, mincer=12, smallrain=2, fountain=16, zavesa=2, electra=0, gravi=10, buzz=10, sakbuzz=2, zharka_static=8, sphere=3}},
- hospital={3,5,{radiation=1, mincer=8, mosquito_bald=8, zavesa=2, fountain=1, electra=7, buzz=8, gravi=5, sakbuzz=2, zharka_static=5, sphere=2}},
- red_forest={24,35,{radiation=5, mincer=8, mosquito_bald=10, zavesa=4, fountain=2, smallrain=6, electra=3, zharka_static=8, gravi=10, buzz=10, sakbuzz=4, sphere=5}},
- lost_village={18,20,{radiation=4, mincer=8, mosquito_bald=8, zavesa=3, fountain=1, smallrain=1, electra=10, zharka_static=5, gravi=5, buzz=5, sakbuzz=2, sphere=3}},
- generators={15,35,{radiation=8, mincer=15, mosquito_bald=11, fountain=1, zavesa=5, smallrain=2, electra=15, zharka_static=5, gravi=10, buzz=16, sakbuzz=6, sphere=4}},
- atp_for_test22={20,30,{radiation=4, mincer=13, mosquito_bald=10, fountain=2, smallrain=2, zavesa=4, electra=15, zharka_static=10, gravi=10, buzz=20, sakbuzz=4, sphere=4}},
- dead_city={25,40,{radiation=5, mincer=10, mosquito_bald=10, zavesa=3, fountain=2, smallrain=2, electra=10, zharka_static=8, gravi=10, buzz=10, sakbuzz=1, sphere=4}},
- zaton={85,110,{radiation=10, electra=25, zavesa=6, smallrain=3, fountain=5, gravi=15, mincer=15, buzz=15, sakbuzz=8, mosquito_bald=15, sphere=12, zharka_static=8}},
- jupiter={85,110,{radiation=12, electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}},
- pripyat={70,100,{radiation=7, electra=15, zavesa=4, smallrain=1, fountain=3, gravi=18, mincer=15, buzz=15, sakbuzz=4, mosquito_bald=18, sphere=10, zharka_static=4}},
- l41_darkscape_ogse={80,110,{radiation=12, electra=25, zavesa=4, smallrain=3, fountain=4, gravi=20, mincer=15, buzz=25, sakbuzz=5, mosquito_bald=20, sphere=12, zharka_static=5}}
+local level_anoms = {
+	l01_escape = {
+		50,
+		75,
+		{
+			electra			= 12,
+			zavesa			= 2,
+			smallrain		= 6,
+			fountain		= 7,
+			gravi			= 0,
+			mincer			= 0,
+			buzz			= 0,
+			sakbuzz			= 2,
+			mosquito_bald	= 0,
+			sphere			= 4
+		}
+	}, 
+	l02_garbage = {
+		50,
+		75,
+		{
+			radiation		= 7,
+			mosquito_bald	= 12,
+			mincer			= 2,
+			smallrain		= 5,
+			zavesa			= 3,
+			electra			= 15,
+			gravi			= 10,
+			buzz			= 12,
+			sakbuzz			= 3,
+			sphere			= 3,
+			fountain		= 2
+		}
+	}, 
+	l03_agroprom = {
+		35,
+		47,
+		{
+			radiation		= 5,
+			mosquito_bald	= 12,
+			mincer			= 3,
+			smallrain		= 4,
+			fountain		= 2,
+			zavesa			= 2,
+			electra			= 0,
+			buzz			= 12,
+			gravi			= 10,
+			sakbuzz			= 3,
+			sphere			= 3
+		}
+	},
+	l04_darkvalley = {
+		35,
+		55,
+		{
+			radiation		= 7,
+			mincer			= 3,
+			mosquito_bald	= 12,
+			fountain		= 2,
+			zavesa			= 3,
+			smallrain		= 5,
+			electra			= 0,
+			buzz			= 10,
+			zharka			= 8,
+			gravi			= 8,
+			sakbuzz			= 5,
+			sphere			= 4
+		}
+	}, 
+	l05_bar = {
+		15,
+		35,
+		{
+			radiation		= 1,
+			mosquito_bald	= 8,
+			mincer			= 2,
+			zavesa			= 3,
+			fountain		= 1,
+			smallrain		= 4,
+			electra			= 1,
+			buzz			= 5,
+			gravi			= 8,
+			sakbuzz			= 2,
+			zharka			= 4,
+			sphere			= 2
+		}
+	}, 
+	l06_rostok = {
+		30,
+		50,
+		{
+			radiation		= 4,
+			mincer			= 3,
+			mosquito_bald	= 7,
+			smallrain		= 2,
+			electra			= 2,
+			zavesa			= 2,
+			zharka			= 25,
+			gravi			= 0,
+			sakbuzz			= 3,
+			buzz			= 10,
+			sphere			= 2,
+			fountain		= 1
+		}
+	}, 
+	l08_yantar = {
+		50,
+		70,
+		{
+			radiation		= 4,
+			mosquito_bald	= 8,
+			mincer			= 8,
+			fountain		= 1,
+			smallrain		= 4,
+			zavesa			= 3,
+			electra			= 2,
+			buzz			= 8,
+			zharka			= 5,
+			gravi			= 8,
+			sakbuzz			= 3,
+			sphere			= 3
+		}
+	},
+	l07_military = {
+		50,
+		80,
+		{
+			radiation		= 7,
+			mincer			= 4,
+			mosquito_bald	= 15,
+			fountain		= 2,
+			smallrain		= 4,
+			zavesa			= 3,
+			electra			= 12,
+			zharka			= 8,
+			gravi			= 0,
+			sakbuzz			= 3,
+			buzz			= 10,
+			sphere			= 4
+		}
+	}, 
+	l10_radar = {
+		55,
+		75,
+		{
+			radiation		= 9,
+			mincer			= 6,
+			mosquito_bald	= 11,
+			fountain		= 10,
+			smallrain		= 6,
+			electra			= 2,
+			zavesa			= 3,
+			buzz			= 10,
+			zharka			= 12,
+			gravi			= 10,
+			sakbuzz			= 5,
+			sphere			= 4
+		}
+	}, 
+	l11_pripyat = {
+		30,
+		50,
+		{
+			radiation		= 8,
+			mincer			= 10,
+			mosquito_bald	= 10,
+			zavesa			= 3,
+			fountain		= 1,
+			smallrain		= 1,
+			electra			= 10,
+			zharka			= 8,
+			gravi			= 10,
+			buzz			= 10,
+			sakbuzz			= 2,
+			sphere			= 3
+		}
+	}, 
+	l12_stancia = {
+		70,
+		90,
+		{
+			radiation		= 12,
+			mincer			= 2,
+			mosquito_bald	= 10,
+			smallrain		= 6,
+			electra			= 0,
+			fountain		= 1,
+			zavesa			= 3,
+			buzz			= 10,
+			zharka			= 7,
+			gravi			= 8,
+			sakbuzz			= 4,
+			sphere			= 4
+		}
+	},
+	l12_stancia_2 = {
+		35,
+		50,
+		{
+			radiation		= 1
+		}
+	},
+	puzir = {
+		150,
+		170,
+		{
+			radiation		= 5,
+			mincer			= 12,
+			mosquito_bald	= 15,
+			smallrain		= 6,
+			zavesa			= 3,
+			electra			= 14,
+			buzz			= 12,
+			zharka			= 5,
+			gravi			= 14,
+			sakbuzz			= 3,
+			sphere			= 4,
+			fountain		= 1
+		}
+	},
+	aver = {
+		45,
+		70,
+		{
+			radiation		= 6,
+			mincer			= 14,
+			mosquito_bald	= 12,
+			smallrain		= 5,
+			electra			= 0,
+			zavesa			= 4,
+			buzz			= 15,
+			zharka			= 5,
+			gravi			= 15,
+			sakbuzz			= 4,
+			sphere			= 5,
+			fountain		= 1
+		}
+	},
+	marsh = {
+		45,
+		60,
+		{
+			radiation		= 3,
+			mincer			= 8,
+			mosquito_bald	= 12,
+			smallrain		= 9,
+			electra			= 0,
+			zavesa			= 4,
+			buzz			= 15,
+			zharka			= 5,
+			gravi			= 15,
+			sakbuzz			= 4,
+			sphere			= 5,
+			fountain		= 1
+		}
+	},
+	limansk = {
+		12,
+		20,
+		{
+			radiation		= 3,
+			mosquito_bald	= 10,
+			mincer			= 12,
+			smallrain		= 2,
+			fountain		= 16,
+			zavesa			= 2,
+			electra			= 0,
+			gravi			= 10,
+			buzz			= 10,
+			sakbuzz			= 2,
+			zharka			= 8,
+			sphere			= 3
+		}
+	},
+	hospital = {
+		3,
+		5,
+		{
+			radiation		= 1,
+			mincer			= 8,
+			mosquito_bald	= 8,
+			zavesa			= 2,
+			fountain		= 1,
+			electra			= 7,
+			buzz			= 8,
+			gravi			= 5,
+			sakbuzz			= 2,
+			zharka			= 5,
+			sphere			= 2
+		}
+	},
+	red_forest = {
+		40,
+		75,
+		{
+			radiation		= 5,
+			mincer			= 8,
+			mosquito_bald	= 10,
+			zavesa			= 4,
+			fountain		= 2,
+			smallrain		= 6,
+			electra			= 3,
+			zharka			= 8,
+			gravi			= 10,
+			buzz			= 10,
+			sakbuzz			= 4,
+			sphere			= 5
+		}
+	},
+	lost_village = {
+		18,
+		20,
+		{
+			radiation		= 4,
+			mincer			= 8,
+			mosquito_bald	= 8,
+			zavesa			= 3,
+			fountain		= 1,
+			smallrain		= 1,
+			electra			= 10,
+			zharka			= 5,
+			gravi			= 5,
+			buzz			= 5,
+			sakbuzz			= 2,
+			sphere			= 3
+		}
+	},
+	generators = {
+		55,
+		85,
+		{
+			radiation		= 8,
+			mincer			= 15,
+			mosquito_bald	= 11,
+			fountain		= 1,
+			zavesa			= 5,
+			smallrain		= 2,
+			electra			= 15,
+			zharka			= 5,
+			gravi			= 10,
+			buzz			= 16,
+			sakbuzz			= 6,
+			sphere			= 4
+		}
+	},
+	atp_for_test22 = {
+		70,
+		100,
+		{
+			radiation		= 4,
+			mincer			= 13,
+			mosquito_bald	= 10,
+			fountain		= 2,
+			smallrain		= 2,
+			zavesa			= 4,
+			electra			= 15,
+			zharka			= 10,
+			gravi			= 10,
+			buzz			= 20,
+			sakbuzz			= 4,
+			sphere			= 4
+		}
+	},
+	dead_city = {
+		55,
+		80,
+		{
+			radiation		= 5,
+			mincer			= 10,
+			mosquito_bald	= 10,
+			zavesa			= 3,
+			fountain		= 2,
+			smallrain		= 2,
+			electra			= 10,
+			zharka			= 8,
+			gravi			= 10,
+			buzz			= 10,
+			sakbuzz			= 1,
+			sphere			= 4
+		}
+	},
+	zaton = {
+		95,
+		120,
+		{
+			radiation		= 10,
+			electra			= 25,
+			zavesa			= 6,
+			smallrain		= 3,
+			fountain		= 5,
+			gravi			= 15,
+			mincer			= 15,
+			buzz			= 15,
+			sakbuzz			= 8,
+			mosquito_bald	= 15,
+			sphere			= 12,
+			zharka			= 8
+		}
+	},
+	jupiter = {
+		100,
+		130,
+		{
+			radiation		= 12,
+			electra			= 25,
+			zavesa			= 4,
+			smallrain		= 3,
+			fountain		= 4,
+			gravi			= 20,
+			mincer			= 15,
+			buzz			= 25,
+			sakbuzz			= 5,
+			mosquito_bald	= 20,
+			sphere			= 12,
+			zharka			= 5
+		}
+	},
+	pripyat = {
+		70,
+		100,
+		{
+			radiation		= 7,
+			electra			= 15,
+			zavesa			= 4,
+			smallrain		= 1,
+			fountain		= 3,
+			gravi			= 18,
+			mincer			= 15,
+			buzz			= 15,
+			sakbuzz			= 4,
+			mosquito_bald	= 18,
+			sphere			= 10,
+			zharka			= 4
+		}
+	},
+	l41_darkscape_ogse = {
+		80,
+		110,
+		{
+			radiation		= 12,
+			electra			= 25,
+			zavesa			= 4,
+			smallrain		= 3,
+			fountain		= 4,
+			gravi			= 20,
+			mincer			= 15,
+			buzz			= 25,
+			sakbuzz			= 5,
+			mosquito_bald	= 20,
+			sphere			= 12,
+			zharka			= 5
+		}
+	}
 }
 
-local level_arts
-local max_arts_count = 1
-
-local vertexes = {}
+local level_arts = {}
 
 ---------------------------- variable and table ---------------------end--
 ---------------------------- function for spawn --------------------------
 function init()
-	local lname=level.name()
+	n_vertexes.init()
+
+	local lname = level.name()
 	if not level_anoms[lname] then return end
-	
-	vertexes = n_vertexes.getVertexes(lname)
-	
-	local string_gfind = string.gfind
-	local ini = ini_file("misc\\amk_anoms.ltx")
-	local result, id, value = nil, nil, nil
-	if ini:section_exist(lname) then
-		local x,y,z,r
-		for a=0,ini:line_count(lname)-1 do
-			result,id,value=ini:r_line(lname,a,"","")
-			if id~=nil and id~="" then
-				local t = {}
-				for s in string_gfind(id, "[%d%-%.]+") do
-					t[#t+1] = tonumber(s)
-				end
-				x,y,z,r = unpack(t)
-				if not (x and y and z and r) then 
-					abort("amk_anoms:init - error while parsing safe zones for section [%s] at line #%d[%s]", lname, (a+1), id)
-				else
-					table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
+
+	local blow = amk.load_variable("blowout",0)
+	if blow > 0 and blow < 4 then return end
+
+	if not has_alife_info("testsak_"..lname) then
+		local string_gfind = string.gfind
+		local ini = ini_file("misc\\amk_anoms.ltx")
+		local result, id, value = nil, nil, nil
+		local sec = lname..".anoms"
+		if ini:section_exist(sec) then
+			local x,y,z,r
+			for a=0,ini:line_count(sec)-1 do
+				result,id,value=ini:r_line(sec,a,"","")
+				if id~=nil and id~="" then
+					local t = {}
+					for s in string_gfind(id, "[%d%-%.]+") do
+						t[#t+1] = tonumber(s)
+					end
+					x,y,z,r = unpack(t)
+					if not (x and y and z and r) then 
+						abort("[amk_anoms.init] Error while parsing safe zones for section [%s] at line #%d[%s]", sec, (a+1), id)
+					else
+						table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
+					end
 				end
 			end
 		end
-	end
-	
-	local arts_sect = lname.."_arts"
-	if ini:section_exist(arts_sect) and not has_alife_info("testsak_"..lname) then
-		level_arts = {}
-		for a = 0, ini:line_count(arts_sect)-1 do
-			result, id, value = ini:r_line(arts_sect, a, "", "")
-			if id~=nil and id~="" then
-				if id == "spawn_count" then
-					max_arts_count = tonumber(value) or 1
-				else
+
+		sec = lname..".arts"
+		if ini:section_exist(sec) then
+			for a = 0, ini:line_count(sec)-1 do
+				result, id, value = ini:r_line(sec, a, "", "")
+				if id ~= nil and id ~= "" then
 					level_arts[id] = tonumber(value) or 0
 				end
 			end
+			local arts_min, arts_max = unpack( ini:r_list("arts_count", lname) )
+			this.generate_arts(lname, arts_min, arts_max)
 		end
-		
-		this.generate_arts(lname)
+
 		Actor:give_info_portion("testsak_"..lname)
+
+		this.generate_anoms()
 	end
 	
-	local blow=amk.load_variable("blowout",0)
-	if blow>0 and blow<4 then return end
-
-	generate_anoms()
-
 	spatial_subway.init()
 end 
 
@@ -125,8 +547,8 @@ function after_blow_on()
 		Actor:disable_info_portion("testsak_"..lvl)
 	end
 
-	if not level_anoms[ level.name() ] then return end
-	generate_anoms()
+	this.init()
+
 	move_mgr.invalidate_pp_accessibility()
 end
 
@@ -146,12 +568,22 @@ end
 
 function pre_blow_off()
 	local sobj, map
-	for i=1,65534 do
-		sobj=AI:object(i)
+	for i = 1, 65534 do
+		sobj = AI:object(i)
 		if sobj and IsAnomaly(nil, sobj:clsid(), true) then
 			if can_remove_anom(sobj, object_level_name(sobj)) then
 				AI:release(sobj,true)
 			end
+		end
+	end
+
+	local v
+	for i = #anti_spawn_zones, 1, -1 do
+		v = anti_spawn_zones[i]
+		if v[3] then
+			table.remove(anti_spawn_zones, i)
+		else
+			break
 		end
 	end
 end
@@ -160,6 +592,7 @@ function generate_anoms()
 	local lname = level.name()
 	local v = level_anoms[lname]
 	if v then
+		local max_level_vertex = n_vertexes.get_max_level_vertex()
 		local new_lv
 		local actor_pos = Actor:position()
 		local cnt = 0
@@ -172,7 +605,7 @@ function generate_anoms()
 		local section, t_shape, rnd, sobj
 		local shapes = {}
 		while cnt < mxx do
-			new_lv = math_random(1, vertexes.lvl)
+			new_lv = math_random(1, max_level_vertex)
 			local pos = level.vertex_position(new_lv)
 			if actor_pos:distance_to(pos) > 7 and check_coordinates(pos, lname) then
 				local rnd = math_random()*100
@@ -206,48 +639,39 @@ function generate_anoms()
 							)
 				end
 
-				sobj = AI:create( section, pos, new_lv, get_nearest_gv(pos) )
+				sobj = AI:create( section, pos, new_lv, n_vertexes.get_nearest_gv(pos) )
 				if sobj then
 					netpk:modify( sobj, { shapes = shapes }, netpk.fState )
 					cnt = cnt + 1
+					table_insert( anti_spawn_zones, { pos, (t.radius and t.radius+2 or 4), true } )
 				end
 			end
 		end
 	end
 end
- 
-function get_nearest_gv( pos )
-	local min_dist = math.huge
-	local new_gv = 0
-	local dist
-	for a = vertexes.min, vertexes.max, 1 do 
-		dist = GGraph:vertex( a ):game_point():distance_to( pos )
-		if dist < min_dist then 
-			min_dist = dist
-			new_gv = a
-		end
-	end
-	return new_gv
-end
 
-function generate_arts(lname)
+function generate_arts(lname, _min, _max)
+	local spawn_count = math_random(_min, _max)
+	if spawn_count == 0 then return end
+
 	local max_rnd = 0
 	for k,v in pairs(level_arts) do
-		max_rnd = max_rnd + v*10
+		max_rnd = max_rnd + v
 	end
 
-	local cnt,mxx=0,math_random(1,max_arts_count)
+	local max_level_vertex = n_vertexes.get_max_level_vertex()
+	local cnt = 0
 	local new_lv, new_gv, pos, min_dist, g1
 
-	while cnt < mxx do
-		new_lv=math_random(1, vertexes.lvl)
+	while cnt < spawn_count do
+		new_lv = math_random(1, max_level_vertex)
 		pos = level.vertex_position(new_lv)
 		if check_coordinates(pos,lname) then
-			new_gv = get_nearest_gv( pos )
+			new_gv = n_vertexes.get_nearest_gv( pos )
 
 			local rnd = math_random(1, max_rnd)
 			for sect, val in pairs(level_arts) do
-				if rnd <= val*10 then
+				if rnd <= val then
 					local se_art = AI:create(sect, pos, new_lv, new_gv)
 					se_art = AI:object( se_art.id )
 					se_art:use_ai_locations( false )
@@ -255,7 +679,7 @@ function generate_arts(lname)
 					cnt = cnt + 1
 					break
 				end
-				rnd = rnd - val*10
+				rnd = rnd - val
 			end
 		end
 	end
@@ -365,7 +789,7 @@ function check_coordinates(pos, lname)
 			end
 		end
 	end
-	for k,v in pairs(anti_spawn_zones) do
+	for i,v in ipairs(anti_spawn_zones) do
 		if pos:distance_to( v[1] ) <= v[2] then return false end
 	end
 	return true
