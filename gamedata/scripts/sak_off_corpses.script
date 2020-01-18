@@ -134,16 +134,20 @@ function off_corpses()
 					end
 
 				-- удалем лишние аномалии
-				elseif IsAnomaly(nil, obj_clsid, true) then
+				elseif IsAnomaly(nil, obj_clsid) then
 					if is_first_run
-						and (is_blowout == false)
+						and anom_classes[obj_clsid]
 						and amk_anoms.can_remove_anom(obj, obj_level)
 					then
 						AI:release(obj, true)
 						released = true
 					end
+					if (not released) and obj_level == actor_level then
+						local r = obj.radius and (obj.radius + 2) or 5
+						amk_anoms.add_antispawn_zone(obj.position, r, anom_classes[obj_clsid])
+					end
 
-				elseif obj_clsid == clsid.artefact or obj_clsid == clsid.artefact_s then
+				elseif isArtefact(nil, obj_clsid) then
 					-- детекторы артефактов
 					if obj_level == actor_level then
 						bind_det_arts.add_artefact(obj_sect, i)
@@ -186,10 +190,28 @@ function off_corpses()
 							end
 						end
 					end
+					if obj_level == actor_level then
+						amk_anoms.add_antispawn_zone(obj.position, 5)
+					end
 					released = true
 
 				elseif obj_clsid == clsid.respawn then
 					amk_mod.add_respawner(obj)
+					if obj_level == actor_level then
+						amk_anoms.add_antispawn_zone(obj.position, 5)
+					end
+					released = true
+
+				elseif obj_clsid == clsid.smart_terrain then
+					if obj_level == actor_level then
+						amk_anoms.add_antispawn_zone(obj.position, 15)
+					end
+					released = true
+
+				elseif obj_clsid == clsid.level_changer then
+					if obj_level == actor_level then
+						amk_anoms.add_antispawn_zone(obj.position, 10)
+					end
 					released = true
 
 				elseif obj_clsid == clsid.turret_mgun then
