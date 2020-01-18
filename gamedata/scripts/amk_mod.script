@@ -1532,7 +1532,6 @@ local anom_recept_komp = {
 }
 -- Может быть только три вида результата: значит, сохраняем только индекс,
 -- а остальное вычитаем на финише из таблицы с рецептами.
--- Это же скольки-кратная экономия!
 local res2key = {
 	[0] = "komp",	-- отторжение
 	[1] = "virogd",	-- вырождение
@@ -1778,7 +1777,10 @@ function af_transform_universal_end(var)
 			table.insert( komp, game.translate_string(get_inv_name(sect)) )
 		end
 		local from_komp = table.concat(komp, ", ")
-		local text = game.translate_string("trans_finished_title").." из %c[red]"..from_komp
+		local where = news_main.get_point_description( AI:level_name( GGraph:vertex(params.gv):level_id() ), params.pos )
+		local text = "Из %c[red_sms]"..from_komp.."\\n"..
+			"%c[default]"..where
+			
 		
 		-- спавним результат(ы)
 		local obj
@@ -1800,7 +1802,7 @@ function af_transform_universal_end(var)
 			xr_statistic.set_id( obj.id, true )
 		end
 	
-		amk.send_tip(text, nil, nil, nil, "nano")
+		amk.send_tip(text, game.translate_string("trans_finished_title"), nil, nil, "nano")
 	end
 	
 	-- даём инфопорцию, если есть
