@@ -82,10 +82,10 @@ C++ class matrix {
     property _24_;
     property _34_;
     property _44_;
-    property c;
     property i;
     property j;
     property k;
+    property c;
 
     matrix ();
 

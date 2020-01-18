@@ -97,6 +97,7 @@ class game_object {
 	bool			is_binoculars();
 	bool			is_weapon_pistol();
 	bool			is_weapon_shotgun();
+	float			radius();
 	// CActor
 	property		satiety;
 	float			get_inventory_weight();
@@ -199,6 +200,8 @@ class game_object {
 	void			set_torch_spot_angle(float<angle>);		//устанавливает радиус светового пятна от фонарика.
 	void			set_torch_color_animator(string<path>);	//устанавливает путь до аниматора цвета.
 	void			switch_night_vision(bool<switch_on>);	//переключает состояние ПНВ.
+	// CSpaceRestrictor
+	float			get_shape_radius();
 };
 
 class ini_file {
