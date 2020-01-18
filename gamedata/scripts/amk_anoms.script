@@ -24,7 +24,7 @@ local anoms_sections={
 	sphere			= { "sphere",            {shtype=0, radius=2.8, center={0,0,0}}                             },
 	zavesa			= { "zavesa",            {shtype=0, radius=3,   center={0,0,0}}                             },
 	zharka			= { "zharka_static",     {shtype=1, v1={1.5,0,0}, v2={0,5,0}, v3={0,0,1.5}, offset={0,0,0}} },
-	radiation		= { "radioactive",       {shtype=0, radius=5,   center={0,0,0}}                             },
+	radiation		= { "radioactive",       {shtype=0, radius=7,   center={0,0,0}}                             },
 	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                             }
 }
 
@@ -492,54 +492,59 @@ local level_arts = {}
 function init()
 	n_vertexes.init()
 
-	local lname = level.name()
-	if not level_anoms[lname] then return end
+	if not level_anoms[level.name()] then return end
 
 	local blow = amk.load_variable("blowout",0)
 	if blow > 0 and blow < 4 then return end
 
-	if not has_alife_info("testsak_"..lname) then
-		local string_gfind = string.gfind
-		local ini = ini_file("misc\\amk_anoms.ltx")
-		local result, id, value = nil, nil, nil
-		local sec = lname..".anoms"
-		if ini:section_exist(sec) then
-			local x,y,z,r
-			for a=0,ini:line_count(sec)-1 do
-				result,id,value=ini:r_line(sec,a,"","")
-				if id~=nil and id~="" then
-					local t = {}
-					for s in string_gfind(id, "[%d%-%.]+") do
-						t[#t+1] = tonumber(s)
-					end
-					x,y,z,r = unpack(t)
-					if not (x and y and z and r) then 
-						abort("[amk_anoms.init] Error while parsing safe zones for section [%s] at line #%d[%s]", sec, (a+1), id)
-					else
-						table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
-					end
-				end
-			end
-		end
-
-		sec = lname..".arts"
-		if ini:section_exist(sec) then
-			for a = 0, ini:line_count(sec)-1 do
-				result, id, value = ini:r_line(sec, a, "", "")
-				if id ~= nil and id ~= "" then
-					level_arts[id] = tonumber(value) or 0
-				end
-			end
-			local arts_min, arts_max = unpack( ini:r_list("arts_count", lname) )
-			this.generate_arts(lname, arts_min, arts_max)
-		end
-
-		Actor:give_info_portion("testsak_"..lname)
-
-		this.generate_anoms()
-	end
-	
+	this.spawn_anoms()
 	spatial_subway.init()
+end
+
+function spawn_anoms()
+	local lname = level.name()
+	if has_alife_info("testsak_"..lname) then return end
+
+	this.add_antispawn_zone(Actor:position(), 7, true)
+
+	local string_gfind = string.gfind
+	local ini = ini_file("misc\\amk_anoms.ltx")
+	local result, id, value = nil, nil, nil
+	local sec = lname..".anoms"
+	if ini:section_exist(sec) then
+		local x,y,z,r
+		for a=0,ini:line_count(sec)-1 do
+			result,id,value=ini:r_line(sec,a,"","")
+			if id~=nil and id~="" then
+				local t = {}
+				for s in string_gfind(id, "[%d%-%.]+") do
+					t[#t+1] = tonumber(s)
+				end
+				x,y,z,r = unpack(t)
+				if not (x and y and z and r) then 
+					abort("[amk_anoms.init] Error while parsing safe zones for section [%s] at line #%d[%s]", sec, (a+1), id)
+				else
+					table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
+				end
+			end
+		end
+	end
+
+	sec = lname..".arts"
+	if ini:section_exist(sec) then
+		for a = 0, ini:line_count(sec)-1 do
+			result, id, value = ini:r_line(sec, a, "", "")
+			if id ~= nil and id ~= "" then
+				level_arts[id] = tonumber(value) or 0
+			end
+		end
+		local arts_min, arts_max = unpack( ini:r_list("arts_count", lname) )
+		this.generate_arts(lname, arts_min, arts_max)
+	end
+
+	Actor:give_info_portion("testsak_"..lname)
+
+	this.generate_anoms()
 end 
 
 function after_blow_on()
@@ -547,7 +552,7 @@ function after_blow_on()
 		Actor:disable_info_portion("testsak_"..lvl)
 	end
 
-	this.init()
+	this.spawn_anoms()
 
 	move_mgr.invalidate_pp_accessibility()
 end
@@ -582,8 +587,6 @@ function pre_blow_off()
 		v = anti_spawn_zones[i]
 		if v[3] then
 			table.remove(anti_spawn_zones, i)
-		else
-			break
 		end
 	end
 end
@@ -594,7 +597,6 @@ function generate_anoms()
 	if v then
 		local max_level_vertex = n_vertexes.get_max_level_vertex()
 		local new_lv
-		local actor_pos = Actor:position()
 		local cnt = 0
 		local mxx = math_random(v[1],v[2])*anoms_difficulty_koef[level.get_game_difficulty()]
 		local anoms = level_anoms[lname][3]
@@ -607,7 +609,7 @@ function generate_anoms()
 		while cnt < mxx do
 			new_lv = math_random(1, max_level_vertex)
 			local pos = level.vertex_position(new_lv)
-			if actor_pos:distance_to(pos) > 7 and check_coordinates(pos, lname) then
+			if check_coordinates(pos, lname) then
 				local rnd = math_random()*100
 				section = "zone_ice"
 				if 5 < rnd then
@@ -643,7 +645,16 @@ function generate_anoms()
 				if sobj then
 					netpk:modify( sobj, { shapes = shapes }, netpk.fState )
 					cnt = cnt + 1
-					table_insert( anti_spawn_zones, { pos, (t.radius and t.radius+2 or 4), true } )
+					local r
+					if t.shtype == 0 then
+						r = t.radius
+					else
+						r = math.sqrt(
+							t.box_matrix.i:magnitude()^2 +
+							t.box_matrix.k:magnitude()^2
+						)/2
+					end
+					table_insert( anti_spawn_zones, { pos, r, true } )
 				end
 			end
 		end
