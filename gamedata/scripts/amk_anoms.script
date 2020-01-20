@@ -27,6 +27,34 @@ local anoms_sections={
 	radiation		= { "radioactive",       {shtype=0, radius=7,   center={0,0,0}}                             },
 	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                             }
 }
+local anom_suffix_by_level = {
+	l01_escape			= { weak = 60, average = 25, strong = 15 },
+	l02_garbage			= { weak = 40, average = 40, strong = 20 },
+	l03_agroprom		= { weak = 35, average = 45, strong = 25 },
+	l04_darkvalley		= { weak = 30, average = 40, strong = 30 },
+	l05_bar				= { weak = 45, average = 40, strong = 15 },
+	l06_rostok			= { weak = 20, average = 40, strong = 40 },
+	l08_yantar			= { weak = 20, average = 35, strong = 45 },
+	l07_military		= { weak = 15, average = 30, strong = 55 },
+	l10_radar			= { weak = 10, average = 30, strong = 60 },
+	l11_pripyat			= { weak = 10, average = 25, strong = 65 },
+	l12_stancia			= { weak = 5,  average = 10, strong = 85 },
+	l12_stancia_2		= { weak = 5,  average = 5,  strong = 90 },
+	puzir				= { weak = 40, average = 30, strong = 30 },
+	aver				= { weak = 30, average = 40, strong = 30 },
+	marsh				= { weak = 60, average = 30, strong = 10 },
+	limansk				= { weak = 20, average = 40, strong = 40 },
+	hospital			= { weak = 20, average = 30, strong = 50 },
+	red_forest			= { weak = 20, average = 25, strong = 55 },
+	lost_village		= { weak = 30, average = 30, strong = 40 },
+	generators			= { weak = 10, average = 20, strong = 70 },
+	atp_for_test22		= { weak = 35, average = 35, strong = 30 },
+	dead_city			= { weak = 15, average = 25, strong = 60 },
+	zaton				= { weak = 5,  average = 15, strong = 80 },
+	jupiter				= { weak = 5,  average = 10, strong = 85 },
+	pripyat				= { weak = 5,  average = 20, strong = 75 },
+	l41_darkscape_ogse	= { weak = 30, average = 35, strong = 35 }
+}
 
 local anti_spawn_zones = {}
 
@@ -621,7 +649,7 @@ function generate_anoms()
 					t_shape = anoms_sections[section][2]
 					section = "amk_zone_"..
 							anoms_sections[section][1]..
-							anom_suffix( math_random(1,3) )
+							anom_suffix(lname)
 				else
 					t_shape = anoms_sections[section][2]
 				end
@@ -777,10 +805,13 @@ function check_exclusion(obj,map)
 	return false
 end
 
-function anom_suffix(n)
-	return (n==1 and "_weak")
-		or (n==2 and "_average")
-		or "_strong"
+function anom_suffix(lvl)
+	local rnd = math.random(100)
+	for k, v in pairs( anom_suffix_by_level[lvl] ) do
+		if rnd <= v then return "_"..k end
+		rnd = rnd - v
+	end
+	return "_average"
 end
 
 function check_coordinates(pos, lname)
