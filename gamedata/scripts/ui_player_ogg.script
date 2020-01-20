@@ -1,0 +1,462 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- инициализация
+-- Правлено Vergas player
+-- Last update: naxac /30.10.2019/
+
+local radio_snds = {"bar_dolg", "garbage_kulinar", "jupiter_aaz", "kordon_doctor", "limansk_freedom", "marsh_vas", "pripyat_dimak", "pripyat_doctor", "td_gila"}
+local play_radio = nil
+
+-- описание флешек: название и треки
+local flashes = {}
+function get_flash_descr(i)
+	if flashes[i] == nil then
+		local fls = "ogg_flash_"..i
+		flashes[i] = {}
+		local str = game.translate_string(fls)		-- будем брать треки из инвентарного описания флешки
+		str = string.gsub(str, "(%%c%[[%w_%s,]+%])", "")	-- удаляем раскраски
+		str = string.gsub(str, "\\n", "~")				-- заменяем переносы
+		-- парсим на номера и названия
+		local t = {}
+		local n, v
+		for s in string.gmatch(str, "[^~]+") do
+			n, v = string.match(s, "(%d+):%s*(.+)")
+			if n and v then
+				t[tonumber(n)] = trim(v)
+			end
+		end
+		flashes[i].tracks = t
+		flashes[i].name = game.translate_string(sys_ini:r_string(fls, "inv_name_short"))
+	end
+	return flashes[i]
+end
+
+local menu = nil
+local timer, track_time = nil, nil
+
+
+class "list_item" ( CUIListItemEx )
+
+function list_item:__init()
+	super()
+
+	self:SetWndRect			(0, 0, 280, 20)
+	
+	self.btn				= CUIStatic()
+	self.btn:SetAutoDelete	( true )
+	self:AttachChild		( self.btn )
+	self.btn:SetWndRect		( 4, 4, 12*kScreen, 12 )
+	self.btn:SetStretchTexture( true )
+
+	self.st					= CUIStatic()
+	self.st:SetAutoDelete	( true )
+	self:AttachChild		( self.st )
+	self.st:SetWndRect		( 12*kScreen+4, 3, 250, 20 )
+	self.st:SetText			( "track" )
+	self.st:SetFont			( GetFontLetterica16Russian() )
+end
+
+
+class "UIPlayer" (CUIScriptWnd)
+
+function UIPlayer:__init(owner) super()
+	self.owner = owner
+	self:InitControls()
+	BlockUIDescr(true)
+	menu = self
+end
+
+function UIPlayer:__finalize() 
+end
+
+function UIPlayer:InitControls()
+	self:Init(284,270,740,740)
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_player_ogg.xml")
+
+	-- видео на заднем плане
+	xml:InitStatic("back_video", self)
+	-- сам плеер
+	xml:InitStatic("background", self)
+	-- рамки
+	xml:InitFrame("frame_flash", self)
+	xml:InitFrame("frame_tracks", self)
+	xml:InitFrame("frame_radio", self)
+	xml:InitFrame("frame_track", self)
+	-- заголовки к спискам
+	xml:InitStatic("caption_tracks", self)
+	xml:InitStatic("caption_radio", self)
+
+	self.track_name = xml:InitLabel("track_name", self)
+	-- копирайт
+	self:Register(xml:InitStatic("btn_copyright", self), "copyright")
+	self:AddCallbackEx("copyright", ui_events.STATIC_FOCUS_RECEIVED,
+		function (wnd)
+			local st = wnd:GetStatic("copyright_text")
+			if not st:IsShown() then st:Show(true) end
+		end)
+	self:AddCallbackEx("copyright", ui_events.STATIC_FOCUS_LOST,
+		function (wnd)
+			local st = wnd:GetStatic("copyright_text")
+			if st:IsShown() then st:Show(false) end
+		end)
+	-- слот
+	xml:InitStatic("background_5", self)
+	-- флешка
+	xml:InitStatic("background_8", self)
+	
+	self.track_timer = xml:InitStatic("timer", self)
+	self.track_timer:SetText("00:00")
+	local st = xml:InitFrame("time_frame", self)
+	self.time_scale = xml:InitStatic("time_scale", st)
+	self.time_scale_w = self.time_scale:GetWidth()
+	self.time_scale:SetColor(GetARGB(255,155,205,155))
+
+	self:Register(xml:InitButton("button_stop", self), "btn_stop")
+	self:AddCallbackEx("btn_stop", ui_events.BUTTON_CLICKED, self.OnBtnStop)
+	self:Register(xml:InitButton("button_next", self), "btn_next")
+	self:AddCallbackEx("btn_next", ui_events.BUTTON_CLICKED, player_ogg.play_next)
+	self:Register(xml:InitButton("button_prev", self), "btn_prev")
+	self:AddCallbackEx("btn_prev", ui_events.BUTTON_CLICKED, self.OnPrevTrack)
+
+	-- Лист музыкальных файлов
+	self.tracklist = xml:InitList("list_tracks", self)
+	self:Register(self.tracklist, "list")
+	self:AddCallbackEx("list", ui_events.LIST_ITEM_CLICKED, self.OnTrackClicked)
+
+	-- Кнопки флешек
+	-- Рабочий слот
+	local work_slot = player_ogg.return_slot(0)
+	self.slot_f = xml:InitButton("work_slot", self)
+	self:Register(self.slot_f, "btn_work_slot")
+	self:AddCallbackEx("btn_work_slot", ui_events.BUTTON_CLICKED, self.OnBtnSelfMemory)
+	self.slot_t = xml:InitStatic("background_10", self)
+	local slot
+	for i = 1, player_ogg.get_flash_total() do
+		slot = player_ogg.return_slot(i)	-- есть ли флешка у ГГ
+		btn = xml:InitButton("btn_flash_"..i, self)
+		self:Register(btn, "btn_flash_"..i)
+
+		if slot==1 then					-- есть и не в слоте
+			local icon = GetIconParams("ogg_flash_"..i)
+			btn:InitTexture("ui\\ui_icon_equipment")
+			btn:SetOriginalRect(icon.x, icon.y, icon.w, icon.h)
+		else							-- может, и нет
+			if work_slot == i then			-- ага, есть, и в слоте
+				self:DrawWorkSlot(i, btn)
+			else							-- нету, рисуем кости
+				btn:InitTexture("ui\\vr_kosti_3")
+				btn:Enable(false)			-- отключаем кнопку
+			end
+		end
+
+		self:AddCallbackEx("btn_flash_"..i, ui_events.BUTTON_CLICKED, self.OnFlashClicked, i)
+	end
+
+	-- Кнопки радио (отображаются всегда)
+	for i = 1, 9 do
+		btn = xml:InitButton("btn_radio_"..i, self)
+		if play_radio == i then
+			btn:InitTexture("ui\\vr_knopka_2")
+			btn:Enable(false)
+		end
+		self:Register(btn, "btn_"..i)
+		self:AddCallbackEx("btn_"..i, ui_events.BUTTON_CLICKED, self.OnRadioClicked, i)
+	end
+
+	-- Кнопка Выход
+	self:Register(xml:InitButton("btn_quit", self), "btn_quit")
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.Quit)
+
+	--кнопки громкости
+	local cur = (player_ogg.sound_vol_return())*5	-- получаем текущий индекс
+	for i = 1, 5 do
+		btn = xml:InitButton("btn_vol_"..i, self)
+		if cur == i then
+			btn:InitTexture("ui\\vr_knopka_2")	-- зажигаем
+			btn:Enable(false)					-- отключаем
+		end
+		self:Register(btn, "btn_vol_"..i)
+		self:AddCallbackEx("btn_vol_"..i, ui_events.BUTTON_CLICKED, self.OnVolumeClicked, i)
+	end
+
+	-- Кнопка повтора
+	local r = player_ogg.get_repeat()
+	btn = xml:InitButton("btn_repeat", self)
+	btn:InitTexture("ui\\vr_repeat_"..r)
+	self:Register(btn, "btn_ring")
+	self:AddCallbackEx("btn_ring", ui_events.BUTTON_CLICKED, self.ChangeRepeat)
+
+	st = xml:InitStatic("copyright", self)
+	self:Register(st, "copyright_text")
+	st:Show(false)
+end
+
+function UIPlayer:OnBtnSelfMemory()
+	local ws = player_ogg.return_slot(0)
+	if ws == nil then return end
+
+	self:OnBtnStop()
+end
+
+function UIPlayer:OnTrackClicked()
+	if self.tracklist:GetSize() == 0 then return end
+
+	local item_id = self.tracklist:GetSelectedItem()
+	if item_id == nil or item_id == -1 then return end
+
+	self:OffRadio()		-- отключаем радио
+	play_radio = nil
+
+	local ws = player_ogg.return_slot(0)
+	if ws == nil then 					-- если ничего не загружено, играем пустышку
+		player_ogg.s_play([[ogg_player\flash_nil\sound_1]], 0)
+	else
+		local track_num = item_id + 1
+		self:OffWorkTrack()						-- отключаем играющий трек
+		self:SetPlayTrack(track_num)
+		local path = "ogg_player\\flash_"..
+			tostring( player_ogg.work_flash_return() )..	--Определяю флешку в рабочем слоте
+			"\\sound_"..track_num
+		player_ogg.s_play(path, track_num)
+	end
+end
+
+function UIPlayer:OnFlashClicked(n)
+	local ws = player_ogg.return_slot(0)
+	player_ogg.s_stop(true)
+	player_ogg.set_show_flash(n)
+	self:OffRadio()
+	play_radio = nil
+	self:ChangeFlash(ws, n)	-- пихаем в рабочий слот новую флешку
+end
+
+function UIPlayer:OnRadioClicked(n)
+	self:OffRadio()		-- отключаем предыдущий радио-трек
+	self:OffWorkTrack()	-- отключаем музыку
+	play_radio = n
+	local b = self:GetButton("btn_"..play_radio)
+	b:InitTexture("ui\\vr_knopka_2")	-- зажигаем индикатор
+	b:Enable(false)						-- выключаем кнопку (чтобы повторно не включать)
+	player_ogg.s_play("taler\\"..radio_snds[n],0)	-- слушаем нудные истории
+end
+
+function UIPlayer:OnVolumeClicked(n)
+	local v = player_ogg.sound_vol_return()
+	local b = self:GetButton("btn_vol_"..tostring(v*5))	-- гасим и включаем предыдущую кнопку
+	b:InitTexture("ui\\vr_knopka_1")
+	b:Enable(true)
+	b = self:GetButton("btn_vol_"..n)		-- зажигаем и выключаем новую
+	b:InitTexture("ui\\vr_knopka_2")
+	b:Enable(false)
+	player_ogg.sound_vol_set(n/5)
+end
+
+function UIPlayer:OnPrevTrack()
+	local f = player_ogg.return_slot(0)
+	local t = player_ogg.get_work_trek()
+	if f ~= nil and t ~= 0 then
+		local flash, track = player_ogg.get_prev_track()
+		if flash == nil or track == 0 then return end
+		if flash~=f then
+			self:ChangeFlash(f, flash)
+			player_ogg.set_show_flash(flash)
+		end
+		if track~=t then
+			self:OffWorkTrack(t)
+			self:SetPlayTrack(track)
+		end
+		local path = "ogg_player\\flash_"..flash.."\\sound_"..track
+		player_ogg.s_play(path, track)
+	end
+end
+
+function UIPlayer:SetTrackName(n)
+	if n == 0 then
+		self.track_name:SetText("")
+		return
+	end
+	local flash = player_ogg.return_slot(0)
+	local t = get_flash_descr(flash)
+	self.track_name:SetText(t.tracks[n])
+end
+
+function UIPlayer:ChangeFlash(old, new)		-- смена флешки
+	if old == new then return end
+	local btn
+	if old then
+		btn = self:GetButton("btn_flash_"..old)
+		local icon = GetIconParams("ogg_flash_"..old)
+		btn:InitTexture("ui\\ui_icon_equipment")
+		btn:SetOriginalRect(icon.x, icon.y, icon.w, icon.h)
+		btn:Enable(true)
+	end
+	if new == nil then return end
+	btn = self:GetButton("btn_flash_"..new)
+	self:DrawWorkSlot(new, btn)
+end
+
+function UIPlayer:SetPlayTrack(n)	-- Отмечаем новый трек
+	local itm = self.tracklist:GetItem(n-1)
+	if itm == nil then return end
+	itm.btn:InitTexture("ui\\vr_knopka_2")		-- зажигаем индикатор
+	itm.st:SetTextColor(255,20,150,50)			-- красим буквы
+end
+
+function UIPlayer:OffRadio()	-- гасим и включаем кнопку текущего радио-трека
+	if play_radio then
+		local btn = self:GetButton("btn_"..play_radio)
+		btn:InitTexture("ui\\vr_knopka_1")
+		btn:Enable(true)
+	end
+end
+
+function UIPlayer:OffWorkTrack(track)		-- гасим кнопку текущего музыкального трека
+	local wt = track or player_ogg.get_work_trek()
+	if wt ~= 0 then
+		local itm = self.tracklist:GetItem(wt-1)
+		if itm == nil then return end
+		itm.btn:InitTexture("ui\\vr_knopka_1")
+		itm.st:SetTextColor(255,162,181,205)
+	end
+end
+
+function UIPlayer:DrawWorkSlot(slot, btn)	-- рисуем флешку в рабочем слоте и всё сопутствующее
+	btn:InitTexture("ui\\vr_kosti_3")	-- на месте флешки кости
+	btn:Enable(false)
+	local flash = get_flash_descr(slot)			-- получаем описание
+	local icon = GetIconParams("ogg_flash_"..slot)	-- иконка
+	self.slot_t:SetText(flash.name)				-- пишем название флехи
+	self.slot_f:InitTexture("ui\\ui_icon_equipment")	-- рисуем
+	self.slot_f:SetOriginalRect(icon.x, icon.y, icon.w, icon.h)
+	-- обновляем список треков
+	local wt = player_ogg.get_work_trek()
+	local tr = flash.tracks
+	local tr_count = player_ogg.get_flash_tracks_count(slot)
+	if table.size(tr) ~= tr_count then
+		abort("[UIPlayer:DrawWorkSlot]: incorrect [ogg_flash_%s] description: tracks [%s], in description [%s]", slot, tr_count, table.size(tr))
+	end
+
+	self.tracklist:RemoveAll()
+	local itm
+	for i = 1, tr_count do
+		itm = list_item()
+		itm.st:SetText(tr[i])
+		if wt == i then	-- видимо, первое включение - что-то играет
+			itm.btn:InitTexture("ui\\vr_knopka_2")	-- зажгём и покрасим
+			itm.st:SetTextColor(255,20,150,50)
+			self.track_name:SetText(tr[i])
+		else
+			itm.btn:InitTexture("ui\\vr_knopka_1")
+			itm.st:SetTextColor(255,162,181,205)
+		end
+		self.tracklist:AddItem(itm)
+	end
+end
+
+function UIPlayer:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		-- на выход повесим Esc
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:Quit()
+		end
+	end
+	return true
+end
+
+function UIPlayer:OnBtnStop()					-- Кнопка "Стоп"
+	self:OffRadio()
+	play_radio = nil
+	self.tracklist:RemoveAll()
+	self.track_name:SetText("")
+	local ws = player_ogg.return_slot(0)
+	self:ChangeFlash(ws, nil)
+	self.slot_f:InitTexture("ui\\vr_empty")
+	self.slot_t:SetText("Вставьте флешку")
+	player_ogg.s_stop(true)
+	player_ogg.set_show_flash(nil)
+end
+
+-- Переключение повтора
+function UIPlayer:ChangeRepeat()
+	local r = player_ogg.get_repeat()
+	local t = {"off", "on", "one", "rnd", "rnd2"}
+	for i = 1, #t do
+		if r == t[i] then
+			r = t[i+1] or t[1]
+			break
+		end
+	end
+	local btn = self:GetButton("btn_ring")
+	btn:InitTexture("ui\\vr_repeat_"..r)
+	player_ogg.set_repeat(r)
+end
+
+function UIPlayer:Quit()
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu (self, true)
+	player_ogg.set_menu_show(false)
+	BlockUIDescr(false)
+	amk.spawn_item_in_inv("player")
+	menu = nil
+end
+
+function UIPlayer:ChangeTime(time)
+	if time == 0 or track_time== nil then
+		self.track_timer:SetText("00:00")
+		self.time_scale:SetWidth(0)
+	else
+		local text = string.format("%02d:%02d", math.floor(time/60), time%60)
+		self.track_timer:SetText(text)
+		local w = self.time_scale_w*(track_time-time)/track_time
+		self.time_scale:SetWidth(w)
+	end
+end
+------------------------------------------------------------------
+
+-- для обновления интерфейса, если плеер открыт
+function change_track(old, new)
+	if old == new then return end
+	if menu~=nil then
+		menu:OffWorkTrack(old)
+		if new ~= 0 then
+			menu:SetPlayTrack(new)
+		end
+	end
+end
+function change_flash(old, new)
+	if menu~=nil then
+		menu:ChangeFlash(old, new)
+	end
+end
+
+-- Обновление таймера в плеере. Обновляется только если что-то проигрывается.
+function update_timer(delta, sound, track)
+	if track ~= 0 then
+		if timer==nil then
+			timer = sound:length()
+			track_time = timer/1000
+			if menu then menu:SetTrackName(track) end
+		else
+			timer = timer - delta
+		end
+	else
+		if timer then
+			if menu then
+				menu:ChangeTime(0)
+				menu:SetTrackName(0)
+			end
+			timer = nil
+		end
+		return
+	end
+	if menu then
+		menu:ChangeTime(math.floor(timer/1000))
+	end
+end
+-- Сброс таймера
+function reset_timer()
+	timer = nil
+	if menu then menu:ChangeTime(0) end
+end
