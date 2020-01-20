@@ -6,8 +6,6 @@
 -- Author:      Serhiy Vynnychenko (narrator@gsc-game.kiev.ua)
 -- Version:     0.5
 
-local fs = getFS()
-
 class "list_item" (CUIListItemEx)
 
 function list_item:__init() super()
@@ -36,14 +34,23 @@ end
 
 class "load_save_dialog" (CUIScriptWnd)
 
-function load_save_dialog:__init(can_save) super()
+function load_save_dialog:__init(can_save)
+	super()
+
 	set_input_language(1)
+
 	self.last_index = -1
 	self.can_save = can_save
+	self.sort = FS.FS_sort_by_modif_down
+	self.last_saves_count = game_options.LastSavesCount
+
+
 	self:InitControls()
 	self:InitCallBacks()
 	self:FillList()
+
 	self:delete_autosave_screen()
+
 	self.dlg = self
 end
 
@@ -51,10 +58,10 @@ function load_save_dialog:__finalize()
 end
 
 function load_save_dialog:FillList()
-	local flist = fs:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.sav")
+	local flist = getFS():file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.sav")
 	local f_cnt = flist:Size()
 
-	flist:Sort(FS.FS_sort_by_modif_down)
+	flist:Sort(self.sort)
 
 	local file, file_name, date_time
 	for	it=0, f_cnt-1 	do
@@ -106,11 +113,23 @@ function load_save_dialog:InitControls()
 	ctrl = xml:Init3tButton("form:btn_delete",	form)	
 	self:Register(ctrl, "button_del")
 
+	ctrl = xml:Init3tButton("form:btn_delete_excess", form)	
+	self:Register(ctrl, "button_del_ex")
+
 	ctrl = xml:Init3tButton("form:btn_rename",	form)	
 	self:Register(ctrl, "button_ren")
 
 	ctrl = xml:Init3tButton("form:btn_cancel",	form)
 	self:Register(ctrl, "button_cancel")	
+
+	self.check_modif = xml:InitCheck("form:check_sort_by_modif", form)
+	self:Register(self.check_modif, "check_modif")
+	self.check_modif:SetCheck(self.sort == FS.FS_sort_by_modif_down)
+
+	self.check_name = xml:InitCheck("form:check_sort_by_name", form)
+	self:Register(self.check_name, "check_name")
+	self.check_name:SetCheck(self.sort == FS.FS_sort_by_name_up)
+	
 
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
@@ -119,26 +138,59 @@ function load_save_dialog:InitControls()
 end
 
 function load_save_dialog:InitCallBacks()
-	self:AddCallbackEx("button_load",		ui_events.BUTTON_CLICKED,             self.OnButton_load_clicked)
+	self:AddCallbackEx("button_load",		ui_events.BUTTON_CLICKED,			self.OnButton_load_clicked)
 	if self.can_save then
-		self:AddCallbackEx("button_save",		ui_events.BUTTON_CLICKED,             self.OnButton_save_clicked)
+		self:AddCallbackEx("button_save",	ui_events.BUTTON_CLICKED,			self.OnButton_save_clicked)
 	end
-	self:AddCallbackEx("button_cancel",		ui_events.BUTTON_CLICKED,             self.OnButton_cancel_clicked)
-	self:AddCallbackEx("button_del",		ui_events.BUTTON_CLICKED,             self.OnButton_del_clicked)
-	self:AddCallbackEx("button_ren",		ui_events.BUTTON_CLICKED,             self.OnButton_ren_clicked)
-	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_YES_CLICKED,    self.OnMsgYes)
-	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_OK_CLICKED,	  self.OnMsgYes)
+	self:AddCallbackEx("button_cancel",		ui_events.BUTTON_CLICKED,			self.OnButton_cancel_clicked)
+	self:AddCallbackEx("button_del",		ui_events.BUTTON_CLICKED,			self.OnButton_del_clicked)
+	self:AddCallbackEx("button_del_ex",		ui_events.BUTTON_CLICKED,			self.OnButton_del_ex_clicked)
+	self:AddCallbackEx("button_ren",		ui_events.BUTTON_CLICKED,			self.OnButton_ren_clicked)
+	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_YES_CLICKED,	self.OnMsgYes)
+	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_OK_CLICKED,	self.OnMsgYes)
 
-	self:AddCallbackEx("list_window", ui_events.LIST_ITEM_CLICKED, 			  self.OnListItemClicked)
-	self:AddCallbackEx("list_window", ui_events.WINDOW_LBUTTON_DB_CLICK,		  self.OnListItemDbClicked)
+	self:AddCallbackEx("check_modif",		ui_events.BUTTON_CLICKED,			self.OnCheckSort_clicked, FS.FS_sort_by_modif_down)
+	self:AddCallbackEx("check_name",		ui_events.BUTTON_CLICKED,			self.OnCheckSort_clicked, FS.FS_sort_by_name_up)
+
+	self:AddCallbackEx("list_window",		ui_events.LIST_ITEM_CLICKED,		self.OnListItemClicked)
+	self:AddCallbackEx("list_window",		ui_events.WINDOW_LBUTTON_DB_CLICK,	self.OnListItemDbClicked)
+end
+
+function load_save_dialog:OnCheckSort_clicked(mode)
+	if self.sort == mode then return end
+	self.sort = mode
+	
+	self.check_name:SetCheck(self.sort == FS.FS_sort_by_name_up)
+	self.check_modif:SetCheck(self.sort == FS.FS_sort_by_modif_down)
+
+	if self.list:GetSize() > 0 then
+		self.list:RemoveAll()
+		self.list:ScrollToBegin()
+		self.list:SetSelectedItem(-1)
+		self.last_index = -1
+		self.edit_filename:SetText("")
+	end
+
+	self:FillList()
 end
 
 -- удаление скрина автосейва - он глючный
 function load_save_dialog:delete_autosave_screen()
 	local file = old_user_name().."_autosave.dds"
-	if file_exist(file) then
+	local fs = getFS()
+	if fs:exist("$game_saves$", file) then
 		fs:file_delete("$game_saves$", file)
 	end
+end
+
+function load_save_dialog:OnButton_del_ex_clicked()
+	if self.list:GetSize() <= self.last_saves_count then return end
+
+	self.msgbox_id = 5
+	local text = string.gsub( game.translate_string("st_mm_delete_excess_files"), "%$cnt", tostring(self.last_saves_count) )
+	self.message_box:Init("message_box_delete_file_name")
+	self.message_box:SetText(text)
+	self:GetHolder():start_stop_menu(self.message_box, true)
 end
 
 function load_save_dialog:OnButton_ren_clicked()
@@ -178,19 +230,20 @@ function load_save_dialog:OnListItemClicked()
 	end
 	
 	local item_text				= item.fn:GetText()
-	local cap_text = item_text
-    if #cap_text>30 then
-        cap_text = cap_text:sub(1,29).."..."
-    end
-	self.file_caption:SetText	(cap_text)
-	self.file_data:SetText		(file_data(item_text))
-	
+
 	if file_exist(item_text .. ".sav") ~= true then
 		list_box:RemoveItem(itm_index)
 		self.last_index = -1
 		return
 	end
-	
+
+	local cap_text = item_text
+    if #cap_text > 30 then
+        cap_text = cap_text:sub(1,29).."..."
+    end
+	self.file_caption:SetText	(cap_text)
+	self.file_data:SetText		(file_data(item_text))
+
 	if file_exist(item_text .. ".dds") then
 		picture:InitTexture(item_text)
 	else
@@ -205,6 +258,12 @@ function load_save_dialog:OnListItemDbClicked()
 end
 
 function load_save_dialog:OnMsgYes()
+	if self.msgbox_id == 5 then
+		self:DeleteExcessFiles()
+		self.msgbox_id = 0
+		return
+	end
+
 	local index = self.list:GetSelectedItem()
 	
 	if index == -1 then self.msgbox_id = 0 return end
@@ -230,12 +289,43 @@ function load_save_dialog:OnMsgYes()
 	self.msgbox_id = 0
 end
 
+function load_save_dialog:DeleteExcessFiles()
+	local fs = getFS()
+	local flist = fs:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.sav")
+
+	local f_cnt = flist:Size()
+	if f_cnt <= self.last_saves_count then return end
+
+	flist:Sort(FS.FS_sort_by_modif_down)
+
+	local file, file_name, dds_name
+	for it = self.last_saves_count, f_cnt-1 do
+		file = flist:GetAt(it)
+		file_name = file:NameFull()
+		dds_name = file_name:sub(1, -4).."dds"
+		if fs:exist("$game_saves$", file_name) then
+			fs:file_delete("$game_saves$",file_name)
+		end
+		if fs:exist("$game_saves$", dds_name) then
+			fs:file_delete("$game_saves$",dds_name)
+		end
+	end
+
+	self.list:RemoveAll()
+	self:FillList()
+	self.list:ScrollToBegin()
+	self.list:SetSelectedItem(-1)
+	self.edit_filename:SetText("")
+	self.last_index = -1
+end
+
 function load_save_dialog:RenameSelectedFile()
 	local index		= self.list:GetSelectedItem()
 	local item		= self.list:GetItem(index)
 	local fname		= item.fn:GetText()
 	local new_fname	= self.edit_filename:GetText()
 
+	local fs = getFS()
 	local f1 = fs:update_path("$game_saves$", fname..".sav")
 	local f2 = fs:update_path("$game_saves$", new_fname..".sav")
 	fs:file_rename(f1, f2, true)
@@ -336,7 +426,7 @@ function load_save_dialog:OnButton_cancel_clicked()
 end
 
 function load_save_dialog:OnButton_del_clicked()
-	if self.list:GetSize()==0 then return end
+	if self.list:GetSize() == 0 then return end
 	local index = self.list:GetSelectedItem()
 	
 	if index == -1 then return end
@@ -374,6 +464,10 @@ function load_save_dialog:OnKeyboard(dik, keyboard_action)  --virtual function
 			self:OnButton_load_clicked()
 		elseif dik == DIK_keys.DIK_DELETE then
 			self:OnButton_del_clicked()
+		elseif dik == DIK_keys.DIK_INSERT then
+			if self.can_save then
+				self:OnButton_save_clicked()
+			end
 		elseif kAlt[dik] then
 			self.alt_pressed = true
 			if self.shift_pressed then
@@ -398,7 +492,7 @@ end
 
 
 function file_data(fname)
-	local ex = fs:exist("$game_saves$", fname..".sav")
+	local ex = getFS():exist("$game_saves$", fname..".sav")
 	if ex ~= nil then
 		local sg = CSavedGameWrapper(fname)
 		
@@ -419,16 +513,17 @@ function file_data(fname)
 end
 
 function file_exist(fname)
-	return fs:exist("$game_saves$", fname) ~= nil
+	return getFS():exist("$game_saves$", fname) ~= nil
 end
 
 function delete_save_game(filename)
 	local save_file		= filename .. ".sav"
 	local dds_file		= filename .. ".dds"
+	local fs = getFS()
 
 	fs:file_delete("$game_saves$",save_file)
 
-	if file_exist(dds_file) then
+	if fs:exist("$game_saves$", dds_file) then
 		fs:file_delete("$game_saves$", dds_file)
 	end
 end
