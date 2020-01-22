@@ -3350,7 +3350,7 @@ end
 
 function xo_repair_need()
 	local knife = Actor:item_in_slot( inventory_slots.KNIFE )
-	return knife and knife:condition() < 0.71
+	return knife and knife:condition() < repair_check.rep_cond_wpn
 end
 function xo_repair_can_self()
 	return not xo_repair_need()
@@ -3358,14 +3358,33 @@ end
 -- Восстанавливаем ХО у Василия
 function xo_repair_have()
 	return
-		Actor:money() >= 30000 and
-		Actor:item_in_slot( inventory_slots.KNIFE )
+		Actor:money() >= 20000 and
+		inventory.search_af("af_gravi",1) and
+		(Actor:item_in_slot(inventory_slots.KNIFE) ~= nil)
 end
+function xo_repair_have_old()
+	return 
+		inventory.search("wpn_knife_n",1,true) and
+		inventory.search("wpn_knife_new",1,true) and
+		inventory.search("wpn_elf",1,true) and 
+		inventory.search_af("af_dummy_spring_red",1) and
+		inventory.search("mutant_deathclaw_antler",1,true) and
+		Actor:money() >= 30000 and
+		(Actor:item_in_slot(inventory_slots.KNIFE) ~= nil)
+end
+function xo_repair_havent_old()
+	return not xo_repair_have_old()
+end
+
 
 function xo_repair_text()
 	local knife = Actor:item_in_slot( inventory_slots.KNIFE )
 	if knife then
-		local text = "Я же тебя прошу не аномальный джедайский супер-меч отремонтировать, а всего лишь "..game.translate_string(get_inv_name(knife:section())).."."
+		local text = string.gsub(
+			game.translate_string("xo_repair_text"),
+			"%$wpn",
+			game.translate_string( get_inv_name(knife:section()) )
+		)
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 		Actor:give_talk_message(text, task_texture, task_rect, "simple_answer_item")
 	end
@@ -3376,15 +3395,30 @@ function xo_repair_start()
 	local wpn = Actor:item_in_slot( inventory_slots.KNIFE ):section()
 	
 	shiftCheckDropItem()
+	inventory.out_items(wpn, 1)
+	inventory.out_items("af_gravi", 1)
+	aem_manager.manage_money(20000, "out")
+
+	start_game_timer( "xo_rep", 0, math.random(9, 11), math.random(0, 60), wpn )
+end
+function xo_repair_start_old()
+	local wpn = Actor:item_in_slot( inventory_slots.KNIFE ):section()
+	
+	shiftCheckDropItem()
 	inventory.out_items(wpn,1)
+	inventory.out_items("wpn_knife_n",1,true)
+	inventory.out_items("wpn_knife_new",1,true)
+	inventory.out_items("wpn_elf",1,true)
+	inventory.out_items("af_dummy_spring_red",1)
+	inventory.out_items("mutant_deathclaw_antler",1,true)
 	aem_manager.manage_money(30000, "out")
 
-	start_game_timer( "xo_rep", 0, math.random(9, 12), 0, wpn )
+	start_game_timer( "xo_rep", 0, math.random(9, 11), math.random(0, 60), wpn )
 end
 
 function xo_repair_finished(sect)
 	amk.save_variable("xo_sec", sect)
-	news_manager.send_tip("%c[gray2]ВАСИЛИЙ:\\n%c[red_sms] Привет, $actor. Твоё холодное оружие готово, можешь забирать. Напоминаю, в ремонте у меня "..game.translate_string( get_inv_name( sect ) )..", а то вдруг забыл уже. Хе-хе...", nil, nil, 15000)
+	news_manager.send_tip("%c[gray2]ВАСИЛИЙ:\\n%c[red_sms]Привет, $actor. Твоё холодное оружие готово, можешь забирать. Напоминаю, в ремонте у меня "..game.translate_string( get_inv_name( sect ) )..", а то вдруг забыл уже. Хе-хе...", nil, nil, 15000)
 	Actor:give_info_portion("xo_repair_finished")
 end
 
