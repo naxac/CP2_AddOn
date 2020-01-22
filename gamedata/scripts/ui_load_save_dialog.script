@@ -122,14 +122,8 @@ function load_save_dialog:InitControls()
 	ctrl = xml:Init3tButton("form:btn_cancel",	form)
 	self:Register(ctrl, "button_cancel")	
 
-	self.check_modif = xml:InitCheck("form:check_sort_by_modif", form)
-	self:Register(self.check_modif, "check_modif")
-	self.check_modif:SetCheck(self.sort == FS.FS_sort_by_modif_down)
-
-	self.check_name = xml:InitCheck("form:check_sort_by_name", form)
-	self:Register(self.check_name, "check_name")
-	self.check_name:SetCheck(self.sort == FS.FS_sort_by_name_up)
-	
+	self.tab_sort = xml:InitTab("form:tab_sort", form)
+	self:Register(self.tab_sort, "tab_sort")
 
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
@@ -148,20 +142,18 @@ function load_save_dialog:InitCallBacks()
 	self:AddCallbackEx("button_ren",		ui_events.BUTTON_CLICKED,			self.OnButton_ren_clicked)
 	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_YES_CLICKED,	self.OnMsgYes)
 	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_OK_CLICKED,	self.OnMsgYes)
-
-	self:AddCallbackEx("check_modif",		ui_events.BUTTON_CLICKED,			self.OnCheckSort_clicked, FS.FS_sort_by_modif_down)
-	self:AddCallbackEx("check_name",		ui_events.BUTTON_CLICKED,			self.OnCheckSort_clicked, FS.FS_sort_by_name_up)
+	self:AddCallbackEx("tab_sort",			ui_events.TAB_CHANGED,				self.OnTabChange)
 
 	self:AddCallbackEx("list_window",		ui_events.LIST_ITEM_CLICKED,		self.OnListItemClicked)
 	self:AddCallbackEx("list_window",		ui_events.WINDOW_LBUTTON_DB_CLICK,	self.OnListItemDbClicked)
 end
 
-function load_save_dialog:OnCheckSort_clicked(mode)
-	if self.sort == mode then return end
+function load_save_dialog:OnTabChange()
+	local idx = self.tab_sort:GetActiveIndex()
+	local mode = (idx == 0) and FS.FS_sort_by_modif_down or FS.FS_sort_by_name_up
+	if mode == self.sort then return end
+
 	self.sort = mode
-	
-	self.check_name:SetCheck(self.sort == FS.FS_sort_by_name_up)
-	self.check_modif:SetCheck(self.sort == FS.FS_sort_by_modif_down)
 
 	if self.list:GetSize() > 0 then
 		self.list:RemoveAll()
