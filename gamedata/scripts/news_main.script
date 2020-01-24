@@ -631,43 +631,31 @@ function get_npc_weapon(obj)
 end
 
 function get_monster_name(obj, index)
-	local m_comm = ""
-	local m_n = ""
-	if obj then
-		local m_clsid = obj:clsid()
-	if index == nil then index = 1 end
-		if IAmAMonster[m_clsid] then
-		if m_clsid then
-			m_comm = news_data.monster_classes[m_clsid]
-			if m_comm == nil then
-				trace("Unknown monster class_id: "..m_clsid.." for "..obj:name())
-				m_n = ""
-			else
-				if (news_data.monster_classes[m_clsid][index] ~= nil) then
-					m_n = news_data.monster_classes[m_clsid][index]
-				else
-					trace("Unknown monster name for class_id: "..m_clsid.." index="..index)
-				end
-			end
-		end
+	if obj and IAmAMonster[obj:clsid()] then
+		local m_sec = obj.section and obj:section() or obj:section_name()
+		return get_monster_name_by_string(m_sec, index)
 	end
-	end
-	return m_n
+	return ""
 end
 
 function get_monster_name_by_string(str, index)
-	local m_comm = ""
-	local m_n = ""
-	if index == nil then index = 1 end
-	if index < 1 then index = 1 end
-	if(str) then
-		for k, v in pairs(news_data.monster_classes) do
-			if (v and #v >= index and v[1] == str) then
-				m_n = v[index]
+	if str then
+		if (index == nil or index < 1) then
+			index = 1
+		end
+		for i, v in ipairs(news_data.monster_classes) do
+			if string_find(m_sec, v[1]) then
+				if v[index] then
+					return v[index]
+				else
+					log("! [news_main.get_monster_name_by_string] index #%s not found for monster: %s", index, str)
+					return ""
+				end
 			end
 		end
+		log("! [news_main.get_monster_name_by_string] Unknown monster: %s", str)
 	end
-	return m_n
+	return ""
 end
 
 function get_npc_rank(obj)
@@ -2117,7 +2105,7 @@ function check_microquest(monster)
 			tcd.microquest.reward_items = tcd.microquest.reward_items..","..(cd.microquest.reward_items or "")
 			tdata.custom_data = netpk:gen_custom_data(tcd)
 			netpk:set(trader, tdata, netpk.fState)
-			local target_name = news_data.monster_classes[obj:clsid()][4]
+			local target_name = get_monster_name(obj, 4)
 
 			start_real_timer(
 				"miniquest", math.random(120, 240),
