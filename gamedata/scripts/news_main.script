@@ -681,55 +681,52 @@ function get_monster_rank(obj)
 end
 
 function get_anomaly_name(obj, index)
-	local m_name = ""
-	local m_n = ""
 	if index == nil then index = 1 end
-	if (IsAnomaly(obj)) then
-		local m_type = ""		
-		if (isGameObject(obj) and obj.section) then
-			m_type = obj:section()
-		elseif (obj.section_name) then
-			m_type = obj:section_name()
-		end
+	if IsAnomaly(obj) then
+		local m_type = obj.section and obj:section() or obj:section_name()
 		if m_type then
 			for k,v in pairs(news_data.anomaly_classes) do
 				if string_find(m_type, k) then
-					if (v[index] ~= nil) then
-						m_n = v[index]
-					end
-					break
+					return v[index] or ""
 				end
 			end
 		end
 	end
-	return m_n
+	return ""
 end
 
-function IsNpcOther(obj)
-	if (obj and IAmAStalker[obj:clsid()]) then
-		local m_comm  = get_npc_community(obj)
-		if (m_comm == "actor"  or m_comm == "actor_dolg" or m_comm == "actor_freedom" or m_comm == "stalker" or m_comm == "dolg" or m_comm == "freedom" or m_comm == "stalker" or m_comm == "nebo" or m_comm == "green") then
-			return false
-		end
-		return true
-	else
-		return false
-	end
-end
-
+local stalker_community = {
+	["actor"] = true,
+	["actor_dolg"] = true,
+	["actor_freedom"] = true,
+	["stalker"] = true,
+	["dolg"] = true,
+	["freedom"] = true,
+	["nebo"] = true,
+	["green"] = true,
+	["ecolog"] = true
+}
 local is_not_stalker = {
 	['gar_dm_bandit_1'] = true,
 	['gar_dm_bandit_2'] = true,
 	['gar_dm_bandit_3'] = true,
 	['agr_ratcatcher'] = true
 }
-function IsNpcStalker(obj)
-	if (obj and IAmAStalker[obj:clsid()]) then
+function IsNpcOther(obj)
+	if ( obj and IAmAStalker[ obj:clsid() ] ) then
 		local m_comm  = get_npc_community(obj)
-		if (m_comm == "actor" or m_comm == "actor_dolg" or m_comm == "actor_freedom" or m_comm == "stalker" or m_comm == "dolg" or m_comm == "freedom" or m_comm == "nebo" or m_comm == "green") then
-			if obj.name and (is_not_stalker[ obj:name() ] == nil) then
-				return true
-			end
+		if ( not stalker_community[m_comm] ) or is_not_stalker[ obj:name() ] then
+			return true
+		end
+	end
+	return false
+end
+
+function IsNpcStalker(obj)
+	if ( obj and IAmAStalker[ obj:clsid() ] ) then
+		local m_comm  = get_npc_community(obj)
+		if stalker_community[m_comm] and not is_not_stalker[ obj:name() ] then
+			return true
 		end
 	end
 	return false
@@ -2120,10 +2117,10 @@ function miniquest_reward_news(tbl)
 		return
 	end
 
-	local rewarder = tbl[2]
-	if rewarder == "[источник неизвестен]" then
+	local rewarder = string.gsub(tbl[2], "_", " ")
+	if string_find(rewarder, "источник неизвестен") then
 		rewarder = "какой-то сталкер"
-	elseif rewarder == "\"Долг\"" then
+	elseif string_find(rewarder, "Долг") then
 		rewarder = "полковник Петренко"
 	elseif rewarder == "Сахаров" then
 		rewarder = "человечек от учёных с Янтаря"
