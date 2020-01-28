@@ -6,13 +6,13 @@ local math_random = math.random
 local string_find = string.find
 local level_object = level.object_by_id
 
-local anoms_difficulty_koef={
+local anoms_difficulty_koef = {
 	[game_difficulty.novice ]	= 0.75,
 	[game_difficulty.stalker]	= 1.0,
 	[game_difficulty.veteran]	= 1.25,
 	[game_difficulty.master ]	= 1.5
 }
-local anoms_sections={
+local anoms_sections = {
 	buzz			= { "buzz",              {shtype=0, radius=1.5, center={0,0,0}}                             },
 	electra			= { "witches_galantine", {shtype=0, radius=4,   center={0,0,0}}                             },
 	fountain		= { "fountain",          {shtype=0, radius=2.5, center={0,0,0}}                             },
@@ -57,6 +57,7 @@ local anom_suffix_by_level = {
 }
 
 local anti_spawn_zones = {}
+local need_init_anti_spawn_zones = true
 
 local level_anoms = {
 	l01_escape = {
@@ -514,6 +515,7 @@ local level_anoms = {
 }
 
 local level_arts = {}
+local need_init_level_arts = true
 
 ---------------------------- variable and table ---------------------end--
 ---------------------------- function for spawn --------------------------
@@ -523,9 +525,10 @@ function init()
 	if not level_anoms[level.name()] then return end
 
 	local blow = amk.load_variable("blowout",0)
-	if blow > 0 and blow < 4 then return end
+	if blow <= 0 or blow >= 4 then
+		this.spawn_anoms()
+	end
 
-	this.spawn_anoms()
 	spatial_subway.init()
 end
 
@@ -539,7 +542,7 @@ function spawn_anoms()
 	local ini = ini_file("misc\\amk_anoms.ltx")
 	local result, id, value = nil, nil, nil
 	local sec = lname..".anoms"
-	if ini:section_exist(sec) then
+	if ini:section_exist(sec) and need_init_anti_spawn_zones then
 		local x,y,z,r
 		for a=0,ini:line_count(sec)-1 do
 			result,id,value=ini:r_line(sec,a,"","")
@@ -556,15 +559,19 @@ function spawn_anoms()
 				end
 			end
 		end
+		need_init_anti_spawn_zones = nil
 	end
 
 	sec = lname..".arts"
 	if ini:section_exist(sec) then
-		for a = 0, ini:line_count(sec)-1 do
-			result, id, value = ini:r_line(sec, a, "", "")
-			if id ~= nil and id ~= "" then
-				level_arts[id] = tonumber(value) or 0
+		if need_init_level_arts then
+			for a = 0, ini:line_count(sec)-1 do
+				result, id, value = ini:r_line(sec, a, "", "")
+				if id ~= nil and id ~= "" then
+					level_arts[id] = tonumber(value) or 0
+				end
 			end
+			need_init_level_arts = nil
 		end
 		local arts_min, arts_max = unpack( ini:r_list("arts_count", lname) )
 		this.generate_arts(lname, arts_min, arts_max)
@@ -656,7 +663,7 @@ function generate_anoms()
 
 				local t = {}
 				shapes[1] = t
-				t.shtype=t_shape.shtype
+				t.shtype = t_shape.shtype
 				if t.shtype == 0 then
 					t.radius = t_shape.radius
 					t.center = vector():set( unpack(t_shape.center) )
