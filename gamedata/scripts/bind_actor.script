@@ -10,10 +10,10 @@ local upd_time3 = 0
 local upd_time4 = 0
 
 local game_difficulty_by_num = {
-	[0] = "gd_novice",
-	[1] = "gd_stalker",
-	[2] = "gd_veteran",
-	[3] = "gd_master"
+	[game_difficulty.novice ] = "gd_novice",
+	[game_difficulty.stalker] = "gd_stalker",
+	[game_difficulty.veteran] = "gd_veteran",
+	[game_difficulty.master ] = "gd_master"
 }
 
 post_process = 0
@@ -286,11 +286,11 @@ function actor_binder:level_border_exit(npc, info_id)
 end
 ----------------------------------------------------------------------------------------------------------------------
 local info2call = {
-	ui_inventory	= "inventory_open",	ui_inventory_hide	= "inventory_close",
-	ui_pda			= "pda_open",		ui_pda_hide			= "pda_close",
-	ui_talk			= "talk_open",		ui_talk_hide		= "talk_close",
-	ui_trade		= "trade_open",		ui_trade_hide		= "trade_close",
-	ui_car_body		= "car_body_open",	ui_car_body_hide	= "car_body_close",
+	ui_inventory	= "inventory_open",		ui_inventory_hide		= "inventory_close",
+	ui_pda			= "pda_open",			ui_pda_hide				= "pda_close",
+	ui_talk			= "talk_open",			ui_talk_hide			= "talk_close",
+	ui_trade		= "trade_open",			ui_trade_hide			= "trade_close",
+	ui_car_body		= "car_body_open",		ui_car_body_hide		= "car_body_close",
 	ui_car_body_new	= "car_body_new_open",	ui_car_body_new_hide	= "car_body_new_close"
 }
 function actor_binder:info_callback(npc, info_id)
@@ -700,7 +700,7 @@ function actor_binder:save(packet)
 
 	xr_s.on_event("pre_save")
 	
-	if level.get_game_difficulty() == 0 then
+	if level.get_game_difficulty() == game_difficulty.novice then
 		Actor:give_info_portion("acv_real_fail")
 	end
 
@@ -793,8 +793,8 @@ function actor_binder:load(reader)
 	local rt0 = reader:r_tell()
 
 	--' Загружаем уровень сложности
-	local game_difficulty = reader:r_u8()                             
-	get_console():execute("g_game_difficulty "..game_difficulty_by_num[game_difficulty])
+	local difficulty = reader:r_u8()                             
+	get_console():execute("g_game_difficulty "..game_difficulty_by_num[difficulty])
 
 	if reader:r_eof() then
 		abort("Это сохранение необратимо повреждено - удалите его, и переиграйте с более раннего сохранения. Продолжать игру на этом сохранении категорически запрещено!")
