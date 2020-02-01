@@ -9616,18 +9616,21 @@ local achieve_point={
 }
 function achieve_taynik()
 	local a = table.random(achieve_point)
-	-- Сообщение о тайнике
-	local lname = AI:level_name(GGraph:vertex(a.gv):level_id())
-	local news_text = "%c[gray2]"..
-		game.translate_string("st_found_new_treasure")..
-		"\\n%c[120,255,120,160]"..game.translate_string(lname)..
-		": %c[170,200,200,200]Награда за достижение"
-	xr_sound.get_safe_sound_object([[device\pda\pda_news]]):play(Actor, 0, sound_object.s2d)
-	local task_texture, task_rect = get_texture_info("ui_iconsTotal_abstract5")
-	if Actor:is_talking() then	
-		Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
-	end	
-	Actor:give_game_news(news_text, task_texture, task_rect, 0, 7000)
+
+	start_small_timer(4000, function()
+		-- Сообщение о тайнике
+		local lname = AI:level_name(GGraph:vertex(a.gv):level_id())
+		local news_text = "%c[gray2]"..
+			game.translate_string("st_found_new_treasure")..
+			"\\n%c[120,255,120,160]"..game.translate_string(lname)..
+			": %c[170,200,200,200]Награда за достижение"
+		xr_sound.get_safe_sound_object([[device\pda\pda_news]]):play(Actor, 0, sound_object.s2d)
+		local task_texture, task_rect = get_texture_info("ui_iconsTotal_abstract5")
+		if Actor:is_talking() then	
+			Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
+		end	
+		Actor:give_game_news(news_text, task_texture, task_rect, 0, 7000)
+	end)
 	
 	return AI:create("a_inventory_box68", vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
 end
