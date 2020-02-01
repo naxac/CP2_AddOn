@@ -4,7 +4,7 @@ local get_wnd = level.main_input_receiver
 local binds_actions = {}
 local dik_actions = {}
 
-local DROP_ITEM_RND = 0.6
+local DROP_ITEM_SPRINT_RND = 0.6
 
 local keys = {
 	[1]		= 'ESCAPE',	[21]	= 'Y',			[41]	= 'GRAVE',		[61]	= 'F3',			[81]	= 'NUMPAD3',		[151]	= 'UNLABELED',		[221] = 'APPS',
@@ -59,14 +59,14 @@ end
 function switch_grenade()
 	if not Actor:alive() then return end
 
-	if Actor:active_slot() ~= inventory_slots.GRENADE then return end
-
 	if actor_active_item and Actor:is_actor_sprinting() then
-		if math.random() < DROP_ITEM_RND then
+		if math.random() < DROP_ITEM_SPRINT_RND then
 			Actor:drop_item(actor_active_item)
 			return
 		end
 	end
+
+	if Actor:active_slot() ~= inventory_slots.GRENADE then return end
 
 	local itm = Actor:item_in_slot( inventory_slots.GRENADE )
 	if itm == nil then
@@ -375,16 +375,6 @@ function wait_key( dik, bind )
 	ShowMessageBox( "ok_info", msg )
 end
 -------------------------------------------------------------------------------------------
-local function on_slot_change(slot)
-	if Actor:item_in_slot(slot) == nil then return end
-	if not Actor:is_actor_sprinting() then return end
-	if math.random() > DROP_ITEM_RND then return end
-	if not actor_active_item then return end
-	if actor_active_item:section() ~= "bolt" then
-		Actor:drop_item(actor_active_item)
-	end
-end
--------------------------------------------------------------------------------------------
 binds_actions[key_bindings.kWPN_FIRE] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_ZOOM] = hotkeys.steel_arms
 binds_actions[key_bindings.kWPN_NEXT] = hotkeys.switch_grenade
@@ -420,7 +410,7 @@ binds_actions[key_bindings.kTORCH] = function()
 end
 binds_actions[key_bindings.kWPN_RELOAD] = function()
 	if not Actor:is_actor_sprinting() then return end
-	if math.random() > DROP_ITEM_RND then return end
+	if math.random() > DROP_ITEM_SPRINT_RND then return end
 	if actor_active_item and isMagazinedWeapon(actor_active_item) then
 		if actor_active_item:get_ammo_in_magazine() == sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
 			return
@@ -430,20 +420,18 @@ binds_actions[key_bindings.kWPN_RELOAD] = function()
 end
 binds_actions[key_bindings.kWPN_FUNC] = function()
 	if not Actor:is_actor_sprinting() then return end
-	if math.random() > DROP_ITEM_RND then return end
+	if math.random() > DROP_ITEM_SPRINT_RND then return end
 	if actor_active_item and actor_active_item:is_weapon_gl() then
 		Actor:drop_item(actor_active_item)
-	end
-end
-for i = 1, 5 do
-	binds_actions[ key_bindings["kWPN_"..i] ] = function()
-		on_slot_change(i)
 	end
 end
 
 
 dik_actions[game_options.RunnerKey] = hotkeys.run_or_return
-dik_actions[DIK_keys.DIK_F10] = function() ui_console.show_console() end
+dik_actions[DIK_keys.DIK_F10] = function()
+	if not Actor:alive() then return end
+	ui_console.show_console()
+end
 
 function on_key(dik, bind)
 	if get_wnd()~=nil then return end
