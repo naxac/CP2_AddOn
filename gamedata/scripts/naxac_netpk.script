@@ -1448,8 +1448,9 @@ function n_netpk:parse_custom_data(str)
 			s, v = string.match(line, "^%s*([%w%-%._]+)%s*=*%s*([^;]*)")
 			s = s and trim(s) or ""
 			if s~=nil and s~="" then
-				v = v and trim(v) or "<nil>"
-				ret[now_sect][s] = v~="" and v or "<nil>"
+				v = v and trim(v) or ""
+				if v == "<nil>" then v = "" end
+				ret[now_sect][s] = v
 			end
 		end
 	end
@@ -1461,7 +1462,7 @@ function n_netpk:gen_custom_data(tbl)
 	for k,v in pairs(tbl) do
 		ret = ret.."["..k.."]\n"
 		for kk,vv in pairs(v) do
-			ret = ret..kk..(vv=="<nil>" and "\n" or " = "..vv.."\n")
+			ret = ret..kk..(vv=="" and "\n" or " = "..vv.."\n")
 		end
 	end
 	return ret

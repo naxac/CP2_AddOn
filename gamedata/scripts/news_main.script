@@ -2036,11 +2036,12 @@ function do_seen_monster()
 											for i=1, math_random(2,4) do
 												local section = table_random(news_data.miniquest_rewards[rank])
 												if (section) then
-													if (cd.microquest.reward_items == "") then
+													if (cd.microquest.reward_items == "" or cd.microquest.reward_items == "<nil>") then
 														cd.microquest.reward_items = section
 													else
 														cd.microquest.reward_items = cd.microquest.reward_items..","..section
 													end
+													cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
 												end
 											end
 										end
@@ -2098,6 +2099,7 @@ function check_microquest(monster)
 			end
 			tcd.microquest.reward_money = tcd.microquest.reward_money + (cd.microquest.reward_money or 0)
 			tcd.microquest.reward_items = tcd.microquest.reward_items..","..(cd.microquest.reward_items or "")
+			tcd.microquest.reward_items = string.gsub(tcd.microquest.reward_items, "%<nil%>", "")
 			tdata.custom_data = netpk:gen_custom_data(tcd)
 			netpk:set(trader, tdata, netpk.fState)
 			local target_name = get_monster_name(obj, 4)
@@ -2696,6 +2698,8 @@ function on_miniquest_reward(trader)
 			if (obj) then
 				local t = netpk:get(obj, netpk.fState)
 				local cd = netpk:parse_custom_data(t.custom_data)
+				cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
+				table.print(cd)
 				if (cd.microquest and cd.microquest.reward_money and cd.microquest.reward_items) then
 					money = tonumber(cd.microquest.reward_money)
 					items = cd.microquest.reward_items
