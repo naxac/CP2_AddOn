@@ -4,9 +4,6 @@ local math_random = math.random
 --' Ключем является группировка персонажа. Значением является таблица, содержашая имена секций предметов.
 local item_by_community = {}
 
---' Зависимости в спауне предметов. Предмет спауниться только если есть хотя бы один из зависимых.
-local item_dependence = {}
-
 --' Множители и минимаксы для выпадения вещей в зависимости от уровня
 local count_by_rank = {}
 
@@ -147,48 +144,27 @@ function init_drop_settings()
         item_by_community[k] = {}
         if ini:section_exist(k) then
 			n = ini:line_count(k)
+			local t = item_by_community[k]
 			for i=0,n-1 do
 				result, id, value = ini:r_line(k,i,"","")
-				item_by_community[k][id] = 1000 * tonumber(value)
+				t[id] = 1000 * tonumber(value)
 			end
         end
     end
 
 	--' Предметы, относящиеся к патронам. Их надо спаунить другим методом.
 	local t_ammo = {}
-	local function add_ammo(ammo_sect)
-		if t_ammo[ammo_sect] then return end
-		t_ammo[ammo_sect] = sys_ini:r_u32(ammo_sect, "box_size")
-	end
-
-    --' Заполняем таблицу зависимостей
-	local function add_item_dependence(ammo_sect, wpn_sect)
-		if item_dependence[ammo_sect] == nil then
-			item_dependence[ammo_sect] = {}
-		end
-		table.insert(item_dependence[ammo_sect], wpn_sect)
-	end
-
-	n = ini:line_count("item_dependence")
+	n = ini:line_count("ammo_sections")
 	for i = 0, n-1 do
-		result, id, value = ini:r_line("item_dependence",i,"","")
+		result, id, value = ini:r_line("ammo_sections",i,"","")
 		if id and id~="" then
-			for j, a in ipairs( sys_ini:r_list(id, "ammo_class") ) do
-				add_item_dependence(a, id)
-				add_ammo(a)
-			end
-			if sys_ini:line_exist(id, "grenade_class") then
-				for j, a in ipairs( sys_ini:r_list(id, "grenade_class") ) do
-					add_item_dependence(a, id)
-					add_ammo(a)
-				end
-			end
+			t_ammo[id] = sys_ini:r_u32(id, "box_size")
 		end
 	end
 	_G.ammo_sections = t_ammo
 
 
-	--' Множители и минимаксы для выпадения вещей в зависимости от уровня
+	--' Множители и минимаксы для выпадения вещей в зависимости от ранга
     local tRanks = ranks.get_stalker_rank_intervals()
 	local sCount = "item_count_" .. level.get_game_difficulty()
 	local count_min, count_max, t, m
@@ -204,14 +180,13 @@ function init_drop_settings()
 				t[#t+1] = tonumber(v)
 			end
 			if #t == 0 then
-				abort("Error on [death_ini] declaration. Section [%s], line [%s]", vvv, tostring(id))
+				abort("Error on [death_ini] declaration. Section [%s], line [%s]", sCount, tostring(id))
 			end
 
 			count_min = t[1] *m
 			count_max = (t[2] or t[1]) *m
 			tt[id] = {min = count_min, max = count_max}
 		end
-		
 	end
 
 	--' Предметы, которые нельзя удалять (квестовые например)
@@ -240,7 +215,7 @@ function init_drop_settings()
 			if ini:line_exist(n, "communities") then
 				tt.communities = {}
 				for a in str_gfind(ini:r_string(n, "communities"), "[%w_]+") do
-					tt.communities[#tt.communities+1] = a
+					table.insert(tt.communities, a)
 				end
 			end
 		end
@@ -260,7 +235,8 @@ function create_release_items(npc)
 	if (se_obj == nil) or (se_obj.death_droped == true) then return end
 	se_obj.death_droped = true
 
-	local data = data_by_community.communities[npc:character_community()]
+	local npc_community = npc:character_community()
+	local data = data_by_community.communities[npc_community]
 	if not data then
 		data = data_by_community.default
 	end
@@ -270,13 +246,18 @@ function create_release_items(npc)
 	
 	local ini = npc:spawn_ini()
 	local totally_broken_weapon = ( ini and ini:section_exist("totally_broken_weapon") )
+	local dont_spawn_loot = ( ini and ini:section_exist("dont_spawn_loot") )
 
 	local active_item_id = npc:active_item() and npc:active_item():id()
+	local pistol_id = npc:item_in_slot( inventory_slots.PISTOL ) and npc:item_in_slot( inventory_slots.PISTOL ):id()
+	local rifle_id = npc:item_in_slot( inventory_slots.RIFLE ) and npc:item_in_slot( inventory_slots.RIFLE ):id()
 	
+	local spawn_items = item_by_community[npc_community]
+	local tCnt = count_by_rank[ ranks.get_obj_rank_name(npc) ]
+
     --' Запускаем итератор на удаление предметов
 	local se_item, sect, item_id
     npc:iterate_inventory(function (nepis, item)
-		if item:condition() < 0.99 then return end
 		item_id = item:id()
 		se_item = AI:object(item_id)
 		if se_item == nil then return end
@@ -289,41 +270,47 @@ function create_release_items(npc)
 			if item_id ~= active_item_id then
 				AI:release(se_item, true)
 			end
-		elseif  isMagazinedWeapon(item) and unique_wpn[sect] == nil then
+		elseif isMagazinedWeapon(item)
+			and ( pistol_id      == item_id
+			or    rifle_id       == item_id
+			or    active_item_id == item_id )
+		then
 			--	Оставляем немного патронов в магазине
 			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
 			item:set_ammo_elapsed(n)
+			if not dont_spawn_loot then
+				this.spawn_ammo_for_weapon(npc, item, spawn_items, tCnt)
+			end
+			if item:condition() < 0.95 or unique_wpn[sect] then return end
 			if totally_broken_weapon then
 				item:set_condition(0.01)
 			else
 				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
 			end
-		elseif sect == "wpn_knife" then
+		elseif IAmAKnife[ item:clsid() ] then
 			if nepis:active_slot() ~= inventory_slots.KNIFE then
 				table.insert( rx_ai.ids_to_remove,item_id )
 			else
+				if item:condition() < 0.95 then return end
 				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
 			end
 		end
 	end
 	, npc)
 
-	start_small_timer(1000, death_manager.set_wpn_cond, npc, cond.min, cond.max, cond_add)
+	start_small_timer(1000, death_manager.set_wpn_cond, npc, cond.min, cond.max, cond_add, totally_broken_weapon)
 	
 	--' Проверка на отсутствие спауна лута
-	if ini and ini:section_exist("dont_spawn_loot") then
+	if dont_spawn_loot then
 		return
 	end
 
 	--' Доспавниваем необходимое количество итемов:
 	--' Необходимо составить список объектов которые могут быть заспавнены для персонажа
-	local spawn_items = item_by_community[npc:character_community()]
 	if spawn_items then
 		local number
-		local tCnt = count_by_rank[ ranks.get_obj_rank_name(npc) ]
-		for k, v in pairs(spawn_items) do
-			--' По каждому объекту необходимо получить зависимости		
-			if check_item_dependence(npc, k) == true then
+		for k, v in pairs(spawn_items) do		
+			if ammo_sections[k] == nil then
 				--' По каждому объекту необходимо получить количество
 				number = math.ceil( math_random(tCnt[k].min, tCnt[k].max) )
 				--' Необходимо заспавнить нужное количество.
@@ -338,7 +325,7 @@ function create_release_items(npc)
 	local vis = nil
 	local npc_name = protected_items.get_obj_name(npc)
 	if (not string.find(npc:section(), "arena")) and
-		npc:character_community() ~= "arena_enemy" and
+		npc_community ~= "arena_enemy" and
 		npc_name ~= "yan_specnaz_dead" and
 		npc_name ~= "x16_stalker_ghost" then
 		local visual = string.explode(npc:get_visual_name(), "\\")
@@ -362,28 +349,60 @@ function create_release_items(npc)
 end
 
 function set_wpn_cond(npc, cond_min, cond_max, cond_add, totally_broken_weapon)
-	if AI:object(npc:id()) == nil then return end
+	local se_npc = AI:object(npc:id())
+	if se_npc == nil or not se_npc.online then return end
 
 	local section
     npc:iterate_inventory(function (nepis, item)
 		if not ( item and item.id and AI:object( item:id() ) ) then return end
-		if item:condition() < 0.99 then return end
 
 		section = item:section()
-		if  isMagazinedWeapon(item) and unique_wpn[section] == nil then
+		if isMagazinedWeapon(item) and unique_wpn[section] == nil then
 			--	Оставляем немного патронов в магазине
 			local n = math.floor( sys_ini:r_u32(section, "ammo_mag_size") * math_random(0, cond_min) / 100 )
 			item:set_ammo_elapsed(n)
+			if item:condition() < 0.95 then return end
 			if totally_broken_weapon then
 				item:set_condition(0.01)
 			else
 				item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
 			end
-		elseif section == "wpn_knife" then
+		elseif IAmAKnife[ item:clsid() ] then
 			item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
 		end
 	end
 	, npc)
+end
+
+function spawn_ammo_for_weapon(npc, wpn, spawn_tbl, count_tbl)
+	if not (spawn_tbl and count_tbl) then
+		return
+	end
+
+	local wpn_sect = wpn:section()
+	if sys_ini:line_exist(wpn_sect, "ammo_class") then
+		local count = 0
+		for j, a in ipairs( sys_ini:r_list(wpn_sect, "ammo_class") ) do
+			if spawn_tbl[a] then
+				count = math.ceil( math_random(count_tbl[a].min, count_tbl[a].max) )
+				create_items( npc, a, count, spawn_tbl[a] )
+			end
+		end
+
+		local gl = sys_ini:r_u32(wpn_sect, "grenade_launcher_status")
+		if ( gl == 1
+			or ( gl == 2
+			and bit_and(wpn:get_addon_flags(), addon_flags.grenade_launcher) ~= 0 ) )
+			and sys_ini:line_exist(wpn_sect, "grenade_class")
+		then
+			for j, a in ipairs( sys_ini:r_list(wpn_sect, "grenade_class") ) do
+				if spawn_tbl[a] then
+					count = math.ceil( math_random(count_tbl[a].min, count_tbl[a].max) )
+					create_items( npc, a, count, spawn_tbl[a] )
+				end
+			end
+		end
+	end
 end
 
 --' Функция спавнит необходимое число предметов
@@ -406,18 +425,6 @@ function create_items(npc, section, number, rnd)
 			end
 		end
 	end
-end
-
-
---' Функция проверяет есть ли хоть один из зависимых объектов у персонажа
-function check_item_dependence(npc, section)
-	if npc == nil then return end
-	if item_dependence[section] == nil then return true end
-
-    for i,v in ipairs(item_dependence[section]) do
-        if npc:object(v) then return true end
-    end
-    return false
 end
 
 function give_letter(npc)
