@@ -229,14 +229,27 @@ function gulag:init_ltx(name, type)
 end
 
 -- получить имя пути места работы
+local get_condlist = xr_logic.cfg_get_condlist
+local pick_section = xr_logic.pick_section_from_condlist
 function gulag:get_job_path_name( job )
 	local section = job.section
 
 	if not self.ltx:line_exist( section, "active" ) then
-		abort( "gulag: ltx=%s  no 'active' in section %s", self.ltx_name, section )
+		abort( "gulag[%s]: ltx=%s  no 'active' in section [%s]", self.name, self.ltx_name, section )
 	end
 
-	local active_section = self.ltx:r_string( section, "active" )
+--	local active_section = self.ltx:r_string( section, "active" )
+	local active_section_cond = get_condlist(self.ltx, section, "active", self.smrttrn)
+	local active_section
+	if not active_section_cond then
+		abort( "gulag[%s]: ltx=%s  can't parse condlist for 'active' in section [%s]", self.name, self.ltx_name, section )
+	else
+		active_section = pick_section(Actor, self.smrttrn, active_section_cond.condlist)
+		if not active_section then
+			abort( "gulag[%s]: ltx=%s can't pick active section in section logic [%s]", self.name, self.ltx_name, section )
+		end
+	end
+
 	local path_field
 
 	for i, v in ipairs( path_fields ) do
@@ -247,7 +260,7 @@ function gulag:get_job_path_name( job )
 	end
 
 	if not path_field then
-		abort( "gulag: ltx=%s, there is no path in section %s", self.ltx_name, active_section )
+		abort( "gulag[%s]: ltx=%s, there is no path in section %s", self.name, self.ltx_name, active_section )
 	end
 
 	if path_field == "center_point" then --' TODO убрать затык
