@@ -1,6 +1,32 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 8
+local current_fix = 9
 
+function fix_9()
+	local obj = AI:story_object(story_ids.lc_radar_to_military)
+	if obj then
+		netpk:modify(obj, {
+			dest_direction = vector():set(0, 1.7905013561249, 0)
+		}, netpk.fState)
+	end
+	obj = AI:story_object(story_ids.lc_military_to_darkvalley)
+	if obj then
+		netpk:modify(obj, {
+			dest_game_vertex_id = 998,
+			dest_level_vertex_id = 140394,
+			dest_position = vector():set(-42.56294631958,-1.8161754608154,-21.93950843811),
+			dest_direction = vector():set(0, -0.94331800937653, 0)
+		}, netpk.fState)
+	end
+	obj = AI:story_object(story_ids.lc_military_to_rostok)
+	if obj then
+		netpk:modify(obj, {
+			dest_game_vertex_id = 1360,
+			dest_level_vertex_id = 715,
+			dest_position = vector():set(-285.29742431641,-0.00052946805953979,103.03450775146),
+			dest_direction = vector():set(0, 4.0257377624512, 0)
+		}, netpk.fState)
+	end
+end
 function fix_8()
 	start_small_timer(3000, function()
 		amk_anoms.pre_blow_off()
@@ -248,6 +274,7 @@ function treasure_ss_2()
 	netpk:modify( obj, t, netpk.fState )
 	obj = AI:object( obj.id )
 	obj:use_ai_locations( false )
+	zamok.restore(obj, 1, code)
 
 	AI:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
 	AI:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
@@ -268,8 +295,9 @@ function lc_question_add()
 	-- Припять - ЧАЭС
 	local obj = AI:story_object(story_ids.lc_pripyat_to_aes)
 	if obj then
-		local t = { silent_mode = 0 }
-		netpk:modify(obj, t, netpk.fState)
+		netpk:modify(obj, {
+			silent_mode = 0
+		}, netpk.fState)
 	end
 end
 
@@ -424,7 +452,7 @@ function angle_clamp(angle)
 	end
 end
 -- проверка для логики: с той ли стороны мы приближаемся к объекту,
--- проверяется сектор 45% по заданному углу поворота
+-- проверяется сектор 45 градусов по заданному углу поворота
 -- 0 - с востока, 1/2*pi - с севера, pi - с запада, 3/2*pi - с юга
 -- on_info = {=naxac.check_direction(2.89)}
 function check_direction(actor, npc, p)
@@ -443,7 +471,10 @@ end
 local new_name = nil
 function hero_rename_start()
 	new_name = "Стрелок"
-	netpk:modify( AI:actor(), { character_name = new_name }, netpk.fState )	-- запишем новое имя в серверный объект актёра
+	-- запишем новое имя в серверный объект актёра
+	netpk:modify( AI:actor(), {
+		character_name = new_name
+	}, netpk.fState )
 end
 function hero_rename( pk )
 	if not new_name then return end
