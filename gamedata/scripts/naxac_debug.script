@@ -48,7 +48,7 @@ function show_obj_info()
 
 	local obj_id = obj:id()
 	local pos = obj:position()
-	local angle = -obj:direction():getH()
+--	local angle = -obj:direction():getH()
 	local cls = obj:clsid()
 	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
 					"%c[yellow]~~~~~~~ OBJECT INFO ~~~~~~~\\n"..
@@ -75,6 +75,7 @@ function show_obj_info()
 			text = text.."%c[default]specific character: %c[gray]"..obj:specific_character().."\\n"..
 						"%c[default]profile name: %c[gray]"..obj:profile_name().."\\n"..
 						"%c[default]character community: %c[gray]"..obj:character_community().."\\n"..
+						"%c[default]character name: %c[gray]"..obj:character_name().."\\n"..
 						"%c[default]money: %c[gray]"..obj:money().."\\n"
 		end
 	elseif obj.condition then
@@ -106,6 +107,15 @@ function show_obj_info()
 
 	local sobj = AI:object(obj_id) 
 	if sobj then
+		if sobj.smart_terrain_id then
+			local smart_id = sobj:smart_terrain_id()
+			local smart
+			if smart_id and smart_id ~= 65535 then
+				smart = AI:object(smart_id)
+			end
+			text = text.."%c[default]smart_terrain: %c[gray]"..(smart and smart:name() or "NONE").." ["..tostring(smart_id).."]\\n"
+		end
+
 		local data = netpk:get(sobj)
 	--	local t = naxac_netpk.get_object_flags_names(data.object_flags)
 		text = text.."%c[yellow]~~~~~~~ NET PACKET INFO ~~~~~~~\\n"..
@@ -113,9 +123,9 @@ function show_obj_info()
 				--	"      "..table.concat(t, ", ").."\\n"..
 					"%c[default]custom_data:\\n"..
 					"%c[gray]    "..( string.gsub(data.custom_data, "\n", "\\n    ") ).."\\n"
-		if data.character_name then
-			text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
-		end
+		-- if data.character_name then
+			-- text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
+		-- end
 		if data.fixed_bones then
 			text = text.."%c[default]fixed_bones: %c[gray]"..data.fixed_bones.."\\n"
 		end
