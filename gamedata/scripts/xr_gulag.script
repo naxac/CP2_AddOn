@@ -229,8 +229,6 @@ function gulag:init_ltx(name, type)
 end
 
 -- получить имя пути места работы
-local get_condlist = xr_logic.cfg_get_condlist
-local pick_section = xr_logic.pick_section_from_condlist
 function gulag:get_job_path_name( job )
 	local section = job.section
 
@@ -238,15 +236,16 @@ function gulag:get_job_path_name( job )
 		abort( "gulag[%s]: ltx=%s  no 'active' in section [%s]", self.name, self.ltx_name, section )
 	end
 
---	local active_section = self.ltx:r_string( section, "active" )
-	local active_section_cond = get_condlist(self.ltx, section, "active", self.smrttrn)
-	local active_section
-	if not active_section_cond then
-		abort( "gulag[%s]: ltx=%s  can't parse condlist for 'active' in section [%s]", self.name, self.ltx_name, section )
-	else
-		active_section = pick_section(Actor, self.smrttrn, active_section_cond.condlist)
-		if not active_section then
-			abort( "gulag[%s]: ltx=%s can't pick active section in section logic [%s]", self.name, self.ltx_name, section )
+	local active_section = self.ltx:r_string( section, "active" )
+	if string.find(active_section, ",", 1, true) then
+		local active_section_cond = xr_logic.parse_condlist( self.smrttrn, section, "active", active_section )
+		if not active_section_cond then
+			abort( "gulag[%s]: ltx=%s  can't parse condlist for 'active' in section [%s]", self.name, self.ltx_name, section )
+		else
+			active_section = xr_logic.pick_section_from_condlist(Actor, self.smrttrn, active_section_cond)
+			if not active_section then
+				abort( "gulag[%s]: ltx=%s can't pick active section in section logic [%s]", self.name, self.ltx_name, section )
+			end
 		end
 	end
 
@@ -263,17 +262,13 @@ function gulag:get_job_path_name( job )
 		abort( "gulag[%s]: ltx=%s, there is no path in section %s", self.name, self.ltx_name, active_section )
 	end
 
+	local path_name = self.name .. "_" .. self.ltx:r_string( active_section, path_field )
 	if path_field == "center_point" then --' TODO убрать затык
-		local path_name = self.name .. "_" .. self.ltx:r_string( active_section, path_field )
-
 		if level.patrol_path_exists( path_name .. "_task" ) then
-			return path_name .. "_task"
-		else
-			return path_name
+			path_name = path_name .. "_task"
 		end
-	else
-		return self.name .. "_" .. self.ltx:r_string( active_section, path_field )
 	end
+	return path_name
 end
 
 -- сохранения общего состояния гулага
