@@ -34,6 +34,8 @@ local map_zoom = 2
 local map_dist = 150/map_zoom
 
 local detector = nil
+
+local added_spots = {}
 ---------------------------------------------------------------------------
 class "UIScriptHUD" (CUIWindow)
 
@@ -249,6 +251,10 @@ function UIScriptHUD:UpdateSpots()
 						tex = get_anom_texture(id)
 						sz = spot_size_16
 					end
+					if (not tex) and (not sz) and added_spots[id] then
+						tex = added_spots[id]
+						sz = spot_size_12
+					end
 				end
 				if tex and sz then
 					self.map_spots[id] = self:DrawSpot( obj, tex, sz:get() )
@@ -274,6 +280,9 @@ function UIScriptHUD:UpdateSpots()
 						if has_spot(id, spot.spot_name) ~= 0 then
 							sz = spot_offset_2
 						end
+					end
+					if (not sz) and added_spots[id] then
+						sz = spot_offset_12
 					end
 					if sz then
 						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
@@ -546,7 +555,19 @@ end
 function remove_spot(id)
 	if wnd then
 		wnd:RemoveSpot(id)
+		added_spots[id] = nil
 	end
+end
+
+function add_spot(id, tex)
+	local obj = level.object_by_id(id)
+	if not obj then return end
+
+	if added_spots[id] then
+		remove_spot(id)
+	end
+	added_spots[id] = tex
+	db.for_map[id] = obj
 end
 
 function init()
