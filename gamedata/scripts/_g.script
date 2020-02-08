@@ -1713,16 +1713,14 @@ end
 -- Крешнуть игру (после вывода сообщения об ошибке в лог)
 function abort(fmt, ...)
 	local reason = (...==nil and fmt) or string.format(fmt, ...)
-	fail("! ERROR: " .. reason)
-  --assert("ERROR: " .. reason)
-  --get_console():execute("load ~~~ " .. reason)
-  if db and Actor then
-    local msg = "!!!АХТУНГ!!!".."\\n%c[255,255,0,0]"..reason
-    Actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 80000) 
-  end
 	log1("! "..reason)
 	get_console():execute("flush")
-  --string.format("%s")
+	if Actor then
+		local msg = "!!!АХТУНГ!!!\\n%c[red]"..reason
+		Actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 80000) 
+	end
+	fail("! ERROR: " .. reason)
+	string.format("%s")
 end
 
 function ASSERT(obj, ...)
