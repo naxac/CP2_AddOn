@@ -85,6 +85,7 @@ function CRandomTask:__init()
 	self.task_info = {}
 
 	local need_get_ct_hash = not has_alife_info("task_save_fix")
+	local def_idle_time = 48*60*60
 
 	for i = 0, n-1 do
 		result, id, value = self.task_ini:r_line("list",i,"","")
@@ -121,7 +122,7 @@ function CRandomTask:__init()
 			local ct = curr_task_info.complex_type
 			local cthash = stringhash(ct)
 			if hash_to_ct[cthash] and hash_to_ct[cthash] ~= ct then
-			  abort("Collision! Hash:%d ct1:%s ct2:%s", hash,hash_to_ct[hash], ct)
+				abort("Collision! Hash:%d ct1:%s ct2:%s", hash,hash_to_ct[hash], ct)
 			end
 			hash_to_ct[cthash] = ct
 			ct_to_hash[ct] = cthash
@@ -147,7 +148,7 @@ function CRandomTask:__init()
 		end
 		curr_task_info.time				= self.task_ini:r_u32_ex(id, "time")
 
-		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", 24*60*60) --' Время между выдачами задания (в игровых секундах)
+		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", def_idle_time) --' Время между выдачами задания (в игровых секундах)
 		curr_task_info.prior			= self.task_ini:r_float_ex(id, "prior", 0) --' Приоритет квеста, выдаются доступные квесты с наименьшим приоритетом
 	
 		if self.task_ini:line_exist(id, "init_condition") then
