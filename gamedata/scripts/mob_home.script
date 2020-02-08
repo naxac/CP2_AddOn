@@ -1,0 +1,179 @@
+----------------------------------------------------------------------------------------------------
+-- Mob Home
+----------------------------------------------------------------------------------------------------
+-- Разработчик: Jim
+----------------------------------------------------------------------------------------------------
+
+local def_min_radius = 20
+local def_max_radius = 40
+
+-- Список монстры, для каждого home
+local home_group={}
+
+class "mob_home"
+
+----------------------------------------------------------------------------------------------------
+-- CONSTRUCTION SCHEME
+----------------------------------------------------------------------------------------------------
+function mob_home:__init(obj, storage)
+	self.object = obj
+	self.st		= storage
+end
+
+----------------------------------------------------------------------------------------------------
+-- RESET SCHEME
+----------------------------------------------------------------------------------------------------
+function mob_home:reset_scheme()
+--[[
+Добавлено: Haron
+Описание: Теперь можно задавать радиусы home_min_radius и home_max_radius во флагах
+          пути path_home. Для этого введены флаги minr, maxr. Они должны быть
+          прописаны в первой точке пути. У радиусов заданых в секции приоритет
+          больший чем для тех что заданы во флагах, т.е. если задано и там и там, то
+          берутся значения из секции (сделано для обратной совместимости).
+--]]
+	local ptr = patrol(self.st.home)
+	local path_info = utils.parse_waypoint_data(self.st.home, ptr:flags(0), ptr:name(0))				
+    local r = 0
+
+    if self.st.home_min_radius == nil then
+        r = path_info.minr
+        if r then
+            r = tonumber(r)
+        end
+		self.st.home_min_radius = r or def_min_radius
+    end
+    
+    if self.st.home_max_radius == nil then
+        r = path_info.maxr
+        if r then
+            r = tonumber(r)
+        end
+		self.st.home_max_radius = r or def_max_radius
+    end
+
+	-- check min and max radius
+	if	self.st.home_min_radius > self.st.home_max_radius then
+		abort("Mob_Home : Home %s Min Radius MUST be < Max Radius. Got: min radius = %d, max radius = %d.", self.st.home, minr, maxr)
+	end 
+
+	self.object:set_home(self.st.home, self.st.home_min_radius, self.st.home_max_radius, self.st.aggressive)
+	add_to_home(self.st.home, self.object)
+end
+
+function add_to_home(home, mob)
+--	amk.logct(mob:name().." adding to home "..home,"mcbt")	
+	if home_group[home] == nil then home_group[home] = {} end
+	home_group[home][mob:id()] = true	
+end
+
+function remove_from_home(home, mob)
+--	amk.logct(mob:name().." removing from home "..home,"mcbt")	
+	if home_group[home] == nil then
+		return abort("Trying to remove "..mob:name().." from home "..home.." while home is empty.")
+	end
+	home_group[home][mob:id()] = nil	
+end
+
+
+function mob_home:hit_callback(obj, amount, local_direction, who, bone_index)
+	if amount == 0 then
+		return
+	end
+
+	if not ( who and who:is_entity_alive() ) then
+		return
+	end
+
+	local group = home_group[self.st.home]
+	if group then
+		local st
+		for id in pairs(group) do
+			st = db.storage[id]
+			if st and st.mob_home then
+				if not st.mob_home.attaked_time then
+					xr_logic.issue_event(self.object, st.mob_home, "on_attaked", who)
+				end
+			else
+				-- выкидываем зверушку из группы.
+				group[id] = nil
+				self.object:remove_home()
+			end
+		end
+	end
+end
+
+-- дадим возможность зверушке отомстить обидчику, выбежав за пределы home
+-- who - обидчик
+function mob_home:on_attaked(who)
+--	log("[mob_home:on_attaked] %s, %s", self.st.home, self.object:name())
+	self.st.attaked_time = time_global() + math.random(30000, 60000)
+	remove_from_home(self.st.home, self.object)
+	self.object:remove_home()
+	if who then
+		self.object:enable_memory_object(who, true)
+	end
+end
+
+function mob_home:use_callback(obj, actor)
+	if self.st.on_use then		
+		if xr_logic.switch_to_section(self.object, self.st,
+		   xr_logic.pick_section_from_condlist(Actor, self.object, self.st.on_use.condlist)) then
+			return true
+		end
+	end
+	return false
+end
+
+----------------------------------------------------------------------------------------------------
+-- UPDATE
+----------------------------------------------------------------------------------------------------
+
+function mob_home:update(delta)
+	if xr_logic.try_switch_to_another_section(self.object, self.st, Actor) then
+		return
+	end
+
+	-- Возвращаем монстра обратно
+	if self.st.attaked_time and self.st.attaked_time < time_global() then
+		self.st.attaked_time = nil
+		add_to_home(self.st.home, self.object)
+		self.object:set_home(self.st.home, self.st.home_min_radius, self.st.home_max_radius, self.st.aggressive)
+	end
+end
+
+function mob_home:deactivate()
+	if self.st.attaked_time then return end
+	remove_from_home(self.st.home, self.object)
+	self.object:remove_home()
+end
+
+----------------------------------------------------------------------------------------------------
+-- ADD_TO_BINDER
+----------------------------------------------------------------------------------------------------
+function add_to_binder(npc, ini, scheme, section, storage)
+	printf("DEBUG: add_to_binder: npc:name()='%s', scheme='%s', section='%s'", npc:name(), scheme, section)
+
+	local new_action = mob_home(npc, storage)
+
+	-- Зарегистрировать все actions, в которых должен быть вызван метод reset_scheme при изменении настроек схемы:
+	xr_logic.subscribe_action_for_events(npc, storage, new_action)
+end
+
+----------------------------------------------------------------------------------------------------
+-- SET_SCHEME
+----------------------------------------------------------------------------------------------------
+function set_scheme(npc, ini, scheme, section, gulag_name)
+	local storage				= xr_logic.assign_storage_and_bind(npc, ini, scheme, section)
+
+	storage.logic				= xr_logic.cfg_get_switch_conditions(ini, section, npc)
+	
+	storage.home				= utils.cfg_get_string(ini, section, "path_home",			npc, true, gulag_name)
+	storage.home_min_radius		= utils.cfg_get_number(ini, section, "home_min_radius",		npc, false) --, 20)
+	storage.home_max_radius		= utils.cfg_get_number(ini, section, "home_max_radius",		npc, false) --, 40)
+	
+	storage.aggressive			= ini:line_exist( section, "aggressive_home")
+
+	storage.on_use      	    = xr_logic.cfg_get_condlist(ini, section, "on_use", npc)
+end
+
