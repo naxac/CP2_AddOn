@@ -14,7 +14,7 @@ function open_new_treasure(actor, box)
 end
 
 function save_box_items(box, items)
---	log("save_box_items: %s", table.size(items))
+--	log("~ save_box_items: %s", table.size(items))
 	if #items == 0 then
 		return
 	end
@@ -62,9 +62,9 @@ function save_box_items(box, items)
 		local size = 110	-- start packet size
 		local obj = AI:create("script_storage", vector(), 0, 0)
 		local stor = se_storage.get_storage(obj.id)
-		cd.storage[obj.id] = "<nil>"
+		cd.storage[obj.id] = ""
 		for i = #items_to_save, 1, -1 do
-			local t = items_to_save[i]
+			local t = table.remove(items_to_save)
 			local sz = size + se_storage.get_tbl_size(t) + string.len(tostring(i)) + 2
 			if sz + 1 >= 8192 then -- max size of packet: 8 KB
 				break
@@ -74,7 +74,6 @@ function save_box_items(box, items)
 				zc = zc  + 1
 			end
 			table.insert(stor, t)
-			table.remove(items_to_save)
 		end
 		table.insert(fake_boxes[boxId], obj.id)
 	--	log("[%s]: packet size = %s", obj:name(), size + 1)
@@ -93,6 +92,7 @@ function save_box_items(box, items)
 	data.custom_data = netpk:gen_custom_data(cd)
 	netpk:set(se_box, data)
 --	table.print(cd)
+--	log("* successfully")
 end
 
 function load_box_items(box)
