@@ -3,6 +3,8 @@
 local monster = nil
 local snd = nil
 
+local is_monster_part = {}
+
 -- Ножи, которыми можно отрезать
 local knives = {
 	"wpn_addon_shtyk_nozh",
@@ -26,11 +28,19 @@ local parts = {}
 local dont_take_timer = 0
 
 function on_part_take(obj)
-	local b = sys_ini:r_bool_ex(obj:section(), "monster_part", false)
+	local b = is_monster_part[obj:section()]
+
+	if b == nil then
+		local sect = obj:section()
+		b = sys_ini:r_bool_ex(obj:section(), "monster_part", false)
+		is_monster_part[sect] = b
+	end
+
 	if timer_start then
 		if b then parts[obj:id()] = obj:section() end
 		return
 	end
+
 	if not ( monster and b ) then return end
 
 	local knife = actor_has_knife()
@@ -63,6 +73,7 @@ function on_part_take(obj)
 	else
 		Actor:transfer_item(obj, monster)
 		if dont_take_timer > time_global() then return end
+		level.start_stop_menu(level.main_input_receiver(), true)
 		dont_take_timer = time_global() + 500
 		ShowMessageBox("ok_alarm", "Для отрезания трофеев нужен нож.", false, false, 2500)
 	end
