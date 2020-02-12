@@ -18,7 +18,6 @@ end
 local db_click_timeout = 300
 
 local ActiveBoxId = nil
-
 ---------------------------------------------------------------------------------------------------------
 
 class "UICarBodyNew" (CUIScriptWnd)
@@ -38,7 +37,7 @@ function UICarBodyNew:__init(obj)
 
 	self.others_weight = 0
 
-	self.move = false
+	self.move = nil
 
 	self:InitControls()
 	self:FillItems()
@@ -52,6 +51,9 @@ function UICarBodyNew:__init(obj)
 
 	Actor:give_info_portion("ui_car_body_new")
 	bind_actor.hide_weapon("inv")
+end
+
+function UICarBodyNew:__finalize()
 end
 
 function UICarBodyNew:InitControls()
@@ -113,17 +115,19 @@ function UICarBodyNew:InitControls()
 	self.drag_item:Show(false)
 end
 
-function UICarBodyNew:__finalize()
-end
-
 function UICarBodyNew:Update()
 	CUIScriptWnd.Update(self)
 
-	if self.move then
-		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
-	end
 	if self.first_click and self.first_click < time_global() then
 		self.first_click = nil
+		if self.move == false then
+			self.drag_item:Show(true)
+			self.move = true
+		end
+	end
+
+	if self.move then
+		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
 	end
 end
 
@@ -387,6 +391,7 @@ function UICarBodyNew:Quit()
 	self.others_bag:Destroy()
 	self.our_bag = nil
 	self.others_bag = nil
+	self.actor_ruck = nil
 	self.drag_item = nil
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
@@ -435,9 +440,8 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 				self.drag_item.shiftX = x - self:GetCursorX()
 				self.drag_item.shiftY = y - self:GetCursorY()
 				self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
-				self.drag_item:Show(true)
 
-				self.move = true
+				self.move = false
 			end
 		end
 		if self.first_click == nil then
@@ -456,8 +460,8 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 			end
 		end
 	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if self.move then
-			self.move = false
+		if self.move ~= nil then
+			self.move = nil
 			if self.drag_item:IsShown() then
 				self.drag_item:Show(false)
 			end
