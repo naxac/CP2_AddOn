@@ -118,12 +118,7 @@ function CUIDescriptionWnd:__init(st) super()
 	self.weight_static = self.xml:InitStatic("description:weight_wnd", self.frame)
 	
 	self.cond_frame = self.xml:InitStatic("description:frame_condition", self.frame)
-	self.cond_scale = self.xml:InitStatic("description:condition", self.cond_frame)
-	local tex_name = self.cond_scale:GetText()
-	local cond_texture, cond_rect = get_texture_info(tex_name)
-	self.cond_scale:InitTexture(cond_texture)
-	self.max_cond_w = self.cond_scale:GetWidth()
-	self.cond_rect = cond_rect
+	self.cond_scale = self.xml:InitProgressBar("description:condition_progress", self.cond_frame)
 	
 	self.frame:Show(false)
 end
@@ -282,20 +277,11 @@ function CUIDescriptionWnd:ShowDescription(item)
 	self.weight_static:SetText( string_format("Вес: %.2f кг.", item:get_weight()) )
 
 	if need_show_condition(item) then
-		self.cond_scale:SetWidth(self.max_cond_w*self.condition)
-		self.cond_scale:SetOriginalRect(
-			self.cond_rect.x1,
-			self.cond_rect.y1,
-			self.cond_rect.x2*self.condition,
-			self.cond_rect.y2
-		)
-		local g = math.min( self.condition*510, 255 )
-		local r = math.min( (1-self.condition)*510, 255 )
-		self.cond_scale:SetColor( GetARGB(255, r, g, 0) )
-		self.cond_scale:SetText(
+		self.cond_frame:Show(true)
+		self.cond_frame:SetText(
 			string_format("%s: %.1f%%", get_string("ui_st_condition"), self.condition*100)
 		)
-		self.cond_frame:Show(true)
+		self.cond_scale:SetProgressPos(self.condition * 100)
 	else
 		self.cond_frame:Show(false)
 	end
