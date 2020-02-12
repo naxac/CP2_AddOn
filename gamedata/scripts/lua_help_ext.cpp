@@ -327,6 +327,7 @@ class CUIScriptWnd : CUIDialogWnd,DLL_Pure {
 	CUIScriptWnd*	InitEditBoxEx(CUIWindow*<stat>, float<pos_x>, float<pos_y>, float<width>*, char<type>*);
 	CUIScriptWnd*	InitSpinNum(CUIWindow*<stat>, float<pos_x>, float<pos_y>, float<width>*, Lua_table*<params>);
 	CUIScriptWnd*	InitSpinStr(CUIWindow*<stat>, float<pos_x>, float<pos_y>, float<width>*, Lua_table*<params>);
+	vector2*		GetCursorPos();
 };
 
 End of list of the classes exported to LUA
@@ -365,7 +366,7 @@ namespace {
 	void			screenshot3();
 	
 	namespace level {
-		const invalid_vertex_id = 4294967296;
+		const 		invalid_vertex_id = 4294967296;
 
 		void		change_game_time(int<minutes>, int<hours>, int<days>);
 		int			vertex_id_by_pos( vector*<position> );

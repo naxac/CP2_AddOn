@@ -37,7 +37,7 @@ function UICarBodyNew:__init(obj)
 
 	self.others_weight = 0
 
-	self.move = nil
+	self.move_item = false
 
 	self:InitControls()
 	self:FillItems()
@@ -120,14 +120,18 @@ function UICarBodyNew:Update()
 
 	if self.first_click and self.first_click < time_global() then
 		self.first_click = nil
-		if self.move == false then
-			self.drag_item:Show(true)
-			self.move = true
-		end
 	end
 
-	if self.move then
-		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
+	if self.move_item then
+		if self.last_cur_pos then
+			local pos = self:GetCursorPos()
+			if pos.x ~= self.last_cur_pos.x or pos.y ~= self.last_cur_pos.y then
+				self.drag_item:Show(true)
+				self.last_cur_pos = nil
+			end
+		else
+			self.drag_item:SetWndPos( self:GetCursorPos():add( self.drag_item.shift ):get() )
+		end
 	end
 end
 
@@ -392,9 +396,11 @@ function UICarBodyNew:Quit()
 	self.our_bag = nil
 	self.others_bag = nil
 	self.actor_ruck = nil
+	self.drag_item.shift = nil
 	self.drag_item = nil
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
+	self.last_cur_pos = nil
 
 	new_treasure.save_box_items(self.box, self.others_items)
 	self.box = nil
@@ -427,24 +433,27 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 	end
 
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-		if self.item_in_focus and self.bag_in_focus then
-			self.selected_item = self.item_in_focus
-			self.item_owner = self.bag_in_focus
-
-			local bag = self[self.item_owner]
-			local itm = bag:GetItem(self.selected_item)
-			if itm then
-				self.drag_item:InitItem( itm:GetTopItem() )
-				local x = itm:GetAbsolutePosX()
-				local y = itm:GetAbsolutePosY()
-				self.drag_item.shiftX = x - self:GetCursorX()
-				self.drag_item.shiftY = y - self:GetCursorY()
-				self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
-
-				self.move = false
-			end
-		end
 		if self.first_click == nil then
+			if self.item_in_focus and self.bag_in_focus then
+				self.selected_item = self.item_in_focus
+				self.item_owner = self.bag_in_focus
+
+				local bag = self[self.item_owner]
+				local itm = bag:GetItem(self.selected_item)
+				if itm then
+					self.drag_item:InitItem( itm:GetTopItem() )
+					local x = itm:GetAbsolutePosX()
+					local y = itm:GetAbsolutePosY()
+					self.last_cur_pos = self:GetCursorPos()
+					self.drag_item.shift = vector2():set(
+						x - self.last_cur_pos.x,
+						y - self.last_cur_pos.y
+					)
+					self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
+
+					self.move_item = true
+				end
+			end
 			self.first_click = time_global() + db_click_timeout
 		else
 			if self.first_click > time_global() then
@@ -460,8 +469,9 @@ function UICarBodyNew:OnKeyboard(dik, keyboard_action)
 			end
 		end
 	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if self.move ~= nil then
-			self.move = nil
+		if self.move_item then
+			self.last_cur_pos = nil
+			self.move_item = false
 			if self.drag_item:IsShown() then
 				self.drag_item:Show(false)
 			end

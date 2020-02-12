@@ -110,7 +110,7 @@ function arc_containers_menu:InitControls()
 	self.drag_item = ui_drag_item.UIDragItem()
 	self:AttachChild(self.drag_item)
 	self.drag_item:Show(false)
-	self.move_item = nil
+	self.move_item = false
 
 	self.message_box = CUIMessageBoxEx()
 end
@@ -120,14 +120,18 @@ function arc_containers_menu:Update()
 
 	if self.first_click and self.first_click < time_global() then
 		self.first_click = nil
-		if self.move_item == false then
-			self.drag_item:Show(true)
-			self.move_item = true
-		end
 	end
 
 	if self.move_item then
-		self.drag_item:SetWndPos( self:GetCursorX() + self.drag_item.shiftX, self:GetCursorY() + self.drag_item.shiftY )
+		if self.last_cur_pos then
+			local pos = self:GetCursorPos()
+			if pos.x ~= self.last_cur_pos.x or pos.y ~= self.last_cur_pos.y then
+				self.drag_item:Show(true)
+				self.last_cur_pos = nil
+			end
+		else
+			self.drag_item:SetWndPos( self:GetCursorPos():add( self.drag_item.shift ):get() )
+		end
 	end
 end
 
@@ -358,8 +362,9 @@ function arc_containers_menu:TransferItem(from_where, to_where, item_name)
 		AI:release( AI:object( item:id() ), true )
 
 		if add_rad > 0 then
-			if self.move_item ~= nil then
-				self.move_item = nil
+			if self.move_item then
+				self.move_item = false
+				self.last_cur_pos = nil
 				if self.drag_item:IsShown() then
 					self.drag_item:Show(false)
 				end
@@ -462,11 +467,13 @@ function arc_containers_menu:Quit()
 	end
 	self.our_bag:Destroy()
 	self.our_bag = nil
+	self.drag_item.shift = nil
 	self.drag_item = nil
 	self.weight_st = nil
 	self.message_box = nil
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
+	self.last_cur_pos = nil
 
 	self:SaveContainers()
 
@@ -510,24 +517,27 @@ function arc_containers_menu:OnKeyboard(dik, keyboard_action)
 	end
 
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-		if self.item_in_focus and self.bag_in_focus then
-			self.selected_item = self.item_in_focus
-			self.item_owner = self.bag_in_focus
-
-			local bag = self[self.item_owner]
-			local itm = bag:GetItem(self.selected_item)
-			if itm then
-				self.drag_item:InitItem( itm:GetTopItem() )
-				local x = itm:GetAbsolutePosX()
-				local y = itm:GetAbsolutePosY()
-				self.drag_item.shiftX = x - self:GetCursorX()
-				self.drag_item.shiftY = y - self:GetCursorY()
-				self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
-
-				self.move_item = false
-			end
-		end
 		if self.first_click == nil then
+			if self.item_in_focus and self.bag_in_focus then
+				self.selected_item = self.item_in_focus
+				self.item_owner = self.bag_in_focus
+
+				local bag = self[self.item_owner]
+				local itm = bag:GetItem(self.selected_item)
+				if itm then
+					self.drag_item:InitItem( itm:GetTopItem() )
+					local x = itm:GetAbsolutePosX()
+					local y = itm:GetAbsolutePosY()
+					self.last_cur_pos = self:GetCursorPos()
+					self.drag_item.shift = vector2():set(
+						x - self.last_cur_pos.x,
+						y - self.last_cur_pos.y
+					)
+					self.drag_item:Init( x, y, itm:GetWidth(), itm:GetHeight() )
+
+					self.move_item = true
+				end
+			end
 			self.first_click = time_global() + db_click_timeout
 		else
 			if self.first_click > time_global() then
@@ -545,8 +555,9 @@ function arc_containers_menu:OnKeyboard(dik, keyboard_action)
 			end
 		end
 	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if self.move_item~= nil then
-			self.move_item = nil
+		if self.move_item then
+			self.move_item = false
+			self.last_cur_pos = nil
 			if self.drag_item:IsShown() then
 				self.drag_item:Show(false)
 			end
