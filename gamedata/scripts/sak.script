@@ -555,19 +555,25 @@ local nepis = {
 function deadman_to_life(art)
 	local obj
 	local add_health = Actor.health/2
+	local actor_pos = Actor:position()
+	local lname = level.name()
 	for sid, v in pairs(nepis) do
 		obj = AI:story_object(sid)
-		if obj and (not obj:alive()) and obj.position:distance_to(Actor:position()) < 2 then
+		if obj and (not obj:alive())
+			and object_level_name(obj) == lname
+			and obj.position:distance_to(actor_pos) < 2.3
+		then
 
 			-- снимаем нужные поршни
 			if not v.trup then
 				Actor:disable_info_portion("nu"..tostring(sid))
 			end
 			if v._umer then
-				Actor:disable_info_portion(obj:name().."_umer")
+				local name = protected_items.get_obj_name(obj)
+				Actor:disable_info_portion(name.."_umer")
 			end
 			if v.info then
-				for b=1,#v.info do 
+				for b = 1, #v.info do 
 					Actor:disable_info_portion(v.info[b])
 				end
 			end
@@ -591,7 +597,7 @@ function deadman_to_life(art)
 					se_npc.id
 				)
 				Actor.health = -add_health
-				this.set_on_spawn(se_npc, obj, add_health)
+				this.set_on_spawn(se_npc, obj, add_health, true)
 			end
 			return
 		end
@@ -599,10 +605,10 @@ function deadman_to_life(art)
 
 	-- не сработало, тогда оживим любого ближайшего мёртвого непися
 	local trup
-	for id, obj in pairs(db.creatures) do
-		if obj and not obj:alive() then
-			if obj:position():distance_to(Actor:position()) < 2 then
-				trup = obj
+	for i, o in pairs(db.creatures) do
+		if o and not o:alive() then
+			if o:position():distance_to(actor_pos) < 2 then
+				trup = o
 				break
 			end
 		end
@@ -622,13 +628,14 @@ function deadman_to_life(art)
 		log("story_id [%s]: spawn_id found: %s", se_npc.m_story_id, spawn_id)
 		new_npc = AI:create(spawn_id)
 		AI:teleport_object(
-			"", 
+			"",
 			se_npc.position,
 			se_npc.m_level_vertex_id,
 			se_npc.m_game_vertex_id,
 			new_npc.id
 		)
 	else
+		log("npc [%s]: spawn_id not found, create section: %s", se_npc:name(), se_npc:section_name())
 		new_npc = AI:create(
 			se_npc:section_name(),
 			se_npc.position,
@@ -638,7 +645,7 @@ function deadman_to_life(art)
 	end
 
 	Actor.health = -add_health
-	this.set_on_spawn(new_npc, se_npc, add_health)
+	this.set_on_spawn(new_npc, se_npc, add_health, false)
 end
 
 function convert_npc(npc_id, data)
@@ -653,27 +660,30 @@ function convert_npc(npc_id, data)
 	end
 end
 
-function set_on_spawn(new_npc, old_npc, add_health)
+function set_on_spawn(new_npc, old_npc, add_health, is_questman)
 	local data = netpk:get(old_npc)
-	local data_new = {
-		custom_data = data.custom_data,
-		story_id = data.story_id,
-		spawn_story_id = data.spawn_story_id,
-		visual_name = data.visual_name,
-		money = data.money,
-		specific_character = data.specific_character,
-		character_profile = data.character_profile,
-		community_index = data.community_index,
-		rank = data.rank,
-		reputation = data.reputation,
-		character_name = data.character_name,
-		health = add_health,
-		upd = {
-			health = add_health,
-			start_dialog = data.upd.start_dialog
-		}
-	}
-	start_small_timer(500, this.convert_npc, new_npc.id, data_new)
+
+	local data_new			= {}
+	data_new.upd			= {}
+	data_new.visual_name	= data.visual_name
+	data_new.money			= data.money
+	data_new.rank			= data.rank
+	data_new.reputation		= data.reputation
+	data_new.health			= add_health
+	data_new.upd.health		= add_health
+
+	if not is_questman then
+		data_new.custom_data		= data.custom_data
+		data_new.story_id			= data.story_id
+		data_new.spawn_story_id		= data.spawn_story_id
+		data_new.community_index	= data.community_index
+		data_new.specific_character	= data.specific_character
+		data_new.character_profile	= data.character_profile
+		data_new.character_name		= data.character_name
+		data_new.upd.start_dialog	= data.upd.start_dialog
+	end
+
+	start_small_timer(1000, this.convert_npc, new_npc.id, data_new)
 	news_manager.send_tip(
 		"%c[gray2]ЛОКАЛЬНАЯ СЕТЬ:\\n%c[green]Обнаружен новый сталкер: "..data.character_name..
 		". Добавлен в базу данных сети.", 0, "questman_death", 10000
@@ -704,58 +714,71 @@ function set_on_spawn(new_npc, old_npc, add_health)
 		end,
 	old_npc.id)
 
-	start_small_timer(1200, function(npcID, boxID)
-		local npc = level.object_by_id(npcID)
-		if npc then		-- очищаем инвентарь непися
-			local seItem
-			local keep_items = { bolt = true, device_pda = true, device_torch = true }
-			npc:iterate_inventory(function(dummy, item)
-				if keep_items[item:section()] == nil then
-					npc:drop_item(item)
-					seItem = AI:object(item:id())
-				--	log("found item %s", item:name())
-					if seItem then
-						AI:release(seItem, true)
-					--	log("release")
-					end
-				end
-			end,
-			npc)
-		end
-		local box = level.object_by_id(boxID)
-		if box and npc then		-- если при оживлении у нпс были вещи, то возвращаем их
-			local n = box:inv_box_count()
-			if n>0 then
-				local item
-				for i=0,n-1 do
-					item = box:object_from_inv_box(i)
-				--	log("return to npc: %s", item:name())
-					box:transfer_item(item, npc)
+	start_small_timer(1200, this.transfer_back, new_npc.id, seBox.id)
+end
+
+function transfer_back(npcID, boxID)
+	local npc = level.object_by_id(npcID)
+	if not npc then
+		start_small_timer(300, this.transfer_back, npcID, boxID)
+		return
+	else	-- очищаем инвентарь непися
+		local seItem
+		local keep_items = { bolt = true, device_pda = true, device_torch = true }
+		npc:iterate_inventory(function(dummy, item)
+			if keep_items[item:section()] == nil then
+				npc:drop_item(item)
+				seItem = AI:object(item:id())
+			--	log("found item %s", item:name())
+				if seItem then
+					AI:release(seItem, true)
+				--	log("release")
 				end
 			end
+		end,
+		npc)
+	end
+
+	local box = level.object_by_id(boxID)
+	if box and npc then		-- если при оживлении у нпс были вещи, то возвращаем их
+		local n = box:inv_box_count()
+		if n>0 then
+			local item
+			for i=0,n-1 do
+				item = box:object_from_inv_box(i)
+			--	log("return to npc: %s", item:name())
+				box:transfer_item(item, npc)
+			end
 		end
-		local se_box = AI:object(boxID)
-		if se_box then AI:release(se_box, true) end
-	end,
-	new_npc.id, seBox.id)
+	end
+	local se_box = AI:object(boxID)
+	if se_box then AI:release(se_box, true) end
 end
 
 function nepis_umer()
-	local obj, name, nu
+	local obj
 	for sid, v in pairs(nepis) do
 		obj = AI:story_object(sid)
 		if obj and not obj:alive() then
-			name=obj:name()
-			nu="nu"..tostring(sid)
-			
 			if v._umer then
+				local name = protected_items.get_obj_name(obj)
 				Actor:give_info_portion(name.."_umer")
 			end
 			
+			local nu = "nu"..tostring(sid)
 			if ( not v.trup ) and ( not has_alife_info(nu) ) then
 				Actor:give_info_portion(nu)
 				archievements.send_umer_info(obj)
 			end
+		end
+	end
+end
+
+function tessstt()
+	for sid, v in pairs(nepis) do
+		local obj = AI:story_object(sid)
+		if obj then
+			log("%s: sid = %s, umer = %s", obj:name(), tostring(sid), tostring(v._umer))
 		end
 	end
 end
