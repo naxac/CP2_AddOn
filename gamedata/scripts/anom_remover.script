@@ -1,8 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Удаление аномалий Черной Дырой
---local radius = 3 --радиус круга с центром под ногами ГГ, в котором удаляются аномалии
 
-local anoms_classes = {
+local remove_clsid = {
 	[clsid.zone_bfuzz_s] = true,
 	[clsid.zone_electra_s] = true,
 	[clsid.zone_galant_s] = true,
@@ -10,38 +9,55 @@ local anoms_classes = {
 	[clsid.zone_mbald_s] = true,
 	[clsid.zone_mincer_s] = true,
 	[clsid.zone_zharka_s] = true,
-	[clsid.ameba_zone] = true
+	[clsid.ameba_zone] = true,
+	[clsid.zone_smallrain_s] = true,
+	[clsid.zone_fountain_s] = true,
+	[clsid.zone_sphere_s] = true,
+	[clsid.zone_sakbuzz_s] = true
 }
+local first_run
 
-function get_anoms(npc, radius)
+function get_anoms( npc, radius )
 	local anoms = {}
 	local pos = npc:position()
-	local obj
-	for i= 1, 65535 do
-		obj = level.object_by_id(i)
-		if obj and anoms_classes[obj:clsid()] 
-			and pos:distance_to(obj:position()) < radius
-		then
-			anoms[#anoms+1] = obj:id()
+	local obj, dist
+	for i = 1, 65535 do
+		obj = level.object_by_id( i )
+		if obj and remove_clsid[ obj:clsid() ] then
+			sobj = AI:object( i )
+			if sobj then
+				dist = pos:distance_to( obj:position() ) - ( sobj.radius or 2 )
+				if dist < radius then
+					table.insert( anoms, { i, dist } )
+				end
+			end
 		end
 	end
+	table.sort( anoms, function( t1, t2 ) return t1[2] < t2[2] end )
 	return anoms
 end
 
 function on_item_drop()
-	local anoms = get_anoms(Actor, 4)
+	local anoms = get_anoms( Actor, 3 )
 	local timeout = 0
-	local func = function (n)
-		if not inventory.search("art_acumm", 1) then return end
+	first_run = nil
+	local func = function ( i )
+		if not inventory.search( "art_acumm", 1 ) then return end
 		if level.main_input_receiver() then
-			level.start_stop_menu(level.main_input_receiver(), true)
+			level.start_stop_menu( level.main_input_receiver(), true )
 		end
-		AI:release(AI:object(n))
-		inventory.out_items("art_acumm", 1)
+		if not first_run then
+			level.add_pp_effector ( "teleport.ppe", 2006, false )
+			first_run = true
+		end
+		local res = amk_anoms.release_anomaly( AI:object( i ) )
+		if res then
+			inventory.out_items( "art_acumm", 1 )
+		end
 	end
 
-	for i, id in ipairs(anoms) do
-		timeout = timeout+200
-		start_small_timer(timeout, func, id)
+	for i, t in ipairs( anoms ) do
+		timeout = timeout + 200
+		start_small_timer( timeout, func, t[1] )
 	end
 end
