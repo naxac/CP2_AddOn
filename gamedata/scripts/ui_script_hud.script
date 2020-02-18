@@ -202,6 +202,7 @@ end
 
 local lc_clsid = clsid.level_changer
 local inv_box_clsid = clsid.inventory_box
+local mine_clsid = clsid.zone_mine_field_s
 function UIScriptHUD:UpdateSpots()
 	amk.oau_watchdog=18813
 	-- удалим неактуальные метки
@@ -250,8 +251,11 @@ function UIScriptHUD:UpdateSpots()
 					elseif IsAnomaly(nil, cls) and detector then
 						tex = get_anom_texture(id)
 						sz = spot_size_16
+					elseif cls == mine_clsid and has_spot(id, "anomaly_mine_location") ~= 0 then
+						tex = "anomaly_mine"
+						sz = spot_size_16
 					end
-					if (not tex) and (not sz) and added_spots[id] then
+					if ( not (tex and sz) ) and added_spots[id] then
 						tex = added_spots[id]
 						sz = spot_size_12
 					end
@@ -276,7 +280,7 @@ function UIScriptHUD:UpdateSpots()
 						sz = spot_offset_12
 					elseif (cls == lc_clsid) then
 						sz = spot_offset_16
-					elseif IsAnomaly(nil, cls) then
+					elseif IsAnomaly(nil, cls) or cls == mine_clsid then
 						if has_spot(id, spot.spot_name) ~= 0 then
 							sz = spot_offset_16
 						end
@@ -439,7 +443,7 @@ local spot2texture = {
 		anomaly_grav_location		= "anomaly_gravi",
 		anomaly_rad_location		= "anomaly_radiation",
 		anomaly_elec_location		= "anomaly_electra",
-	--	anomaly_mine_location		= "anomaly_mine",
+		anomaly_mine_location		= "anomaly_mine",
 		anomaly_burn_location		= "anomaly_burn",
 		anomaly_ice_location		= "anomaly_ice",
 		anomaly_ameba_location		= "anomaly_ameba",
