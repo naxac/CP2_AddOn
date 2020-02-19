@@ -9,73 +9,18 @@ local zoom_enable = game_options.DynHudZoom		-- эффект прицелива�
 local blood_enable = game_options.DynHudBlood	-- эффект ранения
 local bleed_enable = game_options.DynHudBleed	-- эффект плохого самочувствия
 --------------------------------------------------------------------------------
-local suitHudName_wotType = {
-	["bandit_gaz_outfit_"]				= "hud_gaz",
-	["dolg_gaz_outfit_"]				= "hud_gaz",
-	["monolit_gaz_outfit_"]				= "hud_gaz",
-	["neytral_exo_gaz_outfit_"]			= "hud_gaz",
-	["neytral_gaz_outfit_"]				= "hud_gaz",
-	["neytral_novice_gaz_outfit_"]		= "hud_gaz",
-	["outfit_svoboda_"]					= "hud_gaz",
-	["svoboda_gaz_outfit_"]				= "hud_gaz",
-	["svoboda_heavy_gaz_outfit_"]		= "hud_gaz",
-	["dolg_scientific_outfit"]			= "hud_sci",
-	["scientist_suit_white"]			= "hud_sci",
-	["fire_outfit"]						= "hud_sci",
-	["ecolog_outfit"]					= "hud_sci",
-	["freedom_scientific_outfit"]		= "hud_sci",
-	["merc_scientific_outfit"]			= "hud_sci",
-	["monolit_scientific_outfit"]		= "hud_sci",
-	["protection_outfit"]				= "hud_sci",
-	["nebo_exo_outfit"]					= "hud_sci",
-	["nebo_scientific_outfit"]			= "hud_sci",
-	["scientific_outfit"]				= "hud_sci",
-	["killer_gaz_outfit_"]				= "hud_merc",
-	["outfit_killer_"]					= "hud_merc",
-	["gagarin_outfit"]					= "hud_merc",
-	["voshod_outfit"]					= "hud_merc",
-	["military_outfit"]					= "hud_mil",
-	["militaryspec_outfit"]				= "hud_mil",
-	["outfit_specnaz_"]					= "hud_mil",
-	["specops_outfit"]					= "hud_mil",
-	["nano_outfit"]						= "hud_nano",
-	["nano_suit"]						= "hud_nano",
-	["broken_exoskeleton"]				= "hud_exo",
-	["dolg_black_exoskeleton"]			= "hud_exo",
-	["exo_bandit_outfit"]				= "hud_exo",
-	["exo_outfit"]						= "hud_exo",
-	["killer_blue_exoskeleton"]			= "hud_exo",
-	["military_exo_outfit"]				= "hud_exo",
-	["monolit_exoskeleton"]				= "hud_exo",
-	["neytral_exo_antigas_outfit"]		= "hud_exo",
-	["outfit_exo_"]						= "hud_exo",
-	["svoboda_exoskeleton"]				= "hud_exo",
-	["svoboda_yellow_exo_outfit_"]		= "hud_exo",	
-    ["outfit_lethalspeed_exo_m1"]       = "hud_exo",
-    ["outfit_lethalspeed_exo_m2"]       = "hud_exo",
-    ["voen_exo_outfit"]                 = "hud_exo",
-    ["killer_green_exoskeleton"]        = "hud_exo",
-    ["exo_doktor_outfit"]               = "hud_exo",
-    ["exo_military_outfit"]             = "hud_exo",
-    ["exo_knight_outfit"]               = "hud_exo",
-    ["exo_scientist_outfit"]            = "hud_sci",
-    ["seva_scient_outfit"]              = "hud_sci"              
-}
 -- кэш, секция костюма = тип худа
 local section2hud = {}
 local function get_hud_type(outfit)
-	local section = outfit and outfit:section() or "without_outfit"
+	if not outfit then return "hud_empty" end
+
+	local section = outfit:section()
 	local res = section2hud[section]
-	if res == nil then
-		res = "hud_empty"
-		for k, v in pairs(suitHudName_wotType) do
-			if string.find(section, k) then
-				res = v
-				break
-			end
-		end
+	if not res then
+		res = sys_ini:r_string_ex(section, "hud_type", "hud_empty")
 		section2hud[section] = res
 	end
+
 	return res
 end
 
