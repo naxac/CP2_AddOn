@@ -215,35 +215,35 @@ end
 function show_news()
 	news_main.on_news()
 
-	if not (sleep_manager.is_sleep_active()
-		or news_main.isIsolatedLevel(level.name()))
-	then
-		-- вероятности поставлены по примерному количеству СМС в каждом файле
-		local news_text, sender
-		if math_random()>0.92 then
-			if math_random()>0.40 then
-				news_text = amk_dolg.get_strings()
-				sender = "dolg"
-			else
-				news_text = amk_freedom.get_strings()
-				sender = "freedom"
-			end
+	start_game_timer("show_news",0,0,math_random(50,70))
+
 	local bl = amk.load_variable("blowout",-1)
 	if (bl > -1 and bl < 5) then return end
+
+	if sleep_manager.is_sleep_active() or news_main.isIsolatedLevel(level.name()) then return end
+
+	-- вероятности поставлены по примерному количеству СМС в каждом файле
+	local news_text, sender
+	if math_random()>0.92 then
+		if math_random()>0.40 then
+			news_text = amk_dolg.get_strings()
+			sender = "dolg"
 		else
-			if math_random()>0.53 then    
-				local uniq = amk_uniq_news_lists.get_strings()
-				local name = amk_names_lists.get_strings(true)
-				news_text = "%c[gray2]"..name.."\\n%c[default]"..uniq
-			else
-				news_text = amk_modders.get_strings()
-			end
-			sender = "uniq"
+			news_text = amk_freedom.get_strings()
+			sender = "freedom"
 		end
-		this.explode_news_str(news_text)
-		this.show_tmp_news(sender)
+	else
+		if math_random()>0.53 then    
+			local uniq = amk_uniq_news_lists.get_strings()
+			local name = amk_names_lists.get_strings(true)
+			news_text = "%c[gray2]"..name.."\\n%c[default]"..uniq
+		else
+			news_text = amk_modders.get_strings()
+		end
+		sender = "uniq"
 	end
-	start_game_timer("show_news",0,0,math_random(50,70))
+	this.explode_news_str(news_text)
+	this.show_tmp_news(sender)
 end
 
 
@@ -2557,9 +2557,8 @@ function unpack_anoms(str)
 end
 
 function blowout_type()
-	local lname=level.name()
-local blow_type = amk_hideouts.blowout_types[lname]
-return blow_type or 0
+	local blow_type = amk_hideouts.blowout_types[level.name()]
+	return blow_type or 0
 end
 
 --'*******************************************************************************
