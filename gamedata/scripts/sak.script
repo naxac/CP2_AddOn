@@ -719,38 +719,38 @@ end
 
 function transfer_back(npcID, boxID)
 	local npc = level.object_by_id(npcID)
-	if not npc then
+	local box = level.object_by_id(boxID)
+	if not (npc and box) then
 		start_small_timer(300, this.transfer_back, npcID, boxID)
 		return
-	else	-- очищаем инвентарь непися
-		local seItem
-		local keep_items = { bolt = true, device_pda = true, device_torch = true }
-		npc:iterate_inventory(function(dummy, item)
-			if keep_items[item:section()] == nil then
-				npc:drop_item(item)
-				seItem = AI:object(item:id())
-			--	log("found item %s", item:name())
-				if seItem then
-					AI:release(seItem, true)
-				--	log("release")
-				end
-			end
-		end,
-		npc)
 	end
-
-	local box = level.object_by_id(boxID)
-	if box and npc then		-- если при оживлении у нпс были вещи, то возвращаем их
-		local n = box:inv_box_count()
-		if n>0 then
-			local item
-			for i=0,n-1 do
-				item = box:object_from_inv_box(i)
-			--	log("return to npc: %s", item:name())
-				box:transfer_item(item, npc)
+	-- очищаем инвентарь непися
+	local seItem
+	local keep_items = { bolt = true, device_pda = true, device_torch = true }
+	npc:iterate_inventory(function(dummy, item)
+		if keep_items[item:section()] == nil then
+			npc:drop_item(item)
+			seItem = AI:object(item:id())
+		--	log("found item %s", item:name())
+			if seItem then
+				AI:release(seItem, true)
+			--	log("release")
 			end
 		end
+	end,
+	npc)
+
+	-- если при оживлении у нпс были вещи, то возвращаем их
+	local n = box:inv_box_count()
+	if n > 0 then
+		local item
+		for i = 0, n-1 do
+			item = box:object_from_inv_box(i)
+		--	log("return to npc: %s", item:name())
+			box:transfer_item(item, npc)
+		end
 	end
+
 	local se_box = AI:object(boxID)
 	if se_box then AI:release(se_box, true) end
 end
@@ -770,15 +770,6 @@ function nepis_umer()
 				Actor:give_info_portion(nu)
 				archievements.send_umer_info(obj)
 			end
-		end
-	end
-end
-
-function tessstt()
-	for sid, v in pairs(nepis) do
-		local obj = AI:story_object(sid)
-		if obj then
-			log("%s: sid = %s, umer = %s", obj:name(), tostring(sid), tostring(v._umer))
 		end
 	end
 end
