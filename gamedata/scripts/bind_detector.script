@@ -44,10 +44,12 @@ function det_binder:update(delta)
 		return
 	end
 
-	if not Actor:is_on_belt(self.object) then
+	if not self:check_update() then
 		self.last_time = 0
 		return
-	elseif self.last_time == 0 then
+	end
+
+	if self.last_time == 0 then
 		self.last_time = get_seconds()
 		return
 	end
@@ -67,6 +69,10 @@ function det_binder:update(delta)
 
 	self.condition = self.time_left/self.full_charge_time
 	self.object:set_condition(self.condition)
+end
+
+function det_binder:check_update()
+	return Actor:is_on_belt(self.object)
 end
 
 function det_binder:net_destroy()
@@ -118,8 +124,21 @@ function det_binder:charge(new_charge)
 	self.object:set_condition(new_charge)
 	return true
 end
+
+class "det_mine_binder" (det_binder)
+
+function det_mine_binder:check_update()
+	return Actor:is_in_slot(self.object)
+end
+
 ------------------------------------------------------------------------------
 function init(obj)
-	if obj:section()=="det_suit" then return end
-    obj:bind_object( det_binder(obj) )
+	local sect = obj:section()
+	if sect == "det_suit" then return end
+
+	if sect == "detector_mine" then
+		obj:bind_object( det_mine_binder(obj) )
+	else
+		obj:bind_object( det_binder(obj) )
+	end
 end
