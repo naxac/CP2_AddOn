@@ -30,11 +30,57 @@ end
 
 ---------------------------------------------------
 local wnd = nil
+-- флаги материала геометрии
+local mtlFlags = {
+	flBreakable				= {1, "разрушаемый"},
+	flBounceable			= {4, "возможность рикошета"},
+	flSkidmark				= {8, "оставляет тормозной след"},
+	flBloodmark				= {16, "оставляет кровь"},
+	flClimable				= {32, "невидимая лестница"},
+	flPassable				= {128, "проходимый для физических объектов"},
+	flDynamic				= {256, "динамический объект"},
+	flLiquid				= {512, "жидкость (вода)"},
+	flSuppressShadows		= {1024, "заглушает тени"},
+	flSuppressWallmarks		= {2048, "заглушает отметины от пуль"},
+	flActorObstacle			= {4096, "препятствие (силовое поле) для ГГ"},
+	flInjurious				= {268435456, "отбирает здоровье"},
+	flShootable				= {536870912, "непростреливаемый"},
+	flTransparent			= {1073741824, "непрозрачный"},
+	flSlowDown				= {2147483648, "замедляет движение"}
+}
 
-function show_obj_info()
+function show_debug_static()
 	local obj = level.get_target_obj()
-	if obj == nil then return end
+	if obj then
+		add_wnd()
+		show_obj_info(obj)
+		return
+	end
 
+	local el = level.get_target_element()
+	if not el then return end
+
+	add_wnd()
+
+	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
+			"%c[yellow]~~~~~~~ TARGET ELEMENT INFO ~~~~~~~\\n"..
+			"%c[default]element ID: %c[gray]"..tostring(el).."\\n"..
+			"%c[default]shootfactor: %c[gray]"..tostring( level.get_tri_shootfactor(nil, el) ).."\\n"
+	
+	local fl = level.get_tri_flags(el)
+	text = text.."%c[default]mtlFlags: %c[gray]"..tostring(fl).."\\n"
+
+	for k, v in pairs(mtlFlags) do
+		if bit_and(fl, v[1]) ~= 0 then
+			text = text.."    "..k.." ["..v[2].."]\\n"
+		end
+	end
+
+	wnd:SetText(text)
+end
+
+	
+function add_wnd()
 	if wnd == nil then
 		wnd = CUIStatic()
 		wnd:Init(10,30,1000,738)
@@ -45,7 +91,9 @@ function show_obj_info()
 		xr_s.subscribe("key_press", this.on_key_press)
 		xr_s.subscribe("net_destroy", this.remove_obj_info)
 	end
+end
 
+function show_obj_info(obj)
 	local obj_id = obj:id()
 	local pos = obj:position()
 --	local angle = -obj:direction():getH()
@@ -59,10 +107,19 @@ function show_obj_info()
 					"%c[default]story id: %c[gray]"..tostring( obj:story_id() ).."\\n"..
 					"%c[default]position: %c[gray]"..string.format("%s, %s, %s", pos.x, pos.y, pos.z).."\\n"..
 					"%c[default]level vertex:  %c[gray]"..tostring( obj:level_vertex_id() ).."\\n"..
-					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"..
+					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"
 				--	"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"..
-					"%c[default]visual name: %c[gray]"..( obj.get_visual_name and obj:get_visual_name() or "none" ).."\\n"
-	
+	if obj.get_visual_name then
+		local vis = string.gsub(obj:get_visual_name(), "\\", "/")
+		text = text.."%c[default]visual name: %c[gray]"..vis.."\\n"
+	end
+
+	local el = level.get_target_element()
+	if el then
+		text = text.."%c[default]target bone id:  %c[gray]"..tostring(el).."\\n"..
+					"%c[default]target bone name:  %c[gray]"..obj:get_bone_name_by_id(el).."\\n"
+	end
+
 	if obj:is_entity_alive() then
 		text = text.."%c[default]health: %c[gray]"..tostring( obj.health and obj.health or "unknown" ).."\\n"..
 					"%c[default]rank: %c[gray]"..tostring(
@@ -123,7 +180,7 @@ function show_obj_info()
 				--	"      "..table.concat(t, ", ").."\\n"..
 					"%c[default]spawn_story_id: %c[gray]"..tostring(data.spawn_story_id).."\\n"..
 					"%c[default]custom_data:\\n"..
-					"%c[gray]    "..( string.gsub(data.custom_data, "\n", "\\n    ") ).."\\n"
+					"%c[gray]    "..( data.custom_data:gsub("\\","/"):gsub("\n", "\\n    ") ).."\\n"
 		-- if data.character_name then
 			-- text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
 		-- end
