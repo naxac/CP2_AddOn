@@ -7,7 +7,6 @@ local show_gps = true
 local show_treasures = true
 local show_lc = true
 local show_time = true
-local show_outfit_charge = true
 local show_quick_slots = false
 local biodetector_mode = false
 ---------------------------------------------------------------------------
@@ -87,15 +86,15 @@ function UIScriptHUD:__init()
 	st = xml:InitStatic("static_power", self)
 	self.progress_power = xml:InitProgressBar("power_progress", st)
 
---	self.progress_luminosity = xml:InitProgressBar("luminosity_progress", st)
---	self.progress_noise = xml:InitProgressBar("noise_progress", st)
+	self.progress_luminosity = xml:InitProgressBar("luminosity_progress", st)
+	self.progress_noise = xml:InitProgressBar("noise_progress", st)
 
 	st = xml:InitStatic("static_health", self)
 	self.progress_health = xml:InitProgressBar("progress_bar_health", st)
 
 	st = xml:InitStatic("static_armor", self)
 	self.progress_armor = xml:InitProgressBar("progress_bar_armor", st)
-	
+
 	st = xml:InitStatic("static_radiation", self)
 	self.progress_radiation = xml:InitProgressBar("progress_bar_radiation", st)
 
@@ -147,14 +146,19 @@ function UIScriptHUD:UpdateIndicators()
 	end
 
 	if actor_outfit then
-		local condidion
-		if show_outfit_charge and sys_ini:r_bool_ex(actor_outfit:section(), "volatile", false) then
-			condidion = actor_outfit:binded_object():get_charge_level()
-		else
-			condidion = actor_outfit:condition()
-		end
-		self.progress_armor:SetProgressPos( condidion * 100 )
+		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
+		self.progress_noise:SetProgressPos( (actor_outfit:get_charge_level() or 0) * 100 )
+	else
+		self.progress_armor:SetProgressPos(0)
+		self.progress_noise:SetProgressPos(0)
 	end
+
+	local item = Actor:item_in_slot( inventory_slots.TORCH )
+	local val = 0
+	if item then
+		val = item:get_charge_level() or 0
+	end
+	self.progress_luminosity:SetProgressPos( val * 100 )
 
 	if show_time then
 		self.time_static:SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
@@ -636,7 +640,6 @@ function init_settings()
 	show_treasures		= has_alife_info("pda_show_treasures")
 	show_lc				= has_alife_info("pda_show_level_changers")
 	show_time			= has_alife_info("pda_show_time")
-	show_outfit_charge	= has_alife_info("pda_show_outfit_charge")
 	show_quick_slots	= has_alife_info("pda_show_quick_slots") and (game_options.QuickSlotsOnHUD ~= 1)
 	biodetector_mode	= has_alife_info("pda_biodetector_mode")
 							and ( inventory.on_belt("bioradar")
