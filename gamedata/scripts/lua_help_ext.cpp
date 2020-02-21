@@ -202,6 +202,9 @@ class game_object {
 	void			switch_night_vision(bool<switch_on>);	//переключает состояние ПНВ.
 	// CSpaceRestrictor
 	float			get_shape_radius();
+	// CPhysicShellHolder
+	char			get_bone_name();						// use with set_int_arg0(bone_id)
+	char			get_bone_name_by_id( int<bone_id> );
 };
 
 class ini_file {
@@ -330,6 +333,25 @@ class CUIScriptWnd : CUIDialogWnd,DLL_Pure {
 	vector2*		GetCursorPos();
 };
 
+// флаги материала геометрии
+class mtlFlags = {
+	const flBreakable			= 1				// 0    разрушаемый
+	const flBounceable			= 4				// 2    возможность рикошета (0 - есть, 1 - нет)
+	const flSkidmark			= 8				// 3    оставляет тормозной след
+	const flBloodmark			= 16			// 4    оставляет кровь
+	const flClimable			= 32			// 5    невидимая лестница
+	const flPassable			= 128			// 7    проходимый для физических объектов
+	const flDynamic				= 256			// 8    динамический объект
+	const flLiquid				= 512			// 9    жидкость (вода)
+	const flSuppressShadows		= 1024			// 10   заглушает тени
+	const flSuppressWallmarks	= 2048			// 11   заглушает отметины от пуль
+	const flActorObstacle		= 4096			// 12   препятствие (силовое поле) для ГГ
+	const flInjurious			= 268435456		// 28   отбирает здоровье
+	const flShootable			= 536870912		// 29   непростреливаемый
+	const flTransparent			= 1073741824	// 30   непрозрачный
+	const flSlowDown			= 2147483648	// 31   замедляет движение
+};
+
 End of list of the classes exported to LUA
 
 
@@ -366,10 +388,35 @@ namespace {
 	void			screenshot3();
 	
 	namespace level {
-		const 		invalid_vertex_id = 4294967296;
+		const 			invalid_vertex_id = 4294967296;
 
-		void		change_game_time(int<minutes>, int<hours>, int<days>);
-		int			vertex_id_by_pos( vector*<position> );
+		game_object*	get_target_obj();
+		float			get_target_dist();
+		int<0 or +>		has_cam_effector( int<effect_id> );
+		int<0 or +> 	has_pp_effector( int<effect_id> );
+		bool			has_indicators();
+		void			advance_game_time(int<time_ms>);
+		void			change_game_time( int<minutes>, int<hours>, int<days> );
+		int				vertex_id_by_pos( vector*<position> );
+		game_object*	get_second_talker();
+		CUIDialogWnd*	get_inventory_wnd();
+		CUIDialogWnd*	get_pda_wnd();
+		CUIDialogWnd*	get_talk_wnd();
+		CUIDialogWnd*	get_car_body_wnd();
+		CUIDialogWnd*	get_trade_wnd();
+		void			send_event_key_press( int<DIK_keys*> );
+		void			send_event_key_hold( int<DIK_keys*> );
+		void			send_event_key_release( int<DIK_keys*> );
+		void			send_event_mouse_wheel( int<vol> );
+		void			set_ce_time( float<total_time> );		// устанавливает продолжительность эффектора шатания камеры.
+		void			set_ce_amplitude( float<amp> ) 			// устанавливает максимальную амплитуду эффектора шатания камеры.
+		void			set_ce_period_number( int<periods> ) 	// устанавливает количество циклов эффектора шатания камеры.
+		void			set_ce_power( float<power> );			// устанавливает интенсивность эффектора шатания камеры.
+		void			add_ce();								// запускает эффектор шатания камеры с ранее установленными параметрами.
+		void			add_cam_effector3( float<total_time>, float<amplitude>, int<period_number>, float<power> );
+		int<element>	get_target_element();					//если камера направлена на игровой объект (который имеет шейпы), то возвращает номер кости, иначе возвращает номер полигона статической геометрии.
+		float<factor>	get_tri_shootfactor(NULL, int<element>);	// возвращает фактор пробиваемости материала геометрии (0.0 - непробиваемый, 1.0 - полностью пробиваемый).
+		int<flags>		get_tri_flags(int<element>);			// возвращает флаги материала геометрии (#mtlFlags).
 	};
 
 	namespace relation_registry {

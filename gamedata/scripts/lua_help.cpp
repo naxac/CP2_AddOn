@@ -6906,35 +6906,36 @@ C++ class COptionsManager {
 C++ class CUIProgressBar : CUIWindow {
     CUIProgressBar ();
 
-    function GetFont();
-    function SetWindowName(string);
-    function Enable(boolean);
-    function SetHeight(number);
-    function GetRange_max();
-    function SetAutoDelete(boolean);
-    function GetRange_min();
-    function AttachChild(CUIWindow*);
-    function SetRange(number, number);
-    function SetWndPos(number, number);
-    function Init(number, number, number, number);
-    function Init(Frect*);
-    function GetWidth() const;
-    function DetachChild(CUIWindow*);
-    function SetPPMode();
-    function WindowName();
-    function IsShown();
-    function SetWndSize(number, number);
-    function SetWndRect(Frect);
-    function SetWndRect(number, number, number, number);
-    function GetHeight() const;
-    function SetWidth(number);
-    function Show(boolean);
-    function IsEnabled();
-    function ResetPPMode();
-    function SetFont(CGameFont*);
-    function IsAutoDelete();
-	function SetProgressPos(number);
-	function GetProgressPos();
+    CGameFont*	GetFont();
+    void		SetWindowName(LPCSTR wn);
+    void		Enable(bool);
+    void		SetHeight(float height);
+    void		SetAutoDelete(bool);
+    void		AttachChild(CUIWindow*);
+    void		SetWndPos(float x, float y);
+    void		Init(float x, float y, float width, float height);
+    void		Init(Frect*);
+    float		GetWidth();
+    void		DetachChild(CUIWindow*);
+    void		SetPPMode();
+    LPCSTR*		WindowName();
+    bool		IsShown();
+    void		SetWndSize(float width, float height);
+    void		SetWndRect(Frect);
+    void		SetWndRect(float x, float y, float width, float height);
+    float		GetHeight() const;
+    void		SetWidth(float width);
+    void		Show(bool);
+    bool		IsEnabled();
+    void		ResetPPMode();
+    void		SetFont(CGameFont*);
+    bool		IsAutoDelete();
+
+    float		GetRange_max();
+    float		GetRange_min();
+//	void		SetRange(float _Min, float _Max);
+	void		SetProgressPos(float pos);
+	float		GetProgressPos();
 };
 
 C++ class CUIPropertiesBox : CUIFrameWindow {
