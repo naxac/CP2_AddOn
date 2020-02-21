@@ -41,10 +41,6 @@ function fake_item:__init(obj)
 	self.__clsid = sys_ini:r_clsid(self.__section, "class")
 	self.__id = gen_item_id()
 	self.is_fake = true
-	
-	if sys_ini:line_exist(self.__section, "script_binding") then
-		self.binder = fake_binder(self)
-	end
 
 	fake_items[self.__id] = self
 end
@@ -82,12 +78,7 @@ function fake_item:set_obj(obj)
 	if isMagazinedWeapon(obj) then
 		self.ammo_elapsed = obj:get_ammo_in_magazine()
 	end
-	local binder = obj:binded_object()
-	if binder and binder.get_charge_level then
-		if sys_ini:r_bool_ex(self.__section, "volatile", false) == true then
-			self.charge_level = binder:get_charge_level()
-		end
-	end
+	self.charge_level = obj:get_charge_level()
 
 	local data = netpk:get(AI:object(obj:id()))
 	self.custom_data = data.custom_data
@@ -199,8 +190,6 @@ function fake_item:get_go_float(n)
 	end
 end
 
-function fake_item:binded_object()
-	return self.binder
 end
 
 function fake_item:get_ammo_in_magazine()
@@ -215,25 +204,11 @@ function fake_item:get_ammo_left()
 	return self.ammo_left
 end
 
+function fake_item:get_charge_level()
+	return self.object.charge_level
+end
+
 function fake_item:destroy()
-	if self.binder then
-		self.binder:destroy()
-		self.binder = nil
-	end
 	fake_items[self.__id] = nil
-end
-
-
-class "fake_binder"
-function fake_binder:__init(item)
-	self.object = item
-end
-function fake_binder:__finalize()
-end
-function fake_binder:get_charge_level()
-	return self.object.charge_level or self.object:condition()
-end
-function fake_binder:destroy()
-	self.object = nil
 end
 

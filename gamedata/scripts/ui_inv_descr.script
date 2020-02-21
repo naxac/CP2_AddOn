@@ -177,8 +177,9 @@ function CUIDescriptionWnd:ShowDescription(item)
 
 	local description = get_string(sys_ini:r_string_wq(self.section, "description"))
 
-	if sys_ini:r_bool_ex(self.section, "volatile", false) == true then
-		self:ShowVolatileItemParams()
+	local charge = item:get_charge_level()
+	if charge then
+		self:ShowVolatileItemParams(charge)
 	end
 
 	-- artefacts
@@ -555,14 +556,7 @@ function CUIDescriptionWnd:ShowOutfitParams()
 	end
 end
 -- Показываем параметры энергозависимых предметов
-function CUIDescriptionWnd:ShowVolatileItemParams()
-	local charge = nil
-	local binder = self.item:binded_object()
-	if binder and binder.get_charge_level then
-		charge = binder:get_charge_level()
-	else
-		charge = self.condition
-	end
+function CUIDescriptionWnd:ShowVolatileItemParams(charge)
 	charge = math.clamp(charge, 0, 1)
 
 	local caption = sys_ini:r_string_ex(self.section, "energy_level_text", "ui_st_charge")
