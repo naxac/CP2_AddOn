@@ -6,7 +6,8 @@ local string_gfind = string.gfind
 local string_find = string.find
 local table_insert = table.insert
 
-local cell_size = 25  -- размер иконки в описании свойств предмета
+local cell_size = 25		-- размер иконки в описании свойств предмета
+local vert_interval = 1		-- параметр vert_interval в скролле
 
 local shift_show_descr = 700  -- через какое время после наведения курсора будет показано окно, ms
 
@@ -118,13 +119,14 @@ function CUIDescriptionWnd:HideDescription()
 end
 
 function CUIDescriptionWnd:OnMouseWheel(mode)
-	if self.frame:IsShown() then
-		local n = mode and -40 or 40 
-		local mx = self.scroll_v:GetMaxScrollPos()
-		if mx > self.scroll_height then mx = mx - self.scroll_height end
-		self.scrollPos = math.clamp(self.scrollPos + n, 0, mx)
-		self.scroll_v:SetScrollPos(self.scrollPos)
-	end
+	if not self.frame:IsShown() then return end
+	if self.frame:GetHeight() < 768 then return end
+
+	local n = mode and -40 or 40 
+	local mx = self.scroll_v:GetMaxScrollPos()
+	if mx > self.scroll_height then mx = mx - self.scroll_height end
+	self.scrollPos = math.clamp(self.scrollPos + n, 0, mx)
+	self.scroll_v:SetScrollPos(self.scrollPos)
 end
 
 function CUIDescriptionWnd:ShowProps(tbl)
@@ -135,12 +137,13 @@ function CUIDescriptionWnd:ShowProps(tbl)
 		st.icon:InitTexture("ui_inv_icon_"..t[1])
 		st.text = self.xml:InitStatic("props:prop_text", st)
 		st.text:SetText(t[2])
-		self.addH = self.addH + 20
+		self.addH = self.addH + st:GetHeight() + vert_interval
 	end
 end
 
-function CUIDescriptionWnd:ShowPropFromIni(icon, text)
+function CUIDescriptionWnd:ShowPropFromIni(icon, text, text_color)
 	local st = self.xml:InitStatic("props_ini", self.scroll_v)
+	st:SetHeight(cell_size)
 
 	local w = icon.w*self.k_icon
 	local ww = cell_size*2
@@ -157,9 +160,13 @@ function CUIDescriptionWnd:ShowPropFromIni(icon, text)
 	st.text:Init(ww, 0, st:GetWidth()-ww, cell_size)
 	st.text:SetTextY((cell_size/2)-8)
 	st.text:SetTextST(text)
-	st.text:SetTextColor(255, 160, 160 ,160)
+	if text_color then
+		st.text:SetTextColor( unpack(text_color) )
+	else
+		st.text:SetTextColor(255, 160, 160 ,160)
+	end
 
-	self.addH = self.addH + cell_size + 1
+	self.addH = self.addH + cell_size + vert_interval
 end
 
 function CUIDescriptionWnd:ShowDescription(item)
@@ -353,7 +360,7 @@ function CUIDescriptionWnd:GetContainerParams()
 			end
 			table_insert(self.arts_list, {
 				GetIconParams(k),
-				get_string(art_name)..(v>1 and " x"..v or "")
+				get_string(art_name)..(v>1 and " %c[white]x"..v or "")
 			})
 		end
 		if r > 0 then
@@ -366,17 +373,21 @@ function CUIDescriptionWnd:GetContainerParams()
 end
 -- Показываем описание оружия
 function CUIDescriptionWnd:ShowWeaponParams()
-	self.xml:InitStatic("props", self.scroll_v)
-	self.addH = self.addH + 20
 	local st = self.xml:InitStatic("props", self.scroll_v)
+	local stH = st:GetHeight() + vert_interval
+	self.addH = self.addH + stH
+
+	-- Боеприпасы
+	st = self.xml:InitStatic("props", self.scroll_v)
 	st:SetText("Боеприпасы:")
 	st:SetTextColor(255, 238, 153, 26)
-	self.addH = self.addH + 20
-	-- Боеприпасы
+	self.addH = self.addH + stH
+	-- Патроны
 	local s = sys_ini:r_string(self.section, 'ammo_class')
 	for a in string_gfind(s, "[%w_%-%.]+") do
 		self:ShowPropFromIni( GetIconParams(a), get_inv_name(a) )
 	end
+	-- Гранаты
 	local gl = sys_ini:r_u32(self.section, 'grenade_launcher_status')
 	if gl~=0 then
 		s = sys_ini:r_string_ex(self.section, 'grenade_class')
@@ -387,11 +398,13 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		end
 	end
 
-	local st2
 	-- Навесы
+	local st2
 	local text = ""
 	local addon, v
+	-- Прицел
 	local n = sys_ini:r_u32(self.section, 'scope_status')
+	local af = self.item:get_addon_flags()
 	if n ~= 0 then
 		st2 = self.xml:InitStatic("props", self.scroll_v)
 		
@@ -399,14 +412,19 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		v = GetIconParams(addon)
 		if n == 1 then
 			s = sys_ini:r_float(self.section, 'scope_zoom_factor')
-			n = device().fov/(s*0.75)
-			text = "Интегрированный x"..string_format("%.1f", n).."-кратный прицел"
+			local f = device().fov/(s*0.75)
+			text = "Интегрированный x"..string_format("%.1f", f).."-кратный прицел"
 		else
 			text = get_inv_name(addon)
 		end
-		self:ShowPropFromIni(v, text)
+		local clr
+		if n == 1 or bit_and(af, addon_flags.scope) ~= 0 then
+			clr = {255, 160, 255, 160}
+		end
+		self:ShowPropFromIni(v, text, clr)
 	end
 
+	-- Глушитель
 	n = sys_ini:r_u32(self.section, 'silencer_status')
 	if n ~= 0 then
 		if st2 == nil then
@@ -419,9 +437,14 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		else
 			text = get_inv_name(addon)
 		end
-		self:ShowPropFromIni(v, text)
+		local clr
+		if n == 1 or bit_and(af, addon_flags.silencer) ~= 0 then
+			clr = {255, 160, 255, 160}
+		end
+		self:ShowPropFromIni(v, text, clr)
 	end
 
+	-- Подствольник
 	if gl ~= 0 then
 		if st2 == nil then
 			st2 = self.xml:InitStatic("props", self.scroll_v)
@@ -433,15 +456,19 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		else
 			text = get_inv_name(addon)
 		end
-		self:ShowPropFromIni(v, text)
+		local clr
+		if gl == 1 or bit_and(af, addon_flags.grenade_launcher) ~= 0 then
+			clr = {255, 160, 255, 160}
+		end
+		self:ShowPropFromIni(v, text, clr)
 	end
 	if st2 then
 		st2:SetText("Навесы:")
 		st2:SetTextColor(255, 238, 153, 26)
-		self.addH = self.addH + 20
+		self.addH = self.addH + stH
 	end
 	self.xml:InitStatic("props", self.scroll_v)
-	self.addH = self.addH + 20
+	self.addH = self.addH + stH
 	
 	-- Некоторые характеристики
 	v = {}
@@ -454,7 +481,9 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	table_insert( v, {"rpm", text} )
 
 	n = sys_ini:r_u32(self.section, 'ammo_mag_size')
-	text = "ёмкость магазина: "..string_format("%d", n)
+	text =	"ёмкость магазина: %c[light_red]"..
+			string_format("%d", self.item:get_ammo_in_magazine())..
+			"%c[default]/%c[light_green]"..string_format("%d", n)
 	table_insert( v, {"ammo_mag_size", text} )
 
 	if sys_ini:r_bool_ex( self.section, "scope_nv", false ) then
