@@ -540,6 +540,15 @@ function CUIDescriptionWnd:ShowAfParams()
 		end
 	end
 
+	if sys_ini:line_exist(hit_absorbation_sect, "physic_strike_wound_immunity") then
+		val = sys_ini:r_float(hit_absorbation_sect, "physic_strike_wound_immunity")
+		if val~=1 then
+			val = 100-val*100
+			txt = "Удар: "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
+			table_insert( params, {"physic_strike", txt} )
+		end
+	end
+
 	if sys_ini:line_exist(self.section, "additional_inventory_weight") then
 		val = sys_ini:r_float(self.section, "additional_inventory_weight")
 		if val~=0 then
@@ -562,6 +571,15 @@ function CUIDescriptionWnd:ShowOutfitParams()
 			val = val*100*self.condition
 			txt = t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
 			table_insert( params, {t.prop, txt} )
+		end
+	end
+
+	if sys_ini:line_exist(self.section, "physic_strike_protection") then
+		val = sys_ini:r_float(self.section, "physic_strike_protection")
+		if val~=0 then
+			val = val*100*self.condition
+			txt = "Удар: "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
+			table_insert( params, {"physic_strike", txt} )
 		end
 	end
 
