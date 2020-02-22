@@ -36,7 +36,7 @@ local rad_items = {
 }
 
 -- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
-local conditions = {
+local actor_conditions = {
 	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'wound_incarnation_v'),
 	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v'),
 	power_restore_speed		= sys_ini:r_float('actor_condition', 'satiety_power_v') *100,
@@ -197,7 +197,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 			inv_name = "unknown_art"
 			description = "Неизвестное аномальное образование."
 			if arc_inventory.IsRadDetected() then
-				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") * 100 / conditions.radiation_restore_speed
+				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") * 100 / actor_conditions.radiation_restore_speed
 				if rd > 0 then
 					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри. Надо быть осторожней."
 				end
@@ -360,12 +360,12 @@ function CUIDescriptionWnd:GetContainerParams()
 			end
 			table_insert(self.arts_list, {
 				GetIconParams(k),
-				get_string(art_name)..(v>1 and " %c[white]x"..v or "")
+				get_string(art_name)..(v>1 and " x"..v or "")
 			})
 		end
 		if r > 0 then
 			if arc_inventory.IsRadDetected() then
-				r = r*100/conditions.radiation_restore_speed
+				r = r*100/actor_conditions.radiation_restore_speed
 				self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
 			end
 		end
@@ -483,7 +483,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	n = sys_ini:r_u32(self.section, 'ammo_mag_size')
 	text =	"ёмкость магазина: %c[light_red]"..
 			string_format("%d", self.item:get_ammo_in_magazine())..
-			"%c[default]/%c[light_green]"..string_format("%d", n)
+			"%c[default] / %c[light_green]"..string_format("%d", n)
 	table_insert( v, {"ammo_mag_size", text} )
 
 	if sys_ini:r_bool_ex( self.section, "scope_nv", false ) then
@@ -515,7 +515,7 @@ function CUIDescriptionWnd:ShowAfParams()
 	for i,t in ipairs(conditions_params) do
 		val = sys_ini:r_float(self.section, t.prop, 0)
 		if val~=0 then
-			val = val*100/conditions[t.prop]
+			val = val*100/actor_conditions[t.prop]
 			txt = t.text.." "
 			if t.prop == "bleeding_restore_speed" then
 				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
