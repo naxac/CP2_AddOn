@@ -17,7 +17,6 @@ local arts_rad = 0
 local anom_rad = 0
 -----------------------------------------------------------------------------------
 local inv_arts_radiation = 0
-local belt_arts_radiation = 0
 local arts_satiety = 0
 
 local game_ms = 1000 / level.get_time_factor()
@@ -26,103 +25,125 @@ function change_arts_satiety(delta)
 	arts_satiety = arts_satiety + delta
 end
 
-function change_inv_radiation(delta, belt)
+function change_inv_radiation(delta)
 	inv_arts_radiation = inv_arts_radiation + delta
-	if belt then
-		belt_arts_radiation = belt_arts_radiation - delta
-	end
---	log("[arc_radiation.change_inv_radiation]:\n - delta = %s\n -  inv_arts_radiation = %s\n - belt_arts_radiation = %s", delta, inv_arts_radiation, belt_arts_radiation)
-end
-function change_belt_radiation(delta)
-	belt_arts_radiation = belt_arts_radiation + delta
---	log("[arc_radiation.change_belt_radiation]:\n - delta = %s\n -  belt_arts_radiation = %s", delta, belt_arts_radiation)
+--	log("~ change_inv_radiation: delta = %s\n -  inv_arts_radiation = %s", delta, inv_arts_radiation)
 end
 -----------------------------------------------------------------------------------
-local arts_upd_time = 100
+local ARTEFACTS_UPDATE_TIME = 100
+local f_update_time = 0
 local update_time = 0
+local udpate_hits_time = 0
+local last_time = 0
 
 function on_actor_update(delta)
-	if update_time < arts_upd_time then
-		update_time = update_time + delta
-	else
-		arc_inventory.on_actor_update(update_time)
+	this.update_conditions()
+	this.udpate_hits(delta)
 
-		local f = arts_upd_time/game_ms       -- update_time/game_ms
-		
-		if arts_satiety~=0 then
-			Actor.satiety = arts_satiety*f
-		end
-		
-		local add_rad = 0
-		if inv_arts_radiation ~= 0
-			and not Actor:get_current_holder()
-		then
-			add_rad = inv_arts_radiation*f
-			if belt_arts_radiation < 0 then
-				add_rad = add_rad + (belt_arts_radiation*f/DOSE_DEC_DIV)
-			end
-		end
-		
-		local r = Actor.radiation
-		local d = r - 0.05
-		mod_rad_dose(d*4000)
-		Actor.radiation = - d + add_rad
+	if game_options.HudRad then
+		amk.oau_watchdog=30011
+		amk.oau_reason="arc_ui_dosimeter.update"
+		arc_ui_dosimeter.update(delta)
+	end
 
-		if d>0.000001 then
-			local rp = arc_inventory.cur_rad_protection
-			if arc_inventory.crp_changed or ( rp==0 and d>0.005 ) then
-				anom_rad = d / ( 1 - rp )
-				last_anom_hit_time = 0
-			else
-				table.insert( art_hits, 1, { time_since_hit = 0, hit_power = d } )
-			end
-		end
-		
-		if last_anom_hit_time>400 then
-			anom_rad = 0
+	this.update_detector_sound(delta)
+end
+
+function update_conditions()
+	local cur_time = game.time()
+	if last_time == 0 then
+		last_time = cur_time
+		return
+	end
+
+	if update_time < ARTEFACTS_UPDATE_TIME then
+		update_time = update_time + cur_time - last_time
+		last_time = cur_time
+		return
+	end
+
+	f_update_time = update_time/1000
+	update_time = 0
+
+	arc_inventory.on_actor_update()
+
+	if arts_satiety~=0 then
+		Actor.satiety = arts_satiety*f_update_time
+	end
+	
+	local add_rad = 0
+	if inv_arts_radiation ~= 0
+		and not Actor:get_current_holder()
+	then
+	--	Actor.radiation = inv_arts_radiation*f_update_time
+		add_rad = inv_arts_radiation*f_update_time
+	end
+--	log("add_rad %s", tostring(add_rad))
+	local r = Actor.radiation
+	local d = r - 0.05
+	this.mod_rad_dose(d*4000)
+	Actor.radiation = add_rad - d
+
+	if d>0.000001 then
+		local rp = arc_inventory.cur_rad_protection
+		if arc_inventory.crp_changed or ( rp==0 and d>0.005 ) then
+			anom_rad = d / ( 1 - rp )
 			last_anom_hit_time = 0
 		else
-			last_anom_hit_time = last_anom_hit_time + update_time
+			table.insert( art_hits, 1, { time_since_hit = 0, hit_power = d } )
 		end
-		
-		local i = 1
-		local hits_time, hits_summ = 0, 0
-		
-		while art_hits[i] do
-			local t = art_hits[i].time_since_hit + update_time
-			
-			if t > 200 then
-				table.remove(art_hits, i)
-			else
-				hits_time = t
-				hits_summ = hits_summ + art_hits[i].hit_power
-				art_hits[i].time_since_hit = t
-				i = i + 1
-			end
-		end
-		
-		arts_rad = (hits_time > 0) and ( hits_summ * 200 / hits_time ) or 0
+	end
+end
 
-		if game_options.HudRad then
-			amk.oau_watchdog=30011
-			amk.oau_reason="arc_ui_dosimeter.update"
-			arc_ui_dosimeter.update(update_time)
-		end
+function udpate_hits(delta)
+	if udpate_hits_time < ARTEFACTS_UPDATE_TIME then
+		udpate_hits_time = udpate_hits_time + delta
+		return
+	end
+	f_update_time = udpate_hits_time
+	udpate_hits_time = 0
 
-		if RAD_DOSE > DOSE_TIRING and arc_inventory.IsRadDetected() then
-			if not detector_snd then
-				detector_snd = table.copy({}, sound_theme.actor_theme.level_border_detector)
-			end
-			if time_global() >= (detector_snd.next_time or -1) then
-				table.random(detector_snd.sounds):play(Actor, 0, sound_object.s2d)
-				local factor = 20*DOSE_TIRING/RAD_DOSE
-				detector_snd.next_time = time_global() + math.random(detector_snd.min_snd*factor, detector_snd.max_snd*factor)
-			end
-		elseif detector_snd then
-			detector_snd = nil
+	if last_anom_hit_time>400 then
+		anom_rad = 0
+		last_anom_hit_time = 0
+	else
+		last_anom_hit_time = last_anom_hit_time + f_update_time
+	end
+	
+	local i = 1
+	local hits_time, hits_summ = 0, 0
+	
+	while art_hits[i] do
+		local t = art_hits[i].time_since_hit + f_update_time
+		
+		if t > 200 then
+			table.remove(art_hits, i)
+		else
+			hits_time = t
+			hits_summ = hits_summ + art_hits[i].hit_power
+			art_hits[i].time_since_hit = t
+			i = i + 1
 		end
+	end
+	
+	arts_rad = (hits_time > 0) and ( hits_summ * 200 / hits_time ) or 0
+end
 
-		update_time = 0
+function update_detector_sound(delta)
+	if RAD_DOSE > DOSE_TIRING and arc_inventory.IsRadDetected() then
+		if not detector_snd then
+			detector_snd = table.copy({}, sound_theme.actor_theme.level_border_detector)
+			detector_snd.next_time = -1
+		end
+		if detector_snd.next_time < 0 then
+			table.random(detector_snd.sounds):play(Actor, 0, sound_object.s2d)
+			local factor = 20*DOSE_TIRING/RAD_DOSE
+			detector_snd.next_time = math.random(detector_snd.min_snd*factor, detector_snd.max_snd*factor)
+		else
+			detector_snd.next_time = detector_snd.next_time - delta
+		end
+	elseif detector_snd then
+		detector_snd = nil
 	end
 end
 
@@ -165,18 +186,26 @@ function set_rad_dose(new_dose)
 	arc_health.set_power_penalty(rd*1.5)
 end
 
+local last_dose = {}
 function mod_rad_dose(dose_delta)
-	if dose_delta > 0.01 then
-		arc_ui_dosimeter.fade(true)
-	elseif dose_delta < 0 then
+	if #last_dose == 2 then
+		local mean = (table.remove(last_dose, 1) + last_dose[1] + dose_delta) /3
+	--	log("mean %s", tostring(mean))
+		if mean > 0.01 then
+			arc_ui_dosimeter.fade(true)
+		end
+	end
+	if dose_delta < 0 then
 		dose_delta = dose_delta / DOSE_DEC_DIV
 	end
 	
+	table.insert(last_dose, dose_delta)
+
 	set_rad_dose(RAD_DOSE+dose_delta)
 end
 -----------------------------------------------------------------------------------
 function use_antirad(delta)
-	mod_rad_dose(delta*100*DOSE_DEC_DIV)
+	set_rad_dose(RAD_DOSE + delta*100)
 end
 -----------------------------------------------------------------------------------
 function on_key_release(dik, bind)
