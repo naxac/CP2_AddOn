@@ -28,12 +28,6 @@ local is_eatable = {
 	[clsid.obj_food]	= true,
 	[clsid.obj_medkit]	= true
 }
--- Радиоактивные предметы
-local rad_items = {
-	["lekar_kalmyak"] = 80,
-	["mushroom"] = 10,
-	["case_nebo"] = 30
-}
 
 -- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
 local actor_conditions = {
@@ -199,7 +193,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 			if arc_inventory.IsRadDetected() then
 				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") * 100 / actor_conditions.radiation_restore_speed
 				if rd > 0 then
-					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри. Надо быть осторожней."
+					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри."
 				end
 			end
 		end
@@ -212,9 +206,13 @@ function CUIDescriptionWnd:ShowDescription(item)
 			self.arts_list = nil
 			description = description.."\\n \\n%c[UI_orange]Контейнер пуст"
 		end
-	elseif rad_items[self.section] then
-		local p = { {"radiation_2", "Радиация: %c[red]+"..string_format("%d Ки",rad_items[self.section])} }
-		self:ShowProps(p)
+	elseif sys_ini:line_exist(self.section, "radiation_restore_speed") then
+		local r = sys_ini:r_float(self.section, "radiation_restore_speed")
+		if r > 0 then
+			r = r * 100 / actor_conditions.radiation_restore_speed
+			local p = { { "radiation_2", "Радиация: %c[red]+"..string_format("%d Ки", r) } }
+			self:ShowProps(p)
+		end
 	end
 
 	-- if game_options.DEBUG then

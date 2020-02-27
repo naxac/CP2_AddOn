@@ -382,14 +382,8 @@ check_tbl['ammo_rpo-a'] = function (item)
 	local sobj = AI:object(item:id())
 	if sobj then AI:release(sobj) end
 end
--- arc_radiation
-check_tbl['lekar_kalmyak'] = function (item)
-	arc_radiation.change_inv_radiation(0.008)
-end
 check_tbl['mushroom'] = function (item)
 	if AI:object(item:id()) == nil then return end
-
-	arc_radiation.change_inv_radiation(0.001)
 
 	if not has_timer("mux") then
 		start_game_timer("mux", 0, 1, 0)	-- проверяем мухоморы раз в игровой час
@@ -404,7 +398,6 @@ check_tbl['mushroom'] = function (item)
 	end
 end
 check_tbl['case_nebo'] = function (item)
-	arc_radiation.change_inv_radiation(0.003)
 	xr_s.subscribe("update", arc_radiation.spawn_telepatic)
 end
 check_tbl["vodka"] = function(item)
@@ -1359,6 +1352,20 @@ function check(item)
 
 	if level.map_has_object_spot(item:id(), "red_location") then
 		level.map_remove_object_spot(item:id(), "red_location")
+	end
+
+	if sys_ini:line_exist(sect, "radiation_restore_speed") then
+		if item:is_artefact()
+			and ( bind_det_arts.is_detected_art(sect)
+			or sect:find("^kolba_") )
+		then
+			xr_statistic.addArtefact(item:id(), sect)
+		end
+
+		local inv_rad = sys_ini:r_float(sect, "radiation_restore_speed")
+		if inv_rad > 0 then
+			arc_radiation.change_inv_radiation(inv_rad)
+		end
 	end
 end
 

@@ -136,15 +136,8 @@ end
 
 check_tbl['amk_metka'] = function (item) amk_mod.check_beacon_drop(item) end
 check_tbl['af_black_hole'] = function (item) anom_remover.on_item_drop() end
--- arc_radiation
-check_tbl['lekar_kalmyak'] = function (item)
-	arc_radiation.change_inv_radiation(-0.008)
-end
-check_tbl['mushroom'] = function (item)
-	arc_radiation.change_inv_radiation(-0.001)
-end
+
 check_tbl['case_nebo'] = function (item)
-	arc_radiation.change_inv_radiation(-0.003)
 	xr_s.unsubscribe("update", arc_radiation.spawn_telepatic)
 end
 
@@ -159,5 +152,12 @@ function check(item)
 	local sect = item:section()
 	if check_tbl[sect] then
 		check_tbl[sect](item)
+	end
+
+	if sys_ini:line_exist(sect, "radiation_restore_speed") then
+		local inv_rad = sys_ini:r_float(sect, "radiation_restore_speed")
+		if inv_rad > 0 then
+			arc_radiation.change_inv_radiation(-inv_rad)
+		end
 	end
 end
