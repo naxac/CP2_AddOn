@@ -5,29 +5,17 @@ cur_rad_protection = 0
 
 crp_changed = false
 
-local detectors = {"detector_simple", "detector_advances", "detector_elite", "detector_elite_sak", "detector_elite_john"}
+local detectors = {
+	["detector_suit"]		= false,
+	["detector_simple"]		= false,
+	["detector_advances"]	= false,
+	["detector_elite"]		= false,
+	["detector_elite_sak"]	= false,
+	["detector_elite_john"]	= false
+}
 local cur_detector = nil
 
-function on_actor_update(delta)
-	local obj = Actor:item_in_slot( inventory_slots.DETECTOR )	-- детектор костюма перенесён в слот
-	local det = (obj~=nil and obj:section()=='detector_suit' and 'detector_suit') or nil
-
-	if not det then
-		for _,v in ipairs(detectors) do
-			if inventory.on_belt(v) then
-				det = v
-				break
-			end
-		end
-	end
-
-	if det ~= cur_detector then
-		arc_ui_dosimeter.set_detector(det)
-		ui_script_hud.set_detector(det)
-	end
-
-	cur_detector = det
-	
+function on_actor_update()
 	crp_changed = false
 
 	if actor_outfit then
@@ -60,6 +48,48 @@ function IsRadDetected()
 	return cur_detector ~= nil
 end
 
+function set_current_detector(section)
+	cur_detector = section
+	arc_ui_dosimeter.set_detector(section)
+	ui_script_hud.set_detector(section)
+end
+
 function get_current_detector()
 	return cur_detector
+end
+
+
+function on_set_detector(item)
+	local sect = item:section()
+	if detectors[sect] ~= nil then
+	--	log("on_set_detector: %s", sect)
+		set_current_detector(sect)
+		detectors[sect] = true
+	end
+end
+
+function on_del_detector(item)
+	local sect = item:section()
+	if detectors[sect] then
+	--	log("on_del_detector: %s", sect)
+		detectors[sect] = inventory.on_belt(sect)~=nil
+
+		if cur_detector == sect then
+			for k, v in pairs(detectors) do
+				if v then
+					set_current_detector(k)
+					return
+				end
+			end
+			set_current_detector(nil)
+		end
+	end
+end
+
+
+function attach()
+	xr_s.subscribe( "item_to_slot",	this.on_set_detector )
+	xr_s.subscribe( "item_to_belt",	this.on_set_detector )
+	xr_s.subscribe( "item_to_ruck",	this.on_del_detector )
+	xr_s.subscribe( "item_drop",	this.on_del_detector )
 end
