@@ -31,11 +31,11 @@ local is_eatable = {
 
 -- Параметры актёра, по которым считаются некоторые параметры артефактов
 local actor_conditions = {
-	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'wound_incarnation_v'),
-	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v'),
-	power_restore_speed		= sys_ini:r_float('actor_condition', 'satiety_power_v') *100,
-	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v'),
-	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v') *100
+	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'wound_incarnation_v') /100,
+	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v') /100,
+	power_restore_speed		= sys_ini:r_float('actor_condition', 'satiety_power_v'),
+	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v') /100,
+	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v')
 }
 -- параметры костюмов и артов
 local conditions_params = {
@@ -191,7 +191,6 @@ function CUIDescriptionWnd:ShowDescription(item)
 			inv_name = "unknown_art"
 			description = "Неизвестное аномальное образование."
 			if arc_inventory.IsRadDetected() then
-				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") * 100 / actor_conditions.radiation_restore_speed
 				if rd > 0 then
 					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри."
 				end
@@ -368,7 +367,7 @@ function CUIDescriptionWnd:GetContainerParams()
 		end
 		if r > 0 then
 			if arc_inventory.IsRadDetected() then
-				r = r*100/actor_conditions.radiation_restore_speed
+				r = r/actor_conditions.radiation_restore_speed
 				self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
 			end
 		end
@@ -523,7 +522,7 @@ function CUIDescriptionWnd:ShowAfParams()
 	for i,t in ipairs(conditions_params) do
 		val = sys_ini:r_float(self.section, t.prop, 0)
 		if val~=0 then
-			val = val*100/actor_conditions[t.prop]
+			val = val/actor_conditions[t.prop]
 			txt = t.text.." "
 			if t.prop == "bleeding_restore_speed" then
 				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
