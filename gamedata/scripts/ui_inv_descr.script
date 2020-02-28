@@ -191,6 +191,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 			inv_name = "unknown_art"
 			description = "Неизвестное аномальное образование."
 			if arc_inventory.IsRadDetected() then
+				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") / actor_conditions.radiation_restore_speed
 				if rd > 0 then
 					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри."
 				end
@@ -386,8 +387,17 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	self.addH = self.addH + stH
 	-- Патроны
 	local s = sys_ini:r_string(self.section, 'ammo_class')
+	local ammo_type = self.item:get_ammo_type()
+	local i = 0
+	local clr = nil
 	for a in string_gfind(s, "[%w_%-%.]+") do
-		self:ShowPropFromIni( GetIconParams(a), get_inv_name(a) )
+		if i == ammo_type then
+			clr = {255, 160, 255, 160}
+		else
+			clr = nil
+		end
+		self:ShowPropFromIni( GetIconParams(a), get_inv_name(a), clr )
+		i = i + 1
 	end
 	-- Гранаты
 	local gl = sys_ini:r_u32(self.section, 'grenade_launcher_status')
@@ -419,9 +429,10 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		else
 			text = get_inv_name(addon)
 		end
-		local clr
 		if n == 1 or bit_and(af, addon_flags.scope) ~= 0 then
 			clr = {255, 160, 255, 160}
+		else
+			clr = nil
 		end
 		self:ShowPropFromIni(v, text, clr)
 	end
@@ -439,9 +450,10 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		else
 			text = get_inv_name(addon)
 		end
-		local clr
 		if n == 1 or bit_and(af, addon_flags.silencer) ~= 0 then
 			clr = {255, 160, 255, 160}
+		else
+			clr = nil
 		end
 		self:ShowPropFromIni(v, text, clr)
 	end
@@ -458,9 +470,10 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		else
 			text = get_inv_name(addon)
 		end
-		local clr
 		if gl == 1 or bit_and(af, addon_flags.grenade_launcher) ~= 0 then
 			clr = {255, 160, 255, 160}
+		else
+			clr = nil
 		end
 		self:ShowPropFromIni(v, text, clr)
 	end
