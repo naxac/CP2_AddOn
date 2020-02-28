@@ -84,7 +84,7 @@ function CRandomTask:__init()
 	--' начальная установка
 	self.task_info = {}
 
-	local need_get_ct_hash = not has_alife_info("task_save_fix")
+	local need_get_ct_hash = not has_alife_info("task_save_fix")												 
 	local def_idle_time = 48*60*60
 
 	for i = 0, n-1 do
@@ -127,7 +127,6 @@ function CRandomTask:__init()
 			hash_to_ct[cthash] = ct
 			ct_to_hash[ct] = cthash
 		end
-
 		if self.task_ini:line_exist(id, "target") then
 			curr_task_info.target = self.task_ini:r_string(id, "target")
 			if self.task_ini:line_exist(id, "target_count") then
@@ -293,6 +292,9 @@ end
 
 -- Будем записывать не id задания а его хеш - семикратная экономия.
 function CRandomTask:save(p)
+	if not has_alife_info("task_save_fix") then
+		Actor:give_info_portion("task_save_fix")
+	end
 	-- log("^^^ [CRandomTask:save]")
 	--' Считаем количество записей
 	local n = table.size(self.task_info)
@@ -419,7 +421,6 @@ function CRandomTask:load_old(p)
 	end
 	-- log("size "..tostring((p:r_tell()-rt0)))
 end
-
 --' Генератор уникальных ID для фраз
 function CRandomTask:gen_phrase_id()
 	self.task_phrase_id = self.task_phrase_id + 1
