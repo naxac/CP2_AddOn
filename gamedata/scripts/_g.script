@@ -1843,6 +1843,20 @@ function need_show_condition(item)
 	return ( ( item:is_weapon() or item:is_outfit() ) and b ~= false ) or b == true
 end
 
+function set_story_id( obj, sid )
+	AI:assign_story_id( nil, nil, obj.id, sid )
+end
+
+function is_story_object( obj )
+	local sid
+	if obj.m_story_id then
+		sid = obj.m_story_id
+	else
+		sid = obj:story_id()
+	end
+	return sid < 4294967296
+end
+
 function object_level_name(obj)
 	if not GGraph:valid_vertex_id(obj.m_game_vertex_id) then
 		log("~ [object_level_name]: object '%s' has invalid vertex id[%s]", obj:name(), obj.m_game_vertex_id)
@@ -1857,6 +1871,60 @@ function del_obj_by_id(id)
 		AI:release(obj, true)
 	end
 end
+
+function get_inv_name(section)
+	if sys_ini:line_exist(section, "inv_name") then
+		return sys_ini:r_string_wq(section, "inv_name")
+	end
+	return section
+end
+function GetIconParams(section)
+	if section~=nil and section~=""
+		and sys_ini:section_exist(section)
+		and sys_ini:line_exist(section, "inv_grid_x")
+	then
+		return {x = sys_ini:r_u32(section, "inv_grid_x") *50,
+				y = sys_ini:r_u32(section, "inv_grid_y") *50,
+				w = sys_ini:r_u32(section, "inv_grid_width") *50,
+				h = sys_ini:r_u32(section, "inv_grid_height") *50}
+	end
+	return {x=0, y=0, w=1, h=1}
+end
+
+function ShowMessageBox(...)
+	ui_messagebox_new.UIMessageBox(...)
+end
+
+function shiftCheckDropItem(timeout)
+	_G['biznes_remove_special_item']= true
+	start_small_timer(timeout or 300,
+		function() _G['biznes_remove_special_item'] = nil end
+	)
+end
+
+local IsBlocked = false
+function BlockUIDescr( b )
+	if b == nil then
+		return IsBlocked
+	else
+		IsBlocked = b
+	end
+end
+
+local ShiftHold = false
+function ShiftPressed( b )
+	if b == nil then
+		return ShiftHold
+	else
+		ShiftHold = b
+	end
+end
+
+local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
+local ru = [[йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"№;:?]]
+local tt = {}
+for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
+function translit(l) return tt[l] or l end
 
 -- malandrinus
 --[[counter = 0

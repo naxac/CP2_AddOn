@@ -693,37 +693,6 @@ relation_registry.change_goodwill = function (who_id, to_whom_id, goodwill_chang
 end
 
 -- global functions
-_G.get_inv_name = function (section)
-	if sys_ini:line_exist(section, "inv_name") then
-		return sys_ini:r_string_wq(section, "inv_name")
-	end
-	return section
-end
-_G.GetIconParams = function (section)
-	if section~=nil and section~=""
-		and sys_ini:section_exist(section)
-		and sys_ini:line_exist(section, "inv_grid_x")
-	then
-		return {x = sys_ini:r_u32(section, "inv_grid_x") *50,
-				y = sys_ini:r_u32(section, "inv_grid_y") *50,
-				w = sys_ini:r_u32(section, "inv_grid_width") *50,
-				h = sys_ini:r_u32(section, "inv_grid_height") *50}
-	end
-	return {x=0, y=0, w=1, h=1}
-end
-
-_G.ShowMessageBox = function(...)
-	ui_messagebox_new.UIMessageBox(...)
-end
-
-_G.set_story_id = function( obj, sid )
-	AI:assign_story_id( nil, nil, obj.id, sid )
-end
-
-_G.is_story_object = function( obj )
-	return obj:story_id() < 4294967296
-end
-
 _G.old_user_name = user_name
 _G.user_name = function( name )
 	if name == nil then
@@ -735,37 +704,6 @@ _G.user_name = function( name )
 	log("! Wrong user name: %s", utils.to_str( name ) )
 	return false
 end
-
-_G.shiftCheckDropItem = function(timeout)
-	_G['biznes_remove_special_item']= true
-	start_small_timer(timeout or 300,
-		function() _G['biznes_remove_special_item'] = nil end
-	)
-end
-
-local IsBlocked = false
-_G.BlockUIDescr = function( b )
-	if b == nil then
-		return IsBlocked
-	else
-		IsBlocked = b
-	end
-end
-
-local ShiftHold = false
-_G.ShiftPressed = function( b )
-	if b == nil then
-		return ShiftHold
-	else
-		ShiftHold = b
-	end
-end
-
-local en = [[qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?@#$^&]]
-local ru = [[йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪ/ФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,"№;:?]]
-local tt = {}
-for i=1,#en do tt[en:sub(i,i)] = ru:sub(i,i) end
-_G.translit  = function (l) return tt[l] or l end
 
 --tmr:stop()
 --log1( "# loading xray_extensions: "..tostring(tmr:time()) )
