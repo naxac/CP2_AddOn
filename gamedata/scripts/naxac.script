@@ -1,6 +1,26 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 9
+local current_fix = 10
 
+function fix_10()
+	local obj
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and obj:section_name() == "wpn_awm" then
+			local pid = obj.parent_id
+			if pid and pid ~= 65535 then
+				local par = AI:object(pid)
+				if par and par:section_name() == "inventory_box"
+					and (not is_story_object(par))
+					and object_level_name(par) == "l05_bar"
+				then
+					AI:release(par, true)
+					log("~ release wmgr box with some 'wpn_awm'")
+					break
+				end
+			end
+		end
+	end
+end
 function fix_9()
 	local obj = AI:story_object(story_ids.lc_radar_to_military)
 	if obj then
