@@ -8,7 +8,7 @@ local saved_fields = {
 	["charge_level"] = { name = "cl", def = function(s) return nil end },
 	["ammo_left"]    = { name = "al", def = function(s) return sys_ini:r_u32_ex(s, "box_size", nil) end },
 	["ammo_elapsed"] = { name = "ae", def = function(s) return sys_ini:r_u32_ex(s, "ammo_mag_size", nil) end },
-	["ammo_type"]    = { name = "at", def = function(s) return nil end },
+	["ammo_type"]    = { name = "at", def = function(s) return 0 end },
 	["addon_flags"]  = { name = "af", def = function(s) return 0 end   },
 	["ammo_ids"]     = { name = "ai", def = function(s) return nil end },
 	["worked_time"]  = { name = "wt", def = function(s) return 0 end   }
@@ -98,10 +98,8 @@ function fake_item:write_server_object(se_obj)
 	t.ammo_type = self.ammo_type
 	t.ammo_left = self.ammo_left
 	t.addon_flags = self.addon_flags
-	if self.ammo_ids then
-		t.upd = {}
-		t.upd.ammo_ids = self.ammo_ids
-	end
+	t.upd = {}
+	t.upd.ammo_ids = self.ammo_ids
 	
 	netpk:modify(se_obj, t)
 end
@@ -196,6 +194,10 @@ end
 
 function fake_item:get_addon_flags()
 	return self.addon_flags
+end
+
+function fake_item:get_ammo_type()
+	return self.ammo_type
 end
 
 function fake_item:get_ammo_left()
