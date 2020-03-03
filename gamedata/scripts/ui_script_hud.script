@@ -44,6 +44,8 @@ function UIScriptHUD:__init()
 	self.biodetector_mode = false
 	self.sweep_angle = 0
 
+	self.is_break = false
+
 	self:Init(0, 0, 1024, 768)
 
 	local xml = CScriptXmlInit()
@@ -75,6 +77,7 @@ function UIScriptHUD:__init()
 		self.clip_center.x - st:GetWidth()/2,
 		self.clip_center.y - st:GetHeight()/2
 	)
+	self.minimap_center = st
 
 	self.map_spots = {}
 	self.del_spots = {}
@@ -105,6 +108,8 @@ function UIScriptHUD:__init()
 
 	if has_alife_info("pda_biodetector_mode") then
 		self:SwitchBioradar()
+	elseif has_alife_info("pda_dont_work") then
+		self:Break(true)
 	end
 end
 
@@ -112,6 +117,8 @@ function UIScriptHUD:__finalize()
 end
 
 function UIScriptHUD:Update(delta)
+	if self.is_break then return end
+
 	amk.oau_reason="UIScriptHUD:Update"
 	amk.oau_watchdog=18810
 	if biodetector_mode then
@@ -346,6 +353,23 @@ function UIScriptHUD:DrawSpot(obj, tex, w, h)
 	return st
 end
 
+function UIScriptHUD:Break(mode)
+	if self.is_break == mode then return end
+	self.is_break = mode
+
+	if mode then
+		self.map:InitTexture("abc\\hud_empty")
+		self.map_frame:InitTexture("ui\\ui_bsod")
+		self.map_frame:SetOriginalRect(0, 0, 1024, 576)
+		self.sweep:Show(false)
+		self.time_static:SetText("")
+		self.minimap_center:Show(false)
+	else
+		self.minimap_center:Show(true)
+		self:SetPDAMode(self.biodetector_mode)
+	end
+end
+
 function UIScriptHUD:SwitchBioradar()
 	if not show_time then
 		self.time_static:SetText("")
@@ -354,7 +378,11 @@ function UIScriptHUD:SwitchBioradar()
 	if self.biodetector_mode == biodetector_mode then return end
 	self.biodetector_mode = biodetector_mode
 
-	if biodetector_mode then
+	self:SetPDAMode(biodetector_mode)
+end
+
+function UIScriptHUD:SetPDAMode(is_biodetector)
+	if is_biodetector then
 		self.map:InitTexture("abc\\hud_empty")
 		self.map_frame:InitTexture("intro\\intro_back")
 		self.sweep:Show(true)
@@ -648,7 +676,22 @@ function init_settings()
 	if wnd then
 		wnd:SwitchBioradar()
 		wnd:RemoveAllSpots()
+		if has_alife_info("pda_dont_work") then
+			wnd:Break(true)
+		end
 	end
+end
+
+-- сломать HUD - true, починить - false
+function break_hud(mode)
+	if wnd then
+		wnd:Break(mode)
+	end
+end
+
+-- вызывается из инфо-поршня "pda_dont_work"
+function break_pda()
+	this.break_hud(true)
 end
 
 function attach()
