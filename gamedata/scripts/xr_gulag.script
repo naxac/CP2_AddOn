@@ -415,12 +415,18 @@ end
 -- если он уже пришёл на работу, настроить ему логику и рестрикторы (при необходимости).
 -- obj=game_object
 function gulag:object_setup_online( obj_id, obj, need_setup_logic, need_setup_restrictors )
-	printf( "[smart_terrain %s] gulag: object_setup_online: obj=%s need_setup_logic=%s need_setup_restrictors=%s", self.name, obj:name(), tostring(need_setup_logic), tostring(need_setup_restrictors) )
+--	printf( "[smart_terrain %s] gulag: object_setup_online: obj=%s need_setup_logic=%s need_setup_restrictors=%s", self.name, obj:name(), tostring(need_setup_logic), tostring(need_setup_restrictors) )
 
 	self.Object[obj_id] = obj
 
 	if self.ObjectJob[obj_id] then
 		local job = self.Job[self.ObjectJob[obj_id]]
+
+		if not self:availState(job.state, self.state) then
+			log("~ [gulag:object_setup_online] %s - need reinit", obj:name())
+			self:free_obj_and_reinit(obj_id)
+			return
+		end
 
 		if need_setup_logic then
 			self:setup_logic( obj, job.section )

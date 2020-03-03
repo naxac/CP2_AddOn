@@ -789,39 +789,6 @@ gulags.val_lager_bandits.job = function(sj, gname, type, squad, groups)
 			   "meet_state = 4|hide@jila_hello|2|hide\n" ..
 			   "meet_state_wpn = 4|hide@jila_hello|2|hide\n"
 
-	-- ЖИЛА
-    t = { section = "logic@" .. gname .. "_trader",
-        idle = 0,
-		position_threshold = "graph",
-        prior = 9, state = {state_normal, state_alarm, state_alarm_actor_inside},
-        squad = squad, group = groups[1],
-        online = "{+val_lager_bandits_show_leader_company}",
-        in_rest    = "",
-        out_rest   = gname .. "_main_building_restrictor",
-        predicate  = function(npc_info)
-			return npc_info.profile_name == "val_bandit_trader"
-		end
-    }
-    table.insert(sj, t)
-
-    ltx = ltx.."[logic@" .. gname .. "_trader]\n" ..
-               "active = walker@" .. gname .. "_trader\n" ..
-               "combat_ignore = combat_ignore\n" ..
-
-               "[walker@" .. gname .. "_trader]\n" ..
-               "path_walk = trader_walk\n" ..
-               "path_look = trader_look\n" ..
-               "combat_ignore_cond = " .. combat_ignore ..
-               "meet = meet@" .. gname .. "_trader\n" ..
-
-               "[meet@" .. gname .. "_trader]\n" ..
-               "meet_state = 5| {+npc_greet} wait_trade, wait_trade@ {+npc_greet} talk_bye %-npc_greet% |4| {-npc_greet} wait_trade, wait_trade@ {-npc_greet} talk_hello %+npc_greet%\n" ..
-               "meet_state_wpn = 5| {+npc_greet} wait_trade, wait_trade@ {+npc_greet} talk_bye %-npc_greet% |4| {-npc_greet} wait_trade, wait_trade@ {-npc_greet} talk_hello %+npc_greet%\n" ..
-               "use = true\n" ..
-               "use_wpn = false\n" ..
-               "meet_talk_enabled = true\n" ..
-               "precond = visibility\n"
-
     -- ОХРАННИКИ БОРОВА
     for i = 1, 3 do
         t = { section = "logic@" .. gname .. "_bodyguard_normal" .. i,
@@ -1153,6 +1120,39 @@ gulags.val_lager_bandits.job = function(sj, gname, type, squad, groups)
 
     --ltx = ltx.."#include \"misc\\gulag_dark_valley.ltx\"\n"
 
+	-- ЖИЛА
+    t = { section = "logic@" .. gname .. "_trader",
+        idle = 0,
+		position_threshold = "graph",
+        prior = 9, state = {state_normal, state_alarm, state_alarm_actor_inside},
+        squad = squad, group = groups[1],
+        online = "{+val_lager_bandits_show_leader_company}",
+        in_rest    = "",
+        out_rest   = gname .. "_main_building_restrictor",
+        predicate  = function(npc_info)
+			return npc_info.profile_name == "val_bandit_trader"
+		end
+    }
+    table.insert(sj, t)
+
+    ltx = ltx.."[logic@" .. gname .. "_trader]\n" ..
+               "active = walker@" .. gname .. "_trader\n" ..
+               "combat_ignore = combat_ignore\n" ..
+
+               "[walker@" .. gname .. "_trader]\n" ..
+               "path_walk = trader_walk\n" ..
+               "path_look = trader_look\n" ..
+               "combat_ignore_cond = " .. combat_ignore ..
+               "meet = meet@" .. gname .. "_trader\n" ..
+
+               "[meet@" .. gname .. "_trader]\n" ..
+               "meet_state = 5| {+npc_greet} wait_trade, wait_trade@ {+npc_greet} talk_bye %-npc_greet% |4| {-npc_greet} wait_trade, wait_trade@ {-npc_greet} talk_hello %+npc_greet%\n" ..
+               "meet_state_wpn = 5| {+npc_greet} wait_trade, wait_trade@ {+npc_greet} talk_bye %-npc_greet% |4| {-npc_greet} wait_trade, wait_trade@ {-npc_greet} talk_hello %+npc_greet%\n" ..
+               "use = true\n" ..
+               "use_wpn = false\n" ..
+               "meet_talk_enabled = true\n" ..
+               "precond = visibility\n"
+
     gulags.val_lager_bandits.ltx = ltx
 end
 
@@ -1170,11 +1170,11 @@ gulags.val_lager_bandits.state = function(gulag)
                     local enemy_type = enemy:clsid()
                     if enemy_type == clsid.actor and
                         utils.npc_in_zone(Actor, db.zone_by_name["val_lager_bandits_restrictor"]) then
-                        printf("gulag <val_lager_bandits>: STATE ALARM ACTOR")
+                        -- log("gulag <val_lager_bandits>: STATE ALARM ACTOR")
                         return state_alarm_actor_inside
                     end
                     if enemy_type == clsid.actor or enemy_type == clsid.script_stalker then --or enemy_type == clsid.trader
-                        printf("gulag <val_lager_bandits>: STATE ALARM")
+                        -- log("gulag <val_lager_bandits>: STATE ALARM")
                         return state_alarm
                     end
                 end
@@ -1182,7 +1182,7 @@ gulags.val_lager_bandits.state = function(gulag)
         end
     end
     
-    printf("gulag <val_lager_bandits>: STATE NORMAL")
+    -- log("gulag <val_lager_bandits>: STATE NORMAL")
     return state_normal
 end
 
