@@ -1,15 +1,15 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 --[[----------------------------------------------------------------------------------------------
-ђ бЇ абҐў ­ЁҐ Ё еа ­Ґ­ЁҐ ­ бва®ҐЄ б¬ ав вҐааҐ©­®ў
-—гЈ © Ђ«ҐЄб ­¤а
+Распарсевание и хранение настроек смарт террейнов
+Чугай Александр
 ------------------------------------------------------------------------------------------------]]
 
 local params_loaded = false
 
 local stay_times
 
---[[ ЄҐиЁа®ў ­­лҐ ЇаҐ¤гбв ­®ў®Є а ­Ј®ў Ё ЈагЇЇЁа®ў®Є
-д®а¬ в:
+--[[ кешированные предустановок рангов и группировок
+формат:
 	presets = {
 		preset_name1 = {
 			community1 = {rank_min1,rank_max1},
@@ -19,11 +19,11 @@ local stay_times
 		preset_name2 = false,
 		...
 	}
-false ®§­ з Ґв, зв® Їлв «Ёбм Їа®зЁв вм, ­® ­Ґ ­ и«Ё в Є®© ЇаҐ¤гбв ­®ўЄЁ
+false означает, что пытались прочитать, но не нашли такой предустановки
 ]]
 local presets = {}
 
--- ў®§ўа й Ґв в Ў«Ёжг б ЇаҐ¤гбв ­®ўЄ®© Ё«Ё false
+-- возвращает таблицу с предустановкой или false
 function read_preset( preset_name )
 	local ltx = ini_file( "misc\\smart_terrain_presets.ltx" )
 
@@ -62,7 +62,7 @@ function read_preset( preset_name )
 	end
 end
 
--- § Јаг§Ёвм а §«Ёз­лҐ ®ЎйЁҐ ¤«п ўбҐе б¬ ав®ў ­ бва®©ЄЁ
+-- загрузить различные общие для всех смартов настройки
 function load_params()
 	params_loaded = true
 
@@ -80,7 +80,7 @@ function load_params()
 	end
 end
 
--- Ї®«гзЁвм ўаҐ¬Ґ­­®© Ё­вҐаў «
+-- получить временной интервал
 function get_stay_time_interval( name )
 	if not params_loaded then
 		load_params()
@@ -95,7 +95,7 @@ function get_stay_time_interval( name )
 	return stay_times[name][1], stay_times[name][2]
 end
 
--- Ї®«гзЁвм ЇаҐ¤гбв ­®ўЄг
+-- получить предустановку
 function get_preset( preset_name )
 	if presets[preset_name] == nil then
 		presets[preset_name] = read_preset( preset_name )
@@ -103,4 +103,5 @@ function get_preset( preset_name )
 
 	return presets[preset_name]
 end
+
 
