@@ -1,0 +1,84 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- original idea by Monnoroch
+-- base script by Malandrinus
+-- scripting by Shadowman
+
+function init(obj)
+    local new_binder = my_binder(obj)
+    obj:bind_object(new_binder)
+end
+
+class "my_binder" (object_binder)
+function my_binder:__init(obj)
+	super(obj)
+end 
+
+function my_binder:reload(section)
+    object_binder.reload(self, section)
+end
+
+function my_binder:reinit()
+    object_binder.reinit(self)
+    db.storage[self.object:id()] = {}
+end
+
+function my_binder:net_spawn(data)
+    sak.out_teleport()
+	difficulty_manager.deathStatChangeDifficulty()
+	meceniy_work.prepare_for_work()
+    return object_binder.net_spawn(self, data)
+end
+
+function my_binder:net_destroy()
+	db.storage[self.object:id()] = nil
+    object_binder.net_destroy(self)
+end
+
+function my_binder:save(packet)
+    object_binder.save(self, packet)
+
+	local wt0 = packet:w_tell()
+
+    xr_logic.save_obj(self.object, packet)
+	xr_statistic.save_ids(packet)
+	artefact_hunter.save(packet)
+
+	local wt1 = packet:w_tell()
+	log( "[netpacket_pda_binder:save], packet size: %s (scripts: %s)", tostring(wt1), tostring(wt1 - wt0) )
+end
+
+function my_binder:load(reader)
+    object_binder.load(self, reader)
+
+	local rt0 = reader:r_tell()
+
+    xr_logic.load_obj(self.object, reader)
+	xr_statistic.load_ids(reader)
+	artefact_hunter.load(reader)
+
+	local rt1 = reader:r_tell()
+	log( "[netpacket_pda_binder:load], stream size: %s (scripts: %s)", tostring(rt1), tostring(rt1 - rt0) )
+end
+
+------------------------------------------------------------------------------
+function create_pda()
+	local netpacket_pda_id = 0
+	local ps = db.storage[0].pstor
+	if ps["hnp"] == nil then
+		--создание ПДА для нетпакета при новой игре
+		local np_obj = AI:create("netpacket_pda", vector():set(0,0,0), 0, 0, 0)
+		netpacket_pda_id = np_obj.id
+		ps["hnp"] = netpacket_pda_id
+		log("# [netpacket_pda.create_pda]: Cоздан ПДА для нетпакета с id [%d]", netpacket_pda_id)
+		xr_statistic.load_ids(nil, true)
+	else
+		netpacket_pda_id = ps["hnp"]
+	end
+--	if netpacket_pda_id == 0 then
+--		log("~ Не найден netpacket_pda: пишем на актера")
+--	end
+	if db.storage[netpacket_pda_id] == nil then
+		db.storage[netpacket_pda_id] = { pstor = {} }
+	end
+	return netpacket_pda_id
+end
