@@ -1135,9 +1135,10 @@ end
 function gulag:free_obj_and_reinit( obj_id )
 	self:free_obj(obj_id)
 
-	local t = self.Object[obj_id]
-	if t ~= nil and t ~= true and self.Object_begin_job[obj_id] then
-		xr_logic.initialize_obj( t, nil, false, Actor, self:get_stype( obj_id ) )
+--	local o = self.Object[obj_id]	-- объект может быть уже в оффлайне, но ссылка осталась
+	local o = level.object_by_id(obj_id)
+	if o ~= nil and self.Object_begin_job[obj_id] then
+		xr_logic.initialize_obj( o, nil, false, Actor, self:get_stype( obj_id ) )
 	end
 end
 
@@ -1196,7 +1197,7 @@ end
 
 -- получить персонажа, который в онлайне, и который ближе всего к указанной позиции
 function gulag:get_nearest_online_obj( pos )
-	local min_dist    = 100000000
+	local min_dist    = math.huge
 	local nearest_obj = nil
 	local d
 
