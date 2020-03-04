@@ -1,47 +1,19 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local sound = {
-	medkit				= {"zwuk\\inv_medic"},
-	medkit_army			= {"zwuk\\inv_medic"},
-	medkit_scientic		= {"zwuk\\inv_medic"},
-	kolbasa				= {"zwuk\\inv_food","zwuk\\inv_kolbasa"},
-	vodka				= {"zwuk\\inv_vodka","zwuk\\inv_flaska"},
-	energy_drink		= {"zwuk\\inv_drinking","zwuk\\inv_softdrink"},
-	bandage				= {"zwuk\\inv_bandage"},
-	antirad				= {"zwuk\\inv_pills"},
-	soporific			= {"zwuk\\inv_pills"},
-	conserva			= {"zwuk\\inv_conserva"},
-	bread				= {"zwuk\\inv_sandwich","zwuk\\inv_kolbasa"},
-	sandwich			= {"zwuk\\inv_sandwich"},
-	flaska				= {"zwuk\\inv_drinking","zwuk\\inv_flaska","zwuk\\inv_water"},
-	beer_a				= {"zwuk\\inv_vodka","zwuk\\inv_softdrink","zwuk\\inv_water"},
-	suvorotka			= {"zwuk\\inv_pills"},
-	antizombie			= {"zwuk\\inv_pills"},
-	d_pantenol			= {"zwuk\\inv_pills"},
-	mozg				= {"zwuk\\inv_food"},
-	bezoar				= {"zwuk\\inv_food"},
-	mushroom			= {"zwuk\\inv_food"},
-	sweetness			= {"zwuk\\inv_kolbasa","zwuk\\inv_sandwich"},
-	pampers				= {"script_replics\\bandit_1\\idle\\bandit_idle_2"},
-	repair_item_outfit	= {"zwuk\\inv_repair_outfit_1","zwuk\\inv_repair_outfit_2","zwuk\\inv_repair_outfit_3"},
-	repair_item_weapon	= {"zwuk\\inv_repair_weapon_1","zwuk\\inv_repair_weapon_2","zwuk\\inv_repair_weapon_3","zwuk\\inv_repair_weapon_4"},
-	acumm				= {"zwuk\\inv_acumm"},
-	ekza_akkumul		= {"zwuk\\inv_acumm"},
-	art_acumm			= {"anomaly\\pux_blast"},
-	af_buliz			= {"anomaly\\pux_blast"},
-	art					= {"anomaly\\pux_blast"}
-}
 local last_tmr, eat_snd = nil, nil
 
 function use_snd(section)
 	if _G['biznes_remove_special_item'] then return end
 
-	if sound[section] then 
+	if sys_ini:line_exist(section, "use_sound") then
+		local snd_name = sys_ini:r_string(section, "use_sound")
+		local snd = sound_theme.use_snd_themes[snd_name]
+		ASSERT(snd, "[zvuki.use_snd]: can not find sound for %s, use_sound: %s", section, snd_name)
+
 		if eat_snd and eat_snd:playing() then
 			eat_snd:stop()
 		end
-		
-		local s = sound[section]
-		eat_snd = xr_sound.get_safe_sound_object(table.random(s))
+
+		eat_snd = xr_sound.get_safe_sound_object( table.random(snd) )
 		eat_snd:play_at_pos(Actor, vector(), 0, sound_object.s2d)
 
 		local gd = level.get_game_difficulty()
