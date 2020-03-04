@@ -76,8 +76,8 @@ function save_box_items(box, items)
 			table.insert(stor, t)
 		end
 		table.insert(fake_boxes[boxId], obj.id)
-	--	log("[%s]: packet size = %s", obj:name(), size + 1)
-	--	table.print(stor)
+--		log("[%s]: packet size = %s", obj:name(), size + 1)
+--		table.print(stor)
 		if #items_to_save == 0 then
 			break
 		end
@@ -120,7 +120,7 @@ function load_box_items(box)
 	return items
 end
 
--- 'inv_grid_width' or 'inv_grid_height' is 0
+-- 'inv_grid_width' or 'inv_grid_height' == 0
 local no_show_sections = {
 	["arc_ballast"] = true,
 	["ammo_soul"] = true,
@@ -145,10 +145,9 @@ function get_actor_items()
 				return
 			end
 		end
-		if item:has_inventory_item_flags(ii_flags.is_quest_item) == true then
-			return
-		end
-		if no_show_sections[item:section()] then
+		if (item:has_inventory_item_flags(ii_flags.is_quest_item) == true)
+			or no_show_sections[item:section()]
+		then
 			return
 		end
 		table.insert(items, item)
@@ -269,12 +268,9 @@ function offline_npc_found_box(npc, se_box)
 		end
 	end
 
-	if gps_habar.has_label(se_box.id) and robbed then
+	if robbed and gps_habar.has_label(se_box.id) then
 		gps_habar.update_gps_spot_on_fake(true, se_box.id, tmp_items)
-		local lvname = "Зоны Отчуждения"
-		if GGraph:valid_vertex_id(se_box.m_game_vertex_id) then
-			lvname = game.translate_string( object_level_name(se_box) )
-		end
+		local lvname = game.translate_string( object_level_name(se_box) )
 		amk.send_tip("%c[255,255,128,128]На территории " .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
 	end
 end
