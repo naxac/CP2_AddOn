@@ -75,6 +75,24 @@ function item_tradable_for_npc(npc, item)
 	return (item:condition() >= pers_cond[item_type])
 end
 
+function can_trade_general(trader, item)
+	if not trader then
+		return true
+	end
+
+	ASSERT(item, "[cant_trade_general] 'item' is a nil reference")
+
+	if item:condition() < min_trade_condition then
+		return false
+	end
+
+	if not artefact_hunter.trader_know_art(trader, item:section()) then
+		return false
+	end
+
+	return true
+end
+
 local item_place = {
 	ruck = 0,
 	slot = 1,
@@ -85,7 +103,7 @@ function treat_item(item, place, npc)
 	-- если есть собеседник, т.е. идёт разговор или торговля, 
 	-- и он не купит предмет из-за плохого состояния
 	if (use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item))
-		or (npc and min_trade_condition > item:condition())
+		or not can_trade_general(npc, item)
 	then
 		-- то делаем предмет негруппируемым, подсвеченным и непродаваемым
 		local fl = ii_flags.ungroupable + ii_flags.always_untradable + ii_flags.manual_highlighting

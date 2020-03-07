@@ -533,6 +533,24 @@ function has_unknown_arts()
 	return res
 end
 
+function trader_know_art(npc, section)
+	local t = artefacts[section]
+	if not t then
+		return true
+	end
+
+	if t.parent then
+		section = t.parent
+	end
+
+	local sid = npc:story_id()
+	local b = true
+	if info_traders[sid] then
+		b = t.lvl <= info_traders[sid].lvl
+	end
+
+	return b and t.known
+end
 
 function init_sidor_known_art_dialog( dlg )
 	init_known_art_dialog( dlg, "Escape_Trader" )
