@@ -388,46 +388,36 @@ function first_run()
 	end
 end
 -----------------------------------------------------------------------------------------------
-local trader2level = {
-	["sidor"]		= { lvl = 7, pay = 0.20 },
-	["barman"]		= { lvl = 7, pay = 0.15 },
-	["sakharov"]	= { lvl = 7, pay = 0.10 },
-	["scryaga"]		= { lvl = 5, pay = 0.22 },
-	["sak"]			= { lvl = 6, pay = 0.12 },
-	["doctor"]		= { lvl = 7, pay = 0.07 }
+local info_traders = {
+	[story_ids.Escape_Trader]      = { name = "sidor",    lvl = 7, pay = 0.20 },
+	[story_ids.bar_Barman]         = { name = "barman",   lvl = 7, pay = 0.15 },
+	[story_ids.yan_general_ecolog] = { name = "sakharov", lvl = 7, pay = 0.10 },
+	[story_ids.Mil_Miser]          = { name = "scryaga",  lvl = 5, pay = 0.22 },
+	[story_ids.Sak]                = { name = "sak",      lvl = 6, pay = 0.12 },
+	[story_ids.Doktor]             = { name = "doctor",   lvl = 7, pay = 0.07 },
+	[story_ids.Doktor1]            = { name = "doctor",   lvl = 7, pay = 0.07 }
 }
 
-local phr_it = {
-	{
-		ask			= "Вот, смотри, вроде на артефакт похоже.",
-		know		= "Да, это артефакт, называется %s. Доставай КПК и записывай описание.",
-		dont_know	= "Похоже вроде... В первый раз такое вижу. Может, ещё что есть?"
-	}, {
-		ask			= "Вот, какую-то штуковину нашел, на булыжник похожа...",
-		know		= "Эта штуковина называется %s. Давай свой КПК, скопирую тебе информацию по артефакту.",
-		dont_know	= "Мда, занятная штуковина, но я не знаю, что это такое. Спроси у кого-нибудь другого, %s."
-	}, {
-		ask			= "Вот это, вроде как артефакт.",
-		know		= "Да, это аномальное образование называют %s. Запиши себе, %s.",
-		dont_know	= "Вроде, ага, только вот что за артефакт - мне неизвестно к сожалению."
-	}, {
-		ask			= "Глянь-ка на эту вещицу, не артефакт ли?",
-		know		= "Артефакт. А зовут его %s. Добавил все данные о нём в твой КПК.",
-		dont_know	= "А кто ж его знает, вроде похоже на артефакт. У кого-нибудь другого спроси, %s, я её впервые вижу..."
-	}, {
-		ask			= "А вот это, случаем, не артефакт?",
-		know		= "Это %s, %s. Найдёшь ещё - приноси, дам хорошую цену. Не забудь записать описание, а тот так найдёшь ещё и выкинешь.",
-		dont_know	= "Не знаю, %s, не встречал такого..."
-	}, {
-		ask			= "Вот такой арт видел когда-нибудь?",
-		know		= "Конечно видел. Этот артефакт называется %s. Скопировал тебе инфу про него.",
-		dont_know	= "Нет, %s, не видел. Интересная штуковина, покажи кому-нибудь другому, может, знают что-то про него."
-	}
-}
+function format_phrase(text, fmt)
+	for k, v in pairs(fmt) do
+		text = string.gsub(text, "%$"..k, v)
+	end
+	return text
+end
 
-function init_known_art_dialog( dlg, trader )
+function init_known_art_dialog( dlg, str_sid )
+	local sid = story_ids[str_sid]
+	ASSERT(sid, "[init_known_art_dialog] story_id not exist: %s", str_sid)
+	local t = info_traders[sid]
+	ASSERT(t, "[init_known_art_dialog] trader with story_id %s[%s] not found in 'info_traders'", str_sid, sid)
+
+	local get_string = game.translate_string
+
+	local trader = t.name
 	local p = "known_art_"..trader
-	local actor_name = Actor:character_name()
+
+	local fmt = {}
+	fmt.actor = Actor:character_name()
 
 	local phr = dlg:AddPhrase( p.."_0", "0", "", -10000 )
 	local phrase_script
@@ -436,11 +426,12 @@ function init_known_art_dialog( dlg, trader )
 	phrase_script = phr:GetPhraseScript()
 	phrase_script:AddHasInfo("art_hunter_about_pay_info")
 
-	local pay = trader2level[trader].pay
-	phr = dlg:AddPhrase( "Тут такое дело, "..actor_name..". Любая информация денег стоит, согласен? Много не возьму, "..
-		string.format("%d", pay*100).."% от стоимости артефакта, по которому нужна информация. Согласен?", "11", "0", -10000 )
+	local pay = t.pay
+	fmt.pay = tostring(math.ceil(pay*100))
+	phr = dlg:AddPhrase( format_phrase(get_string("known_art_pay_11"), fmt ), "11", "0", -10000 )
 	phrase_script = phr:GetPhraseScript()
 	phrase_script:AddDontHasInfo("art_hunter_about_pay_info")
+	fmt.pay = nil
 
 	phr = dlg:AddPhrase( "known_art_pay_12", "12", "11", -10000 )
 
@@ -453,14 +444,14 @@ function init_known_art_dialog( dlg, trader )
 	phrase_script:AddAction("dialogs.break_dialog")
 
 	local text = ""
-	local translate = game.translate_string
-	local lvl = trader2level[trader].lvl
+	local lvl = t.lvl
 	local f = false
 	local phr_id
 	for i, sect in ipairs(id2art) do
-		local tt = table.random(phr_it)
+		local n = tostring( math.random(1,7) )
+
 		phr_id = tostring( 1000+i )
-		phr = dlg:AddPhrase( tt.ask, phr_id, "1", -10000 )
+		phr = dlg:AddPhrase( "known_art_ask_"..n, phr_id, "1", -10000 )
 		phrase_script = phr:GetPhraseScript()
 		phrase_script:AddPrecondition("artefact_hunter.precondition_unknown_art")
 		phrase_script:AddAction("artefact_hunter.show_art_icon")
@@ -468,10 +459,12 @@ function init_known_art_dialog( dlg, trader )
 		phr = dlg:AddPhrase( "", phr_id, "13", 0 )
 
 		if lvl >= artefacts[sect].lvl then
-			text = string.format( tt.know, translate( sys_ini:r_string( sect, "inv_name" ) ), actor_name )
+			fmt.art = get_string( sys_ini:r_string( sect, "inv_name" ) )
+			text = format_phrase( get_string("known_art_know_"..n), fmt )
 			f = true
 		else
-			text = string.format( tt.dont_know, actor_name )
+			fmt.art = nil
+			text = format_phrase( get_string("known_art_dont_know_"..n), fmt )
 			f = false
 		end
 		phr = dlg:AddPhrase( text, tostring(2000+i), phr_id, -10000 )
@@ -491,6 +484,10 @@ function show_art_icon(first_speaker, second_speaker, dialog_id, phrase_id)
 	Actor:give_talk_message("", "ui\\ui_icon_equipment", Frect():set(icon.x, icon.y, icon.w, icon.h), "iconed_icon_item")
 end
 function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
+	local trader = first_speaker:id() == 0 and second_speaker or first_speaker
+	local t = info_traders[trader:story_id()]
+	ASSERT(t, "[precondition_unknown_art] %s: trader's story_id[%s] is not found in 'info_traders'", trader:name(), trader:story_id())
+
 	local art = id2art[ tonumber(phrase_id) - 1000 ]
 	local obj = Actor:object( art )
 	if not obj then
@@ -504,18 +501,21 @@ function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev
 
 	if obj then
 		return artefacts[art].known == false
-			and Actor:money() >= obj:cost()*trader2level[ string.match(dialog_id, "^[^_]+") ].pay
+			and Actor:money() >= obj:cost()*t.pay
 	end
 
 	return false
 end
 
 function trader_add_art_info(first_speaker, second_speaker, dialog_id, phrase_id)
+	local trader = first_speaker:id() == 0 and second_speaker or first_speaker
+	local t = info_traders[trader:story_id()]
+	ASSERT(t, "[trader_add_art_info] %s: trader's story_id[%s] is not found in 'info_traders'", trader:name(), trader:story_id())
+
 	local art = id2art[ tonumber(phrase_id) - 2000 ]
 
 	local cost = sys_ini:r_float(art, "cost")
-	local pay = cost * trader2level[ string.match(dialog_id, "^[^_]+") ].pay
-	dialogs.relocate_money(first_speaker, pay, "out")
+	dialogs.relocate_money(first_speaker, cost * t.pay, "out")
 
 	this.add_art_info(art)
 end
@@ -535,22 +535,25 @@ end
 
 
 function init_sidor_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "sidor" )
+	init_known_art_dialog( dlg, "Escape_Trader" )
 end
 function init_barman_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "barman" )
+	init_known_art_dialog( dlg, "bar_Barman" )
 end
 function init_sakharov_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "sakharov" )
+	init_known_art_dialog( dlg, "yan_general_ecolog" )
 end
 function init_scryaga_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "scryaga" )
+	init_known_art_dialog( dlg, "Mil_Miser" )
 end
 function init_sak_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "sak" )
+	init_known_art_dialog( dlg, "Sak" )
 end
 function init_doctor_known_art_dialog( dlg )
-	init_known_art_dialog( dlg, "doctor" )
+	init_known_art_dialog( dlg, "Doktor" )
+end
+function init_doctor1_known_art_dialog( dlg )
+	init_known_art_dialog( dlg, "Doktor1" )
 end
 
 -----------------------------------------------------------------------------------------------
