@@ -861,7 +861,7 @@ end
 
 
 ------------------------------------------------------------------------------------------------------
-function update_gps_spot_on_fake(has_gps, boxId, items)
+function update_gps_spot_on_fake(has_gps, boxId, items, recharge)
 	if not has_gps then
 		remove_all_spots(boxId)
 		remove_label(boxId)
@@ -876,8 +876,8 @@ function update_gps_spot_on_fake(has_gps, boxId, items)
 	local gh = amk.game_hours()
 	
 	-- новая метка, добавляем в таблицу
-	if not labels[boxId] then
-		fl_send_tip_msg = true -- надо сообщить что ставим новую метку
+	if (not labels[boxId]) or recharge then
+		fl_send_tip_msg = not recharge -- надо сообщить что ставим новую метку
 		labels[boxId] = {wr = 0, wi = 0, gt = gh, wt = warning_time, at = activity_time, wit = warning_icons_time, upd = gm, wh = 0, fk = true}
 		amk.save_table("gps_labels", labels)
 		ui_script_hud.remove_spot(boxId)
