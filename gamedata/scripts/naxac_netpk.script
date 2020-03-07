@@ -1344,10 +1344,10 @@ function n_netpk:r_st_se_smart_terrain( ret, stpk )
 	self:r_st_cse_alife_space_restrictor( ret, stpk )
 	
 	-- se_smart_terrain
-	ret.duration_end_present	= stpk:r_CTime()
-	ret.idle_end_present		= stpk:r_CTime()
-	ret.gulag_working			= stpk:r_u8()	-- r_bool
-	if ret.gulag_working ~= 0 then
+	ret.duration_end			= stpk:r_CTime()
+	ret.idle_end				= stpk:r_CTime()
+	ret.gulag_working			= stpk:r_bool()
+	if ret.gulag_working then
 		-- gulag:load_common
 		local t = {}
 		ret.gulag = t
@@ -1360,19 +1360,21 @@ function n_netpk:r_st_se_smart_terrain( ret, stpk )
 		t.population				= stpk:r_u8()
 		t.population_comed			= stpk:r_u8()
 		t.population_non_exclusive	= stpk:r_u8()
-		t.loaded_jobs = {}
+		t.JobLoaded = {}
+		local n = stpk:r_u8()
 		local job
-		for i = 1, stpk:r_u8() do
+		for i = 1, n do
 			job = {}
-			table.insert( t.loaded_jobs, job )
+			table.insert( t.JobLoaded, job )
 			job.begin            = stpk:r_u32()
 			job.fill_idle        = stpk:r_u32()
 			job.idle_after_death_end = stpk:r_u32()
 		end
 		-- read npc_info
 		ret.npc_info = {}
+		n = stpk:r_u8()
 		local o_id
-		for i = 1, stpk:r_u8() do
+		for i = 1, n do
 			o_id = stpk:r_u16()
 			local o = {}
 			ret.npc_info[o_id] = o
@@ -1393,10 +1395,10 @@ function n_netpk:w_st_se_smart_terrain( data, stpk )
 	self:w_st_cse_alife_space_restrictor( data, stpk )
 	
 	-- se_smart_terrain
-	stpk:w_CTime( data.duration_end_present )
-	stpk:w_CTime( data.idle_end_present )
-	stpk:w_u8( data.gulag_working )
-	if data.gulag_working ~= 0 then
+	stpk:w_CTime( data.duration_end )
+	stpk:w_CTime( data.idle_end )
+	stpk:w_bool( data.gulag_working )
+	if data.gulag_working then
 		-- gulag:save_common
 		local t = data.gulag
 		stpk:w_u8( t.casualities )
@@ -1405,8 +1407,8 @@ function n_netpk:w_st_se_smart_terrain( data, stpk )
 		stpk:w_u8(t.population)
 		stpk:w_u8(t.population_comed)
 		stpk:w_u8(t.population_non_exclusive)
-		stpk:w_u8( #t.loaded_jobs )
-		for i, job in ipairs(t.loaded_jobs) do
+		stpk:w_u8( #t.JobLoaded )
+		for i, job in ipairs(t.JobLoaded) do
 			stpk:w_u32( job.begin )
 			stpk:w_u32( job.fill_idle )
 			stpk:w_u32( job.idle_after_death_end )
