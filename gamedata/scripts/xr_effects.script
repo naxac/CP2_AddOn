@@ -1012,154 +1012,147 @@ function bar_actor_enemy_set (actor, npc)
 end
 
 function bar_arena_weapon_spawn ()
-  
-  local obj = level_object_by_sid (story_ids.pl_weapon_spawn)
-  local spawn_items = {}
-  
-  for i = 1,100 do
-    table.insert( spawn_items, "bandit_outfit")
-  end
-  
-  local k,v = 0,0
-  
-  for k,v in pairs(spawn_items) do
-    AI:create(v, 
-            obj:position(),
-            obj:level_vertex_id(),  
-            obj:game_vertex_id())
-  end 
+	local obj = level_object_by_sid (story_ids.pl_weapon_spawn)
+	local spawn_items = {}
+
+	for i = 1,100 do
+		table.insert( spawn_items, "bandit_outfit")
+	end
+
+	for k,v in pairs(spawn_items) do
+		AI:create(v, 
+				obj:position(),
+				obj:level_vertex_id(),  
+				obj:game_vertex_id())
+	end 
 end
 
+local out_object, in_object
 local function transfer_object_item(item)
     out_object:transfer_item(item, in_object)
 end
 function bar_arena_teleport ( actor, npc)
+	local inv_box_1 = level_object_by_sid (story_ids.bar_arena_inventory_box)
 
-  inv_box_1 = level_object_by_sid (story_ids.bar_arena_inventory_box)
+	out_object = actor
+	in_object  = inv_box_1
+	actor:inventory_for_each(transfer_object_item) 
 
-  out_object = actor
-    in_object  = inv_box_1
-    actor:inventory_for_each(transfer_object_item) 
+	local spawn_items = {}  
 
-  local spawn_items = {}  
+	if  has_alife_info("bar_arena_fight_1") then 
+		table.insert(spawn_items, "wpn_pm")
+		table.insert(spawn_items, "ammo_9x18_pmm")
+		table.insert(spawn_items, "ammo_9x18_pmm")
+	--	table.insert(spawn_items, "wpn_knife")
+	elseif  has_alife_info("bar_arena_fight_2") then
+		table.insert(spawn_items, "wpn_mp5")
+		table.insert(spawn_items, "ammo_9x19_pbp")
+	--	table.insert(spawn_items, "wpn_knife")    
+	elseif  has_alife_info("bar_arena_fight_3") then
+		table.insert(spawn_items, "wpn_bm16")
+		table.insert(spawn_items, "ammo_12x70_buck")
+		table.insert(spawn_items, "ammo_12x70_buck")
+	--	table.insert(spawn_items, "wpn_knife")
+	elseif  has_alife_info("bar_arena_fight_4") then      
+		table.insert(spawn_items, "wpn_ak74")
+		table.insert(spawn_items, "ammo_5.45x39_ap")
+		table.insert(spawn_items, "ammo_5.45x39_ap")
+	--	table.insert(spawn_items, "wpn_knife")
+		table.insert(spawn_items, "bandage")
+		table.insert(spawn_items, "bandage")
+	elseif  has_alife_info("bar_arena_fight_5") then  
+		table.insert(spawn_items, "wpn_abakan")
+		table.insert(spawn_items, "ammo_5.45x39_ap")
+		table.insert(spawn_items, "ammo_5.45x39_ap")
+		table.insert(spawn_items, "ammo_5.45x39_ap")
+	--	table.insert(spawn_items, "wpn_knife")
+		table.insert(spawn_items, "bandage")
+		table.insert(spawn_items, "medkit")
+		table.insert(spawn_items, "svoboda_light_outfit")
+	elseif  has_alife_info("bar_arena_fight_6") then
+		table.insert(spawn_items, "wpn_groza")
+		table.insert(spawn_items, "ammo_9x39_ap")
+		table.insert(spawn_items, "ammo_9x39_ap")
+		table.insert(spawn_items, "ammo_9x39_ap")
+	--	table.insert(spawn_items, "wpn_knife")
+		table.insert(spawn_items, "grenade_f1")
+		table.insert(spawn_items, "specops_outfit")
+	elseif  has_alife_info("bar_arena_fight_7") then
+	--	table.insert(spawn_items, "wpn_knife")
+		table.insert(spawn_items, "bandage")
+		table.insert(spawn_items, "grenade_f1")
+		table.insert(spawn_items, "grenade_f1")
+		table.insert(spawn_items, "grenade_f1")
+		table.insert(spawn_items, "grenade_f1")
+	elseif  has_alife_info("bar_arena_fight_8") then
+		table.insert(spawn_items, "wpn_g36")
+		table.insert(spawn_items, "ammo_5.56x45_ap")
+		table.insert(spawn_items, "ammo_5.56x45_ap")
+		table.insert(spawn_items, "ammo_5.56x45_ap")
+		table.insert(spawn_items, "ammo_5.56x45_ap")
+	--	table.insert(spawn_items, "wpn_knife")
+	end
 
-  if  has_alife_info("bar_arena_fight_1") then 
-    table.insert(spawn_items, "wpn_pm")
-    table.insert(spawn_items, "ammo_9x18_pmm")
-    table.insert(spawn_items, "ammo_9x18_pmm")
---    table.insert(spawn_items, "wpn_knife")
-  elseif  has_alife_info("bar_arena_fight_2") then
-    table.insert(spawn_items, "wpn_mp5")
-    table.insert(spawn_items, "ammo_9x19_pbp")
---    table.insert(spawn_items, "wpn_knife")    
-  elseif  has_alife_info("bar_arena_fight_3") then
-    table.insert(spawn_items, "wpn_bm16")
-    table.insert(spawn_items, "ammo_12x70_buck")
-    table.insert(spawn_items, "ammo_12x70_buck")
---    table.insert(spawn_items, "wpn_knife")
-  elseif  has_alife_info("bar_arena_fight_4") then      
-    table.insert(spawn_items, "wpn_ak74")
-    table.insert(spawn_items, "ammo_5.45x39_ap")
-    table.insert(spawn_items, "ammo_5.45x39_ap")
---    table.insert(spawn_items, "wpn_knife")
-    table.insert(spawn_items, "bandage")
-    table.insert(spawn_items, "bandage")
-  elseif  has_alife_info("bar_arena_fight_5") then  
-    table.insert(spawn_items, "wpn_abakan")
-    table.insert(spawn_items, "ammo_5.45x39_ap")
-    table.insert(spawn_items, "ammo_5.45x39_ap")
-    table.insert(spawn_items, "ammo_5.45x39_ap")
---    table.insert(spawn_items, "wpn_knife")
-    table.insert(spawn_items, "bandage")
-    table.insert(spawn_items, "medkit")
-    table.insert(spawn_items, "svoboda_light_outfit")
-  elseif  has_alife_info("bar_arena_fight_6") then
-    table.insert(spawn_items, "wpn_groza")
-    table.insert(spawn_items, "ammo_9x39_ap")
-    table.insert(spawn_items, "ammo_9x39_ap")
-    table.insert(spawn_items, "ammo_9x39_ap")
---    table.insert(spawn_items, "wpn_knife")
-    table.insert(spawn_items, "grenade_f1")
-    table.insert(spawn_items, "specops_outfit")
-  elseif  has_alife_info("bar_arena_fight_7") then
---    table.insert(spawn_items, "wpn_knife")
-    table.insert(spawn_items, "bandage")
-    table.insert(spawn_items, "grenade_f1")
-    table.insert(spawn_items, "grenade_f1")
-    table.insert(spawn_items, "grenade_f1")
-    table.insert(spawn_items, "grenade_f1")
-  elseif  has_alife_info("bar_arena_fight_8") then
-    table.insert(spawn_items, "wpn_g36")
-    table.insert(spawn_items, "ammo_5.56x45_ap")
-    table.insert(spawn_items, "ammo_5.56x45_ap")
-    table.insert(spawn_items, "ammo_5.56x45_ap")
-    table.insert(spawn_items, "ammo_5.56x45_ap")
---    table.insert(spawn_items, "wpn_knife")
-  end
-  
-  local k,v = 0,0
-  
-  for k,v in pairs(spawn_items) do
-    AI:create(v, 
-            Actor:position(),
-            Actor:level_vertex_id(), 
-            Actor:game_vertex_id(), 
-            Actor:id())
-  end 
-  
+	for k,v in pairs(spawn_items) do
+		AI:create(v,
+				Actor:position(),
+				Actor:level_vertex_id(),
+				Actor:game_vertex_id(),
+				Actor:id())
+	end
 end
 
 function bar_arena_weapon_slot ()
-  if  has_alife_info("bar_arena_fight_1") then  
-    Actor:activate_slot(inventory_slots.PISTOL)
-  else 
-    Actor:activate_slot(inventory_slots.RIFLE)
-  end
+	if  has_alife_info("bar_arena_fight_1") then  
+		Actor:activate_slot(inventory_slots.PISTOL)
+	else 
+		Actor:activate_slot(inventory_slots.RIFLE)
+	end
 end
 
 function bar_arena_teleport_2 ( actor, npc)
+	level.add_pp_effector ("blink.ppe", 234, false)       
 
-    level.add_pp_effector ("blink.ppe", 234, false)       
-  
-    Actor:set_actor_position(patrol("t_walk_2"):point(0))
-    local dir = patrol("t_look_2"):point(0):sub(patrol("t_walk_2"):point(0))
-    Actor:set_actor_direction(-dir:getH())
-  
-  inv_box_2 = level_object_by_sid (story_ids.bar_arena_inventory_box_2)
+	Actor:set_actor_position(patrol("t_walk_2"):point(0))
+	local dir = patrol("t_look_2"):point(0):sub(patrol("t_walk_2"):point(0))
+	Actor:set_actor_direction(-dir:getH())
 
-  out_object = actor
-    in_object  = inv_box_2
-    actor:inventory_for_each(transfer_object_item) 
+	local inv_box_2 = level_object_by_sid (story_ids.bar_arena_inventory_box_2)
+
+	out_object = actor
+	in_object  = inv_box_2
+	actor:inventory_for_each(transfer_object_item) 
 end
 
 function barman_give_extra_task (actor, npc)
-  if has_alife_info ("agroprom_military_case_done") and not has_alife_info ("bar_darklab_document_start") then
-    Actor:give_info_portion("barman_job_1")
-    return
-  elseif has_alife_info ("bar_darklab_document_done") and not has_alife_info ("bar_x16_documents_start") then
-    Actor:give_info_portion("barman_job_2")
-    return
-  elseif has_alife_info ("bar_x16_documents_done") and not has_alife_info ("bar_deactivate_radar_start") then
-    Actor:give_info_portion("barman_job_3")
-    return
-  end
-  return  
+	if has_alife_info ("agroprom_military_case_done") and not has_alife_info ("bar_darklab_document_start") then
+		Actor:give_info_portion("barman_job_1")
+		return
+	elseif has_alife_info ("bar_darklab_document_done") and not has_alife_info ("bar_x16_documents_start") then
+		Actor:give_info_portion("barman_job_2")
+		return
+	elseif has_alife_info ("bar_x16_documents_done") and not has_alife_info ("bar_deactivate_radar_start") then
+		Actor:give_info_portion("barman_job_3")
+		return
+	end
+	return  
 end
 
 function trader_extra_task (actor, npc)
-  if has_alife_info ("esc_serious_talk") and not has_alife_info ("agroprom_military_case") then
-    Actor:give_info_portion("trader_job")
-    return
-  end
-  return
+	if has_alife_info ("esc_serious_talk") and not has_alife_info ("agroprom_military_case") then
+		Actor:give_info_portion("trader_job")
+		return
+	end
+	return
 end
 
 function scientist_extra_task (actor, npc)
-  if has_alife_info ("yan_find_scientist_done") and not has_alife_info ("yan_find_vasilyev_start") then
-    Actor:give_info_portion("scientist_job")
-    return
-  end
-  return
+	if has_alife_info ("yan_find_scientist_done") and not has_alife_info ("yan_find_vasilyev_start") then
+		Actor:give_info_portion("scientist_job")
+		return
+	end
+	return
 end
 
 function military_max_dead (actor, npc)
