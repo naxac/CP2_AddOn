@@ -374,8 +374,19 @@ function generic_object_binder:net_spawn(sobject)
 	db.add_obj(self.object) 
 	if self.object:alive() then
 		db.add_monster(self.object) -- добавляем в онлайн-живых
+
+		if self.object:is_talk_enabled() then
+			self.object:set_tip_text("character_use")
+		else
+			local sect = self.object:section()
+			if section2tips[sect] then
+				self.object:set_tip_text(section2tips[sect])
+			else
+				self.object:set_tip_text("") 
+			end
+		end 
 	end
-   
+
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
 
 	local particle_param = getIniValueString(self.object:section(), "bones_particles", nil, nil) 
@@ -391,18 +402,6 @@ function generic_object_binder:net_spawn(sobject)
 		end 
 	end 
 
-	if self.object:alive() then 
-		if self.object:is_talk_enabled() then
-			self.object:set_tip_text("character_use")
-		else
-			local sect = self.object:section()
-			if section2tips[sect] then
-				self.object:set_tip_text(section2tips[sect])
-			else
-				self.object:set_tip_text("") 
-			end
-		end 
-	end
 	return true 
 end 
 
