@@ -577,6 +577,28 @@ function camera_rotate_on_position(pos, speed, action, ...)
 	end
 end
 ----------------------------------------------------------------------------------
+-- Расстояние между точками на глобальной карте.
+-- Используется для рассчёта траты заряда телепортаторов при перемещении.
+function calculate_dist( start_level, start_pos, to_level, to_pos )
+	local ini = game_ini()
+
+	local function GetGlobalPos( level_name, pos )
+		local global_rect = ini:r_rect(level_name, "global_rect") or Frect():set(-10, -10, 0, 0)
+		local bound_rect = ini:r_rect(level_name, "bound_rect") or Frect():set(-10, -10, 0, 0)
+		local zoom = global_rect:width() / bound_rect:width()
+		local res = vector2()
+		res.x = ( pos.x - bound_rect.x1 ) * zoom + global_rect.x1
+		res.y = ( bound_rect:height() - ( pos.z - bound_rect.y1 ) ) * zoom + global_rect.y1
+		return res
+	end
+
+	local pos1 = GetGlobalPos( start_level, start_pos )
+	local pos2 = GetGlobalPos( to_level, to_pos )
+
+	return pos1:distance_to(pos2),
+		game_ini():r_rect("global_map", "bound_rect"):height()
+end
+----------------------------------------------------------------------------------
 function get_actor_pursuit()
 	local pos = Actor:position()
 	local be

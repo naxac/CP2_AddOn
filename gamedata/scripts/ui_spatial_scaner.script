@@ -16,13 +16,13 @@ local iniCache = {}
 
 class "UIPdaTeleport" (CUIScriptWnd)
 
-function UIPdaTeleport:__init(in_zone, cond) super()
+function UIPdaTeleport:__init(in_zone, item) super()
 	self.level_maps = {}
 	self.anoms = {}
 	self.ini = game_ini()
 
 	self.in_zone = in_zone
-	self.cond_scaner = cond
+	self.object = item
 	
 	self.move = { [1] = false, [2] = false, [3] = false, [4] = false }
 	self.map_in_focus = {}
@@ -216,16 +216,15 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 	local t = spatial_subway.levels[ lvl ][ id ]
 		or abort( "%s: zone %s not found on level %s", script_name(), id, lvl )
 
-	local dist, max_dist = map_distance.calculate_dist( level.name(), Actor:position(), lvl, t.pos )
+	local dist, max_dist = naxac.get_map_dist( level.name(), Actor:position(), lvl, t.pos )
 	local need_charge = dist / max_dist
-	if need_charge <= self.cond_scaner then
+	local cond_scaner = self.object:condition()
+	if need_charge <= cond_scaner then
 		self:on_quit()
 
-		local obj = Actor:object( "device_scaner" )
-			or abort( "%s: actor has not device_scaner", script_name() )
-		local new_cond = self.cond_scaner - need_charge
-		obj:set_condition( new_cond )
-		netpk:modify( AI:object( obj:id() ), { condition = new_cond }, netpk.fState )
+		local new_cond = cond_scaner - need_charge
+		self.object:set_condition( new_cond )
+		netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
 
 		level.disable_input()
 		bind_subway.block_sms( true )
@@ -431,6 +430,7 @@ function UIPdaTeleport:on_quit()
 
 	xr_s.unsubscribe( "mouse_wheel", self.OnMouseWheel )
 
+	self.object = nil
 	self.ini = nil
 	self:ClearCallbacks()
 	self:GetHolder():start_stop_menu(self, true)

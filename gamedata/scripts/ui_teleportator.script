@@ -15,8 +15,9 @@ end
 
 class "teleportator_menu" (CUIScriptWnd)
 
-function teleportator_menu:__init() super()
---	amk.spawn_item_in_inv("teleportator")
+function teleportator_menu:__init(item) super()
+	self.object = item
+	self.condition = item:condition()
 	self.level_id = {}
 	
 	self:InitControls()
@@ -79,14 +80,11 @@ function teleportator_menu:InitControls()
 	ctrl:ShowSelectedItem(true)
 	self:Register(ctrl, "list_window")
 
-	local obj = Actor:object("teleportator")
-	local cond = obj and obj:condition()
-		or abort( "%s: InitControls: actor has not teleportator", script_name() )
 	local back = xml:InitStatic( "main_dialog:charge", self.dialog )
 	local st = xml:InitStatic( "main_dialog:charge:scale", back )
-	st:SetWidth( st:GetWidth() * cond )
+	st:SetWidth( st:GetWidth() * self.condition )
 	st:SetColor( GetARGB( 255, 255, 50, 50 ) )
-	back:SetText( string.format( "%d%%", cond*100 ) )
+	back:SetText( string.format( "%d%%", self.condition*100 ) )
 
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
@@ -128,19 +126,16 @@ function teleportator_menu:on_ok()
 			return
 		end
 		
-		local dist, max_dist = map_distance.calculate_dist( level.name(), Actor:position(),
+		local dist, max_dist = naxac.get_map_dist( level.name(), Actor:position(),
 			place.lvl, vector():set( unpack( place.pos ) ) )
 		local need_charge = dist / max_dist
-		local obj = Actor:object("teleportator")
-		local cond = obj and obj:condition()
-			or abort( "%s: on_ok: actor has not teleportator", script_name() )
-		if need_charge <= cond then
+		if need_charge <= self.condition then
 			self:on_quit()
 
 			if teleport_manager.do_teleport(section, true) then
-				local new_cond = cond - need_charge
-				obj:set_condition( new_cond )
-				netpk:modify( AI:object( obj:id() ), { condition = new_cond }, netpk.fState )
+				local new_cond = self.condition - need_charge
+				self.object:set_condition( new_cond )
+				netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
 			end
 		else
 			self.message_box:Init("select_map")
@@ -152,6 +147,7 @@ end
 
 function teleportator_menu:on_quit()
 	self:ClearCallbacks()
+	self.object = nil
 	self:GetHolder():start_stop_menu(self, true)
 	BlockUIDescr(false)
 end
