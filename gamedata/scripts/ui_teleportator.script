@@ -17,7 +17,6 @@ class "teleportator_menu" (CUIScriptWnd)
 
 function teleportator_menu:__init(item) super()
 	self.object = item
-	self.condition = item:condition()
 	self.level_id = {}
 	
 	self:InitControls()
@@ -82,9 +81,10 @@ function teleportator_menu:InitControls()
 
 	local back = xml:InitStatic( "main_dialog:charge", self.dialog )
 	local st = xml:InitStatic( "main_dialog:charge:scale", back )
-	st:SetWidth( st:GetWidth() * self.condition )
+	local condition = self.object:condition()
+	st:SetWidth( st:GetWidth() * condition )
 	st:SetColor( GetARGB( 255, 255, 50, 50 ) )
-	back:SetText( string.format( "%d%%", self.condition*100 ) )
+	back:SetText( string.format( "%d%%", condition*100 ) )
 
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
@@ -129,11 +129,12 @@ function teleportator_menu:on_ok()
 		local dist, max_dist = naxac.get_map_dist( level.name(), Actor:position(),
 			place.lvl, vector():set( unpack( place.pos ) ) )
 		local need_charge = dist / max_dist
-		if need_charge <= self.condition then
+		local condition = self.object:condition()
+		if need_charge <= condition then
 			self:on_quit()
 
 			if teleport_manager.do_teleport(section, true) then
-				local new_cond = self.condition - need_charge
+				local new_cond = condition - need_charge
 				self.object:set_condition( new_cond )
 				netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
 			end
