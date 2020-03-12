@@ -142,7 +142,7 @@ end
 -- ищем существует-ли item в тайнике box
 function is_find_item(boxId, itemId)
 	if boxId and itemId and items_in_box and items_in_box[boxId] then
-		for i, v in pairs(items_in_box[boxId]) do
+		for i, v in ipairs(items_in_box[boxId]) do
 			if v.id == itemId then
 				return true
 			end
@@ -177,24 +177,28 @@ function remove_item(boxId, item, is_need_msg_warning)
 			if labels[boxId] then
 				is_msg_warning = true
 			end
-			
-			for i, v in pairs(items_in_box[boxId]) do
+
+			local v
+			local tmp = items_in_box[boxId]
+			for i = #tmp, 1, -1 do
+				v = tmp[i]
 				if v.id == itemId then
-				-- mylog("REMOVE_ITEM: удалили из items_in_box[" .. boxId .. "] предмет: " .. objinfo(item))
-				table_remove(items_in_box[boxId], i)
+					-- mylog("REMOVE_ITEM: удалили из items_in_box[" .. boxId .. "] предмет: " .. objinfo(item))
+					table_remove(tmp, i)
+					break
 				end
 			end
 		end
 	end
-	
+
 	-- если было ограбление и нет мода Заминированные тайники, предупреждаем ГГ
 	if is_need_msg_warning and is_msg_warning then
 		local seBox = AI:object(boxId)
-	  if seBox and not IsHuman[seBox:clsid()] then
-		local lvname = news_data.level_name[ object_level_name(seBox) ][2]
-		amk.send_tip("%c[red_sms]" .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
-	  end
-	  update_gps(nil, nil, boxId)
+		if seBox and not IsHuman[seBox:clsid()] then
+			local lvname = news_data.level_name[ object_level_name(seBox) ][2]
+			amk.send_tip("%c[red_sms]" .. lvname .. " ограбили тайник.", "GPS", nil, 20, "nano")
+		end
+		update_gps(nil, nil, boxId)
 	end
 end
 
@@ -211,7 +215,7 @@ function get_gps_count(boxId)
 	local gps_count = 0
 	
 	if items_in_box[boxId] then
-		for i, v in pairs(items_in_box[boxId]) do
+		for i, v in ipairs(items_in_box[boxId]) do
 			locObj = AI:object(v.id)
 			if locObj and locObj:section_name() == "amk_metka" then
 				gps_count = gps_count + 1
@@ -304,15 +308,15 @@ function reinit_box(boxId)
 		return
 	end
 	
-	if items_in_box[boxId] then
-		local aobj
-		for i, v in pairs(items_in_box[boxId]) do
+	local t = items_in_box[boxId]
+	if t then
+		local aobj, v
+		for i = #t, 1, -1 do
+			v = t[i]
 			if v.id then
 				aobj = AI:object(v.id)
-				if not aobj then
-					table_remove(items_in_box[boxId], i)
-				elseif aobj.parent_id ~= boxId then
-					table_remove(items_in_box[boxId], i)
+				if (not aobj) or aobj.parent_id ~= boxId then
+					table_remove(t, i)
 				end
 			end
 		end
@@ -562,7 +566,7 @@ function update_gps_habar(boxId)
 		local itemsbox = {}
 		local is_yes
 		
-		for i, v in pairs(items_in_box[boxId]) do
+		for i, v in ipairs(items_in_box[boxId]) do
 			locObj = AI:object(v.id)
 			if locObj and locObj:section_name() then
 				secName = locObj:section_name()
@@ -717,7 +721,9 @@ function on_actor_update(delta)
 				
 				if not is_gps_update_in_process then
 					if not v.fk then
-						update_gps(nil, nil, i)
+						this.update_gps(nil, nil, i)
+					else
+						this.update_gps_fake(i)
 					end
 				end
 				is_save_table = true
