@@ -1152,23 +1152,6 @@ function mob_captured(mob)
 	return mob:get_script()
 end
 
-function save_logic(obj, packet)
-	local st = db.storage[obj:id()]
-
-	packet:w_s32( (st.activation_time or 0) - time_global() )
-
-	-- GAMETIME added by Stohe.
-	utils.w_CTime(packet, st.activation_game_time)
-end
-
-function load_logic(obj, reader)
-	local st = db.storage[obj:id()]
-
-	st.activation_time = reader:r_s32() + time_global()
-
-	-- GAMETIME added by Stohe.
-	st.activation_game_time = utils.r_CTime(reader)
-end
 
 local pstor_number = 0
 local pstor_string = 1
@@ -1365,32 +1348,41 @@ function pstor_load_all(obj, reader)
 end
 
 function save_obj(obj, packet)
-	local npc_id = obj:id()
-	local st = db.storage[npc_id]
+	local st = db.storage[ obj:id() ]
 
 	-- сообщение по побившейся логике физобъектов и вертолетов
-	local s_ini = obj:spawn_ini()
-	if (not st.ini_filename) and s_ini and logic_not_empty(obj, s_ini) then
+	if ((st.loaded_data and not st.loaded_data.ini_filename)
+		or not st.ini_filename)
+		and logic_not_empty(obj) 
+	then
 		if obj:clsid() == clsid.script_phys or obj:clsid() == clsid.script_heli
 		--	or ((IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) and obj:alive())
 		then
 			abort("У объекта '%s' повисла логика. Удалите созданное только что сохранение и переиграйте с предыдущего", obj:name())
-			if amk.load_variable("no_save", false) == false and not db.debug then
-				amk.save_variable("no_save", true)
-			--	start_real_timer("zonedocs_gg_kill",3,0)
-			end
 		end
 	end
 
-	packet:w_stringZ(st.ini_filename or "")
-	packet:w_stringZ(st.section_logic or "")
-	packet:w_stringZ(st.active_section or "")
-	packet:w_stringZ(st.gulag_name or "")
+	if st.loaded_data == nil then
+		packet:w_stringZ(st.ini_filename or "")
+		packet:w_stringZ(st.section_logic or "")
+		packet:w_stringZ(st.active_section or "")
+		packet:w_stringZ(st.gulag_name or "")
+	else
+		-- если логика объекта не успела проинициализироваться,
+		-- то сохраним загруженные данные, чтобы логика не слетела
+		local t = st.loaded_data
+		packet:w_stringZ(t.ini_filename or "")
+		packet:w_stringZ(t.section_logic or "")
+		packet:w_stringZ(t.active_section or "")
+		packet:w_stringZ(t.gulag_name or "")
+	end
 
-	save_logic(obj, packet)
+	packet:w_s32( (st.activation_time or 0) - time_global() )
+	-- GAMETIME added by Stohe.
+	utils.w_CTime(packet, st.activation_game_time)
 
 	if st.active_scheme then
-		issue_event(obj, db.storage[npc_id][st.active_scheme], "save")
+		issue_event(obj, st[st.active_scheme], "save")
 	end
 
 	pstor_save_all(obj, packet)
@@ -1398,29 +1390,36 @@ end
 
 function load_obj(obj, reader)
 --  printf("load_obj: obj:name()='%s'", obj:name())
-	local npc_id = obj:id()
-	local st = db.storage[npc_id]
+	local st = db.storage[ obj:id() ]
+	local ld = {}
+	st.loaded_data = ld
 
 	local s = reader:r_stringZ()
-	if s == "" then st.loaded_ini_filename = nil
-	else st.loaded_ini_filename = s end
+	if s ~= "" then
+		ld.ini_filename = s
+	end
 
 	s = reader:r_stringZ()
-	if s == "" then st.loaded_section_logic = nil
-	else st.loaded_section_logic = s end
+	if s ~= "" then
+		ld.section_logic = s
+	end
 
 	s = reader:r_stringZ()
 	if s == "" then
 		-- В activate_by_section нужно передать строку "nil", а не nil, чтобы не активировать ни одной из схем.
 		-- При этом реальная active_section станет равной nil.
-		st.loaded_active_section = "nil"
-	else st.loaded_active_section = s end
+		ld.active_section = "nil"
+	else ld.active_section = s end
 
 	s = reader:r_stringZ()
-	if s == "" then st.loaded_gulag_name = nil
-	else st.loaded_gulag_name = s end
+	if s == "" then
+		ld.gulag_name = s
+	end
 
-	load_logic(obj, reader)
+	st.activation_time = reader:r_s32() + time_global()
+	-- GAMETIME added by Stohe.
+	st.activation_game_time = utils.r_CTime(reader)
+
 	pstor_load_all(obj, reader)
 end
 
@@ -1450,14 +1449,17 @@ function initialize_obj(obj, st, loaded, actor, stype, inifile)
 		local sect = xr_logic.determine_section_to_activate(obj, ini, "logic", actor)
 		xr_logic.activate_by_section(obj, ini, sect, false)
 	else
-		local ini_filename = st.loaded_ini_filename
-		if ini_filename then
-			local ini = get_customdata_or_ini_file(obj, ini_filename)
-			ini = xr_logic.configure_schemes(obj, ini, ini_filename, stype, st.loaded_section_logic, st.loaded_gulag_name)
-		--	printf( "initialize_obj: loaded" )
-			xr_logic.activate_by_section(obj, ini, st.loaded_active_section, true)
+		local ld = st.loaded_data
+		if ld then
+			local ini_filename = ld.ini_filename
+			if ini_filename then
+				local ini = get_customdata_or_ini_file(obj, ini_filename)
+				ini = xr_logic.configure_schemes(obj, ini, ini_filename, stype, ld.section_logic, ld.gulag_name)
+			--	printf( "initialize_obj: loaded" )
+				xr_logic.activate_by_section(obj, ini, ld.active_section, true)
+			end
+			st.loaded_data = nil
 		end
-
 --		if st.active_scheme then
 --			issue_event(obj, db.storage[obj:id()][st.active_scheme], "load")
 --		end
@@ -1469,7 +1471,7 @@ function logic_not_empty(npc, ini)
 	if not ini then
 		ini = npc:spawn_ini()
 	end
-	return ini:section_exist("logic") and (
+	return ini and ini:section_exist("logic") and (
 		ini:line_exist("logic", "cfg") or (ini:line_exist("logic", "active") and ini:r_string("logic", "active") ~= "nil")
 	)
 end
