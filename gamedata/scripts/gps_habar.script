@@ -861,6 +861,25 @@ end
 
 
 ------------------------------------------------------------------------------------------------------
+function update_gps_fake(box_id)
+	local tbl = new_treasure.get_box(box_id)
+	if tbl == nil or #tbl == 0 then
+		return
+	end
+
+	local items = {}
+	for i, id in ipairs(tbl) do
+		local stor = se_storage.get_storage(id)
+		if stor then
+			for i = #stor, 1, -1 do
+				table.insert(items, stor[i])
+			end
+		end
+	end
+
+	gps_habar.update_gps_spot_on_fake(true, box_id, items)
+end
+
 function update_gps_spot_on_fake(has_gps, boxId, items, recharge)
 	if not has_gps then
 		remove_all_spots(boxId)
