@@ -1,0 +1,89 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local math_min = math.min
+local math_clamp = math.clamp
+THIRST = 0
+
+local thirst_v
+local thirst_critical_power
+local thirst_min_critical_power
+local thirst_critical_health
+local thirst_min_critical_health
+local thirst_power_v
+local thirst_health_v
+
+local icon_wnd = nil
+local is_shown = false
+
+function init()
+	THIRST = amk.load_variable("thr", 0)
+
+	local cond_sect = sys_ini:r_string("actor", "condition_sect")
+	thirst_v = sys_ini:r_float(cond_sect, "thirst_v")
+	thirst_power_v = -sys_ini:r_float(cond_sect, "thirst_power_v")
+	thirst_health_v = -sys_ini:r_float(cond_sect, "thirst_health_v")
+	thirst_critical_power = sys_ini:r_float(cond_sect, "thirst_critical_power")
+	thirst_min_critical_power = sys_ini:r_float(cond_sect, "thirst_min_critical_power")
+	thirst_critical_health = sys_ini:r_float(cond_sect, "thirst_critical_health")
+	thirst_min_critical_health = sys_ini:r_float(cond_sect, "thirst_min_critical_health")
+end
+
+function update(delta)
+	amk.oau_reason="thirst.update"
+
+	THIRST = math_clamp(THIRST + thirst_v*delta, 0, 1)
+--	log("thirst: %s", THIRST)
+
+	if THIRST > thirst_critical_power then
+		local k = (THIRST - thirst_critical_power)/(1 - thirst_critical_power)
+		if Actor.power > thirst_min_critical_power then
+			Actor.power = thirst_power_v * k
+		end
+
+		if THIRST > thirst_critical_health then
+			if Actor.health > thirst_min_critical_health then
+				Actor.health = thirst_health_v * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
+			end
+		end
+
+		this.update_indicator(k)
+	elseif is_shown then
+		this.update_indicator(false)
+	end
+end
+
+function update_indicator(k)
+	if not k then
+		icon_wnd:SetColor( GetARGB(0,0,0,0) )
+		is_shown = false
+		return
+	end
+
+	if not is_shown then
+		if icon_wnd == nil then
+			local cs = get_hud():AddCustomStatic("cs_thirst", true)
+			icon_wnd = cs:wnd()
+		end
+		is_shown = true
+	end
+
+	local r = math_min( k*510, 255 )
+	local g = math_min( (1-k)*510, 255 )
+	icon_wnd:SetColor( GetARGB(255,r,g,0) )
+end
+
+function change_thirst(delta)
+	THIRST =  math_clamp(THIRST + delta, 0, 1)
+end
+
+function save()
+	amk.save_variable("thr", THIRST)
+end
+
+function attach()
+	xr_s.subscribe( "net_spawn",   this.init )
+	xr_s.subscribe( "pre_save",    this.save )
+end
+
+function test(...)
+	thirst_v, thirst_power_v, thirst_health_v = ...
+end
