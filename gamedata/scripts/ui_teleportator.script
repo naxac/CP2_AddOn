@@ -120,27 +120,15 @@ function teleportator_menu:on_ok()
 
 	if self.level_id[index+1] then
 		local section = "arhara_obman"..tostring(self.level_id[index+1])
-		local place = teleport_manager.get_place_by_teleport(section)
-		if not place then
-			log( "! %s: ERROR! Not found place for teleport section [%s]", script_name(), section )
-			return
-		end
-		
-		local dist, max_dist = naxac.get_map_dist( level.name(), Actor:position(),
-			place.lvl, vector():set( unpack( place.pos ) ) )
-		local need_charge = dist / max_dist
-		local condition = self.object:condition()
-		if need_charge <= condition then
+		local new_cond = teleport_manager.do_teleport(section, self.object, true)
+		if new_cond then
 			self:on_quit()
-
-			if teleport_manager.do_teleport(section, true) then
-				local new_cond = condition - need_charge
-				self.object:set_condition( new_cond )
-				netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
-			end
+			self.object:set_condition( new_cond )
+			netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
+			level.start_stop_menu(level.main_input_receiver(), true)
 		else
 			self.message_box:Init("select_map")
-			self.message_box:SetText("Недостаточно заряда для перемещения: дозарядите телепортатор")
+			self.message_box:SetText("Недостаточно заряда для перемещения: зарядите телепортатор")
 			self:GetHolder():start_stop_menu(self.message_box, true)
 		end
 	end

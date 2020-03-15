@@ -1,6 +1,20 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 12
+local current_fix = 13
 
+function fix_13()
+	local obj_sect
+	Actor:iterate_inventory( function(dummy, item)
+		obj_sect = item:section()
+		if sys_ini:r_bool_ex(obj_sect, "volatile", false) == true
+			and sys_ini:line_exist(obj_sect, "condition")
+		then
+			local v = sys_ini:r_float(obj_sect, "condition")
+			item:set_condition(v)
+			netpk:modify( AI:object( item:id() ), {condition = v} )
+		end
+	end,
+	Actor)
+end
 function fix_12()
 	if level.name() == "l04_darkvalley" then
 		start_real_timer("run", 10, "naxac.fix_12()")
@@ -579,7 +593,7 @@ end
 ----------------------------------------------------------------------------------
 -- Расстояние между точками на глобальной карте.
 -- Используется для рассчёта траты заряда телепортаторов при перемещении.
-function calculate_dist( start_level, start_pos, to_level, to_pos )
+function get_map_dist( start_level, start_pos, to_level, to_pos )
 	local ini = game_ini()
 
 	local function GetGlobalPos( level_name, pos )
@@ -596,7 +610,7 @@ function calculate_dist( start_level, start_pos, to_level, to_pos )
 	local pos2 = GetGlobalPos( to_level, to_pos )
 
 	return pos1:distance_to(pos2),
-		game_ini():r_rect("global_map", "bound_rect"):height()
+		game_ini():r_rect("global_map", "bound_rect"):height() *0.8
 end
 ----------------------------------------------------------------------------------
 function get_actor_pursuit()
