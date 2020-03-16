@@ -1,6 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local math_min = math.min
 local math_clamp = math.clamp
+
 THIRST = 0
 
 local thirst_v
@@ -11,8 +11,10 @@ local thirst_min_critical_health
 local thirst_power_v
 local thirst_health_v
 
+local tIndicatorThreshold = {}
+
 local icon_wnd = nil
-local is_shown = false
+local current_threshold = nil
 
 function init()
 	THIRST = amk.load_variable("thr", 0)
@@ -25,6 +27,12 @@ function init()
 	thirst_min_critical_power = sys_ini:r_float(cond_sect, "thirst_min_critical_power")
 	thirst_critical_health = sys_ini:r_float(cond_sect, "thirst_critical_health")
 	thirst_min_critical_health = sys_ini:r_float(cond_sect, "thirst_min_critical_health")
+
+	local tmp = string.explode( sys_ini:r_string("main_ingame_indicators_thresholds", "thirst"), ",", true)
+	for i, v in ipairs(tmp) do
+		tIndicatorThreshold[i] = tonumber(v)
+	end
+	table.insert(tIndicatorThreshold, 1)
 end
 
 function update(delta)
@@ -34,41 +42,52 @@ function update(delta)
 --	log("thirst: %s", THIRST)
 
 	if THIRST > thirst_critical_power then
-		local k = (THIRST - thirst_critical_power)/(1 - thirst_critical_power)
 		if Actor.power > thirst_min_critical_power then
-			Actor.power = thirst_power_v * k
+			Actor.power = thirst_power_v * (THIRST - thirst_critical_power)/(1 - thirst_critical_power)
 		end
-
-		if THIRST > thirst_critical_health then
-			if Actor.health > thirst_min_critical_health then
-				Actor.health = thirst_health_v * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
-			end
-		end
-
-		this.update_indicator(k)
-	elseif is_shown then
-		this.update_indicator(false)
 	end
+
+	if THIRST > thirst_critical_health then
+		if Actor.health > thirst_min_critical_health then
+			Actor.health = thirst_health_v * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
+		end
+	end
+
+	this.update_indicator()
 end
 
-function update_indicator(k)
-	if not k then
-		icon_wnd:SetColor( GetARGB(0,0,0,0) )
-		is_shown = false
-		return
-	end
-
-	if not is_shown then
-		if icon_wnd == nil then
-			local cs = get_hud():AddCustomStatic("cs_thirst", true)
-			icon_wnd = cs:wnd()
+function update_indicator()
+	local n
+	for i, v in ipairs(tIndicatorThreshold) do
+		if THIRST < v then
+			n = i
+			break
 		end
-		is_shown = true
+	end
+	if current_threshold == n then return end
+	current_threshold = n
+
+	local clr
+	if n == 1 then
+		clr = GetARGB(0,0,0,0)
+	else
+		local mn = tIndicatorThreshold[1]
+		local mx = tIndicatorThreshold[#tIndicatorThreshold]
+		local k = (tIndicatorThreshold[n] - mn)/(mx - mn)
+		clr = GetARGB(
+			255,
+			math.min( k*510, 255 ),
+			math.min( (1-k)*510, 255 ),
+			0
+		)
 	end
 
-	local r = math_min( k*510, 255 )
-	local g = math_min( (1-k)*510, 255 )
-	icon_wnd:SetColor( GetARGB(255,r,g,0) )
+	if icon_wnd == nil then
+		local cs = get_hud():AddCustomStatic("cs_thirst", true)
+		icon_wnd = cs:wnd()
+	end
+
+	icon_wnd:SetColor(clr)
 end
 
 function change_thirst(delta)
@@ -79,9 +98,14 @@ function save()
 	amk.save_variable("thr", THIRST)
 end
 
+function destroy()
+	icon_wnd = nil
+end
+
 function attach()
 	xr_s.subscribe( "net_spawn",   this.init )
 	xr_s.subscribe( "pre_save",    this.save )
+	xr_s.subscribe( "net_destroy", this.destroy )
 end
 
 function test(...)
