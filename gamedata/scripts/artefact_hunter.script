@@ -398,13 +398,6 @@ local info_traders = {
 	[story_ids.Doktor1]            = { name = "doctor",   lvl = 7, pay = 0.07 }
 }
 
-function format_phrase(text, fmt)
-	for k, v in pairs(fmt) do
-		text = string.gsub(text, "%$"..k, v)
-	end
-	return text
-end
-
 function init_known_art_dialog( dlg, str_sid )
 	local sid = story_ids[str_sid]
 	ASSERT(sid, "[init_known_art_dialog] story_id not exist: %s", str_sid)
@@ -428,7 +421,7 @@ function init_known_art_dialog( dlg, str_sid )
 
 	local pay = t.pay
 	fmt.pay = tostring(math.ceil(pay*100))
-	phr = dlg:AddPhrase( format_phrase(get_string("known_art_pay_11"), fmt ), "11", "0", -10000 )
+	phr = dlg:AddPhrase( format_text_pairs(get_string("known_art_pay_11"), fmt ), "11", "0", -10000 )
 	phrase_script = phr:GetPhraseScript()
 	phrase_script:AddDontHasInfo("art_hunter_about_pay_info")
 	fmt.pay = nil
@@ -460,11 +453,11 @@ function init_known_art_dialog( dlg, str_sid )
 
 		if lvl >= artefacts[sect].lvl then
 			fmt.art = get_string( sys_ini:r_string( sect, "inv_name" ) )
-			text = format_phrase( get_string("known_art_know_"..n), fmt )
+			text = format_text_pairs( get_string("known_art_know_"..n), fmt )
 			f = true
 		else
 			fmt.art = nil
-			text = format_phrase( get_string("known_art_dont_know_"..n), fmt )
+			text = format_text_pairs( get_string("known_art_dont_know_"..n), fmt )
 			f = false
 		end
 		phr = dlg:AddPhrase( text, tostring(2000+i), phr_id, -10000 )
