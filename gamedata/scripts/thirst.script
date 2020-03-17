@@ -11,13 +11,21 @@ local thirst_min_critical_health
 local thirst_power_v
 local thirst_health_v
 
-local tIndicatorThreshold = {}
+local death_timer = nil
+
+local tIndicatorThresholds = {}
 
 local icon_wnd = nil
 local current_threshold = nil
 
 function init()
-	THIRST = amk.load_variable("thr", 0)
+	local v = amk.load_variable("thr", 0)
+--	log("[thirst.init] %s", v)
+	death_timer = math.floor(v)
+	THIRST = v - death_timer
+	if death_timer == 0 then
+		death_timer = nil
+	end
 
 	local cond_sect = sys_ini:r_string("actor", "condition_sect")
 	thirst_v = sys_ini:r_float(cond_sect, "thirst_v")
@@ -30,13 +38,18 @@ function init()
 
 	local tmp = string.explode( sys_ini:r_string("main_ingame_indicators_thresholds", "thirst"), ",", true)
 	for i, v in ipairs(tmp) do
-		tIndicatorThreshold[i] = tonumber(v)
+		tIndicatorThresholds[i] = tonumber(v)
 	end
-	table.insert(tIndicatorThreshold, 1)
+	table.insert(tIndicatorThresholds, 1)
 end
 
+-- delta - игровые секунды
 function update(delta)
 	amk.oau_reason="thirst.update"
+
+	if Actor:is_actor_sprinting() then
+		delta = delta * 2
+	end
 
 	THIRST = math_clamp(THIRST + thirst_v*delta, 0, 1)
 --	log("thirst: %s", THIRST)
@@ -51,6 +64,15 @@ function update(delta)
 		if Actor.health > thirst_min_critical_health then
 			Actor.health = thirst_health_v * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
 		end
+		if not death_timer then
+			death_timer = 24*60*60
+		elseif death_timer > 0 then
+			death_timer = death_timer - delta
+		else
+			Actor:kill(Actor)
+		end
+	elseif death_timer then
+		death_timer = nil
 	end
 
 	this.update_indicator()
@@ -58,7 +80,7 @@ end
 
 function update_indicator()
 	local n
-	for i, v in ipairs(tIndicatorThreshold) do
+	for i, v in ipairs(tIndicatorThresholds) do
 		if THIRST < v then
 			n = i
 			break
@@ -71,9 +93,9 @@ function update_indicator()
 	if n == 1 then
 		clr = GetARGB(0,0,0,0)
 	else
-		local mn = tIndicatorThreshold[1]
-		local mx = tIndicatorThreshold[#tIndicatorThreshold]
-		local k = (tIndicatorThreshold[n] - mn)/(mx - mn)
+		local mn = tIndicatorThresholds[1]
+		local mx = tIndicatorThresholds[#tIndicatorThresholds]
+		local k = (tIndicatorThresholds[n] - mn)/(mx - mn)
 		clr = GetARGB(
 			255,
 			math.min( k*510, 255 ),
@@ -95,7 +117,10 @@ function change_thirst(delta)
 end
 
 function save()
-	amk.save_variable("thr", THIRST)
+	if THIRST == 1 then THIRST = 0.99999 end
+	local v = THIRST + (death_timer and math.ceil(death_timer) or 0)
+--	log("[thirst.save] %s", v)
+	amk.save_variable("thr", v)
 end
 
 function destroy()
