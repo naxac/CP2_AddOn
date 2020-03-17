@@ -310,22 +310,22 @@ local energy_drink_power = sys_ini:r_float( "energy_drink", "eat_power" )
 
 function test_for_need_sleep_nrg()
 	local n = amk.load_variable("gg_need_sleep_nrg", 0)
-	amk.save_variable("gg_need_sleep_nrg", n+1)
 	if n < 3 then
+		amk.save_variable("gg_need_sleep_nrg", n+1)
 		local v = amk.load_variable("gg_need_sleep", 0) - 30 + n*10
 		amk.save_variable("gg_need_sleep", math.max(v, 0)) 
 		test_sleep_pp(v)
+		remove_timer("block_sleep_menu")
+		start_game_timer("block_sleep_menu",0,0,(4-n)*30)
 	else
 		local p = Actor.power
 		start_small_timer( 400, function()
 			Actor.power = p - 1 + energy_drink_power/(n - 1)
 		end )
-		if n == 4 then
+		if n == 3 then
 			amk.send_tip("Что-то энергетик уже не помогает нихрена, надо бы отдохнуть...",Actor:character_name(),5,8,"str")
 		end
 	end
-	remove_timer("block_sleep_menu")
-	start_game_timer("block_sleep_menu",0,0,math.max(4-n, 0)*30)
 end
 
 function test_for_need_sleep_med(v)
