@@ -17,13 +17,17 @@ end
 
 local cmd2func = {}
 	cmd2func['run'] = function (func_str)
-		local res, err = pcall( loadstring( func_str ) )
-		return res, ( res and "Successfully!" or "Error: "..err )
-	end
-	cmd2func['run_func'] = function (func_str, ...)
 		if func_str==nil or func_str=="" then
 			return false, "Incorrect parameters for command: run"
 		end
+		local res, err = pcall( loadstring( func_str ) )
+		return res, ( res and "Successfully!" or "Error: "..err )
+	end
+	cmd2func['run_func'] = function (str)
+		if str==nil or str=="" then
+			return false, "Incorrect parameters for command: run_func"
+		end
+		local func_str, args = string.match(str, "(%S+)%s+(.-)")
 
 		local func = nil
 
@@ -42,8 +46,7 @@ local cmd2func = {}
 			return false, "Function '"..func_str.." not found in _G"
 		end
 
-		local p = {...}
-		local result = loadstring("return "..func.."(".. table.concat(p, ",") ..")")()
+		local result = loadstring("return "..func.."(".. (args or "") ..")")()
 		local t = type(result)
 		if t == "userdata" then
 			if result.name then
@@ -62,14 +65,29 @@ local cmd2func = {}
 	end
 
 	cmd2func['jump_to_level'] = function (level_name)
-		local point = teleport_manager.get_places(level_name)
-		if point==nil then
+		local v = nil
+		local i = 0
+		while GGraph:valid_vertex_id(i) do
+			v = GGraph:vertex(i)
+			if AI:level_name(v:level_id()) == level_name then
+				break
+			end
+			i = i + 1
+		end
+		if v == nil then
 			return false, "Incorrect parameter for command: jump_to_level"
 		end
 		xr_s.subscribe("update", ui_console.update_close)
 		level.disable_input()
-		start_small_timer(3000,
-			function() teleport_manager.jumpTo(point) end
+		start_small_timer(2000,
+			function()
+				level.enable_input()
+				level_changers.create_teleport_on_actor(
+					v:game_point(),
+					v:level_vertex_id(),
+					i
+				)
+			end
 		)
 		return true, nil
 	end
@@ -110,7 +128,8 @@ local cmd2func = {}
 		end
 	end
 	
-	cmd2func['give_item'] = function (section, n)
+	cmd2func['give_item'] = function (str)
+		local section, n = string.match(str, "(%S+)%s+(.-)")
 		if section==nil or section=="" then
 			return false, "Incorrect parameters for command: give_item"
 		elseif not sys_ini:section_exist(section) then
@@ -126,7 +145,7 @@ local cmd2func = {}
 		return true, nil
 	end
 	
-	cmd2func['forward'] = function (n)
+	cmd2func['fwd'] = function (n)
 		if n==nil or tonumber(n)==nil then
 			return false, "Incorrect parameter for command: forward"
 		end
@@ -134,7 +153,8 @@ local cmd2func = {}
 		return true, nil
 	end
 	
-	cmd2func['teleport'] = function (x, y, z)
+	cmd2func['teleport'] = function (str)
+		local x, y, z = string.match(str, "(%S+)%s+(%S+)%s+(%S+)")
 		if x==nil or tonumber(x)==nil
 			or y==nil or tonumber(y)==nil
 			or z==nil or tonumber(z)==nil
@@ -272,29 +292,27 @@ function UIConsole:EnterCommand()
 	local str = self.edit:GetText()
 	if #str==0 then return end
 	
-	local t = {}
-	for s in string.gmatch(str, "%S+") do t[#t+1] = s end
-	local cmd = t[1]
-	table.remove(t, 1)
+	local cmd, args = string.match(str, "(%S+)%s+(.-)")
 	
 	log_text = log_text.."~ "..str.."\n"
 	
 	self.scroll_v:Clear()
 	
+	if not table.find(last_commands, str) then
+		table.insert(last_commands, str)
+		self.last_i = #last_commands
+	end
+
 	if cmd2func[cmd] then
-		if not table.find(last_commands, str) then
-			table.insert(last_commands, str)
-			self.last_i = #last_commands
-		end
-		if t[1] and t[1]=="?" then
+		if args=="?" then
 			buf_text = "%c[green_blue]"..str.."\\n"..buf_text
 			local s = game.translate_string("ui_console_help_"..cmd)
 			buf_text = "%c[default]"..s.."\\n"..buf_text
 			log_text = log_text..s.."\n"
 		else
-			local res, msg = cmd2func[cmd](unpack(t))
+			local res, msg = cmd2func[cmd](args)
 			if res then
-				if msg ~= "nolog" then
+				if msg then
 					buf_text = "%c[green]"..str.."\\n"..buf_text
 					if msg then
 						buf_text = "%c[default]"..msg.."\\n"..buf_text
