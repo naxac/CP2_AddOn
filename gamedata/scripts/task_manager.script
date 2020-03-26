@@ -160,7 +160,7 @@ function CRandomTask:__init()
 			curr_task_info.reward_items = parse_reward_items( self.task_ini:r_string(id, "reward_item") )
 		end
 		
-		curr_task_info.reward_money = self.task_ini:r_u32_ex(id, "reward_money", nil)		
+		curr_task_info.reward_money = self.task_ini:r_u32_ex(id, "reward_money", nil)
 		curr_task_info.reward_script = self.task_ini:r_string_ex(id, "reward_script", nil)
 		-- Награда информацией
 		-- amk.mylog("reward info read")
@@ -820,7 +820,7 @@ function CRandomTask:check_task_props(task_id)
 			self.task_info[task_id].enabled_props = false
 			return
 		end
-		for k,v in pairs(self.task_info[task_id].target_objects) do
+		for k,v in ipairs(self.task_info[task_id].target_objects) do
 			local gulag = AI:object(v).gulag
 			if gulag:get_population_comed() > 0 then
 				self.task_info[task_id].enabled_props = true
@@ -834,7 +834,7 @@ function CRandomTask:check_task_props(task_id)
 			self.task_info[task_id].enabled_props = false
 			return
 		end
-		for k,v in pairs(self.task_info[task_id].target_objects) do
+		for k,v in ipairs(self.task_info[task_id].target_objects) do
 			local defend_object = AI:object(v)
 			local sm_ini = defend_object:spawn_ini()
 			local defend_target = utils.cfg_get_number(sm_ini, "random_task", "defend_target", nil, true)
@@ -850,7 +850,7 @@ function CRandomTask:check_task_props(task_id)
 			self.task_info[task_id].enabled_props = false
 			return
 		end
-		for k,v in pairs(self.task_info[task_id].target_objects) do
+		for k,v in ipairs(self.task_info[task_id].target_objects) do
 			local obj = AI:object(v)
 
 			--' Проверка бага
@@ -1163,7 +1163,7 @@ function CRandomTask:register_target(obj)
 					t.target_objects = {}
 				end
 				-- printf("@@@register new target %s[%s] for task %s", obj:name(), obj.id, v)
-				t.target_objects[#t.target_objects+1] = obj.id
+				table.insert(t.target_objects, obj.id)
 			end
 		end
 
@@ -1176,7 +1176,7 @@ function CRandomTask:register_target(obj)
 				if t.target_objects == nil then
 					t.target_objects = {}
 				end
-				t.target_objects[#t.target_objects+1] = obj.id
+				table.insert(t.target_objects, obj.id)
 			end
 		end
 		--' Либо регистрируется цель для квеста "защитить лагерь"
@@ -1189,7 +1189,7 @@ function CRandomTask:register_target(obj)
 				if t.target_objects == nil then
 					t.target_objects = {}
 				end
-				t.target_objects[#t.target_objects+1] = obj.id
+				table.insert(t.target_objects, obj.id)
 			end
 		end
 
@@ -1204,7 +1204,7 @@ function CRandomTask:register_target(obj)
 				if t.target_objects == nil then
 					t.target_objects = {}
 				end
-				t.target_objects[#t.target_objects+1] = obj.id
+				table.insert(t.target_objects, obj.id)
 			end       
 		end
 	end
@@ -1212,25 +1212,31 @@ end
 --' Отрегистрация целей для квестов.
 function CRandomTask:unregister_target(obj)
 	if IAmAStalker[obj:clsid()] then
+		local obj_id = obj.id
 		--' Возможно отрегистрируется цель для квеста "убить сталкера"
-		for k,v in pairs(self.task_id_by_type["kill_stalker"]) do 
-			if self.task_info[v].target_objects ~= nil then
-				for kk,vv in pairs(self.task_info[v].target_objects) do
-					if vv == obj.id then
-						table_remove(self.task_info[v].target_objects, vv)
+		for k,v in pairs(self.task_id_by_type["kill_stalker"]) do
+			local t = self.task_info[v].target_objects
+			if t ~= nil then
+				for i = 1, #t do
+					if t[i] == obj_id then
+						table_remove(t, i)
+						break
 					end
 				end     
 			end
 		end
 	elseif obj:clsid() ~= clsid.smart_terrain then
 		--' Возможно отрегистрируется цель для квеста "найти предмет"
+		local obj_id = obj.id
 		for k,v in pairs(self.task_id_by_type["find_item"]) do
-			if self.task_info[v].target_objects ~= nil then
-				for kk,vv in pairs(self.task_info[v].target_objects) do
-					if vv == obj.id then
-						table_remove(self.task_info[v].target_objects, vv)
+			local t = self.task_info[v].target_objects
+			if t ~= nil then
+				for i = 1, #t do
+					if t[i] == obj_id then
+						table_remove(t, i)
+						break
 					end
-				end     
+				end    
 			end
 		end
 	end
