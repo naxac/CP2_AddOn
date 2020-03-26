@@ -1,0 +1,985 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Различные служебные функции и переменные
+local translate = game.translate_string
+local string_format = string.format
+local function string_lower( str )
+	return string.lower( str:gsub( "([А-Я])",
+		function( s ) return string.char( s:byte()+32 ) end ):gsub( "Ё", "ё" ) )
+end
+local function math_clamp(val, min, max)
+	if min > max then
+		min, max = max, min
+	end
+	return (val < min and min)
+		or (val > max and max)
+		or val
+end
+local function get_inv_name( section, def )
+	if sys_ini:section_exist( section ) and sys_ini:line_exist( section, "inv_name" ) then
+		return translate( sys_ini:r_string_wq( section, "inv_name" ) )
+	end
+	return translate( def )
+end
+function get_icon( section )
+	if sys_ini:section_exist( section ) and sys_ini:line_exist( section, "inv_grid_x" ) then
+		return Frect():set(
+			sys_ini:r_u32( section, "inv_grid_x" )*50,
+			sys_ini:r_u32( section, "inv_grid_y" )*50,
+			sys_ini:r_u32( section, "inv_grid_width" )*50,
+			sys_ini:r_u32( section, "inv_grid_height" )*50 ),
+			"ui\\ui_icon_equipment"
+	elseif sys_ini:line_exist( section, "icon" ) then
+		local tex = sys_ini:r_string( section, "icon" )
+		local tex_info = GetTextureInfo( tex, tex )
+		local rect = tex_info:get_rect()
+		return Frect():set( rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1 ),
+			tex_info:get_file_name()
+	else
+		return Frect():set(249,940,83,47), 
+			"ui\\ui_iconsTotal"
+	end
+end
+
+local kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
+
+-- Собственно, само меню
+class "list_item" (CUIListItemEx)
+local symb2color = {
+	[033] = {255,255,000,000},      -- ! красный
+	[035] = {255,000,255,160},      -- # салатовый
+	[042] = {255,160,160,160},      -- * серый
+	[045] = {255,000,255,000},      -- - зелёный
+	[043] = {255,000,000,255},      -- + синий
+	[126] = {255,255,255,000}       -- ~ жёлтый
+}
+function list_item:__init(name, sect) super()
+	self:SetWndRect		(0,0,430,22)
+	
+	self.fn					= CUIStatic	()
+	self.fn:SetAutoDelete	(true)
+	self:AttachChild		(self.fn)
+	self.fn:SetWndRect		(0,0,230,22)
+	self.fn:SetFont			(GetFontLetterica16Russian())
+	local b = string.byte( name:sub(1,1) )
+	if symb2color[ b ] then
+		self.fn:SetTextColor( unpack( symb2color[ b ] ) )
+		name = name:sub(3)
+	else
+		self.fn:SetTextColor	(255,255,234,104)
+	end
+	self.fn:SetText			(name)
+	
+	self.sct				= CUIStatic	()
+	self.sct:SetAutoDelete	(true)
+	self:AttachChild		(self.sct)
+	self.sct:SetWndRect		(230,0,200,22)
+	self.sct:SetText		(sect)
+	self.sct:SetFont		(GetFontLetterica16Russian())
+	self.sct:SetTextColor	(0,0,0,0)
+end
+
+------------------------------------------------------------------------------------------
+class "cheat_menu"  (CUIScriptWnd)
+
+local index2type = {
+	[1] = "weapons",
+	[2] = "ammo",
+	[3] = "addons",
+	[4] = "outfits",
+	[5] = "artefacts",
+	[6] = "food_and_drugs",
+	[7] = "items",
+	[8] = "quest_items",
+	[9] = "npc",
+	[10] = "mobs",
+	[11] = "anomalies",
+	[12] = "junk"
+}
+
+function cheat_menu:__init() super()
+	self.menu_index = 1
+	self.search_pos = -1
+	self.is_actor_alive = db.actor and db.actor:alive()
+
+	self.list_sections = this.init_cheat_table()
+
+	self:InitControls()
+	self:InitCallBacks()
+	self:FillList()
+end
+
+function cheat_menu:__finalize()
+end
+
+function cheat_menu:FillList()
+	if self.list:GetSize() > 0 then self.list:RemoveAll() end
+
+	local tbl = self.list_sections[ index2type[self.menu_index] ]
+	if #tbl == 0 then return end
+
+	for i = 1, #tbl do
+		self:AddItemToList( tbl[i] )
+	end
+end
+
+function cheat_menu:InitControls()
+	self:Init(0,0,1024,768)
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_cheat_soc.xml")
+	xml:InitStatic("background", self)
+	
+	local dialog = xml:InitStatic("main_dialog:dialog", self)
+	xml:InitStatic("main_dialog:cap_cheat", dialog)
+	
+	xml:InitFrame("main_dialog:frame",	dialog)
+	
+	self.tab = xml:InitTab("main_dialog:tab", dialog)
+	self:Register(self.tab,	"tab")
+	
+	xml:InitFrame("main_dialog:list_frame",			dialog)
+	self.list = xml:InitList("main_dialog:list_window", 	dialog)
+	self:Register(self.list, "list_window")
+	
+	local ctrl
+	ctrl = xml:Init3tButton("main_dialog:btn_spawn", dialog)
+	ctrl:Enable(self.is_actor_alive)
+	self:Register(ctrl, "btn_spawn")
+
+	ctrl = xml:Init3tButton("main_dialog:btn_cancel", dialog)
+	self:Register(ctrl, "btn_cancel")
+	
+	self.btn_del = xml:Init3tButton("main_dialog:btn_delitem", dialog)
+	self.btn_del:Enable(false)
+	self:Register(self.btn_del, "btn_del")
+	-- Поиск по имени
+	ctrl = xml:Init3tButton("main_dialog:btn_search", dialog)
+	self:Register(ctrl, "btn_search")
+	self.edit_box = ui_edit_box_ru.CUIEditBox_new(dialog, 273, 140, 241)
+	self.search_all = xml:InitCheck("main_dialog:check_search_all", dialog)
+	
+	self.section_name = xml:InitStatic("main_dialog:sect_wnd", dialog)
+
+	-- Сортировка
+	xml:InitStatic("main_dialog:sort_caption", dialog)
+	self.tab_sort = xml:InitTab("main_dialog:tab_sort", dialog)
+	self:Register(self.tab_sort, "tab_sort")
+	
+	-- Описание
+	self.descWnd = xml:InitFrame("description", self)
+	self.scroll_v = xml:InitScrollView("description:scroll_v", self.descWnd)
+
+	ctrl = xml:Init3tButton("description:button_descr", self)
+	self:Register(ctrl, "btn_descr")
+
+	self.pict = CUIStatic()
+	self.pict:SetWindowName("pict")
+	self.pict:SetAutoDelete(true)
+	self.pict:Init(0,0,50,50)
+	self.descWnd:AttachChild(self.pict)
+
+	self.cost = xml:InitStatic("description:cost_wnd", self.descWnd)
+	self.weight = xml:InitStatic("description:weight_wnd", self.descWnd)
+
+	_st = xml:InitStatic("description:templ_item", self.scroll_v)
+	self.descr = xml:InitStatic("description:descr_list", _st)
+
+	if self.is_actor_alive then
+		ctrl = xml:Init3tButton("btn_info_menu", self)
+		self:Register(ctrl, "btn_info")
+
+		local frame = xml:InitFrame("actor_params", self)
+		xml:InitStatic("actor_params:caption", frame)
+
+		xml:InitStatic("actor_params:caption_health", frame)
+		self.health = ui_spin_num.CUISpinNum( frame, 120, 30, 60, { min = 0, max = 100 } )
+		self.health:SetValue( db.actor.health * 100 )
+
+		xml:InitStatic("actor_params:caption_rad", frame)
+		self.rad = ui_spin_num.CUISpinNum( frame, 120, 55, 60, { min = 0, max = 100 } )
+		self.rad:SetValue( db.actor.radiation * 100 )
+
+		xml:InitStatic("actor_params:caption_psy_health", frame)
+		self.psy_health = ui_spin_num.CUISpinNum( frame, 120, 80, 60, { min = 0, max = 100 } )
+		self.psy_health:SetValue( db.actor.psy_health * 100 )
+
+		xml:InitStatic("actor_params:caption_power", frame)
+		self.power = ui_spin_num.CUISpinNum( frame, 120, 105, 60, { min = 0, max = 100 } )
+		self.power:SetValue( db.actor.power * 100 )
+
+		ctrl = xml:Init3tButton( "actor_params:btn_set_params", frame )
+		self:Register( ctrl, "btn_set_params" )
+	end
+end
+
+function cheat_menu:InitCallBacks()
+	self:AddCallback("tab",                ui_events.TAB_CHANGED,             self.OnTabChange,         self)
+	self:AddCallback("btn_descr",          ui_events.BUTTON_CLICKED,          self.OnBtnShowDescr,      self)
+	self:AddCallback("btn_cancel",         ui_events.BUTTON_CLICKED,          self.OnBtnCancel,         self)
+	self:AddCallback("btn_spawn",          ui_events.BUTTON_CLICKED,          self.OnBtnSpawn,          self)
+	self:AddCallback("btn_del",            ui_events.BUTTON_CLICKED,          self.OnBtnDelete,         self)
+	self:AddCallback("btn_search",         ui_events.BUTTON_CLICKED,          self.SearchItem,          self)
+	self:AddCallback("list_window",        ui_events.LIST_ITEM_CLICKED,       self.OnListItemClicked,   self)
+	self:AddCallback("list_window",        ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked, self)
+	self:AddCallback("tab_sort",           ui_events.TAB_CHANGED,             self.SortList,            self)
+	if self.is_actor_alive then
+		self:AddCallback("btn_info",		ui_events.BUTTON_CLICKED,         self.OnBtnInfoMenu,       self)
+		self:AddCallback("btn_set_params",	ui_events.BUTTON_CLICKED,         self.SetActorParams,      self)
+	end
+end
+
+function cheat_menu:OnBtnShowDescr()
+	local s = self.descWnd:IsShown()
+	self.descWnd:Show(not s)
+end
+
+function cheat_menu:OnBtnInfoMenu()
+	if self.owner.info_menu == nil then
+		self.owner.info_menu = ui_info_menu.CUIInfoMenu()
+		self.owner.info_menu.owner = self.owner
+	end
+	self:GetHolder():start_stop_menu( self.owner.info_menu, true )
+	self:GetHolder():start_stop_menu( self, true )
+end
+
+function cheat_menu:SortList()
+	local idx = self.tab_sort:GetActiveIndex()
+	this.sort_sections( self.list_sections, idx )
+	self:OnTabChange()
+end
+
+function cheat_menu:SetActorParams()
+	self.actor_set_params = {}
+	self.actor_set_params.health = self.health:GetValue() /100
+	self.actor_set_params.radiation = self.rad:GetValue() /100
+	self.actor_set_params.psy_health = self.psy_health:GetValue() /100
+	self.actor_set_params.power = self.power:GetValue() /100
+end
+
+function cheat_menu:OnBtnCancel()
+	if self.is_actor_alive then
+		if self.actor_set_params then
+			local n = 0
+			for k, v in pairs( self.actor_set_params ) do
+				n = db.actor[ k ]
+				db.actor[ k ] = v - n
+			end
+		end
+		get_console():execute( "main_menu off" )
+		return
+	end
+
+	self:GetHolder():start_stop_menu	(self.owner, true) --new(show main window)
+	self:GetHolder():start_stop_menu	(self,true)
+	self.owner:Show						(true)
+end
+
+function cheat_menu:OnTabChange()
+	local i = self.tab:GetActiveIndex()
+	self.menu_index = i+1
+
+	self:FillList()
+	self.list:ResetFocusCapture()
+	
+	local itm_index = self.list:GetSelectedItem()
+	if itm_index then self.list:ScrollToPos(itm_index) end
+	if itm_index < 0 or self.list:GetSize() < itm_index+1 then return end
+	self:GetDescription(itm_index)
+end
+
+function cheat_menu:OnListItemClicked()
+	local sz = self.list:GetSize()
+	if sz == 0 then return end
+	
+	local itm_index = self.list:GetSelectedItem()
+	if itm_index < 0 or sz < itm_index+1 then return end
+	
+	self:GetDescription(itm_index)
+	self.search_pos = itm_index
+end
+	
+function cheat_menu:GetDescription(indx)
+	local itm = self.list:GetItem(indx)
+	if itm == nil then return end
+
+	self.list:SetFocusedItem(indx)
+
+	local sect = itm.sct:GetText()
+	if not sys_ini:section_exist( sect ) then
+		return
+	end
+	
+	if self.is_actor_alive then
+		self.btn_del:Enable(db.actor:object(sect)~=nil)
+	end
+
+	local rect, file = get_icon(sect)
+	
+	local pw = (rect.x2/5)*4*kScreen
+	local ph = (rect.y2/5)*4
+	local px = 5 + 210-(pw/2)
+	local py = 40 + 75-(ph/2)
+	
+	self.pict:InitTexture(file)
+	self.pict:SetOriginalRect(rect.x1,rect.y1,rect.x2,rect.y2)
+	self.pict:Init(px,py,pw,ph)
+	self.pict:SetStretchTexture(true)
+	
+	local description = "%c[red]<no description>"
+	if sys_ini:line_exist(sect, "description") then
+		local str = sys_ini:r_string_wq(sect, "description")
+		if str and str ~= "" then
+			description = translate( str )
+		end
+	end
+
+	local ext_descr, pos_mode = self:GetExtDescr(sect)
+	if ext_descr then
+		if pos_mode then
+			description = description.."\\n \\n%c[white]"..ext_descr
+		else
+			description = ext_descr.."\\n \\n%c[default]"..description
+		end
+	end
+
+	if sys_ini:line_exist(sect, "cost") then
+		self.cost:SetText( string_format( "Цена: %d руб.", sys_ini:r_float(sect, "cost") ) )
+	else
+		self.cost:SetText("")
+	end
+
+	if sys_ini:line_exist(sect, "inv_weight") then
+		self.weight:SetText( string_format( "Вес: %.2f кг.", sys_ini:r_float(sect, "inv_weight") ) )
+	else
+		self.weight:SetText("")
+	end
+
+	self.descr:SetText(description)
+	self.scroll_v:ScrollToBegin()
+
+	self.section_name:SetText(sect)
+end
+
+function cheat_menu:OnListItemDbClicked()
+	self:OnBtnSpawn()
+end
+
+function cheat_menu:SearchItem()
+	local search_text = self.edit_box:GetText()
+	if #search_text==0 then return end
+	local size = self.list:GetSize()
+	if size==0 then return end
+	
+	search_text = string_lower(search_text):gsub("ё","е")
+
+	local res = false
+
+	local function search(idx)
+		local j
+		for i, v in ipairs( self.list_sections[ index2type[idx] ] ) do
+			j = i - 1
+			if self.search_pos < j
+				and ( string.find( string_lower(v[2]):gsub("ё","е"),search_text,1,true )
+				or string.find( v[1],search_text,1,true ) )
+			then
+				self.search_pos = j
+				return j
+			end
+		end
+		self.search_pos = -1
+		return false
+	end
+
+	if self.search_all:GetCheck() then
+		local n = #index2type
+		for i = self.menu_index - 1, self.menu_index + n - 2 do
+			local j = math.fmod( i, n )+1
+			res = search(j)
+			if res then
+				if self.menu_index ~= j then
+					self.tab:SetNewActiveTab(j-1)
+				end
+				break
+			end
+		end
+	else
+		res = search(self.menu_index)
+	end
+
+	if res then
+		self.list:ScrollToPos(res)
+		self:GetDescription(res)
+	end
+end
+
+function cheat_menu:OnBtnSpawn()
+	if not self.is_actor_alive then return end
+
+	if self.list:GetSize()==0 then return end
+	local itm_index = self.list:GetFocusedItem()
+	if (not itm_index) or itm_index < 0 then return end
+
+	local itm = self.list:GetItem(itm_index)
+	if itm == nil then return end
+	local sect = itm.sct:GetText()
+	if not sys_ini:section_exist( sect ) then return end
+	
+	local actor = db.actor
+	local snd = sound_object([[detectors\contact_1]])
+	snd:play(actor, 0, sound_object.s2d)
+
+	if self.menu_index >= 9 then
+		local dist = self.menu_index < 11 and 20 or 4
+		local sobj = alife():create(sect, actor:position():add(actor:direction():mul(dist)), actor:level_vertex_id(), actor:game_vertex_id())
+		if self.menu_index == 11 then	-- Зададим шейп аномалии, чтобы наносила хит
+			-- if sobj.add_shape then
+				-- sobj:add_shape(2)
+			-- else
+				-- netpacket:modify(sobj, "shapes", 2)
+			-- end
+		end
+	else
+		local num = tonumber( self.edit_box:GetText() )
+		num = math_clamp( math.ceil( num or 1 ), 1, 20 )
+		for i=1,num do
+			alife():create(sect, actor:position(), actor:level_vertex_id(), actor:game_vertex_id(), 0)
+		end
+	end
+end
+
+function cheat_menu:OnBtnDelete()
+	if ( not self.is_actor_alive ) or self.menu_index >= 9 then return end
+
+	if self.list:GetSize()==0 then return end
+	local itm_index = self.list:GetFocusedItem()
+	if (not itm_index) or itm_index < 0 then return end
+
+	local itm = self.list:GetItem(itm_index)
+	if itm == nil then return end
+	local sect = itm.sct:GetText()
+	local obj = db.actor:object(sect)
+	if obj then
+		news_manager.send_tip(db.actor, "Удалили из инвентаря%c[255,0,255,100] "..itm.fn:GetText())
+		local sobj = alife():object(obj:id())
+		if sobj then alife():release(sobj, true) end
+		get_console():execute("main_menu off")
+	end
+end
+
+function cheat_menu:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+
+	self.edit_box:OnKeyboard(dik, keyboard_action)
+
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then self:OnBtnCancel()
+		elseif dik == DIK_keys.DIK_RETURN or dik == DIK_keys.DIK_NUMPADENTER then self:SearchItem()
+		elseif dik == DIK_keys.DIK_SPACE then self:OnBtnSpawn()
+		elseif dik == DIK_keys.DIK_DELETE then self:OnBtnDelete()
+		elseif dik == DIK_keys.DIK_TAB then self:OnKeyNewTab()
+		elseif dik == DIK_keys.DIK_UP then self:NavigateList(-1)
+		elseif dik == DIK_keys.DIK_DOWN then self:NavigateList(1)
+		end
+	end
+	return true
+end
+
+function cheat_menu:OnKeyNewTab()
+	local i = self.tab:GetActiveIndex()
+	local cnt = self.tab:GetTabsCount()
+	local new_tab = i==cnt-1 and 0 or i+1
+	self.tab:SetNewActiveTab(new_tab)
+end
+
+function cheat_menu:NavigateList(n)
+	local sz = self.list:GetSize()
+	if sz == 0 then return end
+
+	local index = self.list:GetFocusedItem() or 0
+	-- if index < 0 then return end
+
+	index = index + n
+	if index < 0 then index = sz -1
+	elseif index > sz -1 then index = 0 end
+
+	self.list:ScrollToPos(index)
+	self:GetDescription(index)
+end
+
+function cheat_menu:AddItemToList(tbl)
+	local itm_name = tbl[2]
+	if #itm_name > 80 then itm_name = string.sub(itm_name,1,80).."..." end
+	self.list:AddItem( list_item(itm_name, tbl[1]) )
+end
+---------------------------------------------------------------------------------------------------
+local is_eatable = {
+	[clsid.obj_antirad]	= true,
+	[clsid.obj_bandage]	= true,
+	[clsid.obj_bottle]	= true,
+	[clsid.obj_food]	= true,
+	[clsid.obj_medkit]	= true
+}
+local is_artefact = {
+	[clsid.art_bast_artefact]	= true,
+	[clsid.art_black_drops]		= true,
+	[clsid.art_dummy]			= true,
+	[clsid.art_electric_ball]	= true,
+	[clsid.art_faded_ball]		= true,
+	[clsid.art_galantine]		= true,
+	[clsid.art_gravi]			= true,
+	[clsid.art_gravi_black]		= true,
+	[clsid.art_mercury_ball]	= true,
+	[clsid.art_needles]			= true,
+	[clsid.art_rusty_hair]		= true,
+	[clsid.art_thorn]			= true,
+	[clsid.art_zuda]			= true,
+	[clsid.artefact]			= true,
+	[clsid.artefact_s]			= true
+}
+local is_magazined_weapon = {
+	[clsid.wpn_fort]		= true,
+	[clsid.wpn_hpsa]		= true,
+	[clsid.wpn_hpsa_s]		= true,
+	[clsid.wpn_pm]			= true,
+	[clsid.wpn_pm_s]		= true,
+	[clsid.wpn_usp45]		= true,	
+	[clsid.wpn_usp45_s]		= true,	
+	[clsid.wpn_walther]		= true,
+	[clsid.wpn_walther_s]	= true,
+	[clsid.wpn_ak74_s]		= true,
+	[clsid.wpn_binocular_s]	= true,
+	[clsid.wpn_bm16_s]		= true,
+	[clsid.wpn_groza_s]		= true,
+	[clsid.wpn_lr300_s]		= true,
+	[clsid.wpn_rg6_s]		= true,
+	[clsid.wpn_rpg7_s]		= true,
+	[clsid.wpn_shotgun_s]	= true,
+	[clsid.wpn_svd_s]		= true,
+	[clsid.wpn_svu_s]		= true,
+	[clsid.wpn_val_s]		= true,
+	[clsid.wpn_vintorez_s]	= true
+}
+local is_outfit = {
+	[clsid.equ_exo]			= true,
+	[clsid.equ_military]	= true,
+	[clsid.equ_scientific]	= true,
+	[clsid.equ_stalker_s]	= true,
+	[clsid.equ_stalker]		= true
+}
+local is_grenade={
+	[clsid.wpn_grenade_f1]		= true,
+	[clsid.wpn_grenade_fake]	= true,
+	[clsid.wpn_grenade_rgd5]	= true,
+	[clsid.wpn_grenade_rpg7]	= true
+}
+local is_knife={
+	[clsid.wpn_knife]	=true,
+	[clsid.wpn_knife_s]	=true
+}
+local is_scope = {
+	[clsid.wpn_scope_s]	= true,
+	[clsid.wpn_scope]	= true
+}
+-- Параметры актёра, по которым считаются некоторые параметры артефактов или костюмов
+local conditions = {
+	bleeding_restore_speed	= sys_ini:r_float('actor_condition', 'bleeding_v') /100,
+	health_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_health_v') /100,
+	power_restore_speed		= sys_ini:r_float('actor_condition', 'satiety_power_v'),
+	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v') /100,
+	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v'),
+	psy_health_restore_speed= sys_ini:r_float('actor_condition', 'psy_health_v')
+}
+conditions.inventory_radiation = conditions.radiation_restore_speed
+-- параметры костюмов и артов
+local conditions_params = {
+	{ prop = "health_restore_speed",	text = "Здоровье:"		},
+	{ prop = "bleeding_restore_speed",	text = "Кровотечение:"	},
+	{ prop = "satiety_restore_speed",	text = "Сытость:"		},
+	{ prop = "power_restore_speed",		text = "Выносливость:"	},
+	{ prop = "radiation_restore_speed",	text = "Облучение:"		},
+	{ prop = "inventory_radiation",		text = "Облучение:"		},
+	{ prop = "psy_health_restore_speed",text = "Пси-здоровье:"	}
+}
+-- иммунитеы артефактов и защиты котюмов
+local hit_types = {
+	{ prop = "burn",			text = "Ожог:"			},
+	{ prop = "shock",			text = "Электрошок:"	},
+	{ prop = "strike",			text = "Удар:"			},
+	{ prop = "wound",			text = "Разрыв:"		},
+	{ prop = "radiation",		text = "Радиация:"		},
+	{ prop = "telepatic",		text = "Телепатия:"		},
+	{ prop = "chemical_burn",	text = "Хим. ожог:"		},
+	{ prop = "explosion",		text = "Взрыв:"			},
+	{ prop = "fire_wound",		text = "Пулестойкость:"	}
+}
+-- Параметры еды
+local eatable_params = {
+	{ prop = "eat_health",				text = "Здоровье:"		},
+	{ prop = "wounds_heal_perc",		text = "Кровотечение:"	},
+	{ prop = "eat_satiety",				text = "Сытость:"		},
+	{ prop = "eat_power",				text = "Выносливость:"	},
+	{ prop = "eat_alcohol",				text = "Опьянение:"		},
+	{ prop = "eat_radiation",			text = "Радиация:"		}
+}
+-- Получаем параметры артефактов
+function GetAfParams(section)
+	local val, txt = 0, ""
+	for i,t in ipairs(conditions_params) do
+		val = sys_ini:line_exist(section, t.prop) and sys_ini:r_float(section, t.prop) or 0
+		if val~=0 then
+			val = val/conditions[t.prop]
+			txt = txt.."%c[white]• "..t.text.." "
+			unit = "%"
+			if t.prop == "bleeding_restore_speed" then
+				txt = txt..(val>0 and "%c[green]" or "%c[red]+")
+				val = -val
+			elseif t.prop == "radiation_restore_speed"
+				or t.prop == "inventory_radiation" 
+			then
+				txt = txt..(val>0 and "%c[red]+" or "%c[green]")
+				unit = "Ки"
+			else
+				txt = txt..(val>0 and "%c[green]+" or "%c[red]")
+			end
+			txt = txt..string_format("%d",val)..unit.."\\n"
+		end
+	end
+
+	local hit_absorbation_sect = sys_ini:r_string(section, "hit_absorbation_sect")
+	for i,t in ipairs(hit_types) do
+		val = sys_ini:r_float(hit_absorbation_sect, t.prop.."_immunity")
+		if val~=1 then
+			val = 100-val*100
+			txt = txt.."%c[white]• "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val).."\\n"
+		end
+	end
+
+	if sys_ini:line_exist(section, "additional_weight") then
+		val = sys_ini:r_float(section, "additional_weight")
+		if val~=0 then
+			txt = txt.."%c[white]• Переносимый вес: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." кг\\n"
+		end
+	end
+	if sys_ini:line_exist(section, "jump_speed_delta") then
+		val = sys_ini:r_float(section, "jump_speed_delta")
+		if val~=0 then
+			txt = txt.."%c[white]• Высота прыжка: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%.1f",val).." м\\n"
+		end
+	end
+	return txt
+end
+-- Получаем параметры костмов
+function GetOutfitParams(section)
+	local txt = ""
+	local val = 0
+	for i,t in ipairs(hit_types) do
+		val = sys_ini:r_float(section, t.prop.."_protection")
+		if val~=0 then
+			val = val*100
+			txt = txt.."%c[white]• "..t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val).."\\n"
+		end
+	end
+
+	if sys_ini:line_exist(section, "additional_inventory_weight") then
+		val = sys_ini:r_float(section, "additional_inventory_weight")
+		if val ~= 0 then
+			txt = txt.."%c[white]• Грузоподъёмность: %c[green]+"..string_format("%.1f",val).." кг\\n"
+		end
+	end
+	if sys_ini:line_exist(section, "power_loss") then
+		val = sys_ini:r_float(section, "power_loss")
+		if val ~= 1 then
+			val = val*100 - 100
+			txt = txt.."%c[white]• Усталость: "..(val>0 and "%c[red]+" or "%c[green]")..string_format("%d%%",val)
+		end
+	end
+	if sys_ini:line_exist(section, "power_restore_speed") then
+		val = sys_ini:r_float(section, "power_restore_speed")
+		if val ~= 0 then
+			txt = txt.."%c[white]• Выносливость: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%d",val*1000).."%\\n"
+		end
+	end
+	if sys_ini:line_exist(section, "health_restore_speed") then
+		val = sys_ini:r_float(section, "health_restore_speed")
+		if val ~= 0 then
+			txt = txt.."%c[white]• Здоровье: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%d",val*1000).."%\\n"
+		end
+	end
+	if sys_ini:line_exist(section, "bleeding_restore_speed") then
+		val = sys_ini:r_float(section, "bleeding_restore_speed")
+		if val ~= 0 then
+			txt = txt.."%c[white]• Кровотечение: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%d",val*1000).."%\\n"
+		end
+	end
+	if sys_ini:line_exist(section, "satiety_restore_speed") then
+		val = sys_ini:r_float(section, "satiety_restore_speed")
+		if val ~= 0 then
+			txt = txt.."%c[white]• Сытость: "..(val>0 and "%c[green]+" or "%c[red]")..string_format("%d",val*1000).."%\\n"
+		end
+	end
+
+	txt = txt.." \\n%c[white]Коэффициенты сопротивления к износу:\\n"
+	local immunities_sect = sys_ini:r_string(section, "immunities_sect")
+	for i,t in ipairs(hit_types) do
+		val = sys_ini:r_float(immunities_sect, t.prop.."_immunity")
+		txt = txt.."• "..t.text.." "..string_format("%f",val).."\\n"
+	end
+	return txt
+end
+-- Получаем описание оружия
+function GetWeaponParams(section)
+	local text = "Боеприпасы:\\n"
+	local addons = nil
+	local s = sys_ini:r_string(section, 'ammo_class')
+	for a in string.gfind(s, "[%w_%-%.]+") do
+		text = text.."• "..get_inv_name(a).."\\n"
+	end
+	local gl = sys_ini:r_u32(section, 'grenade_launcher_status')
+	if gl~=0 then
+		s = sys_ini:line_exist(section, "grenade_class") and sys_ini:r_string(section, 'grenade_class')
+		if s and s~="ammo_vog-27" then	-- не коллиматор
+			for a in string.gfind(s, "[%w_%-%.]+") do
+				text = text.."• "..get_inv_name(a).."\\n"
+			end
+		end
+	end
+
+	local n = sys_ini:r_u32(section, 'scope_status')
+	if n ~= 0 then
+		addons = "Навесы:\\n"
+		if n == 1 then
+			s = sys_ini:r_float(section, 'scope_zoom_factor')
+			n = 67.5/(s*0.75)
+			addons = addons.."• Интегрированный x"..string_format("%d", n).."-кратный прицел\\n"
+		else
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'scope_name') ).."\\n"
+		end
+	end
+
+	n = sys_ini:r_u32(section, 'silencer_status')
+	if n ~= 0 then
+		if addons == nil then
+			addons = "Навесы:\\n"
+		end
+		if n == 1 then
+			addons = addons.."• Интегрированный глушитель\\n"
+		else
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'silencer_name') ).."\\n"
+		end
+	end
+
+	if gl ~= 0 then
+		if addons == nil then
+			addons = "Навесы:\\n"
+		end
+		if gl == 1 then
+			addons = addons.."• Интегрированный подствольный гранатомёт\\n"
+		else
+			addons = addons.."• "..get_inv_name( sys_ini:r_string(section, 'grenade_launcher_name') ).."\\n"
+		end
+	end
+
+	if addons then
+		text = text..addons
+	end
+	text = text.." \\n"
+
+	n = sys_ini:r_u32(section, 'fire_distance')
+	text = text.."• эффективная дальность: "..string_format("%d", n).." метров\\n"
+
+	n = sys_ini:r_u32(section, 'rpm')
+	text = text.."• скорострельность: "..string_format("%d", n).." в/мин\\n"
+
+	n = sys_ini:r_u32(section, 'ammo_mag_size')
+	text = text.."• ёмкость магазина: "..string_format("%d", n).."\\n"
+
+	if sys_ini:r_clsid(section, "class") == clsid.wpn_binocular_s then
+		text = text.."• регулируемый прицел\\n"
+		if sys_ini:r_bool(section, "vision_present") == true then
+			text = text.."• автозахват цели\\n"
+		end
+	end
+
+	if string.find(section, "_kalibr") then
+		text = text.."• смена калибра\\n"
+	end
+	if string.find(section, "_otdaca") then
+		text = text.."• уменьшена отдача\\n"
+	end
+	if string.find(section, "_ves") then
+		text = text.."• снижен вес\\n"
+	end
+
+	return text
+end
+function GetEatableParams(section)
+	local val, txt = 0, ""
+	for i, t in ipairs(eatable_params) do
+		if sys_ini:line_exist(section, t.prop) then
+			val = sys_ini:r_float(section, t.prop)
+			if val~=0 then
+				txt = txt.."%c[white]• "..t.text.." "
+				if t.prop == "wounds_heal_perc" then
+					txt = txt..(val>0 and "%c[green]" or "%c[red]+")
+					val = -val
+				elseif t.prop == "eat_alcohol"
+					or t.prop == "eat_radiation"
+				then
+					txt = txt..(val>0 and "%c[red]+" or "%c[green]")
+				else
+					txt = txt..(val>0 and "%c[green]+" or "%c[red]")
+				end
+				txt = txt..string_format("%d",val*100).."%\\n"
+			end
+		end
+	end
+	return txt
+end
+function GetInventoryBoxItems(section)
+	local text = ""
+	if not sys_ini:line_exist(section, "custom_data") then
+		return text
+	end
+
+	local cd = sys_ini:r_string(section, "custom_data")
+	local ini = ini_file(cd)
+	if ini:section_exist("spawn") then
+		local res, id, val
+		for i = 0, ini:line_count("spawn")-1 do
+			res, id, val = ini:r_line("spawn", i, "", "")
+			val = tonumber(val)
+			if val and val == 1 then
+				val = nil
+			end
+			text = text..get_inv_name(id)..
+				(val and " %c[yellow]x"..val or "")..
+				" %c[gray2]("..id..")%c[white] \\n"
+		end
+	end
+	return text
+end
+function cheat_menu:GetExtDescr( section )
+	local txt = nil
+	local mode = true
+	local cls = sys_ini:r_clsid( section, "class" )
+
+	if is_eatable[cls] then
+		txt = GetEatableParams(section)
+	elseif is_artefact[cls] then
+		txt = GetAfParams(section)
+		mode = false
+	elseif is_magazined_weapon[cls] then
+		txt = GetWeaponParams(section)
+	elseif is_outfit[cls] then
+		txt = GetOutfitParams(section)
+	elseif is_grenade[cls] then
+		local fr = sys_ini:r_float(section, 'frags_r')
+		local br =  sys_ini:r_float(section, 'blast_r')
+		txt = string_format( "• опасный радиус: %.1f м.", (fr+br)/2 ).."\\n"
+	elseif is_knife[cls] then
+		local d = sys_ini:r_float(section, 'fire_distance')
+		txt = string_format( "• дистанция удара: %.2f м.", d ).."\\n"
+	elseif is_scope[cls] then
+		local zf = sys_ini:r_float(section, 'scope_zoom_factor')
+		local zoom = 67.5/(zf*0.75)
+		txt = "• увеличение: x"..string_format("%.1f", zoom).."\\n"
+	elseif cls == clsid.inventory_box then
+		txt = GetInventoryBoxItems(section)
+	end
+
+	return txt, mode
+end
+
+local anom_exclude_part = {
+	"radioactive",
+	"zone_tuman",
+	"zone_fly_island",
+	"_snp",
+	"anim_ph_",
+	"propeller",
+	"zone_sarcofag"
+}
+function chech_exclusion_anom( section )
+	if string.find(section, "amk_") or string.find(section, "caps_") then
+		return false
+	end
+
+	for i, v in ipairs( anom_exclude_part ) do
+		if string.find( section, v ) then
+			return true
+		end
+	end
+
+	return sys_ini:r_clsid( section, "class" ) == clsid.zone_mosquito_bald
+end
+---------------------------------------------------------------------------------------------------------
+
+function start_menu( self )
+	self.spawn_menu = cheat_menu()
+	self.spawn_menu.owner = self
+	self:GetHolder():start_stop_menu( self.spawn_menu, true )
+	self:GetHolder():start_stop_menu( self, true )
+	self:Show( false )
+end
+
+function init_cheat_table()
+	if not _G.sys_ini then
+		_G.sys_ini = system_ini()
+	end
+
+	local cheat_list = {}
+	local tmp = collect_sections.main()
+	local name
+	for i, v in ipairs(index2type) do
+		local tbl = tmp[v]
+		if tbl then
+			local t = {}
+			cheat_list[v] = t
+			for j, sec in ipairs( tbl ) do
+				if v == "npc" or v == "mobs" then
+					name = sec
+					if v == "npc" then
+						local rank = sys_ini:line_exist( sec, "spec_rank" ) and sys_ini:r_string( sec, "spec_rank" )
+						local community = sys_ini:line_exist( sec, "community" ) and sys_ini:r_string( sec, "community" )
+						if community and rank then
+							if community == "stalker" or community == "stranger" then
+								community = "neutral"
+							end
+							name = community.."_"..rank
+						end
+					end
+					name = translate( name )
+					if sys_ini:line_exist( sec, "custom_data" ) then
+						name = "! "..name
+					end
+					table.insert( t, { sec, name } )
+				elseif v ==  "anomalies" then
+					name = sec
+					if chech_exclusion_anom( sec ) then
+						name = "~ "..name
+					end
+					table.insert( t, { sec, name } )
+				else
+					table.insert( t, { sec, get_inv_name(sec,sec) } )
+				end
+			end
+		end
+	end
+	this.sort_sections( cheat_list, 0 )
+	return cheat_list
+end
+
+function sort_sections( list, mode )
+	if mode then
+		for k, t in pairs( list ) do
+			table.sort( t, function( t1, t2 )
+				if t1[2] == t2[2] or mode == 1 then
+					return t1[1] < t2[1]
+				else
+					return t1[2] < t2[2]
+				end
+			end)
+		end
+	end
+end
+
+

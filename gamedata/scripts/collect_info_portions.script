@@ -3,44 +3,55 @@
 -- File			: collect_info_portions.script
 -- Description	: Чтение инфопорций из конфигов
 -- Created		: 28.09.2018
--- Last update	: 03.03.2019 /адаптация к ОП-2.1/
+-- Last update	: 03.03.2019
 -- Author		: naxac
 -----------------------------------------------------------------------------------------
 
 function main( rewrite )
-	if _G.cheat_base == nil
-		or _G.cheat_base.list_info == nil
-		or rewrite
-	then
+	if (ui_info_menu.list_info == nil) or rewrite then
 		local info_portions = {}
 		local files = {}
-		if _G.cheat_base == nil then _G.cheat_base = {} end
-		_G.cheat_base.list_info = {}
-		_G.cheat_base.list_info.info_portions = info_portions
-		_G.cheat_base.list_info.files = files
-
-		local str = system_ini():r_string( "info_portions", "files" )
-		for s in string.gmatch( str, "[%w_]+" ) do
-			table.insert( files, s )
-		end
+		ui_info_menu.list_info = {}
+		ui_info_menu.list_info.info_portions = info_portions
+		ui_info_menu.list_info.files = files
 
 		local fs = getFS()
-		local p
-		for i, f  in ipairs( files ) do
-			p = "gameplay\\"..f..".xml"
-			ex = fs:exist( "$game_config$", p )
-			if not ex then
-				info_portions[ f ] = "File not exist"
-				log( "! %s: Error! File not found: [%s]", script_name(), p )
-			elseif ex.modif == 0 then
-				info_portions[ f ] = "File don't unpack"
-				log( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
-			else
-				local file = fs:r_open( "$game_config$", p )
-				info_portions[ f ] = {}
-				log( "parse file %s", p )
-				parse_file( file:r_stringZ(), info_portions[ f ] )
+		local ex = fs:exist( "$game_config$", "cheat_list_info.ltx" )
+		if (ex == nil) or rewrite then
+			if (ex == nil) and io then
+				local f1 = fs:update_path("$fs_root$", "fsgame.ltx")
+				local f2 = fs:update_path("$game_config$", "cheat_list_info.ltx")
+				fs:file_copy(f1, f2)
 			end
+				
+			local str = sys_ini:r_string( "info_portions", "files" )
+			for s in string.gmatch( str, "[%w_%-%.]+" ) do
+				table.insert( files, s )
+			end
+
+			local p
+			for i, f  in ipairs( files ) do
+				p = "gameplay\\"..f..".xml"
+				ex = fs:exist( "$game_config$", p )
+				if not ex then
+					info_portions[ f ] = "File not exist"
+					log( "! %s: Error! File not found: [%s]", script_name(), p )
+				elseif ex.modif == 0 then
+					info_portions[ f ] = "File don't unpack"
+					log( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
+				else
+					local file = fs:r_open("$game_config$", p)
+					info_portions[ f ] = {}
+					log( "parse file %s", p )
+					parse_file( file:r_stringZ(), info_portions[ f ] )
+				end
+			end
+
+			if io then
+				this.write_info(ui_info_menu.list_info)
+			end
+		else
+			this.read_info(ui_info_menu.list_info)
 		end
 
 		local info_count = 0
@@ -49,8 +60,7 @@ function main( rewrite )
 				info_count = info_count + #v
 			end
 		end
-		_G.cheat_base.list_info.info_count = info_count
-		table.print( _G.cheat_base.list_info )
+		ui_info_menu.list_info.info_count = info_count
 	end
 end
 
@@ -79,3 +89,78 @@ function parse_file( str, tbl )
 		table.insert( tbl, t )
 	end
 end
+
+function write_info(tbl)
+	log("[collect_info_portions] create ini_file")
+	local path = getFS():update_path("$game_config$", "cheat_list_info.ltx")
+
+	local function table_size(t)
+		local n = 0
+		for _ in pairs(t) do
+			n = n + 1
+		end
+		return n
+	end
+
+	local tmp = {}
+	local file = io.open(path,"w")
+	for i, v in ipairs(tbl.files) do
+		file:write("["..v.."]\n")
+		if type(tbl.info_portions[v]) == "table" then
+			for j, t in ipairs(tbl.info_portions[v]) do
+				file:write(t.info.."\n")
+				if table_size(t) > 1 then
+					tmp[t.info] = {}
+					for tag, names in pairs(t) do
+						if tag ~= "info" then
+							tmp[t.info][tag] = table.concat(names, ",")
+						end
+					end
+				end
+			end
+		end
+		file:write("\n")
+	end
+	file:write("\n;Tags info\n")
+
+	for k, t in pairs(tmp) do
+		file:write("["..k.."]\n")
+		for s, v in pairs(t) do
+			file:write(s.." = "..v.."\n")
+		end
+		file:write("\n")
+	end
+end
+
+function read_info(tbl)
+	local str = sys_ini:r_string( "info_portions", "files" )
+	for s in string.gmatch( str, "[%w_%-%.]+" ) do
+		table.insert( tbl.files, s )
+	end
+
+	local ini = ini_file("cheat_list_info.ltx")
+	local res, id, val, tag
+	for i, file in ipairs(tbl.files) do
+		if ini:section_exist(file) then
+			tbl.info_portions[file] = {}
+			for n = 0, ini:line_count(file)-1 do
+				local t = {}
+				res, id, val = ini:r_line(file, n, "", "")
+				t.info = id
+				if ini:section_exist(id) then
+					for j = 0, ini:line_count(id)-1 do
+						res, tag, val = ini:r_line(id, j, "", "")
+						t[tag] = {}
+						for s in string.gmatch( val, "[%w_%-%.]+" ) do
+							table.insert(t[tag], s)
+						end
+					end
+				end
+				table.insert(tbl.info_portions[file], t)
+			end
+		else
+			tbl.info_portions[file] = "File not scanned"
+		end
+	end
+end
+

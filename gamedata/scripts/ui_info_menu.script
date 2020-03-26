@@ -1,4 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+list_info = nil
+local kScreen = math.min( (1024/768) / (device().width/device().height), 1 )
 
 class "list_item" ( CUIListItemEx )
 
@@ -42,12 +44,12 @@ class "CUIInfoMenu" (CUIScriptWnd)
 function CUIInfoMenu:__init()
 	super()
 
-	self.is_actor_alive = Actor and Actor:alive()
+	self.is_actor_alive = db.actor and db.actor:alive()
 	
 	collect_info_portions.main()
-	self.info_portions = cheat_base.list_info.info_portions
-	self.files = cheat_base.list_info.files
-	self.info_count = cheat_base.list_info.info_count
+	self.info_portions = list_info.info_portions
+	self.files = list_info.files
+	self.info_count = list_info.info_count
 
 	self.last_search = {}
 
@@ -94,7 +96,8 @@ function CUIInfoMenu:InitControls()
 --	self.list_task:ShowSelectedItem( true )
 	self:Register( self.list_task, "list_task" )
 
-	self.task_descr = xml:InitStatic( "task_descr", self )
+	local scroll = xml:InitScrollView("task_descr:scroll_v", self)
+	self.task_descr = xml:InitStatic("task_descr:list", scroll)
 
 	xml:InitStatic( "cap_article", self )
 	xml:InitFrame( "frame_article", self )
@@ -109,8 +112,7 @@ function CUIInfoMenu:InitControls()
 	self:Register( self.list_action, "list_action" )
 
 	self.search = xml:InitEditBox( "edit_search", self )
-	self.search:SetText( "Поиск" )
-	set_input_language(0)
+	self.search:SetText( "поиск" )
 
 	local btn = xml:Init3tButton( "btn_give_info", self )
 	self:Register( btn, "button_give" )
@@ -126,20 +128,20 @@ function CUIInfoMenu:InitControls()
 end
 
 function CUIInfoMenu:InitCallBacks()
-	self:AddCallbackEx( "list_files",    ui_events.LIST_ITEM_CLICKED,        self.OnListFilesClicked     )
-	self:AddCallbackEx( "list_info",     ui_events.LIST_ITEM_CLICKED,        self.OnListInfoClicked      )
-	self:AddCallbackEx( "button_quit",   ui_events.BUTTON_CLICKED,           self.OnButtonQuitClicked    )
+	self:AddCallback( "list_files",    ui_events.LIST_ITEM_CLICKED,        self.OnListFilesClicked,     self )
+	self:AddCallback( "list_info",     ui_events.LIST_ITEM_CLICKED,        self.OnListInfoClicked,      self )
+	self:AddCallback( "button_quit",   ui_events.BUTTON_CLICKED,           self.OnButtonQuitClicked,    self )
 
-	if not ( Actor and Actor:alive() ) then return end
+	if not ( db.actor and db.actor:alive() ) then return end
 
-	self:AddCallbackEx( "list_disable",   ui_events.LIST_ITEM_CLICKED,       self.OnListDisableClicked   )
-	self:AddCallbackEx( "list_action",    ui_events.LIST_ITEM_CLICKED,       self.OnListActionClicked    )
-	self:AddCallbackEx( "list_task",      ui_events.LIST_ITEM_CLICKED,       self.OnListTaskClicked      )
-	self:AddCallbackEx( "list_article",   ui_events.LIST_ITEM_CLICKED,       self.OnListArticleClicked   )
-	self:AddCallbackEx( "button_give",    ui_events.BUTTON_CLICKED,          self.OnButtonGiveClicked    )
-	self:AddCallbackEx( "button_disable", ui_events.BUTTON_CLICKED,          self.OnButtonDisableClicked )
-	self:AddCallbackEx( "message_box",    ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes               )
-	self:AddCallbackEx( "message_box",    ui_events.MESSAGE_BOX_NO_CLICKED,  self.OnMsgNo                )
+	self:AddCallback( "list_disable",   ui_events.LIST_ITEM_CLICKED,       self.OnListDisableClicked,   self )
+	self:AddCallback( "list_action",    ui_events.LIST_ITEM_CLICKED,       self.OnListActionClicked,    self )
+	self:AddCallback( "list_task",      ui_events.LIST_ITEM_CLICKED,       self.OnListTaskClicked,      self )
+	self:AddCallback( "list_article",   ui_events.LIST_ITEM_CLICKED,       self.OnListArticleClicked,   self )
+	self:AddCallback( "button_give",    ui_events.BUTTON_CLICKED,          self.OnButtonGiveClicked,    self )
+	self:AddCallback( "button_disable", ui_events.BUTTON_CLICKED,          self.OnButtonDisableClicked, self )
+	self:AddCallback( "message_box",    ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes,               self )
+	self:AddCallback( "message_box",    ui_events.MESSAGE_BOX_NO_CLICKED,  self.OnMsgNo,                self )
 end
 
 function CUIInfoMenu:FillFiles()
@@ -287,6 +289,12 @@ function CUIInfoMenu:OnMsgNo()
 	self.func = nil
 end
 
+local status2text = {
+	[task.task_dummy]  = "%c[gray2]неактивно",
+	[task.in_progress] = "%c[yellow]активно",
+	[task.completed]   = "%c[green]выполнено",
+	[task.fail]        = "%c[red]провалено"
+}
 function CUIInfoMenu:OnListTaskClicked()
 	if self.list_task:GetSize() == 0 then return end
 
@@ -299,30 +307,22 @@ function CUIInfoMenu:OnListTaskClicked()
 	
 	local task_id = item.st:GetText()
 
+	local translate = game.translate_string
+
 	local t = CGameTask()
 	t:load( task_id )
-	local st, status
-	local n = t:get_objectives_cnt() - 1
-	for i = 0, n do
-		st = Actor:get_task_state(task_id, i)
-		if st == task.in_progress then
-			status = "активно"
-			break
-		elseif st == task.task_dummy then
-			status = "неактивно"
-			break
-		elseif i == n then
-			if st == task.completed then
-				status = "выполнено"
-			elseif st == task.fail then
-				status = "провалено"
-			end
-		end
+
+	local st = db.actor:get_task_state(task_id, 0)
+	local text = translate( t:get_title() )..
+			" - "..status2text[st].."%c[default] \\n"..
+			"Подзадания:\\n"
+
+	for i = 1, t:get_objectives_cnt() - 1 do
+		st = db.actor:get_task_state(task_id, i)
+		text = text.."   "..
+			translate( t:get_objective( i ):get_description() )..
+			" - "..status2text[st].."%c[default] \\n"
 	end
-	local descr = game.translate_string( t:get_objective( n ):get_description() )
-	local text = "Задание: "..game.translate_string( t:get_title() ).."\\n"..
-		"Описание: "..( descr or "no description" ).."\\n"..
-		"Статус: "..status
 	self.task_descr:SetText( text )
 end
 
@@ -391,7 +391,7 @@ end
 
 function CUIInfoMenu:OnButtonGiveClicked()
 	if self.selected_info and not has_alife_info( self.selected_info ) then
-		Actor:give_info_portion( self.selected_info )
+		db.actor:give_info_portion( self.selected_info )
 		local item = self.list_info:GetItem( self.info_index )
 		if item then
 			item.btn:InitTexture( "ui_radio_h" )
@@ -403,7 +403,7 @@ end
 
 function CUIInfoMenu:OnButtonDisableClicked()
 	if self.selected_info and has_alife_info( self.selected_info ) then
-		Actor:disable_info_portion( self.selected_info )
+		db.actor:disable_info_portion( self.selected_info )
 		local item = self.list_info:GetItem( self.info_index )
 		if item then
 			item.btn:InitTexture( "ui_radio_d" )
