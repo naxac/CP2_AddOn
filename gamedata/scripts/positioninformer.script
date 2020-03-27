@@ -61,34 +61,16 @@ function pi:InitCallBacks()
 	self:AddCallbackEx("btn_show", ui_events.BUTTON_CLICKED, self.showposinfo)
 end
 
-function pi:ChangeInputLanguage()
-	local l = get_input_language()
-	set_input_language( bit_not( l ) )
-end
-
 function pi:OnKeyboard(dik, keyboard_action)
 	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+
+	check_input_language(self, dik, keyboard_action)
+
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		if dik == DIK_keys.DIK_ESCAPE then
 			self:on_quit()
 		elseif dik == DIK_keys.DIK_RETURN then
 			self:getposinfo()
-		elseif dik == DIK_keys.DIK_LSHIFT or dik == DIK_keys.DIK_RSHIFT then
-			self.shift_pressed = true
-			if self.alt_pressed then
-				self:ChangeInputLanguage()
-			end
-		elseif dik == DIK_keys.DIK_LMENU or dik == DIK_keys.DIK_RMENU then
-			self.alt_pressed = true
-			if self.shift_pressed then
-				self:ChangeInputLanguage()
-			end
-		end
-	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if dik == DIK_keys.DIK_LSHIFT or dik == DIK_keys.DIK_RSHIFT then
-			self.shift_pressed = false
-		elseif dik == DIK_keys.DIK_LMENU or dik == DIK_keys.DIK_RMENU then
-			self.alt_pressed = false
 		end
 	end
 	return true
