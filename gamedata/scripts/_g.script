@@ -1933,6 +1933,35 @@ function format_text_pairs(text, fmt)
 	return text
 end
 
+local kAlt   = { [DIK_keys.DIK_LMENU]  = true, [DIK_keys.DIK_RMENU]  = true }
+local kShift = { [DIK_keys.DIK_LSHIFT] = true, [DIK_keys.DIK_RSHIFT] = true }
+function check_input_language(wnd, dik, keyboard_action)
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if kAlt[dik] then
+			wnd.__alt_pressed = true
+			if wnd.__shift_pressed then
+				local l = get_input_language()
+				log("set 1: %s", l)
+				set_input_language( l==1 and 0 or 1 )
+			end
+		elseif kShift[dik] then
+			wnd.__shift_pressed = true
+			if wnd.__alt_pressed then
+				local l = get_input_language()
+				log("set 2: %s", l)
+				set_input_language( l==1 and 0 or 1 )
+			end
+		end
+	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
+		if kAlt[dik] then
+			wnd.__alt_pressed = nil
+		elseif kShift[dik] then
+			wnd.__shift_pressed = nil
+		end
+	end
+	return true
+end
+
 -- malandrinus
 --[[counter = 0
 prev_watch = 0
