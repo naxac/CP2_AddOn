@@ -18,16 +18,16 @@ end
 local cmd2func = {}
 	cmd2func['run'] = function (func_str)
 		if func_str==nil or func_str=="" then
-			return false, "Incorrect parameters for command: run"
+			return false, "Incorrect parameters for command: run ["..tostring(func_str).."]"
 		end
 		local res, err = pcall( loadstring( func_str ) )
 		return res, ( res and "Successfully!" or "Error: "..err )
 	end
 	cmd2func['run_func'] = function (str)
 		if str==nil or str=="" then
-			return false, "Incorrect parameters for command: run_func"
+			return false, "Incorrect parameters for command: run_func ["..tostring(func_str).."]"
 		end
-		local func_str, args = string.match(str, "(%S+)%s+(.-)")
+		local func_str, args = string.match(str, "^%s*(%S+)%s+(.-)%s*$")
 
 		local func = nil
 
@@ -67,23 +67,25 @@ local cmd2func = {}
 	cmd2func['jump_to_level'] = function (level_name)
 		local v = nil
 		local i = 0
+		local can_jump = false
 		while GGraph:valid_vertex_id(i) do
 			v = GGraph:vertex(i)
 			if AI:level_name(v:level_id()) == level_name then
+				can_jump = true
 				break
 			end
 			i = i + 1
 		end
-		if v == nil then
-			return false, "Incorrect parameter for command: jump_to_level"
+		if not can_jump then
+			return false, "Incorrect parameter for command: jump_to_level ["..tostring(level_name).."]"
 		end
 		xr_s.subscribe("update", ui_console.update_close)
 		level.disable_input()
-		start_small_timer(2000,
+		start_small_timer(3000,
 			function()
 				level.enable_input()
 				level_changers.create_teleport_on_actor(
-					v:game_point(),
+					v:level_point(),
 					v:level_vertex_id(),
 					i
 				)
@@ -94,7 +96,7 @@ local cmd2func = {}
 	
 	cmd2func['spawn'] = function (section)
 		if section==nil or section=="" then
-			return false, "Incorrect parameters for command: spawn"
+			return false, "Incorrect parameters for command: spawn ["..tostring(section).."]"
 		elseif not sys_ini:section_exist(section) then
 			return false, "Unknown section: "..section
 		end
@@ -110,7 +112,7 @@ local cmd2func = {}
 	
 	cmd2func['remove_item'] = function (section)
 		if section==nil or section=="" then
-			return false, "Incorrect parameters for command: remove_item"
+			return false, "Incorrect parameters for command: remove_item ["..tostring(section).."]"
 		elseif not sys_ini:section_exist(section) then
 			return false, "Unknown section ["..section.."]"
 		end
@@ -129,9 +131,9 @@ local cmd2func = {}
 	end
 	
 	cmd2func['give_item'] = function (str)
-		local section, n = string.match(str, "(%S+)%s+(.-)")
+		local section, n = string.match(str, "^%s*(%S+)%s*(.-)%s*$")
 		if section==nil or section=="" then
-			return false, "Incorrect parameters for command: give_item"
+			return false, "Incorrect parameters for command: give_item ["..tostring(str).."]"
 		elseif not sys_ini:section_exist(section) then
 			return false, "Unknown section ["..section.."]"
 		elseif not sys_ini:line_exist(section, "inv_name") then
@@ -147,19 +149,19 @@ local cmd2func = {}
 	
 	cmd2func['fwd'] = function (n)
 		if n==nil or tonumber(n)==nil then
-			return false, "Incorrect parameter for command: forward"
+			return false, "Incorrect parameter for command: forward ["..tostring(n).."]"
 		end
 		Actor:set_actor_position(Actor:position():add(Actor:direction():mul(tonumber(n))))
 		return true, nil
 	end
 	
 	cmd2func['teleport'] = function (str)
-		local x, y, z = string.match(str, "(%S+)%s+(%S+)%s+(%S+)")
+		local x, y, z = unpack( string.explode(str, "%s", true) )
 		if x==nil or tonumber(x)==nil
 			or y==nil or tonumber(y)==nil
 			or z==nil or tonumber(z)==nil
 		then
-			return false, "Incorrect parameters for command: teleport"
+			return false, "Incorrect parameters for command: teleport ["..tostring(str).."]"
 		end
 		Actor:set_actor_position(vector():set(tonumber(x), tonumber(y), tonumber(z)))
 		return true, nil
@@ -175,7 +177,7 @@ local cmd2func = {}
 	
 	cmd2func['power'] = function (n)
 		if n==nil or tonumber(n)==nil then
-			return false, "Incorrect parameter for command: power"
+			return false, "Incorrect parameter for command: power ["..tostring(n).."]"
 		end
 		Actor.power = tonumber(n)
 		return true, nil
@@ -183,7 +185,7 @@ local cmd2func = {}
 	
 	cmd2func['satiety'] = function (n)
 		if n==nil or tonumber(n)==nil then
-			return false, "Incorrect parameter for command: satiety"
+			return false, "Incorrect parameter for command: satiety ["..tostring(n).."]"
 		end
 		Actor.satiety = tonumber(n)
 		return true, nil
@@ -191,7 +193,7 @@ local cmd2func = {}
 	
 	cmd2func['health'] = function (n)
 		if n==nil or tonumber(n)==nil then
-			return false, "Incorrect parameter for command: health"
+			return false, "Incorrect parameter for command: health ["..tostring(n).."]"
 		end
 		Actor.health = tonumber(n)
 		return true, nil
@@ -199,7 +201,7 @@ local cmd2func = {}
 	
 	cmd2func['money'] = function (n)
 		if n==nil or tonumber(n)==nil then
-			return false, "Incorrect parameter for command: money"
+			return false, "Incorrect parameter for command: money ["..tostring(n).."]"
 		end
 		Actor:give_money(tonumber(n))
 		return true, nil
@@ -207,7 +209,7 @@ local cmd2func = {}
 	
 	cmd2func['give_info'] = function(info)
 		if info==nil or info=="" then
-			return false, "Incorrect parameter for command: give_info"
+			return false, "Incorrect parameter for command: give_info ["..tostring(info).."]"
 		elseif has_alife_info(info) then
 			return false, "Actor already has info:"..info
 		end
@@ -217,7 +219,7 @@ local cmd2func = {}
 	
 	cmd2func['disable_info'] = function(info)
 		if info==nil or info=="" then
-			return false, "Incorrect parameter for command: disable_info"
+			return false, "Incorrect parameter for command: disable_info ["..tostring(info).."]"
 		elseif not has_alife_info(info) then
 			return false, "Actor already hasn't info:"..info
 		end
@@ -266,12 +268,8 @@ function UIConsole:__init() super()
 	local st = xml:InitStatic("eidt_s", self.back)
 	st:SetFont(GetFontDI())
 	
-	self.edit = CUIEditBoxEx()
-	self.edit:SetAutoDelete(true)
-	self.edit:Init(25, 2, 1020, 22)
-	self.edit:SetTextColor(GetARGB(255, 160, 160, 255))
+	self.edit = xml:InitEditBox("eidt", self.back)
 	self.edit:SetFont(GetFontDI())
-	self.back:AttachChild(self.edit)
 	
 	self.scroll_v = xml:InitScrollView("scroll_v", self.back)
 	
@@ -292,7 +290,7 @@ function UIConsole:EnterCommand()
 	local str = self.edit:GetText()
 	if #str==0 then return end
 	
-	local cmd, args = string.match(str, "(%S+)%s+(.-)")
+	local cmd, args = string.match(str, "^%s*(%S+)%s*(.-)%s*$")
 	
 	log_text = log_text.."~ "..str.."\n"
 	
@@ -349,7 +347,9 @@ end
 
 function UIConsole:OnKeyboard(dik, keyboard_action)
 	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
-	
+
+	check_input_language(self, dik, keyboard_action)
+
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		if  dik == DIK_keys.DIK_ESCAPE or dik == DIK_keys.DIK_F10 then
 			if self.moved == nil then
