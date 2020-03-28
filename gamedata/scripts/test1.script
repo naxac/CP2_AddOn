@@ -1,0 +1,124 @@
+--[[
+tbl = {
+	encyclopedia = {
+		article = {
+			{	-- t
+				attr = {
+					article_type = "task",
+					group = "prizrak_tainiy/2",
+					id = "prizrak_tainiy_2",
+					name = "prizrak_tainiy_2_name"
+				},
+				nested = {
+					text = {
+						{	-- t
+							nested = prizrak_tainiy_2_text
+						}
+					}
+				}
+			}
+		}
+	}
+}
+]]
+function parse_str( str, tbl, lvl )
+	if (not str) or str == "" then return false end
+
+	if not lvl then
+		lvl = 0
+		-- удалим комментарии
+		local n
+		str, n = string.gsub( str, "<!%-%-.-%-%->", "" )
+		log( "delete %s comments", n )
+		-- str, n = string.gsub( str, "\n\r", "\n")
+		-- log( "correct %s hyphenation #1", n )
+		-- str, n = string.gsub( str, "\r\n", "\n")
+		-- log( "correct %s hyphenation #2", n )
+		-- str, n = string.gsub( str, "\t", " ")
+		-- log( "correct %s tabulations", n )
+	end
+
+	local tag, tag_name, attr = string.match( str, "(<([%w_]+)%s*(.-)>)")
+	if not (tag and tag_name) then
+		return false
+	end
+
+	if tbl[tag_name] == nil then
+		tbl[tag_name] = {}
+	end
+
+	local t = {}
+	if attr and attr ~= "" then
+		t.attr = {}
+		for name, value in string.gmatch(attr, '([%w_]+)=(%b"")') do
+			t.attr[name] = string.sub(value, 2, -2)
+		end
+	end
+
+	if string.find(tag, "/>", -3, true) then
+		if table.size(t) > 0 then
+			table.insert( tbl[tag_name], t )
+		end
+		return true
+	end
+
+	local block, nested = string.match( str, "(<"..tag_name..".->(.-)</"..tag_name..">)" )
+
+	if (not block) or block == "" then
+		return false
+	end
+
+	if nested and nested ~= "" then
+		for path in string.gmatch(nested, '#include%s+(%b"")') do
+			path = path:sub(2, -2)
+			log("~ [parse_str] read include file %s", path)
+			local file = getFS():r_open( "$game_config$", path )
+			parse_str( file:r_stringZ(), tbl[tag_name])
+		end
+		local tmp = {}
+		if parse_str( nested, tmp, lvl+1) then
+			t.nested = tmp
+		else
+			t.nested = string.match(nested, "^[\n\t%s]*(.-)[\n\t%s]*$")
+		end
+	end
+
+	if table.size(t) > 0 then
+		table.insert( tbl[tag_name], t )
+	end
+
+	str = string.match(str, "</"..tag_name..">(.+)")
+	parse_str(str, tbl, lvl)
+
+	return true
+end
+
+function read_gameplay_files(section)
+	local ret = {}
+	local files = {}
+	local str = sys_ini:r_string( section, "files" )
+	for s in string.gmatch( str, "[%w_%-%.]+" ) do
+		table.insert( files, s )
+	end
+
+	local fs = getFS()
+	local p
+	for i, f  in ipairs( files ) do
+		p = "gameplay\\"..f..".xml"
+		ex = fs:exist( "$game_config$", p )
+		if not ex then
+			ret[ f ] = "File not exist"
+			log( "![read_gameplay_files] Error! File not found: [%s]", p )
+		elseif ex.modif == 0 then
+			ret[ f ] = "File don't unpack"
+			log( "! [read_gameplay_files] Folder 'config' hasn't full unpack! File not found: [%s]", p )
+		else
+			log( "- [read_gameplay_files] Parse file %s", p )
+			local file = fs:r_open("$game_config$", p)
+			ret[ f ] = {}
+			parse_str( file:r_stringZ(), ret[ f ] )
+		end
+	end
+
+	return ret
+end
