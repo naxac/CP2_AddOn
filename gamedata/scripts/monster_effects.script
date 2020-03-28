@@ -84,8 +84,8 @@ function ef_bloodsucker:update(iTime)
 	if self:check_conditions() then
 		bloodsucker_vampire_captured = self.object:id()
 		start_small_timer(300, self.bloodsucker_vampire_start, self)
-		start_small_timer(7300, self.bloodsucker_vampire_end, self)
-		start_small_timer(7400,
+		self.timer_end = start_small_timer(7300, self.bloodsucker_vampire_end, self)
+		self.timer_teleport = start_small_timer(7400,
 			function()
 				AI:teleport_object(
 					nil,
@@ -110,6 +110,9 @@ function ef_bloodsucker:update(iTime)
 end
 
 function ef_bloodsucker:check_conditions()
+	if bloodsucker_vampire_captured ~= nil then
+		return false
+	end
 	-- check last attack timer
 	if bloodsucker_vampire_timer >= time_global() then
 		return false
@@ -128,6 +131,10 @@ function ef_bloodsucker:check_conditions()
 	end
 	-- check bloodsucker health
 	if self.object.health > sys_ini:r_float(self.object:section(), "Vampire_Max_Health", 0.6) then
+		return false
+	end
+	-- check actor alive
+	if not Actor:alive() then
 		return false
 	end
 	-- check actor state
@@ -160,7 +167,6 @@ function ef_bloodsucker:bloodsucker_vampire_start()
 end
 
 function ef_bloodsucker:bloodsucker_vampire_end()
-	if bloodsucker_vampire_captured ~= self.object:id() then return end
 	bloodsucker_vampire_captured = nil
 	xr_effects.enable_ui()
 	xr_logic.mob_release(self.object)
@@ -186,6 +192,11 @@ function ef_bloodsucker:on_death()
 		xr_actor.set_camera_type(self.last_camera_type)
 		xr_logic.mob_release(self.object)
 		bloodsucker_vampire_timer = time_global() + sys_ini:r_float(self.object:section(), "Vampire_Delay")
+		level.remove_complex_effector(3000)
+		level.remove_complex_effector(3001)
+		level.remove_complex_effector(3002)
+		remove_small_timer(self.timer_end)
+		remove_small_timer(self.timer_teleport)
 	end
 end
 
