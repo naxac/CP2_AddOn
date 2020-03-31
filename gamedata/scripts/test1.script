@@ -55,31 +55,23 @@ function parse_str( str, tbl, lvl )
 		end
 	end
 
+	local block, nested
 	if string.find(tag, "/>", -3, true) then
-		if table.size(t) > 0 then
-			table.insert( tbl[tag_name], t )
+		block = tag
+	else
+		block, nested = string.match( str, "(<"..tag_name..".->(.-)</"..tag_name..">)" )
+
+		if (not block) or block == "" then
+			return false
 		end
-		return true
-	end
 
-	local block, nested = string.match( str, "(<"..tag_name..".->(.-)</"..tag_name..">)" )
-
-	if (not block) or block == "" then
-		return false
-	end
-
-	if nested and nested ~= "" then
-		for path in string.gmatch(nested, '#include%s+(%b"")') do
-			path = path:sub(2, -2)
-			log("~ [parse_str] read include file %s", path)
-			local file = getFS():r_open( "$game_config$", path )
-			parse_str( file:r_stringZ(), tbl[tag_name])
-		end
-		local tmp = {}
-		if parse_str( nested, tmp, lvl+1) then
-			t.nested = tmp
-		else
-			t.nested = string.match(nested, "^[\n\t%s]*(.-)[\n\t%s]*$")
+		if nested and nested ~= "" then
+			local tmp = {}
+			if parse_str( nested, tmp, lvl+1) then
+				t.nested = tmp
+			else
+				t.nested = string.match(nested, "^[\n\t%s]*(.-)[\n\t%s]*$")
+			end
 		end
 	end
 
@@ -87,8 +79,15 @@ function parse_str( str, tbl, lvl )
 		table.insert( tbl[tag_name], t )
 	end
 
-	str = string.match(str, "</"..tag_name..">(.+)")
-	parse_str(str, tbl, lvl)
+	str = string.match(str, block.."(.+)")
+	if not parse_str(str, tbl, lvl) then
+		for path in string.gmatch(str, '#include%s+(%b"")') do
+			path = path:sub(2, -2)
+			log("~ [parse_str] read include file %s", path)
+			local file = getFS():r_open( "$game_config$", path )
+			parse_str( file:r_stringZ(), tbl[tag_name])
+		end
+	end
 
 	return true
 end
