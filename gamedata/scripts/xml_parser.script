@@ -21,6 +21,27 @@ tbl = {
 	}
 }
 ]]
+function find_include_files(str, tbl)
+	local fs = getFS()
+	local ex
+	for path in string.gmatch(str, '[\n\r]*%s*#include%s+(%b"")') do
+		path = path:sub(2, -2)
+		log("~ [find_include_files] read file %s", path)
+		ex = fs:exist( "$game_config$", path )
+		if ex == nil then
+			tbl[ path ] = "File not exist"
+			log( "! [find_include_files] Error! File not found: [%s]", path )
+		elseif ex.modif == 0 then
+			ret[ path ] = "File don't unpack"
+			log( "! [find_include_files] Folder 'config' hasn't full unpack! File not found: [%s]", path )
+		else
+			log( "- [find_include_files] Parse file %s", p )
+			local file = fs:r_open( "$game_config$", path )
+			this.parse_str( file:r_stringZ(), tbl )
+		end
+	end
+end
+local nst_id = 0
 function parse_str( str, tbl, lvl )
 	if (not str) or str == "" then return false end
 
@@ -43,6 +64,7 @@ function parse_str( str, tbl, lvl )
 		return false
 	end
 
+	log("find tag %s [%s]", tag_name, lvl)
 	if tbl[tag_name] == nil then
 		tbl[tag_name] = {}
 	end
@@ -50,26 +72,40 @@ function parse_str( str, tbl, lvl )
 	local t = {}
 	if attr and attr ~= "" then
 		t.attr = {}
+		log("read attributes %s", attr)
 		for name, value in string.gmatch(attr, '([%w_]+)=(%b"")') do
 			t.attr[name] = string.sub(value, 2, -2)
 		end
 	end
 
+	local dest_str = string.match(str, "(.-)"..tag)
+	if dest_str and dest_str~="" then
+		log("dest_str: %s", dest_str)
+		find_include_files(dest_str, tbl)
+	end
+
 	local block, nested
 	if string.find(tag, "/>", -3, true) then
 		block = tag
+		log("once tag")
 	else
 		block, nested = string.match( str, "(<"..tag_name..".->(.-)</"..tag_name..">)" )
 
 		if (not block) or block == "" then
 			return false
 		end
+		log("block")
 
 		if nested and nested ~= "" then
+			log("nested string: %s (%s)", nested, nst_id)
 			local tmp = {}
+			tmp.nst_id = nst_id
+			nst_id = nst_id + 1
 			if parse_str( nested, tmp, lvl+1) then
+				log("insert table (%s)", tmp.nst_id)
 				t.nested = tmp
 			else
+				log("insert string (%s)", tmp.nst_id)
 				t.nested = string.match(nested, "^[\n\t%s]*(.-)[\n\t%s]*$")
 			end
 		end
@@ -77,15 +113,15 @@ function parse_str( str, tbl, lvl )
 
 	if table.size(t) > 0 then
 		table.insert( tbl[tag_name], t )
+		log("insert data: %s [%s] -> %s", tag_name, table.size(t), table.size(tbl[tag_name]))
 	end
 
 	str = string.match(str, block.."(.+)")
-	if not parse_str(str, tbl, lvl) then
-		for path in string.gmatch(str, '#include%s+(%b"")') do
-			path = path:sub(2, -2)
-			log("~ [parse_str] read include file %s", path)
-			local file = getFS():r_open( "$game_config$", path )
-			parse_str( file:r_stringZ(), tbl[tag_name])
+	if str and str ~= "" then
+		log("parse next...")
+		if not parse_str(str, tbl, lvl) then
+			log("parse next failed")
+			find_include_files(str, tbl[tag_name])
 		end
 	end
 
@@ -96,7 +132,7 @@ function read_gameplay_files(section)
 	local ret = {}
 	local files = {}
 	local str = sys_ini:r_string( section, "files" )
-	for s in string.gmatch( str, "[%w_%-%.]+" ) do
+	for s in string.gmatch( str, "[^,^%s]+" ) do
 		table.insert( files, s )
 	end
 
@@ -107,7 +143,7 @@ function read_gameplay_files(section)
 		ex = fs:exist( "$game_config$", p )
 		if not ex then
 			ret[ f ] = "File not exist"
-			log( "![read_gameplay_files] Error! File not found: [%s]", p )
+			log( "! [read_gameplay_files] Error! File not found: [%s]", p )
 		elseif ex.modif == 0 then
 			ret[ f ] = "File don't unpack"
 			log( "! [read_gameplay_files] Folder 'config' hasn't full unpack! File not found: [%s]", p )
