@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local console = nil
 local log_text = "" 	-- то, что будет выводится в лог
-local buf_text = "%c[white]::UIConsole v1.0::\\n::Author - naxac::\\n"		-- просто текстовый буфер
+local buf_text = false		-- просто текстовый буфер
 local last_commands = {}	-- последние введённые команды
 local log_path = getFS():update_path("$logs$", "console.log")
 local function to_log(mode)
@@ -245,7 +245,7 @@ local cmd2func = {}
 		buf_text = "%c[default]Log file has been saved successfully!"
 		log_text = "::UIConsole v1.0::\n::Author - naxac::\n\n"
 		to_log("w")
-		return true, "nolog"
+		return true, nil
 	end
 	
 
@@ -277,6 +277,9 @@ function UIConsole:__init() super()
 	self.log:SetTextComplexMode(true)
 	self.log:SetTextColor(255, 160, 160, 160)
 	self.log:SetFont(GetFontDI())
+	if not buf_text then
+		this.read_log()
+	end
 	self.log:SetText(buf_text)
 	self.log:AdjustHeightToText()
 	
@@ -314,7 +317,7 @@ function UIConsole:EnterCommand()
 					buf_text = "%c[green]"..str.."\\n"..buf_text
 					if msg then
 						buf_text = "%c[default]"..msg.."\\n"..buf_text
-						log_text = log_text..msg.."\n"
+						log_text = log_text.."- "..msg.."\n"
 					end
 				end
 			else
@@ -373,6 +376,33 @@ function UIConsole:OnKeyboard(dik, keyboard_action)
 	return true
 end
 -------------------------------------------------------------------------------------
+function read_log()
+	local symb2clr = {
+		["~"] = "%c[yellow]",
+		["!"] = "%c[red]",
+		["-"] = "%c[green]",
+		["#"] = "%c[green_blue]"
+	}
+	buf_text = ""
+	local file = io.open( getFS():update_path("$logs$", "console.log"), "r" )
+	local s = ""
+	for line in file:lines() do
+		s = string.sub(line, 1, 1)
+		if symb2clr[s] then
+			line = string.sub(line, 3)
+			if s == "~" then
+				table.insert(last_commands, line)
+			end
+			line = symb2clr[s]..line
+		end
+		buf_text = line.."%c[default] \\n"..buf_text
+	end
+	file:close(file)
+	if buf_text == "" then
+		buf_text = "%c[white]::UIConsole v1.0::\\n::Author - naxac::\\n"
+	end
+end
+
 function update_close()
 	console.bposy = console.bposy + 15
 	if console.bposy>=768 then
