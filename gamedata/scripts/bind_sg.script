@@ -30,11 +30,12 @@ function sg_class_binder:reinit()
 --	log1(self.object:section())
 --	table.print(self.ammo_table)
 	self.ammo_load = {} -- таблица к-ва патронов, инициализируем все типы нулями
-	for k,v in pairs (self.ammo_table) do
+	for k,v in ipairs (self.ammo_table) do
 		self.ammo_load[k] = 0
 	end
 	self.ammo_class_num = 1
 	self.load = 0
+	self.mag_size = sys_ini:r_u32(self.object:section(), "ammo_mag_size")
 
 	if not unload_radius2 then
 		local sd = sys_ini:r_float("alife","switch_distance")
@@ -63,8 +64,8 @@ function sg_class_binder:save(packet)
 	-- номер текущего типа патронов в списке (начало с 1)
 	self.ammo_class_num = self.object:get_ammo_type() + 1
 	packet:w_u8(self.ammo_class_num) -- сразу пишем
-	
-	self.load = self.object:get_ammo_in_magazine()
+
+	self:get_ammo_load()
 	packet:w_u16(self.load)
 	
 	-- читаем update-пакет
@@ -80,8 +81,16 @@ function sg_class_binder:save(packet)
 	--qqq("saved")
 end
 
-function sg_class_binder:load(reader)
+function sg_class_binder:get_ammo_load()
+	self.load = self.object:get_ammo_in_magazine()
+	if self.load > self.mag_size then
+		log("! '%s' has ammo more than 'ammo_mag_size' [%s:%s]! Correct...", self.object:name(), self.load, self.mag_size)
+		self.object:set_ammo_elapsed(self.mag_size)
+		self.load = self.mag_size
+	end
+end
 
+function sg_class_binder:load(reader)
 	self.check_ammo = true
 	-- ресет таблицы зарядки
 	for k,v in pairs (self.ammo_load) do
@@ -126,7 +135,7 @@ function sg_class_binder:unload()
 	if self.load ~= self.ammo_load[self.ammo_class_num] then
 	-- не все заряженные патроны были текущего типа
 		self.object:set_ammo_elapsed(0) -- ресет магазина
-		self.object:set_ammo_elapsed(self.ammo_load[self.ammo_class_num]) -- оставляем только патроны текущего типа
+		self.object:set_ammo_elapsed( math.min(self.ammo_load[self.ammo_class_num], self.mag_size) ) -- оставляем только патроны текущего типа
 		self.ammo_load[self.ammo_class_num] = 0 -- их возвращать не надо
 	--qqq("self.ammo_load - return ammo")
 --	for k,v in pairs (self.ammo_load) do
@@ -178,7 +187,7 @@ function sg_class_binder:update(delta)
 			-- номер текущего типа патронов в списке (начало с 1)
 			self.ammo_class_num = self.object:get_ammo_type() + 1
 			--qqq("self.ammo_class_num = "..self.ammo_class_num)
-			self.load = self.object:get_ammo_in_magazine()
+			self:get_ammo_load()
 			--qqq("self.load = "..self.load)
 			
 			-- читаем update-пакет
