@@ -469,27 +469,31 @@ function CTreasure:__init()
 	for k,v in pairs(self.treasure_info) do
 		self.treasure_by_target[v.target] = k	
 	end
+
+	self.used_npc = {}
 end
 --' Юзание инициатора (возможность выдать тайник)
 function CTreasure:use(npc)
 --	printf("TREASURE USE")
-	
-	local se_obj = AI:object(npc:id())
+	local npc_id = npc:id()
+	if self.used_npc[npc_id] then
+		return
+	end
+	self.used_npc[npc_id] = true
+
+	lootmoney.lootmoney(npc)
+
+	local se_obj = AI:object(npc_id)
 	if se_obj==nil or se_obj.treasure_processed == true then return end
 	se_obj.treasure_processed = true
-	
-	--lootmoney start
-	lootmoney.lootmoney(npc)
-	--lootmoney end
-	
-	local rarets 
 	
 	if npc ~= nil then
 		self.npc_rank = npc:character_rank()
 	else 
-		self.npc_rank = 0
+		self.npc_rank = nil
 	end
 	
+	local rarets
 	-- если выбран редкий тип тайников, то снизим вероятность его выпадения
 	if game_options.AmkTrs == 2 then 
 	  rarets = 99
@@ -501,7 +505,7 @@ function CTreasure:use(npc)
 --  end
 	
 	if math.random(100) < rarets then 
-	  return
+		return
 	end
 	
 	--' Нужно рандомно выбрать один из тайников.
@@ -575,9 +579,6 @@ function CTreasure:remind()
 		reminder.send_info(text)
 	end
 end
-function CTreasure:set_treasure_rank(r)
-	self.npc_rank = r or math.random(0, 1000)
-end
 --' Выдача тайника
 function CTreasure:give_treasure(k)
 	local v = self.treasure_info[k]
@@ -629,7 +630,7 @@ function CTreasure:give_treasure(k)
 			amk.convert_npc[obj.id]=1 -- ставим в очередь на вывод в онлайн
 		end
 	else
-		log("TREASURE %s, target doesnt exist", k)
+		log("! TREASURE %s, target doesnt exist", k)
 	end
 end
 --' Снимаем отметку с тайника
@@ -705,7 +706,7 @@ function CTreasure:give_item_list()
 	local cnt = 0
 	local s, cls = "", ""
 	for j = 1, i, 1 do
-		s = tbl[rnd(#tbl)]
+		s = table.random(tbl)
 
 		-- установка кол-ва предметов в зависимости от секции
 		cls = sys_ini:r_clsid(s, "class")
@@ -731,12 +732,11 @@ function CTreasure:give_item_list()
 	return ret
 end
 
-
 function CTreasure:dialog(npc)
 	if npc ~= nil then
 		self.npc_rank = npc:character_rank()
 	else 
-		self.npc_rank = 0
+		self.npc_rank = nil
 	end
 
 	local avail = {}
@@ -778,6 +778,42 @@ function CTreasure:dialog(npc)
 		end
 	end
 end
+
+-----------------------------------------------------------------------------------------
+function get_treasure_manager()
+	if treasure_manager == nil then
+		treasure_manager = CTreasure()
+	end
+	return treasure_manager
+end
+
+function take_item_from_box(box, box_story_id)
+	if box_story_id == nil then return end
+	get_treasure_manager():treasure_empty(box, box_story_id)
+end
+
+function save(p)
+	get_treasure_manager():save(p)
+end
+function load(p)
+	get_treasure_manager():load(p)
+end
+function clear_treasure_manager()
+	treasure_manager = nil
+end
+
+function is_active_treasure(box_story_id)
+	local mgr = get_treasure_manager()
+	local k = mgr.treasure_by_target[box_story_id]
+	if not k then return false end
+
+	if mgr.treasure_info[k] and mgr.treasure_info[k].active then
+		return true
+	end
+
+	return false
+end
+
 function give_random_tresure()
 	local mgr = get_treasure_manager()
 	local tmp = {}

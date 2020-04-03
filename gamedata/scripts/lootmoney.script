@@ -1,36 +1,46 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
 function lootmoney(npc)
-	if npc ~= nil and not string.find(npc:section(),"arena") and npc:character_community()~="arena_enemy" and npc:character_community()~="vermaht" and Actor:has_info("haker_soft_pda") and npc:object("device_pda_npc") then
-		local money = npc:money()
-
-		if money ~= nil and money ~=0 then
-			local deadmoney = money
-
-			if not game_options.RealMoney then
-				local npc_rank = ranks.get_obj_rank_name(npc)
-				if npc_rank ~= nil then
-					if npc_rank == "novice" and money >=150 then deadmoney=math.random(100,150)    
-					elseif npc_rank == "experienced" and money >=300 then deadmoney=math.random(200,300)  
-					elseif npc_rank == "veteran" and money >=450 then deadmoney=math.random(380,450) 
-					elseif npc_rank == "master" and money >=600 then deadmoney=math.random(500,600)  
-					end
-				end
-			end
-
-			local news_texti = "%c[255,255,0,0]Мёртвый сталкер: %c[default]"..npc:character_name()..
-					"\\n%c[255,255,0,0]Обнаружено денег: %c[default]"..deadmoney.."руб."
-			Actor:give_game_news(news_texti, "ui\\ui_iconsTotal", Frect():set(0,0,83,47), 1, 4000)
-			Actor:give_money(deadmoney)
-			game_stats.money_quest_update(deadmoney) 
-			npc:give_money(-money)
-			archievements.acv_count_event("acv_mar", 50000, "Мародёр", deadmoney)
-		end
-	end
-
+	if not npc then return end
 	-- автообыск трупа
 	if game_options.AutoGrab then
-		start_transfer_all_desired(npc)
+		this.start_transfer_all_desired(npc)
+	end
+
+	if Actor:has_info("haker_soft_pda")
+		and npc:object("device_pda_npc")
+		and (not string.find(npc:section(),"arena"))
+		and npc:character_community()~="arena_enemy"
+		and npc:character_community()~="vermaht"
+	then
+		local se_obj = AI:object(npc:id())
+		if (not se_obj) or se_obj.lootmoney==true then return end
+		se_obj.lootmoney = true
+
+		local money = npc:money()
+
+		if money == nil or money == 0 then return end
+
+		local deadmoney = money
+
+		if not game_options.RealMoney then
+			local npc_rank = ranks.get_obj_rank_name(npc)
+			if npc_rank ~= nil then
+				if npc_rank == "novice" and money >=150 then deadmoney=math.random(100,150)
+				elseif npc_rank == "experienced" and money >=300 then deadmoney=math.random(200,300)
+				elseif npc_rank == "veteran" and money >=450 then deadmoney=math.random(380,450)
+				elseif npc_rank == "master" and money >=600 then deadmoney=math.random(500,600)
+				end
+			end
+		end
+
+		local news_texti = "%c[red]Мёртвый сталкер: %c[default]"..npc:character_name()..
+				"\\n%c[red]Обнаружено денег: %c[default]"..deadmoney.."руб."
+		Actor:give_game_news(news_texti, "ui\\ui_iconsTotal", Frect():set(0,0,83,47), 1, 4000)
+		Actor:give_money(deadmoney)
+		game_stats.money_quest_update(deadmoney)
+		npc:give_money(-money)
+		archievements.acv_count_event("acv_mar", 50000, "Мародёр", deadmoney)
 	end
 end
 	

@@ -2135,8 +2135,7 @@ local visual_by_sect = {
 
 function get_outfit_level(section)
 	local vis_suit = sys_ini:r_string(section, "visual")
-	vis_suit = string.explode(vis_suit, "\\")
-	vis_suit = string.gsub(vis_suit[#vis_suit], "%.ogf", "")
+	vis_suit = string.match(vis_suit, "^.-([^\\]+)$"):gsub("%.ogf", "")
 
 	return armor_levels[vis_suit] or 0
 end
@@ -2156,40 +2155,34 @@ function npc_update(binder)
 	if (binder.armor_check_update or 0)<time_global() then
 		local npc = binder.object
 		local npc_sec = protected_items.get_obj_name(npc)
-		if not npc:alive() or npc:critically_wounded() or npc:wounded() or excluded_npcs[npc_sec] then return end
-		local com = npc:character_community()
-		if suits_to_visuals[com] then
+		if ( not npc:alive() ) or excluded_npcs[npc_sec] then
+			binder.armor_check_update = time_global() + 2000000
+			return
+		else
+			binder.armor_check_update = time_global()+2000
+		end
+
+		if npc:critically_wounded() or npc:wounded() then return end
+		if suits_to_visuals[ npc:character_community() ] then
 			npc:iterate_inventory(check_armor,npc)
 		end
-		binder.armor_check_update=time_global()+2000
 	end
 end
 
-function check_armor(npc, item, just_report)
+function check_armor(npc, item)
 	if item:is_outfit() then
-		local com = npc:character_community()
 		local vis = sys_ini:r_string(item:section(), "visual")
+		vis = string.match(vis, "^.-([^\\]+)$"):gsub("%.ogf", "")
 
-		vis = string.explode(vis, "\\")
-		vis = string.gsub(vis[#vis], "%.ogf", "")
-
-		local vis_tbl = suits_to_visuals[com][vis]
+		local vis_tbl = suits_to_visuals[ npc:character_community() ][vis]
 		if vis_tbl then
-			if just_report then
-				if #vis_tbl > 0 and get_npc_current_visual_level(npc:id())<=armor_levels[vis] then
-					return true
-				else
-					return false
-				end
-			else
-				if #vis_tbl > 0 and get_npc_current_visual_level(npc:id())<=armor_levels[vis] then
-					if ((not Actor:see(npc) and npc:position():distance_to(Actor:position())>1) or 
-						npc:position():distance_to(Actor:position())>100) then
-						
-						change_vis(npc:id(),"actors\\"..vis_tbl[math_random(#vis_tbl)],armor_levels[vis],true)
-						local se_item = AI:object(item:id())
-						if se_item then AI:release(se_item, true) end
-					end
+			if #vis_tbl > 0 and get_npc_current_visual_level( npc:id() ) <= armor_levels[vis] then
+				if ((not Actor:see(npc) and npc:position():distance_to(Actor:position())>1) or 
+					npc:position():distance_to(Actor:position())>100) then
+					
+					change_vis( npc:id(), "actors\\"..vis_tbl[math_random(#vis_tbl)], armor_levels[vis], true )
+					local se_item = AI:object( item:id() )
+					if se_item then AI:release( se_item, true ) end
 				end
 			end
 		end

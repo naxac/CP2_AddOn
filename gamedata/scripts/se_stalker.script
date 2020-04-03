@@ -31,6 +31,7 @@ function se_stalker:__init (section) super (section)
 	self.death_droped = false --'Генерил ли персонаж выпадаемые предметы или нет.
 	self.treasure_processed = false
 	self.linspiro_traded = false
+	self.lootmoney = false
 
 	--' Test for dima
 	self.dont_spawn_online = false
@@ -137,6 +138,7 @@ function se_stalker:STATE_Write (packet)
 	if self.wounded				then ddw = bit_or(ddw, 2) end
 	if self.treasure_processed	then ddw = bit_or(ddw, 4) end
 	if self.linspiro_traded		then ddw = bit_or(ddw, 8) end
+	if self.lootmoney			then ddw = bit_or(ddw, 16) end
 	packet:w_u8(ddw)
 	
 	-- Trade
@@ -169,6 +171,7 @@ function se_stalker:STATE_Read (packet, size)
 	self.wounded			= bit_and(ddw,2) ~= 0	-- Прочитаем состояние раненности.
 	self.treasure_processed	= bit_and(ddw,4) ~= 0
 	self.linspiro_traded	= bit_and(ddw,8) ~= 0
+	self.lootmoney			= bit_and(ddw,16) ~= 0
 
 	local _time = packet:r_s16()
 	local gh = amk.game_hours()

@@ -603,6 +603,39 @@ end
 ----------------------------------------------------------------------------------
 -- Расстояние между точками на глобальной карте.
 -- Используется для рассчёта траты заряда телепортаторов при перемещении.
+--[[local max_dist = false
+function get_map_dist_from_actor( vertex_id )
+	local actor_gv = Actor:game_vertex_id()
+	if not GGraph:valid_vertex_id( actor_gv ) then
+		actor_gv = n_vertexes.get_nearest_gv( Actor:position() )
+	end
+
+	local pos1 = GGraph:vertex( vertex_id ):game_point()
+	local pos2 = GGraph:vertex( actor_gv ):game_point()
+	local dist = pos1:distance_to(pos2)
+	
+	if not max_dist then
+		max_dist = 0
+		local i, j, m_dist = 0, 0, 0
+		while GGraph:valid_vertex_id( i ) do
+			pos1 = GGraph:vertex( i ):game_point()
+			while GGraph:valid_vertex_id( j ) do
+				m_dist =  GGraph:vertex( j ):game_point():distance_to( pos1 )
+				if m_dist > max_dist then
+					max_dist = m_dist
+				end
+				j = j + 1
+			end
+			i = i + 1
+		end
+		max_dist = max_dist * 0.8
+	end
+
+--	log("[get_map_dist_from_actor]: dist = %s, max_dist = %s", dist, max_dist)
+	return dist, max_dist
+end
+]]
+local max_dist = false
 function get_map_dist( start_level, start_pos, to_level, to_pos )
 	local ini = game_ini()
 
@@ -618,9 +651,15 @@ function get_map_dist( start_level, start_pos, to_level, to_pos )
 
 	local pos1 = GetGlobalPos( start_level, start_pos )
 	local pos2 = GetGlobalPos( to_level, to_pos )
+	local dist = pos1:distance_to(pos2)
 
-	return pos1:distance_to(pos2),
-		game_ini():r_rect("global_map", "bound_rect"):height() *0.8
+	if not max_dist then
+		max_dist = ini:r_rect("global_map", "bound_rect"):height() *0.8
+	end
+
+--	log("[get_map_dist_from_actor]: dist = %s, max_dist = %s", dist, max_dist)
+
+	return dist, max_dist
 end
 ----------------------------------------------------------------------------------
 function get_actor_pursuit()
