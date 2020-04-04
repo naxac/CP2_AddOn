@@ -23,6 +23,7 @@ local bIsShown = false
 
 -- таблица с отслеживаемыми предметами
 local tShowItems = {}
+local tSection2Slot = {}
 
 local bDefolt = true--// использовать ли единые цвета -true  или для каждого свой -false 
 --// таблица цветов текста статиков
@@ -44,6 +45,9 @@ local tColor ={
 
 --// получаем коордианты из конфига
 local function GetDataTextures(sSection)
+	if sSection == "" then
+		return 0,0,10,10
+	end
 	return
 		sys_ini:r_u32(sSection, "inv_grid_x")*50,
 		sys_ini:r_u32(sSection, "inv_grid_y")*50,
@@ -76,9 +80,7 @@ function OnUpdate()
 		local st
 		bIsShown = true
 		for i, v in ipairs(tShowItems) do
-			st = DrawStatic(v, i)
-			tStatics[v] = st
-			hud:AddDialogToRender(st)
+			DrawStatic(i)
 			ChangeCount(nil, v)
 		end
 
@@ -90,51 +92,65 @@ function OnUpdate()
 	end
 end
 
-function DrawStatic(section, slot)
-	local p = tSettings[iCurrentSet]
-	local x = p.horiz and (p.x + step_x * (slot-1)) or p.x
-	local y = p.horiz and p.y or (p.y + step_y * (slot-1))
-	local st = CUIStatic()
-	st:Init(x, y, cell_sz_x, cell_sz_y)
-	st:InitTexture("ui\\ui_icon_equipment")
-	st:SetOriginalRect( GetDataTextures(section) )
-	st:SetStretchTexture(true)
-	st:SetFont(GetFontSmall())
-	if bDefolt then
-		st:SetTextColor( unpack(tColor.default) )
+function DrawStatic(slot)
+	local section = tShowItems[slot]
+	local st = tStatics[slot]
+	if not st then
+		local p = tSettings[iCurrentSet]
+		local x = p.horiz and (p.x + step_x * (slot-1)) or p.x
+		local y = p.horiz and p.y or (p.y + step_y * (slot-1))
+
+		st = CUIStatic()
+		tStatics[slot] = st
+		st:Init(x, y, cell_sz_x, cell_sz_y)
+		st:InitTexture("ui\\ui_icon_equipment")
+		st:SetOriginalRect( GetDataTextures(section) )
+		st:SetStretchTexture(true)
+		st:SetText("0")
+		st:SetFont(GetFontSmall())
+		if bDefolt then
+			st:SetTextColor( unpack(tColor.default) )
+		else
+			st:SetTextColor( unpack(tColor[k] or tColor.default) )
+		end
+		st:SetTextAlign(CGameFont.alLeft)
+
+		local key_name = hotkeys.dik2key( ui_inv_add.getSlotKey(slot) )
+		st.key = CUIStatic()
+		st.key:Init(cell_sz_x-6, cell_sz_y-6, 6, 6)
+		st.key:SetAutoDelete(true)
+		st.key:SetText(key_name)
+		st.key:SetFont(GetFontSmall())
+		st.key:SetTextColor( unpack(tColor.key) )
+		st.key:SetTextAlign(CGameFont.alCenter)
+		st:AttachChild(st.key)
+
+		hud:AddDialogToRender(st)
 	else
-		st:SetTextColor( unpack(tColor[k] or tColor.default) )
+		st:SetOriginalRect( GetDataTextures(section) )
 	end
-	st:SetTextAlign(CGameFont.alLeft)
-
-	local key_name = hotkeys.dik2key( ui_inv_add.getSlotKey(slot) )
-	local key = CUIStatic()
-	key:Init(cell_sz_x-6, cell_sz_y-6, 6, 6)
-	key:SetAutoDelete(true)
-	key:SetText(key_name)
-	key:SetFont(GetFontSmall())
-	key:SetTextColor( unpack(tColor.key) )
-	key:SetTextAlign(CGameFont.alCenter)
-	st:AttachChild(key)
-
-	return st
 end
 
 function ChangeCount(item, section)
 	-- // выводим кол-во предметов
 	local sect = section or item:section()
-	if bIsShown and tStatics[sect] then
-		local num = inventory.get_items_count(sect)
-		tStatics[sect]:SetText( tostring(num) )
+	if bIsShown and tSection2Slot[sect] then
+		local slot = tSection2Slot[sect]
+		if sect == "" then
+			tStatics[slot]:SetText("")
+		else
+			local num = inventory.get_items_count(sect)
+			tStatics[slot]:SetText( tostring(num) )
+		end
 	end
 end
 
 -- вызывается из метода net_destroy биндера актера
 function Destroy()
 	for i, v in ipairs (tShowItems) do
-		if tStatics[v] then
-			hud:RemoveDialogToRender( tStatics[v] )
-			tStatics[v] = nil
+		if tStatics[i] then
+			hud:RemoveDialogToRender( tStatics[i] )
+			tStatics[i] = nil
 		end
 	end
 	tStatics = {}
@@ -145,15 +161,10 @@ function CheckChangeItems()
 	local t = table.copy( {}, ui_inv_add.getSlots() )
 	for i, v in ipairs (t) do
 		if tShowItems[i] ~= v then
-			local s = tShowItems[i]
-			if tStatics[s] then
-				hud:RemoveDialogToRender( tStatics[s] )
-				tStatics[s] = nil
-			end
+			tSection2Slot[ tShowItems[i] ] = nil
+			tSection2Slot[v] = i
 			tShowItems[i] = v
-			local st = DrawStatic(v, i)
-			tStatics[v] = st
-			hud:AddDialogToRender(st)
+			DrawStatic(i)
 			ChangeCount(nil, v)
 		end
 	end
@@ -167,6 +178,9 @@ end
 function init()
 	hud = get_hud()
 	tShowItems = table.copy( {}, ui_inv_add.getSlots() )
+	for i, v in ipairs(tShowItems) do
+		tSection2Slot[v] = i
+	end
 	for sig, func in pairs(tRegCallbacks) do
 		xr_s.subscribe(sig, this[func])
 	end
