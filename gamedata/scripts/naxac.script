@@ -1,6 +1,65 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 14
+-- spawn_ids:
+-- darkscape_fireshit_ogon_strong	12476
+-- darkscape_military_respawn		12526
+local current_fix = 15
 
+function fix_15()
+	local rem = {
+		"amk_zone_ogon_average_11",
+		"amk_zone_ogon_average_48",
+		"amk_zone_ogon_average_83",
+		"amk_zone_ogon_average_162",
+		"amk_zone_ogon_average_261",
+		"amk_zone_ogon_average_201",
+		"amk_zone_ogon_average_299",
+		"amk_zone_ogon_average_353",
+		"amk_zone_ogon_average_402",
+		"stancia2_ogon1_truba_niz",
+		"stancia2_ogon2_truba_verh"
+	}
+	local obj
+	for i, name in ipairs(rem) do
+		obj = AI:object(name)
+		if obj then
+			amk_anoms.release_anomaly(obj)
+		end
+	end
+	obj = AI:object("darkscape_fireshit_ogon_strong")
+	if not obj then
+		AI:create(12476)
+	end
+
+	local doors = {
+		[14248] = "pri_b303_one_side_door",
+		[14249] = "pri_b303_door_01",
+		[14256] = "pri_b304_physic_door_0005",
+		[14257] = "pri_b304_physic_door_0006",
+		[14258] = "pri_b304_physic_door_0007",
+		[14259] = "pri_b304_physic_door_0008",
+		[14260] = "pri_b304_physic_door_0009",
+		[14261] = "pri_b304_physic_door_0010",
+		[14262] = "pri_b304_physic_door_0011",
+		[14263] = "pri_b304_physic_door_0012",
+		[14264] = "pri_b304_physic_door_0013",
+		[14265] = "pri_b304_physic_door_0014",
+		[14273] = "pri_a16_ph_door",
+		[14274] = "pri_a16_ph_door_0000",
+		[14275] = "pri_a16_ph_door_0001",
+		[14276] = "pri_a16_ph_door_0002",
+		[14277] = "pri_a16_ph_door_0003",
+		[14278] = "pri_a16_ph_door_0006",
+		[14281] = "pri_a28_physic_door_end_surge_room",
+		[14282] = "pri_a28_physic_door_end_surge_room_0000"
+	}
+	for i, v in pairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create(i)
+	end
+end
 function fix_14()
 	local obj = AI:story_object(story_ids.Mil_Kap)
 	if obj then
@@ -40,7 +99,7 @@ end
 function fix_11()
 	local obj = AI:object("darkscape_military_respawn")
 	if obj == nil then
-		AI:create(12538)
+		AI:create(12526)
 	end
 end
 function fix_10()
@@ -212,7 +271,7 @@ function fix_2()
 		and AI:story_object(story_ids.lc_darkscape_to_darkvalley) == nil
 	then
 		-- спавним по номеру секции в спавне: придётся обновлять каждый раз при редактировании спавна.
-		for i = 12412, 12538, 1 do
+		for i = 12400, 12526, 1 do
 			AI:create(i)
 		end
 		-- отметим переходы
