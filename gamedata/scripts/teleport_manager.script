@@ -159,7 +159,7 @@ local teleports = {
 			"smart_exit9",
 			"smart_exit10",
 			"smart_exit11",
-			"smart_exit12",
+			"smart_exit12"
 		}
 	},
 	["gena_tele1"] = {
@@ -439,6 +439,7 @@ function telepot_allowed(obj_sect, from_gui)
 		local chk_cond = false
 		local go_func = table.copy( {}, teleports[obj_sect].goto_func )
 		local lname = level.name()
+		where_to = nil
 		while #go_func>0 do
 			local v = table.remove(go_func, math.random(#go_func))
 			local place = places[v]
@@ -449,20 +450,40 @@ function telepot_allowed(obj_sect, from_gui)
 					place.lvl, vector():set( unpack( place.pos ) ) )
 				local need_charge = dist / max_dist
 				if need_charge <= teleport_cond then
-					teleport_cond = teleport_cond - need_charge
-					where_to = v
-					chk_cond = true
+					if Actor:has_info("seen_"..place.lvl) then
+						chk_cond = true
+						teleport_cond = teleport_cond - need_charge
+						where_to = v
+					end
 				end
 			end
 			table.insert(tmp, place.lvl)
 		end
-			
-		if not chk_lvl then
+
+		if not where_to then
+			news_manager.send_tip("Вы ещё не побывали ни на одной из доступных территорий - телепортация в неизветную местность невозможна.", nil, "nano", 10000)
+			return false
+		elseif not chk_lvl then
 			local levels_name = table.concat(tmp, ", ")
 			news_manager.send_tip("С этой территории телепортация невозможна. Территории, с которых можно телепортироваться: "..levels_name..".\n", nil, "nano", 10000)
 			return false
 		elseif not chk_cond then
 			news_manager.send_tip("Заряда телепортатора недостаточно для перемещения ни на одну из территорий. Зарядите телепортатор.", nil, "nano", 10000)
+			return false
+		end
+	elseif obj_sect == "device_teleport" then
+		local go_func = table.copy( {}, teleports[obj_sect].goto_func )
+		where_to = nil
+		while true do
+			local v = table.remove(go_func, math.random(#go_func))
+			if Actor:has_info("seen_"..places[v].lvl) then
+				where_to = v
+				break
+			end
+			if #go_func == 0 then break end
+		end
+		if not where_to then
+			news_manager.send_tip("Вы ещё не побывали ни на одной из доступных территорий - телепортация в неизветную местность невозможна.", nil, "nano", 10000)
 			return false
 		end
 	-- проверка заряда
