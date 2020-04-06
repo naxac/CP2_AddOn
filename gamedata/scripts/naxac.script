@@ -1,9 +1,64 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- spawn_ids:
--- darkscape_fireshit_ogon_strong	12476
--- darkscape_military_respawn		12526
-local current_fix = 15
+local current_fix = 16
 
+function fix_16()
+	-- Переделаем немного двери в Х-10
+	local obj
+	local doors = {
+		[10045] = "codedoor_door_0001",
+		[10046] = "codedoor_door_0002",
+		[10047] = "codedoor_door_0003",
+		[10049] = "codedoor_door_0004",
+		[10051] = "codedoor_door_0006",
+		[10054] = "codedoor_key_0004"
+	}
+	for i, v in pairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create(i)
+	end
+	-- Объекты, имеющие одинаковые имена с другими объектами в спавне
+	local double_names = {
+		["codedoor_key_0001"] = 10048,
+		["codedoor_key_0002"] = 10050,
+		["codedoor_key_0003"] = 10053
+	}
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and double_names[ obj:name() ] then
+			if object_level_name(obj) == "l10u_bunker" then
+				local name = obj:name()
+				AI:release(obj, true)
+				AI:create( double_names[ name ] )
+				double_names[ name ] = nil
+				if table.size( double_names ) == 0 then
+					break
+				end
+			end
+		end
+	end
+	-- Неписи с кодом от двери
+	local npcs = {
+		[9453] = "rad_antenna_camper1",
+		[9485] = "rad_antenna_camper2",
+		[9486] = "rad_antenna_camper3"
+	}
+	local respawn = false
+	for i, v in pairs(npcs) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+			AI:create(i)
+			respawn = true
+		end
+	end
+	-- никого не переспавнили, значит уже некого - выдадим статью просто так
+	if (respawn == false) and not has_alife_info("bun_door_3_code") then
+		Actor:give_info_portion("bun_door_3_code")
+	end
+end
 function fix_15()
 	local rem = {
 		"amk_zone_ogon_average_11",
