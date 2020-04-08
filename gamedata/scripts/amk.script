@@ -160,11 +160,13 @@ function spawn_item_in_inv(spawn_item,npc)
 	if not npc then 
 		npc = Actor 
 	end
-	local item = AI:create(spawn_item, 
+	local item = AI:create(
+		spawn_item, 
 		npc:position(),
 		npc:level_vertex_id(),  
 		npc:game_vertex_id(),
-		npc:id())
+		npc:id()
+	)
 	
 	if npc:id() ~= 0 then
 		-- Фикс пропадания доспавненного предмета при сейв/лоаде
@@ -175,110 +177,112 @@ function spawn_item_in_inv(spawn_item,npc)
 end
 
 function fix_spawn_item_in_inv(npc, id, item)
-    npc:transfer_item(item, npc)
+	npc:transfer_item(item, npc)
 end
 
 --используем для спавна патронов
 function spawn_ammo_in_inv(spawn_item,number,npc)
-  if npc==nil then 
-    npc=Actor 
-  end
-  if number > 0 then
-    return se_respawn.create_ammo(spawn_item, 
-        npc:position(),
-        npc:level_vertex_id(),  
-        npc:game_vertex_id(),
-        npc:id(),
-        number)
-  end
+	if npc==nil then 
+		npc=Actor 
+	end
+	if number > 0 then
+		return se_respawn.create_ammo(
+			spawn_item, 
+			npc:position(),
+			npc:level_vertex_id(),  
+			npc:game_vertex_id(),
+			npc:id(),
+			number
+		)
+	end
 end
 
 -- удаляем объект из игры
 function remove_item(remove_item)
-  if remove_item~=nil then
-    AI:release(AI:object(remove_item:id()), true)
-    return true
-  end
-  return false
+	if remove_item~=nil then
+		AI:release(AI:object(remove_item:id()), true)
+		return true
+	end
+	return false
 end
 
 -- выбрасываем объект из инвентаря, применимо к ГГ
 function drop_item(npc,item)
-  if item~=nil then
---      npc:mark_item_dropped(item)
-    npc:drop_item(item)
-  end
+	if item~=nil then
+--		npc:mark_item_dropped(item)
+		npc:drop_item(item)
+	end
 end
 
 --убиваем непися
 function make_suicide(npc)
-  npc:kill(npc)
+	npc:kill(npc)
 end
 
 --узнаем отношение одного непися к другому
 function get_npc_relation(obj,target)
-  local rel = obj:relation(target)
-  local relation
-  if rel==game_object.neutral then
-    relation="neutral"
-  elseif rel==game_object.friend then
-    relation="friend"
-  elseif rel==game_object.enemy then
-    relation="enemy"
-  else
-    return false
-  end
-  return relation
+	local rel = obj:relation(target)
+	local relation
+	if rel==game_object.neutral then
+		relation="neutral"
+	elseif rel==game_object.friend then
+		relation="friend"
+	elseif rel==game_object.enemy then
+		relation="enemy"
+	else
+		return false
+	end
+	return relation
 end
 
 --задаем отношение одного непися к другому
 function set_npc_relation(obj,target,relation)
-  local rel
-  if relation=="neutral" then
-    rel=game_object.neutral
-  elseif relation=="friend" then
-    rel=game_object.friend
-  elseif relation=="enemy" then
-    rel=game_object.enemy
-  else
-    return false
-  end 
-  obj:set_relation(rel,target)
-  return true
+	local rel
+	if relation=="neutral" then
+		rel=game_object.neutral
+	elseif relation=="friend" then
+		rel=game_object.friend
+	elseif relation=="enemy" then
+		rel=game_object.enemy
+	else
+		return false
+	end 
+	obj:set_relation(rel,target)
+	return true
 end
 
 -- узнаем группировку непися, применимо к ГГ, только ОНЛАЙН
 function get_npc_community(npc)
-  return npc:character_community()
+	return npc:character_community()
 end
 
 -- выставляем группировку непися, можно ГГ, только ОНЛАЙН
 function set_npc_community(npc,community_string)
-  --значения для community_string можно узнать в config\creatures\game_relations.ltx
-  return npc:set_character_community(community_string, 0, 0)
+	--значения для community_string можно узнать в config\creatures\game_relations.ltx
+	return npc:set_character_community(community_string, 0, 0)
 end
 
 --удаляем предмет из инвентаря по имени
 function remove_item_from_inventory_by_name(remove_item_name,npc)
-  return remove_item_from_inventory(npc:object(remove_item_name),npc)
+	return remove_item_from_inventory(npc:object(remove_item_name),npc)
 end
 
 --удаляем предмет из инвентаря
 function remove_item_from_inventory(remove_item,npc)
-  if npc==nil then npc=Actor end
-  if remove_item~=nil then
---      npc:mark_item_dropped(remove_item)
-	local se_item = AI:object(remove_item:id())
-	if se_item then AI:release(se_item, true) end
-    return true
-  end
-  return false
+	if npc==nil then npc=Actor end
+	if remove_item~=nil then
+--		npc:mark_item_dropped(remove_item)
+		local se_item = AI:object(remove_item:id())
+		if se_item then AI:release(se_item, true) end
+		return true
+	end
+	return false
 end
 
 --создаем "ожидатели" для неписей нужно для корректной работы с объектами, созданными внутри скрипта
 function create_waiter_for_npc(npc,select_string)--неписи
-  npc_spawner[npc.id]=select_string
-  save_table("x_npc_spawner",npc_spawner)
+	npc_spawner[npc.id]=select_string
+	save_table("x_npc_spawner",npc_spawner)
 end
 --
 
@@ -300,53 +304,59 @@ end
 
 --проверка запущена ли игра
 function check_game()
-  if level.present() and (Actor ~= nil) and Actor:alive() then
-    return true
-  end
-  return false
+	if level.present() and (Actor ~= nil) and Actor:alive() then
+		return true
+	end
+	return false
 end
 
 --записываем переменную
 function save_variable(variable_name, value)
-  if value==nil then
-    amk.mylog("saving nil into "..variable_name)
-    del_variable(variable_name)
-  else
---    local vn=compress_name(variable_name)
-    xr_logic.pstor_store(Actor, variable_name, value)
-  end
+	if value==nil then
+		amk.mylog("saving nil into "..variable_name)
+		del_variable(variable_name)
+	else
+		xr_logic.pstor_store(Actor, variable_name, value)
+	end
 end
 
 --загружаем переменную
 function load_variable(variable_name, value_if_not_found)
-  local vn=compress_name(variable_name)
-  return xr_logic.pstor_retrieve(Actor, vn, value_if_not_found)
+	return xr_logic.pstor_retrieve(Actor, variable_name, value_if_not_found)
 end
 
 --есть ли переменная
 function has_variable(variable_name)
-  local vn=compress_name(variable_name)
-  local npc_id = xr_logic.get_pda_id(vn,"проверяем")
-  return db.storage[npc_id].pstor[vn] ~= nil
+	local npc_id = xr_logic.get_pda_id(variable_name,"проверяем")
+	return db.storage[npc_id].pstor[vn] ~= nil
 end
 
 --удаляем переменную
 function del_variable(variable_name)
-  local vn=compress_name(variable_name)
-  local npc_id = xr_logic.get_pda_id(vn,"удаляем")
-    if db.storage[npc_id].pstor[vn] then
-    db.storage[npc_id].pstor[vn] = nil
-  end
+	local npc_id = xr_logic.get_pda_id(variable_name,"удаляем")
+	if db.storage[npc_id].pstor[variable_name] then
+		db.storage[npc_id].pstor[variable_name] = nil
+	end
 end
 
--- таблица компрессии имён
-local compress_table={
-}
-local checked=false
+function sub(v1,v2)
+  local newvec = vector()
+  newvec.x = v1.x-v2.x
+  newvec.y = v1.y-v2.y
+  newvec.z = v1.z-v2.z
+  return newvec
+end
 
--- Преобразует имя переменной в короткое
-function compress_name(name)
-  return name
+function is_point_inside_interval(x,p1,p2)
+  if p1>p2 then 
+    p1,p2 = p2,p1 
+  end
+  
+  if x>p1 and x<p2 then 
+    return true
+  else 
+    return false
+  end
 end
 
 --определяем находится ли ГГ в определенной зоне
@@ -381,26 +391,6 @@ function check_npc_in_box(npc, p1,p2,p3)
       return false
     end
   end
-end
-
-function is_point_inside_interval(x,p1,p2)
-  if p1>p2 then 
-    p1,p2 = p2,p1 
-  end
-  
-  if x>p1 and x<p2 then 
-    return true
-  else 
-    return false
-  end
-end
-
-function sub(v1,v2)
-  local newvec = vector()
-  newvec.x = v1.x-v2.x
-  newvec.y = v1.y-v2.y
-  newvec.z = v1.z-v2.z
-  return newvec
 end
 ----------------------------
 
@@ -811,22 +801,10 @@ end
 
 --загружаем все переменные, которые нужно, вызывается загрузке игры, автоматически; вручную не вызывать
 function on_game_load()
-	if db.storage[Actor:id()].pstor == nil then
-		db.storage[Actor:id()].pstor = {}
-	end
-
 	npc_spawner = load_table("x_npc_spawner")
 
 	amk_mod.check_spawn()
 	amk_mod.first_run()
-
-	amk_mod.test_sleep_pp( amk.load_variable("gg_need_sleep", 0) )
-
-end
-
---записываем все переменные, которые нужно, вызывается присохранении игры, автоматически; вручную не вызывать
-function on_game_save() 
-
 end
 
 function getStartTime()

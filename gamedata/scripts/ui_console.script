@@ -304,6 +304,8 @@ function UIConsole:EnterCommand()
 		self.last_i = #last_commands
 	end
 
+	buf_text = "%c[yellow]"..str.."\\n"..buf_text
+	log_text = log_text.."~ "..str.."\n"
 	if cmd2func[cmd] then
 		if args=="?" then
 			buf_text = "%c[green_blue]"..str.."\\n"..buf_text
@@ -314,14 +316,10 @@ function UIConsole:EnterCommand()
 			local res, msg = cmd2func[cmd](args)
 			if res then
 				if msg then
-					buf_text = "%c[green]"..str.."\\n"..buf_text
-					if msg then
-						buf_text = "%c[default]"..msg.."\\n"..buf_text
-						log_text = log_text.."- "..msg.."\n"
-					end
+					buf_text = "%c[green]"..msg.."\\n"..buf_text
+					log_text = log_text.."- "..msg.."\n"
 				end
 			else
-				buf_text = "%c[yellow]"..str.."\\n"..buf_text
 				if msg then
 					buf_text = "%c[red]"..msg.."\\n"..buf_text
 					log_text = log_text.."! "..msg.."\n"
@@ -329,7 +327,6 @@ function UIConsole:EnterCommand()
 			end
 		end
 	else
-		buf_text = "%c[yellow]"..str.."\\n"..buf_text
 		buf_text = "%c[red]Unknown command: "..cmd.."\\n"..buf_text
 		log_text = log_text.."! Unknown command: "..cmd.."\n"
 	end
