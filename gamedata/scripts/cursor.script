@@ -1,0 +1,26 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local current_cursor = game_options.CurrentCursor
+local cursor_types = {
+	"cursor_addon",
+	"cursor_cop",
+	"cursor_soc"
+}
+
+function change()
+	local new = game_options.CurrentCursor
+	if current_cursor == new then
+		return false
+	end
+
+	current_cursor = new
+
+	local fs = getFS()
+	local f1 = fs:update_path( "$game_textures$", "cursor\\"..current_cursor..".dds" )
+	local f2 = fs:update_path( "$game_textures$", "ui\\cursor.dds" )
+	fs:file_copy( f1, f2 )
+	return true
+end
+
+function get_options()
+	return cursor_types
+end
