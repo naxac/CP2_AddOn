@@ -11,7 +11,7 @@ sleep_factor = false
 sleep_pp_threshold = false
 sleep_critical = false
 
-local sleep_time = 0
+local start_sleep_time = 0
 local isSleepActive = false
 local set_sleep_time = 0
 local get_seconds = amk.game_seconds
@@ -41,7 +41,7 @@ function main(scale)		-- in hours
 end
 
 function starter(scale)
-	sleep_time = amk.game_minutes()
+	start_sleep_time = amk.game_minutes()
 
 	game.start_tutorial("time_scaling")
 
@@ -82,7 +82,7 @@ function stopper()
 		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 15.0)
 	    level.add_cam_effector("camera_effects\\hit_back_left.anm", 26, false, "")
 		
-		local slept = (amk.game_minutes() - sleep_time)/60	-- in hours
+		local slept = (amk.game_minutes() - start_sleep_time)/60	-- in hours
 	--	log1("sleep_manager.stopper: slept = "..slept)
 		this.reduce_need_sleep(slept)
 
@@ -197,9 +197,22 @@ function test_for_need_sleep_matras()
 		end
 	end
 
+	local need_sleep_hours
+	-- Проверим, хотим ли спать.
+	-- Одна единица переменной gg_need_sleep равна 6 игровым минутам.
+	-- Если полностью выспались, то не можем спать 10 минут.
+	if has_alife_info("snp_shadows_start") and not has_alife_info("snp_shadows_done") then
+		need_sleep_hours = 300/sleep_factor
+	else
+		need_sleep_hours = (
+			amk.load_variable("gg_need_sleep",0) +
+			amk.load_variable("gg_need_sleep_nrg",0)*10
+		) / sleep_factor
+	end
+
 	-- Проверка на выброс
-	local v = amk.load_variable("blowout",-1)
-	if v>-1 and v<5 then
+	local bl = amk.load_variable("blowout",-1)
+	if bl > -1 and bl < 5 then
 	--	amk.send_tip(game.translate_string("blowout_not_sleep"),nil,nil,5,"nano")
 		ui_inv_add.show_inv_msg( game.translate_string("blowout_not_sleep"), "red" )
 		return false
@@ -209,28 +222,21 @@ function test_for_need_sleep_matras()
 		ui_inv_add.show_inv_msg( game.translate_string("not_need_sleep_in_hell"), "red" )
 		return false
 	-- Энергетики
-	elseif has_timer("block_sleep_menu") then
+	elseif has_timer("block_sleep_menu")
+		and sleep_pp_threshold > need_sleep_hours	-- если уже в глазах двоится, то плевать на энергетики - спим
+	then
 	--	amk.send_tip(game.translate_string("not_need_sleep_nrg"),nil,nil,5,"nano")
 		local msg = format_text_pairs( game.translate_string("not_need_sleep_nrg"), {actor = Actor:character_name()} )
 		ui_inv_add.show_inv_msg( msg, "red" )
 		return false
 	end
 
-	-- Проверим, хотим ли спать.
-	-- Одна единица переменной gg_need_sleep равна 6 игровым минутам.
-	-- Если полностью выспались, то не можем спать 10 минут.
-	if has_alife_info("snp_shadows_start") and not has_alife_info("snp_shadows_done") then
-		v = 300
-	else
-		v = amk.load_variable("gg_need_sleep",0) + amk.load_variable("gg_need_sleep_nrg",0)*10
-	end
-	v = v/sleep_factor
---	log1("##gg_need_sleep: "..v)
-	if v > 10/6 then		-- можно ли хотя бы вздремнуть 10 минут
+--	log1("##gg_need_sleep: "..need_sleep_hours)
+	if need_sleep_hours > 10/6 then		-- можно ли хотя бы вздремнуть 10 минут
 		-- звуковое сопровождение
 		local snd = xr_sound.get_safe_sound_object("zwuk\\inv_sleeping")
 		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.0)
-		local spwn=ui_sleep_menu.UISleepWnd(v)
+		local spwn=ui_sleep_menu.UISleepWnd(need_sleep_hours)
 		level.start_stop_menu(spwn,true)
 		return true
 	else
@@ -242,6 +248,7 @@ function test_for_need_sleep_matras()
 end
 
 function add_sleep(v)
+	if is_sleep_active() then return end
 	amk.save_variable( "gg_need_sleep", amk.load_variable( "gg_need_sleep",0 ) + v*level.get_time_factor() )
 end
 
