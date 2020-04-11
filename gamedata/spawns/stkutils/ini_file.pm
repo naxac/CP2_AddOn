@@ -185,7 +185,7 @@ sub value {
 	my $self = shift;
 	my ($section, $name) = @_;
 
-	die unless defined $self->{sections_hash}{$section};
+	die "section not exist: $section\n" unless defined $self->{sections_hash}{$section};
 	return $self->{sections_hash}{$section}{$name};
 }
 

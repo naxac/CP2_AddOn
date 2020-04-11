@@ -68,9 +68,7 @@ function options_dialog:InitControls()
 	
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
-
 	self.need_restart_game	= false
-	self.b_r2_restart		= false
 end
 
 function options_dialog:UpdateControls()
@@ -103,10 +101,10 @@ end
 
 function options_dialog:UpdateDependControls()
 	
-	local _current_id	= self.combo_r2:CurrentID()
+	self.current_r2_value	= self.combo_r2:CurrentID()
 
 	for i,j in pairs(self.m_preconditions_r2) do
-		j				(i, _current_id)
+		j				(i, self.current_r2_value)
 	end
 end
 
@@ -156,11 +154,11 @@ function options_dialog:OnPresetChanged()
 	opt:SetCurrentValues		("mm_opt_video_adv")
 end
 
-function options_dialog:OnR2changed()	
+function options_dialog:OnR2changed()
 	self:UpdateDependControls()
 
-	if false == self.b_r2_restart then
-		self.b_r2_restart = true
+	if self.current_r2_value ~= self.combo_r2:CurrentID() then
+		self.need_restart_game = true
 	end
 end
 
@@ -190,13 +188,10 @@ function options_dialog:OnBtnAccept()
 
 	console:execute("cfg_save user.ltx")
 	
-	if self.b_r2_restart == true
-		or self.need_restart_game == true
-	then
+	if self.need_restart_game then
 		self.message_box:Init("message_box_restart_game")
 		self:GetHolder():start_stop_menu(self.message_box,true)
 		self.need_restart_game = false
-		self.b_r2_restart = false
 	else
 		self:Quit()
 	end
@@ -223,8 +218,8 @@ function options_dialog:OnTabChange()
 	self.dlg_gameplay:Show	(i == 2)
 	self.dlg_controls:Show	(i == 3)
 	self.dlg_video_adv:Show	(false)
-	if self.preview_hud then
-		self.preview_hud:Show(false)
+	if self.preview_screen then
+		self.preview_screen:Show(false)
 	end
 end
 
@@ -254,7 +249,7 @@ function options_dialog:OnKeyboard(dik, keyboard_action)
 			if self.dlg_video_adv:IsShown() then
 				self.dlg_video_adv:Show	(false)
 				self.dlg_video:Show		(true)
-			elseif self.preview_hud and self.preview_hud:IsShown() then
+			elseif self.preview_screen and self.preview_screen:IsShown() then
 				self:OnBtnHideHudScreen()
 			else
 				self:Quit()
@@ -274,136 +269,136 @@ function options_dialog:OnKeyboard(dik, keyboard_action)
 end
 
 function options_dialog:GameSetupMenuLoad()
-	self.autochange_difficulty:SetCheck(game_options.AutoDif)
-	self.dynamic_bioradar:SetNewActiveTab(game_options.DynBio)
-	self.autosave_enable:SetCheck(game_options.AutoSave)
-	self.pause_on_load:SetCheck(game_options.LoadPause)
-	self.sidor_call:SetCheck(game_options.PauseTraderCall)
-	self.animations:SetCheck(game_options.FullAnim)
-	self.autofoto:SetCheck(game_options.FotoCheat)
-	self.fotofocus:SetCheck(game_options.FotoFocus)
-	self.autograb_body:SetCheck(game_options.AutoGrab)
-	self.new_sms:SetCheck(game_options.NewSms)
-	self.garbagecollector_sms:SetCheck(game_options.GarbagecollectorStat)
-	self.fast_respawn:SetCheck(game_options.FastRespawn)
-	self.transparent_treasure:SetCheck(game_options.TrTrs)
-	self.horrortime:SetCheck(game_options.HorrorTime)
-	self.turrets:SetCheck(game_options.Turrets)
+	self.autochange_difficulty:SetCheck   ( game_options.AutoDif )
+	self.dynamic_bioradar:SetNewActiveTab ( game_options.DynBio )
+	self.autosave_enable:SetCheck         ( game_options.AutoSave )
+	self.pause_on_load:SetCheck           ( game_options.LoadPause )
+	self.sidor_call:SetCheck              ( game_options.PauseTraderCall )
+	self.animations:SetCheck              ( game_options.FullAnim )
+	self.autofoto:SetCheck                ( game_options.FotoCheat )
+	self.fotofocus:SetCheck               ( game_options.FotoFocus )
+	self.autograb_body:SetCheck           ( game_options.AutoGrab )
+	self.new_sms:SetCheck                 ( game_options.NewSms )
+	self.garbagecollector_sms:SetCheck    ( game_options.GarbagecollectorStat )
+	self.fast_respawn:SetCheck            ( game_options.FastRespawn )
+	self.transparent_treasure:SetCheck    ( game_options.TrTrs )
+	self.horrortime:SetCheck              ( game_options.HorrorTime )
+	self.turrets:SetCheck                 ( game_options.Turrets )
 
-	self.trade_cond:SetCheck(game_options.TradeCondition)
-	self.untrade_belt_slots:SetCheck(game_options.UntradeSlotsAndBelt)
+	self.trade_cond:SetCheck              ( game_options.TradeCondition )
+	self.untrade_belt_slots:SetCheck      ( game_options.UntradeSlotsAndBelt )
 
-	self.amk_treasures:SetNewActiveTab(game_options.AmkTrs)
-	self.amk_music:SetCheck(game_options.DynMusic)
+	self.amk_treasures:SetNewActiveTab    ( game_options.AmkTrs )
+	self.amk_music:SetCheck               ( game_options.DynMusic )
 
-	self.cursor_type:SetValue(game_options.CurrentCursor)
-	self.hud_type:SetValue(game_options.CurrentHUD)
-	self.amk_hud:SetCheck(game_options.DynHud)
-	self:OnAMKHudChanged()
-	self.hud_blood:SetCheck(game_options.DynHudBlood)
-	self.hud_bleed:SetCheck(game_options.DynHudBleed)
-	self.gg_kick:SetCheck(game_options.GGKick)
-	self.hud_rad:SetCheck(game_options.HudRad)
-	self.hud_slots:SetValue(game_options.QuickSlotsOnHUD)
-	self.hud_time:SetCheck(game_options.HudTIme)
+	self.cursor_type:SetValue             ( game_options.CurrentCursor )
+	self.hud_type:SetValue                ( game_options.CurrentHUD )
+	self.amk_hud:SetCheck                 ( game_options.DynHud )
+	self.hud_blood:SetCheck               ( game_options.DynHudBlood )
+	self.hud_bleed:SetCheck               ( game_options.DynHudBleed )
+	self.gg_kick:SetCheck                 ( game_options.GGKick )
+	self.hud_rad:SetCheck                 ( game_options.HudRad )
+	self.hud_slots:SetValue               ( game_options.QuickSlotsOnHUD )
+	self.hud_time:SetCheck                ( game_options.HudTIme )
+	self:OnAMKHudChanged                  ()
 
-	self.blow_enable:SetCheck(game_options.RunBlowoutPP)
-	self.zombie_team:SetCheck(game_options.ZombieTeam)
+	self.blow_enable:SetCheck             ( game_options.RunBlowoutPP )
+	self.zombie_team:SetCheck             ( game_options.ZombieTeam )
 
-	self.blow_time_basis:SetValue( game_options.BlowTimeBasis )
-	self.blow_time_shift:SetValue( game_options.BlowTimeShift )
-	self.blow_phase:SetValue( game_options.BlowPhaseBasis )
-	self.blow_phase_shift:SetValue( game_options.BlowPhaseShift )
-	self.blow_phase_max:SetValue( game_options.BlowPhaseMax )
-	self:OnBlowoutChanged()
+	self.blow_time_basis:SetValue         ( game_options.BlowTimeBasis )
+	self.blow_time_shift:SetValue         ( game_options.BlowTimeShift )
+	self.blow_phase:SetValue              ( game_options.BlowPhaseBasis )
+	self.blow_phase_shift:SetValue        ( game_options.BlowPhaseShift )
+	self.blow_phase_max:SetValue          ( game_options.BlowPhaseMax )
+	self:OnBlowoutChanged                 ()
 
-	self.userName:SetText( user_name() )
-	self.time_factor:SetValue( level.present() and level.get_time_factor() or sys_ini:r_u32( "alife", "time_factor" ) )
+	self.userName:SetText                 ( user_name() )
+	self.time_factor:SetValue             ( level.present() and level.get_time_factor() or sys_ini:r_u32( "alife", "time_factor" ) )
 
-	self.saves_count:SetValue(game_options.LastSavesCount)
-	self.save_rename:SetCheck(game_options.SaveRen)
-	self.auto_zoom:SetCheck(game_options.AutoZoom)
-	self.zamok_ui:SetCheck(game_options.ZamokUICode)
-	self.zamok_lock:SetCheck(game_options.LockBoxOnly)
-	self.rare_parts:SetCheck(game_options.RareMonsterParts)
-	self.real_money:SetCheck(game_options.RealMoney)
---	self.rnd_reward:SetCheck(game_options.RndReward)
-	self.runner_frvr:SetCheck(game_options.RunnerForever)
-	self.smart_treasures:SetCheck(game_options.NewTreasures)
+	self.saves_count:SetValue             ( game_options.LastSavesCount )
+	self.save_rename:SetCheck             ( game_options.SaveRen )
+	self.auto_zoom:SetCheck               ( game_options.AutoZoom )
+	self.zamok_ui:SetCheck                ( game_options.ZamokUICode )
+	self.zamok_lock:SetCheck              ( game_options.LockBoxOnly )
+	self.rare_parts:SetCheck              ( game_options.RareMonsterParts )
+	self.real_money:SetCheck              ( game_options.RealMoney )
+--	self.rnd_reward:SetCheck              ( game_options.RndReward )
+	self.runner_frvr:SetCheck             ( game_options.RunnerForever )
+	self.smart_treasures:SetCheck         ( game_options.NewTreasures )
 
-	self.n_spawner:SetCheck(game_options.Spawner)
-	self.n_console:SetCheck(game_options.Console)
+	self.n_spawner:SetCheck               ( game_options.Spawner )
+	self.n_console:SetCheck               ( game_options.Console )
 
 	if self.new_radio:IsEnabled() then
-		self.new_radio:SetCheck(game_options.NewRadio)
+		self.new_radio:SetCheck           ( game_options.NewRadio )
 	end
 	
-	self.prev_buy = ui_mm_opt_add.GetUserText(self.buy, "buy")
-	self.prev_del = ui_mm_opt_add.GetUserText(self.del, "del")
+	self.prev_buy = ui_mm_opt_add.GetUserText ( self.buy, "buy" )
+	self.prev_del = ui_mm_opt_add.GetUserText ( self.del, "del" )
 end
 
 function options_dialog:GameSetupMenuSave()
-	game_options.AutoDif = self.autochange_difficulty:GetCheck()
-	game_options.DynBio = self.dynamic_bioradar:GetActiveIndex()
-	game_options.AutoSave = self.autosave_enable:GetCheck()
-	game_options.LoadPause = self.pause_on_load:GetCheck()
-	game_options.PauseTraderCall = self.sidor_call:GetCheck()
-	game_options.FullAnim = self.animations:GetCheck()
-	game_options.FotoCheat = self.autofoto:GetCheck()
-	game_options.FotoFocus = self.fotofocus:GetCheck()
-	game_options.AutoGrab = self.autograb_body:GetCheck()
-	game_options.NewSms = self.new_sms:GetCheck()
+	game_options.AutoDif              = self.autochange_difficulty:GetCheck()
+	game_options.DynBio               = self.dynamic_bioradar:GetActiveIndex()
+	game_options.AutoSave             = self.autosave_enable:GetCheck()
+	game_options.LoadPause            = self.pause_on_load:GetCheck()
+	game_options.PauseTraderCall      = self.sidor_call:GetCheck()
+	game_options.FullAnim             = self.animations:GetCheck()
+	game_options.FotoCheat            = self.autofoto:GetCheck()
+	game_options.FotoFocus            = self.fotofocus:GetCheck()
+	game_options.AutoGrab             = self.autograb_body:GetCheck()
+	game_options.NewSms               = self.new_sms:GetCheck()
 	game_options.GarbagecollectorStat = self.garbagecollector_sms:GetCheck()
-	game_options.FastRespawn = self.fast_respawn:GetCheck()
-	game_options.TrTrs = self.transparent_treasure:GetCheck()
-	game_options.HorrorTime = self.horrortime:GetCheck()
-	game_options.Turrets = self.turrets:GetCheck()
+	game_options.FastRespawn          = self.fast_respawn:GetCheck()
+	game_options.TrTrs                = self.transparent_treasure:GetCheck()
+	game_options.HorrorTime           = self.horrortime:GetCheck()
+	game_options.Turrets              = self.turrets:GetCheck()
 
-	game_options.TradeCondition = self.trade_cond:GetCheck()
-	game_options.UntradeSlotsAndBelt = self.untrade_belt_slots:GetCheck()
+	game_options.TradeCondition       = self.trade_cond:GetCheck()
+	game_options.UntradeSlotsAndBelt  = self.untrade_belt_slots:GetCheck()
 
-	game_options.AmkTrs = self.amk_treasures:GetActiveIndex()
-	game_options.DynMusic = self.amk_music:GetCheck()
+	game_options.AmkTrs               = self.amk_treasures:GetActiveIndex()
+	game_options.DynMusic             = self.amk_music:GetCheck()
 
-	game_options.CurrentCursor = self.cursor_type:GetValue()
-	game_options.CurrentHUD = self.hud_type:GetValue()
-	game_options.DynHud = self.amk_hud:GetCheck()
-	game_options.DynHudBlurs = self.hud_blurs:GetCheck()
-	game_options.DynHudZoom = self.hud_zoom:GetCheck()
-	game_options.DynHudBlood = self.hud_blood:GetCheck()
-	game_options.DynHudBleed = self.hud_bleed:GetCheck()
-	game_options.GGKick = self.gg_kick:GetCheck()
-	game_options.HudRad = self.hud_rad:GetCheck()
-	game_options.QuickSlotsOnHUD = self.hud_slots:GetValueIndex()
-	game_options.HudTIme = self.hud_time:GetCheck()
+	game_options.CurrentCursor        = self.cursor_type:GetValue()
+	game_options.CurrentHUD           = self.hud_type:GetValue()
+	game_options.DynHud               = self.amk_hud:GetCheck()
+	game_options.DynHudBlurs          = self.hud_blurs:GetCheck()
+	game_options.DynHudZoom           = self.hud_zoom:GetCheck()
+	game_options.DynHudBlood          = self.hud_blood:GetCheck()
+	game_options.DynHudBleed          = self.hud_bleed:GetCheck()
+	game_options.GGKick               = self.gg_kick:GetCheck()
+	game_options.HudRad               = self.hud_rad:GetCheck()
+	game_options.QuickSlotsOnHUD      = self.hud_slots:GetValueIndex()
+	game_options.HudTIme              = self.hud_time:GetCheck()
 
-	game_options.RunBlowoutPP = self.blow_enable:GetCheck()
-	game_options.ZombieTeam = self.zombie_team:GetCheck()
+	game_options.RunBlowoutPP         = self.blow_enable:GetCheck()
+	game_options.ZombieTeam           = self.zombie_team:GetCheck()
 
-	game_options.BlowTimeBasis = self.blow_time_basis:GetValue()
-	game_options.BlowTimeShift = self.blow_time_shift:GetValue()
-	game_options.BlowPhaseBasis = self.blow_phase:GetValue()
-	game_options.BlowPhaseShift = self.blow_phase_shift:GetValue()
-	game_options.BlowPhaseMax = self.blow_phase_max:GetValue()
+	game_options.BlowTimeBasis        = self.blow_time_basis:GetValue()
+	game_options.BlowTimeShift        = self.blow_time_shift:GetValue()
+	game_options.BlowPhaseBasis       = self.blow_phase:GetValue()
+	game_options.BlowPhaseShift       = self.blow_phase_shift:GetValue()
+	game_options.BlowPhaseMax         = self.blow_phase_max:GetValue()
+
+	game_options.LastSavesCount       = self.saves_count:GetValue()
+	game_options.SaveRen              = self.save_rename:GetCheck()
+	game_options.Console              = self.n_console:GetCheck()
+	game_options.Spawner              = self.n_spawner:GetCheck()
+	game_options.AutoZoom             = self.auto_zoom:GetCheck()
+	game_options.ZamokUICode          = self.zamok_ui:GetCheck()
+	game_options.LockBoxOnly          = self.zamok_lock:GetCheck()
+	game_options.RareMonsterParts     = self.rare_parts:GetCheck()
+	game_options.RealMoney            = self.real_money:GetCheck()
+--	game_options.RndReward            = self.rnd_reward:GetCheck()
+	game_options.NewRadio             = self.new_radio:GetCheck()
+	game_options.RunnerForever        = self.runner_frvr:GetCheck()
+	game_options.NewTreasures         = self.smart_treasures:GetCheck()
 
 	user_name( self.userName:GetText() )
 
-	game_options.LastSavesCount = self.saves_count:GetValue()
-	game_options.SaveRen = self.save_rename:GetCheck()
-	game_options.Console = self.n_console:GetCheck()
-	game_options.Spawner = self.n_spawner:GetCheck()
-	game_options.AutoZoom = self.auto_zoom:GetCheck()
-	game_options.ZamokUICode = self.zamok_ui:GetCheck()
-	game_options.LockBoxOnly = self.zamok_lock:GetCheck()
-	game_options.RareMonsterParts = self.rare_parts:GetCheck()
-	game_options.RealMoney = self.real_money:GetCheck()
---	game_options.RndReward = self.rnd_reward:GetCheck()
-	game_options.NewRadio = self.new_radio:GetCheck()
-	game_options.RunnerForever = self.runner_frvr:GetCheck()
-	game_options.NewTreasures = self.smart_treasures:GetCheck()
-
-	ui_mm_opt_add.SetUserText(self.prev_buy, self.buy:GetText(), "buy")
-	ui_mm_opt_add.SetUserText(self.prev_del, self.del:GetText(), "del")
+	ui_mm_opt_add.SetUserText( self.prev_buy, self.buy:GetText(), "buy" )
+	ui_mm_opt_add.SetUserText( self.prev_del, self.del:GetText(), "del" )
 
 	if level.present() then
 		level.set_time_factor( self.time_factor:GetValue() )
@@ -431,12 +426,12 @@ function options_dialog:GameSetupMenuSave()
 	
 	game_options.save_game_options()
 
-	self.need_restart_game = ui_hud.on_change_hud()
 	if not self.need_restart_game then
-		self.need_restart_game = cursor.change()
+		local b1 = ui_hud.on_change_hud()
+		local b2 = cursor.change()
+		self.need_restart_game = b1 or b2
 	end
 end
-
 
 -- отключение на мастере распознавания НПС и дистанции
 function options_dialog:OnDifficultyChanged()
@@ -509,11 +504,16 @@ function options_dialog:OnBtnShowCursor()
 	self:DrawPreviewWnd("cursor\\preview_"..val)
 end
 
+function options_dialog:OnBtnShowHud()
+	local hud_name = self.hud_type:GetValue()
+	self:DrawPreviewWnd("hud_screen\\"..hud_name)
+end
+
 function options_dialog:DrawPreviewWnd(texture)
-	local w = self.preview_hud
+	local w = self.preview_screen
 	if w == nil then
-		self.preview_hud = CUIWindow()
-		w = self.preview_hud
+		self.preview_screen = CUIWindow()
+		w = self.preview_screen
 		w:Init( 55, 74, 738, 416 )
 		w:SetAutoDelete( true )
 		self.dialog:AttachChild( w )
@@ -532,6 +532,7 @@ function options_dialog:DrawPreviewWnd(texture)
 		self:Register( w.picture, "btn_hide_hud_screen" )
 		self:AddCallbackEx( "btn_hide_hud_screen", ui_events.BUTTON_CLICKED, self.OnBtnHidePreview )
 	end
+
 	if getFS():exist( "$game_textures$", texture..".dds" ) ~= nil then
 		w.picture:InitTexture( texture )
 		w.picture:SetOriginalRect( 0, 0, 1024, 768 )
@@ -539,19 +540,16 @@ function options_dialog:DrawPreviewWnd(texture)
 	else
 		w.picture:InitTexture( "ui\\ui_noise" )
 		w.picture:SetText( "NO SCREENSHOT" )
+		w.picture:SetTextColor(255, 0, 0, 0)
 		w.picture:SetTextAlign( CGameFont.alCenter )
 		w.picture:SetVTextAlign( CGameFont.alVCenter )
 	end
+
 	w:Show( true )
 	self.dlg_gameplay:Show( false )
 end
 
-function options_dialog:OnBtnShowHud()
-	local hud_name = self.hud_type:GetValue()
-	self:DrawPreviewWnd("hud_screen\\"..hud_name)
-end
-
 function options_dialog:OnBtnHidePreview()
-	self.preview_hud:Show( false )
+	self.preview_screen:Show( false )
 	self.dlg_gameplay:Show( true )
 end

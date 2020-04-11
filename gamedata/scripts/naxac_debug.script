@@ -212,6 +212,22 @@ function flush_obj_info()
 		for i, v in ipairs(t) do
 			log1(v)
 		end
+		get_console():execute("flush")
+	end
+end
+function flush_obj_name()
+	local text = wnd and wnd:GetText()
+	if text then
+		text = string.gsub(text, "%%c%[[%w_%s,]+%]", "")
+		text = string.gsub(text, "\\n", "\n")
+		local t = string.explode(text, "\n")
+		for i, v in ipairs(t) do
+			if string.find(v, "^name") then
+				log1(v)
+				break
+			end
+		end
+		get_console():execute("flush")
 	end
 end
 
@@ -219,6 +235,10 @@ function on_key_press(dik, bind)
 	if dik == DIK_keys.DIK_DELETE then
 		remove_obj_info()
 	elseif dik == DIK_keys.DIK_RETURN then
-		flush_obj_info()
+		if ShiftPressed() then
+			flush_obj_name()
+		else
+			flush_obj_info()
+		end
 	end
 end
