@@ -33,6 +33,7 @@ local level_for_crows = {
 	pripyat = 25,
 	l41_darkscape_ogse = 25
 }
+
 local level_crows = {}
 
 function init(obj)
@@ -50,6 +51,7 @@ function crow_binder:net_spawn(data)
 	end
 
 	level_crows[self.object:id()] = self
+	self.dead = not self.object:alive()
 
 	return true
 end
@@ -63,13 +65,18 @@ end
 function crow_binder:update(delta)
 	object_binder.update(self, delta)
 	
-	if not self.object:alive() and not self.dead then
+	if (self.dead == false) and not self.object:alive()	then
 		self.dead = true
 
-		if not amk.has_variable("blowout") then
+		if amk.load_variable("blowout", 0) == 0 then
 			-- удалим ворону и заспавним тушку
-			AI:release(AI:object(self.object:id()))
-			local sobj = AI:create("mutant_crow", self.object:position(), self.object:level_vertex_id(), self.object:game_vertex_id())
+			del_obj_by_id( self.object:id() )
+			local sobj = AI:create(
+				"mutant_crow",
+				self.object:position(),
+				self.object:level_vertex_id(),
+				self.object:game_vertex_id()
+			)
 			sobj = AI:object(sobj.id)
 			sobj:use_ai_locations(false)
 		end
