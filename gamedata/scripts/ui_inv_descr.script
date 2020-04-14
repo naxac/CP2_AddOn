@@ -516,7 +516,18 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		end
 	end
 	if string_find(self.section, "_kalibr") then
-		table_insert( v, {"kalibr", "смена калибра"} )
+		text = "смена калибра"
+		local parent_sect = string.gsub(self.section, "_kalibr", "")
+		if sys_ini:section_exist(parent_sect) then
+			s = sys_ini:r_string(self.section, "ammo_class")
+			local s2 = sys_ini:r_string(parent_sect, "ammo_class")
+			s = string.match(s, "[%d%.]+x[%d%.]+")
+			s2 = string.match(s2, "[%d%.]+x[%d%.]+")
+			if s and s2 then
+				text = text.." с "..s2.." на "..s
+			end
+		end
+		table_insert( v, {"kalibr", text} )
 	end
 	if string_find(self.section, "_otdaca") then
 		table_insert( v, {"otdaca", "уменьшена отдача"} )
