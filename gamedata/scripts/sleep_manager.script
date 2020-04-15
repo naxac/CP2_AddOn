@@ -134,6 +134,13 @@ end
 function test_sleep_pp(val)
 	local need_sleep = val/10	-- в часах для наглядности
 
+	if has_timer("block_sleep_menu") then
+		if level.has_pp_effector(999) ~= 0 then
+			level.remove_pp_effector(999)
+		end
+		return
+	end
+
 	-- вырубаемся на пять часоов + время, "занятое" энергетиками
 	if need_sleep > sleep_critical then
 		if sleep_manager.is_sleep_active() then return end
@@ -147,8 +154,8 @@ function test_sleep_pp(val)
 			level.add_pp_effector("yantar_underground_psi.ppe", 999, true)
 		end
 		local k = 1 - (sleep_critical - need_sleep)/(sleep_critical - sleep_pp_threshold)
-		level.set_pp_effector_factor(999, k*5)  
-	elseif need_sleep <= sleep_pp_threshold and level.has_pp_effector(999) ~= 0 then
+		level.set_pp_effector_factor(999, k*5)
+	elseif level.has_pp_effector(999) ~= 0 then
 		level.remove_pp_effector(999)
 	end
 end
@@ -161,7 +168,11 @@ function test_for_need_sleep_nrg()
 		local v = amk.load_variable("gg_need_sleep", 0) - 30 + n*10
 		amk.save_variable("gg_need_sleep", math.max(v, 0)) 
 		test_sleep_pp(v)
-		remove_timer("block_sleep_menu")
+		if has_timer("block_sleep_menu") then
+			remove_timer("block_sleep_menu")
+		else
+			xr_s.subscribe("update", sleep_manager.add_power_nrg)
+		end
 		start_game_timer("block_sleep_menu",0,0,(4-n)*30)
 	else
 		local p = Actor.power
@@ -174,9 +185,26 @@ function test_for_need_sleep_nrg()
 	end
 end
 
+local upd_time = 0
+local add_power = 0.02
+function add_power_nrg(delta)
+	if upd_time < 100 then
+		upd_time = upd_time + delta
+		return
+	end
+
+	Actor.power = add_power*upd_time/100
+	upd_time = 0
+end
+function add_power_nrg_end()
+	xr_s.unsubscribe("update", sleep_manager.add_power_nrg)
+	Actor.power = -0.9*Actor.power
+	level.add_pp_effector("alcohol.ppe", 1100, false)
+end
+
 function test_for_need_sleep_med(v)
 	local vv = amk.load_variable("gg_need_sleep",0) + (v or 3)
-	amk.save_variable("gg_need_sleep", vv) 
+	amk.save_variable("gg_need_sleep", vv)
 	-- test_sleep_pp(vv)
 end
 
@@ -222,9 +250,7 @@ function test_for_need_sleep_matras()
 		ui_inv_add.show_inv_msg( game.translate_string("not_need_sleep_in_hell"), "red" )
 		return false
 	-- Энергетики
-	elseif has_timer("block_sleep_menu")
-		and sleep_pp_threshold > need_sleep_hours	-- если уже в глазах двоится, то плевать на энергетики - спим
-	then
+	elseif has_timer("block_sleep_menu") then
 	--	amk.send_tip(game.translate_string("not_need_sleep_nrg"),nil,nil,5,"nano")
 		local msg = format_text_pairs( game.translate_string("not_need_sleep_nrg"), {actor = Actor:character_name()} )
 		ui_inv_add.show_inv_msg( msg, "red" )
@@ -260,6 +286,9 @@ function init_sleep()
 
 	if not has_timer("gg_need_sleep") then
 		start_game_timer("gg_need_sleep",0,0,6)
+	end
+	if has_timer("block_sleep_menu") then
+		xr_s.subscribe("update", sleep_manager.add_power_nrg)
 	end
 
 	this.test_sleep_pp( amk.load_variable("gg_need_sleep", 0) )
