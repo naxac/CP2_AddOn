@@ -1011,41 +1011,29 @@ function have_trasure(first_speaker, second_speaker)
 	end
 end
 function zombie_checkup()
-	if Actor ~= nil then
-		if math_random() > 0.7 	and not inventory.on_belt("af_serpantin") then
-		local a=math_random()
-		local h = hit()
-		h.draftsman = Actor
-		h.direction = vector():set(0,0,0)
-		h:bone("bip01_spine") -- чтобv учитvвалась броня
-		h.type = hit.telepatic
-		h.power = 0.3+a/2
-		h.impulse = 1.0
-		Actor:hit(h)
-		h.type = hit.strike
-		Actor:hit(h)
-		h.type = hit.radiation
-		Actor:hit(h)
-		level.add_pp_effector("alcohol.ppe", 100, false)
-		local rnd=math_random(1,6)
-		local snd_obj
-			if rnd==1 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_1]])
-			elseif rnd==2 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_2]])
-			elseif rnd==3 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_3]])
-			elseif rnd==4 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_6]])
-			elseif rnd==5 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_7]])
-			elseif rnd==6 then
-			snd_obj = 	xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_8]])
-			end
-			snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
-		end
-		archievements.acv_count_event("acv_fzom", 100, "Друг зомби")
+	archievements.acv_count_event("acv_fzom", 100, "Друг зомби")
+
+	if math_random() < 0.7 or inventory.on_belt("af_serpantin") then
+		return
 	end
+
+	local a=math_random()
+	local h = hit()
+	h.draftsman = Actor
+	h.direction = vector():set(0,0,0)
+	h:bone("bip01_spine")
+	h.type = hit.telepatic
+	h.power = 0.3+a/2
+	h.impulse = 1.0
+	Actor:hit(h)
+	h.type = hit.strike
+	Actor:hit(h)
+	h.type = hit.radiation
+	Actor:hit(h)
+	level.add_pp_effector("alcohol.ppe", 100, false)
+	local rnd=table.random( {1,2,3,6,7,8} )
+	local snd_obj = xr_sound.get_safe_sound_object([[characters_voice\human_01\stalker\fight\hit\hit_]]..tostring(rnd))
+	snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 end
 function add_spot_of_docent(a)
 --[[
