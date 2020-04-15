@@ -138,9 +138,9 @@ function UIScriptHUD:Update(delta)
 end
 
 function UIScriptHUD:UpdateIndicators()
-	local tex = get_body_state_texture()
-	if tex then
-		self.body_state:InitTexture("ui_hud_soldier_"..tex)
+	local str = get_body_state_str()
+	if str then
+		self.body_state:InitTexture("ui_hud_soldier_"..str)
 	end
 
 	self.progress_power:SetProgressPos( Actor.power * 100 )
@@ -152,12 +152,42 @@ function UIScriptHUD:UpdateIndicators()
 		self.progress_radiation:SetProgressPos(0)
 	end
 
+	local outfit_id = -1
 	if actor_outfit then
 		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
 		self.progress_noise:SetProgressPos( (actor_outfit:get_charge_level() or 0) * 100 )
-	else
+		outfit_id = actor_outfit:id()
+	elseif self.last_outfit_id ~= -1 then
 		self.progress_armor:SetProgressPos(0)
 		self.progress_noise:SetProgressPos(0)
+	end
+
+	local inv_weight = Actor:get_inventory_weight()
+	if inv_weight ~= self.last_weight
+		or outfit_id ~= self.last_outfit_id
+	then
+		self.last_weight = inv_weight
+		self.last_outfit_id = outfit_id
+
+		local max_weight = Actor:get_actor_max_weight()
+		local max_walk_weight = Actor:get_actor_max_walk_weight()
+		if actor_outfit then
+			max_walk_weight = max_walk_weight + actor_outfit:get_additional_inventory_weight()
+			max_weight = max_weight + actor_outfit:get_additional_inventory_weight2()
+		end
+		
+		if inv_weight > max_weight then
+			local k = (inv_weight - max_weight)/(max_walk_weight - max_weight)
+			k = math.clamp(k, 0, 1)
+			self.body_state:SetColor( GetARGB(
+				255,
+				math.min( k*510, 255 ),
+				math.min( (1-k)*510, 255 ),
+				0
+			) )
+		else
+			self.body_state:SetColor( GetARGB(255,0,255,0) )
+		end
 	end
 
 	local item = Actor:item_in_slot( inventory_slots.TORCH )
@@ -427,7 +457,7 @@ local body_states = {
 }
 body_states.any_move = body_states.fwd + body_states.back + body_states.l_strafe + body_states.r_strafe
 
-function get_body_state_texture()
+function get_body_state_str()
 	local state = Actor:actor_body_state()
 
 	if body_states.current == state then
@@ -651,7 +681,7 @@ function on_key_release(dik, bind)
 end
 
 function switch_bioradar(mode)
-	biodetector_mode = mode
+	biodetector_mode = mode and has_alife_info("pda_biodetector_mode")
 	if wnd then
 		wnd:SwitchBioradar()
 		wnd:RemoveAllSpots()
