@@ -2032,7 +2032,7 @@ function do_seen_monster()
 										else
 											rank = ranks.get_rank_name_by_val( math_random(100, 5000), true )
 										end
-										if (rank and news_data.miniquest_rewards and news_data.miniquest_rewards[rank]) then
+										if (rank and news_data.miniquest_rewards[rank]) then
 											for i=1, math_random(1,3) do
 												local section = table_random(news_data.miniquest_rewards[rank])
 												if (section) then
@@ -2134,11 +2134,7 @@ function miniquest_reward_news(tbl)
 		["who"] = rewarder,
 		["target"] = tbl[3]
 	}
-	for k, v in pairs(t) do
-		text = string_gsub(text, "%$"..k, v)
-	end
-	
-	news_manager.send_tip("%c[gray]"..trader_name.."\\n%c[red_sms]"..text, 0, trader, 12000)
+	news_manager.send_tip("%c[gray]"..trader_name.."\\n%c[red_sms]"..format_text_pairs(text, t), 0, trader, 12000)
 end
 
 function on_wound(obj)
@@ -2446,10 +2442,16 @@ end
 function on_offline_death(victim, killer, weapon)
 	if (victim and killer) then
 		if (IAmAStalker[victim:clsid()]) then
+			local ss = "news_main.on_offline_death ["..victim:name().."]"
+			amk.oau_reason=ss
 			if (IsNpcStalker(victim)) then
+				amk.oau_reason=ss.." on_offline_stalker_death"
 				on_offline_stalker_death(victim, killer, weapon)
+				amk.oau_reason=ss.." on_offline_stalker_death ok"
 			else
+				amk.oau_reason=ss.." on_offline_npc_death"
 				on_offline_npc_death(victim, killer, weapon)
+				amk.oau_reason=ss.." on_offline_npc_death ok"
 			end
 		end	
 	end
