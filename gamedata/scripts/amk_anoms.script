@@ -596,12 +596,14 @@ function can_remove_anom(sobj, map)
 	if not check_exclusion(sobj, map) then
 		set_online_anomaly_status(sobj.id, "del")
 		return true
-	elseif math_random() < 0.2
-		and news_main.isIsolatedLevel(map)
-		and not has_alife_info("testsak_"..map)
-	then
-		Actor:give_info_portion("testsak_"..map)
-		amk_anoms.spawn_anom_art(sobj)
+	elseif level_anoms[map] == nil then
+		if has_alife_info("testsak_"..map) then
+			return false
+		end
+		if math_random() < 0.2 then
+			Actor:give_info_portion("testsak_"..map)
+			amk_anoms.spawn_anom_art(sobj)
+		end
 	end
 	return false
 end
