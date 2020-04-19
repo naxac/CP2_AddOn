@@ -391,11 +391,11 @@ function CUIDescriptionWnd:ShowWeaponParams()
 	st:SetTextColor(255, 238, 153, 26)
 	self.addH = self.addH + stH
 	-- Патроны
-	local s = sys_ini:r_string(self.section, 'ammo_class')
+	local ammo_class = sys_ini:r_string(self.section, 'ammo_class')
 	local ammo_type = self.item:get_ammo_type()
 	local i = 0
 	local clr = nil
-	for a in string_gfind(s, "[%w_%-%.]+") do
+	for a in string_gfind(ammo_class, "[%w_%-%.]+") do
 		if i == ammo_type then
 			clr = {255, 160, 255, 160}
 		else
@@ -405,6 +405,7 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		i = i + 1
 	end
 	-- Гранаты
+	local s = ""
 	local gl = sys_ini:r_u32(self.section, 'grenade_launcher_status')
 	if gl~=0 then
 		s = sys_ini:r_string_ex(self.section, 'grenade_class')
@@ -502,9 +503,17 @@ function CUIDescriptionWnd:ShowWeaponParams()
 
 	n = sys_ini:r_u32(self.section, 'ammo_mag_size')
 	text =	"ёмкость магазина: %c[light_red]"..
-			string_format("%d", self.item:get_ammo_in_magazine())..
-			"%c[default] / %c[light_green]"..string_format("%d", n)
+			tostring(self.item:get_ammo_in_magazine())..
+			"%c[default] / %c[light_green]"..tostring(n)
 	table_insert( v, {"ammo_mag_size", text} )
+
+	if level.get_game_difficulty() < game_difficulty.veteran then
+		n = sys_ini:r_float(self.section, 'hit_power')
+		local ammo = string.explode(ammo_class, ",", true)
+		local k = sys_ini:r_float(ammo[ammo_type+1], "k_hit")
+		text = string_format("урон: %.2f", n*k)
+		table_insert( v, {"hit_power", text} )
+	end
 
 	if sys_ini:r_bool_ex( self.section, "scope_nv", false ) then
 		table_insert( v, {"nv_scope", "прицел ночного видения"} )
@@ -519,9 +528,8 @@ function CUIDescriptionWnd:ShowWeaponParams()
 		text = "смена калибра"
 		local parent_sect = string.gsub(self.section, "_kalibr", "")
 		if sys_ini:section_exist(parent_sect) then
-			s = sys_ini:r_string(self.section, "ammo_class")
+			s = string.match(ammo_class, "[%d%.]+x[%d%.]+")
 			local s2 = sys_ini:r_string(parent_sect, "ammo_class")
-			s = string.match(s, "[%d%.]+x[%d%.]+")
 			s2 = string.match(s2, "[%d%.]+x[%d%.]+")
 			if s and s2 then
 				text = text.." с "..s2.." на "..s
