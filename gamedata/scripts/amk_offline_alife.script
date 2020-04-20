@@ -822,7 +822,8 @@ end
 
 -- Вокруг монстры! Что же делать..
 function on_monsters_found(victim, vdata)
- -- amk.oau_reason="on_monsters_found begin"
+	local rsn = "on_monsters_found ["..victim:name().."] "
+  amk.oau_reason=rsn.."begin"
 	if (victim == nil or vdata == nil) then return end
 	if (amk.is_debug == true) then
 		local lname = news_main.get_object_levelname(victim)
@@ -840,7 +841,7 @@ function on_monsters_found(victim, vdata)
 	local firepower = get_weapon_firepower(wpn)
 	local player = {player = victim, weapon = wpn, rank = rank, health = health, firepower = firepower, flags = get_flags(victim.id)}
 	table.insert(team_A, player)
- -- amk.oau_reason="on_monsters_found chp1"
+  amk.oau_reason=rsn.."chp1"
 	if (vdata.friends and #vdata.friends > 0) then
 		for i=1, #vdata.friends do
 			v_obj = vdata.friends[i]
@@ -855,37 +856,37 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
- -- amk.oau_reason="on_monsters_found chp2"
+  amk.oau_reason=rsn.."chp2"
 	local params
 	for i=1, #vdata.monsters do
- -- amk.oau_reason="on_monsters_found chp2.1"
+  amk.oau_reason=rsn.."chp2.1"
 		v_obj = vdata.monsters[i]
 		obj = AI:object(v_obj.id)
- -- amk.oau_reason="on_monsters_found chp2.2"
+  amk.oau_reason=rsn.."chp2.2"
 		if (obj and obj:name() == v_obj.name) then
- -- amk.oau_reason="on_monsters_found chp2.3"
+  amk.oau_reason=rsn.."chp2.3 "..v_obj.name
 			params = get_monster_params(obj)
- -- amk.oau_reason="on_monsters_found chp2.4"
+  amk.oau_reason=rsn.."chp2.4"
 			if (params) then
- -- amk.oau_reason="on_monsters_found chp2.5"
+  amk.oau_reason=rsn.."chp2.5"
 				rank = obj:rank()
- -- amk.oau_reason="on_monsters_found chp2.6"
+  amk.oau_reason=rsn.."chp2.6"
 				health = obj:health()
- -- amk.oau_reason="on_monsters_found chp2.7"
+  amk.oau_reason=rsn.."chp2.7"
 				firepower = params.attack * base_fp
- -- amk.oau_reason="on_monsters_found chp2.8"
+  amk.oau_reason=rsn.."chp2.8"
 				player = {player = obj, speed = params.speed, attack_dist = params.dist, immunity = params.immunity, rank = rank, health = health, firepower = firepower, flags = get_flags(obj.id) }
- -- amk.oau_reason="on_monsters_found chp2.9"
+  amk.oau_reason=rsn.."chp2.9"
 				table.insert(team_B, player)
- -- amk.oau_reason="on_monsters_found chp2.10"
+  amk.oau_reason=rsn.."chp2.10"
 			else
- -- amk.oau_reason="on_monsters_found chp2.11"
+  amk.oau_reason=rsn.."chp2.11"
 				-- amk.mylog("get_monster_params returns nil for "..obj:name())
- -- amk.oau_reason="on_monsters_found chp2.12"
+  amk.oau_reason=rsn.."chp2.12"
 		end
 	end
 	end
- -- amk.oau_reason="on_monsters_found chp3"
+  amk.oau_reason=rsn.."chp3"
 	local distances = {}
 	for a=1, #team_A do
 		local from = team_A[a].player
@@ -903,7 +904,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
- -- amk.oau_reason="on_monsters_found chp4"
+  amk.oau_reason=rsn.."chp4"
 	-- Берем тех, у кого самый высокий rank и мин. distance
 	table_sort(team_A, function(a,b) return a.rank > b.rank end)
 	table_sort(team_B, function(a,b) return a.rank > b.rank end)
@@ -912,7 +913,7 @@ function on_monsters_found(victim, vdata)
 	local size_B = #team_B
 	local died_A = 0
 	local died_B = 0
- -- amk.oau_reason="on_monsters_found chp5"
+  amk.oau_reason=rsn.."chp5"
 	for i=1, max_rounds do
 		if (#team_A >0 and #team_B > 0) then
 			local index = #team_A
@@ -923,11 +924,11 @@ function on_monsters_found(victim, vdata)
 			local distance_hit_chance
 			local hit_chance
 			if (#team_B > index) then index = #team_B end
- -- amk.oau_reason="on_monsters_found chp5.1 : "..i
+  amk.oau_reason=rsn.."chp5.1 : "..i
 			for j = 1, index do
 				attacker = team_A[j]
 				defender = team_B[math_random(#team_B)]
- -- amk.oau_reason="on_monsters_found chp5.2 : "..i..":"..j
+  amk.oau_reason=rsn.."chp5.2 : "..i..":"..j
 				if (attacker and defender and attacker.player and defender.player and attacker.health>0 and defender.health>0 and distances[attacker.player.id][defender.player.id]) then
 					-- amk.mylog(attacker.player:name().." [team_A] нападает на "..defender.player:name().." [team_B] ("..defender.health..")")
 					attack_info = distances[attacker.player.id][defender.player.id]
@@ -939,7 +940,7 @@ function on_monsters_found(victim, vdata)
 					hit_chance = distance_hit_chance + rank_hit_chance
 					if ((math_random() * 100) < hit_chance) then
 						-- Попал таки, гад. Посмотрим, как сильно.
- -- amk.oau_reason="on_monsters_found chp5.3 : "..i..":"..j
+ amk.oau_reason=rsn.."chp5.3 : "..i..":"..j
 						if ( math_floor(attack_info.fp * defender.immunity) >= base_fp) then
 							-- Все, убил.
 							defender.health = 0
@@ -962,10 +963,11 @@ function on_monsters_found(victim, vdata)
 										attacker.player:set_rank(attacker.player:rank() + math_floor(rate_kill_base * coeff))
 									end
 								end
+  amk.oau_reason=rsn.."chp5.4.0"
 								-- amk.mylog("on_offline_death - "..defender.player:name()..", "..attacker.player:name()..", "..attacker.weapon:name())
 								news_main.on_offline_death(defender.player, attacker.player, attacker.weapon)
 								-- Заберем вещички с трупа
- -- amk.oau_reason="on_monsters_found chp5.4 : "..i..":"..j
+  amk.oau_reason=rsn.."chp5.4 : "..i..":"..j
 								local itA, v_itA
 								local l_objA
 								if (items[defender.player.id] and #items[defender.player.id] > 0) then
@@ -994,7 +996,7 @@ function on_monsters_found(victim, vdata)
 						--amk.mylog(attacker.player:name().." [team_A] промазал в "..defender.player:name().." [team_B] ("..defender.health..")")
 					end
 				end
- -- amk.oau_reason="on_monsters_found chp5.5 : "..i
+  amk.oau_reason=rsn.."chp5.5 : "..i
 				-- team_B - защищается
 				if (team_B[j] ~= nil) then
 					attacker = team_B[j]
@@ -1043,7 +1045,7 @@ function on_monsters_found(victim, vdata)
 			-- Теперь и событие можно сформировать для новостей
 			break
 		end
- -- amk.oau_reason="on_monsters_found chp5.6 : "..i
+ amk.oau_reason=rsn.."chp5.6 : "..i
 		-- Почистим таблицы от трупов
 		for kk, vv in pairs(team_A) do
 			if (vv.health <=0) then
@@ -1058,7 +1060,7 @@ function on_monsters_found(victim, vdata)
 				table_remove(team_A, kk)
 			end
 		end
- -- amk.oau_reason="on_monsters_found chp5.7 : "..i
+ amk.oau_reason=rsn.."chp5.7 : "..i
 		for kk, vv in pairs(team_B) do
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды B погиб. "..vv.player:name())
@@ -1073,7 +1075,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end		
 	end	
- -- amk.oau_reason="on_monsters_found end"
+  amk.oau_reason=rsn.."end"
 	-- amk.mylog("Бой с монстрами закончен. Команда А - было "..size_A.." осталось "..size_A-died_A..". Команда Б - было "..size_B.." осталось "..size_B-died_B..".")
 end
 
@@ -1211,8 +1213,7 @@ function inv_box_is_avail(victim, box)
 
 	-- отсекаем сюжетные тайники
 	if box_is_protected(box) then return false end
-	
---    math.randomseed(math_floor(device():time_global() / box.id))
+
 	local n_rnd
 	if victim.position and box.position then 
 		n_rnd = math_random(2, 5)
