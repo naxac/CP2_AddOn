@@ -424,7 +424,7 @@ function do_teleport(obj_sect, obj, from_gui)
 
 	if telepot_allowed(obj_sect, from_gui) then
 		-- телепортируем
-		teleport_start(obj_sect)
+		teleport_start(obj_sect, obj)
 		return true
 	else
 		-- неудача
@@ -435,10 +435,10 @@ end
 
 function telepot_allowed(obj_sect, from_gui)
 	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip("Телепортация из района скопления вражеских сил невозможна по техническим причинам. Для восстановления функциональности устраните угрозу.", nil, "nano", 10000)
+		news_manager.send_tip("st_teleport_cant_enemy_1", nil, "nano", 10000)
 		return false
 	elseif has_alife_info("kod_vveden_verno") and not has_alife_info("dead_city_atpeshka") then 
-		news_manager.send_tip("Телепортация временно невозможна по техническим причинам. Попробуйте активировать функцию позднее.", nil, "nano", 10000)
+		news_manager.send_tip("st_teleport_cant_tech", nil, "nano", 10000)
 		return false
 	elseif actor_is_in_danger() then
 		return false
@@ -452,22 +452,15 @@ end
 -- наличие опасности в зависимости от уровня сложности
 function actor_is_in_danger()
 	local difficulty = level.get_game_difficulty()
-	local danger_text = "Телепортация при наличии вражеской угрозы невозможна по техническим причинам. Для восстановления функциональности устраните угрозу."
-
 	if difficulty < 2 then
 		return false
 	else
-		return danger.actor_in_danger(danger_text, danger_text, difficulty == 2)
+		return danger.actor_in_danger("st_teleport_cant_enemy", "st_teleport_cant_enemy", difficulty == 2)
 	end
 end
 
-function teleport_start(obj_sect)
+function teleport_start(obj_sect, obj)
 	fly.stop()
-
-	-- вернем телепорт в рюкзак
-	if teleports[obj_sect].keep then
-		return_teleport(obj_sect)
-	end
 
 	Actor:disable_info_portion("no_gravigun")
 	-- autosave
@@ -476,21 +469,23 @@ function teleport_start(obj_sect)
 		u3_utils.savegame_lc("Телепорт", to_level)
 	end
 
-	local where = where_to or table.random( teleports[obj_sect].goto_func )
 	-- проверим вес
-	if Actor:get_inventory_weight() > 350 then
-		news_manager.send_tip("Внимание! Слишком большой вес: возможен сбой телепортации!", nil, "nano", 10000)
+	if Actor:get_inventory_weight() > 300 then
+		news_manager.send_tip("st_teleport_alarm_weight", nil, "nano", 10000)
 		if math.random() > 0.8 then
-			local new_point = this.get_gluk()
-			if new_point then
-				where = new_point
-			end
+			this.get_gluk(obj)
 		end
+	end
+
+	-- вернем телепорт в рюкзак
+	if teleports[obj_sect].keep then
+		return_teleport(obj_sect)
 	end
 
 	level.disable_input()
 
 	-- вызываем случайную функцию для данного телепорта. таймер дается для автосейва
+	local where = where_to or table.random( teleports[obj_sect].goto_func )
 	start_real_timer( "teleport_jumpto", 2.0, where )
 end
 
@@ -560,14 +555,29 @@ function teleport_name(obj_sect)
 end
 
 -- выбираем рандомную точку из доступных
-function get_gluk()
+function get_gluk(obj)
+	local cond = obj:condition()
 	local tmp = {}
 	for k, v in pairs( places ) do
 		if Actor:has_info("seen_"..v.lvl) then
 			table.insert( tmp, k )
 		end
 	end
-	return table.random( tmp )
+	local lname = level.name()
+	for i = #tmp, 1, -1 do
+		local v = table.remove( tmp, math.random(#tmp) )
+		local place = places[v]
+		local dist, max_dist = naxac.get_map_dist( lname, Actor:position(),
+			place.lvl, vector():set( unpack( place.pos ) ) )
+		local need_charge = dist / max_dist
+		if need_charge <= cond then
+			teleport_cond = cond - need_charge
+			where_to = v
+			return true
+		end
+	end
+	
+	return false
 end
 
 -- Проверка "умного" телепортатора
@@ -583,13 +593,13 @@ function hand_teleporter_check(section)
 		local place = places[v]
 		if place.lvl == lname then
 			chk_lvl = true
-		elseif not chk_cond then
+		elseif not where_to then
 			local dist, max_dist = naxac.get_map_dist( lname, Actor:position(),
 				place.lvl, vector():set( unpack( place.pos ) ) )
 			local need_charge = dist / max_dist
 			if need_charge <= teleport_cond then
+				chk_cond = true
 				if Actor:has_info("seen_"..place.lvl) then
-					chk_cond = true
 					teleport_cond = teleport_cond - need_charge
 					where_to = v
 				end
@@ -598,10 +608,7 @@ function hand_teleporter_check(section)
 		table.insert(tmp, place.lvl)
 	end
 
-	if not where_to then
-		news_manager.send_tip("Вы ещё не побывали ни на одной из доступных территорий - телепортация в неизветную местность невозможна.", nil, "nano", 10000)
-		return false
-	elseif not chk_lvl then
+	if not chk_lvl then
 		for i, v in ipairs(tmp) do
 			tmp[i] = game.translate_string(v)
 		end
@@ -609,7 +616,10 @@ function hand_teleporter_check(section)
 		news_manager.send_tip("С этой территории телепортация невозможна. Территории, с которых можно телепортироваться: "..levels_name..".\n", nil, "nano", 10000)
 		return false
 	elseif not chk_cond then
-		news_manager.send_tip("Заряда телепортатора недостаточно для перемещения ни на одну из доступных территорий. Зарядите телепортатор.", nil, "nano", 10000)
+		news_manager.send_tip("st_teleport_cant_charge", nil, "nano", 10000)
+		return false
+	elseif not where_to then
+		news_manager.send_tip("st_teleport_cant_seen", nil, "nano", 10000)
 		return false
 	end
 	return true
@@ -628,7 +638,7 @@ function level_seen_check(section)
 		if #go_func == 0 then break end
 	end
 	if not where_to then
-		news_manager.send_tip("Вы ещё не побывали ни на одной из доступных территорий - телепортация в неизветную местность невозможна.", nil, "nano", 10000)
+		news_manager.send_tip("st_teleport_cant_seen", nil, "nano", 10000)
 		return false
 	end
 
@@ -649,7 +659,7 @@ function charge_check(section)
 	local need_charge = dist / max_dist
 	if need_charge > teleport_cond then
 		if not from_gui then
-			news_manager.send_tip("Заряда телепортатора недостаточно для перемещения. Зарядите телепортатор.", nil, "nano", 10000)
+			news_manager.send_tip("st_teleport_cant_charge", nil, "nano", 10000)
 		end
 		return false
 	else
