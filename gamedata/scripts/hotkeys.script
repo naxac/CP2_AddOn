@@ -232,7 +232,9 @@ function CUICarbodyAddons:move_items()
 	local box = self.used_box
 	if self.droped_section then
 		Actor:iterate_inventory(function (dummy, item)
-			if item:section() == self.droped_section then
+			if item:section() == self.droped_section
+				and item:id() ~= self.no_move_id
+			then
 				Actor:transfer_item(item, box)
 			end 
 		end, nil)
@@ -242,13 +244,17 @@ function CUICarbodyAddons:move_items()
 			local item
 			for i=0, box:inv_box_count()-1 do
 				item = box:object_from_inv_box(i)
-				if item:section() == self.taken_section then
+				if item:section() == self.taken_section
+					and item:id() ~= self.no_move_id
+				then
 					box:transfer_item(item, Actor)
 				end
 			end
 		else
 			box:iterate_inventory(function (dummy, item)
-				if item:section() == self.taken_section then
+				if item:section() == self.taken_section
+					and item:id() ~= self.no_move_id
+				then
 					box:transfer_item(item, Actor)
 				end 
 			end, nil)
@@ -257,6 +263,7 @@ function CUICarbodyAddons:move_items()
 
 	self.droped_section = nil
 	self.taken_section = nil
+	self.no_move_id = nil
 	start_small_timer(300,
 		function(s)
 			s.moved = nil
@@ -265,34 +272,30 @@ function CUICarbodyAddons:move_items()
 end
 
 function CUICarbodyAddons:on_item_drop(obj)
-	local s = obj:section()
-	if s == "separator" then return end
-
 	local sobj = AI:object(obj:id())
 	if sobj and sobj.parent_id == 0 then return end
 
-	self.droped_section = s
+	self.droped_section = obj:section()
 	self.taken_section = nil
 
 	self.others_weight = self.others_weight + obj:get_weight()
 	self:ShowOthersWeight()
 
 	if ShiftPressed() and not self.moved then
+		self.no_move_id = obj:id()
 		self:move_items()
 	end
 end
 
 function CUICarbodyAddons:on_item_take(obj)
-	local s = obj:section()
-	if s == "separator" then return end
-
-	self.taken_section = s
+	self.taken_section = obj:section()
 	self.droped_section = nil
 
 	self.others_weight = self.others_weight - obj:get_weight()
 	self:ShowOthersWeight()
 
 	if ShiftPressed() and not self.moved then
+		self.no_move_id = obj:id()
 		self:move_items()
 	end
 end
