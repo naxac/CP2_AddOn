@@ -1,49 +1,34 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local signals = {
-	net_spawn = {},
-	net_destroy = {},
-	update = {},
-	first_update = {},
-	pre_save = {},
-	load = {},
-	info = {},
-	item_take = {},
-	item_take_from_box = {},
-	item_drop = {},
-	item_use = {},
-	item_to_slot = {},
-	item_to_ruck = {},
-	item_to_belt = {},
-	drag_drop = {},
-	cell_item_create = {},
-	cell_item_focus = {},
-	cell_item_focus_lost = {},
-	cell_item_select = {},
-	cell_item_clicked = {},
-	cell_item_db_clicked = {},
-	key_press = {},
-	key_release = {},
-	mouse_wheel = {},
-	inventory_open = {},
-	inventory_close = {},
-	car_body_open = {},
-	car_body_close = {},
-	pda_open = {},
-	pda_close = {},
-	trade_open = {},
-	trade_close = {},
-	talk_open = {},
-	talk_close = {},
-	car_body_new_open = {},
-	car_body_new_close = {},
-	npc_use = {}
-}
+local signals = {}
+	-- actor's binder:
+	-- net_spawn, net_destroy,
+	-- first_update, update,
+	-- pre_save, load, info,
+	-- item_take, item_take_from_box, item_drop, item_use,
+	-- item_to_slot, item_to_ruck, item_to_belt,
+	-- drag_drop, cell_item_create, cell_item_focus, cell_item_focus_lost,
+	-- cell_item_select, cell_item_clicked, cell_item_db_clicked,
+	-- key_press, key_release, mouse_wheel,
+	-- inventory_open, inventory_close,
+	-- car_body_open, car_body_close,
+	-- pda_open, pda_close,
+	-- trade_open, trade_close,
+	-- talk_open, talk_close,
+	-- car_body_new_open, car_body_new_close
+	
+	-- other's binders:	npc_use
+
 local always_once = { net_spawn = true, first_update = true, load = true }
 local unreg_queue = {}
 local need_clear = false
 ---------------------------------------------------------------------------------------------------------------------
 function subscribe( name, func, params )
-	local tbl = signals[ name ] or abort( "xr_s.subscribe: unknown signal name: %s", name )
+	local tbl = signals[ name ]
+	if tbl == nil then
+		signals[ name ] = {}
+		tbl = signals[ name ]
+	end
+
 	tbl[ func ] = params or {}
 	if always_once[ name ] then
 		tbl[ func ].once = true
@@ -51,7 +36,7 @@ function subscribe( name, func, params )
 end
 
 function unsubscribe( name, func, queue )
-	local tbl = signals[ name ] or abort( "xr_s.unsubscribe: unknown signal name: %s", name )
+	local tbl = signals[ name ] or abort( "[xr_s.unsubscribe] unknown signal name: %s", name )
 	if queue then
 		table.insert( unreg_queue, { f = func, n = name } )
 		need_clear = true
@@ -65,6 +50,8 @@ function unsubscribe( name, func, queue )
 end
 ---------------------------------------------------------------------------------------------------------------------
 function on_event( name, ... )
+	if not signals[ name ] then return end
+
 	for func, t in pairs( signals[ name ] ) do
 		local args = { ... }
 		if t.userobj then
@@ -99,6 +86,8 @@ local function update_timeout( d, t )
 end
 
 function on_update( delta )
+	if not signals.update then return end
+
 	for func, t in pairs( signals.update ) do
 		if update_timeout( delta, t ) then
 			if t.self then
