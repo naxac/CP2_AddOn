@@ -41,7 +41,9 @@ function checkCorpse(obj)
 
 	local cnt=0
 	obj:iterate_inventory(function (dummy, item)
-		if item:section()~="bolt" then
+		if item:section()~="bolt"
+			and item:condition() > 0.1
+		then
 			cnt=cnt+1
 		end
 	end, nil)
@@ -100,11 +102,7 @@ function isValuable(obj)
 
 		local cls = obj:clsid()
 		if valuable_clsid[cls] or IAmAWeapon[cls] then
-			if obj:condition() > 0.1 then
-				return true, false
-			else
-				return false,false
-			end
+			return (obj:condition() > 0.1), false
 		elseif ( IAmAStalker[cls] or IAmAMonster[cls] )
 			and obj:alive() == false
 		then
@@ -421,16 +419,19 @@ function act_grab_body:execute()
 		if gi and gi:parent()==nil then
 			-- Посчитаем примерную стоимость хабара
 			local isstalker = IAmAStalker[gi:clsid()]~=nil
-			local num = 0
+			local num, item_cond = 0, 0
 			gi:iterate_inventory(function (d,item)
-				if not protected_items.is_grab_body_item_keep(item:section()) then
+				item_cond = item:condition()
+				if item_cond > 0.1
+					and not protected_items.is_grab_body_item_keep(item:section())
+				then
 					gi:transfer_item(item,npc)
-					if isstalker then num = num + item:cost() * item:condition() end
+					if isstalker then num = num + item:cost() * item_cond end
 				end
 			end,
 			nil)
 			if isstalker then
-				local m=gi:money() 
+				local m = gi:money() 
 				if m and m >0 then 
 					num = num + m
 					local deadmoney = m
@@ -453,7 +454,7 @@ function act_grab_body:execute()
 				end
 				
 				-- По стоимости награбленного определяем, что будем говорить
-				self.st.loot_snd = "loot_"..(num > 5000 and "good" or "bad")
+				self.st.loot_snd = "loot_"..(num > 7000 and "good" or "bad")
 			end
 			corpse_checked[gi:id()]=false
 		end
