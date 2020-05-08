@@ -66,7 +66,7 @@ function save_box_items(box, items)
 		local stor = se_storage.get_storage(obj.id)
 		cd.storage[obj.id] = ""
 		for i = #items_to_save, 1, -1 do
-			local t = table.remove(items_to_save)
+			local t = items_to_save[i]
 			local sz = size + se_storage.get_tbl_size(t) + string.len(tostring(i)) + 2
 			if sz + 1 >= 8192 then -- max size of packet: 8 KB
 				break
@@ -76,6 +76,7 @@ function save_box_items(box, items)
 				zc = zc  + 1
 			end
 			table.insert(stor, t)
+			table.remove(items_to_save, i)
 		end
 		table.insert(fake_boxes[boxId], obj.id)
 		-- log("[%s]: packet size = %s", obj:name(), size + 1)
