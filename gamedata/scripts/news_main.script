@@ -2442,16 +2442,10 @@ end
 function on_offline_death(victim, killer, weapon)
 	if (victim and killer) then
 		if (IAmAStalker[victim:clsid()]) then
-			local ss = "news_main.on_offline_death ["..victim:name().."]"
-			amk.oau_reason=ss
 			if (IsNpcStalker(victim)) then
-				amk.oau_reason=ss.." on_offline_stalker_death"
 				on_offline_stalker_death(victim, killer, weapon)
-				amk.oau_reason=ss.." on_offline_stalker_death ok"
 			else
-				amk.oau_reason=ss.." on_offline_npc_death"
 				on_offline_npc_death(victim, killer, weapon)
-				amk.oau_reason=ss.." on_offline_npc_death ok"
 			end
 		end	
 	end
@@ -2461,85 +2455,117 @@ function on_offline_stalker_death(victim_, killer_, weapon_)
 	if (victim_ == nil) then
 		return
 	end
+	local ss="news_main.on_offline_stalker_death "
+	amk.oau_reason=ss.."1"
 	local m_killer = ""
 	local m_killer_s = ""
 	local m_victim = ""
 	local aid = nil
 	local m_name  = get_npc_name(victim_)
+	amk.oau_reason=ss.."2"
 	m_victim = format_death_stalker_corpse(victim_)
+	amk.oau_reason=ss.."3"
 	local m_level = get_level_name(get_object_levelname(victim_))
+	amk.oau_reason=ss.."4"
 	if (killer_) then
+	amk.oau_reason=ss.."5"
 		if IAmAMonster[killer_:clsid()] then
+	amk.oau_reason=ss.."6"
 			m_killer = format_death_by_monster(killer_)
+	amk.oau_reason=ss.."6.1"
 			m_killer_str = get_monster_name(killer_, 2)
 		elseif (IsAnomaly(killer_)) then
+	amk.oau_reason=ss.."7"
 			m_killer = format_death_by_anomaly(killer_)
+	amk.oau_reason=ss.."7.1"
 			m_killer_str = get_anomaly_name(killer_, 1)
 		elseif (IsNpcStalker(killer_)) then
 			local m_o_weapon = weapon_
 			local m_s_weapon = ""
 			if (m_o_weapon) then
+	amk.oau_reason=ss.."8"
 				m_s_weapon = get_weapon_type(m_o_weapon)
 				if (m_s_weapon < 5) then m_killer_str = "пулевое ранение" end
 				if (m_s_weapon == 6) then m_killer_str = "нож" end
 				if (m_s_weapon == 8) then m_killer_str = "ожоги" end
 				if (m_s_weapon == 7 or m_s_weapon == 5) then m_killer_str = "граната" end
 			end
+	amk.oau_reason=ss.."8.1"
 			m_killer = format_death_by_weapon(weapon_)
 		elseif (IsNpcOther(killer_)) then
 			local m_o_weapon2 = weapon_
 			local m_s_weapon2 = ""
 			if (m_o_weapon2) then
+	amk.oau_reason=ss.."9"
 				m_s_weapon2 = get_weapon_type(m_o_weapon2)
 				if (m_s_weapon2 < 5) then m_killer_str = "пулевое ранение" end
 				if (m_s_weapon2 == 6) then m_killer_str = "нож" end
 				if (m_s_weapon == 8) then m_killer_str = "ожоги" end
 				if (m_s_weapon2 == 7 or m_s_weapon2 == 5) then m_killer_str = "граната" end
 			end
+	amk.oau_reason=ss.."9.1"
 			m_killer = format_death_by_weapon(weapon_)
 		else
-			m_killer_str = "причина смерти - неустановлена"
+	amk.oau_reason=ss.."10"
+			m_killer_str = "причина смерти - не установлена"
 			m_killer = ""
 			--mylog("On offline stalker death - unknown killer. "..killer:name().." clsid="..get_clsid(killer))				
 		end
 	end
+	amk.oau_reason=ss.."11"
 	if (m_killer_str==nil or m_killer_str=="") then m_killer_str = "причина смерти - неустановлена" end
 	local m_string = m_name..", "..m_level..", "..m_killer_str.."."
-	if _debug == true then mylog("Offline: Погиб сталкер: "..m_string)  end
-	if (math_random() < 0.5) then -- слишком часто приходят сообщения о смерти
+--	if _debug == true then mylog("Offline: Погиб сталкер: "..m_string)  end
+--	if (math_random() < 0.5) then -- слишком часто приходят сообщения о смерти
+	if true then
+	amk.oau_reason=ss.."12"
 		do_news(m_string, "Погиб сталкер:", math_random(timer_stalker_death, timer_stalker_death * 5), 5, "death", nil, 1) 
 	end
+	amk.oau_reason=ss.."13"
 
-	if (math_random() < prob) then
+--	if (math_random() < prob) then
+	if true then
+	amk.oau_reason=ss.."14"
 	--	local name, sname = amk_names_lists.get_strings()
 		local s_author = "" --name.." "..sname
 		local m_str = ""
 		if (math_random() < 0.5) then
+	amk.oau_reason=ss.."15"
 			if (math_random() < 0.5) then
 				m_str = m_victim.." "..m_killer..""
 			else
 				m_str = m_victim..""
 			end
+	amk.oau_reason=ss.."16"
 			local author = get_nearest_stalker(get_object_levelname(victim_), get_object_position(victim_), dist_seen, 0)
 			if (author) then
+	amk.oau_reason=ss.."17"
 				s_author = get_npc_name(author)
 				aid = author.id
 			end			
 		else
+	amk.oau_reason=ss.."18"
 			local author = get_nearest_stalker(get_object_levelname(victim_), get_object_position(victim_), dist_hear_max, dist_hear_min)
 			if (author) then
+	amk.oau_reason=ss.."19"
 				s_author = get_npc_name(author)
 				aid = author.id
 			else
+	amk.oau_reason=ss.."end"
 				return
 			end		
+	amk.oau_reason=ss.."20"
 			m_str = format_death_hear_sounds(victim_, killer_, weapon_)
 		end
+	amk.oau_reason=ss.."21"
 		if (m_str ~= "" and s_author ~= "") then
+	amk.oau_reason=ss.."22"
 			if _debug == true then mylog("Offline: "..s_author.." "..m_str)  end
+	amk.oau_reason=ss.."23"
 			do_news(m_str, s_author, math_random(timer_corpse, timer_corpse *5), 7, nil, aid)
 		end
 	end
+	amk.oau_reason=ss.."end"
 end
 
 function on_offline_npc_death(victim_, killer_, weapon_)
