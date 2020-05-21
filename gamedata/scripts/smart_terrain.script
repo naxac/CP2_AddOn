@@ -296,6 +296,11 @@ end
 
 -- инициализация.
 -- чтение custom data.
+local add_capacity = {
+	["marsh_exit_nebo"] = 5,
+	["bar_lager"] = 2,
+	["val_lager_bandits"] = 28
+}
 function se_smart_terrain:read_params()
   local ini  = self:spawn_ini()
   local sect = "smart_terrain"
@@ -323,7 +328,12 @@ function se_smart_terrain:read_params()
   gp.type        = ini:r_string( sect, "type" )
   gp.preset_name = r_str ( ini, sect, "preset" )
 --' printf("%s read_params preset name [%s]", self:name(), tostring(gp.preset_name))
-  gp.capacity    = r_num ( ini, sect, "capacity", 100 ) -- ёмкость. а настоящая ёмкость = min(эта_ёмкость, ёмкость гулага)
+  -- ёмкость. а настоящая ёмкость = min(эта_ёмкость, ёмкость гулага)
+  if add_capacity[self:name()] then
+    gp.capacity = add_capacity[self:name()]
+  else
+    gp.capacity    = r_num ( ini, sect, "capacity", 100 )
+  end
   gp.squad       = r_num ( ini, sect, "squad" )
 
   gp.idle_min,     gp.idle_max      = r_2nums( ini, sect, "idle",       0,     0 )
