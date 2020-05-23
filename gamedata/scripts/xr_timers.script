@@ -38,8 +38,8 @@ function nTimers:save_timers()
 end
 
 function nTimers:check_timers()
-	amk.oau_watchdog = 1999
 	amk.oau_reason="nTimers:check_timers"
+	amk.oau_watchdog = 1999
 
 	if self.need_sort then
 		self.need_sort = false
@@ -47,6 +47,7 @@ function nTimers:check_timers()
 			return t1.time > t2.time
 		end )
 	end
+	amk.oau_watchdog = 19991
 
 	local tmr, f = nil, false
 	for i = #self.timers, 1, -1 do
@@ -60,9 +61,11 @@ function nTimers:check_timers()
 		end
 	end
 
+	amk.oau_watchdog = 19992
 	if f then
 		for i, v in ipairs( self.to_start ) do
 			if v.f then
+			--	amk.oau_reason="nTimers:check_timers "..v.n
 				v.f( unpack(v.p) )
 			else
 				xr_timers_actions.timer_action( v.n, v.p )
