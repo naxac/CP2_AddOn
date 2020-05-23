@@ -1,6 +1,36 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 25
+local current_fix = 26
 
+function fix_26()
+	local doors = {
+		[8851] = "door_trader_0000",
+		[8850] = "door_trader"
+	}
+	for i, v in pairs(doors) do
+		local obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+			AI:create( i )
+		end
+	end
+
+	if has_alife_info("raritet_saharov") then
+		local obj = AI:story_object( story_ids.grom_npc )
+		if not obj then return end
+
+		AI:release( obj, true )
+
+		obj = AI:create( "grom_npc",vector():set(27.641338348389,-10.942045211792,-280.30341186523), 54978, 1480 )
+		if not has_alife_info("taynik_bandit_x18_start") then
+			local tbl = {
+				health = 0.1,
+				upd = { health = 0.1 }
+			}
+			netpk:modify( obj, tbl )
+		end
+		set_story_id( obj, story_ids.grom_npc )
+	end
+end
 function fix_25()
 	local obj = AI:story_object( story_ids.bkot )
 	if obj then

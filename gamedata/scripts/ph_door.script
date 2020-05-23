@@ -314,6 +314,7 @@ end
 -- Вызывается на апдейте НПС
 -- пробегается по всем дверям и пытается открыть те, которые находятся рядом с НПС
 -- возвращает список дверей, которые открыл данный НПС
+local opened_npc_doors = {}
 function try_to_open_door(npc)
 --	if true then return {} end
 	local opened_doors = {}
@@ -329,6 +330,7 @@ function try_to_open_door(npc)
 					--printf("OPEN DOOR")
 					action:use_callback(nil, npc)
 					opened_doors[id] = true
+					table.add(opened_npc_doors, id)
 				end
 			end			
 		end
@@ -353,9 +355,14 @@ function try_to_close_door(npc, doors)
 					--printf("CLOSE DOOR")
 					action:use_callback(nil, npc)
 					closed_doors[id] = true
+					table.sub(opened_npc_doors, id)
 				end
 			end			
 		end
 	end
 	return closed_doors
+end
+
+function door_is_npc_used(actor, npc)
+	return opened_npc_doors[ npc:id() ] ~= nil
 end
