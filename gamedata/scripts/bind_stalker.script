@@ -424,7 +424,8 @@ function motivator_binder:update(delta)
 			death_manager.create_release_items(self.object)
 		else
 			trade_manager.first_update(self.object)
-			start_small_timer(1000, this.check_art_weapon, self.object)
+		--	this.check_art_weapon(self.object)
+			start_small_timer( 2000, this.check_art_weapon, self.object:id() )
         end
         self.first_update = true
     end
@@ -633,14 +634,19 @@ function play_particle(obj,params)
     end
 end
 
-function check_art_weapon( npc )
+function check_art_weapon( npc_id )
+	local npc = level.object_by_id( npc_id )
+	if not npc then return end
+
 	local item_in_slot = npc:item_in_slot( inventory_slots.PISTOL )
 	local act_item     = npc:active_item()
-	if act_item and item_in_slot and act_item:id() == item_in_slot:id()
-		and act_item:is_artefact()
+	if act_item and item_in_slot
+		and ( act_item:id() == item_in_slot:id() )
+		and item_in_slot:is_artefact()
 	then
 		local item_in_slot_sec = act_item:section()
 		npc:drop_item( act_item )
+
 		local s_obj = alife():object( act_item:id() )
 		if s_obj then
 			AI:release( s_obj, true )
