@@ -1,0 +1,162 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local ammo = {}
+local inited = false
+local repack = false 
+
+--------
+-- инициализация переменных, выполняется единожды
+--------
+function init()
+	for section, box_size in pairs(_G['ammo_sections']) do
+		ammo[section] = {}
+		ammo[section].repack = false
+		ammo[section].box = box_size
+	end
+	repack = false
+	inited = true
+end
+
+--------
+-- вызывается при добавлении в инвентарь ГГ любых патрон
+--  obj - game_object добавляемой пачки
+-- здесь будем только ставить флажки о необходимости проверки,
+-- саму проверку и перепаковку сделаем в апдейте актёра,
+-- если перепаковку делать прям здесь, то будет глюк при загрузки и
+-- при взятии из нычки кучи патрон (взять всё)
+--------
+function on_take(obj)
+	if (not inited) then init() end
+
+	local section = obj:section()
+	if ammo[section] and ammo[section].repack == false then
+		if obj:get_ammo_left() < ammo[section].box then
+			ammo[section].repack = true
+			repack = true
+		end
+	end
+end
+
+
+--------
+-- вызывается из апдейта актёра
+-- проверяет наличие флажков и вызывает процедуру переупаковки
+--------
+function on_update()
+	if repack and level.main_input_receiver()==nil then
+		for section, data in pairs(ammo) do
+			if data.repack then
+				repack_ammo(section, data.box)
+				data.repack = false
+			end
+		end
+		repack = false
+	end
+end
+
+--------
+-- переупаковка патронов заданного типа
+--  section - строка, имя секции (тип патрон)
+--  box_size - колличество патрон в полной пачке
+-- сначало составляем список неполных пачек, затем
+-- удаляем их и создаём нужное колличество полных
+--------
+function repack_ammo(section, box_size)
+	local s, t = enum_ammo(section, box_size)
+	if (s > 0) and (#t > 1) then
+		local i, id, obj
+
+		for i, id in pairs(t) do
+			obj = AI:object(id)
+			if obj then AI:release(obj, true) end
+		end
+
+		while s >= box_size do
+			AI:create_ammo(section, vector(), 0, 0, 0, box_size)
+			s = s - box_size
+		end
+
+		if s > 0 then
+			AI:create_ammo(section, vector(), 0, 0, 0, s)
+		end
+	end
+end
+
+--------
+-- пробегаемся по инветарю ГГ и собираем инфу о неполных пачках
+--  section - строка, имя секции (тип патрон)
+--  box_size - колличество патрон в полной пачке
+-- возвращает сумарное колличество патрон в неполных пачках и массив id-шников этих пачек
+--------
+function enum_ammo(section, box_size)
+	local i, obj, size
+	local s = 0
+	local t = {}
+	for i=0, Actor:object_count()-1 do
+		obj = Actor:object(i)
+		if obj:section() == section then
+			size = obj:get_ammo_left()
+			if size < box_size then
+				table.insert(t, obj:id())
+				s = s + size
+			end
+		end
+	end
+	return s, t
+end
+
+----------------------------------------------------------------------
+
+local used_box = nil
+function repack_in_box(box)
+	local n = box:inv_box_count()
+	if n == 0 then return end
+
+	used_box = box
+	local ammo_to_repack = {}
+	local obj, sect, sz
+	for i = 0, n-1 do
+		obj = box:object_from_inv_box(i)
+		sect = obj:section()
+		if ammo[sect] then
+			sz = obj:get_ammo_left()
+			if sz < ammo[sect].box then
+				if ammo_to_repack[sect] == nil then ammo_to_repack[sect] = {} end
+				ammo_to_repack[sect][obj:id()] = sz
+			end
+		end
+	end
+--	table.print(ammo_to_repack)
+
+	local spawn_ammo = {}
+	for s, t in pairs(ammo_to_repack) do
+		if table.size(t) > 1 then
+			n = 0
+			for i,v in pairs(t) do
+				obj = AI:object(i)
+				if obj then AI:release(obj, true) end
+				n = n + v
+			end
+			spawn_ammo[s] = n
+		end
+	end
+--	table.print(spawn_ammo)
+
+	local box_id = box:id()
+	local spawn_callback = level.client_spawn_manager
+	for s, n in pairs(spawn_ammo) do
+		sz = ammo[s].box
+		while n > sz do
+			obj = AI:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, sz)
+			spawn_callback():add(obj.id, 0, dunin_ammo.ammo_fix)
+			n = n - sz
+		end
+		obj = AI:create_ammo(s, vector():set(0,0,0), 0, 0, box_id, n)
+		spawn_callback():add(obj.id, 0, dunin_ammo.ammo_fix)
+	end
+end
+
+function ammo_fix(id, item)
+	used_box:transfer_item(item, used_box)
+end
+

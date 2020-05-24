@@ -1,0 +1,75 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- скрипт прозрачных рюкзаков
+
+local treasure_change_visual = {}
+
+-- подменяемый ли визуал?
+function IsChangeable(section)
+	return ( string.sub(section,2,15)=="_inventory_box"
+		and string.find(sys_ini:r_string(section, "visual"), "item_rukzak") )
+		or string.sub(section,1,11)=="val_taynik_"
+		or sys_ini:r_bool_ex(section, "removable", false) == true
+end
+-- подбираемый ли рюкзак?
+function IsTaken(section)
+	return IsChangeable(section)
+		or ( string.find(sys_ini:r_string(section, "visual"), "rukzak_invisible")~=nil )
+end
+
+-- перебор рюкзаков, вызывается при смене сложности
+function on_options_change()
+	if level.present() then
+		-- игра загружена
+
+		local box
+		for id,obj in pairs(db.storage) do
+			box = level.object_by_id(id)
+			if box
+				and box:clsid() == clsid.inventory_box
+				and IsChangeable(box:section())
+			then
+				change_visual(box)
+			end
+		end
+	end
+end
+
+function net_spawn(box)
+	if IsChangeable(box:section()) then
+		if treasure_change_visual[box:id()] then
+			-- уже заменили визуал
+			treasure_change_visual[box:id()] = nil
+		else
+			change_visual(box)
+		end
+	end
+end
+
+-- замена визуала рюкзака
+function change_visual(box)
+	if box:section() == "m_inventory_box" then return end	-- пропускаем "свои" нычки
+	
+	local visual = "equipments\\item_rukzak" 				-- новичок - оригинальный визуал
+
+	if game_options.TrTrs then
+		-- выбираем визуал
+		local difficulty = level.get_game_difficulty()
+		if     difficulty == 1 then
+			visual = visual..tostring(math.random(1, 3)*10)
+		elseif difficulty == 2 then
+			visual = visual..tostring(math.random(3, 5)*10)
+		elseif difficulty == 3 then
+			visual = visual..tostring(math.random(5, 7)*10)
+		end
+	end
+	
+	-- меняем визуал
+	local se_box = AI:object(box:id())
+	treasure_change_visual[se_box.id] = true
+	netpk:modify(se_box, {visual_name = visual}, netpk.fState)
+
+	-- отправляем в оффлайн и обратно для обновления визуала
+	amk.convert_npc[se_box.id] = 1
+end
+
+

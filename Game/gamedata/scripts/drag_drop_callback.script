@@ -1,0 +1,86 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local level_object = level.object_by_id
+
+local reg_callbacks = {
+	key_press = "on_key_press",
+	key_release = "on_key_release",
+	cell_item_focus_lost = "on_item_focus_lost",
+	cell_item_focus = "on_item_focus"
+}
+local itemInFocus = nil
+local selItem = nil
+local first_click, second_click = nil, nil
+local db_click_timeout = 350
+
+function add(wnd)
+	for k, v in pairs(reg_callbacks) do
+		xr_s.subscribe( k, this[ v ] )
+	end
+end
+
+function remove()
+	for k, v in pairs(reg_callbacks) do
+		xr_s.unsubscribe( k, this[ v ] )
+	end
+	itemInFocus = nil
+	selItem = nil
+end
+
+function wait_db_click()
+	xr_s.on_event( "cell_item_clicked", level_object(first_click) )
+	first_click, second_click = nil, nil
+end
+
+function on_key_press(dik, bind)
+	if bind ~= key_bindings.kWPN_FIRE then return end
+	
+	if itemInFocus then
+		selItem = itemInFocus
+		if AI:object(itemInFocus) then
+			if first_click and first_click == itemInFocus then
+				second_click = itemInFocus
+				xr_s.on_event( "cell_item_db_clicked", level_object(itemInFocus) )
+				xr_s.unsubscribe( "update", this.wait_db_click )
+			else
+				first_click = itemInFocus
+				xr_s.subscribe( "update", this.wait_db_click, { timeout = db_click_timeout, once = true } )
+			end
+		end
+	end
+end
+
+function on_key_release(dik, bind)
+	if bind ~= key_bindings.kWPN_FIRE then return end
+
+	if selItem and selItem ~= itemInFocus
+		and AI:object(selItem)
+	then
+		local item1 = level_object(selItem)
+		if item1 then
+			local item2 = false
+			if itemInFocus and AI:object(itemInFocus) then
+				item2 = level_object(itemInFocus)
+			end
+			xr_s.on_event("drag_drop", item1, item2)
+		end
+	end
+
+	selItem = nil
+end
+
+function on_item_focus(item)
+	itemInFocus = item:id()
+end
+
+function on_item_focus_lost(item)
+	if itemInFocus == item:id() then
+		itemInFocus = nil
+	end
+end
+
+function attach()
+	xr_s.subscribe("inventory_open", this.add)
+	xr_s.subscribe("inventory_close", this.remove)
+end
+
+

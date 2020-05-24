@@ -1,0 +1,30 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- DocViewer for "Authentic documents"
+-- 7.9 (79mxm@rambler.ru)
+
+local item_view = ""
+local img = nil
+
+function doc_view_on(item)
+	if item then
+		item_view = sys_ini:r_string(item,"img_path")
+		if item_view == "auto" then item_view = "docs\\"..item end
+		pos_x = sys_ini:r_float(item,"pos_x")
+		pos_y = sys_ini:r_float(item,"pos_y")
+		if img == nil then
+			img = CUIStatic()
+			local st = get_hud():AddCustomStatic("doc_viewer", true)
+			st:wnd():AttachChild(img)
+		end
+		img:Init(item_view,pos_x,pos_y,0,0)
+		item_view = item
+	end
+end
+
+function doc_view_off()
+	if get_hud():GetCustomStatic("doc_viewer") then
+		get_hud():RemoveCustomStatic("doc_viewer")
+		item_view = ""
+		img = nil
+	end
+end

@@ -1,0 +1,129 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local wnd = nil
+
+function pda_open()
+	if not wnd then	
+		wnd = PDAAdd(level.main_input_receiver())
+	end
+	bind_actor.hide_weapon("inv")
+	xr_actor.change_move("inv", false)
+end
+function pda_close()
+	if wnd then
+		wnd:DetachWnd()
+		wnd = nil
+	end
+	bind_actor.restore_weapon("inv")
+	xr_actor.change_move("inv", true)
+end
+
+class "PDAAdd" (CUIScriptWnd)
+
+function PDAAdd:__init(owner) super()
+	set_input_language(0)
+	self.owner = owner
+	self:Init(0, 0, 1024, 768)
+	self:InitControls()
+end
+
+function PDAAdd:InitControls()
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_pda_add.xml")
+
+	if has_alife_info("pda_dont_work") then		-- or amk.load_variable("blowout",0)>0 then
+		self.owner:Show(false)
+
+		xml:InitStatic("bsod_back", self)
+		xml:InitStatic("bsod", self)
+
+		self.OnQuit = function()
+			self:GetHolder():start_stop_menu(self, true)
+			level.start_stop_menu(self.owner, true)
+		end
+		self:Register(xml:InitButton("btn_off", self), "button_off")
+		self:AddCallbackEx("button_off", ui_events.BUTTON_CLICKED, self.OnQuit)
+
+		level.start_stop_menu(self, true)
+	else
+		self.stat = CUIStatic()
+		self.stat:Init(0, 0, 1024, 768)
+		self.owner:AttachChild(self.stat)
+		self.stat:Show(true)
+
+		local btn = xml:InitButton("btn_off", self.stat)
+		self:Register(btn, "button_off")
+		self:AddCallback("button_off", ui_events.BUTTON_CLICKED,
+			function() level.start_stop_menu(level.main_input_receiver(), true) end )
+
+		btn = xml:InitButton("btn_show_message_dlg", self.stat)
+		self:Register(btn, "button_msg")
+		self:AddCallbackEx("button_msg", ui_events.BUTTON_CLICKED, self.ShowSmsDlg)
+
+		btn = xml:InitButton("btn_show_notepad", self.stat)
+		self:Register(btn, "button_notes")
+		self:AddCallbackEx("button_notes", ui_events.BUTTON_CLICKED, self.ShowNotepadDlg)
+
+		btn = xml:InitButton("btn_show_timer", self.stat)
+		self:Register(btn, "button_timer")
+		self:AddCallbackEx("button_timer", ui_events.BUTTON_CLICKED, self.ShowTimerDlg)
+
+		if game_options.CurrentHUD == "ns_pda_script" then
+			btn = xml:InitButton("btn_settings", self.stat)
+			self:Register(btn, "button_settings")
+			self:AddCallbackEx("button_settings", ui_events.BUTTON_CLICKED, self.ShowSettingsDlg)
+		end
+	end
+end
+
+function PDAAdd:ShowTimerDlg()
+	local _wnd = ui_pda_timer.UITimerWnd(self.owner)
+	level.start_stop_menu(_wnd, true)
+	self.owner:Enable(false)
+end
+
+function PDAAdd:ShowSmsDlg()
+	local _wnd = ui_pda_sms.UIMsgWnd(self.owner)
+	level.start_stop_menu(_wnd, true)
+	self.owner:Enable(false)
+end
+
+function PDAAdd:ShowNotepadDlg()
+	local _wnd = ui_pda_notepad.UINotesWnd(self.owner)
+	level.start_stop_menu(_wnd, true)
+	self.owner:Enable(false)
+end
+
+function PDAAdd:ShowSettingsDlg()
+	local _wnd = ui_pda_settings.UISettingsWnd(self.owner)
+	level.start_stop_menu(_wnd, true)
+	self.owner:Enable(false)
+end
+
+function PDAAdd:DetachWnd()
+	if self.stat then
+		self:ClearCallbacks()
+		self.owner:DetachChild(self.stat)
+	end
+end
+
+function PDAAdd:OnKeyboard(dik, action)
+	CUIScriptWnd.OnKeyboard(self, dik, action)
+	if self.stat then return true end
+	if action == ui_events.WINDOW_KEY_PRESSED then
+		local bind = dik_to_bind(dik)
+		if dik == DIK_keys.DIK_ESCAPE
+			or bind == key_bindings.kACTIVE_JOBS
+			or bind == key_bindings.kMAP
+			or bind == key_bindings.kCONTACTS
+		then
+			self.OnQuit()
+		end
+	end
+	return true
+end
+-------------------------------------------------------------------------------------
+function attach()
+	xr_s.subscribe("pda_open", this.pda_open)
+	xr_s.subscribe("pda_close", this.pda_close)
+end
+

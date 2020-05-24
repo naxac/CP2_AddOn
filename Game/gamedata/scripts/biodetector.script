@@ -1,0 +1,440 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-------------------------------------------------------------------------
+-- Динамический биорадар с локатором, затуханием и универсальным худом --
+-------------------------------------------------------------------------
+local dynBio = ( game_options.DynBio > 0 )    -- вращающийсЯ локатор
+local fading = ( game_options.DynBio > 1 )    -- затухание
+local hardBio = ( game_options.DynBio > 2 )   -- ухардкоренный биорадар
+
+local is_pda_mode = ( game_options.CurrentHUD == "ns_pda_script" )
+
+local level_object = level.object_by_id
+
+local max_count = 100	-- количество отображаемых объектов
+local max_dist = 60
+local screen_max_dist = 100
+local max_dist_rel = screen_max_dist/max_dist
+local biomap_x_offset = 2	-- смещение начала рисунка от правого края текстуры
+local biomap_y_offset = 16	-- смещение начала рисунка от верхнего края текстуры
+-- все координаты и размеры должны совпадать с указанными в конфиге текстуры
+local biomap_width = 256									
+local biomap_heigth = 256
+-- верхний левый угол окна
+local biomap_y = -biomap_y_offset
+local center_y = biomap_y+biomap_heigth/2
+-- подстройка под разрешение экрана
+local koef_x = ( device().height/device().width )/( 768/1024 )
+-- привязываем к правому краю экрана
+local delta_x = 0
+if koef_x > 1 then												-- 1280*1024 (чуть вытянуто по Y)
+	delta_x = 2
+elseif koef_x < 1 then											-- широкоформат
+	delta_x = 20
+end
+local biomap_x = 1024-biomap_width+biomap_x_offset+delta_x			-- 770 без дельты - базовое расширение движка
+local center_x = biomap_x+biomap_width/2
+
+local hud = get_hud()
+local dots2id = {}
+local id2dots = {}
+local tex = "biomap\\white_dot"
+local actor_id = Actor:id()
+local detectorShowed = false
+
+local math_pi_180 = 180/math.pi
+local two_pi = 2*math.pi
+local biomap			 -- худ, окно вращающегося локатора
+local angle = 0			 -- текущий угол локатора в радианах
+local step_angle = 1.5/math_pi_180 -- шаг за апдейт в радианах (скорость поворота)
+local alpha = 255			-- степень затухания
+local min_alpha = 0.2		-- % от полной яркости в самом темном участке (интенсивность затухания)
+
+local colors = {
+	["npcs"] = {
+		["^dog_"]		= {
+			["color"]	= { 252, 158,  66 },
+			["parts"]	= {"mutant_dog_tail"}
+		},
+		["bloodsucker"]	= {
+			["color"]	= { 255,   0, 120 },
+			["parts"]	= {"mutant_krovosos_jaw", "mutant_krovosos_red_jaw"}
+		},
+		["new_hell"]	= {
+			["color"]	= { 192,  60, 196 },
+			["parts"]	= {"mutant_raptor_kogot"}
+		},
+		["rat_"]		= {
+			["color"]	= {   1,   1, 254 },
+			["parts"]	= {"mutant_spleen_rat"}
+		},
+		["volkodav"]	= {
+			["color"]	= {   1,   1, 254 },
+			["parts"]	= {"mutant_spleen_rat"}
+		},
+		["kikimora"]	= {
+			["color"]	= {   1,   1, 254 },
+			["parts"]	= {"mutant_spleen_rat"}
+		},
+		["molerat"]		= {
+			["color"]	= {   1,   1, 254 },
+			["parts"]	= {"mutant_spleen_rat"}
+		},
+		["pseudodog"]	= {
+			["color"]	= { 171,  94,  23 },
+			["parts"]	= {"mutant_psevdodog_tail"}
+		},
+		["psy_dog"]		= {
+			["color"]	= { 171,  94,  23 },
+			["parts"]	= {"mutant_psevdodog_tail"}
+		},
+		["tushkano"]	= {
+			["color"]	= { 64, 255, 255 },
+			["parts"]	= {"mutant_face_tushkano"}
+		},
+		["rotan"]		= {
+			["color"]	= { 64, 155, 155 },
+			["parts"]	= {"mutant_rotan_heart"}
+		},
+		["carlic"]		= {
+			["color"]	= { 64, 255, 255 },
+			["parts"]	= {"mutant_carlic_hand"}
+		},
+		["karlito"]		= {
+			["color"]	= { 64, 255, 255 },
+			["parts"]	= {"mutant_carlic_hand"}
+		},
+		["tarakan"]		= {
+			["color"]	= { 255,   0, 120 },
+			["parts"]	= {"part_tarakan_strong", "part_tarakan"}
+		},
+		["fracture"]	= {
+			["color"]	= {  94,   3,  80 },
+			["parts"]	= {"mutant_fracture_hand"}
+		},
+		["bibliotekar"]	= {
+			["color"]	= {  94,   3,  80 },
+			["parts"]	= {"part_digitis_biblio"}
+		},
+		["deathclaw"]	= {
+			["color"]	= {  94,   3,  80 },
+			["parts"]	= {"mutant_deathclaw_antler"}
+		},
+		["flesh"]		= {
+			["color"]	= {  64, 153,  79 },
+			["parts"]	= {"mutant_flesh_eye"}
+		},
+		["zanoza"]		= {
+			["color"]	= {  64, 153,  79 },
+			["parts"]	= {"mutant_zanoza_leg"}
+		},
+		["cat"]			= {
+			["color"]	= { 252, 158,  66 },
+			["parts"]	= {"mutant_tail_cat"}
+		},
+		["burer"]		= {
+			["color"]	= {   0, 238, 255 },
+			["parts"]	= {"mutant_burer_hand", "mutant_burer_red_hand"}
+		},
+		["snork"]		= {
+			["color"]	= { 145,  71, 214 },
+			["parts"]	= {"mutant_snork_leg"}
+		},
+		["nosales"]		= {
+			["color"]	= { 64, 255, 255 },
+			["parts"]	= {"mutant_face_tushkano"}
+		},
+		["vypolzen"]	= {
+			["color"]	= { 145,  71, 214 },
+			["parts"]	= {"mutant_vypolzen_hrebet"}
+		},
+		["controller"]	= {
+			["color"]	= {   0, 238, 255 },
+			["parts"]	= {"mutant_hand_kontroler","bezoar"}
+		},
+		["kontroller"]	= {
+			["color"]	= {   0, 238, 255 },
+			["parts"]	= {"mutant_hand_kontroler","bezoar"}
+		},
+		["psyonik"]		= {
+			["color"]	= {   0, 238, 255 },
+			["parts"]	= {"mutant_hand_kontroler","bezoar"}
+		},
+		["gigant"]		= {
+			["color"]	= { 255,   0, 255 },
+			["parts"]	= {"mutant_psevdogigant_hand"}
+		},
+		["zombie_plague"] = {
+			["color"]	= { 127, 127, 127 },
+			["parts"]	= {"mutant_plague_hand"}
+		},
+		["zombie"]		= {
+			["color"]	= { 127, 127, 127 },
+			["parts"]	= {"mutant_zombie_hand", "mutant_zombie_teeth", "rudiment_big"}
+		},
+		["vodjanoj"]	= {
+			["color"]	= { 127, 127, 127 },
+			["parts"]	= {"mutant_zombie_hand", "mutant_zombie_teeth", "rudiment_big"}
+		},
+		["ghoul_"]		= {
+			["color"]	= { 127, 127, 127 },
+			["parts"]	= {"mutant_zombie_hand", "mutant_zombie_teeth", "rudiment_big"}
+		},
+		["polter"]		= {
+			["color"]	= {   0, 238, 255 },
+			["parts"]	= {"mutant_poltergeist_glas"}
+		},
+		["chimera"]		= {
+			["color"]	= { 255,   0,   0 },
+			["parts"]	= {"mutant_chimera_kogot"}
+		},
+		["oboroten"]	= {
+			["color"]	= { 255,   0,   0 },
+			["parts"]	= {"mutant_chimera_kogot"}
+		},
+		["boar"]		= {
+			["color"]	= {  64, 153,  79 },
+			["parts"]	= {"mutant_boar_leg"}
+		},
+		["bear"]		= {
+			["color"]	= {  64, 153,  79 },
+			["parts"]	= {"mutant_boar_leg"}
+		},
+		["spider"]		= {
+			["color"]	= { 164, 153,  79 },
+			["parts"]	= {"mutant_spider_gland"}
+		}
+	},
+	["stalker"]		= { 255, 255,   0 },
+	["corpse"]		= { 127, 127, 127 },
+	["actor"]		= {   0, 255,   0 }
+}
+colors.npcs.scelet = colors.npcs.zombie
+
+function getColor(obj,cls)
+	if not (obj.id and obj.section) then return nil end
+	if obj:id() == 0 then
+		return colors["actor"]
+	else
+		if IsHuman[cls or obj:clsid()] then
+			if obj:alive() then
+				return colors["stalker"]
+			else
+				return colors["corpse"]
+			end
+		else
+			local sect = sectFound(obj:section())
+			if sect then
+				local sectData = colors["npcs"][sect]
+				local partOnBelt = inventory.on_belt("bioradar2")
+				if not partOnBelt then
+					for i = 1, #sectData["parts"] do
+						if inventory.on_belt(sectData["parts"][i]) then
+							partOnBelt = true
+							break
+						end
+					end
+				end
+				
+				if partOnBelt then
+					if obj:alive() then
+						return sectData["color"]
+					else
+						return colors["corpse"]
+					end 
+				else
+					return nil
+				end
+			else
+				return nil
+			end
+        end
+    end
+end
+
+function sectFound(sect)
+	for k in pairs(colors["npcs"]) do
+		if string.find(sect, k) then
+			return k
+        end
+    end
+	return nil
+end
+
+function remove_dot( id )
+	local dot = id2dots[ id ]
+	if dot then
+		hud:RemoveCustomStatic( "target_dot_"..dot )
+		dots2id[ dot ] = nil
+		id2dots[ id ] = nil
+	end
+end
+
+function switch_bioradar( f )
+	if is_pda_mode then
+		ui_script_hud.switch_bioradar(f)
+	else
+		if not f then
+			xr_s.unsubscribe("update", this.update)
+		else
+			xr_s.subscribe("update", this.update)
+		end
+	end
+end
+
+
+local upd_shift = 20
+
+function update(delta)
+	if is_pda_mode then return end
+
+--    local t = profile_timer()
+--    t:start()
+	if not bind_actor.scopeUsed then
+		detectorShowed = true
+		
+		amk.oau_watchdog = 18101
+		if not hud:GetCustomStatic("biomap") then
+			biomap=hud:AddCustomStatic("biomap", true):wnd()
+			biomap:SetWndPos(biomap_x, biomap_y)
+			if dynBio then
+				biomap = hud:AddCustomStatic("biomap_sweep", true):wnd()
+				biomap:SetWndPos(biomap_x, biomap_y)
+			end
+		end
+		
+		local actorPos = Actor:position()
+		local objPos, x, y, dir, color, corner, cls
+		local custom_static
+		local dotName
+		local vect, obj
+		local sdir
+	--	if hardBio then
+	--		sdir = vector():set( 0,0,0 )
+	--	else
+			sdir = device().cam_dir
+	--	end
+		
+		-- вращение локатора. угол от 0 до 2Пи
+		if dynBio then
+			angle = angle-step_angle*delta/upd_shift
+			if angle < 0 then
+				angle = angle+two_pi
+			end
+			biomap:SetHeading(angle) -- поворачиваем локатор
+		end
+
+		amk.oau_watchdog = 18102
+		for id in pairs(db.creatures) do
+			obj = level_object(id)
+			amk.oau_reason = "biodetector update: "..( obj and obj:name() or tostring(id) )
+			cls = obj and obj.clsid and obj:clsid()
+			if AI:object(id) == nil or not cls then
+				biodetectorRemove()
+				return
+			end
+			objPos = obj.position and obj:position()
+			if objPos and objPos:distance_to_xz(actorPos) <= max_dist
+				and ( IsHuman[cls]
+				or IAmAMonster[cls] )
+			then
+				-- определяем цвет
+				color = getColor(obj,cls)
+				if color then -- есть цвет - рисуем
+					-- получаем координаты точки
+					dir = objPos:sub(actorPos)
+					vect = vector_rotate_y(vector():set(dir.x*max_dist_rel, 0, -dir.z*max_dist_rel), math.atan2(-sdir.x, sdir.z)*math_pi_180)
+					-- абсолютные координаты точки
+					x = vect.x*math.sqrt(koef_x)
+					y = vect.z
+					
+					-- вычисляем альфу
+					alpha = 255
+					if fading and id ~= actor_id then			-- актор в центре не затухает
+						-- затухание в зависимости о углового расстояния до локатора. все переводим в диапазон от 0 до 2Пи иначе глючит
+						corner = math.atan2(x, y) - angle + math.pi/2
+						while corner < 0 do
+							corner = corner + two_pi
+						end
+						
+						alpha = ( 1-corner/(two_pi) )					-- % затухания
+						alpha = 255*( alpha+min_alpha*(1-alpha) )		-- интенсивность
+					end
+					color = GetARGB( alpha, unpack(color) )
+					
+					-- координаты точки относительно биорадара
+					x = x+center_x
+					y = y+center_y
+					--log("dot created, x: %s, y: %s", x, y)
+
+					-- рисуем точку
+					dotName = nil
+					if id2dots[id] == nil then
+						for i = 1, max_count do
+							if dots2id[i] == nil then
+								dotName = "target_dot_"..i
+								id2dots[id] = i
+								dots2id[i] = id
+								break
+							end
+						end
+					else
+						dotName = "target_dot_"..id2dots[id]
+					end
+					if dotName == nil then
+						break
+					end
+
+					custom_static = hud:GetCustomStatic(dotName)
+					if not custom_static then
+						custom_static = hud:AddCustomStatic(dotName, true)
+						custom_static:wnd():InitTexture(tex)
+					end
+					custom_static:wnd():SetColor(color)
+					if ( not hardBio ) or alpha > 240 then
+						custom_static:wnd():SetWndPos(x, y)
+					end
+				else
+					remove_dot( id )
+				end
+			else
+				remove_dot( id )
+			end
+		end
+	else
+		if detectorShowed then
+			biodetectorRemove()
+		end
+	end
+--    t:stop()
+--    log("TIME SPEND biodetector.update(): %s", t:time())
+end
+
+function biodetectorRemove()
+	detectorShowed = false
+	if hud:GetCustomStatic("biomap") then
+		hud:RemoveCustomStatic("biomap")
+		-- убираем вращающийся локатор
+		if hud:GetCustomStatic("biomap_sweep") then
+			hud:RemoveCustomStatic("biomap_sweep")
+		end
+	end
+	
+	local dotName
+	for k, v in pairs(id2dots) do
+		dotName = "target_dot_"..v
+		if hud:GetCustomStatic(dotName) then
+			hud:RemoveCustomStatic(dotName)
+		end
+	end
+	id2dots = {}
+	dots2id = {}
+end
+
+function on_options_change()
+	biodetectorRemove()
+	dynBio = ( game_options.DynBio > 0 )
+	fading = ( game_options.DynBio > 1 )
+	hardBio = ( game_options.DynBio > 2 )
+	is_pda_mode = ( game_options.CurrentHUD == "ns_pda_script" )
+end
+

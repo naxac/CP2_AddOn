@@ -1,0 +1,95 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local outfit = {}
+
+cur_rad_protection = 0
+
+crp_changed = false
+
+local detectors = {
+	["detector_suit"]		= false,
+	["detector_simple"]		= false,
+	["detector_advances"]	= false,
+	["detector_elite"]		= false,
+	["detector_elite_sak"]	= false,
+	["detector_elite_john"]	= false
+}
+local cur_detector = nil
+
+function on_actor_update()
+	crp_changed = false
+
+	if actor_outfit then
+		local obj_id = actor_outfit:id()
+		local obj_cond = actor_outfit:condition()
+		local obj_sect = actor_outfit:section()
+		
+		if outfit.id ~= obj_id or outfit.cond ~= obj_cond then
+			if outfit.sect ~= obj_sect then
+				outfit.rad_pr = sys_ini:r_float(obj_sect, "radiation_protection")
+				outfit.sect = obj_sect
+			end
+			
+			outfit.id = obj_id
+			outfit.cond = obj_cond
+			
+			cur_rad_protection = outfit.rad_pr * outfit.cond
+			crp_changed = true
+		end
+	else
+		outfit = {}
+		if cur_rad_protection>0 then
+			cur_rad_protection = 0
+			crp_changed = true
+		end
+	end
+end
+
+function IsRadDetected()
+	return cur_detector ~= nil
+end
+
+function set_current_detector(section)
+	cur_detector = section
+	arc_ui_dosimeter.set_detector(section)
+	ui_script_hud.set_detector(section)
+end
+
+function get_current_detector()
+	return cur_detector
+end
+
+
+function on_set_detector(item)
+	local sect = item:section()
+	if detectors[sect] ~= nil then
+	--	log("on_set_detector: %s", sect)
+		set_current_detector(sect)
+		detectors[sect] = true
+	end
+end
+
+function on_del_detector(item)
+	local sect = item:section()
+	if detectors[sect] then
+	--	log("on_del_detector: %s", sect)
+		detectors[sect] = inventory.on_belt(sect)~=nil
+
+		if cur_detector == sect then
+			for k, v in pairs(detectors) do
+				if v then
+					set_current_detector(k)
+					return
+				end
+			end
+			set_current_detector(nil)
+		end
+	end
+end
+
+
+function attach()
+	xr_s.subscribe( "item_to_slot",	this.on_set_detector )
+	xr_s.subscribe( "item_to_belt",	this.on_set_detector )
+	xr_s.subscribe( "item_to_ruck",	this.on_del_detector )
+	xr_s.subscribe( "item_drop",	this.on_del_detector )
+end

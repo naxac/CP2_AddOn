@@ -1,0 +1,438 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- [[ Dynamic Weather v0.9.5 script ]] --
+
+-- включение/отключение вывода отладочных сообщений в консоль
+local is_debug = false
+
+-- проверим, соответствует ли имя уровня одному из уровней
+-- которые должны использовать специальную погоду, 
+-- как настроено в game_maps_single.ltx
+local function is_indoor(level_name)
+    return (level_name == "l03u_agr_underground"
+            or level_name == "l04u_labx18"
+            or level_name == "peshera"
+            or level_name == "av_peshera"
+            or level_name == "warlab"
+            or level_name == "marsh"
+            or level_name == "jupiter_underground"
+            or level_name == "labx8"
+            or level_name == "l08u_brainlab"
+            or level_name == "l10u_bunker"
+            or level_name == "l12u_sarcofag"
+            or level_name == "l12u_control_monolith")
+end
+
+
+-- время в минутах с полуночи
+local function dayminute()
+    return level.get_time_hours() * 60 + level.get_time_minutes()
+end
+
+
+-- возвратит true если t1 <= t <= t2, учитывая 24-часовой формат времени
+local function is_time_between(t, t1, t2)
+    return (t1 < t2 and (t >= t1 and t <= t2))
+        or (t1 > t2 and (t >= t1 or  t <= t2))
+end
+
+
+-- абсолютная разница во времени между двумя значениями в минутах
+local function delta_time(t1, t2)
+    return (t2 + 1440 - t1) % 1440
+end
+
+
+class "WeatherManager"
+function WeatherManager:__init()
+    self.ini = ini_file("weathers\\environment.ltx")
+    self.time = 0
+    self.lvl_suffix  = ""    -- суффикс, используемый для изменения погодного цикла этого уровня (если есть)
+    self.lvl_weather = ""    -- погода для уровня, установленая в game_maps_single.ltx
+    self.dyn_weather = ""    -- текущее название динамического погодного цикла
+    self.cur_weather = ""    -- погода, которая должна использоваться прямо сейчас на текущем уровне
+                             -- ПРИМЕЧАНИЕ: это эквивалентно lvl_weather..lvl_suffix для подземных уровней
+                             -- и dyn_weather..lvl_suffix для наземных уровней
+
+    self.cycle_time = 0      -- время выполнения текущего цикла
+    self.cycles = {}         -- таблица с информацией о цикле погоды по его id
+    self.cycle_idx = {}      -- служебная таблица для облегчения поиска: имя цикла = id цикла
+    self.trans_lists = {}    -- основной список списков переходов по времени суток
+    self.trans_times = {}    -- таблица соответствий времени переходов
+
+    self.last_time_idx = 0   -- индекс в trans_times для последнего времени обновления
+    self.next_time_idx = 0   -- то же самое для следующего обновления
+    self.last_time = 0       -- время последнего обновления за день, в минутах, считая с полуночи
+    self.next_time = 0       -- то же самое для следующего обновления
+
+    local rand, res, key, val, n
+
+    n = self.ini:line_count("weather_cycles")
+
+    -- случайным образом выберем ID цикла для цикла по умолчанию
+    rand = math.random(n) - 1
+
+    -- загрузка информации о цикле из .ltx
+    for i = 0, n - 1 do
+        res, key, val = self.ini:r_line("weather_cycles", i, "", "")
+
+        -- установим погодный цикл по умолчанию для инициализации и т.д.
+        if self.default_cycle_id == nil or rand == i then
+            self.default_cycle_id = key
+        end
+
+        -- временная таблица токенов из строки через запятую
+        local tmptab = {}
+
+        -- разбобьём строку по запятым и сохраним токены
+        for w in string.gmatch(val, "[%w_-]+") do 
+            table.insert(tmptab, w)
+        end
+
+        -- выстроим информацию о цикле из полученных токенов
+        self.cycles[key]             = {}
+        self.cycles[key].name        = tmptab[1]
+        self.cycles[key].to          = tonumber(tmptab[2])
+        self.cycles[key].from        = tonumber(tmptab[3])
+        self.cycles[key].to_weight   = tonumber(tmptab[4])
+        self.cycles[key].from_weight = tonumber(tmptab[5])
+
+        -- счётчик, который считает, насколько редко используется данный цикл
+        self.cycles[key].skipped     = 0
+
+        -- запишем имя цикла для поиска его ID
+        self.cycle_idx[self.cycles[key].name] = key
+    end
+
+    n = self.ini:line_count("weather_transition_times")
+
+    -- прочитаем список поминутных переходов погодных секций
+    for i = 0, n - 1 do
+        res, key, val = self.ini:r_line("weather_transition_times", i, "", "")
+        table.insert(self.trans_times, tonumber(key))
+        self.trans_lists[tonumber(key)] = val
+    end
+
+    -- отсортируем таблицу, так как чтение из .ltx не гарантирует порядок
+    -- таблицу необходимо отсортировать для правильной работы по времени
+    table.sort(self.trans_times)
+end
+
+
+-- функция вывода сообщения отладки - можно отключить, установив для is_debug значение false
+function WeatherManager:dbgmsg(fmt, ...)
+    if is_debug then
+        local msgtext = string.format("%02d:%02d idx:%d->%d,time:%02d:%02d->%02d:%02d ",
+                                      level.get_time_hours(), level.get_time_minutes(),
+                                      self.last_time_idx, self.next_time_idx,
+                                      math.floor(self.last_time / 60), self.last_time % 60,
+                                      math.floor(self.next_time / 60), self.next_time % 60)
+
+        msgtext = msgtext .. string.format(fmt, ...)
+		log("~ [level_weathers]: "..msgtext)
+    end
+end
+
+
+-- получить название цикла для погоды, которая должна использоваться прямо сейчас
+function WeatherManager:current_weather()
+    if is_indoor(level.name()) then
+        return self.lvl_weather
+    end
+    return self.dyn_weather .. self.lvl_suffix
+end
+
+
+-- обновить временные индексы
+function WeatherManager:update_times(last_idx)
+    self.last_time_idx = last_idx
+    self.next_time_idx = last_idx % #self.trans_times + 1
+    self.last_time = self.trans_times[self.last_time_idx]
+    self.next_time = self.trans_times[self.next_time_idx]
+end
+
+
+-- настроить индексы времени так, чтобы текущее время находилось в пределах окна,
+-- определенного этими индексами
+function WeatherManager:fix_times()
+    self.next_time_idx = 1
+    repeat
+       self:update_times(self.next_time_idx)
+    until is_time_between(self.time, self.last_time, self.next_time)
+end
+
+
+-- установить правильное название погодного цикла и правильные временные индексы
+-- используется, если сохраненная игра несовместимой версии, либо когда запускается новая игра
+function WeatherManager:convert_savedgame()
+    self.cycle_time = 0
+    if self.cycle_idx[self.dyn_weather] == nil then
+        self.dyn_weather = self.cycles[self.default_cycle_id].name
+    end
+    self:fix_times()
+end
+
+
+-- обновление выбора погоды
+-- используется при загрузке игры / смене уровня с force = false для возобновления последней погоды
+-- и по времени обновления с force = true, для обновления динамической погоды
+function WeatherManager:select_weather(force)
+    local tmp_dyn_weather = self.dyn_weather
+    if force then
+        -- загрузить список переходов, которые завершаются / инициируются в это время суток
+        local list_sect = self.trans_lists[self.next_time]
+
+        -- время обновления, когда эта погода была активна по времени с момента последнего обновления
+        self.cycle_time = self.cycle_time + delta_time(self.last_time, self.next_time)
+
+        -- если в это время суток происходит переход с текущей погоды
+        if self.ini:section_exist(list_sect) and self.ini:line_exist(list_sect, self.dyn_weather) then
+            -- загрузить строку с возможными переходами из текущей погоды
+            local transdef = self.ini:r_string(list_sect, self.dyn_weather)
+
+            -- получить идентификатор для текущего погодного цикла - если не найден, то это должен быть переход
+            local cycle_id = self.cycle_idx[self.dyn_weather]
+
+            if cycle_id ~= nil then
+                -- вероятность перехода в зависимости от времени, в течение которого этот цикл был активен
+                local trans_prob = 20 + self.cycles[cycle_id].from_weight * self.cycle_time / 1800
+
+                if math.random(1000) <= 10 * trans_prob then
+                    local min_skips        -- число пропусков для цикла, пропущенного наименьшее количество раз
+                    local max_skips        -- то же для цикла, пропущенного наибольшее количество раз
+                    local transtab    = {} -- массив доступных переходов
+                    local weighttab   = {} -- таблица значений для доступных переходов
+                    local weightsum   = 0  -- сумма значений для этих переходов
+
+                    -- ищем минимальное и максимальное количество пропусков
+
+                    min_skips = self.cycles[self.default_cycle_id].skipped
+                    max_skips = min_skips
+
+                    for cycle_id, cycle in ipairs(self.cycles) do
+                        if cycle.skipped < min_skips then
+                            min_skips = cycle.skipped
+                        end
+                        if cycle.skipped > max_skips then
+                            max_skips = cycle.skipped
+                        end
+                    end
+
+                    -- предположим, что transdef является разделенным запятыми списком имя_перехода:ID_цикла
+                    for trans, cycle_id in string.gmatch(transdef, "([%w_-]+):(%d+)") do
+                        local skipped_weight
+
+                        -- редко пропускаемый цикл получает значение 0.5, часто пропускаемый - 1.5
+                        if min_skips < max_skips then
+                            skipped_weight = 0.5
+                                           + (self.cycles[cycle_id].skipped - min_skips)
+                                                   / (max_skips - min_skips)
+                        else
+                            skipped_weight = 1
+                        end
+
+                        weightsum = weightsum + self.cycles[cycle_id].to_weight * skipped_weight
+                        table.insert(weighttab, weightsum)
+                        table.insert(transtab, trans)
+
+                        -- пользуясь возможностью, отметим все эти циклы как пропущенные
+                        -- примечание: цикл, который будет выбран для перехода, отмечен не будет
+                        self.cycles[cycle_id].skipped = self.cycles[cycle_id].skipped + 1
+                    end
+
+                    local rand = math.random(weightsum)
+
+                    -- используем таблицу значений для выбора случайного перехода
+                    for i = 1, #weighttab do
+                        if rand <= weighttab[i] then
+                            self.dyn_weather = transtab[i]
+                            self.cycle_time = 0
+                            break
+                        end
+                    end
+                end
+            else -- текущая погода является переходной фазой, поэтому завершаем переход
+                local cycle_id = self.cycle_idx[transdef]
+                self.dyn_weather = transdef
+                self.cycle_time = 0
+
+                -- убавим счётчик пропусков, так как этот цикл был только что выбран
+                self.cycles[cycle_id].skipped = self.cycles[cycle_id].skipped - 1
+            end
+        end
+
+        self:update_times(self.next_time_idx)
+
+        if not is_time_between(self.time, self.last_time, self.next_time) then
+            --self:dbgmsg("need to fix times")
+            self:fix_times()
+
+            -- HACK: если переход был начат не в своё время, отменим его
+            if self.cycle_idx[self.dyn_weather] == nil then
+                self.dyn_weather = tmp_dyn_weather
+            end
+        end
+    end
+
+    -- для тестирования цикла можно здесь установить погоду:
+    -- self.dyn_weather = "thunder"
+
+    self.cur_weather = self:current_weather()
+	if self:need_select_weather() then
+		level.set_weather(self.cur_weather)
+	--	log("[WeatherManager:select_weather]: set new weather [%s]", self.cur_weather)
+	end
+
+    --self:dbgmsg("weather:%s,cycle_time:%d", level.get_weather(), self.cycle_time)
+end
+
+
+-- вызывается при начале новой игры, загрузке игры и смене уровня
+function WeatherManager:reset()
+    local ini = ini_file("game.ltx")
+    local postprocess = utils.cfg_get_string(ini, level.name(), "postprocess", Actor, false, "")
+
+    self.lvl_weather = utils.cfg_get_string(ini, level.name(), "weathers", Actor, false, "", "default")
+
+    if postprocess ~= nil then
+        level.add_pp_effector(postprocess, 999, true)	
+    else
+        level.remove_pp_effector(999)
+    end
+
+    if self.ini:section_exist("level_suffix_table")
+       and self.ini:line_exist("level_suffix_table", level.name())
+    then
+        self.lvl_suffix = self.ini:r_string("level_suffix_table", level.name()) or ""
+    else
+        self.lvl_suffix = ""
+    end
+
+
+    if self.dyn_weather == "" then
+        self.time = dayminute()
+        self:convert_savedgame()
+    end
+
+    self:select_weather(false)
+--	log("[WeatherManager:reset]: select_weather(false)")
+end
+
+
+-- сохраним состояния, преобразуя необходимые переменные так,
+-- чтобы они соответствовали существующей структуре сохранения
+function WeatherManager:save(F)
+    local composite = self.cycle_time * 1440 + self.last_time_idx
+
+	-- закодировать строку, разделяя запятыми: "цикл:количество_пар"
+	-- сохраняем количества пропусков для каждого цикла
+	-- первый элемент в этом списке является именем текущего цикла
+
+    local info_str = self.dyn_weather
+
+    for id, cycle in pairs(self.cycles) do
+        info_str = info_str .. "," .. cycle.name .. ":" .. cycle.skipped
+    end
+
+    F:w_stringZ(info_str)
+    F:w_u32(composite)
+end
+
+
+-- загружаем и декодируем переменные состояния - если они не имеют смысла, настраиваем с нуля
+function WeatherManager:load(F)
+    local info_str = F:r_stringZ()
+    local composite = F:r_u32()
+
+    local lastidx = composite % 1440
+    self.cycle_time = math.floor(composite / 1440)
+    self.time = dayminute()
+
+	-- восстановим имя текущего цикла из первого элемента сохраненной строки
+    self.dyn_weather = string.sub(info_str, string.find(info_str, "^[%w-_]*"))
+
+    -- загрузим счетчики пропусков из оставшейся части строки
+    for name, skipped in string.gmatch(info_str, "([%w-_]+):(%d+)") do
+        local cycle_id = self.cycle_idx[name]
+
+        if cycle_id ~= nil then
+            self.cycles[cycle_id].skipped = skipped
+        else
+            --self:dbgmsg("Warning: unknown cycle '%s' with skip count %d", name, skipped)
+            lastidx = 0    -- установим недопустимое значение, чтобы сохранение «конвертировалось»
+        end
+    end
+
+    if lastidx > 0
+       and lastidx <= #self.trans_times
+       and self.cycle_time <= 14400
+       and self.ini:line_exist("weather_dynamic", self.dyn_weather)
+    then
+        self.cur_weather = self:current_weather()
+        self:update_times(lastidx)
+
+        -- допуск до 5 минут
+        if is_time_between(self.time, self.last_time, self.next_time)
+           or delta_time(self.time, self.next_time) <= 5
+        then
+            return
+        end        
+    end
+
+    --self:dbgmsg("savedgame is incompatible")
+
+    self:convert_savedgame()
+end
+
+function WeatherManager:need_select_weather()
+	return (amk.load_variable("blowout",0) == 0)
+		and (inventory.on_belt("af_idol_monolita") == nil)
+end
+
+-- функция обновления, вызывается из bind_actor.script
+function WeatherManager:update()
+    local time = dayminute()
+    local update_flag = 0
+
+    -- погода не та, какой она должна быть, поэтому, если выброс не начался,
+	-- правильная погода должна быть возобновлена
+    if level.get_weather() ~= self.cur_weather
+       and self:need_select_weather()
+    then
+        --self:dbgmsg("restoring weather after blowout")
+        update_flag = 1
+    end
+
+    -- проверим, увеличилось ли время хотя бы на одну минуту
+	-- нужно подстраховаться на случай, если время приближается к полуночи
+    if time <= self.time and self.time < time + 1380 and update_flag == 0 then
+        -- ничего не делаем
+        return
+    else
+        self.time = time
+    end
+
+    -- достигнуто время следующего доступного перехода
+    if self.time == self.next_time
+       or not is_time_between(self.time, self.last_time, self.next_time)
+    then
+        self:select_weather(true)
+	--	log("[WeatherManager:update]: select_weather(true)")
+
+    -- по какой-то причине необходимо обновить погоду (например, закончился выброс)
+    elseif update_flag ~= 0 then
+        self:select_weather(false)
+	--	log("[WeatherManager:update]: select_weather(false)")
+    end
+end
+
+
+-- здесь храним экземпляр класса
+local weather_manager = nil
+
+
+function get_weather_manager()
+    if weather_manager == nil then
+        weather_manager = WeatherManager()
+    end
+    return weather_manager
+end

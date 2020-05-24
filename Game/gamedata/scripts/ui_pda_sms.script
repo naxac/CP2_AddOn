@@ -1,0 +1,252 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "UIMsgWnd" (CUIScriptWnd)
+
+local cur = "_"	-- курсор
+
+function UIMsgWnd:__init(owner) super()
+	self.owner = owner
+	self.lang_mode = true
+	self.txt = cur
+	self.cost = 0
+	self.actor_money = Actor:money()
+	self:InitControls()
+	self:InitCallbacks()
+end
+
+function UIMsgWnd:InitControls()
+	self:Init(0, 0, 1024, 768)
+	
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_pda_sms.xml")
+	
+	local back = xml:InitFrame("back_frame", self)
+	xml:InitFrame("msg_frame", back)
+	
+	self.edit_box = xml:InitEditBox("edit_box", back)
+	self:Register(self.edit_box, "edit")
+	
+	self.st = xml:InitStatic("msg_text", back)
+	self.st:SetText(cur)
+	self.cost_st = xml:InitStatic("cost", back)
+	self.cost_st:SetText("Стоимость: %c[green]0")
+	
+	self.btn_lang = xml:Init3tButton("btn_language", back)
+	self.btn_lang:SetText("RU")
+	self:Register(self.btn_lang, "button_lang")
+	
+	local b = xml:InitButton("btn_clear", back)
+	self:Register(b, "button_clear")
+	
+	b = xml:Init3tButton("btn_send", back)
+	self:Register(b, "button_send")
+	
+	b = xml:Init3tButton("btn_quit", back)
+	self:Register(b, "button_quit")
+	
+	self.message_box = CUIMessageBoxEx()
+end
+
+function UIMsgWnd:InitCallbacks()
+	self:AddCallbackEx("edit", ui_events.EDIT_TEXT_CHANGED, self.ChangeText)
+	self:AddCallbackEx("button_lang", ui_events.BUTTON_CLICKED, self.OnChangeLanguage)
+	self:AddCallbackEx("button_clear", ui_events.BUTTON_CLICKED, self.OnButtonClear)
+	self:AddCallbackEx("button_send", ui_events.BUTTON_CLICKED, self.OnButtonSend)
+	self:AddCallbackEx("button_quit", ui_events.BUTTON_CLICKED, self.OnButtonQuit)
+end
+
+function UIMsgWnd:OnButtonClear()
+	self.st:SetText(cur)
+	self.txt = cur
+	self:ChangeCost()
+end
+
+function UIMsgWnd:OnButtonSend()
+	if self.actor_money < self.cost then
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Недостаточно средств для отправки сообщения!")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+	elseif #self.txt>1 then
+		local text = self.txt:gsub(cur, "")
+		amk.send_tip("%c[255,255,128,128]"..text, Actor:character_name(), nil, 10, "meceniy")
+		Actor:give_money(-self.cost)
+	--	news_manager.relocate_money(Actor, "out", self.cost)
+		self:OnButtonQuit()
+		find_answer(text)
+	else
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Текст сообщения отсутствует")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+	end
+end
+
+function UIMsgWnd:OnChangeLanguage()
+	self.lang_mode = not self.lang_mode
+	self.btn_lang:SetText(self.lang_mode and "RU" or "EN")
+end
+
+function UIMsgWnd:OnButtonQuit()
+	self.owner:Enable(true)
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu(self, true)
+end
+
+function UIMsgWnd:SplitString()
+	return string.match(self.txt, "([^"..cur.."]*)"..cur.."([^"..cur.."]*)")
+end
+
+function UIMsgWnd:ChangeText()
+	local l = self.edit_box:GetText()
+	if l~="" and l~=cur then
+		if self.lang_mode then l = translit(l) end
+		local s1, s2 = self:SplitString()
+		self.txt = s1..l.."_"..s2
+		self.st:SetText(self.txt)
+		
+		self:ChangeCost()
+	end
+	self.edit_box:SetText("")
+end
+
+function UIMsgWnd:ChangeCost()
+	self.cost = (#self.txt-1) *2	-- руб/знак
+	local clr = (self.actor_money >= self.cost and "%c[green]") or "%c[red]"
+	self.cost_st:SetText("Стоимость:"..clr..string.format(" %d", self.cost))
+end
+
+function UIMsgWnd:CursorMove(mode)
+	if #self.txt<=1 then return end
+	local s1, s2 = self:SplitString()
+	if mode and #s1>0 then
+		self.txt = s1:sub(1,-2)..cur..s1:sub(-1)..s2
+	elseif mode==false and #s2>0 then
+		self.txt = s1..s2:sub(1,1)..cur..s2:sub(2)
+	else
+		return
+	end
+	self.st:SetText(self.txt)
+end
+
+function UIMsgWnd:DelLetter(mode)
+	if #self.txt<=1 then return end
+	local s1, s2 = self:SplitString()
+	if mode==true and #s1>0 then
+		self.txt = s1:sub(1,-2)..cur..s2
+	elseif mode==false and #s2>0 then
+		self.txt = s1..cur..s2:sub(2)
+	else
+		return
+	end
+	self.st:SetText(self.txt)
+	self:ChangeCost()
+end
+
+function UIMsgWnd:OnNewString()
+	local s1, s2 = self:SplitString()
+	self.txt = s1.."\\n"..cur..s2
+	self.st:SetText(self.txt)
+	self:ChangeCost()
+end
+
+local kAlt = {[DIK_keys.DIK_LMENU] = true, [DIK_keys.DIK_RMENU] = true}
+local kShift = {[DIK_keys.DIK_LSHIFT] = true, [DIK_keys.DIK_RSHIFT] = true}
+function UIMsgWnd:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+	
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if kAlt[dik] then self.alt_pressed = true
+		elseif kShift[dik] then self.shift_pressed = true end
+		
+		if (self.shift_pressed and kAlt[dik]) or (self.alt_pressed and kShift[dik]) then
+			self:OnChangeLanguage()
+		end
+		if dik == DIK_keys.DIK_BACK then self:DelLetter(true)
+		elseif dik == DIK_keys.DIK_DELETE then self:DelLetter(false)
+		elseif dik == DIK_keys.DIK_LEFT then self:CursorMove(true)
+		elseif dik == DIK_keys.DIK_RIGHT then self:CursorMove(false)
+		elseif dik == DIK_keys.DIK_ESCAPE then self:OnButtonQuit()
+		elseif dik == DIK_keys.DIK_RETURN then self:OnNewString()
+		end
+	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
+		if kAlt[dik] then self.alt_pressed = nil
+		elseif kShift[dik] then self.shift_pressed = nil end
+	end
+	return true
+end
+
+function find_answer(text)
+	text = string.lower(text)
+	-- вопрос про выброс
+	if string.find(text, "выброс") then
+		local ask = {"когда", "во сколько", "через сколько"}
+		for i, v in ipairs(ask) do
+			if string.find(text, v) then
+				this.do_blow_msg()
+				return
+			end
+		end
+	end
+	
+	local ask = {"привет","здоров","здаров","драсьте","здравствуйте"}
+	for i, v in ipairs(ask) do
+		if string.find(text, v) then
+			local act_name = Actor:character_name()
+			local t = {
+				"Здорово, коль не шутишь.",
+				"Приветствую. Как оно?",
+				"Чего эфир засоряешь, "..act_name.."?!",
+				"Доброго времени. Что, "..act_name..", тоже заняться нечем? Подруливай в Бар."
+			}
+			local npc_name, comm = amk_names_lists.get_strings(true, "stalker", "dolg", "freedom")
+			amk.send_tip(table.random(t), npc_name, math.random(7,12), 10, comm)
+			break
+		end
+	end
+end
+
+function do_blow_msg()
+	local timer = get_timer("blow_shift")
+	local act_name = Actor:character_name()
+	
+	local h = math.floor(timer.time_shift/(3600000))
+	local d = math.floor(h/24)
+	h = h%24
+	
+--	log1("##do_blow_msg: days: "..d..", hours: "..h)
+	
+	local t = {'ожидается', 'будет', 'должен случиться'}
+	local msg = "следующий выброс "..table.random(t)
+	
+	if d>1 then msg = msg.." не раньше, чем через пару дней."
+	elseif d==1 then msg = msg.." примерно через сутки."
+	elseif h>=6 then
+		t = level.get_time_hours()+h
+		if t>24 then
+			t = t-24
+			if t>=18 then msg = msg.." завтра вечером."
+			elseif t>=12 then msg = msg.." завтра днём."
+			elseif t>=4 then msg = msg.." завтра утром."
+			else msg = msg.." ночью." end
+		elseif t>=18 then msg = msg.." сегодня вечером."
+		elseif t>=12 then  msg = msg.." сегодня днём."
+		else msg = msg.." утром." end
+	elseif h>=3 then msg = msg.." через несколько часов."
+	elseif h>=1 then msg = msg.." через час-два."
+	else
+		msg = "выброс может начаться с минуты на минуту, советую подыскать укрытие."
+	end
+	
+	local icon, sender
+	local rnd =  math.random()
+	if act_name=="Стрелок" and rnd>0.8 then
+		msg = "Здравствуй, "..act_name..". Судя по всему, "..msg
+		icon, sender = "doctor", "Доктор"
+	elseif has_alife_info("agroprom_military_case_done") and rnd<0.4 then
+		msg = "Привет, "..act_name..". Наша аппаратура показывает, что "..msg
+		icon, sender = "docent", "Доцент"
+	else
+		msg = "Приветствую. Судя по показаниям приборов, "..msg
+		icon, sender = "saharov", "Сахаров"
+	end
+	amk.send_tip(msg, sender, math.random(7,12), 10, icon)
+end
+

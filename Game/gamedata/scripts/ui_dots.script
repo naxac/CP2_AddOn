@@ -1,0 +1,64 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- инициализация
+class "dots" (CUIScriptWnd)
+
+function dots:__init(owner,objid) super()
+	self.targt = objid
+	self.owner = owner
+	self:InitControls()
+	self:InitCallBacks()
+	BlockUIDescr(true)
+end
+
+function dots:__finalize() end
+
+function dots:InitControls()
+	self:SetWndRect(Frect():set(0,0,1024,768))
+	self:Enable(true)
+	
+	-- файл-описатель наших элементов
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_dots_wnd.xml")
+
+	local dialog					= xml:InitStatic("main_dialog:dialog", self)
+	xml:InitStatic				("main_dialog:capt", dialog)
+	xml:InitStatic				("main_dialog:msg", dialog)
+	
+	-- кнопки
+	self:Register(xml:Init3tButton("main_dialog:btn_1", dialog),"btn_1")
+	self:Register(xml:Init3tButton("main_dialog:btn_quit", dialog),"btn_quit")
+
+	self.edit_box = self:InitEditBoxEx(dialog, 180, 85, 280)
+end
+
+function dots:InitCallBacks()
+	-- тут интерактивные элементы, при определенном действии выполняется заданная ф-ия
+	self:AddCallbackEx("btn_1", ui_events.BUTTON_CLICKED, self.dots1)
+	self:AddCallbackEx("btn_quit", ui_events.BUTTON_CLICKED, self.on_quit)
+end
+
+function dots:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+-- на выход повесим Esc
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:on_quit()
+		elseif dik == DIK_keys.DIK_RETURN then
+			self:dots1()
+		end
+	end
+	return true
+end
+
+function dots:dots1()
+	amk.add_spot_on_map(self.targt, "red_location", self.edit_box:GetText())
+	self:on_quit()
+end
+
+function dots:on_quit()
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu (self,true)
+	BlockUIDescr(false)
+end
+

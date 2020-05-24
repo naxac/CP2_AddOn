@@ -1,0 +1,49 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local dist_wnd = nil
+local nv_on = false
+
+function check_dist( time_delta )
+	if not dist_wnd then return end
+	dist_wnd:SetText( string.format( "%.2f", level.get_target_dist() ) )
+end
+
+function remove_dist()
+	if not dist_wnd then return end
+
+	get_hud():RemoveDialogToRender( dist_wnd )
+	xr_s.unsubscribe( "update", check_dist )
+	xr_s.unsubscribe( "net_destroy", remove_dist )
+end
+
+function remove_nv()
+	if nv_on then
+		nv_on = false
+		level.remove_pp_effector( 1035 )
+		get_console():execute ( "r2_mblur 0." )
+		xr_s.unsubscribe( "net_destroy", remove_nv )
+	end
+end
+
+function on_scope_used( section )
+	if sys_ini:r_bool_ex( section, "scope_ui_distance", false ) then
+		dist_wnd = CUIStatic()
+		dist_wnd:Init( 250, 150, 100, 50 )
+		dist_wnd:SetFont( GetFontLetterica25() )
+		dist_wnd:SetTextColor( 255, 25, 120, 25 )
+		get_hud():AddDialogToRender( dist_wnd )
+		xr_s.subscribe( "update", check_dist )
+		xr_s.subscribe( "net_destroy", remove_dist )
+	end
+	if sys_ini:r_bool_ex( section, "scope_nv", false ) and ( not xr_conditions.is_day() ) then
+		level.add_pp_effector( "bast.ppe", 1035, true )
+		get_console():execute ( "r2_mblur 0.6" )
+		nv_on = true
+		xr_s.subscribe( "net_destroy", remove_nv )
+	end
+end
+
+function on_scope_unused()
+	remove_dist()
+	remove_nv()
+end

@@ -1,0 +1,294 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local binders = {}
+local active_zone = nil
+local monsters_sections = {
+	"dog_normal",
+	"dog_strong",
+	"boar_normal",
+	"boar_strong",
+	"flesh_normal",
+	"flesh_strong",
+	"bloodsucker_normal",
+	"bloodsucker_strong",
+	"snork_normal",
+	"snork_strong",
+	"m_controller_normal",
+	"gigant_normal",
+	"m_poltergeist_normal_tele",
+	"m_poltergeist_normal_flame",
+	"pseudodog_normal",
+	"pseudodog_strong",
+	"psy_dog",
+	"m_tushkano_normal"
+}
+local particles = {
+	"static\\buble_distort00",
+	"static\\buble_distort02",
+	"static\\static_lava_01",
+	"static\\static_lava_02",
+	"anomaly2\\group_items\\gravi_shield_wave",
+	"anomaly2\\group_items\\gravi_wave_distort",
+	"anomaly2\\group_items\\studen_buble_distort01"
+}
+
+function init(obj)
+	obj:bind_object( subway_binder(obj) )
+end
+
+------------------------------------------------------------
+class "subway_binder" ( object_binder )
+
+function subway_binder:__init( obj )
+	super(obj)
+
+	self.inside = false
+	self.activated = false
+	self.timer_active = false
+	self.monster_spawned = 0
+end
+
+function subway_binder:net_spawn( data )
+	if not object_binder.net_spawn( self, data ) then
+		return false
+	end
+	binders[self.object:id()] = self
+
+	if level.get_game_difficulty() == 0 then
+		self.particle = particles_object( particles[math.random(#particles)] )
+		self.particle:play_at_pos( self.object:position() )
+	end
+
+	return true
+end
+
+function subway_binder:net_destroy()
+	binders[self.object:id()] = nil
+
+	if self.particle and self.particle:playing() then
+		self.particle:stop_deffered()
+	end
+
+	object_binder.net_destroy( self )
+end
+
+function subway_binder:actor_update()
+	if self.object:inside( Actor:position() )
+		and inventory.on_belt( "device_scaner" )
+	then
+		if not self.inside then
+			self.inside = true
+			self:on_actor_inside()
+		end
+		if self.timer_active then
+			self:check_timer()
+		end
+	else
+		if self.inside then
+			self.inside = false
+			self:on_actor_outside()
+		end
+	end
+
+	if self.loading then self.loading = nil end
+
+	if self.particle and not self.particle:playing() then
+		self.particle:play_at_pos( self.object:position() )
+	end
+end
+
+function subway_binder:check_timer()
+	local time_shift = self.time - time_global()
+	if time_shift <= 0 then
+		self.activated = true
+		local se_obj = AI:object( self.object:id() )
+		if se_obj then
+			se_obj.activated = true
+			-- level.map_add_object_spot_ser( se_obj.id, "crlc_small", "Пространственный тоннель" )  -- или убрать?
+			sms( "Аномалия успешно просканирована и сохранена в базе данных сканера." )
+			spatial_subway.add_zone( se_obj )
+		end
+		self:break_scan_timer()
+	else
+		local sec = time_shift/1000
+		self.timer:SetText( string.format("%02d:%02d", sec/60, sec%60) )
+		if time_shift <= 5000 and self.txt_change == nil then
+			self.txt_change = true
+			self.timer_text:SetText( "Сохранение..." )
+			start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 1, 3, 2 )
+		end
+	end
+end
+
+function subway_binder:on_actor_inside()
+	active_zone = self.object:id()
+
+	if self.loading then  -- на случай загрузки внутри зоны
+		if self.timer_active then 
+			self:start_scan_timer()
+		end
+		self.loading = nil
+		return
+	end
+	if block_sms() then
+		return
+	end
+
+	if self.activated then
+		sms('Вы вошли в зону "пространственного тоннеля", используйте прибор для перемещения.')
+		if math.random() > 0.9 then
+			start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 1, 3, nil )
+		end
+	else
+		sms("Обнаружена новая аномалия. Используйте прибор для её сканирования и добавления в базу данных.")
+	end
+end
+
+function subway_binder:on_actor_outside()
+	if active_zone == self.object:id() then
+		active_zone = nil
+	end
+
+	local msg
+	if inventory.on_belt( "device_scaner" ) then
+		msg = "Вы покинули зону аномалии. "
+	end
+	if self.timer_active then
+		msg = ( msg or "" ).."Сканирование прервано."
+		self:break_scan_timer()
+	end
+	if msg then sms( msg ) end
+end
+
+function subway_binder:start_scan_timer()
+	if self.time == nil then
+		self.time = math.random(15, 25) * 1000 + time_global()
+	end
+	self.timer_active = true
+
+	local hud = get_hud()
+	self.timer = hud:AddCustomStatic("hud_timer", true):wnd()
+	local time_shift = self.time - time_global()
+	local sec = time_shift/1000
+	self.timer:SetText( string.format("%02d:%02d", sec/60, sec%60) )
+	self.timer_text = hud:AddCustomStatic("hud_timer_text", true):wnd()
+	if time_shift <= 5000 then
+		self.txt_change = true
+		self.timer_text:SetText( "Сохранение..." )
+		start_small_timer( math.random(4000, 7000), self.spawn_monsters, self, 0, 2, 2 )
+	else
+		self.timer_text:SetText( "Сканирование..." )
+		start_small_timer( math.random(3000, 10000), self.spawn_monsters, self, 1, 3, 1 )
+	end
+end
+
+function subway_binder:break_scan_timer()
+	self.time = nil
+	self.timer_active = false
+	self.timer = nil
+	self.timer_text = nil
+	self.txt_change = nil
+
+	local hud = get_hud()
+	if hud:GetCustomStatic("hud_timer") then
+		hud:RemoveCustomStatic("hud_timer")
+	end
+	if hud:GetCustomStatic("hud_timer_text") then
+		hud:RemoveCustomStatic("hud_timer_text")
+	end
+end
+
+function subway_binder:net_save_relevant()
+	return true
+end
+
+function subway_binder:save( packet )
+	object_binder.save( self, packet )
+
+	packet:w_bool( self.activated )
+	if self.activated then return end
+
+	packet:w_bool( self.timer_active )
+	if self.timer_active then
+		packet:w_s32( self.time - time_global() )
+	end
+	packet:w_u8( self.monster_spawned )
+end
+
+function subway_binder:load( reader )
+	self.loading = true
+	object_binder.load( self, reader )
+
+	self.activated = reader:r_bool()
+	if self.activated then return end
+
+	self.timer_active = reader:r_bool()
+	if self.timer_active then
+		self.time = reader:r_s32() + time_global()
+	end
+	self.monster_spawned = reader:r_u8()
+end
+
+-- чтобы жизнь медом не казалась
+function subway_binder:spawn_monsters(cnt_min, cnt_max, flag)
+	if flag and bit_and( self.monster_spawned, flag ) == flag then return end
+
+	local gv, lv = self.object:game_vertex_id(), self.object:level_vertex_id()
+	local pos = self.object:position()
+	local dir = Actor:direction()
+	for i = 1, math.random(cnt_min, cnt_max) do
+		local new_dir = vector_rotate_y( dir, math.random(30, 330) )
+		local new_pos = pos:add( new_dir:mul(math.random(10, 18)) )
+		AI:create( monsters_sections[ math.random(#monsters_sections) ],
+			new_pos, lv, gv )
+	end
+
+	if flag then
+		self.monster_spawned = bit_or( self.monster_spawned, flag )
+	end
+end
+
+------------------------------------------------------------
+function actor_update()
+	for id, binder in pairs(binders) do
+		binder:actor_update()
+	end
+end
+
+function start_scan_timer(zone_id)
+	local binder = binders[zone_id]
+	if binder
+		and binder.timer_active == false
+		and binder.activated == false
+	then
+		binder:start_scan_timer()
+	end
+end
+
+function get_active_zone()
+	if active_zone ~= nil then
+		local binder = binders[active_zone]
+		if binder then
+			return active_zone, binder.activated
+		end
+		log("get_active_zone: error! hasn't binder for zone id: %d", active_zone)
+	end
+	return nil, nil
+end
+
+local no_sms = false
+function sms(text)
+	if no_sms then return end
+	local snd = sound_object([[device\pda\pda_news]])
+	snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+	local msg = "%c[255,160,200,200]Пространственный сканер\\n%c[default]"..text
+	Actor:give_game_news(msg, "ui\\ui_iconsTotal", Frect():set(0,658,83,47), 0, 5000)
+end
+function block_sms( b )
+	if b == nil then
+		return no_sms
+	else
+		no_sms = b
+	end
+end
+

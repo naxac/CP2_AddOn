@@ -1,0 +1,107 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local calls = {
+	"trader1a",
+	"trader1b",
+	"trader3b",
+	"trader_tutorial_pda_on_1",
+	"trader_tutorial_pda_on_2",
+	"trader_tutorial_pda_on_3",
+	"trader_tutorial_pda_on_4",
+	"trader_tutorial_rejection_1",
+	"trader_tutorial_rejection_2",
+	"trader_tutorial_rejection_3",
+	"trader_tutorial_rejection_4",
+}
+
+function on_mm_init(mm)
+	Actor:give_info_portion("paused_on_load")
+	level.hide_indicators()
+	
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_mm_autopause.xml")
+	mm.intro_static = xml:InitStatic("intro_static", mm)
+	mm.progress = xml:InitStatic("load_progress", mm)
+
+	mm.sv = level.get_snd_volume()
+	local con = get_console()
+	mm.sound_volume_eff = con:get_float("snd_volume_eff")
+	mm.sound_volume_music = con:get_float("snd_volume_music")
+	con:execute("snd_volume_music 0")
+
+	-- картинка загружаемой территории
+	local tex_name = "intro\\intro_"..level.name()
+	if not getFS():exist("$game_textures$", tex_name..".dds") then
+		tex_name = "intro\\intro_no_start_picture"
+	end
+	mm.level_intro = CUIStatic()
+	mm.level_intro:SetWndRect(Frect():set(257,369,257+512,369+256))
+	mm.level_intro:InitTexture(tex_name)
+	if device().aspect_ratio < 0.75 then
+		mm.level_intro:SetStretchTexture(true)
+	end
+	mm:AttachChild(mm.level_intro)
+
+	if game_options.PauseTraderCall then
+		mm.time_to_call = 0
+		mm.call = 0
+		mm.prev_call = 0
+		mm.stop_call = 15*1000*1000 -- зовем игрока 15 секунд
+		mm.tmr = profile_timer() -- создаем таймер
+		mm.tmr:start() -- запускаем его
+		mm.last_time = 0 -- инициализируем время последнего апдейта
+	else
+		con:execute("snd_volume_eff 0")
+		level.set_snd_volume(0)
+	end
+end
+
+function mm_on_kbd(mm)
+	if mm.call_sound then mm.call_sound:stop() end
+	level.show_indicators()
+	level.set_snd_volume(mm.sv)
+	local console = get_console()
+	console:execute("snd_volume_eff " .. mm.sound_volume_eff) 
+	console:execute("snd_volume_music " .. mm.sound_volume_music)
+	console:execute("main_menu off")
+	Actor:disable_info_portion("paused_on_load")
+end
+
+function on_mm_update(mm)
+	if mm.tmr then
+		mm.tmr:stop()
+		
+		-- зовем игрока
+		if ( not mm.call_sound ) or ( not mm.call_sound:playing() and mm.time_to_call < mm.tmr:time() and mm.time_to_call < mm.stop_call ) then
+			repeat
+				mm.call = table.random( calls )
+			until mm.call ~= mm.prev_call
+			mm.call_sound = xr_sound.get_safe_sound_object( "characters_voice\\scenario\\trader\\"..mm.call )
+			mm.call_interval = math.random(4,6)
+			mm.call_sound:play( Actor, mm.call_interval, sound_object.s2d )
+			mm.time_to_call = mm.tmr:time() + ( mm.call_sound:length() + mm.call_interval * 1000 ) * 1000
+			mm.prev_call = mm.call
+		end
+		
+		mm.tmr:start()
+	end
+	get_console():hide()
+end
+
+function on_upd()
+	if device().precache_frame<3 then
+		xr_s.unsubscribe("update", autopause.on_upd, true)
+		if _G.g_start_avi then
+			_G.press_any_key_on_start = false
+		else
+			get_console():execute("main_menu on")
+		end
+	end
+end
+-----------------------------------------------
+function main()
+	if game_options.LoadPause then
+		_G.press_any_key_on_start = true
+		xr_s.subscribe("update", autopause.on_upd)
+	end
+end

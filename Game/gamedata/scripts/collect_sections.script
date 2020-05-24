@@ -1,0 +1,192 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-----------------------------------------------------------------------------------------
+-- File           : collect_sections.script
+-- Description    : Извлечение секций игровых объектов из конфигов
+-- Created        : 11.05.2014
+-- Last update    : 08.10.2018
+-- Author         : naxac
+-----------------------------------------------------------------------------------------
+local mylog = function(fmt, ...)
+	local msg = string.format(fmt, ...)
+	if log1 then log1(msg)
+	elseif log123 then log123(msg)
+	elseif script_server_object_version() <= 6
+		or alife() ~= nil
+	then
+		msg = string.gsub(msg, "%s", "_")
+		get_console():execute(msg)
+	end
+end
+
+local included = { "system.ltx" }
+local sections = nil
+local sections_count = 0
+
+local clsid2type = {}
+
+function main( rewrite )
+	if sections and not rewrite then
+		return sections, sections_count
+	end
+
+	sections = {}
+
+	local ini = ini_file("collect_sections.ltx")
+	local res, id, val, s
+	for i = 0, ini:line_count("types")-1 do
+		res, id, val = ini:r_line("types", i, "", "")
+		sections[id] = {}
+		if ini:section_exist(id) then
+			for j = 0, ini:line_count(id)-1 do
+				res, s, val = ini:r_line(id, j, "", "")
+				if clsid[s] then
+					clsid2type[ clsid[s] ] = id
+				end
+			end
+		end
+	end
+
+	if sys_ini.iterate_sections then
+		mylog("[collect_sections.main] iterate sections")
+		sys_ini:iterate_sections( function (section)
+			this.check_section(section)
+		end )
+	elseif io then
+		local fs = getFS()
+		local ex = fs:exist( "$game_config$", "cheat_list.ltx" )
+		if (ex == nil) or rewrite then
+			mylog("[collect_sections.main] create ini-file")
+			local f1 = fs:update_path("$fs_root$", "fsgame.ltx")
+			local f2 = fs:update_path("$game_config$", "cheat_list.ltx")
+			fs:file_copy(f1, f2)
+			
+			this.collect()
+
+			local file = io.open(f2,"w")
+			if file then
+				for k,v in pairs(sections) do
+					file:write("[",k,"]\n")
+					for i,s in pairs(v) do
+						file:write(s,"\n")
+					end
+					file:write("\n")
+				end
+				file:close(file)
+			end
+		else
+			mylog("[collect_sections.main] read ini-file")
+			local spawn_ini = ini_file("cheat_list.ltx")
+			local result, id, value
+			for k, v in pairs(sections) do
+				if spawn_ini:section_exist(k) then
+					for i = 0, spawn_ini:line_count(k)-1 do
+						result, id, value = spawn_ini:r_line(k, i, "", "")
+						if sys_ini:section_exist(id) then
+							table.insert(v, id)
+							sections_count = sections_count + 1
+						end
+					end
+				end
+			end
+		end
+	else
+		mylog("[collect_sections.main] write to table")
+		this.collect()
+	end
+
+	return sections, sections_count
+end
+
+function collect()
+	local fs = getFS()
+	local path, file, ex
+	while true do
+		path = table.remove( included, 1 )
+		ex = fs:exist( "$game_config$", path )
+		if ex == nil then
+			mylog( "! collect_sections: incorrect path: '%s', file not exist", path )
+		elseif ex.modif == 0 then
+			mylog( "~ collect_sections: folder 'config' hasn't full unpack! Can't read file: [%s]", path )
+		else
+			file = fs:r_open("$game_config$", path)
+			find_somewhat( file:r_stringZ(), path )
+		end
+		if #included == 0 then break end
+	end
+end
+-- Ищем секции и инклуды в файле
+function find_somewhat( file, path )
+	-- если путь многоуровневый, то сформируем путь для инклуда
+	local do_path = nil
+	if path:find( "\\" ) then
+		do_path = ""
+		for s in string.gmatch( path, "([%w_]+)\\" ) do
+			do_path = do_path..s.."\\"
+		end
+	--	mylog( "collect_sections: create do-path: %s", do_path )
+	end
+	
+	local sect
+	for line in string.gmatch( file, "[^\n]+" ) do
+		sect = string.match( line, "^(%b[])" )
+		path = string.match( line, '^#include%s+(%b"")' )
+		if sect then	-- нашли секцию
+			sect = sect:sub( 2, -2 )
+			if check_section( sect ) then
+			--	mylog( "collect_sections: section found [%s]", sect )
+			end
+		elseif path then		-- нашли инклуд
+			path = path:sub( 2, -2 )
+			if do_path then path = do_path..path end
+		--	mylog( "collect_sections: include file found '%s'", path )
+			table.insert( included, path )
+		end
+	end
+end
+
+-- Записываем найденные секции в таблицу по группам
+function check_section( sect )
+	-- mylog( "collect_sections.check_section [%s]", sect )
+	if not ( sys_ini:section_exist( sect ) and sys_ini:line_exist( sect, "class" ) ) then return false end
+
+	sections_count = sections_count + 1
+
+	local cls = sys_ini:r_clsid( sect, "class" )
+
+	if sys_ini:line_exist( sect, "inv_name" )
+		and sys_ini:line_exist( sect, "visual" )
+		and sys_ini:line_exist( sect, "description" )	-- check inventory items
+	then
+
+		if ( sys_ini:line_exist( sect, "can_take" )
+			and sys_ini:r_bool( sect, "can_take" ) == false )	-- can't take it
+			or sect:find( "^mp_" )							-- from multiplayer
+		then
+			table.insert( sections.junk, sect )
+			return true
+		end
+
+		-- quest items
+		if sys_ini:line_exist( sect, "quest_item" )
+			and sys_ini:r_bool( sect, "quest_item" ) == true
+		then
+			table.insert( sections.quest_items, sect )
+			return true
+		end
+
+		if clsid2type[cls] then
+			table.insert( sections[ clsid2type[cls] ], sect )
+		else
+			-- other items
+			table.insert( sections.items, sect )
+		end
+		return true
+	else
+		if clsid2type[cls] then
+			table.insert( sections[ clsid2type[cls] ], sect )
+		else
+			table.insert( sections.others, sect )
+		end
+		return true
+	end
+end

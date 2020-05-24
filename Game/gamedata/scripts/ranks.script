@@ -1,0 +1,128 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--[[----------------------------------------------------------------------------
+Хранилище текстовых интерпретаций рангов и функции для работы с ним.
+Чугай Александр
+------------------------------------------------------------------------------]]
+
+-- ранги. формат: {novice={0,30}, experienced={30,60}, ...}
+local stalker_rank_intervals
+local monster_rank_intervals
+
+local stalker_max_rank_name
+local monster_max_rank_name
+
+local ranks_loaded = false
+
+-- парсит заданную строку рангов в заданную таблицу.
+-- возвращает название максимального ранга
+function parse_ranks( s, tbl )
+	s = "0," .. s .. ",1000000"
+
+	local t = parse_names( s )
+	local i = 2
+
+	while i < table.getn( t ) do
+		tbl[t[i]] = { tonumber(t[i-1]), tonumber(t[i+1]) }
+		i = i + 2
+	end
+
+	return t[i-2]
+end
+
+-- вычитывает сталкерские и монстрячие ранги из game_relations.ltx
+function read_all_ranks()
+	stalker_rank_intervals = {}
+	monster_rank_intervals = {}
+
+--	local ltx  = system_ini()
+
+	stalker_max_rank_name = parse_ranks( sys_ini:r_string( "game_relations", "rating" ),         stalker_rank_intervals )
+	monster_max_rank_name = parse_ranks( sys_ini:r_string( "game_relations", "monster_rating" ), monster_rank_intervals )
+
+	ranks_loaded = true
+
+--	print_table( stalker_rank_intervals )
+end
+
+-- 
+function get_rank_name( rank, tbl )
+	for name, interval in pairs( tbl ) do
+		if rank >= interval[1] and rank < interval[2] then
+			return name
+		end
+	end
+	return nil
+end
+
+function get_rank_name_by_val( rank, is_stalker )
+	if is_stalker then
+		return get_rank_name( rank, stalker_rank_intervals ) or stalker_max_rank_name
+	else
+		return get_rank_name( rank, monster_rank_intervals ) or monster_max_rank_name
+	end
+end
+
+-- возвращает название ранга заданного game_object (персонажа)
+function get_obj_rank_name( obj )
+	if not ranks_loaded then
+		read_all_ranks()
+	end
+
+	local obj_rank
+
+	-- HACK ( <-- фи, как некрасиво...)
+	if (obj.m_story_id ~= nil and obj.rank) then
+		obj_rank = obj:rank()
+	else
+		if (obj.character_rank) then
+			obj_rank = obj:character_rank()
+		else
+			if IAmAStalker[obj:clsid()] then
+				obj_rank = stalker_max_rank_name
+			else
+				obj_rank = monster_max_rank_name
+			end
+		
+		end
+	end
+
+	if IAmAStalker[obj:clsid()] then
+		return get_rank_name( obj_rank, stalker_rank_intervals ) or stalker_max_rank_name
+	else
+		return get_rank_name( obj_rank, monster_rank_intervals ) or monster_max_rank_name
+	end
+end
+
+-- возвращает табличку с интервалом рангов для заданного названия интервала
+function get_rank_interval( name )
+	if not ranks_loaded then
+		read_all_ranks()
+	end
+
+	return stalker_rank_intervals[name] or monster_rank_intervals[name]
+end
+
+function change_actor_rank( v )
+    local rank = Actor:character_rank()
+    local new_rank = rank + v
+    Actor:set_character_rank(new_rank)
+
+    local rank_name = get_rank_name_by_val( rank, true )
+    local new_rank_name = get_rank_name_by_val( new_rank, true )
+    if rank_name ~= new_rank_name then
+        if rank > new_rank then
+            amk.send_tip("", "%c[255,255,085,085]Ваш ранг понижен\\n%c[default]Теперь вы "..game.translate_string(new_rank_name), nil, nil, "nano")
+        elseif rank < new_rank then
+            amk.send_tip("", "%c[255,105,239,146]Ваш ранг повышен\\n%c[default]Теперь вы "..game.translate_string(new_rank_name), nil, nil, "nano")
+        end
+    end
+	return new_rank
+end
+
+function get_stalker_rank_intervals()
+	if not ranks_loaded then
+		read_all_ranks()
+	end
+
+	return table.copy({}, stalker_rank_intervals)
+end

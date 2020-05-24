@@ -1,0 +1,284 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local notes = {}
+local cur = "_"	-- курсор
+
+class "list_item" (CUIListItemEx)
+
+function list_item:__init() super()
+	self:SetWndRect		(0,0,220,20)
+	self:SetHighlightColor(GetARGB(255,0,200,0))
+	
+	self.nm					= CUIStatic	()
+	self.nm:SetAutoDelete	(true)
+	self:AttachChild		(self.nm)
+	self.nm:SetWndRect		(1,2,200,18)
+	self.nm:SetTextColor	(255,216,186,140)
+end
+
+
+class "UINotesWnd"  (CUIScriptWnd)
+
+function UINotesWnd:__init(owner) super()
+	self.owner = owner
+	self.lang_mode = true
+	self.txt = cur
+	self.mbox_mode = 0
+	self.need_save = false
+	self:InitControls()
+	self:InitCallbacks()
+	self:FillList()
+end
+
+function UINotesWnd:FillList()
+	local s = ""
+	for i,v in ipairs(notes) do
+		local itm = list_item()
+		if #v>25 then s = v:sub(1,25).."..."
+		else s = v end
+		itm.nm:SetText(s)
+		self.list:AddItem(itm)
+	end
+end
+
+function UINotesWnd:InitControls()
+	self:Init(0, 0, 1024, 768)
+	
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_pda_notepad.xml")
+	
+	local back = xml:InitFrame("back_frame", self)
+	
+	xml:InitFrame("list_frame", back)
+	self.list = xml:InitList("notes_list", back)
+	self.list:ShowSelectedItem(true)
+	self:Register(self.list, "list_notes")
+	
+	self.btn_lang = xml:Init3tButton("btn_language", back)
+	self.btn_lang:SetText("RU")
+	self:Register(self.btn_lang, "button_lang")
+	
+	xml:InitFrame("note_frame", back)
+	self.edit_box = xml:InitEditBox("edit_note", back)
+	self:Register(self.edit_box, "edit")
+	self.st = xml:InitStatic("note_text", back)
+	self.st:SetText(cur)
+	
+	local btn = xml:Init3tButton("btn_del", back)
+	self:Register(btn, "button_delete")
+	
+	btn = xml:Init3tButton("btn_save", back)
+	self:Register(btn, "button_save")
+	
+	btn = xml:InitButton("btn_clear", back)
+	self:Register(btn, "button_clear")
+	
+	btn = xml:Init3tButton("btn_quit", back)
+	self:Register(btn, "button_quit")
+	
+	self.message_box = CUIMessageBoxEx()
+	self:Register(self.message_box,"message_box")
+end
+
+function UINotesWnd:InitCallbacks()
+	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_YES_CLICKED, self.OnMsgYes)
+	self:AddCallbackEx("message_box",		ui_events.MESSAGE_BOX_NO_CLICKED, self.OnMsgNo)
+	self:AddCallbackEx("list_notes",		ui_events.LIST_ITEM_CLICKED,	self.OnListItemClicked)
+	self:AddCallbackEx("button_lang",		ui_events.BUTTON_CLICKED,		self.OnChangeLanguage)
+	self:AddCallbackEx("edit",			ui_events.EDIT_TEXT_CHANGED,	self.ChangeText)
+	self:AddCallbackEx("button_delete",	ui_events.BUTTON_CLICKED,		self.OnButtonDel)
+	self:AddCallbackEx("button_quit",		ui_events.BUTTON_CLICKED,		self.OnButtonQuit)
+	self:AddCallbackEx("button_save",		ui_events.BUTTON_CLICKED,		self.OnButtonSave)
+	self:AddCallbackEx("button_clear",	ui_events.BUTTON_CLICKED,		self.OnButtonClearText)
+end
+
+function UINotesWnd:OnButtonClearText()
+	self.txt = cur
+	self.st:SetText(self.txt)
+end
+
+function UINotesWnd:OnMsgNo()
+	self.for_del = nil
+end
+
+function UINotesWnd:OnMsgYes()
+	if self.mbox_mode==1 then
+		table.remove(notes, self.for_del+1)
+		self.list:RemoveItem(self.for_del)
+		self.st:SetText(cur)
+		self.txt = cur
+		self.for_del = nil
+		self.need_save = true
+		self.list:ResetFocusCapture()
+		self:OnListItemClicked()
+	end
+	self.mbox_mode = 0
+end
+
+function UINotesWnd:OnButtonSave()
+	local tx = self.txt:gsub(cur,"")
+	if tx == "" then
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Отсутствует текст заметки!")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+		return
+	elseif table.find(notes, tx) then
+		self.message_box:Init("select_map")
+		self.message_box:SetText("Такая заметка уже есть.")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+		return
+	end
+	
+	notes[#notes+1] = self.txt:gsub(cur,"")
+	self.need_save = true
+	
+	local s = ""
+	if #tx>25 then s = tx:sub(1,25).."..."
+	else s = tx end
+	
+	local itm = list_item()
+	itm.nm:SetText(s)
+	self.list:AddItem(itm)
+	
+	self:OnListItemClicked()
+end
+
+function UINotesWnd:OnListItemClicked()
+	if self.list:GetSize()==0 then return end
+	local i = self.list:GetSelectedItem()
+	if i < 0 then return end
+	local item = self.list:GetItem(i)
+	if item == nil then return end
+	
+	self.txt = (notes[i+1] or "")..cur
+	self.st:SetText(self.txt)
+end
+
+function UINotesWnd:OnButtonDel()
+	if self.list:GetSize()==0 then return end
+	local i = self.list:GetSelectedItem()
+	if i < 0 then return end
+	local item = self.list:GetItem(i)
+	if item == nil then return end
+	self.for_del = i
+	self.mbox_mode = 1
+	self.message_box:Init("message_box_change_level")
+	self.message_box:SetText("Вы хотите удалить эту запись?")
+	self:GetHolder():start_stop_menu(self.message_box, true)
+end
+
+function UINotesWnd:OnButtonQuit()
+	self.owner:Enable(true)
+	if self.need_save==true then this.save_notes() end
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu(self, true)
+end
+
+function UINotesWnd:OnChangeLanguage()
+	self.lang_mode = not self.lang_mode
+	self.btn_lang:SetText(self.lang_mode and "RU" or "EN")
+end
+
+function UINotesWnd:SplitString()
+	return string.match(self.txt, "([^"..cur.."]*)"..cur.."([^"..cur.."]*)")
+end
+
+function UINotesWnd:ChangeText()
+	local l = self.edit_box:GetText()
+	if l~="" and l~=cur then
+		if self.lang_mode then l = translit(l) end
+		local s1, s2 = self:SplitString()
+		self.txt = s1..l.."_"..s2
+		self.st:SetText(self.txt)
+	else
+		self.text_change = true
+	end
+	self.edit_box:SetText("")
+end
+
+function UINotesWnd:CursorMove(mode)
+	if #self.txt<=1 then return end
+	local s1, s2 = self:SplitString()
+	if mode and #s1>0 then
+		self.txt = s1:sub(1,-2)..cur..s1:sub(-1)..s2
+	elseif mode==false and #s2>0 then
+		self.txt = s1..s2:sub(1,1)..cur..s2:sub(2)
+	else
+		return
+	end
+	self.st:SetText(self.txt)
+end
+
+function UINotesWnd:DelLetter(mode)
+	if #self.txt<=1 then return end
+	local s1, s2 = self:SplitString()
+	if mode==true and #s1>0 then
+		self.txt = s1:sub(1,-2)..cur..s2
+	elseif mode==false and #s2>0 then
+		self.txt = s1..cur..s2:sub(2)
+	else
+		return
+	end
+	self.st:SetText(self.txt)
+end
+
+function UINotesWnd:OnNewString()
+	local s1, s2 = self:SplitString()
+	self.txt = s1.."\\n"..cur..s2
+	self.st:SetText(self.txt)
+end
+
+
+local kAlt = {[DIK_keys.DIK_LMENU] = true, [DIK_keys.DIK_RMENU] = true}
+local kShift = {[DIK_keys.DIK_LSHIFT] = true, [DIK_keys.DIK_RSHIFT] = true}
+function UINotesWnd:OnKeyboard(dik, keyboard_action)
+	CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
+	
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if kAlt[dik] then self.alt_pressed = true
+		elseif kShift[dik] then self.shift_pressed = true end
+		
+		if (self.shift_pressed and kAlt[dik]) or (self.alt_pressed and kShift[dik]) then
+			self:OnChangeLanguage()
+		elseif dik == DIK_keys.DIK_ESCAPE then self:OnButtonQuit()
+		elseif dik == DIK_keys.DIK_LEFT then self:CursorMove(true)
+		elseif dik == DIK_keys.DIK_RIGHT then self:CursorMove(false)
+		end
+		if self.text_change then
+			self.text_change = nil
+			if dik == DIK_keys.DIK_BACK then self:DelLetter(true)
+			elseif dik == DIK_keys.DIK_DELETE then self:DelLetter(false) end
+		end
+		if dik == DIK_keys.DIK_RETURN then self:OnNewString() end
+	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
+		if kAlt[dik] then self.alt_pressed = nil
+		elseif kShift[dik] then self.shift_pressed = nil end
+	end
+	return true
+end
+---------------------------------------------------------------------------------------------
+function save_notes()
+	local p = getFS():update_path("$game_stats$", "pda.notes")
+	local file = io.open(p, "w")
+	for i, v in ipairs(notes) do
+		file:write(v, "\n")	-- тильду ввести не получится, так что будем разделять ей
+	end
+	file:close(file)
+end
+
+function on_load_game()
+	local fs = getFS()
+	local ex = fs:exist("$game_stats$", "pda.notes")
+	if not ex or ex.modif == 0 then
+		local p1 = fs:update_path("$fs_root$", "fsgame.ltx")
+		local p1 = fs:update_path("$game_stats$", "pda.notes")
+		fs:file_copy(p1,p2)
+		return
+	end
+	local p = fs:update_path("$game_stats$", "pda.notes")
+	local file = io.open(p, "r")
+	notes = {}
+	for line in file:lines() do
+		notes[#notes+1] = line
+	end
+	file:close(file)
+end

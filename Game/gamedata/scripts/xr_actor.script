@@ -1,0 +1,132 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- получение некоторых значений с плавающей запятой
+-- параметры бега
+function get_walk_accel()         return Actor:get_actor_float(1440) end
+function get_jump_speed()         return Actor:get_actor_float(1444) end
+function get_run_factor()         return Actor:get_actor_float(1448) end
+function get_run_back_factor()    return Actor:get_actor_float(1452) end
+function get_walk_back_factor()   return Actor:get_actor_float(1456) end
+function get_crouch_factor()      return Actor:get_actor_float(1460) end
+function get_climb_factor()       return Actor:get_actor_float(1464) end
+function get_sprint_koef()        return Actor:get_actor_float(1468) end
+function get_walk_strafe_factor() return Actor:get_actor_float(1472) end
+function get_run_strafe_factor()  return Actor:get_actor_float(1476) end
+-- параметры стрельбы
+function get_disp_base()          return Actor:get_actor_float(1484) end -- в радианах
+function get_disp_aim()           return Actor:get_actor_float(1488) end -- в радианах
+function get_disp_vel_factor()    return Actor:get_actor_float(1492) end
+function get_disp_accel_factor()  return Actor:get_actor_float(1496) end
+function get_disp_crouch_factor() return Actor:get_actor_float(1500) end
+function get_disp_crouch_no_accel_factor()  return Actor:get_actor_float(1504) end
+-- получение некоторых целых и логических значений
+-- режим прицеливания
+function zoom_mode() return bit_and(Actor:get_actor_int(nil, 1480), 1) end -- возвращает 0/1
+--[[
+EActorCameras = {
+	eacFirstEye = 0,
+	eacLookAt = 1,
+	eacFreeLook = 2
+}
+]]
+function get_camera_type()
+	return Actor:get_actor_int(nil, 1328)
+end
+function set_camera_type( v )
+	Actor:set_actor_int(1328, v)
+end
+
+-- установка некоторых значений
+-- параметры бега
+function set_sprint_koef(v)        Actor:set_actor_float(nil, v, 1468) end
+function set_jump_speed(v)         Actor:set_actor_float(nil, v, 1444) end
+function set_walk_accel(v)         Actor:set_actor_float(nil, v, 1440) end
+function set_run_factor(v)         Actor:set_actor_float(nil, v, 1448) end
+function set_run_back_factor(v)    Actor:set_actor_float(nil, v, 1452) end
+function set_walk_back_factor(v)   Actor:set_actor_float(nil, v, 1456) end
+function set_crouch_factor(v)      Actor:set_actor_float(nil, v, 1460) end
+function set_climb_factor(v)       Actor:set_actor_float(nil, v, 1464) end
+function set_walk_strafe_factor(v) Actor:set_actor_float(nil, v, 1472) end
+function set_run_strafe_factor(v)  Actor:set_actor_float(nil, v, 1476) end
+-- параметры стрельбы
+function set_disp_base(v)          Actor:set_actor_float(nil, v, 1484) end -- в радианах
+
+function set_jump_power( v )
+  Actor:set_actor_condition_float( nil, v, 276 )
+end
+function set_walk_power( v )
+  Actor:set_actor_condition_float( nil, v, 284 )
+end
+
+-- получения флагов состояния тела актора
+function actor_body_state()
+	return Actor:get_actor_int(nil, 1432)
+end
+-- установка флагов состояния тела актора
+function set_actor_body_state(flags_to_set, value)
+	local current_flags = Actor:get_actor_int(nil, 1432)
+	local new_flags = value and bit_or(current_flags, flags_to_set) or bit_and(current_flags, bit_not(flags_to_set))
+	Actor:set_actor_int(1432, new_flags)
+end
+------------------------------------------------------------------------------------
+local tbl_check = {}
+
+function change_actor_parameter( line, who, mode, value )
+	local t = tbl_check[line]
+	if not t then
+		t = {}
+		tbl_check[line] = t
+	end
+
+	if mode then	-- restore default parameter
+		t[who] = nil
+		for k,v in pairs(t) do return false end		-- can't enable
+		this["set_"..line]( sys_ini:r_float("actor", line) )
+		return true
+	else
+		t[who] = true
+		for k in pairs(t) do
+			if k~=who then return false end		-- already disabled
+		end
+		this["set_"..line](value or 0)
+		return true
+	end
+end
+
+function walk_off(k)
+	return change_actor_parameter("walk_accel", k, false)
+end
+function walk_on(k)
+	return change_actor_parameter("walk_accel", k, true)
+end
+
+function jump_off(k)
+	return change_actor_parameter("jump_speed", k, false)
+end
+function jump_on(k)
+	return change_actor_parameter("jump_speed", k, true)
+end
+
+function sprint_off(k)
+	return change_actor_parameter("sprint_koef", k, false, 1)
+end
+function sprint_on(k)
+	return change_actor_parameter("sprint_koef", k, true)
+end
+
+function change_move(s, mode)
+	if mode then
+		walk_on(s)
+		jump_on(s)
+	else
+		walk_off(s)
+		jump_off(s)
+	end
+end
+
+function change_actor_weight(delta)
+	local mw = Actor:get_actor_max_weight()
+	local mww = Actor:get_actor_max_walk_weight()
+	Actor:set_actor_max_weight(mw + delta)
+	Actor:set_actor_max_walk_weight(mww + delta)
+end
+

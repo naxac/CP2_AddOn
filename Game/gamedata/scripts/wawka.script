@@ -1,0 +1,241 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local info_tbl = {
+	[1] = {
+		has = {"marsh_dan_umer", "informator_pda_start"},
+		dont_has = {"informator_pda_have", "informator_pda_done", "marsh_dan_umer_newsinfo1"},
+		func = function()
+			start_real_timer("sms_new",math.random(30,60))
+			Actor:give_info_portion("marsh_dan_umer_newsinfo1")
+		end
+	},
+	[2] = {
+		has = {"marsh_dan_umer", "dan_grab_start", "dan_grab_have"},
+		dont_has = {"dan_grab_done", "marsh_dan_umer_newsinfo2"},
+		func = function()
+			start_real_timer("sms_new",math.random(40,70))
+			Actor:give_info_portion("marsh_dan_umer_newsinfo2")
+		end
+	},
+	[3] = {
+		has = {"marsh_dan_umer", "dan_flash_start", "dan_flash_have"},
+		dont_has = {"dan_flash_done", "marsh_dan_umer_newsinfo3"},
+		func = function()
+			start_real_timer("sms_new",math.random(40,70))
+            Actor:give_info_portion("marsh_dan_umer_newsinfo3")
+		end
+	},
+	[4] = {
+		has = {"ucen_talk_est", "yakut_true_start"},
+		dont_has = {"marsh_dan_umer_newsinfo4"},
+		func = function()
+			start_real_timer("sms_new1",math.random(140,170))
+			Actor:give_info_portion("marsh_dan_umer_newsinfo4")
+		end
+	},
+	[5] = {
+		has = {"gar_hellcar_umer", "val_pula_ammo_start"},
+		dont_has = {"val_pula_ammo_done"},
+		func = function()
+			if Actor:object("inventory_sakbox_01") == nil then return end
+			local rnd = math.random
+			if not has_alife_info("val_pula_ammo_newsinfo1") then
+				start_real_timer("sms",rnd(20,30),1)
+				Actor:give_info_portion("val_pula_ammo_newsinfo1")
+			end
+			if not has_alife_info("val_pula_ammo_newsinfo2") then
+				start_real_timer("sms",rnd(50,60),2)
+				Actor:give_info_portion("val_pula_ammo_newsinfo2")
+			end
+			if not has_alife_info("val_pula_ammo_newsinfo3") then
+				start_real_timer("sms",rnd(70,80),3)
+				Actor:give_info_portion("val_pula_ammo_newsinfo3")
+			end
+		end
+	},
+	[6] = {
+		has = {"bandit_krisyk_umer", "bandit_krisyk_finish"},
+		dont_has = {"bandit_krisyk_newsinfo"},
+		func = function()
+			start_real_timer("smska_borova",math.random(7,10))
+			Actor:disable_info_portion("bandit_krisyk_have")
+			Actor:give_info_portion("bandit_krisyk_newsinfo")
+		end
+	},
+	[7] = {
+		has = {"esc_vagon_wounded_umer", "mil_volk_resiver_start"},
+		dont_has = {"mil_volk_resiver_done", "mil_volk_resiver_newsinfo"},
+		func = function()
+			start_real_timer("smska_volka",math.random(30,60))
+			Actor:give_info_portion("mil_volk_resiver_newsinfo")
+		end
+	},
+	[8] = {
+		has = {"mil_freedom_member0018_umer", "mil_max_teleport_08_start"},
+		dont_has = {"mil_max_teleport_08_done", "mil_max_teleport_08_newsinfo"},
+		func = function()
+			start_real_timer("smska_shurupa",math.random(30,60))
+			Actor:give_info_portion("mil_max_teleport_08_newsinfo")
+		end
+	},
+	[9] = {
+		has = {"gar_dm_novice_umer", "gar_dram_novice_mp5_m1_start"},
+		dont_has = {"gar_dram_novice_mp5_m1_done", "gar_dram_novice_mp5_m1_newsinfo"},
+		func = function()
+			Actor:give_info_portion("gar_dram_novice_mp5_m1_newsinfo")
+		end
+	}
+}
+-- перенесено в info_callback актера, потому что весить проверку инфопоршней на апдейт...
+function check_npc_dead()
+	local res
+	for n, t in pairs(info_tbl) do
+		res = true
+		for i,v in ipairs(t.has) do
+			if not has_alife_info(v) then
+				res = false
+				break
+			end
+		end
+		if res then
+			for i,v in ipairs(t.dont_has) do
+				if has_alife_info(v) then
+					res = false
+					break
+				end
+			end
+			if res then
+				t.func()
+				break
+			end
+		end
+	end
+end
+
+
+function add_krysyk_pomer_treasure()
+	treasure_manager.get_treasure_manager():give_treasure("esc_secret_village_rucksack")
+end
+
+function check_bes_dead()
+    local rnd = math.random
+    local have_box = false
+    if Actor and Actor:has_info("gar_hellcar_umer") and 
+        Actor:has_info("val_pula_ammo_start") and 
+        not Actor:has_info("val_pula_ammo_done") then
+            for i=0, Actor:object_count()-1 do
+                local obj = Actor:object(i)
+            if obj and obj:section() == "inventory_sakbox_01" then
+                    have_box = true
+            end
+            end
+            if not Actor:has_info("val_pula_ammo_newsinfo1") then
+                -- for i=0, Actor:object_count()-1 do
+                -- local obj = Actor:object(i)
+                -- if obj and obj:section() == "inventory_sakbox_01" then
+                if have_box then
+                    start_real_timer("sms",rnd(20,30),1)
+                    Actor:give_info_portion("val_pula_ammo_newsinfo1")
+                end
+                if not Actor:has_info("val_pula_ammo_newsinfo2") then 
+                    -- for i=0, Actor:object_count()-1 do
+                    -- local obj = Actor:object(i)
+                    -- if obj and obj:section() == "inventory_sakbox_01" then
+                    if have_box then
+                        start_real_timer("sms",rnd(50,60),2)
+                        Actor:give_info_portion("val_pula_ammo_newsinfo2")
+                    end
+                    if not Actor:has_info("val_pula_ammo_newsinfo3") then
+                        -- for i=0, Actor:object_count()-1 do
+                            -- local obj = Actor:object(i)
+                            -- if obj and obj:section() == "inventory_sakbox_01" then
+                        if have_box then
+                           start_real_timer("sms",rnd(70,80),3)
+                            Actor:give_info_portion("val_pula_ammo_newsinfo3")
+            end
+                        -- end
+                    -- end
+            end
+                -- end
+            end
+     end
+    end
+end
+function smski_besu(st)
+    if st==1 then
+        Actor:give_info_portion("sms_pulya")
+                news_manager.send_tip(game.translate_string("sms_pulya_text"),nil,nil,10000)
+   elseif st==2 then
+        Actor:give_info_portion("sms_lukash")
+                news_manager.send_tip(game.translate_string("sms_lukash_text"),nil,nil,10000)
+   elseif st==3 then
+        Actor:give_info_portion("sms_serega")
+                news_manager.send_tip(game.translate_string("sms_serega_text"),nil,nil,10000)
+   end
+end
+
+function check_krysyk_dead()
+--[[ Продолжение Крысюк - Жила:
+    if Actor and Actor:has_info("bandit_krisyk_umer") and 
+        Actor:has_info("bandit_krisyk_start") and 
+        not Actor:has_info("bandit_krisyk_done") and 
+        not Actor:has_info("bandit_krisyk_newsinfo") then
+                start_real_timer("smska_borova",math.random(7,10))
+            Actor:give_info_portion("bandit_krisyk_newsinfo")
+    end]]
+    if Actor and Actor:has_info("bandit_krisyk_umer") and 
+        Actor:has_info("bandit_krisyk_finish") and 
+        not Actor:has_info("bandit_krisyk_newsinfo")
+	then
+        start_real_timer("smska_borova",math.random(7,10))
+		Actor:disable_info_portion("bandit_krisyk_have")
+        Actor:give_info_portion("bandit_krisyk_newsinfo")
+    end
+--
+end
+function smska_borova()
+	Actor:give_info_portion("sms_borov")
+	news_manager.send_tip(game.translate_string("sms_borov_text"),nil,"borov",10000)
+end
+
+function check_tolik_dead()
+	if Actor and Actor:has_info("esc_vagon_wounded_umer") and 
+		Actor:has_info("mil_volk_resiver_start") and 
+		not Actor:has_info("mil_volk_resiver_done") and 
+		not Actor:has_info("mil_volk_resiver_newsinfo")
+	then
+		start_real_timer("smska_volka",math.random(30,60))
+		Actor:give_info_portion("mil_volk_resiver_newsinfo")
+    end
+end
+function smska_volka()
+	Actor:give_info_portion("sms_volk")
+	news_manager.send_tip(game.translate_string("sms_volk_text"),nil,nil,10000)
+end
+function check_maks_dead()
+	if Actor and Actor:has_info("mil_freedom_member0018_umer") and 
+		Actor:has_info("mil_max_teleport_08_start") and 
+		not Actor:has_info("mil_max_teleport_08_done") and 
+		not Actor:has_info("mil_max_teleport_08_newsinfo")
+	then
+		start_real_timer("smska_shurupa",math.random(30,60))
+		Actor:give_info_portion("mil_max_teleport_08_newsinfo")
+    end
+end
+function smska_shurupa()
+	Actor:give_info_portion("sms_shurup")
+	news_manager.send_tip(game.translate_string("sms_shurup_text"),nil,nil,10000)
+end
+function check_yurik_dead()
+    if Actor and Actor:has_info("gar_dm_novice_umer") and 
+		Actor:has_info("gar_dram_novice_mp5_m1_start") and 
+		not Actor:has_info("gar_dram_novice_mp5_m1_done") and 
+		not Actor:has_info("gar_dram_novice_mp5_m1_newsinfo")
+	then
+--		start_real_timer("smska_dana",math.random(30,60))
+		Actor:give_info_portion("gar_dram_novice_mp5_m1_newsinfo")
+    end
+end
+function smska_dana()
+	Actor:give_info_portion("sms_dan")
+	news_manager.send_tip(game.translate_string("sms_dan_text"),nil,nil,10000)
+end

@@ -1,0 +1,112 @@
+-- File:		UI_NUMPAD.SCRIPT
+-- Description:		Numpad for password input
+-- Created:		23.02.2005
+-- Author:		Serge Vynnychenko
+--
+-- Copyright 2004 GSC Game World
+
+class "numpad" ( CUIScriptWnd )
+
+function numpad:__init( owner ) super()
+	self.owner = owner
+	self:InitControls()
+	self:InitCallBacks()
+	bind_actor.hide_weapon("numpad")
+end
+
+function numpad:__finalize()
+end
+
+function numpad:InitControls()
+	self:Init( 342, 199, 339, 369 )
+
+    local xml = CScriptXmlInit()
+    xml:ParseFile( "ui_numpad_wnd.xml" )
+     
+	xml:InitStatic( "background", self )
+	self.edit_window = xml:InitStatic( "edit_box", self )
+
+	for i = 0, 9, 1 do
+		self:Register( xml:Init3tButton( "btn_"..i, self ), "btn_"..i )
+	end
+	
+	self:Register( xml:Init3tButton( "btn_c", self), "btn_c" )
+	self:Register( xml:Init3tButton( "btn_backspase", self ), "btn_backspase" )
+	self:Register( xml:Init3tButton( "btn_enter", self ), "btn_enter" )
+	self:Register( xml:Init3tButton( "btn_cancel", self ), "btn_cancel" )
+end
+
+
+function numpad:InitCallBacks()
+	self:AddCallbackEx( "btn_enter", ui_events.BUTTON_CLICKED, self.OnButton_Quit_clicked, true )
+	self:AddCallbackEx( "btn_cancel", ui_events.BUTTON_CLICKED, self.OnButton_Quit_clicked, false )
+	
+	for i = 0, 9, 1 do
+		self:AddCallbackEx( "btn_"..i, ui_events.BUTTON_CLICKED, self.AddNumber, i )
+	end
+	
+	self:AddCallbackEx( "btn_c", ui_events.BUTTON_CLICKED, self.OnButton_c_clicked )
+	self:AddCallbackEx( "btn_backspase", ui_events.BUTTON_CLICKED, self.OnButton_backspace_clicked )
+end
+
+function numpad:AddNumber( number )
+	local text = self.edit_window:GetText() or ""
+	
+	if #text > 12 then return end
+
+	self.edit_window:SetText( text..number )
+end
+
+
+function numpad:OnButton_backspace_clicked()
+	local text = self.edit_window:GetText()
+	if text == nil then return end
+
+	self.edit_window:SetText( string.sub( text, 1, -2 ) )
+end
+
+function numpad:OnButton_c_clicked()
+	self.edit_window:SetText( "" )
+end
+
+function numpad:OnButton_Quit_clicked( f )
+	local text = f and self.edit_window:GetText() or ""
+	self.owner:OnNumberReceive( text, f )
+	self.owner = nil
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu( self, true )
+	bind_actor.restore_weapon("numpad")
+end
+
+local num_keys = {
+	[DIK_keys.DIK_0] = 0, [DIK_keys.DIK_NUMPAD0] = 0,
+	[DIK_keys.DIK_1] = 1, [DIK_keys.DIK_NUMPAD1] = 1,
+	[DIK_keys.DIK_2] = 2, [DIK_keys.DIK_NUMPAD2] = 2,
+	[DIK_keys.DIK_3] = 3, [DIK_keys.DIK_NUMPAD3] = 3,
+	[DIK_keys.DIK_4] = 4, [DIK_keys.DIK_NUMPAD4] = 4,
+	[DIK_keys.DIK_5] = 5, [DIK_keys.DIK_NUMPAD5] = 5,
+	[DIK_keys.DIK_6] = 6, [DIK_keys.DIK_NUMPAD6] = 6,
+	[DIK_keys.DIK_7] = 7, [DIK_keys.DIK_NUMPAD7] = 7,
+	[DIK_keys.DIK_8] = 8, [DIK_keys.DIK_NUMPAD8] = 8,
+	[DIK_keys.DIK_9] = 9, [DIK_keys.DIK_NUMPAD9] = 9
+}
+function numpad:OnKeyboard( dik, keyboard_action )  --virtual function
+	CUIScriptWnd.OnKeyboard( self, dik, keyboard_action )
+	
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:OnButton_Quit_clicked( false )
+		elseif num_keys[dik] then
+			self:AddNumber( num_keys[dik] )
+		elseif dik == DIK_keys.DIK_BACK then
+			self:OnButton_backspace_clicked()
+		elseif dik == DIK_keys.DIK_RETURN or dik == DIK_keys.DIK_NUMPADENTER then
+			self:OnButton_Quit_clicked( true )
+		elseif dik == DIK_keys.DIK_DELETE or dik == DIK_keys.DIK_NUMPADCOMMA then
+			self:OnButton_c_clicked()
+		end
+	end
+	
+	return true
+end
+

@@ -1,0 +1,187 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+function add_watertower_sid()
+	if AI:story_object(story_ids.Mil_WaterTower) == nil then
+		netpk:create_restrictor(
+			vector():set(-247.86477661133,-19.468452453613,297.48526000977),
+			85951, 1797,
+			nil, nil,
+			story_ids.Mil_WaterTower
+		)
+	end
+end
+function set_cook_mapspot ()
+   level_tasks.add_location (story_ids.Mil_Cook, "mil_cook_location")
+end
+
+function set_lukash_mapspot ()
+    --level_tasks.add_location (story_ids.Mil_Lukash, "mil_lukash_location")
+end
+
+function mil_lukash_test (npc1, npc2)
+end
+
+-- test !!!
+function mil_test_task_rg6_have ()
+    return Actor:object ("wpn_rg-6") ~= nil
+end
+
+function mil_test_task_l85_have ()
+    return Actor:object ("wpn_l85") ~= nil
+end    
+
+function mil_test_task_lr300_have ()
+    return Actor:object ("wpn_lr300") ~= nil
+end    
+
+function mil_task_rg6_have (task_id, subtask)
+    return Actor:object ("wpn_rg-6") ~= nil 
+end
+
+function mil_task_crazy_flash_have (task_id, subtask)
+    if Actor:object ("crazy_flash") ~= nil then
+       Actor:give_info_portion ("mil_max_flash_get")
+       return true
+    end
+    return false    
+end
+
+function crazy_flash_task_active()
+	return ( has_alife_info("voronin_flesh_start") and not has_alife_info("voronin_flesh_have") )
+		or ( has_alife_info("mil_max_job") and not has_alife_info("mil_max_flash_get") )
+end
+function crazy_flash_task_no_active()
+	return not crazy_flash_task_active()
+end
+
+function crazy_flash_to_actor()
+	local npc = level_object_by_sid(story_ids.Mil_Crazy)
+	if npc then
+		local item = npc:object("crazy_flash")
+		if item then
+			npc:transfer_item(item, Actor)
+			news_manager.relocate_item(Actor, "in", "crazy_flash")
+		end
+	end
+end
+
+function switch_mutants_online (task_id, subtask)
+    Actor:disable_info_portion ("mil_mutants_offline")
+end
+
+function fail_rg6_task (task_id, subtask)
+    if has_alife_info("mil_dolg_after_explode") or
+       has_alife_info("mil_cook_dead") then
+       return true
+    end
+    return false   
+end
+
+function is_actor_enemy_freedom ()
+    local gulag = xr_gulag.get_gulag_by_name("mil_freedom")
+    if gulag == nil or gulag:npc_is_enemy_to_anybody(Actor) == false then
+       return false
+    end    
+    return true
+end
+
+function lukash_job_fail (task_id, subtask)
+    if has_alife_info("mil_lukash_dolg_task_fail") or 
+       this.is_actor_enemy_freedom() then
+       return true
+    end
+    return false     
+end
+
+function max_job_failed (task_id, subtask)
+    if has_alife_info("mil_max_dead") or 
+       this.is_actor_enemy_freedom() then
+       return true
+    end
+    return false     
+end
+
+function courier_job_failed (task_id, subtask)
+    if has_alife_info("mil_leader_quest2_failed") then
+       return true
+    end
+    return false     
+end
+
+function fblockpost_job_failed (task_id, subtask)
+    if has_alife_info("mil_fblockpost_quest_fail") or has_alife_info("mil_fblockpost_commander_dead") or 
+       this.is_actor_enemy_freedom() then
+       return true
+    end
+    return false     
+end
+
+function fblockpost_job_failed2 (task_id, subtask)
+    if has_alife_info("mil_fblockpost_commander_dead") or 
+       this.is_actor_enemy_freedom() then
+       return true
+    end
+    return false     
+end
+
+function miser_task_failed (task_id, subtask)
+    if has_alife_info("mil_miser_task_failed") or 
+       this.is_actor_enemy_freedom() then
+       return true
+    end
+    return false     
+end
+
+
+function sniper_task_fail (task_id, subtask)
+    if has_alife_info("mil_dolg_dead") or has_alife_info("mil_dolg_collected")  or this.is_actor_enemy_dolg() == true then
+       return true
+    end   
+    return false    
+end
+
+function dolg_task_final (task_id, subtask)
+    if Actor ~= nil and has_alife_info("mil_dolg_dead") then
+       Actor:give_info_portion ("mil_dolg_task_final")
+       return false
+    end   
+    
+    return true
+end
+
+function final_subtask_dolg4 (task_id, subtask)
+     return has_alife_info("mil_lukash_dead") 
+end
+
+function final_subtask_dolg5 (task_id, subtask)
+    return has_alife_info("mil_dolg_task_final")
+end
+
+function final_subtask_dolg_main (task_id, subtask)
+    return has_alife_info("mil_lukash_dead") and (has_alife_info("mil_dolg_dead") or has_alife_info("mil_dolg_task_final"))
+end
+
+function dolg_job_fail1 (task_id, subtask)
+    return this.is_actor_enemy_dolg ()
+end
+
+function dolg_job_fail2 (task_id, subtask)
+    return this.is_actor_enemy_dolg ()
+end
+
+function is_actor_enemy_dolg ()
+    local gulag = xr_gulag.get_gulag_by_name ("mil_dolg")
+    if gulag == nil or gulag:npc_is_enemy_to_anybody (Actor) == false then
+       return false
+    end    
+    return true
+end
+
+function bloodsuckers_dead (task_id, subtask)
+    if has_alife_info ("mil_bloodsucker1_dead") == true and 
+       has_alife_info ("mil_bloodsucker2_dead") == true and
+	   has_alife_info ("mil_bloodsucker3_dead") == true and  
+       has_alife_info ("mil_bloodsucker4_dead") == true then
+       return true
+    end   
+    return false
+end

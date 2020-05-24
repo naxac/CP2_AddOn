@@ -1,0 +1,244 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "n_timer"
+
+function n_timer:__init(msg)
+	self.caption = msg or "check n_timer"
+	log1("\n- "..self.caption..": start")
+	self.last_val = 0
+	self.tmr = profile_timer()
+	self.tmr:start()
+end
+
+function n_timer:get(msg, stop_it)
+	if msg==nil then msg = self.caption end
+	
+	self.tmr:stop()
+	local t = self.tmr:time()
+	log1(msg.." :: "..tostring(t-self.last_val))
+	self.last_val = t
+	if stop_it then
+		log1("! total :: "..t.."\n")
+	else
+		log1("~ total :: "..t)
+		self.tmr:start()
+	end
+end
+
+function start_timer(msg)
+	return n_timer(msg)
+end
+
+---------------------------------------------------
+local wnd = nil
+-- флаги материала геометрии
+local mtlFlags = {
+	flBreakable				= {1, "разрушаемый"},
+	flBounceable			= {4, "возможность рикошета"},
+	flSkidmark				= {8, "оставляет тормозной след"},
+	flBloodmark				= {16, "оставляет кровь"},
+	flClimable				= {32, "невидимая лестница"},
+	flPassable				= {128, "проходимый для физических объектов"},
+	flDynamic				= {256, "динамический объект"},
+	flLiquid				= {512, "жидкость (вода)"},
+	flSuppressShadows		= {1024, "заглушает тени"},
+	flSuppressWallmarks		= {2048, "заглушает отметины от пуль"},
+	flActorObstacle			= {4096, "препятствие (силовое поле) для ГГ"},
+	flInjurious				= {268435456, "отбирает здоровье"},
+	flShootable				= {536870912, "непростреливаемый"},
+	flTransparent			= {1073741824, "непрозрачный"},
+	flSlowDown				= {2147483648, "замедляет движение"}
+}
+
+function show_debug_static()
+	local obj = level.get_target_obj()
+	if obj then
+		add_wnd()
+		show_obj_info(obj)
+		return
+	end
+
+	local el = level.get_target_element()
+	if not el then return end
+
+	add_wnd()
+
+	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
+			"%c[yellow]~~~~~~~ TARGET ELEMENT INFO ~~~~~~~\\n"..
+			"%c[default]element ID: %c[gray]"..tostring(el).."\\n"..
+			"%c[default]shootfactor: %c[gray]"..tostring( level.get_tri_shootfactor(nil, el) ).."\\n"
+	
+	local fl = level.get_tri_flags(el)
+	text = text.."%c[default]mtlFlags: %c[gray]"..tostring(fl).."\\n"
+
+	for k, v in pairs(mtlFlags) do
+		if bit_and(fl, v[1]) ~= 0 then
+			text = text.."    "..k.." ["..v[2].."]\\n"
+		end
+	end
+
+	wnd:SetText(text)
+end
+
+	
+function add_wnd()
+	if wnd == nil then
+		wnd = CUIStatic()
+		wnd:Init(10,30,1000,738)
+		wnd:SetAutoDelete(true)
+		wnd:SetTextComplexMode(true)
+		get_hud():AddDialogToRender(wnd)
+
+		xr_s.subscribe("key_press", this.on_key_press)
+		xr_s.subscribe("net_destroy", this.remove_obj_info)
+	end
+end
+
+function show_obj_info(obj)
+	local obj_id = obj:id()
+	local pos = obj:position()
+--	local angle = -obj:direction():getH()
+	local cls = obj:clsid()
+	local str_clsid, se_class = naxac_netpk.get_str_clsid(cls)
+	local text =	"%c[green]------- DEBUG INFO -------\\n \\n"..
+					"%c[yellow]~~~~~~~ OBJECT INFO ~~~~~~~\\n"..
+					"%c[default]name: %c[gray]"..obj:name().."\\n"..
+					"%c[default]section: %c[gray]"..obj:section().."\\n"..
+					"%c[default]id: %c[gray]"..tostring(obj_id).."\\n"..
+					"%c[default]clsid: %c[gray]"..str_clsid.." ["..tostring(cls).."]\\n"..
+					"%c[default]server class: %c[gray]"..se_class.."\\n"..
+					"%c[default]story id: %c[gray]"..tostring( obj:story_id() ).."\\n"..
+					"%c[default]position: %c[gray]"..string.format("%s, %s, %s", pos.x, pos.y, pos.z).."\\n"..
+					"%c[default]level vertex:  %c[gray]"..tostring( obj:level_vertex_id() ).."\\n"..
+					"%c[default]game vertex %c[gray]"..tostring( obj:game_vertex_id() ).."\\n"
+				--	"%c[default]rotation: %c[gray]"..tostring( angle ).."(rad), "..tostring( math.deg(angle) ).."(grad)\\n"..
+	if obj.get_visual_name then
+		local vis = string.gsub(obj:get_visual_name(), "\\", "/")
+		text = text.."%c[default]visual name: %c[gray]"..vis.."\\n"
+	end
+
+	local el = level.get_target_element()
+	if el then
+		text = text.."%c[default]target bone id:  %c[gray]"..tostring(el).."\\n"..
+					"%c[default]target bone name:  %c[gray]"..obj:get_bone_name_by_id(el).."\\n"
+	end
+
+	if obj:is_entity_alive() then
+		text = text.."%c[default]health: %c[gray]"..tostring( obj.health and obj.health or "unknown" ).."\\n"..
+					"%c[default]rank: %c[gray]"..tostring(
+											(obj.rank and obj:rank())
+											or (obj.character_rank and obj:character_rank())
+											or "unknown"
+										).."\\n"..
+					"%c[default]rank name: %c[gray]"..tostring( ranks.get_obj_rank_name(obj) ).."\\n"
+		if obj:is_stalker() or obj:is_trader() then
+			text = text.."%c[default]specific character: %c[gray]"..obj:specific_character().."\\n"..
+						"%c[default]profile name: %c[gray]"..obj:profile_name().."\\n"..
+						"%c[default]character community: %c[gray]"..obj:character_community().."\\n"..
+						"%c[default]character name: %c[gray]"..obj:character_name().."\\n"..
+						"%c[default]money: %c[gray]"..obj:money().."\\n"
+		end
+	elseif obj.condition then
+		text = text.."%c[default]condition: %c[gray]"..tostring( obj:condition() ).."\\n"
+		if obj:is_ammo() then
+			text = text.."%c[default]ammo left: %c[gray]"..tostring( obj:get_ammo_left() ).."\\n"
+		elseif isMagazinedWeapon(nil, cls) then
+			text = text.."%c[default]addon flags: %c[gray]"..tostring( obj:get_addon_flags() ).."\\n"..
+						"%c[default]ammo in magazine: %c[gray]"..tostring( obj:get_ammo_in_magazine() ).."\\n"
+		end
+	end
+
+	local st = db.storage[obj_id]
+	if st then
+		text = text.."%c[yellow]~~~~~~~ LOGIC INFO ~~~~~~~\\n"..
+					"%c[default]stype: %c[gray]"..(st.stype or "<nil>").."\\n"..
+					"%c[default]ini_filename: %c[gray]"..(st.ini_filename or "<nil>").."\\n"..
+					"%c[default]gulag name: %c[gray]"..(st.gulag_name or "<nil>").."\\n"..
+					"%c[default]section logic: %c[gray]"..(st.section_logic or "<nil>").."\\n"..
+					"%c[default]active scheme: %c[gray]"..(st.active_scheme or "<nil>").."\\n"..
+					"%c[default]active section: %c[gray]"..(st.active_section or "<nil>").."\\n"..
+					"%c[default]pstor size: %c[gray]"..tostring( st.pstor and table.size(st.pstor) or 0 ).."\\n"
+		if st.pstor then
+			for k,v in pairs(st.pstor) do
+				text = text.."      "..tostring(k).." = "..tostring(v).."\\n"
+			end
+		end
+	end
+
+	local sobj = AI:object(obj_id) 
+	if sobj then
+		if sobj.smart_terrain_id then
+			local smart_id = sobj:smart_terrain_id()
+			local smart
+			if smart_id and smart_id ~= 65535 then
+				smart = AI:object(smart_id)
+			end
+			text = text.."%c[default]smart_terrain: %c[gray]"..(smart and smart:name() or "NONE").." ["..tostring(smart_id).."]\\n"
+		end
+
+		local data = netpk:get(sobj)
+	--	local t = naxac_netpk.get_object_flags_names(data.object_flags)
+		text = text.."%c[yellow]~~~~~~~ NET PACKET INFO ~~~~~~~\\n"..
+					"%c[default]object_flags: %c[gray]"..tostring(data.object_flags).."\\n"..
+				--	"      "..table.concat(t, ", ").."\\n"..
+					"%c[default]spawn_story_id: %c[gray]"..tostring(data.spawn_story_id).."\\n"..
+					"%c[default]custom_data:\\n"..
+					"%c[gray]    "..( data.custom_data:gsub("\\","/"):gsub("\n", "\\n    ") ).."\\n"
+		-- if data.character_name then
+			-- text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
+		-- end
+		if data.fixed_bones then
+			text = text.."%c[default]fixed_bones: %c[gray]"..data.fixed_bones.."\\n"
+		end
+	end
+
+	wnd:SetText(text)
+end
+
+function remove_obj_info()
+	if wnd == nil then return end
+
+	get_hud():RemoveDialogToRender(wnd)
+	wnd = nil
+
+	xr_s.unsubscribe("key_press", this.on_key_press)
+	xr_s.unsubscribe("net_destroy", this.remove_obj_info)
+end
+function flush_obj_info()
+	local text = wnd and wnd:GetText()
+	if text then
+		text = string.gsub(text, "%%c%[[%w_%s,]+%]", "")
+		text = string.gsub(text, "\\n", "\n")
+		local t = string.explode(text, "\n")
+		for i, v in ipairs(t) do
+			log1(v)
+		end
+		get_console():execute("flush")
+	end
+end
+function flush_obj_name()
+	local text = wnd and wnd:GetText()
+	if text then
+		text = string.gsub(text, "%%c%[[%w_%s,]+%]", "")
+		text = string.gsub(text, "\\n", "\n")
+		local t = string.explode(text, "\n")
+		for i, v in ipairs(t) do
+			if string.find(v, "^name") then
+				log1(v)
+				break
+			end
+		end
+		get_console():execute("flush")
+	end
+end
+
+function on_key_press(dik, bind)
+	if dik == DIK_keys.DIK_DELETE then
+		remove_obj_info()
+	elseif dik == DIK_keys.DIK_RETURN then
+		if ShiftPressed() then
+			flush_obj_name()
+		else
+			flush_obj_info()
+		end
+	end
+end

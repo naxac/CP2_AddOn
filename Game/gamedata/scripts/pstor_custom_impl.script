@@ -1,0 +1,103 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+class "defer_rel_q"
+
+function defer_rel_q:__init()
+	self.classname = "defer_rel_q"
+	self.st = {}
+end
+
+function defer_rel_q:save(packet)
+	local k,v
+	local n = 0
+	for k,v in pairs(self.st) do
+		n = n + 1
+	end
+	packet:w_u16(n)
+
+	local time = math.floor(time_global() * 0.001)
+	for k,v in pairs(self.st) do
+		packet:w_u16(k)
+		if v <= time then
+			packet:w_u16(0)
+		else
+			packet:w_u16(v - time)
+		end
+	end
+end
+
+function defer_rel_q:load(packet)
+	local i,k
+	local time = math.floor(time_global() * 0.001)
+	for i = 1,packet:r_u16() do
+		k = packet:r_u16()
+		self.st[k] = time + packet:r_u16()
+	end
+end
+
+---------------------
+class "peshera_clear"
+
+function peshera_clear:__init()
+	self.classname = "peshera_clear"
+	self.st = {}
+end
+
+function peshera_clear:save(packet)
+	packet:w_u16(table.size(self.st))
+	for k in pairs(self.st) do
+		packet:w_u16(k)
+	end
+end
+
+function peshera_clear:load(packet)
+	local k
+	for i = 1,packet:r_u16() do
+		k = packet:r_u16()
+		self.st[k] = true
+	end
+end
+---------------------------------
+-- сохранение параметров варки артефактов по рецепту
+class "af_var"
+function af_var:__init()
+	self.classname = "af_var"
+	self.st = {}
+end
+
+function af_var:save(pk)
+	pk:w_u8(table.size(self.st))
+	for k, v in pairs(self.st) do
+		pk:w_stringZ(k)
+		pk:w_u8(v.result)
+		pk:w_vec3(v.pos)
+		pk:w_s16(v.gv)
+		pk:w_s32(v.lv)
+		pk:w_u16(v.rem_anom or 0)
+	end
+end
+
+function af_var:load(pk)
+--	local rt0 = pk:r_tell()
+	local n = pk:r_u8()
+	if n == 0 then
+		log("! ERROR! af_var:load: saved trnsform not found")
+		xr_logic.pstor_clear_custom(Actor, "af_var")
+		return
+	end
+
+	local v
+	for i = 1, n do
+		v = pk:r_stringZ()
+		local t = {}
+		self.st[v] = t
+
+		t.result = pk:r_u8()
+		t.pos = vector()
+		pk:r_vec3(t.pos)
+		t.gv = pk:r_s16()
+		t.lv = pk:r_s32()
+		v = pk:r_u16()
+		if v ~= 0 then t.rem_anom = v end
+	end
+--	log("~ af_var:load, active recipes count: %d, packet size: %d", n, pk:r_tell() - rt0)
+end

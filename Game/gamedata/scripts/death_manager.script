@@ -1,0 +1,463 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local math_random = math.random
+
+--' Ключем является группировка персонажа. Значением является таблица, содержашая имена секций предметов.
+local item_by_community = {}
+
+--' Множители и минимаксы для выпадения вещей в зависимости от уровня
+local count_by_rank = {}
+
+--' Предметы, которые нельзя удалять (квестовые например)
+local always_keep_item = {}
+
+-- Предметы, которые удаляются всегда
+local always_offs_items = {}
+
+-- уникальные стволы, которые не разряжаются и всегда должны быть исправны
+unique_wpn = {
+	["wpn_lr300_m1"] = true,
+	["wpn_beretta_m1"] = true,
+	["wpn_gauss2b"] = true,
+	["wpn_fot"] = true,
+	["wpn_mp5_m1"] = true,
+	["wpn_m4_m1"] = true,
+	["wpn_browningauto5"] = true,
+	["wpn_cz550"] = true,
+	["wpn_shmel"] = true
+}
+
+-- эти вещи остаются с указанной вероятностью
+local always_offs_items_prob = {
+	["guitar_a"]=0.02,
+	["balalaika_a"]=0.02,
+	["harmonica_a"]=0.02,
+}
+
+-- Таблица выдачи инфопорций по части имени погибшего непися.
+local names_info = {
+	["snip_esc1"] = "snip_esc1_dead",
+	["snip_esc2"] = "snip_esc2_dead",
+	["snip_esc3"] = "snip_esc3_dead",
+	["snip_esc4"] = "snip_esc4_dead",
+	["snip_esc5"] = "snip_esc5_dead",
+	["snip_esc6"] = "snip_esc6_dead",
+	["snip_esc7"] = "snip_esc7_dead",
+	["snip_esc8"] = "snip_esc8_dead",
+	["snip_esc9"] = "snip_esc9_dead",
+	["snip_esc10"] = "snip_esc10_dead",
+	["snip_esc11"] = "snip_esc11_dead",
+	["snip_esc12"] = "snip_esc12_dead",
+	["naem_zahar1"] = "naem_zahar1_dead",
+	["naem_zahar2"] = "naem_zahar2_dead",
+	["naem_zahar3"] = "naem_zahar3_dead",
+	["naem_zahar4"] = "naem_zahar4_dead",
+	["naem_zahar5"] = "naem_zahar5_dead",
+	["naem_zahar6"] = "naem_zahar6_dead",
+	["ecolog_wound_bunker"] = "ucen_talk_est",
+	["mitya"] = "mitya_dead",
+	["grab_stal1"] = "grab_stal1_dead",
+	["grab_stal2"] = "grab_stal2_dead",
+	["grab_stal3"] = "grab_stal3_dead",
+	["grab_stal4"] = "grab_stal4_dead",
+	["grab_stal5"] = "grab_stal5_dead"
+}
+
+-- вероятность выпадения бронежилетов и диапазон состояний выпавших бронежилетов и оружия
+-- condition - диапазон состояний выпавших бронежилетов и оружия
+-- probability_outfit - вероятность выпадения бронежилетов
+local data_by_community = {
+	default = { -- значения по-умолчанию для неизвестной группировки
+		condition = {min = 5, max = 95},
+		probability_outfit = 15
+	},
+	communities = {
+		["military"]	= {
+			condition			= {min = 35, max = 75},
+			probability_outfit	= 20
+		},
+		["killer"]		= {
+			condition			= {min = 45, max = 75},
+			probability_outfit	= 20
+		},
+		["monolith"]	= {
+			condition			= {min =  5, max = 45},
+			probability_outfit	= 15
+		},
+		["zombied"]		= {
+			condition			= {min =  15, max = 35},
+			probability_outfit	= 15
+		},
+		["bandit"]		= {
+			condition			= {min = 25, max = 55},
+			probability_outfit	= 20
+		},
+		["stalker"]		= {
+			condition			= {min = 25, max = 70},
+			probability_outfit	= 20
+		},
+		["dolg"]		= {
+			condition			= {min = 35, max = 70},
+			probability_outfit	= 20
+		},
+		["freedom"]		= {
+			condition			= {min = 35, max = 70},
+			probability_outfit	= 20
+		},
+		["ecolog"]		= {
+			condition			= {min = 35, max = 70},
+			probability_outfit	= 20
+		},
+		["sniper"]		= {
+			condition			= {min = 55, max = 85},
+			probability_outfit	= 15
+		},
+		["green"]		= {
+			condition			= {min = 35, max = 70},
+			probability_outfit	= 15
+		},
+		["nebo"]		= {
+			condition			= {min = 25, max = 65},
+			probability_outfit	= 20
+		},
+		["lastday"]		= {
+			condition			= {min = 25, max = 60},
+			probability_outfit	= 10
+		}
+	}
+}
+
+-- Письма
+local total_letters = 43	-- всего писем
+local letters_tbl = {}
+
+function init_drop_settings()
+--	local tmr = naxac_debug.start_timer("init_drop_settings")
+	
+	local ini = ini_file("misc\\death_generic.ltx")
+	local str_gfind = string.gfind
+	
+	local n
+	local result, id, value
+	
+    for k,v in pairs(data_by_community.communities) do
+        --' Необходимо заполнить таблицу
+        item_by_community[k] = {}
+        if ini:section_exist(k) then
+			n = ini:line_count(k)
+			local t = item_by_community[k]
+			for i=0,n-1 do
+				result, id, value = ini:r_line(k,i,"","")
+				t[id] = 1000 * tonumber(value)
+			end
+        end
+    end
+
+	--' Предметы, относящиеся к патронам. Их надо спаунить другим методом.
+	local t_ammo = {}
+	n = ini:line_count("ammo_sections")
+	for i = 0, n-1 do
+		result, id, value = ini:r_line("ammo_sections",i,"","")
+		if id and id~="" then
+			t_ammo[id] = sys_ini:r_u32(id, "box_size")
+		end
+	end
+	_G.ammo_sections = t_ammo
+
+
+	--' Множители и минимаксы для выпадения вещей в зависимости от ранга
+    local tRanks = ranks.get_stalker_rank_intervals()
+	local sCount = "item_count_" .. level.get_game_difficulty()
+	local count_min, count_max, t, m
+	for rank_name in pairs(tRanks) do
+		local tt = {}
+		count_by_rank[rank_name] = tt
+		for i = 0, ini:line_count(rank_name)-1 do
+			result, id, value = ini:r_line(rank_name,i,"","")
+			m = tonumber(value)
+
+			t = {}
+			for v in str_gfind( ini:r_string(sCount, id), "[%d%.%-]+" ) do
+				t[#t+1] = tonumber(v)
+			end
+			if #t == 0 then
+				abort("Error on [death_ini] declaration. Section [%s], line [%s]", sCount, tostring(id))
+			end
+
+			count_min = t[1] *m
+			count_max = (t[2] or t[1]) *m
+			tt[id] = {min = count_min, max = count_max}
+		end
+	end
+
+	--' Предметы, которые нельзя удалять (квестовые например)
+    n = ini:line_count("keep_items")
+	for i=0,n-1 do
+		result, id, value = ini:r_line("keep_items",i,"","")
+		always_keep_item[id] = true
+    end
+
+	-- Предметы, которые удаляются всегда
+	always_offs_items = {}
+    n = ini:line_count("always_off_items")
+	for i=0,n-1 do
+		result, id, value = ini:r_line("always_off_items",i,"","")
+		always_offs_items[id] = true
+	end
+
+	-- Письма
+	ini = ini_file("misc\\letters.ltx")
+	for i=1, total_letters do
+		n = "letter_"..i
+		if ini:section_exist(n) then
+			local tt = {}
+			letters_tbl[n] = tt
+			tt.done = has_alife_info(n)
+			if ini:line_exist(n, "communities") then
+				tt.communities = {}
+				for a in str_gfind(ini:r_string(n, "communities"), "[%w_]+") do
+					table.insert(tt.communities, a)
+				end
+			end
+		end
+	end
+
+--	tmr:get("read letters", true)
+end
+
+function on_npc_death(npc)
+end
+
+function create_release_items(npc)
+	if npc == nil then return end
+	
+	--' Спрашиваем у серверного объекта генерились ли предметы
+	local se_obj = AI:object(npc:id())
+	if (se_obj == nil) or (se_obj.death_droped == true) then return end
+	se_obj.death_droped = true
+
+	local npc_community = npc:character_community()
+	local data = data_by_community.communities[npc_community]
+	if not data then
+		data = data_by_community.default
+	end
+
+	local cond = data.condition
+	local cond_add = 5*(3-level.get_game_difficulty())
+	
+	local ini = npc:spawn_ini()
+	local totally_broken_weapon = ( ini and ini:section_exist("totally_broken_weapon") )
+	local dont_spawn_loot = ( ini and ini:section_exist("dont_spawn_loot") )
+
+	local active_item_id = npc:active_item() and npc:active_item():id()
+	local pistol_id = npc:item_in_slot( inventory_slots.PISTOL ) and npc:item_in_slot( inventory_slots.PISTOL ):id()
+	local rifle_id = npc:item_in_slot( inventory_slots.RIFLE ) and npc:item_in_slot( inventory_slots.RIFLE ):id()
+	
+	local spawn_items = item_by_community[npc_community]
+	local tCnt = count_by_rank[ ranks.get_obj_rank_name(npc) ]
+
+    --' Запускаем итератор на удаление предметов
+	local se_item, sect, item_id
+    npc:iterate_inventory(function (nepis, item)
+		item_id = item:id()
+		se_item = AI:object(item_id)
+		if se_item == nil then return end
+		sect = item:section()
+		if always_offs_items[sect] or _G.ammo_sections[sect] then
+			if item_id ~= active_item_id then
+				AI:release(se_item, true)
+			end
+		elseif always_offs_items_prob[sect] and math_random() > always_offs_items_prob[sect] then
+			if item_id ~= active_item_id then
+				AI:release(se_item, true)
+			end
+		elseif isMagazinedWeapon(item)
+			and ( pistol_id      == item_id
+			or    rifle_id       == item_id
+			or    active_item_id == item_id )
+		then
+			--	Оставляем немного патронов в магазине
+			local n = math.floor( sys_ini:r_u32(sect, "ammo_mag_size") * math_random(0, cond.min) / 100 )
+			item:set_ammo_elapsed(n)
+			if not dont_spawn_loot then
+				this.spawn_ammo_for_weapon(npc, item, spawn_items, tCnt)
+			end
+			if item:condition() < 0.95 or unique_wpn[sect] then return end
+			if totally_broken_weapon then
+				item:set_condition(0.01)
+			else
+				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
+			end
+		elseif IAmAKnife[ item:clsid() ] then
+			if nepis:active_slot() ~= inventory_slots.KNIFE then
+				table.insert( rx_ai.ids_to_remove,item_id )
+			else
+				if item:condition() < 0.95 then return end
+				item:set_condition((math_random(cond.min, cond.max)+cond_add)/100)
+			end
+		end
+	end
+	, npc)
+
+	start_small_timer(1000, death_manager.set_wpn_cond, npc, cond.min, cond.max, cond_add, totally_broken_weapon)
+	
+	--' Проверка на отсутствие спауна лута
+	if dont_spawn_loot then
+		return
+	end
+
+	--' Доспавниваем необходимое количество итемов:
+	--' Необходимо составить список объектов которые могут быть заспавнены для персонажа
+	if spawn_items then
+		local number
+		for k, v in pairs(spawn_items) do		
+			if ammo_sections[k] == nil then
+				--' По каждому объекту необходимо получить количество
+				number = math.ceil( math_random(tCnt[k].min, tCnt[k].max) )
+				--' Необходимо заспавнить нужное количество.
+				create_items(npc, k, number, v) 
+			end
+		end
+	end
+	
+	--' Даем письмо
+	this.give_letter(npc)
+	
+	local vis = nil
+	local npc_name = protected_items.get_obj_name(npc)
+	if (not string.find(npc:section(), "arena")) and
+		npc_community ~= "arena_enemy" and
+		npc_name ~= "yan_specnaz_dead" and
+		npc_name ~= "x16_stalker_ghost" then
+		local visual = string.explode(npc:get_visual_name(), "\\")
+		vis = visual[#visual]
+	end
+	
+	if vis then
+		sect = xrs_armor.get_suit_sect(vis, npc_name)
+		if sect then
+			se_item = create_items(npc, sect, 1, data.probability_outfit * 10)
+			if se_item then
+				start_real_timer("outfit_cond",1,{se_item.id, cond.min, cond.max})
+			end
+		end
+	end
+
+	local info = names_info[npc_name]
+	if info and Actor:dont_has_info(info) then
+		Actor:give_info_portion(info)
+	end
+end
+
+function set_wpn_cond(npc, cond_min, cond_max, cond_add, totally_broken_weapon)
+	local se_npc = AI:object(npc:id())
+	if se_npc == nil or not se_npc.online then return end
+
+	local section
+    npc:iterate_inventory(function (nepis, item)
+		if not ( item and item.id and AI:object( item:id() ) ) then return end
+
+		section = item:section()
+		if isMagazinedWeapon(item) and unique_wpn[section] == nil then
+			--	Оставляем немного патронов в магазине
+			local n = math.floor( sys_ini:r_u32(section, "ammo_mag_size") * math_random(0, cond_min) / 100 )
+			item:set_ammo_elapsed(n)
+			if item:condition() < 0.95 then return end
+			if totally_broken_weapon then
+				item:set_condition(0.01)
+			else
+				item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
+			end
+		elseif IAmAKnife[ item:clsid() ] then
+			item:set_condition((math_random(cond_min, cond_max)+cond_add)/100)
+		end
+	end
+	, npc)
+end
+
+function spawn_ammo_for_weapon(npc, wpn, spawn_tbl, count_tbl)
+	if not (spawn_tbl and count_tbl) then
+		return
+	end
+
+	local wpn_sect = wpn:section()
+	if sys_ini:line_exist(wpn_sect, "ammo_class") then
+		local count = 0
+		for j, a in ipairs( sys_ini:r_list(wpn_sect, "ammo_class") ) do
+			if spawn_tbl[a] then
+				count = math.ceil( math_random(count_tbl[a].min, count_tbl[a].max) )
+				create_items( npc, a, count, spawn_tbl[a] )
+			end
+		end
+
+		if ( sys_ini:r_u32(wpn_sect, "grenade_launcher_status") == 1
+			or bit_and(wpn:get_addon_flags(), addon_flags.grenade_launcher) ~= 0 )
+			and sys_ini:line_exist(wpn_sect, "grenade_class")
+		then
+			for j, a in ipairs( sys_ini:r_list(wpn_sect, "grenade_class") ) do
+				if spawn_tbl[a] then
+					count = math.ceil( math_random(count_tbl[a].min, count_tbl[a].max) )
+					create_items( npc, a, count, spawn_tbl[a] )
+				end
+			end
+		end
+	end
+end
+
+--' Функция спавнит необходимое число предметов
+function create_items(npc, section, number, rnd)
+	if npc == nil then return end
+	if number == 0 then return end
+	--'printf("create %s of %s", tostring(number), tostring(section))
+	if _G.ammo_sections[section] ~= nil then
+		se_respawn.create_ammo(section,
+								npc:position(),
+								npc:level_vertex_id(),
+								npc:game_vertex_id(),
+								npc:id(),
+								number)
+	else
+		for i=1,number do
+			--' Проверяем вероятность появить каждый объект в отдельности
+			if math_random(1000) <=  rnd then
+				return AI:create(section, npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+			end
+		end
+	end
+end
+
+function give_letter(npc)
+	if math.random() > 0.01 then return end
+--	if game_options.DEBUG then amk.send_tip("","Спавним письмо") end
+	local tmp = {}
+	local comm = npc:character_community()
+	for k,v in pairs(letters_tbl) do
+		if v.done==false and
+			(v.communities==nil or table.find(v.communities, comm))
+		then
+			tmp[#tmp+1] = k
+		end
+	end
+	
+	if #tmp>0 then
+		local s = tmp[math.random(#tmp)]
+		letters_tbl[s].done = true
+		local obj = amk.spawn_item_in_inv("letter", npc)
+		local t = { custom_data = s }
+		netpk:modify(obj, t, netpk.fState)
+	end
+end
+
+function give_letter_info(sobj)
+	local t = netpk:get(sobj, netpk.fState)
+	local s = t.custom_data
+	if letters_tbl[s] and not has_alife_info(s) then
+		Actor:give_info_portion(s)
+		archievements.acv_count_event("acv_ptln", 30, "Почтальон")
+	else
+		amk.send_tip("Совсем не разобрать ничего, выкину-ка я лучше эту бумажку...", "$actor:")
+	end
+end
+
+function get_keep_items()
+	return table.copy({}, always_keep_item)
+end

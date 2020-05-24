@@ -1,0 +1,35 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local last_tmr, eat_snd = nil, nil
+
+function use_snd(section)
+	if _G['biznes_remove_special_item'] then return end
+
+	if sys_ini:line_exist(section, "use_sound") then
+		local snd_name = sys_ini:r_string(section, "use_sound")
+		local snd = sound_theme.use_snd_themes[snd_name]
+		ASSERT(snd, "[zvuki.use_snd]: can not find sound for %s, use_sound: %s", section, snd_name)
+
+		if eat_snd and eat_snd:playing() then
+			eat_snd:stop()
+		end
+
+		eat_snd = xr_sound.get_safe_sound_object( table.random(snd) )
+		eat_snd:play_at_pos(Actor, vector(), 0, sound_object.s2d)
+
+		local gd = level.get_game_difficulty()
+		if gd > 0 then
+			remove_small_timer(last_tmr)
+			bind_actor.hide_weapon("eat")
+			last_tmr = start_small_timer( gd*2000, this.stop_eat )
+		end
+	end
+end
+
+function stop_eat()
+	if eat_snd and eat_snd:playing() then
+		eat_snd:stop()
+	end
+	bind_actor.restore_weapon("eat")
+end
+
+	

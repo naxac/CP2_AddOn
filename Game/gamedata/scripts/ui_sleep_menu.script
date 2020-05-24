@@ -1,0 +1,118 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+--/amk_rel_1/
+-- инициализация
+class "UISleepWnd" ( CUIScriptWnd )
+
+function UISleepWnd:__init( val )
+	super()
+
+	self.can_sleep_time = val / 10
+	self:InitControls()
+	self:InitCallBacks()
+
+	BlockUIDescr( true )
+end
+
+function UISleepWnd:__finalize() end
+
+function UISleepWnd:InitControls()
+	-- здесь определяем координаты левого верхнего угла и ширину-высоту
+	self:Init( 50, 50, 550, 450 )
+
+	-- файл-описатель наших элементов
+	local xml = CScriptXmlInit()
+	xml:ParseFile( "ui_sleep_menu.xml" )
+
+	-- видео на заднем плане
+	xml:InitStatic( "back_video", self )
+
+	-- рамка
+	xml:InitStatic( "background", self )
+	xml:Init3tButton( "caption", self )
+
+	-- Шкала усталости
+	local cond_sleep = xml:InitFrame( "frame_need_sleep", self )
+	local scale = xml:InitStatic( "scale_need_sleep", cond_sleep )
+	local m = ( self.can_sleep_time % 1 ) * 60
+	scale:SetText( string.format( "Можно поспать: %02dч. %02dмин.", math.floor( self.can_sleep_time ), m ) )
+	local cond = self.can_sleep_time * sleep_manager.sleep_factor / sleep_manager.sleep_critical
+	scale:SetWidth( scale:GetWidth() * cond )
+	local r = ( cond >= 0.5 and 255 ) or cond * 510
+	local g = ( cond < 0.5 and 255 ) or ( 1-cond ) * 510
+	scale:SetColor( GetARGB( 255, r, g, 10 ) )
+	
+	-- кнопки
+	local btn = xml:Init3tButton( "btn_sleep_10min", self )
+	self:Register( btn,"sleep_10min" )
+
+	btn = xml:Init3tButton( "btn_sleep_1", self )
+	self:Register( btn,"sleep_1" )
+	btn:Enable( self.can_sleep_time>1/6 )
+	
+	btn = xml:Init3tButton( "btn_sleep_3", self )
+	self:Register( btn,"sleep_3" )
+	btn:Enable( self.can_sleep_time>1 )
+	
+	btn = xml:Init3tButton( "btn_sleep_5", self )
+	self:Register( btn,"sleep_5" )
+	btn:Enable( self.can_sleep_time>3 )
+	
+	btn = xml:Init3tButton( "btn_sleep_8", self )
+	self:Register( btn,"sleep_8" )
+	btn:Enable( self.can_sleep_time > 5 )
+	
+	btn = xml:Init3tButton( "btn_sleep_full", self )
+	self:Register( btn,"sleep_full" )
+	
+	-- кнопка выхода
+	self:Register( xml:Init3tButton( "btn_quit", self ), "btn_quit" )
+end
+
+function UISleepWnd:InitCallBacks()
+	-- тут интерактивные элементы, при определенном действии выполняется заданная ф-ия
+	self:AddCallbackEx( "sleep_10min", ui_events.BUTTON_CLICKED, self.start_sleep, 1/6 )
+	self:AddCallbackEx( "sleep_1",     ui_events.BUTTON_CLICKED, self.start_sleep, 1 )
+	self:AddCallbackEx( "sleep_3",     ui_events.BUTTON_CLICKED, self.start_sleep, 3 )
+	self:AddCallbackEx( "sleep_5",     ui_events.BUTTON_CLICKED, self.start_sleep, 5 )
+	self:AddCallbackEx( "sleep_8",     ui_events.BUTTON_CLICKED, self.start_sleep, 8 )
+	self:AddCallbackEx( "sleep_full",  ui_events.BUTTON_CLICKED, self.start_sleep, self.can_sleep_time )
+	self:AddCallbackEx( "btn_quit", ui_events.BUTTON_CLICKED, self.on_quit )
+end
+
+function UISleepWnd:OnKeyboard( dik, keyboard_action )
+	CUIScriptWnd.OnKeyboard( self,dik,keyboard_action )
+	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
+		if dik == DIK_keys.DIK_ESCAPE then
+			self:on_quit()
+		elseif dik == DIK_keys.DIK_NUMPAD1 then
+			self:start_sleep( 1 )
+		elseif dik == DIK_keys.DIK_NUMPAD2 then
+			self:start_sleep( 3 )
+		elseif dik == DIK_keys.DIK_NUMPAD3 then
+			self:start_sleep( 5 )
+		elseif dik == DIK_keys.DIK_NUMPAD4 then
+			self:start_sleep( 8 )
+		elseif dik == DIK_keys.DIK_NUMPAD5 then
+			self:start_sleep( 1/6 )
+		end
+	end
+	return true
+end
+
+function UISleepWnd:start_sleep( _time )
+	if self.can_sleep_time < _time then
+	--	_time = math.random(self.can_sleep_time*100, _time*100) /100
+		_time = self.can_sleep_time
+	end
+	self:on_quit()
+	sleep_manager.main( _time )
+	local w = level.main_input_receiver()
+	if w then level.start_stop_menu( w, true ) end
+end
+
+function UISleepWnd:on_quit()
+	self:ClearCallbacks()
+	self:GetHolder():start_stop_menu( self, true )
+	BlockUIDescr( false )
+end
+

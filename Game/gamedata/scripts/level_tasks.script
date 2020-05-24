@@ -1,0 +1,54 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+function add_location(sid, location, hint)
+	if AI then
+		local obj = AI:story_object(sid)
+		
+		if obj then
+			if hint then
+				level.map_add_object_spot(obj.id, location, hint)
+			else
+				level.map_add_object_spot(obj.id, location, "")
+			end
+		end
+	end
+end
+
+function remove_location(sid, location)
+	if AI then
+		local obj = AI:story_object(sid)
+		if obj and level.map_has_object_spot(obj.id, location) then
+			level.map_remove_object_spot(obj.id, location)
+		end
+	end
+end
+
+function remove_location_safe(sid, location)
+	if AI then
+		local obj = AI:story_object(sid)
+		if obj then
+		   for a = 1, level.map_has_object_spot(obj.id, location), 1 do
+			   level.map_remove_object_spot(obj.id, location)
+		   end	
+		end
+	end
+end
+
+function is_map_spot_present(sid, location)
+	if AI then
+		local obj = AI:story_object(sid)
+		if obj and level.map_has_object_spot(obj.id, location) ~= 0 then
+		   return true
+		end
+	end
+	return false
+end
+
+function set_task_state(id_state, id_task, id_subtask)
+	if Actor then
+		Actor:set_task_state(id_state, id_task, id_subtask)
+	end
+end
+
+function notify_new_task()
+end

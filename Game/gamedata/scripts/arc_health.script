@@ -1,0 +1,71 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+health_threshold = 1
+
+psy_threshold = 1
+
+power_penalty = 0
+
+local prev_power
+local prev_health = 0
+
+local upd_power = 0
+
+function set_health_threshold(new_ht)
+	health_threshold = new_ht
+end
+
+function set_power_penalty(new_pp)
+	power_penalty = new_pp --(new_pp<1) and new_pp or 1
+end
+
+function set_psy_threshold(new_pt)
+	psy_threshold = (new_pt>0.67) and new_pt or 0.67
+end
+
+function on_actor_update(delta)
+	local h = Actor.health
+	local dh = h - health_threshold
+	
+	if dh>0 then
+		Actor.health = -dh*(1-math.pow(0.998, delta/100))
+	end
+	
+	prev_health = h
+	
+	local ph = Actor.psy_health
+	local dph = ph - psy_threshold
+	
+	if dph>0 then
+		Actor.psy_health = -dph*(1-math.pow(0.987, delta/100))
+	end
+	
+	local p = Actor.power
+	
+	if not prev_power then
+		prev_power = p
+	else
+		local dp = p - prev_power
+		
+		if power_penalty>0 then
+		--	local k = 1 + power_penalty
+			local tmp = 0
+			
+			if dp>0 then
+				tmp = -dp*power_penalty/(power_penalty+1)
+			elseif dp<0 then
+				tmp = dp*power_penalty
+			end
+			
+			Actor.power = tmp
+			prev_power = p + tmp
+		end
+	end
+	
+	if upd_power > 1000 then
+		upd_power = 0
+		if p < 0.5 then
+			sleep_manager.add_sleep(0.01)
+		end
+	end
+	upd_power = upd_power + delta
+end
