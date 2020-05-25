@@ -375,7 +375,6 @@ end
 function effects()
 	level.add_pp_effector(table.random(tabl_pp_effectors), 77777776, false)
 end
-
 -- Основной Спавн с Учётом Территории
 function horrorspawn(level_name)
 	local ap = Actor:position()
@@ -383,10 +382,16 @@ function horrorspawn(level_name)
 	local gv = Actor:game_vertex_id()
 	local n = tabl_horror_by_level[level_name]["spawn"]
 	local rnd = math.random
-	
+
+	local horror_mutants = {}
+	local obj
 	for i=1,rnd(n-5,n+5) do
 		-- секци для ЧУ zombie_hell1 ... zombie_hell15
-		AI:create("zombie_hell"..tostring(rnd(15)), vector():set(ap.x+rnd(-50,50), ap.y, ap.z+rnd(-50,50)), lv, gv)
+		obj = AI:create("zombie_hell"..tostring(rnd(15)), vector():set(ap.x+rnd(-50,50), ap.y, ap.z+rnd(-50,50)), lv, gv)
+		table.insert(horror_mutants, obj.id)
+	end
+	if remove_horror then
+		amk.save_table("hrmt", horror_mutants)
 	end
 end
 
@@ -405,12 +410,14 @@ function remove_horror_mutant()
 	if not remove_horror then return end
 
 	local se_obj
-	for id, obj in pairs (db.creatures) do
+	local horror_mutants = amk.load_table("hrmt")
+	for i, id in ipairs (horror_mutants) do
 		se_obj = AI:object(id)
-		if se_obj and obj:alive() and string.find(obj:section(), "^zombie_hell") then
-			AI:release(se_obj)
+		if se_obj and se_obj:alive() then	--and string.find(se_obj:section(), "^zombie_hell") then
+			AI:release(se_obj, true)
 		end
 	end
+	amk.del_variable("hrmt")
 end
 
 -- функции для диалога Захара
