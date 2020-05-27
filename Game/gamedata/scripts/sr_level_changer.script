@@ -1,0 +1,120 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Схема для перехода между уровнями
+-- naxac /27.05.2020/
+-- С помощью условий on_info, on_timer и т.д. можно включать/отключать переход
+-- Метка на переходе появляется только при выходе рестриктора в онлайн, т.е. когда актёр переходит на уровень с рестриктором
+
+class "action_level_changer"
+
+function action_level_changer:__init(obj, storage)
+	self.object = obj
+	self.st = storage
+
+	self.msgbox_shown = false
+end
+
+function action_level_changer:reset_scheme( loading )
+	self.func_yes = function()
+		level_changers.create_teleport_on_actor(
+			self.st.dest_position,
+			self.st.dest_level_vertex_id,
+			self.st.dest_game_vertex_id,
+			self.st.dest_direction
+		)
+	end
+	self.func_no = function()
+		self.msgbox_shown = false
+		self.timeout = real_time_ms + 5000
+		if self.st.path_move_if_reject then
+			local path = patrol( self.st.path_move_if_reject )
+			Actor:set_actor_position( path:point(0) )
+			local dir = path:point(1):sub( path:point(0) )
+			Actor:set_actor_direction( -dir:getH() )
+		end
+	end
+end
+
+function action_level_changer:update( delta )
+	if not Actor:alive() then
+		return
+	end
+
+	if xr_logic.try_switch_to_another_section( self.object, self.st, Actor ) then
+		return
+	end
+
+	if self.object:inside( Actor:position() ) then
+		self:on_actor_inside()
+	else
+		if self.timeout then
+			self.timeout = nil
+		end
+	end
+end
+
+function action_level_changer:on_actor_inside()
+	if self.st.silent_mode == 0 then
+		if self.msgbox_shown == true then
+			return
+		end
+
+		if self.timeout and self.timeout > real_time_ms then
+			return
+		end
+
+		local text = string.format(
+			game.translate_string( "st_sr_level_changer" ),
+			game.translate_string( level.name() ),
+			game.translate_string( self.st.dest_level_name )
+		)
+		ShowMessageBox("yes_no_alarm", text, self.func_yes, self.func_no)
+		self.msgbox_shown = true
+	else
+		if not self.teleported then
+			self.teleported = true
+			self.func_yes()
+		end
+	end
+end
+
+function action_level_changer:deactivate()
+	if self.st.spot_type and level.map_has_object_spot( self.object:id(), self.st.spot_type ) ~= 0 then
+		level.map_remove_object_spot( self.object:id(), self.st.spot_type )
+	end
+end
+---------------------------------------------------------------------------------------------------------------------
+function add_to_binder(npc, ini, scheme, section, storage)
+	local action = action_level_changer(npc, storage)
+	xr_logic.subscribe_action_for_events(npc, storage, action)
+end
+
+function set_scheme(obj, ini, scheme, section, gulag_name)
+	local st = xr_logic.assign_storage_and_bind(obj, ini, scheme, section)
+	st.logic = xr_logic.cfg_get_switch_conditions(ini, section, obj)
+
+	-- Обязательные параметры
+	st.dest_position = ini:r_vector( section, "dest_position" )
+	st.dest_level_vertex_id = ini:r_u32( section, "dest_level_vertex_id" )
+	st.dest_game_vertex_id = ini:r_u32( section, "dest_game_vertex_id" )
+
+	-- Эти параметры можно не указывать
+	if ini:line_exist( section, "dest_direction" ) then
+		st.dest_direction = ini:r_vector( section, "dest_direction" )
+	end
+	st.silent_mode = ini:r_u32_ex( section, "silent_mode", 0 )
+	st.path_move_if_reject = ini:r_string_ex( section, "pt_move_if_reject", nil )
+
+	st.dest_level_name = AI:level_name( GGraph:vertex(st.dest_game_vertex_id):level_id() )
+
+	if ini:line_exist( section, "map_spot" ) then
+		st.spot_type = ini:r_string( section, "map_spot" )
+		if level.map_has_object_spot( obj:id(), st.spot_type ) == 0 then
+			local spot_hint = ini:r_string_ex( section, "map_hint", nil )
+			if spot_hint == nil then
+				spot_hint = "Переход "..game.translate_string( level.name() ).." - "..game.translate_string( st.dest_level_name )
+			end
+			level.map_add_object_spot_ser( obj:id(), st.spot_type, spot_hint )
+		end
+	end
+end
+
