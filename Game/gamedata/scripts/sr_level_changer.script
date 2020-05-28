@@ -9,8 +9,6 @@ class "action_level_changer"
 function action_level_changer:__init(obj, storage)
 	self.object = obj
 	self.st = storage
-
-	self.msgbox_shown = false
 end
 
 function action_level_changer:reset_scheme( loading )
@@ -32,6 +30,9 @@ function action_level_changer:reset_scheme( loading )
 			Actor:set_actor_direction( -dir:getH() )
 		end
 	end
+
+	self.msgbox_shown = false
+	self.timeout = 0
 end
 
 function action_level_changer:update( delta )
@@ -45,10 +46,8 @@ function action_level_changer:update( delta )
 
 	if self.object:inside( Actor:position() ) then
 		self:on_actor_inside()
-	else
-		if self.timeout then
-			self.timeout = nil
-		end
+	elseif self.timeout > 0 then
+		self.timeout = 0
 	end
 end
 
@@ -58,7 +57,7 @@ function action_level_changer:on_actor_inside()
 			return
 		end
 
-		if self.timeout and self.timeout > real_time_ms then
+		if self.timeout > real_time_ms then
 			return
 		end
 
@@ -93,21 +92,21 @@ function set_scheme(obj, ini, scheme, section, gulag_name)
 	st.logic = xr_logic.cfg_get_switch_conditions(ini, section, obj)
 
 	-- Обязательные параметры
-	st.dest_position = ini:r_vector( section, "dest_position" )
+	st.dest_position        = ini:r_vector( section, "dest_position" )
 	st.dest_level_vertex_id = ini:r_u32( section, "dest_level_vertex_id" )
-	st.dest_game_vertex_id = ini:r_u32( section, "dest_game_vertex_id" )
+	st.dest_game_vertex_id  = ini:r_u32( section, "dest_game_vertex_id" )
 
 	-- Эти параметры можно не указывать
 	if ini:line_exist( section, "dest_direction" ) then
-		st.dest_direction = ini:r_vector( section, "dest_direction" )
+		st.dest_direction   = ini:r_vector( section, "dest_direction" )
 	end
-	st.silent_mode = ini:r_u32_ex( section, "silent_mode", 0 )
-	st.path_move_if_reject = ini:r_string_ex( section, "pt_move_if_reject", nil )
+	st.silent_mode          = ini:r_u32_ex( section, "silent_mode", 0 )
+	st.path_move_if_reject  = ini:r_string_ex( section, "pt_move_if_reject", nil )
 
-	st.dest_level_name = AI:level_name( GGraph:vertex(st.dest_game_vertex_id):level_id() )
+	st.dest_level_name      = AI:level_name( GGraph:vertex(st.dest_game_vertex_id):level_id() )
 
 	if ini:line_exist( section, "map_spot" ) then
-		st.spot_type = ini:r_string( section, "map_spot" )
+		st.spot_type        = ini:r_string( section, "map_spot" )
 		if level.map_has_object_spot( obj:id(), st.spot_type ) == 0 then
 			local spot_hint = ini:r_string_ex( section, "map_hint", nil )
 			if spot_hint == nil then
