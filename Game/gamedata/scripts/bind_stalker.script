@@ -163,7 +163,6 @@ function motivator_binder:net_spawn(sobject)
 end
 
 function motivator_binder:net_destroy()
-	if xrs_ai then xrs_ai.npc_net_destroy(self.object) end
 	if rx_ai then rx_ai.npc_switch_offline(self.object) end
 
 	if #self.particles > 0 then
@@ -286,7 +285,7 @@ end
 
 function motivator_binder:death_callback(victim, who)
 	if self.object == nil then return end
-	if xrs_ai then xrs_ai.npc_death_callback(self.object) end
+	xrs_grenade.death_callback(self.object)
 	if rx_ai then rx_ai.npc_death(self.object,who) end
 
 	if who:section()=="stationary_pkm" then	-- стрелять из турели кроме актора некому: делаем его виновником
@@ -506,7 +505,10 @@ function motivator_binder:update(delta)
 	self.object:info_add('name -- ' .. self.object:name())
 
 --	db.storage[self_object_id].us = 98
-	if xrs_ai then xrs_ai.npc_update(self) end
+	xrs_grenade.npc_update(self)
+--	db.storage[self_object_id].us = 982
+	xrs_armor.npc_update(self)
+--	db.storage[self_object_id].us = 983
 	if rx_ai then rx_ai.npc_update(self.object,self.st) end
 --	db.storage[self_object_id].us = 0
 end
@@ -613,14 +615,9 @@ function addCommonPrecondition(action)
 	action:add_precondition (world_property(blowout_scheme.evid_blowout, false))
 	action:add_precondition (world_property(blowout_scheme.evid_preblowout, false))
 	action:add_precondition(world_property(blowout_scheme.evid_anomaly, false))
-	if ricochet_scheme then
-		action:add_precondition(world_property(ricochet_scheme.evid_ricochet_danger, false))
-	end
-	if watcher_act then
-		action:add_precondition(world_property(watcher_act.evid_see_stuff, false))
-	end
-
-	if xrs_ai then xrs_ai.addCommonPrecondition(action) end
+	action:add_precondition (world_property(xrs_grenade.evid_crazy_grenadier, false))
+	action:add_precondition (world_property(xrs_grenade.evid_aaa_grenade, false))
+	action:add_precondition(world_property(watcher_act.evid_see_stuff, false))
 	if rx_ai then rx_ai.addCommonPrecondition(action) end
 end
 
@@ -639,7 +636,6 @@ function check_art_weapon( npc_id )
 	if not npc then return end
 
 	local item_in_slot = npc:item_in_slot( inventory_slots.PISTOL )
-	local act_item     = npc:active_item()
 	if item_in_slot and item_in_slot:is_artefact() then
 		if npc:active_item() and ( npc:active_item():id() == item_in_slot:id() ) then
 			local item_in_slot_sec = item_in_slot:section()
@@ -657,7 +653,6 @@ function check_art_weapon( npc_id )
 				)
 			end
 
-		local bw = npc:best_weapon()
 			local bw = npc:best_weapon()
 			local be = npc:best_enemy()
 			if bw and bw:is_weapon() then

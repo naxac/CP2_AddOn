@@ -349,7 +349,7 @@ function actor_binder:on_item_take (obj)
 		dunin_ammo.on_take(obj)
 	end 
 
-	if xrs_ai then xrs_ai.actor_item_take(obj) end 
+	xrs_grenade.fake_pickup(obj)
 
     babah.on_item_take(obj)
 
@@ -674,16 +674,18 @@ function actor_binder:update(delta)
 	-- end
   
 	amk.oau_watchdog=182
-	if xrs_ai then xrs_ai.actor_update(delta) end
+	xrs_grenade.update(delta)
+	amk.oau_watchdog=181
+	xrs_armor.update(delta)
 	amk.oau_watchdog=180
 	if rx_ai then rx_ai.actor_update() end
-	-------
+--
 	--проверка зависания биндеров НПЦ и мобов раз в 0,5сек
 	--закомментировано на случай разбора полётов
---[[  if upd_time3 == nil then
-    upd_time3 = time + 500
-  elseif upd_time3 < time then
-    upd_time3 = time + 500  
+  if self.upd_time_us == nil then
+    self.upd_time_us = time + 500
+  elseif self.upd_time_us < time then
+    self.upd_time_us = time + 500  
     if db and db.storage then
       for k,v in pairs(db.storage) do
         if v.us ~= nil and v.us ~= 0 then
@@ -694,7 +696,8 @@ function actor_binder:update(delta)
       end
       self.is_saved = false
     end
-  end]]
+  end
+--
 
 	amk.oau_watchdog=179
 	bind_det_arts.update()
