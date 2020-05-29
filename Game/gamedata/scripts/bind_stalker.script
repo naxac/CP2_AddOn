@@ -163,7 +163,7 @@ function motivator_binder:net_spawn(sobject)
 end
 
 function motivator_binder:net_destroy()
-	if rx_ai then rx_ai.npc_switch_offline(self.object) end
+	rx_ai.npc_switch_offline(self.object)
 
 	if #self.particles > 0 then
 		for kk,vv in pairs(self.particles) do
@@ -276,7 +276,7 @@ function motivator_binder:hit_callback(obj, amount, local_direction, who, bone_i
 		blowout_scheme.hit_callback(obj)
 	end
 
-	if rx_ai then rx_ai.npc_hit(obj,amount,local_direction,who,bone_index,self.object) end
+	rx_ai.npc_hit(obj,amount,local_direction,who,bone_index,self.object)
 
 --	added by xStream for AMK miniSDK
 	amk.on_npc_hit(obj, amount, local_direction, who, bone_index)
@@ -286,7 +286,7 @@ end
 function motivator_binder:death_callback(victim, who)
 	if self.object == nil then return end
 	xrs_grenade.death_callback(self.object)
-	if rx_ai then rx_ai.npc_death(self.object,who) end
+	rx_ai.npc_death(self.object,who)
 
 	if who:section()=="stationary_pkm" then	-- стрелять из турели кроме актора некому: делаем его виновником
 		who = Actor
@@ -509,7 +509,7 @@ function motivator_binder:update(delta)
 --	db.storage[self_object_id].us = 982
 	xrs_armor.npc_update(self)
 --	db.storage[self_object_id].us = 983
-	if rx_ai then rx_ai.npc_update(self.object,self.st) end
+	rx_ai.npc_update(self.object,self.st)
 --	db.storage[self_object_id].us = 0
 end
 
@@ -614,11 +614,11 @@ function addCommonPrecondition(action)
 	action:add_precondition (world_property(blowout_scheme.evid_outside, false))
 	action:add_precondition (world_property(blowout_scheme.evid_blowout, false))
 	action:add_precondition (world_property(blowout_scheme.evid_preblowout, false))
-	action:add_precondition(world_property(blowout_scheme.evid_anomaly, false))
+	action:add_precondition (world_property(blowout_scheme.evid_anomaly, false))
 	action:add_precondition (world_property(xrs_grenade.evid_crazy_grenadier, false))
 	action:add_precondition (world_property(xrs_grenade.evid_aaa_grenade, false))
-	action:add_precondition(world_property(watcher_act.evid_see_stuff, false))
-	if rx_ai then rx_ai.addCommonPrecondition(action) end
+	action:add_precondition (world_property(watcher_act.evid_see_stuff, false))
+	rx_ai.addCommonPrecondition(action)
 end
 
 function play_particle(obj,params)

@@ -111,12 +111,8 @@ function actor_net_spawn()
 end
 
 function actor_save()
-	if rx_wmgr then
-		rx_wmgr.return_all()
-	end
-	if rx_addons then
-		rx_addons.actor_save()
-	end
+	rx_wmgr.return_all()
+	rx_addons.actor_save()
 end
 
 function npc_update(npc,st)
@@ -124,9 +120,7 @@ function npc_update(npc,st)
 		if st.wm then
 			st.wm:update()
 		end
-		if rx_addons then
-			rx_addons.npc_update(npc,st)
-		end
+		rx_addons.npc_update(npc,st)
 --		eat_medkit(npc)
 --		look_into_optical_sight(npc)
 	end
@@ -139,18 +133,10 @@ function npc_net_spawn(npc)
 end
 
 function npc_switch_offline(npc)
-	if rx_addons then
-		rx_addons.npc_switch_offline(npc)
-	end
-	if rx_wmgr then
-		rx_wmgr.kill_wm(npc)
-	end
-	if rx_bandage then
-		rx_bandage.npc_switch_offline(npc)
-	end
-	if rx_gl then
-		rx_gl.on_npc_go_offline(npc)
-	end
+	rx_addons.npc_switch_offline(npc)
+	rx_wmgr.kill_wm(npc)
+	rx_bandage.npc_switch_offline(npc)
+	rx_gl.on_npc_go_offline(npc)
 	unsubscribe_from_events(npc:id())
 	inited_npcs[npc:id()] = nil
 end
@@ -162,9 +148,7 @@ death_disable_evas = {
 function npc_death(npc,who)
 	if npc then
 		local npc_id = npc:id()
-		if rx_wmgr then
-			rx_wmgr.kill_wm(npc)
-		end
+		rx_wmgr.kill_wm(npc)
 --		if xr_corpse_detection then
 --			xr_corpse_detection.npc_death(npc,who)
 --		end
@@ -257,36 +241,16 @@ end
 base_id = 18800
 
 function load_schemes()
-	if rx_reload then
-		load_scheme("rx_reload","reload",modules.stype_stalker)
-	end
-	if rx_gl then
-		load_scheme("rx_gl","launch_grenade",modules.stype_stalker)
-	end
-	if rx_facer then
-		load_scheme("rx_facer","facer",modules.stype_stalker)
-	end
-	if rx_bandage then
-		load_scheme("rx_bandage","bandage",modules.stype_stalker)
-	end
-	if rx_ff then
-		load_scheme("rx_ff","rx_ff",modules.stype_stalker)
-	end
-	if rx_knife then
-		load_scheme("rx_knife","rx_knife",modules.stype_stalker)
-	end
-	if rx_kill_wounded then
-		load_scheme("rx_kill_wounded","kill_wounded",modules.stype_stalker)
-	end
-	if xr_help_wounded then
-		load_scheme("xr_help_wounded","help_wounded",modules.stype_stalker)
-	end
-	if post_combat_idle then
-		load_scheme("post_combat_idle","post_combat_idle",modules.stype_stalker)
-	end
-	-- if xr_corpse_detection then
-		-- load_scheme("xr_corpse_detection","corpse_detection",modules.stype_stalker)
-	-- end
+	load_scheme("rx_reload","reload",modules.stype_stalker)
+	load_scheme("rx_gl","launch_grenade",modules.stype_stalker)
+	load_scheme("rx_facer","facer",modules.stype_stalker)
+	load_scheme("rx_bandage","bandage",modules.stype_stalker)
+	load_scheme("rx_ff","rx_ff",modules.stype_stalker)
+	load_scheme("rx_knife","rx_knife",modules.stype_stalker)
+	load_scheme("rx_kill_wounded","kill_wounded",modules.stype_stalker)
+	load_scheme("xr_help_wounded","help_wounded",modules.stype_stalker)
+	load_scheme("post_combat_idle","post_combat_idle",modules.stype_stalker)
+	-- load_scheme("xr_corpse_detection","corpse_detection",modules.stype_stalker)
 end
 
 function disable_schemes(npc)
@@ -312,76 +276,34 @@ function enable_schemes(ini,npc)
 		npc_net_spawn(npc)
 		inited_npcs[npc:id()] = true
 	end
-	if rx_reload then
-		rx_reload.set_scheme(npc,ini,"reload","reload")
-	end
-	if rx_gl then
-		rx_gl.set_scheme(npc,ini,"launch_grenade","launch_grenade")
-	end
-	if rx_facer then
-		rx_facer.set_scheme(npc,ini,"facer","facer")
-	end
-	if rx_bandage then
-		rx_bandage.set_scheme(npc,ini,"bandage","bandage")
-	end
-	if rx_ff then
-		rx_ff.set_scheme(npc,ini,"rx_ff","rx_ff")
-	end
-	if rx_knife then
-		rx_knife.set_scheme(npc,ini,"rx_knife","rx_knife")
-	end
-	if rx_kill_wounded then
-		rx_kill_wounded.set_scheme(npc,ini,"kill_wounded","kill_wounded")
-	end
-	if xr_help_wounded then
-		xr_help_wounded.set_help_wounded(npc,ini,"help_wounded","help_wounded")
-	end
-	if post_combat_idle then
-		post_combat_idle.set_scheme(npc,ini,"post_combat_idle",section_logic)
-	end
-	-- if xr_corpse_detection then
-		-- xr_corpse_detection.set_corpse_detection(npc,ini,"corpse_detection","corpse_detection")
-	-- end
+	rx_reload.set_scheme(npc,ini,"reload","reload")
+	rx_gl.set_scheme(npc,ini,"launch_grenade","launch_grenade")
+	rx_facer.set_scheme(npc,ini,"facer","facer")
+	rx_bandage.set_scheme(npc,ini,"bandage","bandage")
+	rx_ff.set_scheme(npc,ini,"rx_ff","rx_ff")
+	rx_knife.set_scheme(npc,ini,"rx_knife","rx_knife")
+	rx_kill_wounded.set_scheme(npc,ini,"kill_wounded","kill_wounded")
+	xr_help_wounded.set_help_wounded(npc,ini,"help_wounded","help_wounded")
+	post_combat_idle.set_scheme(npc,ini,"post_combat_idle",section_logic)
+	-- xr_corpse_detection.set_corpse_detection(npc,ini,"corpse_detection","corpse_detection")
 end
 
 function reset_schemes(npc, scheme, st, section)
-	if xr_help_wounded then
-		xr_help_wounded.reset_help_wounded(npc, scheme, st, section)
-	end
-	if post_combat_idle then
-		post_combat_idle.reset_scheme(npc, scheme, st, section)
-	end
-	-- if xr_corpse_detection then
-		-- xr_corpse_detection.reset_corpse_detection(npc, scheme, st, section)
-	-- end
+	xr_help_wounded.reset_help_wounded(npc, scheme, st, section)
+	post_combat_idle.reset_scheme(npc, scheme, st, section)
+	-- xr_corpse_detection.reset_corpse_detection(npc, scheme, st, section)
 end
 
 function addCommonPrecondition(action)
-	if rx_reload then
-		action:add_precondition(world_property(rx_reload.evid_reload,false))
-	end
-	if rx_gl then
-		action:add_precondition(world_property(rx_gl.evid_gl_fire,false))
-		action:add_precondition(world_property(rx_gl.evid_gl_reload,false))
-	end
-	if rx_facer then
-		action:add_precondition(world_property(rx_facer.evid_facer,false))
-	end
-	if rx_bandage then
-		action:add_precondition(world_property(rx_bandage.evid_bandage,false))
-	end
-	if rx_knife then
-		action:add_precondition(world_property(rx_knife.evid_knife_attack,false))
-	end
-	if xr_help_wounded then
-		action:add_precondition(world_property(xr_help_wounded.evid_wounded_exist,false))
-	end
-	if post_combat_idle then
-		action:add_precondition(world_property(post_combat_idle.evid_post_combat,false))
-	end
-	-- if xr_corpse_detection then
-		-- action:add_precondition(world_property(xr_corpse_detection.evid_corpse_exist,false))
-	-- end
+	action:add_precondition(world_property(rx_reload.evid_reload,false))
+	action:add_precondition(world_property(rx_gl.evid_gl_fire,false))
+	action:add_precondition(world_property(rx_gl.evid_gl_reload,false))
+	action:add_precondition(world_property(rx_facer.evid_facer,false))
+	action:add_precondition(world_property(rx_bandage.evid_bandage,false))
+	action:add_precondition(world_property(rx_knife.evid_knife_attack,false))
+	action:add_precondition(world_property(xr_help_wounded.evid_wounded_exist,false))
+	action:add_precondition(world_property(post_combat_idle.evid_post_combat,false))
+	-- action:add_precondition(world_property(xr_corpse_detection.evid_corpse_exist,false))
 end
 
 ------------------------------------eating----------------------------------------
