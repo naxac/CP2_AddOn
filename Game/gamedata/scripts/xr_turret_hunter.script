@@ -1,0 +1,182 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- Схема "НПС воюет против турулей"
+-- За основу взята схема "Охотник на больших птиц" от Monoroch
+local attack_dist_sqr = 120*120
+local attack_mob_sqr = 4*4
+
+class "evaluator_turret_hunter" (property_evaluator)
+function evaluator_turret_hunter:__init(npc,name,storage) super (nil,name)
+	self.st = storage
+end
+function evaluator_turret_hunter:evaluate()
+	if self.delay and self.delay >= time_global() then
+		return false
+	end
+
+	local npc = self.object
+	if (not self.st.turret) or
+		self.st.turret:get_helicopter():GetfHealth() < 0.005
+	then
+		self.st.turret = this.get_nearest_enemy_turret(npc, attack_dist_sqr)
+		if self.st.turret then
+			self.st.turret_pos = self.st.turret:center()
+		end
+	end
+
+	if not self.st.turret then
+		self.st.cover = nil
+		self.st.need_hunt = nil
+		self.delay = time_global() + 500
+		return false
+	else
+		self.npc_pos = npc:center()
+		self.st.dist_to_turret = self.npc_pos:distance_to( self.st.turret_pos )
+	end
+
+	self.danger = npc:best_danger()
+	if self.danger and self.danger:object()
+		and self.danger:object():id() ~= self.st.turret:id()
+		and self.danger:position():distance_to_sqr(self.npc_pos) < attack_mob_sqr
+	then
+		return false
+	end
+
+	self.firepow = this.get_npc_firepower( npc, self.st.dist_to_turret )
+	if self.firepow < 3 then
+		local cover = npc:best_cover(self.npc_pos, self.st.turret_pos, 15, 5, 20)
+		self.st.cover = cover and cover:level_vertex_id() or nil
+		if not self.st.cover then
+			self.st.need_hunt = true
+		end
+	else
+		self.st.need_hunt = true
+	end
+
+	return true
+end
+
+class "action_turret_hunter" (action_base)
+function action_turret_hunter:__init (npc,action_name,storage) super (nil,action_name)
+	self.st = storage
+end
+function action_turret_hunter:initialize()
+	action_base.initialize(self)
+	local npc = self.object
+	npc:set_desired_position()
+	npc:set_desired_direction()
+	npc:set_detail_path_type(move.curve)
+	npc:set_path_type(game_object.level_path)
+end
+function action_turret_hunter:execute()
+	action_base.execute(self)
+	local npc = self.object
+	if self.st.need_hunt then
+		if self.delay and self.delay >= time_global() then
+			return
+		end
+		state_mgr.set_state(npc, "raid_fire", nil, nil, {look_position = self.st.turret_pos}, nil, nil, {yaw_delta=10})
+		self.delay = time_global() + 400
+	elseif self.st.cover then
+		utils.send_to_nearest_accessible_vertex(npc, self.st.cover)
+		if state_mgr.get_state(npc) ~= "sprint" then
+			state_mgr.set_state( npc, "sprint", nil, nil, nil, {animation = true} )
+		end
+	end		
+end
+function action_turret_hunter:finalize()
+	action_base.finalize(self)
+	self.st.turret = nil
+	self.delay = nil
+	self.st.need_cov = nil
+	self.st.need_hunt = nil
+	self.st.cover = nil
+end
+
+evid_turret_hunter = 18829
+actid_turret_hunter = evid_turret_hunter
+
+function add_to_binder( npc, ini, scheme, section, storage )
+	local manager = npc:motivation_action_manager()
+	manager:add_evaluator( evid_turret_hunter, evaluator_turret_hunter( npc, "ev_turret_hunter", storage ) )
+	local action = action_turret_hunter( npc, "act_turret_hunter", storage )
+	action:add_precondition( world_property( stalker_ids.property_alive,true ) )
+	action:add_precondition( world_property( xr_evaluators_id.sidor_wounded_base,false ) )
+	action:add_precondition( world_property( xrs_grenade.evid_aaa_grenade,false ) )
+	action:add_precondition( world_property( blowout_scheme.evid_outside,false ) )
+	action:add_precondition( world_property( blowout_scheme.evid_blowout,false ) )
+	action:add_precondition( world_property( evid_turret_hunter, true) )
+	action:add_effect( world_property( evid_turret_hunter, false ) )
+	manager:add_action( actid_turret_hunter, action )
+	action = manager:action( xr_actions_id.alife )
+	action:add_precondition( world_property( evid_turret_hunter, false ) )
+end
+
+function set_scheme(npc,ini,scheme,section)
+	local st = xr_logic.assign_storage_and_bind(npc,ini,scheme,section)
+end
+
+function disable_scheme(npc, scheme)
+	local st = db.storage[npc:id()][scheme]
+	if st then
+		st.enabled = false
+	end
+end
+---------------------------------------------------------------------------------------
+function get_nearest_enemy_turret(npc, max_dist)
+	local npc_pos = npc:position()
+	local dist, community, turret
+	for id, obj in pairs(db.turret) do
+		if obj and AI:object(id) and obj:get_helicopter():GetfHealth() >= 0.005 then
+			community = db.storage[id].community
+			if community and utils2.community_relation(community, npc) < -400 then
+				dist = obj:position():distance_to_sqr(npc_pos)
+				if dist < max_dist then
+					max_dist = dist
+					turret = obj
+				end
+			end
+		end
+	end
+	-- if turret and not npc:see(turret) then
+		-- npc:enable_memory_object( turret, true )
+	-- end
+	return turret
+end
+
+function get_npc_firepower(npc, dist)
+	if not npc then return 0 end
+
+	local active_slot = npc:active_slot()
+	local wpn
+	if active_slot ~= inventory_slots.NO_ACTIVE_GET then
+		wpn = npc:item_in_slot(active_slot)
+		if not wpn then return 0 end
+	else
+		wpn = npc:best_weapon()
+		if not wpn then
+			return 0
+		end
+	end
+
+	local sect = wpn:section()
+	local fire_distance = sys_ini:r_float_ex(sect, "fire_distance", 0)
+	if fire_distance < dist then
+		return 0
+	end
+
+	local pwr = 1
+	if string.find( sys_ini:r_string_ex(sect, "fire_modes", ""), "-1", 1, true) ~= nil then
+		pwr = pwr + 1
+	end
+
+	local hit_power = sys_ini:r_float_ex(sect, "hit_power", 0)
+	local rpm = sys_ini:r_float_ex(sect, "rpm", 0)
+	local v = hit_power * rpm
+	if v > 400 then
+		pwr = pwr + 1
+	elseif v > 800 then
+		pwr = pwr + 2
+	end
+
+	return pwr
+end
