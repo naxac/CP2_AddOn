@@ -15,15 +15,14 @@ spawn_tbl["l01_escape"] = {
 	["esc_blokpost"] = {
 		section = "turret_army",
 		points = {
-			{-172.85,-24.19,-350.07},
-			{-163.60,-24.19,-350.42},
-			{-132.49,-28.89,-387.39},
-			{-147.79,-25.19,-353.13},
-			{-172.60,-24.19,-359.43},
-			{-125.39,-28.9,-370.79}
+			{-172.85,-24.19,-350.07,90},
+			{-163.60,-24.19,-350.42,90},
+			{-132.49,-28.89,-387.39,90},
+			{-147.79,-25.19,-353.13,90},
+			{-172.60,-24.19,-359.43,90},
+			{-125.39,-28.9,-370.79,90}
 		},
 		community = "military",
-		search_dist = 90,
 		hunt_actor_prob = 100,
 		count = 3,
 		cond = "{=gulag_population_comed_ge(esc_blokpost:3)}"
@@ -140,34 +139,30 @@ spawn_tbl["l11_pripyat"] = {
 			{6.62,8.92,137.99,80}
 		},
 		community = "monolith",
-		search_dist = 90,
 		hunt_actor_prob = 90,
-		count = 5,
-		cond = "{=gulag_population_comed_ge(pri_monolith:4)}"
+		count = iif( has_alife_info("aes_actor_road"), 4, 7 ),
+		cond = "true"
 	}
 }
 
 function respawn_turrets()
 	if not game_options.Turrets then return end
 
-	if not has_alife_info("level_changing") then
-		return
-	end
+	xr_s.subscribe("first_update", this.spawn_tttt)
+end
 
+function spawn_tttt()
 	local level_name = level.name()
 	if not spawn_tbl[level_name] then
 		return
 	end
-
 	local point, sm
-	local t = spawn_tbl[level_name]
-	for gname, v in pairs(t) do
-		sm = AI:object(gname) or nil
-		if (not sm) or sm.gulag_working then
-			if v.cond == nil
-				or xr_logic.pick_section_from_condlist(
+	for gname, v in pairs(spawn_tbl[level_name]) do
+		sm = AI:object(gname)
+		if (not sm) or sm:is_gulag_available() then
+			if xr_logic.pick_section_from_condlist(
 					Actor, nil,
-					xr_logic.parse_condlist(Actor, "turret_spawn", gname, v.cond)
+					xr_logic.parse_condlist(Actor, "turret_spawn", gname, v.cond or "true")
 				) ~= nil
 			then
 				for i = 1, (v.count or #v.points) do
