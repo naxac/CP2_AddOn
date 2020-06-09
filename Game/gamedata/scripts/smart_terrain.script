@@ -43,20 +43,24 @@ exclusives = {}
 ----------------------------------------------------------------------------------------------------------------------
 -------------- помощники для чтения ini (custom data) -------------------
 -- TODO убрать их
-function r_str( spawn_ini, section, line, default )
-  if spawn_ini:line_exist( section, line ) then
-    return spawn_ini:r_string( section, line )
-  else
-    return default
-  end
+function r_str( spawn_ini, section, line, default, override_sect )
+	if override_sect and sys_ini:line_exist( override_sect, line ) then
+		return sys_ini:r_string( override_sect, line )
+	elseif spawn_ini:line_exist( section, line ) then
+		return spawn_ini:r_string( section, line )
+	else
+		return default
+	end
 end
 
-function r_num( spawn_ini, section, line, default )
-  if spawn_ini:line_exist( section, line ) then
-    return spawn_ini:r_float( section, line )
-  else
-    return default
-  end
+function r_num( spawn_ini, section, line, default, override_sect )
+	if override_sect and sys_ini:line_exist( override_sect, line ) then
+		return sys_ini:r_float( override_sect, line )
+	elseif spawn_ini:line_exist( section, line ) then
+		return spawn_ini:r_float( section, line )
+	else
+		return default
+	end
 end
 
 function r_2nums( spawn_ini, section, line, def1, def2 )
@@ -296,11 +300,6 @@ end
 
 -- инициализация.
 -- чтение custom data.
-local add_capacity = {
-	["marsh_exit_nebo"] = 5,
-	["bar_lager"] = 2,
-	["val_lager_bandits"] = 28
-}
 function se_smart_terrain:read_params()
   local ini  = self:spawn_ini()
   local sect = "smart_terrain"
@@ -320,6 +319,11 @@ function se_smart_terrain:read_params()
     abort( "[smart_terrain %s] type is not specified", self:name() )
   end
 
+	local override_sect = "gulag_overrides."..self:name()
+	if not sys_ini:section_exist(override_sect) then
+		override_sect = nil
+	end
+
   local gp       = {}
 
   self.npc_info  = {}          -- group и squad для каждого npc
@@ -328,13 +332,10 @@ function se_smart_terrain:read_params()
   gp.type        = ini:r_string( sect, "type" )
   gp.preset_name = r_str ( ini, sect, "preset" )
 --' printf("%s read_params preset name [%s]", self:name(), tostring(gp.preset_name))
-  -- ёмкость. а настоящая ёмкость = min(эта_ёмкость, ёмкость гулага)
-  if add_capacity[self:name()] then
-    gp.capacity = add_capacity[self:name()]
-  else
-    gp.capacity    = r_num ( ini, sect, "capacity", 100 )
-  end
-  gp.squad       = r_num ( ini, sect, "squad" )
+
+	-- ёмкость. а настоящая ёмкость = min(эта_ёмкость, ёмкость гулага)
+	gp.capacity    = r_num ( ini, sect, "capacity", 100, override_sect )
+	gp.squad       = r_num ( ini, sect, "squad" )
 
   gp.idle_min,     gp.idle_max      = r_2nums( ini, sect, "idle",       0,     0 )
   gp.duration_min, gp.duration_max  = r_2nums( ini, sect, "duration",   10000, 10001 )
@@ -344,10 +345,10 @@ function se_smart_terrain:read_params()
 
 --  printf( "gp.stay_min=%d, gp.stay_max=%d", gp.stay_min * h2ms, gp.stay_max * h2ms )
 
-  gp.cond        = r_str( ini, sect, "cond" )
-  if gp.cond then
-    gp.cond = xr_logic.parse_condlist( nil, sect, "cond", gp.cond)
-  end
+	gp.cond        = r_str( ini, sect, "cond", nil, override_sect )
+	if gp.cond then
+		gp.cond = xr_logic.parse_condlist( nil, sect, "cond", gp.cond)
+	end
 
   gp.groups      = r_str( ini, sect, "groups" )
   if gp.groups then
