@@ -437,7 +437,7 @@ local armors_by_visuals = {
 		hunter1 = 3,
 		hunter3 = 3
 	},
-        nebo = {
+	nebo = {
 		stalker_nebo_rukzak = 1,
 		stalker_nebo_balon_1 = 2,
 		stalker_nebo_nauchniy = 3,
@@ -2135,14 +2135,14 @@ local visual_by_sect = {
 
 function get_outfit_level(section)
 	local vis_suit = sys_ini:r_string(section, "visual")
-	vis_suit = string.match(vis_suit, "^.-([^\\]+)$"):gsub("%.ogf", "")
+	vis_suit = string.match(vis_suit, ".*\\([%w_%-]+)")
 
 	return armor_levels[vis_suit] or 0
 end
 
 function get_npc_visual_level(visual)
 	if level_by_visual[visual] == nil then
-		level_by_visual[visual] = 0
+		level_by_visual[visual] = 5
 		local sect = get_suit_sect(visual)
 		if sect then
 			level_by_visual[visual] = get_outfit_level(sect)
@@ -2172,7 +2172,7 @@ end
 function check_armor(npc, item)
 	if item:is_outfit() then
 		local vis = sys_ini:r_string(item:section(), "visual")
-		vis = string.match(vis, "^.-([^\\]+)$"):gsub("%.ogf", "")
+		vis = string.match(vis, ".*\\([%w_%-]+)")
 
 		local vis_tbl = suits_to_visuals[ npc:character_community() ][vis]
 		if vis_tbl then
@@ -2233,8 +2233,7 @@ function get_npc_current_visual_level(id)
 	if t then
 		local vis = t.visual_name
 		if vis then
-			vis = string.explode(vis,"\\")
-			vis = vis[#vis]
+			vis = string.match(vis, ".*\\([%w_%-]+)")
 			
 			return get_npc_visual_level(vis)
 		end
@@ -2422,7 +2421,7 @@ local redress_nps = {
 	-- {story_id = 30130, visual = "actors\\inkvizitors\\inkvizitor_redeye"},	-- esc_buusty
 	-- {story_id = 30131, visual = "actors\\woman\\wife_pvt_voronin"},	-- esc_kuzmat
 	-- {story_id = 30132, visual = "actors\\exoskelet_black"},			-- buusty_team_1
-	{story_id = 728,   visual = "actors\\svoboda\\stalker_sv_cook"}
+	-- {story_id = 728,   visual = "actors\\svoboda\\stalker_sv_cook"}
 }
 
 function redress()
