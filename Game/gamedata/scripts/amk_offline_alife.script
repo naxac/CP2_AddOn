@@ -14,7 +14,6 @@ local string_find = string.find
 off_npcs={}
 items={}
 local no_sell_table = {}
-local always_keep_item = {}
 
 local wpn_fp = {}
 -- Пора апдейт делать
@@ -255,12 +254,14 @@ function build_tables()
 	rel_enemy = sys_ini:r_float("game_relations", "goodwill_enemy")
 	rel_friend = sys_ini:r_float("game_relations", "goodwill_friend")
 
+	--' Предметы, которые нельзя продавать (квестовые например)
+	-- уже было загружено в death_manager, возьмём оттуда
+	no_sell_table = death_manager.get_keep_items()
 	-- Добавим в таблицу, что нельзя продавать.
-	no_sell_table = {}
 	local sini = ini_file("misc\\trade_generic.ltx")
 	local cfg_sell = sini:r_string("trader", "sell_condition")
 	if sini and sini:section_exist(cfg_sell) then
-		local result, id, value = nil, nil, nil
+		local result, id, value
 		for a = 0, sini:line_count(cfg_sell)-1 do
 			result, id, value = sini:r_line(cfg_sell,a,"","")
 			if id and (value==nil or value=="") then
@@ -268,10 +269,6 @@ function build_tables()
 			end
 		end
 	end
-
-	--' Предметы, которые нельзя продавать (квестовые например)
-	-- уже было загружено в death_manager, возьмём оттуда
-	always_keep_item = death_manager.get_keep_items()
 end
 
 function update_trade()
@@ -1474,7 +1471,7 @@ function process_trade(npc)
 			return
 		end
 			
-		--Фильтруем квестовые items - always_keep_item, no_sell_table
+		--Фильтруем квестовые items - no_sell_table
 		local nid = npc.id
 		local npc_items = items[nid]
 		local obj, sect
@@ -1484,8 +1481,7 @@ function process_trade(npc)
 			if obj and obj.parent_id == nid then
 				if obj and obj:name()==ov.name then
 					sect = obj:section_name()
-					if always_keep_item[sect]
-						or protected_items.actor_items_keep(sect)
+					if protected_items.actor_items_keep(sect)
 						or no_sell_table[sect] == true
 					then
 						-- Это нам не надо.
@@ -1940,7 +1936,7 @@ function is_valuable(item, section)
 
 	if (not (IAmAMonster[cls] or IAmAStalker[cls])) and (not protected_items.actor_items_keep(sect)) then
 		-- Уники не подбираем (пока?)
-		if always_keep_item[sect] or no_sell_table[sect] == true then
+		if no_sell_table[sect] == true then
 			return false
 		end
 
