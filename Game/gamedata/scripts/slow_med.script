@@ -1,8 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local med_params = {
-	health    = { offset = 220, func = "start_health"                     },
-	power     = { offset = 224, func = "start_power"                      },
-	radiation = { offset = 232, func = "change_radiation",  always = true }
+local med_data = {
+	health    = { offset = 220, line = "eat_health",       delta = 0.00002, func = function( v ) Actor.health              = v   end                },
+	power     = { offset = 224, line = "eat_power",        delta = 0.00005, func = function( v ) Actor.power               = v   end                },
+	bleeding  = { offset = 240, line = "wounds_heal_perc", delta = 0.00003, func = function( v ) Actor:heal_wounds         ( v ) end                },
+	radiation = { offset = 232, line = "eat_radiation",    delta = 0.0003,  func = function( v ) arc_radiation.use_antirad ( v ) end, always = true }
 }
 local medkits = {}
 
@@ -13,8 +14,8 @@ function on_before_use_item( item )
 		medkits[section] = {}
 		t = medkits[section]
 		local n = 0
-		for k, v in pairs( med_params ) do
-			n = sys_ini:r_float( section, "eat_"..k )
+		for k, v in pairs( med_data ) do
+			n = sys_ini:r_float( section, v.line )
 			if n ~= 0 then
 				t[k] = n
 			end
@@ -26,80 +27,62 @@ function on_before_use_item( item )
 
 	if not t then return end
 
-	for k, v in pairs(t) do
-		if ( med_params[k].always or game_options.SlowMed ) then
-			item:set_inventory_item_float( nil, 0.0, med_params[k].offset )
-			this[ med_params[k].func ]( v )
+	for k, v in pairs( t ) do
+		if ( med_data[k].always or game_options.SlowMed ) then
+			item:set_inventory_item_float( nil, 0.0, med_data[k].offset )
+		--	log( "process healing: %s = %s", k, v )
+			this.start_healing( k, v )
 		end
 	end
 end
 -----------------------------------------------------------------------------------------------
-local add_health = nil
-function start_health( val )
-	if add_health == nil then
-		xr_s.subscribe( "update", this.set_health )
-	end
-	add_health = ( add_health or 0 ) + val
-end
-function set_health( delta )
-	if not add_health then return end
+local med_params = {}
 
-	local v = delta * 0.00002
-	local dec = add_health < 0
-	if dec then v = -v end
-	add_health = add_health - v
-	Actor.health = v
-
-	if dec ~= (add_health < 0) then
-		xr_s.unsubscribe( "update", this.set_health )
-		add_health = nil
+function start_healing( var, val )
+	if table.size( med_params ) == 0 then
+		xr_s.subscribe( "update", this.update_med_params )
 	end
+	med_params[var] = ( med_params[var] or 0 ) + val
 end
------------------------------------------------------------------------------------------------
-local add_power = nil
-function start_power( val )
-	if add_power == nil then
-		xr_s.subscribe( "update", this.set_power )
-	end
-	add_power = ( add_power or 0 ) + val
-end
-function set_power( delta )
-	if not add_power then return end
+function update_med_params( delta )
+	local t, dec, fdelta
+	for k, v in pairs( med_params ) do
+		if v then
+			t = med_data[k]
+			fdelta = delta * t.delta
+			dec = v < 0
+			if dec then fdelta = -fdelta end
+			t.func( fdelta )
+			med_params[k] = v - fdelta
 
-	local v = delta * 0.00005
-	local dec = add_power < 0
-	if dec then v = -v end
-	add_power = add_power - v
-	Actor.power = v
-
-	if dec ~= (add_power < 0) then
-		xr_s.unsubscribe( "update", this.set_power )
-		add_power = nil
+			if dec ~= ( med_params[k] < 0 ) then
+				med_params[k] = false
+			end
+		end
 	end
-end
------------------------------------------------------------------------------------------------
-function change_radiation( v )
-	arc_radiation.use_antirad( v )
+
+	for k, v in pairs( med_params ) do
+		if v then return end
+	end
+
+	med_params = {}
+	xr_s.unsubscribe( "update", this.update_med_params )
 end
 -----------------------------------------------------------------------------------------------
 function save()
 	local t = {}
-	if add_health ~= 0 then
-		t.h = add_health
-	end
-	if add_power ~= 0 then
-		t.p = add_power
+	for k, v in pairs( med_params ) do
+		if v then
+			t[k] = v
+		end
 	end
 	amk.save_table( "slow_med", t )
 end
 
 function load()
 	local t = amk.load_table( "slow_med" )
-	if t.h then
-		start_health( t.h )
-	end
-	if t.p then
-		start_power( t.p )
+	for k, v in pairs( t ) do
+		this.start_healing( k, v )
 	end
 end
 

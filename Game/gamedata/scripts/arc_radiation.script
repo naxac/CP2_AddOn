@@ -147,12 +147,8 @@ function get_dose_string_color()
 	return math.min(round(196+196*rd),255), math.max(round(255-255*rd),0), math.max(round(196-255*rd),0)
 end
 
-function set_rad_dose(new_dose)
-	if new_dose > 0 then
-		RAD_DOSE = new_dose
-	else
-		RAD_DOSE = 0
-	end
+function add_rad_dose(dose_delta)
+	RAD_DOSE = math.max( 0, RAD_DOSE+dose_delta )
 	
 	local rd
 	rd = (RAD_DOSE > DOSE_HARMFUL) and (RAD_DOSE - DOSE_HARMFUL) / (DOSE_DEADLY - DOSE_HARMFUL) or 0
@@ -184,11 +180,11 @@ function mod_rad_dose(dose_delta)
 	end
 	table.insert(last_dose, dose_delta)
 	
-	set_rad_dose(RAD_DOSE+dose_delta)
+	add_rad_dose(dose_delta)
 end
 -----------------------------------------------------------------------------------
 function use_antirad(delta)
-	set_rad_dose(RAD_DOSE + delta*100)
+	add_rad_dose(delta*100)
 end
 -----------------------------------------------------------------------------------
 function on_key_release(dik, bind)
