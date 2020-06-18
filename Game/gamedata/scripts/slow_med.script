@@ -1,9 +1,12 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local med_data = {
-	health    = { offset = 220, line = "eat_health",       delta = 0.00002, func = function( v ) Actor.health              = v   end                },
-	power     = { offset = 224, line = "eat_power",        delta = 0.00005, func = function( v ) Actor.power               = v   end                },
-	bleeding  = { offset = 240, line = "wounds_heal_perc", delta = 0.00003, func = function( v ) Actor:heal_wounds         ( v ) end                },
-	radiation = { offset = 232, line = "eat_radiation",    delta = 0.0003,  func = function( v ) arc_radiation.use_antirad ( v ) end, always = true }
+	health    = { offset = 220, line = "eat_health",       delta = 0.00002, func = function( v ) Actor.health              = v   end },
+	power     = { offset = 224, line = "eat_power",        delta = 0.00005, func = function( v ) Actor.power               = v   end },
+	bleeding  = { offset = 240, line = "wounds_heal_perc", delta = 0.00003, func = function( v ) Actor:heal_wounds         ( v ) end },
+	satiety   = { offset = 228, line = "eat_satiety",      delta = 0.00002, func = function( v ) Actor.satiety             = v   end },
+	radiation = { offset = 232, line = "eat_radiation",    delta = 0.0003,  func = function( v ) arc_radiation.use_antirad ( v ) end },
+	psy       = { offset = nil, line = "eat_psy_health",   delta = 0.00003, func = function( v ) Actor.psy_health          = v   end },
+	thirst    = { offset = nil, line = "eat_thirst",       delta = 0.00003, func = function( v ) thirst.change_thirst      ( v ) end }
 }
 local medkits = {}
 
@@ -15,7 +18,7 @@ function on_before_use_item( item )
 		t = medkits[section]
 		local n = 0
 		for k, v in pairs( med_data ) do
-			n = sys_ini:r_float( section, v.line )
+			n = sys_ini:r_float_ex( section, v.line, 0 )
 			if n ~= 0 then
 				t[k] = n
 			end
@@ -27,13 +30,62 @@ function on_before_use_item( item )
 
 	if not t then return end
 
+	if section == "energy_drink" then
+		this.before_use_nrg( item )
+	elseif section == "vodka" then
+		amk_alcohol.drink_vodka_chunk( item )
+	end
+
 	for k, v in pairs( t ) do
-		if ( med_data[k].always or game_options.SlowMed ) then
+		if med_data[k].offset then
 			item:set_inventory_item_float( nil, 0.0, med_data[k].offset )
-		--	log( "process healing: %s = %s", k, v )
-			this.start_healing( k, v )
+		end
+	--	log( "process healing: %s = %s", k, v )
+		this.start_healing( k, v )
+	end
+end
+-----------------------------------------------------------------------------------------------
+local energy_drink_power = sys_ini:r_float( "energy_drink", "eat_power" )
+local energy_drink_max_power = sys_ini:r_float( "energy_drink", "eat_max_power" )
+
+function before_use_nrg( item )
+	local n = amk.load_variable( "gg_need_sleep_nrg", 0 )
+	if n < 3 then
+		medkits["energy_drink"].power = energy_drink_power
+		amk.save_variable( "gg_need_sleep_nrg", n + 1 )
+		local v = amk.load_variable( "gg_need_sleep", 0 ) - 30 + n*10
+		amk.save_variable( "gg_need_sleep", math.max( v, 0 ) ) 
+		sleep_manager.test_sleep_pp( v )
+		if has_timer( "block_sleep_menu" ) then
+			remove_timer( "block_sleep_menu")
+		else
+			xr_s.subscribe( "update", this.add_power_nrg )
+		end
+		start_game_timer( "block_sleep_menu", 0, 0, ( 4-n ) *30 )
+	else
+		medkits["energy_drink"].power = energy_drink_power/( n - 1 )
+		item:set_inventory_item_float( nil, energy_drink_max_power/( n - 1 ), 236 )
+		if n == 3 then
+			amk.send_tip( "Что-то энергетик уже не помогает почти, надо бы отдохнуть...", Actor:character_name(), 5, 8, "str" )
 		end
 	end
+end
+
+local upd_time = 0
+local add_power = 0.000013
+function add_power_nrg( delta )
+	if upd_time < 100 then
+		upd_time = upd_time + delta
+		return
+	end
+
+	Actor.power = add_power*upd_time
+	upd_time = 0
+end
+function add_power_nrg_end()
+	xr_s.unsubscribe( "update", this.add_power_nrg )
+	Actor.power = -0.9 * Actor.power
+	level.add_pp_effector( "alcohol.ppe", 1100, false )
 end
 -----------------------------------------------------------------------------------------------
 local med_params = {}

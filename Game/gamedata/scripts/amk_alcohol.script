@@ -1,9 +1,15 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Упрощенный алкоголь. Не более 5 бутылок в сутки. Остальное всё отключено.
-function drink_vodka_chunk()
+local vodka_alcohol = sys_ini:r_float( "vodka", "eat_alcohol" )
+function drink_vodka_chunk(item)
 	local alc = amk.load_table("alc")
 	table.insert(alc, amk.game_minutes() + 60*24)
-	local limit = iif(has_alife_info("acv_alk"),6,5)
+
+	local limit = 5
+	if has_alife_info("acv_alk") then
+		limit = 6
+		item:set_inventory_item_float( nil, vodka_alcohol*0.5, 688 )
+	end
 	
 	if #alc > limit then
 		Actor:stop_talk()
