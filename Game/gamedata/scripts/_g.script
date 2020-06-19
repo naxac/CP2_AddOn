@@ -1961,6 +1961,61 @@ function check_input_language(wnd, dik, keyboard_action)
 	return true
 end
 
+-- флаги трассировки
+rq_target = {
+	rqtNone,
+	rqtObject		= 1,
+	rqtStatic		= 2,
+	rqtShape		= 4,
+	rqtObstacle		= 8,
+	rqtBoth			= 3, -- rqtObject + rqtStatic
+	rqtDyn			= 13, -- rqtObject + rqtShape + rqtObstacle
+}
+ray_pick = {}
+-- устанавливает базовые параметры трассировки
+function ray_pick.init(pos, dir, range, flags, obj)
+	ray_pick.set_position(pos)
+	ray_pick.set_direction(dir)
+	ray_pick.set_range(range)
+	ray_pick.set_flags(flags)
+	ray_pick.set_ignore_object(obj)
+end
+-- устанавливает стартовую точку трассировки
+function ray_pick.set_position(pos)
+	Actor:set_vector_global_arg_2(pos)
+end
+-- устанавливает направление трассировки
+function ray_pick.set_direction(dir)
+	Actor:set_vector_global_arg_1(dir)
+end
+-- устанавливает диапазон трассировки
+function ray_pick.set_range(range)
+	set_float_args_12(range, 0)
+end
+-- устанавливает флаги трассировки (rq_target)
+function ray_pick.set_flags(flags)
+	set_int_arg1(flags)
+end
+-- устанавливает игнорируемый игровой объект для трассировки
+function ray_pick.set_ignore_object(obj)
+	Actor:set_object_arg_1(obj)
+end
+-- выполняет запрос на трассировку и возвращает true, если она была успешна
+function ray_pick.check()
+	return level.perform_ray_pick_query()
+end
+-- если трассировка была успешна, возвращает дистанцию до точки, иначе возвращает ранее заданный диапазон трассировки
+function ray_pick.get_distance()
+	return level.get_ray_pick_dist()	
+end
+-- если трассировка была успешна, возвращает игровой объект
+function ray_pick.get_object()
+	return level.get_ray_pick_obj()
+end
+-- если луч пересек игровой объект, то возвращает номер кости, иначе возвращает номер полигона статической геометрии (при неудачной трассировке возвращает -1)
+function ray_pick.get_element()
+	return level.get_ray_pick_element()
+end
 -- malandrinus
 --[[counter = 0
 prev_watch = 0
