@@ -141,17 +141,17 @@ spawn_tbl["l11_pripyat"] = {
 		community = "monolith",
 		hunt_actor_prob = 90,
 		count = iif( has_alife_info("aes_actor_road"), 4, 7 ),
-		cond = "true"
+		cond = "{=gulag_population_comed_ge(pri_monolith:3)}"
 	}
 }
 
-function respawn_turrets()
+function attach()
 	if not game_options.Turrets then return end
-
-	xr_s.subscribe("first_update", this.spawn_tttt)
+	if not has_alife_info("level_changing") then return end
+	xr_s.subscribe("first_update", this.respawn_turrets)
 end
 
-function spawn_tttt()
+function respawn_turrets()
 	local level_name = level.name()
 	if not spawn_tbl[level_name] then
 		return
