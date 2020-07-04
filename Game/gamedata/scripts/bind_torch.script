@@ -92,6 +92,8 @@ function torch_binder:net_spawn(data)
 	if self.section == "device_torch" then
 		self.object:set_callback(callback.on_switch_torch, self.on_switch_torch, self)
 		self.mode = self.object:is_torch_enabled()
+	else
+		self.is_nv = true
 	end
 
 	self.full_charge_time = sys_ini:r_u32(self.section, "working_time") *60
@@ -111,21 +113,17 @@ end
 
 function torch_binder:init_torch()
 	local cond = self:get_charge_level()
-	if self.section == "device_torch" then
+	if self.is_nv then
+		if cond == 0 then
+			self.next_cond = -1
+		end
+	else
 		for i, v in ipairs(torch_cond) do
 			if cond <= v then
 				self.next_cond = torch_cond[i-1] or -1
 				if v < 1 then self:set_settings(v) end
 				break
 			end
-		end
-	else
-		local pnv_off = has_alife_info("pnv_off")
-		if cond > 0 then
-			if pnv_off then Actor:disable_info_portion("pnv_off") end
-		else
-			self.next_cond = -1
-			if not pnv_off then Actor:give_info_portion("pnv_off") end
 		end
 	end
 
@@ -134,16 +132,16 @@ end
 
 function torch_binder:update(delta)
 	object_binder.update(self, delta)
-	
+
 	if self.need_init then
 		self:init_torch()
 		self.need_init = nil
 		return
 	end
 
-	if not Actor:is_in_slot(self.object) then return end
-
 	if not self.mode then return end
+
+	if not Actor:is_in_slot(self.object) then return end
 
 	local tm = get_seconds()
 	local _shift = tm - self.last_time
@@ -157,12 +155,10 @@ function torch_binder:update(delta)
 	self.se_torch.worked_time = self.full_charge_time - self.time_left
 
 	local cond = self.time_left/self.full_charge_time
-	if self.section~="device_torch" then
+	if self.is_nv then
 		if cond == 0 then
+			self:switch_nv(false)
 			self.next_cond = -1
-			if not has_alife_info("pnv_off") then
-				Actor:give_info_portion("pnv_off")
-			end
 		end
 	elseif cond <= self.next_cond then
 		for i, v in ipairs(torch_cond) do
@@ -176,7 +172,7 @@ function torch_binder:update(delta)
 end
 
 function torch_binder:net_destroy()
-	if self.section=="device_torch" then
+	if not self.is_nv then
 		self.object:set_callback(callback.on_switch_torch, nil)
 	end
 
@@ -188,6 +184,34 @@ end
 function torch_binder:on_switch_torch(mode)
 	self.mode = (mode == 1)
 	if self.mode then self.last_time = get_seconds() end
+end
+
+function torch_binder:switch_nv(mode)
+	if mode == self.mode then
+		return
+	elseif mode == nil then
+		mode = not self.mode
+	end
+
+	if self.next_cond == -1 then
+		self.mode = false
+		return
+	end
+
+	self.mode = mode
+	if mode then self.last_time = get_seconds() end
+
+
+	if self.mode then
+		local snd = xr_sound.get_safe_sound_object([[weapons\nv_start]])
+		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		local effector = sys_ini:r_string(self.section, "ppe")
+		level.add_pp_effector(effector..".ppe", 1034, true)
+	else
+		local snd = xr_sound.get_safe_sound_object([[weapons\nv_off]])
+		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		level.remove_pp_effector(1034)
+	end
 end
 
 function torch_binder:get_charge_level()
@@ -222,10 +246,7 @@ function torch_binder:charge(new_charge)
 	self.se_torch.worked_time = self.full_charge_time - self.time_left
 	self.last_time = get_seconds()
 
-	if self.section~="device_torch" then
-		if has_alife_info("pnv_off") then
-			Actor:disable_info_portion("pnv_off")
-		end
+	if self.is_nv then
 		self.next_cond = 0
 	else
 		for i, v in ipairs(torch_cond) do
@@ -270,14 +291,8 @@ function init(obj)
 end
 -------------------------------------------------------------------------------
 function switch_nv(id, mode)
-	if devices[id] then
-		devices[id]:on_switch_torch(mode)
-	end
-end
-
-function force_init_nv(id)
-	if devices[id] then
-		devices[id].need_init = true
+	if id and devices[id] then
+		devices[id]:switch_nv(mode)
 	end
 end
 
