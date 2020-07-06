@@ -187,11 +187,13 @@ function torch_binder:on_switch_torch(mode)
 end
 
 function torch_binder:switch_nv(mode)
-	if mode == self.mode then
-		return
-	elseif mode == nil then
+	if not self.is_nv then return end
+
+	if mode == nil then
 		mode = not self.mode
 	end
+
+	if mode == self.mode then return end
 
 	if self.next_cond == -1 then
 		self.mode = false
@@ -290,10 +292,46 @@ function init(obj)
     obj:bind_object(new_binder)
 end
 -------------------------------------------------------------------------------
-function switch_nv(id, mode)
-	if id and devices[id] then
-		devices[id]:switch_nv(mode)
+function switch_pnv()
+	if level.main_input_receiver() then return end
+
+	local nv = Actor:item_in_slot( inventory_slots.TORCH )
+	if nv then
+		local binder = devices[ nv:id() ]
+		if binder and binder.is_nv then
+			if has_alife_info("no_pnv") then
+				binder:switch_nv( false )
+				return
+			end
+			binder:switch_nv()
+		end
 	end
+end
+
+
+function load_pnv()
+	local id = amk.load_variable("nv_on")
+	if id then
+		id = tonumber(id)
+		if id == nil then amk.del_variable("nv_on") return end
+		local obj = AI:object(id)
+		if obj == nil or has_alife_info("no_pnv") then return end
+		start_small_timer( 2000, function() bind_torch.switch_pnv() end )
+	end
+end
+function save_pnv()
+	local nv = Actor:item_in_slot( inventory_slots.TORCH )
+	if nv then
+		local binder = devices[ nv:id() ]
+		if binder and binder.is_nv and binder.mode and binder:get_charge_level() > 0 then
+			amk.save_variable( "nv_on", nv:id() )
+		end
+	end
+end
+
+function no_pnv()
+	this.switch_pnv()
+	this.broke_torch()
 end
 
 function broke_torch()
@@ -321,9 +359,10 @@ end
 function on_item_from_slot(item)
 	if current_torch_id ~= item:id() then return end
 	current_torch_id = 0
-	if ShiftPressed() then
-		local binder = item:binded_object()
-		if binder then
+
+	local binder = item:binded_object()
+	if binder then
+		if ShiftPressed() then
 			local cond = binder:get_charge_level()
 			if cond > 0 then
 				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
@@ -336,6 +375,8 @@ function on_item_from_slot(item)
 				cond)
 				binder:discharge()
 			end
+		elseif binder.is_nv then
+			binder:switch_nv( false )
 		end
 	end
 end
@@ -348,5 +389,7 @@ function attach()
 	xr_s.subscribe("item_to_ruck", this.on_item_from_slot)
 	xr_s.subscribe("item_drop", this.on_item_from_slot)
 	xr_s.subscribe("item_to_slot", this.on_item_to_slot)
+	xr_s.subscribe("net_spawn", this.load_pnv)
+	xr_s.subscribe("pre_save", this.save_pnv)
 end
 
