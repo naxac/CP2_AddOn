@@ -186,7 +186,7 @@ function torch_binder:on_switch_torch(mode)
 	if self.mode then self.last_time = get_seconds() end
 end
 
-function torch_binder:switch_nv(mode)
+function torch_binder:switch_nv(mode, nosound)
 	if not self.is_nv then return end
 
 	if mode == nil then
@@ -205,13 +205,17 @@ function torch_binder:switch_nv(mode)
 
 
 	if self.mode then
-		local snd = xr_sound.get_safe_sound_object([[weapons\nv_start]])
-		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		if not nosound then
+			local snd = xr_sound.get_safe_sound_object([[weapons\nv_start]])
+			snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		end
 		local effector = sys_ini:r_string(self.section, "ppe")
 		level.add_pp_effector(effector..".ppe", 1034, true)
 	else
-		local snd = xr_sound.get_safe_sound_object([[weapons\nv_off]])
-		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		if not nosound then
+			local snd = xr_sound.get_safe_sound_object([[weapons\nv_off]])
+			snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+		end
 		level.remove_pp_effector(1034)
 	end
 end
@@ -310,13 +314,22 @@ end
 
 
 function load_pnv()
-	local id = amk.load_variable("nv_on")
+	local id = xr_logic.pstor_retrieve(actor, "nv_on", nil, true)
 	if id then
 		id = tonumber(id)
 		if id == nil then amk.del_variable("nv_on") return end
 		local obj = AI:object(id)
 		if obj == nil or has_alife_info("no_pnv") then return end
-		start_small_timer( 2000, function() bind_torch.switch_pnv() end )
+		start_small_timer( 1500, function( obj_id )
+			local binder = devices[ obj_id ]
+			if binder and binder.is_nv then
+				if has_alife_info("no_pnv") then
+					return
+				end
+				binder:switch_nv(true, true)
+			end
+		end,
+		id )
 	end
 end
 function save_pnv()
@@ -324,7 +337,7 @@ function save_pnv()
 	if nv then
 		local binder = devices[ nv:id() ]
 		if binder and binder.is_nv and binder.mode and binder:get_charge_level() > 0 then
-			amk.save_variable( "nv_on", nv:id() )
+			xr_logic.pstor_store( Actor, "nv_on", nv:id() )
 		end
 	end
 end
