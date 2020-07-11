@@ -12,21 +12,17 @@ function grenade_binder:__init(obj) super(obj)
 end 
 
 function grenade_binder:net_spawn(data)
-	self.spawn_time = time_global()
---	get_console():execute("load ~~~ net_spawn: "..self.object:section().." "..self.spawn_time)
-	
     if not object_binder.net_spawn(self, data) then
         return false
     end
+
+	self.spawn_time = time_global()
+
     return true
 end
 
 function grenade_binder:net_destroy()
---	get_console():execute("load ~~~ net_destroy: "..self.object:section().." "..time_global())
-	
 	if Actor and time_global()-self.spawn_time < 10000 then		-- меньше 10 секунд от спавна = взрыв
-		--get_console():execute("load ~~~ blow: "..self.object:id().." "..time_global())
-
 		-- проверка светошумовой гранаты
 		local sect = self.object:section()
 		if sect=="grenade_flash_fake"
@@ -34,10 +30,11 @@ function grenade_binder:net_destroy()
 		then
 		--	log1("boom from binder")
 			boom_flash()
+			return
 		end
 
 		-- подрыв Сидора
-		if 	has_alife_info("stealth_can_blow_sidor") and
+		if has_alife_info("stealth_can_blow_sidor") and
 			level.name() == "l12_stancia_2"
 		then
 			Actor:give_info_portion("stealth_blow_sidor_have")
@@ -77,12 +74,10 @@ end
 
 function init(obj)
 	-- Биндить гранату нужно только в особых случаях. 
-	if (not has_alife_info("stealth3_done") or has_alife_info("stealth_blow_sidor_have") or obj:section() ~= "grenade_f1") and 
-		not string.find(obj:section(), "grenade_flash")
+	if (has_alife_info("stealth3_done") and not has_alife_info("stealth_blow_sidor_have") and obj:section() == "grenade_f1")
+		or string.find(obj:section(), "grenade_flash")
 	then
-		return
+		local new_binder = grenade_binder(obj)
+		obj:bind_object(new_binder)
 	end
-
-    local new_binder = grenade_binder(obj)
-    obj:bind_object(new_binder)
 end
