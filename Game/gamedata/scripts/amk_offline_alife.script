@@ -516,12 +516,12 @@ function collect_info(victim,map)
 						and victim.position:distance_to(artefact.position)<look_radius
 						and sobj_is_far(artefact, to_actor))
 					then
-						if artefact.parent_id==nil
-							or artefact.parent_id==65535
-							or ( AI:object(artefact.parent_id)
-								and ( AI:object(artefact.parent_id):clsid() == clsid.inventory_box
-								or IsAnomaly(AI:object(artefact.parent_id)) )
-							)
+						local parent_id = artefact.parent_id
+						local parent_obj = (parent_id and parent_id~=65535) and AI:object(parent_id)
+						if parent_obj == nil
+								or ( ( parent_obj:clsid() == clsid.inventory_box
+								and box_is_protected(parent_obj) )
+								or IsAnomaly(parent_obj) )
 						then
 							table.insert(vdata.artefacts, {id = artefact.id, name = artefact:name()})
 						end
