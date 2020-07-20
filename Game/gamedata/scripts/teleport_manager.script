@@ -384,6 +384,8 @@ local teleports = {
 }
 local where_to = nil
 local teleport_cond
+local from_gui = false
+local err_msg = ""
 
 function jumpTo(where)
 	if not Actor:alive() then return end
@@ -411,34 +413,35 @@ end
 -- Калбек на юзание предмета
 function checking_droped_obj(obj_sect, obj)
 	if not teleports[obj_sect] then return end -- не наш "клиент"
-	this.do_teleport(obj_sect, obj)
+	this.do_teleport(obj_sect, obj, false)
 end
 
-function do_teleport(obj_sect, obj, from_gui)
+function do_teleport(obj_sect, obj, gui)
 	Actor:give_info_portion("teleport_started")
+	from_gui = gui
 	if not from_gui then
 		level.start_stop_menu(level.main_input_receiver(), true)
 	end
 	where_to = table.random( teleports[obj_sect].goto_func )
 	teleport_cond = obj:condition()
 
-	if telepot_allowed(obj_sect, from_gui) then
+	if telepot_allowed(obj_sect) then
 		-- телепортируем
 		teleport_start(obj_sect, obj)
-		return true
+		return teleport_cond
 	else
 		-- неудача
 		teleport_fail(obj_sect)
-		return false
+		return false, err_msg
 	end
 end
 
-function telepot_allowed(obj_sect, from_gui)
-	if has_alife_info("no_teleport_near_heli_btr") then 
-		news_manager.send_tip("st_teleport_cant_enemy_1", nil, "nano", 10000)
+function telepot_allowed(obj_sect)
+	if has_alife_info("no_teleport_near_heli_btr") then
+		err_msg = "st_teleport_cant_enemy_1"
 		return false
-	elseif has_alife_info("kod_vveden_verno") and not has_alife_info("dead_city_atpeshka") then 
-		news_manager.send_tip("st_teleport_cant_tech", nil, "nano", 10000)
+	elseif has_alife_info("kod_vveden_verno") and not has_alife_info("dead_city_atpeshka") then
+		err_msg = "st_teleport_cant_tech"
 		return false
 	elseif actor_is_in_danger() then
 		return false
@@ -455,7 +458,8 @@ function actor_is_in_danger()
 	if difficulty < 2 then
 		return false
 	else
-		return danger.actor_in_danger("st_teleport_cant_enemy", "st_teleport_cant_enemy", difficulty == 2)
+		err_msg = "st_teleport_cant_enemy"
+		return danger.actor_in_danger("", "", difficulty == 2)
 	end
 end
 
@@ -495,11 +499,14 @@ function teleport_fail(obj_sect)
 	Actor:disable_info_portion("teleport_started")
 	teleport_cond = nil
 	where_to = nil
+	if not from_gui then
+		news_manager.send_tip(err_msg, nil, "nano", 10000)
+	end
 end
 
 function return_teleport(obj_sect)
 	-- с телепортатором многоразовые ТП не возвращаем
-	if Actor:object("teleportator") and string.find(obj_sect,"arhara_obman") then return end
+	if from_gui then return end
 
 	local obj = amk.spawn_item_in_inv(obj_sect)
 	netpk:modify( AI:object(obj.id), {condition = teleport_cond} )
@@ -613,13 +620,13 @@ function hand_teleporter_check(section)
 			tmp[i] = game.translate_string(v)
 		end
 		local levels_name = table.concat(tmp, ", ")
-		news_manager.send_tip("С этой территории телепортация невозможна. Территории, с которых можно телепортироваться: "..levels_name..".\n", nil, "nano", 10000)
+		err_msg = "С этой территории телепортация невозможна. Территории, с которых можно телепортироваться: "..levels_name.."."
 		return false
 	elseif not chk_cond then
-		news_manager.send_tip("st_teleport_cant_charge", nil, "nano", 10000)
+		err_msg = "st_teleport_cant_charge"
 		return false
 	elseif not where_to then
-		news_manager.send_tip("st_teleport_cant_seen", nil, "nano", 10000)
+		err_msg = "st_teleport_cant_seen"
 		return false
 	end
 	return true
@@ -638,7 +645,7 @@ function level_seen_check(section)
 		if #go_func == 0 then break end
 	end
 	if not where_to then
-		news_manager.send_tip("st_teleport_cant_seen", nil, "nano", 10000)
+		err_msg = "st_teleport_cant_seen"
 		return false
 	end
 
@@ -658,9 +665,7 @@ function charge_check(section)
 	)
 	local need_charge = dist / max_dist
 	if need_charge > teleport_cond then
-		if not from_gui then
-			news_manager.send_tip("st_teleport_cant_charge", nil, "nano", 10000)
-		end
+		err_msg = "st_teleport_cant_charge"
 		return false
 	else
 		teleport_cond = teleport_cond - need_charge

@@ -119,15 +119,15 @@ function teleportator_menu:on_ok()
 
 	if self.level_id[index+1] then
 		local section = "arhara_obman"..tostring(self.level_id[index+1])
-		local new_cond = teleport_manager.do_teleport(section, self.object, true)
+		local new_cond, err_msg = teleport_manager.do_teleport(section, self.object, true)
 		if new_cond then
-			self:on_quit()
 			self.object:set_condition( new_cond )
 			netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
+			self:on_quit()
 			level.start_stop_menu(level.main_input_receiver(), true)
 		else
 			self.message_box:Init("select_map")
-			self.message_box:SetText("Недостаточно заряда для перемещения: зарядите телепортатор")
+			self.message_box:SetText( game.translate_string(err_msg) )
 			self:GetHolder():start_stop_menu(self.message_box, true)
 		end
 	end
