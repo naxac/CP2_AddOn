@@ -1,6 +1,28 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 31
+local current_fix = 32
 
+function fix_32()
+	if has_alife_info("sar2_monolith_miracle") then
+		this.lc_mono_aes2_silent_off()
+	end
+
+	local obj
+	local doors = {
+		[12008] = "mon_door_from_monolith_control",
+		[12013] = "mon_door_from_monolith_control_0000"
+	}
+	for id, name in pairs( doors ) do
+		obj = AI:object(name)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( id )
+	end
+	obj = AI:object("control_dver_open_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+end
 function fix_31()
 	local obj = AI:story_object( story_ids.kot )
 	if obj == nil and has_alife_info("bkot_spawn") then
@@ -777,6 +799,12 @@ function lc_question_add()
 		netpk:modify(obj, {
 			silent_mode = 0
 		}, netpk.fState)
+	end
+end
+function lc_mono_aes2_silent_off()
+	local obj = AI:object( "exit_to_stancia2_01" )
+	if obj then
+		netpk:modify(obj, { silent_mode = 0 }, netpk.fState)
 	end
 end
 
