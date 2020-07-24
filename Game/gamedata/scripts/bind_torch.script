@@ -314,13 +314,13 @@ end
 
 
 function load_pnv()
-	local id = xr_logic.pstor_retrieve(actor, "nv_on", nil, true)
+	local id = xr_logic.pstor_retrieve(Actor, "nv_on", nil, true)
 	if id then
 		id = tonumber(id)
 		if id == nil then amk.del_variable("nv_on") return end
 		local obj = AI:object(id)
 		if obj == nil or has_alife_info("no_pnv") then return end
-		start_small_timer( 1500, function( obj_id )
+		xr_s.subscribe("first_update", function(obj_id)
 			local binder = devices[ obj_id ]
 			if binder and binder.is_nv then
 				if has_alife_info("no_pnv") then
@@ -329,14 +329,14 @@ function load_pnv()
 				binder:switch_nv(true, true)
 			end
 		end,
-		id )
+		{userobj = id} )
 	end
 end
 function save_pnv()
 	local nv = Actor:item_in_slot( inventory_slots.TORCH )
 	if nv then
 		local binder = devices[ nv:id() ]
-		if binder and binder.is_nv and binder.mode and binder:get_charge_level() > 0 then
+		if binder and binder.is_nv and binder.mode and (binder:get_charge_level() > 0) then
 			xr_logic.pstor_store( Actor, "nv_on", nv:id() )
 		end
 	end
