@@ -424,7 +424,7 @@ function collect_info(victim,map)
 						if p_id==nil or p_id==65535
 							-- В нычках без замков можно что-нибудь стырить
 							or ( p_obj and p_obj:clsid() == clsid.inventory_box
-							and box_is_protected(p_obj)==false
+							and ( not box_is_protected(p_obj) )
 							and victim.position:distance_to(p_obj.position) < look_radius_box )
 						then
 							table.insert(vdata.weapons.seen, {id = www.id, name = www:name()})
@@ -518,9 +518,9 @@ function collect_info(victim,map)
 					then
 						local parent_id = artefact.parent_id
 						local parent_obj = (parent_id and parent_id~=65535) and AI:object(parent_id)
-						if parent_obj == nil
+						if (not parent_obj)
 								or ( ( parent_obj:clsid() == clsid.inventory_box
-								and box_is_protected(parent_obj) )
+								and not box_is_protected(parent_obj) )
 								or IsAnomaly(parent_obj) )
 						then
 							table.insert(vdata.artefacts, {id = artefact.id, name = artefact:name()})
