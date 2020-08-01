@@ -1,6 +1,41 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 32
+local current_fix = 33
 
+function fix_33()
+	local obj
+
+	local respawn_sid = {
+		story_ids.ziclop,
+		story_ids.jora_anomaly,
+		story_ids.lazaret_golograma,
+		story_ids.tehnik_golograma
+	}
+	for i, sid in ipairs( respawn_sid ) do
+		obj = AI:story_object( sid )
+		if obj then
+			AI:release( obj, true )
+			AI:create( AI:spawn_id( sid ) )
+		end
+	end
+
+	local respawn_names = {
+		[839] = "vert_zimovie_stalker_1",
+		[840] = "vert_zimovie_stalker_2"
+	}
+	for id, name in pairs( respawn_names ) do
+		obj = AI:object( name )
+		if obj then
+			AI:release( obj, true )
+			AI:create( id )
+		end
+	end
+
+	obj = AI:story_object( story_ids.fotograf_npc )
+	if obj then
+		AI:release( obj, true )
+		akill.fotograf_npc_spawn()
+	end
+end
 function fix_32()
 	if has_alife_info("sar2_monolith_miracle") then
 		this.lc_mono_aes2_silent_off()
