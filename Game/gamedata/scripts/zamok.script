@@ -64,7 +64,7 @@ function remove( box, item )
 		for i, v in pairs( amk_offline_alife.protected.ids ) do
 			if v == box_id then
 				if zamok_code then
-					this.change_box_data( box )
+					this.change_box_data( box_id )
 				end
 				table.remove( amk_offline_alife.protected.ids, i )
 				--amk_offline_alife.update_tables( level.name() )
@@ -126,6 +126,27 @@ function add_in_fake_box(box)
 		check_box(box, box_id)
 	end
 end
+
+function remove_offline( box_id )
+	local t = zamok_box[ box_id ]
+	if t == nil then return end
+
+	if t.count > 1 then
+		 t.count =  t.count - 1
+	else	-- проверим, стоит ли ящик под защитой
+		for i, v in pairs( amk_offline_alife.protected.ids ) do
+			if v == box_id then
+				if zamok_code then
+					this.change_box_data( box_id )
+				end
+				table.remove( amk_offline_alife.protected.ids, i )
+				break
+			end
+		end
+		zamok_box[ box_id ] = nil
+	end
+end
+
 
 
 
@@ -244,8 +265,7 @@ function transfer_all(actor, box)
 end
 
 -- Перезагрузка логики ящика без перевода в оффлайн
-function change_box_data(box)
-	local box_id = box:id()
+function change_box_data(box_id)
 	local se_box = AI:object(box_id)
 	if se_box then
 	--	log1("box found: "..se_box:name())
@@ -254,7 +274,7 @@ function change_box_data(box)
 		local cd = netpk:parse_custom_data(data.custom_data)
 		if se_box:section_name() == "m_inventory_box" then	-- самопальный тайник
 			local path = ""
-			if ui_invbox_new.get_active_box() == se_box.id then
+			if ui_invbox_new.get_active_box() == box_id then
 				path = "scripts\\new_inventory_box_1.ltx"
 			else 
 				path = "scripts\\new_inventory_box.ltx"
@@ -268,9 +288,13 @@ function change_box_data(box)
 		data.custom_data = netpk:gen_custom_data(cd)
 		netpk:set(se_box, data, netpk.fState)
 		-- Перезагружаем логику
-		local st = db.storage[box_id]
-		st = {}
-		xr_logic.initialize_obj(box, st, false, Actor, modules.stype_item, inifilename)
+		if se_box.online then
+			local box = level.object_by_id(box_id)
+			if not box then return end
+			local st = db.storage[box_id]
+			st = {}
+			xr_logic.initialize_obj(box, st, false, Actor, modules.stype_item, inifilename)
+		end
 	end
 end
 

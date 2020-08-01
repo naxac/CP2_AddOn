@@ -1313,6 +1313,9 @@ function pick_item(npc, obj)
 					if (items[obj.parent_id][z] and items[obj.parent_id][z].id == obj.id) then
 						gps_habar.remove_item(obj.parent_id, items[obj.parent_id][z]) -- Idler++-- корректируем хабар в помеченных тайниках
 						table_remove(items[obj.parent_id], z)
+						if section == "zamok" then
+							zamok.remove_offline(obj.parent_id)
+						end
 						break
 					end
 				end
@@ -1869,8 +1872,7 @@ function box_is_protected(v)
 		for k, o in pairs(protected.ids) do
 			if o == chk then
 				local p = zamok.reliability_code_check( chk ) + 1 /( level.get_game_difficulty()*10 + 5 )
-				if math_random() > p then return false
-				else return true end
+				return math_random() < p
 			end
 		end
 
