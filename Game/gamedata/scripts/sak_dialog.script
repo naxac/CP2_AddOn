@@ -75,11 +75,16 @@ function has_soldiers_bribe(first_speaker, second_speaker)
 	return inventory.search("vodka",1) ~= false
 end
 function can_vodka_start(first_speaker, second_speaker)
-	if has_alife_info("esc_bridge_vodka_start") then return false end
+	if this.vodka_start_complete() then return false end
 	return xr_logic.pstor_retrieve(Actor, "kuzvodka", 0) >= 1
 end
 function cant_vodka_start(first_speaker, second_speaker)
 	return not can_vodka_start(first_speaker, second_speaker)
+end
+function vodka_start_complete()
+	return has_alife_info("esc_bridge_vodka_start")
+		or has_alife_info("esc_bridge_vodka_have")
+		or has_alife_info("esc_bridge_vodka_done")
 end
 function give_soldiers_bribe(first_speaker, second_speaker)
 	inventory.out_items("vodka",1)
@@ -88,7 +93,7 @@ end
 function give_kuzya_bribe(first_speaker, second_speaker)
 	this.give_soldiers_bribe(first_speaker, second_speaker)
 
-	if has_alife_info("esc_bridge_vodka_start") then return end
+	if this.vodka_start_complete() then return end
 	local v = xr_logic.pstor_retrieve(Actor, "kuzvodka", 0)
 	xr_logic.pstor_store(Actor, "kuzvodka", v+1)
 end
