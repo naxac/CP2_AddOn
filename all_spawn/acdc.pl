@@ -2293,6 +2293,7 @@ use constant section_to_class => {
 	wpn_binoc					=> 'cse_alife_item_weapon_magazined',
 	wpn_rpg7					=> 'cse_alife_item_weapon_magazined',
 	wpn_pm						=> 'cse_alife_item_weapon_magazined',
+	wpn_pm_m1					=> 'cse_alife_item_weapon_magazined',
 	wpn_pb						=> 'cse_alife_item_weapon_magazined',
 	wpn_fort					=> 'cse_alife_item_weapon_magazined',
 	wpn_fort_m1					=> 'cse_alife_item_weapon_magazined',

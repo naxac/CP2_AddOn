@@ -134,12 +134,6 @@ function CRandomTask:__init()
 			if self.task_ini:line_exist(id, "target_count") then
 				curr_task_info.target_count = self.task_ini:r_u32(id, "target_count")
 			end
-			if curr_task_info.type == "find_item"
-				and (not sys_ini:section_exist(curr_task_info.target))
-				and AI:object(curr_task_info.target) ~= nil
-			then
-				curr_task_info.is_unique_item = true
-			end
 		end
 		if self.task_ini:line_exist(id, "text") then
 			curr_task_info.text			= self.task_ini:r_string(id, "text")
@@ -648,13 +642,6 @@ function CRandomTask:task_complete(p1, p2)
 				self.task_info[self.active_task_by_type[p1]].status = "completed"
 				return true
 			end
-		-- unique item
-		elseif sel_task.is_unique_item then
-			local se_item = AI:object(sel_task.selected_target)
-			if se_item and se_item.parent_id == 0 then
-				self.task_info[self.active_task_by_type[p1]].status = "completed"
-				return true
-			end
 		elseif sel_task.type == "artefact"
 			or sel_task.type == "monster_part"
 			or sel_task.type == "find_item"
@@ -943,12 +930,7 @@ function CRandomTask:completed_task(actor, npc, p1, p2, p3)
 	if task_desc.status~="completed" then return false end
 	-- amk.mylog("chp5")
 	local can_finish = true
-	if task_desc.is_unique_item then
-		local se_item = AI:object(task_desc.selected_target)
-		if se_item == nil or se_item.parent_id ~= 0 then
-			can_finish = false
-		end
-	elseif task_desc.type == "artefact"
+	if task_desc.type == "artefact"
 		or task_desc.type == "monster_part"
 		or task_desc.type == "find_item"
 	then
@@ -1003,16 +985,7 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
     if task_desc.status == "completed" and task_desc.parent == parent then
 		--' Забираем у игрока квестовый предмет.
 		local can_finish = true
-		if task_desc.is_unique_item then
-			local item= level.object_by_id(task_desc.selected_target)
-			if item and item:parent() and item:parent():id()  == 0 then
-				shiftCheckDropItem()
-				news_manager.relocate_item(Actor, "out", item:section())
-				Actor:transfer_item(item, npc)
-			else
-				can_finish = false
-			end
-		elseif task_desc.type == "artefact"
+		if task_desc.type == "artefact"
 			or task_desc.type == "monster_part"
 			or task_desc.type == "find_item"
 		then
@@ -1197,10 +1170,8 @@ function CRandomTask:register_target(obj)
 		--' Возможно регистрируется цель для квеста "найти предмет"
 		local t
 		for k,v in pairs(self.task_id_by_type["find_item"]) do
-			t =self.task_info[v]
-			if obj:section_name() == t.target
-				or obj:name() == t.target   -- unique item
-			then
+			t = self.task_info[v]
+			if obj:section_name() == t.target then
 				if t.target_objects == nil then
 					t.target_objects = {}
 				end
