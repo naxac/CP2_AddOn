@@ -1,17 +1,23 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+-- bool InventoryUtilities::GreaterRoomInRuck(PIItem item1, PIItem item2)
 local function sort_items(i1, i2)
 	local s1 = i1:section()
 	local s2 = i2:section()
 	local w1 = sys_ini:r_u32(s1, "inv_grid_width")
 	local w2 = sys_ini:r_u32(s2, "inv_grid_width")
+
 	if w1 == w2 then
 		local h1 = sys_ini:r_u32(s1, "inv_grid_height")
 		local h2 = sys_ini:r_u32(s2, "inv_grid_height")
 		if h1 == h2 then
-			return s1 < s2
+			if s1 == s2 then
+				return i1:id() > i2:id()
+			end
+			return s1 > s2
 		end
 		return h1 > h2
 	end
+
 	return w1 > w2
 end
 
