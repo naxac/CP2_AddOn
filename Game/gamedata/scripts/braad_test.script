@@ -991,7 +991,7 @@ end
 
 
 function del_lim()
-    if not Actor:has_info("info_del_lim_teleport") then 
+    if level.name() == "limansk" and not Actor:has_info("info_del_lim_teleport") then 
 		local obj_id = xr_logic.pstor_retrieve(Actor, "lim_zone_teleport1", -1, true)
 		local se_obj = AI:object(obj_id)
 		if se_obj then
@@ -1003,6 +1003,14 @@ function del_lim()
 			AI:release(se_obj, true)
 		end	
 		Actor:give_info_portion("info_del_lim_teleport")
+		-- доставим Кота в Госпиталь
+		local obj = AI:story_object( story_ids.kot )
+		if obj then
+			local sm = AI:object( "hos_stalker" )
+			if sm then
+				AI:teleport_object( "", sm.position, sm.m_level_vertex_id, sm.m_game_vertex_id, obj.id )
+			end
+		end
 	end
 end 
 
