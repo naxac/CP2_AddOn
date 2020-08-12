@@ -2,6 +2,58 @@
 --------------------------------------------------------------------------------------------------------
 -- Сяковы диалоги 
 -------------------------------------------------------------------------------------------------------
+local recipts_info = {
+	["info_artmod_dummy_dummy_mosquito_bald"] = {
+		art = "af_dummy_dummy",
+		phrase = "artmod_53_61_dialog_0001"
+	},
+	["info_artmod_ameba_slug_mincer"] = {
+		art = "af_ameba_slug",
+		phrase = "artmod_53_61_dialog_0002"
+	},
+	["info_amk_recipt_dikoobraz"] = {
+		art = "af_dik_1",
+		phrase = "artmod_53_61_dialog_0003"
+	},
+	["info_amk_recipt_fake"] = {
+		art = "af_sunlight",
+		phrase = "artmod_53_61_dialog_0004"
+	},
+	["info_amk_recipt_electra_dikoobraz"] = {
+		art = "af_dik_2",
+		phrase = "artmod_53_61_dialog_0005"
+	},
+	["info_amk_recipt_giant_small_brother"] = {
+		art = "af_kol_4",
+		phrase = "artmod_53_61_dialog_0006"
+	}
+}
+function osvedomitel_has_recipts(first_speaker, second_speaker)
+	for k, v in pairs(recipts_info) do
+		if Actor:dont_has_info(k) then
+			return true
+		end
+	end
+	return false
+end
+function osvedomitel_hasnt_recipts(first_speaker, second_speaker)
+	return not osvedomitel_has_recipts(first_speaker, second_speaker)
+end
+function show_recipts(first_speaker, second_speaker)
+	for k, v in pairs(recipts_info) do
+		if Actor:dont_has_info(k) then
+			local icon = GetIconParams(v.art)
+			Actor:give_talk_message(
+				game.translate_string(v.phrase),
+				"ui\\ui_icon_equipment",
+				Frect():set(icon.x, icon.y, icon.w, icon.h),
+				"iconed_icon_item"
+			)
+		end
+	end
+end
+
+
 function add_abakan(first_speaker, second_speaker)
 	dialogs.relocate_item_section(first_speaker, "wpn_abakan", "in")
 end
