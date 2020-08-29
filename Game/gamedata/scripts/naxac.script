@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 35
+local current_fix = 37
 
 function fix_37()
 	local obj = AI:story_object(story_ids.lc_darkvalley_to_aver)
@@ -13,6 +13,25 @@ function fix_37()
 		}, netpk.fState)
 	end
 end
+function fix_36()
+	local obj
+
+	if not has_alife_info("val_prisoner_scene_end") then
+		obj = AI:story_object(story_ids.val_prisoner)
+		if obj then
+			AI:release(obj, true)
+			AI:create( AI:spawn_id(story_ids.val_prisoner) )
+		end
+		local obj = AI:object("val_prisoner_cage_zone")
+		if obj then
+			AI:release(obj, true)
+			AI:create(5731)
+		end
+		if (not has_alife_info("val_prisoner_door_unlocked")) and has_alife_info("val_prisoner_free") then
+			Actor:disable_info_portion("val_prisoner_free")
+		end
+	end
+
 	local t = {
 		lc_aver_to_svalka		= "info_way_arhara_svalka_earth",
 		lc_aver_to_darkvalley	= "info_way_arhara_td_earth",
@@ -29,6 +48,7 @@ end
 	if has_alife_info("info_way_arhara_svalka_earth") then
 		level_changers.create_allspawn_lc("lc_aver_to_svalka","to_garbage","info_way_arhara_svalka_earth",3)
 	end
+end
 function fix_35()
 	local obj = AI:story_object(story_ids.viking_npc)
 	if obj then
