@@ -34,13 +34,17 @@ function on_mm_init(mm)
 	if not getFS():exist("$game_textures$", tex_name..".dds") then
 		tex_name = "intro\\intro_no_start_picture"
 	end
-	mm.level_intro = CUIStatic()
-	mm.level_intro:SetWndRect(Frect():set(257,369,257+512,369+256))
+	mm.level_intro = xml:InitStatic("level_intro", mm)
 	mm.level_intro:InitTexture(tex_name)
-	if device().aspect_ratio < 0.75 then
-		mm.level_intro:SetStretchTexture(true)
+
+	if game_options.PauseSL then
+		xml:InitStatic("survival_tips_caption", mm)
+		mm.ls = xml:InitStatic("survival_tips", mm)
+		local n = tostring( math.random(100) )
+		local text = game.translate_string("ls_tip_number")..n.."\\n"..
+			game.translate_string("ls_tip_"..n)
+		mm.ls:SetText(text)
 	end
-	mm:AttachChild(mm.level_intro)
 
 	if game_options.PauseTraderCall then
 		mm.time_to_call = 0
