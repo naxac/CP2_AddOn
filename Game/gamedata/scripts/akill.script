@@ -1,4 +1,80 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
+-- Патроны для турелей на Барьере
+function spawn_turret_ammo()
+	local t = {
+		{pos = {255.2313079834,-0.51966464519501,-182.25189208984}, lv = 700591, gv = 3957},
+		{pos = {192.82652282715,-0.37427988648415,-189.83741760254}, lv = 622561, gv = 3966},
+		{pos = {211.27897644043,2.2330136299133,-182.35624694824}, lv = 645544, gv = 3963},
+		{pos = {245.88558959961,-0.048372026532888,-187.34172058105}, lv = 688000, gv = 3957},
+		{pos = {194.3408203125,-0.39962139725685,-180.49719238281}, lv = 623390, gv = 3949},
+		{pos = {228.26080322266,1.6676384210587,-143.21865844727}, lv = 666480, gv = 3943},
+		{pos = {262.49221801758,-0.5302774310112,-194.81622314453}, lv = 708552, gv = 3956},
+		{pos = {262.10012817383,3.8858919143677,-188.06474304199}, lv = 708557, gv = 3956},
+		{pos = {199.58041381836,5.2937273979187,-189.98248291016}, lv = 630780, gv = 3965}
+	}
+	for i = 1, 2 do
+		local a = table.remove(t, math.random(#t))
+		local obj = AI:create("inventory_sakbox_01", vector():set(unpack(a.pos)), a.lv, a.gv)
+		obj = AI:object(obj.id)
+		obj:use_ai_locations( false )
+	end
+end
+function kep_turret_have()
+	return inventory.search("inventory_sakbox_01", 1)
+end
+function kep_turret_have_two()
+	return inventory.search("inventory_sakbox_01", 2)
+end
+function kep_turret_have_one()
+	return not kep_turret_have_two()
+end
+function spawn_turret_kep()
+	relation_registry.change_community_goodwill("freedom", Actor:id(), 50)
+	inventory.out_items_all("inventory_sakbox_01")
+
+	local t = {
+		{pos = {-177.96057128906,-0.0017341896891594,-169.55464172363}, lv = 58923, gv = 652},
+		{pos = {-182.50747680664,2.7280101776123,-169.66944885254}, lv = 56033, gv = 652},
+		{pos = {-138.29316711426,-0.0015888065099716,-197.52209472656}, lv = 101724, gv = 649},
+		{pos = {-121.59228515625,-0.00071712583303452,-204.12982177734}, lv = 113605, gv = 623},
+		{pos = {-149.99906921387,7.4366383552551,-197.88980102539}, lv = 88767, gv = 619},
+		{pos = {-125.87255096436,-26.266794204712,-373.65478515625}, lv = 126770, gv = 25},
+		{pos = {-140.97329711914,-25.439868927002,-355.27938842773}, lv = 109721, gv = 18},
+		{pos = {-166.46591186523,-25.435808181763,-356.96752929688}, lv = 83083, gv = 31},
+		{pos = {-179.22505187988,-29.876932144165,-354.46130371094}, lv = 71185, gv = 30}
+	}
+	local a = table.random(t)
+	local obj = AI:create( "turret_pkm", vector():set( unpack(a.pos) ), a.lv, a.gv )
+	obj = AI:object(obj.id)
+	obj:use_ai_locations( false )
+end
+function kep_turret_bonus()
+	inventory.give_ammo_to_weapons(40, 10)
+
+	local mgr = treasure_manager.get_treasure_manager()
+	local tmp = {}
+	local obj
+	local avail_levels = {
+		['l10_radar'] = true,
+		['l10u_bunker'] = true,
+		['l11_pripyat'] = true
+	}
+	for k, v in pairs(mgr.treasure_info) do
+		if not (v.active or v.done or v.named) then
+			obj = AI:story_object(v.target)
+			if obj and avail_levels[ object_level_name(obj) ] then
+				table.insert(tmp, k)
+			end
+		end
+	end
+	mgr.npc_rank = 1200
+	for i = 1, 2 do
+		if next(tmp) then
+			mgr:give_treasure( table.remove( tmp, math.random(#tmp) ) )
+		end
+	end
+end
+
 -- ЗАПУСК СЮЖЕТНЫХ ЗВУКОВ
 function akill_start_sound()
     if has_alife_info("sherstuk_ammo_start") and (not has_alife_info("sherstuk_ammo_have")) and level.name()=="l06_rostok" then
