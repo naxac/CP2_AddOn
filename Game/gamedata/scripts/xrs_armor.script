@@ -2280,14 +2280,18 @@ function look_for_armor(sobj,vis)
 	return false
 end
 
+local xrs_armor_time = -1
 function update()
 	--armor upgrade part
 	if auto_upgrades==true then
 	    local _time = amk.game_minutes()
-		local tmr = xr_logic.pstor_retrieve(Actor,"xrs_armor_t",nil)
-		if tmr==nil then	-- if first run
-			xr_logic.pstor_store(Actor,"xrs_armor_t", _time+upgrade_delta)
-		elseif _time>tmr then
+		if xrs_armor_time < 0 then	-- if first run
+			xrs_armor_time = xr_logic.pstor_retrieve(Actor,"xrs_armor_t",nil)
+			if xrs_armor_time == nil then
+				xrs_armor_time = _time+upgrade_delta
+				xr_logic.pstor_store(Actor,"xrs_armor_t", xrs_armor_time)
+			end
+		elseif _time > xrs_armor_time then
 			stalkers={}
 			local sobj, npc_sec, map, lvl
 			for a=1,65534 do
@@ -2336,7 +2340,8 @@ function update()
 					end
 				end
 			end
-			xr_logic.pstor_store(Actor,"xrs_armor_t",_time+upgrade_delta)
+			xrs_armor_time = _time+upgrade_delta
+			xr_logic.pstor_store(Actor, "xrs_armor_t", xrs_armor_time)
 		end
 	end	
 end
