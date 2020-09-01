@@ -860,36 +860,13 @@ function CArenaext:update()
 
 	local id, npc, ctm, rt, ct
 	
-	if Actor:dont_has_info("aem_startup") then
-		if aem_only == true then
-			Actor:give_info_portion("bar_arena_fight_8_done")
-			startup()
-		end
-	end
-	
-	id = xr_logic.pstor_retrieve(Actor, "aem_id", 0)
-
-	-- удаляем Арни и создаём его клона
-	if id == 0 then
-		npc = AI:object("bar_arena_man")
-		if npc ~= nil then
-			AI:release(npc)
-		--	if npc:alive() ~= true then	-- вы ж его удалили, какого хрена проверять? Неудивительно, что при старте новой игры всякая херь временами бывает...
-				-- мёртвый
-		--		Actor:give_info_portion("aem_arny_dead")
-		--		Actor:give_info_portion("aem_arny_dis_1")
-		--		admin_dead()
-		--	else
-				-- живой
-				local obj = AI:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
-				-- сохранение id
-				id = obj.id
-				xr_logic.pstor_store(Actor, "aem_id", id)
-		--	end
-		else
-			Actor:give_info_portion("aem_arny_spread_out")
-			Actor:give_info_portion("aem_arny_dis_2")
-			admin_dead()
+	if not self.first_update then
+		self.first_update = true
+		if Actor:dont_has_info("aem_startup") then
+			if aem_only == true then
+				Actor:give_info_portion("bar_arena_fight_8_done")
+				startup()
+			end
 		end
 	end
 	
@@ -899,8 +876,24 @@ function CArenaext:update()
 		idle_time:setHMSms(0, 5, 0, 0)
 		update_time = game.get_game_time() + idle_time
 		--printf("CArenaext:update(30sec_update_done)")
-		if id > 0 then	
-			id = xr_logic.pstor_retrieve(Actor, "aem_id")
+
+		id = xr_logic.pstor_retrieve(Actor, "aem_id", 0)
+
+		-- удаляем Арни и создаём его клона
+		if id == 0 then
+			npc = AI:object("bar_arena_man")
+			if npc ~= nil then
+				AI:release(npc)
+				local obj = AI:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
+				-- сохранение id
+				id = obj.id
+				xr_logic.pstor_store(Actor, "aem_id", id)
+			else
+				Actor:give_info_portion("aem_arny_spread_out")
+				Actor:give_info_portion("aem_arny_dis_2")
+				admin_dead()
+			end
+		else
 			npc = AI:object(id)
 			if npc ~= nil and npc:clsid() == clsid.script_stalker then
 				if npc:alive() ~= true then
