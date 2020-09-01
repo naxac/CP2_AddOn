@@ -248,6 +248,20 @@ function give_ammo(sSection, iNeedCount)
 	news_manager.relocate_item(Actor, "in", sSection, iNeedCount)
 end
 
+function give_ammo_to_weapons(iCount, rnd)
+	local slots = {inventory_slots.PISTOL, inventory_slots.RIFLE}
+	for n, slot in ipairs(slots) do
+		local wpn = Actor:item_in_slot(inventory_slots.PISTOL)
+		if wpn and isMagazinedWeapon(wpn) then
+			local s = sys_ini:r_string(wpn:section(), "ammo_class")
+			local t = string.explode(s, ",", true)
+			for i, v in ipairs(t) do
+				give_ammo( v, iCount + math.random(-rnd, rnd) )
+			end
+		end
+	end
+end
+
 function out_items(sSection, iNeedCount, bGood)
 	if iNeedCount == nil then
 		iNeedCount = 1
