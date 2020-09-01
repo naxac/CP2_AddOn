@@ -340,9 +340,15 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func,
 	if news_id == nil or type(news_id) ~= "string" then
 		log("! [news_manager.send_tip]: news_id is not string!")
 		news_manager.send_tip("%[gray2]АХТУНГ!!!\\n%[red][news_manager.send_tip]: news_id is not string!")
-		local args = {news_id, timeout, sender, showtime, sender_id, ozvuchka, func, _shift}
-		table.print(args)
-		return
+		table.print({news_id, timeout, sender, showtime, sender_id, ozvuchka, func, _shift})
+		return false
+	end
+
+	if timeout == nil then
+		timeout = 0
+	elseif timeout > 0 then
+		start_real_timer("sendtip", timeout, {news_id, 0, sender, showtime, sender_id, ozvuchka, func, _shift})
+		return true
 	end
 
 	if sender_id ~= nil then
@@ -364,7 +370,6 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func,
 		end
 	end
 
-	if timeout == nil then timeout = 0 end
 	if showtime == nil then showtime = 5000 end
 
 	if ozvuchka then
