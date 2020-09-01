@@ -973,11 +973,9 @@ end
 
 function spawn_prohod_lim()
     if not Actor:has_info("info_spawn_lim_teleport") then 
-local se_obj = AI:create("lim_zone_teleport1",vector():set(40.821,11.0686,215.0173),48310,3020)
-xr_logic.pstor_store(Actor, "lim_zone_teleport1", se_obj.id) 
-local se_obj = AI:create("lim_zone_teleport2",vector():set(49.1074,2.948,300.0252),51380,3022)
-xr_logic.pstor_store(Actor, "lim_zone_teleport2", se_obj.id)
-    Actor:give_info_portion("info_spawn_lim_teleport")
+		AI:create("lim_zone_teleport1",vector():set(40.821,11.0686,215.0173),48310,3020)
+		AI:create("lim_zone_teleport2",vector():set(49.1074,2.948,300.0252),51380,3022)
+		Actor:give_info_portion("info_spawn_lim_teleport")
 	end
 end
 
@@ -993,15 +991,13 @@ end
 function del_lim()
     if level.name() == "limansk" and not Actor:has_info("info_del_lim_teleport") then 
 		local obj_id = xr_logic.pstor_retrieve(Actor, "lim_zone_teleport1", -1, true)
-		local se_obj = AI:object(obj_id)
-		if se_obj then
-			AI:release(se_obj, true)
+		if not bind_mteleport.del_teleport("lim_zone_teleport1") then
+			log("! [braad_test.del_lim]: lim_zone_teleport1 not found")
 		end
 		obj_id = xr_logic.pstor_retrieve(Actor, "lim_zone_teleport2", -1, true)
-		se_obj = AI:object(obj_id)
-		if se_obj then
-			AI:release(se_obj, true)
-		end	
+		if not bind_mteleport.del_teleport("lim_zone_teleport2") then
+			log("! [braad_test.del_lim]: lim_zone_teleport2 not found")
+		end
 		Actor:give_info_portion("info_del_lim_teleport")
 		-- доставим Кота в Госпиталь
 		local obj = AI:story_object( story_ids.kot )
