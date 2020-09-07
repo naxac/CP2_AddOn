@@ -1,6 +1,29 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 38
+local current_fix = 39
 
+function fix_40()
+	if has_alife_info("pechatka_taken") and Actor:character_name() == "Стрелок" then
+		local new_name = amk_names_lists.get_strings(false)
+		naxac.hero_rename_start(new_name)
+	end
+	local obj = AI:object("warlab_boss")
+	if obj then
+		AI:release(obj, true)
+		AI:create(15253)				-- SPAWN_ID
+	end
+end
+function fix_39()
+	local obj = AI:object("warlab_radio")
+	if obj then
+		AI:release(obj, true)
+	end
+	AI:create(15415)					-- SPAWN_ID
+	obj = AI:object("pantera_space_restrictor_timer")
+	if obj then
+		AI:release(obj, true)
+	end
+	AI:create(15324)					-- SPAWN_ID
+end
 function fix_38()
 	local lamps = {"aver_lazaret_lamp_2", "aver_lazaret_lamp_3", "aver_lazaret_lamp_5", "aver_sekret_lamp_1"}
 	local obj
@@ -1268,7 +1291,7 @@ function get_map_dist( start_level, start_pos, to_level, to_pos )
 end
 ----------------------------------------------------------------------------------
 function get_actor_pursuit()
-	log("[naxac.get_actor_pursuit] start")
+--	log("[naxac.get_actor_pursuit] start")
 	local pos = Actor:position()
 	local be
 	local enemies = {}
@@ -1283,8 +1306,8 @@ function get_actor_pursuit()
 		end
 	end
 	amk.save_variable("pursuit", enemies)
-	log("[naxac.get_actor_pursuit] done")
-	table.print(enemies)
+--	log("[naxac.get_actor_pursuit] done")
+--	table.print(enemies)
 end
 function set_actor_pursuit()
 	local enemies = amk.load_table("pursuit")
