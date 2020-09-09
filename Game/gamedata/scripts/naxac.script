@@ -1,15 +1,25 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 39
+local current_fix = 40
 
 function fix_40()
 	if has_alife_info("pechatka_taken") and Actor:character_name() == "Стрелок" then
 		local new_name = amk_names_lists.get_strings(false)
 		naxac.hero_rename_start(new_name)
 	end
+
 	local obj = AI:object("warlab_boss")
-	if obj then
+	if obj and obj:alive() then
 		AI:release(obj, true)
-		AI:create(15253)				-- SPAWN_ID
+		AI:create(15253)				-- ~SPAWN_ID
+	end
+
+	local sids = {"Mil_patrol_kamikadze1", "Mil_patrol_kamikadze2", "Mil_patrol_kamikadze3"}
+	for i, v in ipairs(sids) do
+		obj = AI:story_object( story_ids[v] )
+		if obj and obj:alive() then
+			AI:release(obj, true)
+			AI:create( AI:spawn_id( story_ids[v] ) )
+		end
 	end
 end
 function fix_39()
@@ -17,12 +27,12 @@ function fix_39()
 	if obj then
 		AI:release(obj, true)
 	end
-	AI:create(15415)					-- SPAWN_ID
+	AI:create(15415)					-- ~SPAWN_ID
 	obj = AI:object("pantera_space_restrictor_timer")
 	if obj then
 		AI:release(obj, true)
 	end
-	AI:create(15324)					-- SPAWN_ID
+	AI:create(15324)					-- ~SPAWN_ID
 end
 function fix_38()
 	local lamps = {"aver_lazaret_lamp_2", "aver_lazaret_lamp_3", "aver_lazaret_lamp_5", "aver_sekret_lamp_1"}
@@ -38,11 +48,11 @@ function fix_38()
 	if obj then
 		AI:release(obj, true)
 	end
-	AI:create(807)											-- SPAWN_ID
+	AI:create(807)											-- ~SPAWN_ID
 	obj = AI:object("land_arhara_koster_1_rest")
-	if not obj then AI:create(1076) end						-- SPAWN_ID
+	if not obj then AI:create(1076) end						-- ~SPAWN_ID
 	obj = AI:object("land_arhara_koster_2_rest")
-	if not obj then AI:create(1077) end						-- SPAWN_ID
+	if not obj then AI:create(1077) end						-- ~SPAWN_ID
 
 	obj = AI:story_object(story_ids.lc_agroprom_to_marsh)
 	if obj then
@@ -88,7 +98,7 @@ function fix_36()
 		local obj = AI:object("val_prisoner_cage_zone")
 		if obj then
 			AI:release(obj, true)
-			AI:create(5729)						-- SPAWN_ID
+			AI:create(5729)						-- ~SPAWN_ID
 		end
 		if (not has_alife_info("val_prisoner_door_unlocked")) and has_alife_info("val_prisoner_free") then
 			Actor:disable_info_portion("val_prisoner_free")
@@ -121,7 +131,7 @@ function fix_35()
 	obj = AI:object("dead_mono_labirint")
 	if obj then
 		AI:release(obj, true)
-		AI:create(540)						-- SPAWN_ID
+		AI:create(540)						-- ~SPAWN_ID
 	end
 	obj = AI:story_object(story_ids.lc_military_to_aver)
 	if obj then
@@ -134,7 +144,7 @@ function fix_34()
 	if obj then
 		AI:release(obj, true)
 	end
-	AI:create(3474)						-- SPAWN_ID
+	AI:create(3474)						-- ~SPAWN_ID
 
 	local lc = {"lc_escape_to_bar", "lc_pripyat_to_bar"}
 	for i, v in ipairs(lc) do
@@ -167,8 +177,8 @@ function fix_33()
 	end
 
 	local respawn_names = {
-		[839] = "vert_zimovie_stalker_1",						-- SPAWN_ID
-		[840] = "vert_zimovie_stalker_2"						-- SPAWN_ID
+		[839] = "vert_zimovie_stalker_1",						-- ~SPAWN_ID
+		[840] = "vert_zimovie_stalker_2"						-- ~SPAWN_ID
 	}
 	for id, name in pairs( respawn_names ) do
 		obj = AI:object( name )
@@ -191,8 +201,8 @@ function fix_32()
 
 	local obj
 	local doors = {
-		[12006] = "mon_door_from_monolith_control",						-- SPAWN_ID
-		[12011] = "mon_door_from_monolith_control_0000"					-- SPAWN_ID
+		[12006] = "mon_door_from_monolith_control",						-- ~SPAWN_ID
+		[12011] = "mon_door_from_monolith_control_0000"					-- ~SPAWN_ID
 	}
 	for id, name in pairs( doors ) do
 		obj = AI:object(name)
@@ -237,7 +247,7 @@ function fix_28()
 	local obj = AI:object("rostok_space_restrictor_0001")
 	if obj then
 		AI:release(obj, true)
-		AI:create(7373)						-- SPAWN_ID
+		AI:create(7373)						-- ~SPAWN_ID
 	end
 
 	obj = AI:story_object(story_ids.lc_jupiter_to_east_pripyat)
@@ -248,12 +258,12 @@ function fix_28()
 end
 function fix_27()
 	local npc = {
-		[3922] = "esc_banderos",					-- SPAWN_ID
-		[3923] = "esc_dimorin",						-- SPAWN_ID
-		[3924] = "esc_n6260",						-- SPAWN_ID
-		[3925] = "esc_vergas",						-- SPAWN_ID
-		[3926] = "esc_tirex",						-- SPAWN_ID
-		[3927] = "esc_wawka"						-- SPAWN_ID
+		[3922] = "esc_banderos",					-- ~SPAWN_ID
+		[3923] = "esc_dimorin",						-- ~SPAWN_ID
+		[3924] = "esc_n6260",						-- ~SPAWN_ID
+		[3925] = "esc_vergas",						-- ~SPAWN_ID
+		[3926] = "esc_tirex",						-- ~SPAWN_ID
+		[3927] = "esc_wawka"						-- ~SPAWN_ID
 	}
 	local obj
 	for id, name in pairs(npc) do
@@ -266,8 +276,8 @@ function fix_27()
 end
 function fix_26()
 	local doors = {
-		[8849] = "door_trader_0000",				-- SPAWN_ID
-		[8848] = "door_trader"						-- SPAWN_ID
+		[8849] = "door_trader_0000",				-- ~SPAWN_ID
+		[8848] = "door_trader"						-- ~SPAWN_ID
 	}
 	for i, v in pairs(doors) do
 		local obj = AI:object( v )
@@ -329,14 +339,14 @@ function fix_24()
 end
 function fix_23()
 	local restr = {
-		[11743] = "aes2_space_restrictor_particle_0000",						-- SPAWN_ID
-		[11744] = "aes2_space_restrictor_particle_0001",						-- SPAWN_ID
-		[11760] = "aes2_space_restrictor_particle_0003",						-- SPAWN_ID
-		[11762] = "aes2_space_restrictor_particle_0004",						-- SPAWN_ID
-		[11766] = "aes2_space_restrictor_particle_0005",						-- SPAWN_ID
-		[11848] = "aes2_space_restrictor_particle_0002",						-- SPAWN_ID
-		[11922] = "aes2_space_restrictor_particle_final",						-- SPAWN_ID
-		[11923] = "aes2_space_restrictor_particle_final_0000"					-- SPAWN_ID
+		[11743] = "aes2_space_restrictor_particle_0000",						-- ~SPAWN_ID
+		[11744] = "aes2_space_restrictor_particle_0001",						-- ~SPAWN_ID
+		[11760] = "aes2_space_restrictor_particle_0003",						-- ~SPAWN_ID
+		[11762] = "aes2_space_restrictor_particle_0004",						-- ~SPAWN_ID
+		[11766] = "aes2_space_restrictor_particle_0005",						-- ~SPAWN_ID
+		[11848] = "aes2_space_restrictor_particle_0002",						-- ~SPAWN_ID
+		[11922] = "aes2_space_restrictor_particle_final",						-- ~SPAWN_ID
+		[11923] = "aes2_space_restrictor_particle_final_0000"					-- ~SPAWN_ID
 	}
 	local obj
 	for i, v in pairs(restr) do
@@ -482,14 +492,14 @@ function fix_17()
 	-- Установим логику дверям в подземке Юпитера
 	local obj
 	local doors = {
-		[2935] = "jund_pas_b400_physic_door",						-- SPAWN_ID
-		[2936] = "jund_pas_b400_door_track",						-- SPAWN_ID
-		[2938] = "jund_pas_b400_door_downstairs",					-- SPAWN_ID
-		[2942] = "jund_pas_b400_physic_door_0000",					-- SPAWN_ID
-		[2943] = "jund_pas_b400_door_hall",							-- SPAWN_ID
-		[2944] = "jund_pas_b400_door_control_down",					-- SPAWN_ID
-		[2945] = "jund_pas_b400_door_control_up",					-- SPAWN_ID
-		[2946] = "jund_pas_b400_door_way"							-- SPAWN_ID
+		[2935] = "jund_pas_b400_physic_door",						-- ~SPAWN_ID
+		[2936] = "jund_pas_b400_door_track",						-- ~SPAWN_ID
+		[2938] = "jund_pas_b400_door_downstairs",					-- ~SPAWN_ID
+		[2942] = "jund_pas_b400_physic_door_0000",					-- ~SPAWN_ID
+		[2943] = "jund_pas_b400_door_hall",							-- ~SPAWN_ID
+		[2944] = "jund_pas_b400_door_control_down",					-- ~SPAWN_ID
+		[2945] = "jund_pas_b400_door_control_up",					-- ~SPAWN_ID
+		[2946] = "jund_pas_b400_door_way"							-- ~SPAWN_ID
 	}
 	for i, v in pairs(doors) do
 		obj = AI:object(v)
@@ -499,7 +509,7 @@ function fix_17()
 		AI:create(i)
 	end
 	-- Наспавним аномалий - для атмосферности
-	for i = 2974, 3004, 1 do						-- SPAWN_ID
+	for i = 2974, 3004, 1 do						-- ~SPAWN_ID
 		AI:create(i)
 	end
 end
@@ -507,15 +517,15 @@ function fix_16()
 	-- Переделаем немного двери в Х-10 и на Радаре
 	local obj
 	local doors = {
-		[9503] = "rad_code_door_keylock",					-- SPAWN_ID
-		[9929] = "rad_code_door",							-- SPAWN_ID
-		[10072] = "codedoor_door_0001",						-- SPAWN_ID
-		[10073] = "codedoor_door_0002",						-- SPAWN_ID
-		[10074] = "codedoor_door_0003",						-- SPAWN_ID
-		[10076] = "codedoor_door_0004",						-- SPAWN_ID
-		[10078] = "codedoor_door_0006",						-- SPAWN_ID
-		[10079] = "codedoor_door_0007",						-- SPAWN_ID
-		[10081] = "codedoor_key_0004"						-- SPAWN_ID
+		[9503] = "rad_code_door_keylock",					-- ~SPAWN_ID
+		[9929] = "rad_code_door",							-- ~SPAWN_ID
+		[10072] = "codedoor_door_0001",						-- ~SPAWN_ID
+		[10073] = "codedoor_door_0002",						-- ~SPAWN_ID
+		[10074] = "codedoor_door_0003",						-- ~SPAWN_ID
+		[10076] = "codedoor_door_0004",						-- ~SPAWN_ID
+		[10078] = "codedoor_door_0006",						-- ~SPAWN_ID
+		[10079] = "codedoor_door_0007",						-- ~SPAWN_ID
+		[10081] = "codedoor_key_0004"						-- ~SPAWN_ID
 	}
 	for i, v in pairs(doors) do
 		obj = AI:object(v)
@@ -526,10 +536,10 @@ function fix_16()
 	end
 	-- Объекты, имеющие одинаковые имена с другими объектами в спавне
 	local double_names = {
-		["codedoor_key_0000"] = 10071,						-- SPAWN_ID
-		["codedoor_key_0001"] = 10075,						-- SPAWN_ID
-		["codedoor_key_0002"] = 10077,						-- SPAWN_ID
-		["codedoor_key_0003"] = 10080						-- SPAWN_ID
+		["codedoor_key_0000"] = 10071,						-- ~SPAWN_ID
+		["codedoor_key_0001"] = 10075,						-- ~SPAWN_ID
+		["codedoor_key_0002"] = 10077,						-- ~SPAWN_ID
+		["codedoor_key_0003"] = 10080						-- ~SPAWN_ID
 	}
 	for i = 1, 65535 do
 		obj = AI:object(i)
@@ -547,9 +557,9 @@ function fix_16()
 	end
 	-- Неписи с кодом от двери
 	local npcs = {
-		[9480] = "rad_antenna_camper1",						-- SPAWN_ID
-		[9512] = "rad_antenna_camper2",						-- SPAWN_ID
-		[9513] = "rad_antenna_camper3"						-- SPAWN_ID
+		[9480] = "rad_antenna_camper1",						-- ~SPAWN_ID
+		[9512] = "rad_antenna_camper2",						-- ~SPAWN_ID
+		[9513] = "rad_antenna_camper3"						-- ~SPAWN_ID
 	}
 	local respawn = false
 	for i, v in pairs(npcs) do
@@ -588,30 +598,30 @@ function fix_15()
 	end
 	obj = AI:object("darkscape_fireshit_ogon_strong")
 	if not obj then
-		AI:create(12499)						-- SPAWN_ID
+		AI:create(12499)						-- ~SPAWN_ID
 	end
 
 	local doors = {
-		[14271] = "pri_b303_one_side_door",							-- SPAWN_ID
-		[14272] = "pri_b303_door_01",								-- SPAWN_ID
-		[14279] = "pri_b304_physic_door_0005",						-- SPAWN_ID
-		[14280] = "pri_b304_physic_door_0006",						-- SPAWN_ID
-		[14281] = "pri_b304_physic_door_0007",						-- SPAWN_ID
-		[14282] = "pri_b304_physic_door_0008",						-- SPAWN_ID
-		[14283] = "pri_b304_physic_door_0009",						-- SPAWN_ID
-		[14284] = "pri_b304_physic_door_0010",						-- SPAWN_ID
-		[14285] = "pri_b304_physic_door_0011",						-- SPAWN_ID
-		[14286] = "pri_b304_physic_door_0012",						-- SPAWN_ID
-		[14287] = "pri_b304_physic_door_0013",						-- SPAWN_ID
-		[14288] = "pri_b304_physic_door_0014",						-- SPAWN_ID
-		[14296] = "pri_a16_ph_door",								-- SPAWN_ID
-		[14297] = "pri_a16_ph_door_0000",							-- SPAWN_ID
-		[14298] = "pri_a16_ph_door_0001",							-- SPAWN_ID
-		[14299] = "pri_a16_ph_door_0002",							-- SPAWN_ID
-		[14300] = "pri_a16_ph_door_0003",							-- SPAWN_ID
-		[14301] = "pri_a16_ph_door_0006",							-- SPAWN_ID
-		[14304] = "pri_a28_physic_door_end_surge_room",				-- SPAWN_ID
-		[14305] = "pri_a28_physic_door_end_surge_room_0000"			-- SPAWN_ID
+		[14271] = "pri_b303_one_side_door",							-- ~SPAWN_ID
+		[14272] = "pri_b303_door_01",								-- ~SPAWN_ID
+		[14279] = "pri_b304_physic_door_0005",						-- ~SPAWN_ID
+		[14280] = "pri_b304_physic_door_0006",						-- ~SPAWN_ID
+		[14281] = "pri_b304_physic_door_0007",						-- ~SPAWN_ID
+		[14282] = "pri_b304_physic_door_0008",						-- ~SPAWN_ID
+		[14283] = "pri_b304_physic_door_0009",						-- ~SPAWN_ID
+		[14284] = "pri_b304_physic_door_0010",						-- ~SPAWN_ID
+		[14285] = "pri_b304_physic_door_0011",						-- ~SPAWN_ID
+		[14286] = "pri_b304_physic_door_0012",						-- ~SPAWN_ID
+		[14287] = "pri_b304_physic_door_0013",						-- ~SPAWN_ID
+		[14288] = "pri_b304_physic_door_0014",						-- ~SPAWN_ID
+		[14296] = "pri_a16_ph_door",								-- ~SPAWN_ID
+		[14297] = "pri_a16_ph_door_0000",							-- ~SPAWN_ID
+		[14298] = "pri_a16_ph_door_0001",							-- ~SPAWN_ID
+		[14299] = "pri_a16_ph_door_0002",							-- ~SPAWN_ID
+		[14300] = "pri_a16_ph_door_0003",							-- ~SPAWN_ID
+		[14301] = "pri_a16_ph_door_0006",							-- ~SPAWN_ID
+		[14304] = "pri_a28_physic_door_end_surge_room",				-- ~SPAWN_ID
+		[14305] = "pri_a28_physic_door_end_surge_room_0000"			-- ~SPAWN_ID
 	}
 	for i, v in pairs(doors) do
 		obj = AI:object(v)
@@ -660,7 +670,7 @@ end
 function fix_11()
 	local obj = AI:object("darkscape_military_respawn")
 	if obj == nil then
-		AI:create(12549)						-- SPAWN_ID
+		AI:create(12549)						-- ~SPAWN_ID
 	end
 end
 function fix_10()
@@ -832,7 +842,7 @@ function fix_2()
 		and AI:story_object(story_ids.lc_darkscape_to_darkvalley) == nil
 	then
 		-- спавним по номеру секции в спавне: придётся обновлять каждый раз при редактировании спавна.
-		for i = 12423, 12549, 1 do						-- SPAWN_ID
+		for i = 12423, 12549, 1 do						-- ~SPAWN_ID
 			AI:create(i)
 		end
 		-- отметим переходы
@@ -923,16 +933,19 @@ function fix_1()
 end
 
 function repair()
-	local fix = amk.load_variable("nfx", 0)
+	local fix = amk.load_variable( "nfx", 0 )
 	if fix == current_fix then return end
 
 	amk.save_variable( "nfx", current_fix )
 
 	if fix == 0 then return end
 
-	for i = current_fix, 1, -1 do
-		if fix >= i then break end
-		this["fix_"..tostring(i)]()
+	local fn = ""
+	for i = fix+1, current_fix, 1 do
+		fn = "fix_"..tostring( i )
+		if this[ fn ] then
+			this[ fn ]()
+		end
 	end
 end
 
