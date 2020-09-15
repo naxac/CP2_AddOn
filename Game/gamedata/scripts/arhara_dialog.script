@@ -15,7 +15,7 @@ function barman_answer()
 	news_manager.send_tip("%c[gray2]БАРМЕН:\\n%c[red_sms]Ты где их откопал? Неси, раз такое дело. Здесь, в Зоне, ими всё равно разве что подтираться, а я тебе обменяю по нормальному курсу.", nil, "barman", 20000)
 end
 function sidor_answer()
-	news_manager.send_tip("%c[gray2]СИДОРОВИЧ:\\n%c[red_sms]Да кому они тут нужны? Разве что костёр ими разжигать. Хотя... Ты подойди к Бармену, что в баре \"100 рентген\" заправляет, вроде он бумажными деньгами нтересовался.", nil, "sid", 20000)
+	news_manager.send_tip("%c[gray2]СИДОРОВИЧ:\\n%c[red_sms]Да кому они тут нужны? Разве что костёр ими разжигать. Хотя... Ты подойди к Бармену, что в баре \"100 рентген\" заправляет, вроде он бумажными деньгами интересовался.", nil, "sid", 20000)
 end
 --' спавним рацию Волка на свалке
 function spawn_add_resiver()
@@ -355,11 +355,8 @@ function butilka()
 	}, {
 		pos = {-136.90090942383,-28.73921585083,-359.18383789063}, lv = 113558, gv = 18
 	} }
-	local sobj
 	for i, v in ipairs(t) do
-		sobj = AI:create("lekarstvo",vector():set(unpack(v.pos)),v.lv,v.gv)
-		sobj = AI:object(sobj.id)
-		sobj:use_ai_locations(false)
+		AI:create_no_ai("lekarstvo",vector():set(unpack(v.pos)),v.lv,v.gv)
 	end
 	AI:create("zasada_tonnel_agro_3",vector():set(-163.62464904785,-25.436117172241,-356.86444091797),85709,31)
 	AI:create("zasada_tonnel_agro_1",vector():set(-168.9747467041,-25.435110092163,-352.73577880859),81063,31)
@@ -381,21 +378,18 @@ end
 
 --' спавним вороньи яйца
 function vorona_egg_spawn()
-	AI:create("vorona_egg",vector():set(-34.258,1.229,61.552),159972,2881)
-	AI:create("vorona_egg",vector():set(-34.258,1.229,61.552),159972,2881)
-	AI:create("vorona_egg",vector():set(-34.258,1.229,61.552),159972,2881)
-	AI:create("vorona_egg",vector():set(-34.258,1.229,61.552),159972,2881)
-	AI:create("vorona_egg",vector():set(4.979,1.458,117.221),192133,2881)
-	AI:create("vorona_egg",vector():set(4.979,1.458,117.221),192133,2881)
-	AI:create("vorona_egg",vector():set(4.979,1.458,117.221),192133,2881)
-	AI:create("vorona_egg",vector():set(110.141,2.509,131.046),278456,2885)
-	AI:create("vorona_egg",vector():set(110.141,2.509,131.046),278456,2885)
-	AI:create("vorona_egg",vector():set(110.141,2.509,131.046),278456,2885)
-	AI:create("vorona_egg",vector():set(-136.771,-0.184,-148.663),79878,2882)
-	AI:create("vorona_egg",vector():set(-136.771,-0.184,-148.663),79878,2882)
-	AI:create("vorona_egg",vector():set(-136.771,-0.184,-148.663),79878,2882)
-	AI:create("vorona_egg",vector():set(-163.050,2.087,-161.024),58073,2882)
-	AI:create("vorona_egg",vector():set(-163.050,2.087,-161.024),58073,2882)
+	local t = {
+		{ pos = {-34.258,1.229,61.552},     lv = 159972, gv = 2881, cnt = 4 },
+		{ pos = {4.979,1.458,117.221},      lv = 192133, gv = 2881, cnt = 3 },
+		{ pos = {110.141,2.509,131.046},    lv = 278456, gv = 2885, cnt = 3 },
+		{ pos = {-136.771,-0.184,-148.663}, lv = 79878,  gv = 2882, cnt = 3 },
+		{ pos = {-163.050,2.087,-161.024},  lv = 58073,  gv = 2882, cnt = 2 }
+	}
+	for i, v in ipairs( t ) do
+		for j = 1, v.cnt do
+			AI:create_no_ai( "vorona_egg", vector():set( unpack( v.pos ) ), v.lv, v.gv )
+		end
+	end
 	AI:create("controller_senator",vector():set(-123.09496307373,9.1040058135986,101.61030578613),90668,2881)
 	AI:create("controller_babka",vector():set(-199.84088134766,-0.2078532576561,-121.52265167236),29582,2882)
 end
@@ -408,9 +402,6 @@ end
 --' спавним сердце полтергейста и скелеты в Пещере
 function af_part_monolit_spawn()
 	AI:create("af_part_monolit",vector():set(0.101,-2.429,-8.607),32286,2880)
---local obj = AI:create("scelet_strong",vector():set(-101.796,2.499,10.035),15428,2870)
---local obj = AI:create("scelet_strong",vector():set(-95.907,5.054,-75.896),17392,2880)
---local obj = AI:create("scelet_strong",vector():set(-92.660,9.809,-117.623),18254,2880)
 end
 
 --' отдадим монолит Шахтёру, а заодно и весь скарб
@@ -621,13 +612,14 @@ end
 
 --' спавним ремкомплекты
 function remkomplekt_spawn()
-	AI:create("kuvalda",vector():set(138.305,-6.021,13.806),576283,2832)
-	AI:create("kuvalda",vector():set(160.75564575195,-5.8302555084229,-54.942893981934),607741,2833)
-	AI:create("kluch",vector():set(-55.443,-6.437,-21.472),255385,1605)
-	AI:create("kluch",vector():set(-55.471,-6.436,-21.143),255386,1605)
-	AI:create("otvertka",vector():set(113.399,-1.398,3.550),540952,2826)
-	AI:create("otvertka",vector():set(113.173,-1.398,3.539),540952,2826)
-	AI:create("af_ameba_slime",vector():set(-143.967,-2.800,-11.277),168374,2798)
+	amk.spawn_item("kuvalda", vector():set(138.305,-6.021,13.806), 2832, 576283, true)
+	amk.spawn_item("kuvalda", vector():set(160.75564575195,-5.8302555084229,-54.942893981934), 2833, 607741, true)
+	amk.spawn_item("kluch", vector():set(-55.443,-6.437,-21.472), 1605, 255385, true)
+	amk.spawn_item("kluch", vector():set(-55.471,-6.436,-21.143), 1605, 255386, true)
+	amk.spawn_item("otvertka", vector():set(113.399,-1.398,3.550), 2826, 540952, true)
+	amk.spawn_item("otvertka", vector():set(113.173,-1.398,3.539), 2826, 540952, true)
+	amk.spawn_item("af_ameba_slime", vector():set(-143.967,-2.800,-11.277), 2798, 168374, true)
+	
 	AI:create("zombie_babka_weak",vector():set(-78.585,-5.721,-96.389),264461,2808)
 	AI:create("zombie_babka_normal",vector():set(-80.783,-6.114,-68.725),261420,2808)
 	AI:create("zombie_babka_strong",vector():set(-100.377,-6.11,-43.543),233002,2798)
