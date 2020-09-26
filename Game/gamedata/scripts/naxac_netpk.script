@@ -36,6 +36,10 @@ local restrictor_type = {
 	RestrictorTypeIn          = 4,
 	RestrictorTypeOut         = 5
 }
+local shape_type = {
+	sphere = 0,
+	box = 1
+}
 --------------------------------------------------------------------------------------------------
 class "n_netpk"
 
@@ -46,9 +50,6 @@ function n_netpk:__init()
 	self.fState   = 1
 	self.fUpdate  = 2
 	self.fConvert = 4
-	
-	self.state    = false
-	self.update   = false
 end
 
 function n_netpk:__finalize() end
@@ -184,6 +185,7 @@ function n_netpk:modify( obj, data, flags )
 	if state then
 		local stpk = net_packet()
 		tmp = {}
+		tmp.net_class_name = class_str
 	--	log( "# state part:" )
 		stpk:w_begin( 0 )
 		obj:STATE_Write( stpk )
@@ -481,18 +483,20 @@ end
 -- cse_shape
 function n_netpk:r_st_cse_shape( ret, stpk )
 	local sh = {}
-	local shape_type
+	local shtype
 	for i = 1, stpk:r_u8() do
-		shape_type = stpk:r_u8()
-		if shape_type == 0 then		-- sphere
-			sh[i] = { ["shtype"] = shape_type,
+		shtype = stpk:r_u8()
+		if shtype == shape_type.sphere then		-- sphere
+			sh[i] = { ["shtype"] = shtype,
 				      ["center"] = stpk:r_vec3(),
 					  ["radius"] = stpk:r_float() }
-		else				-- box
+		elseif shtype == shape_type.box then				-- box
 			local m = matrix()
 			stpk:r_matrix( m )
-			sh[i] = { ["shtype"]     = shape_type,
+			sh[i] = { ["shtype"]     = shtype,
 					  ["box_matrix"] = m }
+		else
+			log("! [n_netpk:r_st_cse_shape] unknown shape type [%s] for class %s", shtype, ret.net_class_name)
 		end
 	end
 	ret.shapes = sh
@@ -505,10 +509,12 @@ function n_netpk:w_st_cse_shape( data, stpk )
 	for i = 1, n do
 		sh = t[i]
 		stpk:w_u8( sh.shtype )
-		if sh.shtype == 0 then
+		if sh.shtype == shape_type.sphere then
 			stpk:w_vec3( sh.center ); stpk:w_float( sh.radius )
-		else
+		elseif sh.shtype == shape_type.box then
 			stpk:w_matrix( sh.box_matrix )
+		else
+			log("! [n_netpk:w_st_cse_shape] unknown shape type [%s] for class %s", sh.shtype, data.net_class_name)
 		end
 	end
 end
