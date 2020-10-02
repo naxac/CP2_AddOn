@@ -139,6 +139,16 @@ function mob_home:update(delta)
 		return
 	end
 
+	if mob_alife_mgr.alife_control(self.object, Actor, self.st.alife_mode) then
+		return
+	end
+	
+	-- Монстр после выхода из alife может уже быть не под скриптом, поэтому взять опять под скрипт
+	if not xr_logic.mob_captured(self.object) then
+		self:reset_scheme()
+		return
+	end
+
 	-- Возвращаем монстра обратно
 	if self.st.attaked_time and self.st.attaked_time < time_global() then
 		self.st.attaked_time = nil
@@ -174,6 +184,8 @@ function set_scheme(npc, ini, scheme, section, gulag_name)
 	local storage				= xr_logic.assign_storage_and_bind(npc, ini, scheme, section)
 
 	storage.logic				= xr_logic.cfg_get_switch_conditions(ini, section, npc)
+
+	storage.alife_mode			= mob_alife_mgr.cfg_get_mode(ini, section, npc)
 	
 	storage.home				= utils.cfg_get_string(ini, section, "path_home",			npc, true, gulag_name)
 	storage.home_min_radius		= utils.cfg_get_number(ini, section, "home_min_radius",		npc, false) --, 20)
