@@ -746,14 +746,18 @@ string.find(npc:name(), "aem_a")
 end
 
 function ecall(p1,obj,enemy)
-	local near=obj:position():distance_to(enemy:position())<300
-	if near==false or enemy:alive()==false then
+	if (obj:position():distance_to(enemy:position()) > 300)
+		or enemy:alive() == false
+	then
 		obj:enable_memory_object(enemy,false)
 		return false
+
 	elseif obj:clsid()==clsid.script_stalker
 		and enemy:clsid()==clsid.controller_s 
 		and obj:character_community()=="zombied"
-	then return false end
+	then
+		return false
+	end
 	
 	local st = db.storage[obj:id()]
 	if st and st.combat_ignore and st.combat_ignore.action and st.combat_ignore.action.enemy_callback then

@@ -109,18 +109,21 @@ function peshera_go(obj)
 end
 
 function peshera_start()
-	local box = obj_by_name("level_prefix_inventory_box_0003")
-	if box then
-		shiftCheckDropItem()
-		Actor:iterate_inventory(
-			function(dummy,item)
-				if AI:object(item:id()) == nil then return end
-				if not protected_items.actor_items_keep(item:section()) then
-					Actor:transfer_item(item, box)
+	local obj = AI:object("esc_inventory_box_0003")
+	if obj then
+		local box = level.object_by_id(obj.id)
+		if box then
+			shiftCheckDropItem()
+			Actor:iterate_inventory(
+				function(dummy,item)
+					if AI:object(item:id()) == nil then return end
+					if not protected_items.actor_items_keep(item:section()) then
+						Actor:transfer_item(item, box)
+					end
 				end
-			end
-		,Actor)
-		AI:create("zamok", vector():set(0,0,0), 0, 0, box:id())
+			,Actor)
+		--	naxac.close_lock_box(box:id(), "123123")
+		end
 	end
 	
 	create_teleport("peshera_blok_tp",vector():set(-112.609199523926,-9.9281539916992,-34.9218902587891),12288,2868)
@@ -171,18 +174,6 @@ function peshera_end()
 
 	delete_teleport("peshera_blok_tp")
 	Actor:disable_info_portion("peshera_go")
-end
-
--- Поиск онлайнового объекта по его name в all.spawn
-function obj_by_name(name)
-	local obj
-	for id=1, 65534 do
-		obj = level.object_by_id(id)
-		if obj and obj:name() == name then
---			get_console():execute("load ~~~ id:"..obj:id())
-			return obj
-		end
-	end
 end
 
 -- Холодное оружие перенесено в hotkeys.script
