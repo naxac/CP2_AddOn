@@ -390,9 +390,8 @@ function horrorspawn(level_name)
 		obj = AI:create("zombie_hell"..tostring(rnd(15)), vector():set(ap.x+rnd(-50,50), ap.y, ap.z+rnd(-50,50)), lv, gv)
 		table.insert(horror_mutants, obj.id)
 	end
-	if remove_horror then
-		amk.save_table("hrmt", horror_mutants)
-	end
+
+	amk.save_table("hrmt", horror_mutants)
 end
 
 -- Фантомы 
@@ -407,16 +406,26 @@ end
 
 -- уборка оставшихся живых монстров
 function remove_horror_mutant()
-	if not remove_horror then return end
+	local horror_mutants = amk.load_table("hrmt")
 
 	local se_obj
-	local horror_mutants = amk.load_table("hrmt")
+	local kill_all = true
 	for i, id in ipairs (horror_mutants) do
 		se_obj = AI:object(id)
-		if se_obj and se_obj:alive() then	--and string.find(se_obj:section(), "^zombie_hell") then
-			AI:release(se_obj, true)
+		if se_obj then
+			if se_obj:alive() then
+				kill_all = false
+				if remove_horror then
+					AI:release(se_obj, true)
+				end
+			end
 		end
 	end
+
+	if kill_all then
+		archievements.acv_count_event("acv_hell3", 20, "Истребитель")
+	end
+
 	amk.del_variable("hrmt")
 end
 
