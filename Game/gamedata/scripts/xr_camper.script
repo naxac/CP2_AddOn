@@ -9,12 +9,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- EVALUATORS
 ----------------------------------------------------------------------------------------------------------------------
-	function id(npc)
-		if npc then
-			return npc:id()
-		end
-		return nil
+function id(npc)
+	if npc then
+		return npc:id()
 	end
+	return nil
+end
 
 --' Условие завершения скрипта
 class "evaluator_end" (property_evaluator)
@@ -98,10 +98,13 @@ function action_patrol:initialize()
 	self.object:set_desired_position()
 	self.object:set_desired_direction()    
 	
+	self.initialized = true
 	self:reset_scheme()
 	self.enemy_position = nil
 end
 function action_patrol:reset_scheme()
+	if not self.initialized then return end
+
 	printf("CAMPER %s RESET SCHEME", self.object:name())
 	state_mgr.set_state(self.object, "patrol")	
 	self.a.signals = {}
@@ -469,6 +472,7 @@ end
 function action_patrol:finalize()
 	self.move_mgr:finalize()
 	action_base.finalize (self)
+	self.initialized = nil
 end
 function action_patrol:on_place()
     if self.a.no_retreat == true then return false end
