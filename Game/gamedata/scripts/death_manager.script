@@ -258,10 +258,13 @@ function create_release_items(npc)
     --' Запускаем итератор на удаление предметов
 	local se_item, sect, item_id
     npc:iterate_inventory(function (nepis, item)
+		sect = item:section()
+		if always_keep_item[sect] then return end
+
 		item_id = item:id()
 		se_item = AI:object(item_id)
 		if se_item == nil then return end
-		sect = item:section()
+
 		if always_offs_items[sect] or _G.ammo_sections[sect] then
 			if item_id ~= active_item_id then
 				AI:release(se_item, true)
