@@ -224,6 +224,9 @@ function CUICarbodyAddons:Remove()
 		dunin_ammo.repack_in_box(self.used_box)
 	end
 	self.used_box = nil
+	if self.move_timer then
+		remove_small_timer(self.move_timer)
+	end
 end
 
 function CUICarbodyAddons:move_items()
@@ -232,9 +235,7 @@ function CUICarbodyAddons:move_items()
 	local box = self.used_box
 	if self.droped_section then
 		Actor:iterate_inventory(function (dummy, item)
-			if item:section() == self.droped_section
-				and item:id() ~= self.no_move_id
-			then
+			if item:section() == self.droped_section then
 				Actor:transfer_item(item, box)
 			end 
 		end, nil)
@@ -244,17 +245,13 @@ function CUICarbodyAddons:move_items()
 			local item
 			for i=0, box:inv_box_count()-1 do
 				item = box:object_from_inv_box(i)
-				if item:section() == self.taken_section
-					and item:id() ~= self.no_move_id
-				then
+				if item:section() == self.taken_section then
 					box:transfer_item(item, Actor)
 				end
 			end
 		else
 			box:iterate_inventory(function (dummy, item)
-				if item:section() == self.taken_section
-					and item:id() ~= self.no_move_id
-				then
+				if item:section() == self.taken_section then
 					box:transfer_item(item, Actor)
 				end 
 			end, nil)
@@ -263,7 +260,6 @@ function CUICarbodyAddons:move_items()
 
 	self.droped_section = nil
 	self.taken_section = nil
-	self.no_move_id = nil
 	start_small_timer(300,
 		function(s)
 			s.moved = nil
@@ -282,8 +278,8 @@ function CUICarbodyAddons:on_item_drop(obj)
 	self:ShowOthersWeight()
 
 	if ShiftPressed() and not self.moved then
-		self.no_move_id = obj:id()
-		self:move_items()
+		self.moved = true
+		self.move_timer = start_small_timer(300, self.move_items, self)
 	end
 end
 
@@ -295,8 +291,8 @@ function CUICarbodyAddons:on_item_take(obj)
 	self:ShowOthersWeight()
 
 	if ShiftPressed() and not self.moved then
-		self.no_move_id = obj:id()
-		self:move_items()
+		self.moved = true
+		self.move_timer = start_small_timer(300, self.move_items, self)
 	end
 end
 
