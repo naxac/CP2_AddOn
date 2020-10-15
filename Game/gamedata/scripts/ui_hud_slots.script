@@ -106,12 +106,12 @@ function DrawStatic(slot)
 		st:InitTexture("ui\\ui_icon_equipment")
 		st:SetOriginalRect( GetDataTextures(section) )
 		st:SetStretchTexture(true)
-		st:SetText("0")
+		st:SetText(" ")
 		st:SetFont(GetFontSmall())
 		if bDefolt then
 			st:SetTextColor( unpack(tColor.default) )
 		else
-			st:SetTextColor( unpack(tColor[k] or tColor.default) )
+			st:SetTextColor( unpack(tColor[section] or tColor.default) )
 		end
 		st:SetTextAlign(CGameFont.alLeft)
 
@@ -137,7 +137,7 @@ function ChangeCount(item, section)
 	if bIsShown and tSection2Slot[sect] then
 		local slot = tSection2Slot[sect]
 		if sect == "" then
-			tStatics[slot]:SetText("")
+			tStatics[slot]:SetText(" ")
 		else
 			local num = inventory.get_items_count(sect)
 			tStatics[slot]:SetText( tostring(num) )
@@ -179,7 +179,9 @@ function init()
 	hud = get_hud()
 	tShowItems = table.copy( {}, ui_inv_add.getSlots() )
 	for i, v in ipairs(tShowItems) do
-		tSection2Slot[v] = i
+		if v ~= "" then
+			tSection2Slot[v] = i
+		end
 	end
 	for sig, func in pairs(tRegCallbacks) do
 		xr_s.subscribe(sig, this[func])
