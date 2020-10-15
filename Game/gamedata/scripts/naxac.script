@@ -1,6 +1,53 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 44
+local current_fix = 46
 
+function fix_46()
+this.fix_7()
+this.fix_33()
+	local rem = {
+		"voronin_voen_sms_restrictor",
+		"aver_muha_bazar_sms_restrictor",
+		"posadka_pantera_restrictor",
+		"kluk_shuher_restrictor",
+		"idu_na_nz_restrictor",
+		"dok_podvox_restrictor",
+		"spasibo_frits_restrictor",
+		"esc_klenov_posulka_restrictor",
+		"klenov_posulku_poluchil_restrictor"
+	}
+	local obj
+	for i, v in ipairs(rem) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+
+	obj = AI:story_object( story_ids.new_kluk_nz )
+	if obj then
+		AI:release( obj, true )
+		AI:create ( story_ids.new_kluk_nz )
+	end
+
+	local obj2info = {
+		["aver_sekret_nashel_restrictor"] = "peshera_nz_poisk_ok",
+		["sms_otez_poreshil_ubiysu_restrictor"] = "as_ubiysa_done",
+		["perehov_na_yantar_restrictor"] = "control_monol_svalka",
+		["spawn_svalka_plot_stalk_restrictor"] = "svalka_plot_stalk_spawn",
+		["marsh_otl_dok_vert_restrictor"] = "dok_heli_vusadil",
+		["esc_pantera_dead_restrictor"] = "remark_otez"
+	}
+	for k, v in pairs(obj2info) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if Actor:dont_has_info( v ) then
+				AI:create ( spawn_ids[k] )
+			end
+		end
+	end
+end
+function fix_45() end
 function fix_44()
 	local obj, name
 	for i = 1, 8 do
@@ -1021,6 +1068,7 @@ function repair()
 	for i = fix+1, current_fix, 1 do
 		fn = "fix_"..tostring( i )
 		if this[ fn ] then
+			log("~ [naxac.repair] work fix#%s", tostring( i ))
 			this[ fn ]()
 		end
 	end
@@ -1387,6 +1435,9 @@ function get_actor_pursuit()
 			if be and be:id() == 0
 				and obj:position():distance_to(pos) < math.random(20, 70)
 			then
+				if IsStalker(obj) then
+					xr_wounded.custom_change(id)
+				end
 				table.insert(enemies, id)
 			end
 		end
@@ -1399,9 +1450,13 @@ function set_actor_pursuit()
 	local enemies = amk.load_table("pursuit")
 	if #enemies > 0 then
 		local lv, gv = Actor:level_vertex_id(), Actor:game_vertex_id()
+		local obj
 		for i, v in ipairs(enemies) do
-			if AI:object(v) then
-				xr_wounded.custom_change(v)
+			obj = AI:object(v)
+			if obj then
+				if not IsStalker(obj) then
+					xr_wounded.custom_change(v)
+				end
 				AI:teleport_object("", 
 					Actor:position():add( vector_rotate_y( Actor:direction(), math.random(40, 320) ):mul( math.random( 15, 20 ) ) ),
 					lv, gv, v)
