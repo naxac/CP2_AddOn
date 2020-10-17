@@ -273,8 +273,10 @@ function UIScriptHUD:UpdateSpots()
 			tex, sz = nil, nil
 			if not spot then
 				if obj:is_entity_alive() then
-					tex = "ui_minimap_point"
-					sz = spot_size_npc
+					if not (obj:is_stalker() and sobj:visible_for_map()==false) then
+						tex = "ui_minimap_point"
+						sz = spot_size_npc
+					end
 				elseif not biodetector_mode then
 					cls = obj:clsid()
 					if cls == inv_box_clsid then
@@ -306,12 +308,14 @@ function UIScriptHUD:UpdateSpots()
 				end
 			else
 				if obj:is_entity_alive() then
-					local clr = get_point_color(obj)
-					if clr then
-						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
-						spot:SetColor(clr)
-					else
-						table_insert(self.del_spots, id)
+					if not (obj:is_stalker() and sobj:visible_for_map()==false) then
+						local clr = get_point_color(obj)
+						if clr then
+							spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
+							spot:SetColor(clr)
+						else
+							table_insert(self.del_spots, id)
+						end
 					end
 				elseif biodetector_mode then
 					table_insert(self.del_spots, id)
@@ -580,7 +584,7 @@ function get_point_color(obj)
 		return nil
 	end
 
-	local colorID = nil
+	local colorID
 
 	if IsHuman[obj:clsid()] then
 		if obj:character_community() == "zombied" then
