@@ -1,86 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 47
+local current_fix = 46
 
-function fix_47()
-	local obj
-	local obj2info = {
-		["mono_netu_restrictor"] = "vkluchit_generator_start",
-		["u_shlagbauma_space_restrictor"] = "idu_k_generatoru",
-		["u_tretego_generatora_restrictor"] = "vkluchit_generator_done",
-		["vertuhi_poshli_restrictor"] = "gener_boy_heli_go",
-		["predesant_black_heli_restrictor"] = "predesant_black_heli"
-	}
-	for k, v in pairs(obj2info) do
-		obj = AI:object( k )
-		if obj then
-			AI:release( obj, true )
-			if Actor:dont_has_info( v ) then
-				AI:create ( spawn_ids[k] )
-			end
-		end
-	end
-
-	local del = {
-		"vitamin_posrednik_restrictor",
-		"sv_chern_peregovor_restrictor",
-		"chaes2_kluk_sms_restrictor",
-		"iz_moskvy_sms_restrictor",
-		"ona_mehy_dostala_restrictor",
-		"aver_muha_pilot_vzlet_sms_restrictor",
-		"vzruv_aver_vert_restrictor",
-		"after_die_muha_restrictor",
-		"podgotovka_zahvata_restrictor",
-		"plan_zahvata_restrictor",
-		"mu_opozdaly_restrictor"
-	}
-	for i, v in ipairs(del) do
-		obj = AI:object(v)
-		if obj then
-			AI:release(obj, true)
-		end
-	end
-
-	obj = AI:story_object( story_ids.devchonka )
-	if obj and obj:alive() then
-		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
-		AI:release( obj, true )
-		obj = AI:create( AI:spawn_id( story_ids.devchonka ) )
-		AI:teleport_object( "", pos, lv, gv, obj.id )
-	end
-
-	obj = AI:story_object( story_ids.generators_udav )
-	if obj and obj:alive() and Actor:has_info("udav_pabota_start") then
-		local data = netpk:get( obj, netpk.fState )
-		data.object_flags = bit_or( data.object_flags, 64 )	-- OfflineNoMove
-		netpk:set( obj, data, netpk.fState + netpk.fConvert )
-	end
-
-	obj = AI:story_object( story_ids.stalker_rost_sysh )
-	if obj and obj:alive() then
-		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
-		AI:release( obj, true )
-		obj = AI:create( AI:spawn_id( story_ids.stalker_rost_sysh ) )
-		AI:teleport_object( "", pos, lv, gv, obj.id )
-	end
-
-	local resp = {
-		"marsh_sych_stalk1",
-		"marsh_sych_stalk2",
-		"marsh_sych_stalk3",
-		"marsh_sych_stalk4"
-	}
-	for i, v in ipairs(resp) do
-		obj = AI:object( v )
-		if obj and obj:alive() then
-			AI:release( obj, true )
-			AI:create ( spawn_ids[v] )
-		end
-	end
-end
 function fix_46()
-	this.fix_7()
-	this.fix_33()
-
+this.fix_7()
+this.fix_33()
 	local rem = {
 		"voronin_voen_sms_restrictor",
 		"aver_muha_bazar_sms_restrictor",
@@ -102,10 +25,8 @@ function fix_46()
 
 	obj = AI:story_object( story_ids.new_kluk_nz )
 	if obj then
-		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
 		AI:release( obj, true )
-		obj = AI:create ( story_ids.new_kluk_nz )
-		AI:teleport_object( "", pos, lv, gv, obj.id )
+		AI:create ( story_ids.new_kluk_nz )
 	end
 
 	local obj2info = {
@@ -1504,7 +1425,7 @@ function get_map_dist( start_level, start_pos, to_level, to_pos )
 end
 ----------------------------------------------------------------------------------
 function get_actor_pursuit()
-	log("[naxac.get_actor_pursuit]")
+--	log("[naxac.get_actor_pursuit] start")
 	local pos = Actor:position()
 	local be
 	local enemies = {}
@@ -1514,15 +1435,16 @@ function get_actor_pursuit()
 			if be and be:id() == 0
 				and obj:position():distance_to(pos) < math.random(20, 70)
 			then
-				-- if IsStalker(obj) then
+				if IsStalker(obj) then
 					xr_wounded.custom_change(id)
-				-- end
+				end
 				table.insert(enemies, id)
 			end
 		end
 	end
 	amk.save_variable("pursuit", enemies)
-	table.print(enemies)
+--	log("[naxac.get_actor_pursuit] done")
+--	table.print(enemies)
 end
 function set_actor_pursuit()
 	local enemies = amk.load_table("pursuit")
@@ -1532,9 +1454,9 @@ function set_actor_pursuit()
 		for i, v in ipairs(enemies) do
 			obj = AI:object(v)
 			if obj then
-				-- if not IsStalker(obj) then
-					-- xr_wounded.custom_change(v)
-				-- end
+				if not IsStalker(obj) then
+					xr_wounded.custom_change(v)
+				end
 				AI:teleport_object("", 
 					Actor:position():add( vector_rotate_y( Actor:direction(), math.random(40, 320) ):mul( math.random( 15, 20 ) ) ),
 					lv, gv, v)
