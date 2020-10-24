@@ -1981,6 +1981,7 @@ use constant section_to_class => {
 	gigant_normal				=> 'se_monster',
 	gigant_strong				=> 'se_monster',
 	gigant_red_strong			=> 'se_monster',
+	gigant_big_strong			=> 'se_monster',
 
 	m_phantom					=> 'cse_alife_creature_phantom',
 
