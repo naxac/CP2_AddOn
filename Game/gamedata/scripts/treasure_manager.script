@@ -484,7 +484,11 @@ function CTreasure:use(npc)
 	local se_obj = AI:object(npc_id)
 	if se_obj==nil or se_obj.treasure_processed == true then return end
 	se_obj.treasure_processed = true
-	
+
+	if npc:object("device_pda_npc") == nil then
+		return
+	end
+
 	lootmoney.lootmoney(npc)
 
 	if npc ~= nil then
@@ -492,22 +496,19 @@ function CTreasure:use(npc)
 	else 
 		self.npc_rank = nil
 	end
-	
+
 	local rarets
 	-- если выбран редкий тип тайников, то снизим вероятность его выпадения
 	if game_options.AmkTrs == 2 then 
-	  rarets = 99
+		rarets = 90
 	else 
-      rarets = 97
-  end
---  if amk.is_debug then
- --   rarets=0
---  end
-	
+		rarets = 80
+	end
+
 	if math.random(100) < rarets then 
 		return
 	end
-	
+
 	--' Нужно рандомно выбрать один из тайников.
 	local avail = {}
 	local tr_sum = 0
