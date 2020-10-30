@@ -125,28 +125,6 @@ end
 -------------------------------------------------------------------------------------------
 -- Групповой перенос предметов в/из нычки/трупа
 local carbody_addons, used_box
-local reg_callbacks = {
-	item_take = "on_item_take",
-	item_drop = "on_item_drop"
-}
-
-function car_body_open()
-	if used_box == nil then return end
-	if carbody_addons == nil then
-		carbody_addons = CUICarbodyAddons(get_wnd(), used_box)
-	end
-
-	bind_actor.hide_weapon("inv")
-end
-
-function car_body_close()
-	if carbody_addons == nil then return end
-	carbody_addons:Remove()
-	carbody_addons = nil
-	used_box = nil
-
-	bind_actor.restore_weapon("inv")
-end
 
 function on_use(obj, who)
 	if obj:clsid() == clsid.inventory_box or obj:alive() == false then
@@ -161,15 +139,15 @@ end
 -------------------------------------------------------------------------------------------
 class "CUICarbodyAddons" (CUIScriptWnd)
 
-function CUICarbodyAddons:__init(owner, used_box) super()
+function CUICarbodyAddons:__init(owner) super()
 	self.owner = owner
-	self.used_box = used_box
+	self.used_box = nil
+
 	self:InitControls()
 	self:Show(true)
-	for k,v in pairs(reg_callbacks) do
-		xr_s.subscribe(k, self[v], {self = self} )
-	end
-	self:ShowOthersWeight()
+
+	xr_s.subscribe( "car_body_open", self.car_body_open, {self = self} )
+	xr_s.subscribe( "car_body_close", self.car_body_close, {self = self} )
 end
 
 function CUICarbodyAddons:ShowOthersWeight()
@@ -216,17 +194,11 @@ function CUICarbodyAddons:Remove()
 	self.DescrWnd = nil
 	self:ClearCallbacks()
 	self.owner:DetachChild(self)
-	for k,v in pairs(reg_callbacks) do
-		xr_s.unsubscribe(k, self[v])
-	end
-	akill.check_habar_in_box1(self.used_box)
-	if self.used_box:clsid() == clsid.inventory_box then
-		dunin_ammo.repack_in_box(self.used_box)
-	end
+	self.owner = nil
 	self.used_box = nil
-	if self.move_timer then
-		remove_small_timer(self.move_timer)
-	end
+
+	xr_s.unsubscribe( "car_body_open", self.car_body_open )
+	xr_s.unsubscribe( "car_body_close", self.car_body_close )
 end
 
 function CUICarbodyAddons:move_items()
@@ -294,6 +266,34 @@ function CUICarbodyAddons:on_item_take(obj)
 		self.moved = true
 		self.move_timer = start_small_timer(300, self.move_items, self)
 	end
+end
+
+function CUICarbodyAddons:car_body_open()
+	self.used_box = used_box
+	self:ShowOthersWeight()
+
+	xr_s.subscribe("item_take", self.on_item_take, {self = self} )
+	xr_s.subscribe("item_drop", self.on_item_drop, {self = self} )
+	
+	self.DescrWnd:subscribe()
+
+	bind_actor.hide_weapon("inv")
+end
+
+function CUICarbodyAddons:car_body_close()
+	xr_s.unsubscribe( "item_take", self.on_item_take )
+	xr_s.unsubscribe( "item_drop", self.on_item_drop )
+	self.DescrWnd:unsubscribe()
+
+	local box = self.used_box
+	akill.check_habar_in_box1(box)
+	if box:clsid() == clsid.inventory_box then
+		dunin_ammo.repack_in_box(box)
+	end
+	self.used_box = nil
+	self.others_weight = nil
+
+	bind_actor.restore_weapon("inv")
 end
 
 
@@ -447,9 +447,23 @@ function on_key(dik, bind)
 	end
 end
 
+function on_net_spawn()
+	local cb_wnd = level.get_car_body_wnd()
+	if cb_wnd then
+		carbody_addons = CUICarbodyAddons(cb_wnd)
+	end
+end
+function on_net_destroy()
+	local cb_wnd = level.get_car_body_wnd()
+	if cb_wnd and carbody_addons then
+		carbody_addons:Remove()
+	end
+	carbody_addons = nil
+end
+
 function attach()
-	xr_s.subscribe("car_body_open", this.car_body_open)
-	xr_s.subscribe("car_body_close", this.car_body_close)
+	xr_s.subscribe("first_update", this.on_net_spawn)
+	xr_s.subscribe("net_destroy", this.on_net_destroy)
 	xr_s.subscribe("key_press", this.on_key)
     xr_s.subscribe("npc_use", this.on_use)
 end

@@ -41,61 +41,30 @@ local repkits = {
 }
 	
 
-function inventory_open()
-	if not wnd then	
-		wnd = InvWnd(level.main_input_receiver())
-	end
-	bind_actor.hide_weapon("inv")
-	xr_actor.change_move("inv", false)
-end
-
-function inventory_close()
-	if wnd then
-		wnd:DetachWnd()
-		wnd = nil
-		amk.save_table("quick_slots", slot2section)
-	end
-	bind_actor.restore_weapon("inv")
-	xr_actor.change_move("inv", true)
-end
-
-
 class "InvWnd" (CUIScriptWnd)
-
-local reg_callbacks = {
-	cell_item_clicked = "on_item_select",
-	item_drop = "on_item_drop",
-	item_take = "on_item_take",
-	drag_drop = "on_drag_drop",
-	update = "on_update"
-}
 
 function InvWnd:__init(owner) super()
 	self.owner = owner
-	self:Init(0, 0, 1024, 768)
 	self:InitControls()
-	for k,v in pairs(reg_callbacks) do
-		xr_s.subscribe( k, self[v], {self = self} )
-	end
 
-	self.use_dik = bind_to_dik(key_bindings.kUSE)
-	get_console():execute("unbind use")
+	xr_s.subscribe( "inventory_open", self.inventory_open, {self = self} )
+	xr_s.subscribe( "inventory_close", self.inventory_close, {self = self} )
 end
 
 function InvWnd:__finalize() end
 
 function InvWnd:InitControls()
-	self.stat = CUIStatic()
-	self.stat:Init(0, 0, 1024, 768)
-	self.owner:AttachChild(self.stat)
-	self.stat:Show(true)
+	self:Init(0, 0, 1024, 768)
+	self:Enable(true)
+	self.owner:AttachChild(self)
+	self:Show(true)
 
 	local xml = CScriptXmlInit()
 	xml:ParseFile("ui_inv_add.xml")
 
 	self.slots = {}
-	for i=1,4 do
-		local s = xml:InitStatic("slot"..i, self.stat)
+	for i = 1, 4 do
+		local s = xml:InitStatic("slot"..i, self)
 		self.slots[i] = s
 		s:InitTexture("ui_slot_h")
 		s:SetStretchTexture(true)
@@ -122,7 +91,7 @@ function InvWnd:InitControls()
 	local slts = { inventory_slots.PISTOL, inventory_slots.RIFLE }
 	for i, j in ipairs( slts ) do
 		name = "wpn_slot_"..j
-		st = xml:InitStatic(name, self.stat)
+		st = xml:InitStatic(name, self)
 		self:Register(st, name)
 		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_RECEIVED, self.wpn_slot_focus, j)
 		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.wpn_slot_focus_lost, j)
@@ -130,10 +99,46 @@ function InvWnd:InitControls()
 
 	self.rad_level = xml:InitProgressBar("radiation_progress", self)
 	self.rad_upd_time = 1000
-	end
-	self.rad_upd_time = 0
 
-	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
+	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
+end
+
+local reg_callbacks = {
+	cell_item_clicked = "on_item_select",
+	item_drop = "on_item_drop",
+	item_take = "on_item_take",
+	drag_drop = "on_drag_drop",
+	update = "on_update"
+}
+
+function InvWnd:inventory_open()
+	for k,v in pairs(reg_callbacks) do
+		xr_s.subscribe( k, self[v], {self = self} )
+	end
+	self.DescrWnd:subscribe()
+
+	bind_actor.hide_weapon("inv")
+	xr_actor.change_move("inv", false)
+
+	self.use_dik = bind_to_dik(key_bindings.kUSE)
+	get_console():execute("unbind use")
+end
+
+function InvWnd:inventory_close()
+	if self then
+		for k,v in pairs(reg_callbacks) do
+			xr_s.unsubscribe(k, self[v])
+		end
+	end
+	self.DescrWnd:unsubscribe()
+
+	amk.save_table("quick_slots", slot2section)
+	bind_actor.restore_weapon("inv")
+	xr_actor.change_move("inv", true)
+
+	local key = hotkeys.dik2key( self.use_dik )
+	if not key:find("MOUSE") then key = "k"..key end
+	get_console():execute( "bind use "..string.lower(key) )
 end
 
 function InvWnd:qslot_focus(i)
@@ -271,23 +276,20 @@ function InvWnd:DrawSlotIcon(n)
 end
 
 function InvWnd:DetachWnd()
-	for k,v in pairs(reg_callbacks) do
-		xr_s.unsubscribe(k, self[v])
-	end
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
 	self:ClearCallbacks()
 	if self.skat_panel then self.skat_panel:Remove() end
-	self.owner:DetachChild(self.stat)
+	self.owner:DetachChild(self)
+	self.owner = nil
 
-	local key = hotkeys.dik2key( self.use_dik )
-	if not key:find("MOUSE") then key = "k"..key end
-	get_console():execute( "bind use "..string.lower(key) )
+	xr_s.unsubscribe( "inventory_open", self.inventory_open )
+	xr_s.unsubscribe( "inventory_close", self.inventory_close )
 end
 
 function InvWnd:ShowSkatPanel(section)
 	if not self.skat_panel then
-		self.skat_panel = ui_skat_input.UISkatInputPanel(self.stat, section)
+		self.skat_panel = ui_skat_input.UISkatInputPanel(self, section)
 	else
 		self.skat_panel:CheckWnd(section)
 		self.skat_panel:ShowWnd()
@@ -464,10 +466,24 @@ function on_net_spawn()
 	end
 end
 
+function init_wnd()
+	local inv_wnd = level.get_inventory_wnd()
+	if inv_wnd then
+		wnd = InvWnd(inv_wnd)
+	end
+end
+function on_net_destroy()
+	local inv_wnd = level.get_inventory_wnd()
+	if inv_wnd and wnd then
+		wnd:DetachWnd()
+	end
+	wnd = nil
+end
+
 function attach()
 	xr_s.subscribe("net_spawn", this.on_net_spawn)
-	xr_s.subscribe("inventory_open", this.inventory_open)
-	xr_s.subscribe("inventory_close", this.inventory_close)
+	xr_s.subscribe("first_update", this.init_wnd)
+	xr_s.subscribe("net_destroy", this.on_net_destroy)
 --	xr_s.subscribe("item_drop", this.restore_slot)
 	xr_s.subscribe("cell_item_create", this.on_create_cell_item)
 end

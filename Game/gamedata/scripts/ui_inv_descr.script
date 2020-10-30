@@ -71,24 +71,19 @@ local eatable_params = {
 --------------------------------------------------------------------------------------------------------
 class "CUIDescriptionWnd" (CUIScriptWnd)
 
-function CUIDescriptionWnd:__init(st) super()
-	self.owner = level.main_input_receiver() or st
+function CUIDescriptionWnd:__init(owner, autosubscribe) super()
+	self.owner = owner
 
 	self.scrollPos = 0
 	self.k_icon = cell_size*kScreen/50
-	
-	self.itemInFocus = -1
-	for k,v in pairs(reg_callbacks) do
-		xr_s.subscribe( k, self[v], { self = self } )
-	end
-	
+
 	self:Init(0, 0, 1024, 768)
 	self:SetAutoDelete(true)
 	
 	self.xml = CScriptXmlInit()
 	self.xml:ParseFile("ui_inv_descr.xml")
 	
-	self.frame = self.xml:InitFrame("description", st)
+	self.frame = self.xml:InitFrame("description", owner)
 	
 	self.inv_name = self.xml:InitStatic("description:inv_name", self.frame)
 	
@@ -103,9 +98,29 @@ function CUIDescriptionWnd:__init(st) super()
 	self.cond_scale = self.xml:InitProgressBar("description:condition_progress", self.cond_frame)
 	
 	self.frame:Show(false)
+
+	if autosubscribe then
+		self:subscribe()
+		self.autounsubscribe = true
+	end
 end
 
 function CUIDescriptionWnd:__finalize()
+end
+
+function CUIDescriptionWnd:subscribe()
+	self.itemInFocus = -1
+	for k,v in pairs(reg_callbacks) do
+		xr_s.subscribe( k, self[v], { self = self } )
+	end
+end
+function CUIDescriptionWnd:unsubscribe()
+	for k,v in pairs(reg_callbacks) do
+		xr_s.unsubscribe(k, self[v])
+	end
+	self.itemInFocus = -1
+	self.shift_tmr = nil
+	self.frame:Show(false)
 end
 
 function CUIDescriptionWnd:HideDescription()
@@ -165,6 +180,9 @@ end
 
 function CUIDescriptionWnd:ShowDescription(item)
 	if (item==nil) or BlockUIDescr() then return end
+
+	local owner = level.main_input_receiver()
+	if owner == nil then return end
 	
 	self.scroll_v:Clear()
 	
@@ -295,11 +313,11 @@ function CUIDescriptionWnd:ShowDescription(item)
 		self.scroll_work = true
 	end
 
-	local cr = self.owner:GetCursorX()
+	local cr = owner:GetCursorX()
 	if cr>=512 then cr = cr - self.frame:GetWidth()
 	else cr = cr + 40 end
 
-	self.frame:SetWndPos(cr, math.min(self.owner:GetCursorY(), 768-self.frame:GetHeight()))
+	self.frame:SetWndPos(cr, math.min(owner:GetCursorY(), 768-self.frame:GetHeight()))
 
 	self.frame:Show(true)
 end
@@ -688,10 +706,10 @@ function CUIDescriptionWnd:ShowVolatileItemParams(charge)
 end
 
 function CUIDescriptionWnd:Remove()
-	for k,v in pairs(reg_callbacks) do
-		xr_s.unsubscribe(k, self[v])
+	if self.autounsubscribe then
+		self:unsubscribe()
 	end
-	self.shift_tmr = nil
+	self.owner:DetachChild(self.frame)
 	self.owner = nil
 end
 

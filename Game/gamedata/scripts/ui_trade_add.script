@@ -2,40 +2,21 @@
 local wnd = nil
 local wndX = { wide = 96, normal = 19 }
 
-function trade_open()
-	if not wnd then	
-		wnd = TradeWnd(level.get_trade_wnd())
-	end
-end
-
-function trade_close()
-	if wnd then
-		wnd:DetachWnd()
-		wnd = nil
-	end
-end
-
 ---------------------------------------------------------------------
-local reg_callbacks = {
-	item_take = "ShowWeight",
-	item_drop = "ShowWeight"
-}
 class "TradeWnd" (CUIScriptWnd)
 
 function TradeWnd:__init(owner) super()
 	self.owner = owner
-	self:Init(0, 0, 1024, 768)
 	self:InitControls()
-	for k,v in pairs(reg_callbacks) do
-		xr_s.subscribe( k, self[v], {self = self} )
-	end
+	xr_s.subscribe( "trade_open", self.trade_open, {self = self} )
+	xr_s.subscribe( "trade_close", self.trade_close, {self = self} )
 end
 
 function TradeWnd:InitControls()
-	self.stat = CUIStatic()
-	self.stat:Init(0, 0, 1024, 768)
-	self.owner:AttachChild(self.stat)
-	self.stat:Show(true)
+	self:Init(0, 0, 1024, 768)
+	self:Enable(true)
+	self.owner:AttachChild(self)
+	self:Show(true)
 	
 	local x = is_16_9_mode() and wndX.wide or wndX.normal
 	
@@ -44,10 +25,22 @@ function TradeWnd:InitControls()
 	self.wght:Init(x, 735, 400, 25)
 	self.wght:SetFont(GetFontGraffiti22Russian())
 	self.wght:SetTextComplexMode(true)
-	self.stat:AttachChild(self.wght)
-	self:ShowWeight()
+	self:AttachChild(self.wght)
 	
-	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self.stat)
+	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
+end
+
+function TradeWnd:trade_open()
+	self:ShowWeight()
+	xr_s.subscribe( "item_take", self.ShowWeight, {self = self} )
+	xr_s.subscribe( "item_drop", self.ShowWeight, {self = self} )
+	self.DescrWnd:subscribe()
+end
+
+function TradeWnd:trade_close()
+	xr_s.unsubscribe( "item_take", self.ShowWeight )
+	xr_s.unsubscribe( "item_drop", self.ShowWeight )
+	self.DescrWnd:unsubscribe()
 end
 
 function TradeWnd:ShowWeight()
@@ -71,13 +64,23 @@ end
 function TradeWnd:DetachWnd()
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
-	self.owner:DetachChild(self.stat)
-	for k,v in pairs(reg_callbacks) do
-		xr_s.unsubscribe(k, self[v])
+	self.owner:DetachChild(self)
+	self.owner = nil
+	xr_s.unsubscribe( "trade_open", self.trade_open )
+	xr_s.unsubscribe( "trade_close", self.trade_close )
+end
+
+function on_net_spawn()
+	wnd = TradeWnd( level.get_trade_wnd() )
+end
+function on_net_destroy()
+	if wnd then
+		wnd:DetachWnd()
+		wnd = nil
 	end
 end
 
 function attach()
-	xr_s.subscribe("trade_open", this.trade_open)
-	xr_s.subscribe("trade_close", this.trade_close)
+	xr_s.subscribe("first_update", this.on_net_spawn)
+	xr_s.subscribe("net_destroy", this.on_net_destroy)
 end
