@@ -128,16 +128,8 @@ function InvWnd:InitControls()
 		self:AddCallbackEx(name, ui_events.STATIC_FOCUS_LOST, self.wpn_slot_focus_lost, j)
 	end
 
-	self.rad_level = xml:InitStatic("rad_level", self.stat)
-	self.radX = self.rad_level:GetHPos()
-	self.radY = self.rad_level:GetVPos()
-	self.rad_max_height = self.rad_level:GetHeight()
-	if arc_inventory.IsRadDetected() then
-		local h = self.rad_max_height * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY
-		self.rad_level:SetHeight( h )
-		self.rad_level:SetWndPos( self.radX, self.radY + self.rad_max_height - h )
-	else
-		self.rad_level:SetHeight( 0 )
+	self.rad_level = xml:InitProgressBar("radiation_progress", self)
+	self.rad_upd_time = 1000
 	end
 	self.rad_upd_time = 0
 
@@ -335,11 +327,9 @@ function InvWnd:on_update( delta )
 	if self.rad_upd_time > 1000 then
 		self.rad_upd_time = 0
 		if arc_inventory.IsRadDetected() then
-			local h = self.rad_max_height * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY
-			self.rad_level:SetHeight( h )
-			self.rad_level:SetWndPos( self.radX, self.radY + self.rad_max_height - h )
+			self.rad_level:SetProgressPos( 100 * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY )
 		else
-			self.rad_level:SetHeight( 0 )
+			self.rad_level:SetProgressPos(0)
 		end
 	end
 end
