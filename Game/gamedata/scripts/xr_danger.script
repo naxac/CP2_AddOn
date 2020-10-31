@@ -85,11 +85,11 @@ function evaluator_danger:evaluate()
 	
 	if is_monster_obj or is_stalker_obj then
 		if best_danger_object:alive() == false and bd_type ~= danger_object.entity_corpse then
-			return false			
+			return false
 		end
 	else
 		if bd_type == danger_object.enemy_sound then
-			return false	
+			return false
 		end		
 	end
 	
@@ -254,7 +254,12 @@ function evaluator_danger:evaluate()
 
 	-- Денжер для снайпера
 	if active_scheme == "camper" then
-		if bd_type == danger_object.grenade then
+		if bd_type == danger_object.grenade
+			or ( (is_monster_obj or is_stalker_obj)
+			and bd_type == danger_object.enemy_sound
+			and best_danger_object:alive()
+			and best_danger_object:see(self.object) )
+		then
 			self.danger_time = best_danger:time()
 			self.a.exist = true
 			return true
