@@ -18,14 +18,10 @@ function TradeWnd:InitControls()
 	self.owner:AttachChild(self)
 	self:Show(true)
 	
-	local x = is_16_9_mode() and wndX.wide or wndX.normal
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_trade_add.xml")
 	
-	self.wght = CUIStatic()
-	self.wght:SetAutoDelete(true)
-	self.wght:Init(x, 735, 400, 25)
-	self.wght:SetFont(GetFontGraffiti22Russian())
-	self.wght:SetTextComplexMode(true)
-	self:AttachChild(self.wght)
+	self.wght = xml:InitStatic("weight_static", self)
 	
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
 end
@@ -54,9 +50,9 @@ function TradeWnd:ShowWeight()
 	if #max_weight_text < 5 then
 		max_weight_text = string.rep(" ", 5 - #max_weight_text)..max_weight_text
 	end
-	local text = (inv_weight<max_weight and "%c[255,238,155,23]" or "%c[255,255,0,0]")..
+	local text = (inv_weight<max_weight and "%c[UI_orange]" or "%c[red]")..
 		string.format("%.1f", inv_weight)..
-		" %c[255,238,155,23]/"..max_weight_text
+		" %c[UI_orange]/"..max_weight_text
 
 	self.wght:SetText(text)
 end
@@ -66,8 +62,6 @@ function TradeWnd:DetachWnd()
 	self.DescrWnd = nil
 	self.owner:DetachChild(self)
 	self.owner = nil
-	xr_s.unsubscribe( "trade_open", self.trade_open )
-	xr_s.unsubscribe( "trade_close", self.trade_close )
 end
 
 function on_net_spawn()
