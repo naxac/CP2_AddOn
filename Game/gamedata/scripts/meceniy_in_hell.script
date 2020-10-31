@@ -186,7 +186,7 @@ function start_horror_timer()
 	end
 	h = horror_time_begin - h + math.random(0, horror_time_rnd)
 	local m = math.random(0, 60)
-	log("start_horror_timer: %s:%s", h, m)
+--	log("start_horror_timer: %s:%s", h, m)
 	start_game_timer( "horror", 0, h, m, 0 )
 end
 
@@ -243,7 +243,9 @@ function net_spawn()
 	end
 
 	if not tabl_horror_by_level[level.name()] then
-		Actor:give_info_portion("horror_time_end")
+		if Actor:dont_has_info("horror_time_end") then
+			Actor:give_info_portion("horror_time_end")
+		end
 		return
 	end
 	
@@ -305,6 +307,7 @@ function start_horror()
 		presoobjFAIL()
 		this.start_horror_timer()
 	end
+	amk.del_variable("hrr_news")
 end
 
 function horror_end()
