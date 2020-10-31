@@ -1,6 +1,37 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 49
+local current_fix = 50
 
+function fix_50()
+	level_changers.create_allspawn_lc("lc_hospital_to_limansk", "to_limansk", nil, 1)
+
+	obj = AI:story_object( story_ids.lc_limansk_to_hospital )
+	if obj then
+		netpk:modify( obj, { dest_direction = vector():set(0,2.9923055171967,0) }, netpk.fState )
+	end
+
+	obj = AI:story_object( story_ids.klenov )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.klenov ) )
+	end
+
+	local t = {
+		"warlab_trupak_sekret",
+		"warlab_sekret_mozg",
+		"warlab_arhara_sekret_stol1",
+		"warlab_sekret_nout1",
+		"warlab_sekret_nout2",
+		"warlab_radio",
+		"pantera_space_restrictor_timer"
+	}
+	for i, v in ipairs(t) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+		end
+		AI:create ( spawn_ids[v] )
+	end
+end
 function fix_49()
 	local t = {
 		"pri_helicopters2_start_zone",
