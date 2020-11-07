@@ -36,7 +36,12 @@ function subscribe( name, func, params )
 end
 
 function unsubscribe( name, func, queue )
-	local tbl = signals[ name ] or abort( "[xr_s.unsubscribe] unknown signal name: %s", name )
+	local tbl = signals[ name ]
+	if not tbl then
+		log( "! [xr_s.unsubscribe] attempt to unsubscribe unregistered signal name: %s", name )
+		return
+	end
+
 	if queue then
 		table.insert( unreg_queue, { f = func, n = name } )
 		need_clear = true
