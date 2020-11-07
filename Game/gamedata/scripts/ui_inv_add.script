@@ -88,8 +88,7 @@ function InvWnd:InitControls()
 	end
 
 	local st, name
-	local slts = { inventory_slots.PISTOL, inventory_slots.RIFLE }
-	for i, j in ipairs( slts ) do
+	for i, j in ipairs( { inventory_slots.PISTOL, inventory_slots.RIFLE } ) do
 		name = "wpn_slot_"..j
 		st = xml:InitStatic(name, self)
 		self:Register(st, name)
@@ -114,6 +113,16 @@ local reg_callbacks = {
 function InvWnd:inventory_open()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.subscribe( k, self[v], {self = self} )
+	end
+	-- update slots color
+	for i, sec in ipairs(slot2section) do
+		if sec~="" then
+			if Actor:object(sec)~=nil then
+				self.slots[i].icn:SetColor( GetARGB(255, 255, 255, 255) )
+			else
+				self.slots[i].icn:SetColor( GetARGB(70, 200, 200, 200) )
+			end
+		end
 	end
 	self.DescrWnd:subscribe()
 
