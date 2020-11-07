@@ -1801,6 +1801,7 @@ local snames={
 
 local real_names = {}
 local forbidden_community = {
+	['trader'] = true,
 	['zombied'] = true,
 	['monolith'] = true,
 	['fotoman'] = true,
@@ -1838,10 +1839,13 @@ end
 
 function add_name( sobj )
 	local comm = sobj:community()
-	if forbidden_community[comm] then return end
+	if forbidden_community[comm]
+		or is_story_object(sobj)
+		or sobj:can_switch_online() == false
+	then return end
 
 	local name = naxac_netpk.get_character_name( sobj )
-	if name and not is_story_object(sobj) then
+	if name then
 		if real_names[comm] == nil then real_names[comm] = {} end
 	--	log("# amk_names_lists.add_name: %s (%s)", name, comm)
 		table.insert(real_names[comm], name)
