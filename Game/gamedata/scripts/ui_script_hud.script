@@ -13,16 +13,10 @@ local biodetector_mode = false
 local bind_to_show = key_bindings.kSCORES
 local dev = device()
 local has_spot = level.map_has_object_spot
+local level_object = level.object_by_id
 local math_cos = math.cos
 local math_sin = math.sin
 local table_insert = table.insert
-
-local spot_size_12    = vector2():set(12*kScreen, 12)
-local spot_size_16    = vector2():set(16*kScreen, 16)
-local spot_size_npc   = vector2():set(3*kScreen, 3)
-local spot_offset_12  = vector2():set(spot_size_12.x/2, spot_size_12.y/2)
-local spot_offset_16  = vector2():set(spot_size_16.x/2, spot_size_16.y/2)
-local spot_offset_npc = vector2():set(spot_size_npc.x/2, spot_size_npc.y/2)
 
 local wnd = nil
 
@@ -34,7 +28,49 @@ local map_dist = 150/map_zoom
 
 local detector = nil
 
-local added_spots = {}
+local level_spots = {}
+
+local spot2texture = {
+	["blue_location"]              = { tex = "ui_icons_newPDA_SmallBlue",           sz = 11, below_above = true },
+	["green_location"]             = { tex = "ui_icons_newPDA_SmallGreen",          sz = 11, below_above = true },
+	["red_location"]               = { tex = "ui_icons_newPDA_SmallRed",            sz = 11, below_above = true },
+	["red_location_1"]             = { tex = "ui_icons_newPDA_SmallRed",            sz = 11, below_above = true },
+	["gps_stalker"]                = { tex = "ui_mapPDA_gps_stalker",               sz = 11, below_above = true },
+	["habar_location"]             = { tex = "ui_mapPDA_habar_small",               sz = 10, below_above = true },
+	["habar_location_w"]           = { tex = "ui_icons_mapPDA_habar_small_w",       sz = 10, below_above = true },
+	["habar_clear_location"]       = { tex = "ui_mapPDA_habar_clear",               sz = 10, below_above = true },
+	["habar_clear_location_w"]     = { tex = "ui_icons_mapPDA_habar_clear_small_w", sz = 10, below_above = true },
+	["eliminate_lager_location"]   = { tex = "ui_sm_mapQuest_camp_destroy",         sz = 15, below_above = true },
+	["defend_lager_location"]      = { tex = "ui_sm_mapQuest_camp_defend",          sz = 13, below_above = true },
+	["artefact_location"]          = { tex = "ui_sm_mapQuest_artefact",             sz = 13, below_above = true },
+	["kill_stalker_location"]      = { tex = "ui_sm_mapQuest_stalker_destroy",      sz = 13, below_above = true },
+	["monster_part_location"]      = { tex = "ui_sm_mapQuest_monster_find",         sz = 13, below_above = true },
+	["find_item_location"]         = { tex = "ui_mapQuest_item",                    sz = 13, below_above = true },
+	["anomaly_zone_location"]      = { tex = "anomaly_zone",                        sz = 16, below_above = false },
+	["anomaly_bald_location"]      = { tex = "anomaly_bald",                        sz = 16, below_above = false },
+	["anomaly_minc_location"]      = { tex = "anomaly_mincer",                      sz = 16, below_above = false },
+	["anomaly_grav_location"]      = { tex = "anomaly_gravi",                       sz = 16, below_above = false },
+	["anomaly_rad_location"]       = { tex = "anomaly_radiation",                   sz = 16, below_above = false },
+	["anomaly_elec_location"]      = { tex = "anomaly_electra",                     sz = 16, below_above = false },
+	["anomaly_mine_location"]      = { tex = "anomaly_mine",                        sz = 16, below_above = false },
+	["anomaly_burn_location"]      = { tex = "anomaly_burn",                        sz = 16, below_above = false },
+	["anomaly_ice_location"]       = { tex = "anomaly_ice",                         sz = 16, below_above = false },
+	["anomaly_ameba_location"]     = { tex = "anomaly_ameba",                       sz = 16, below_above = false },
+	["anomaly_buzz_location"]      = { tex = "anomaly_buzz_green",                  sz = 16, below_above = false },
+	["anomaly_sakbuzz_location"]   = { tex = "anomaly_fireball",                    sz = 16, below_above = false },
+	["anomaly_fountain_location"]  = { tex = "anomaly_fountain",                    sz = 16, below_above = false },
+	["anomaly_sphere_location"]    = { tex = "anomaly_sphere",                      sz = 16, below_above = false },
+	["anomaly_smallrain_location"] = { tex = "anomaly_smallrain",                   sz = 16, below_above = false },
+	["level_changer"]              = { tex = "ui_mapPDA_level_changer",             sz = 15, below_above = false },
+	["level_changer1"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["level_changer2"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["level_changer3"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["level_changer4"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["level_changer5"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["treasure"]                   = { tex = "ui_mapPDA_treasure",                  sz = 15, below_above = false },
+	["profi"]                      = { tex = "ui_mapPDA_profi_targ_spot",           sz = 16, below_above = false },
+	["npc"]                        = { tex = "ui_minimap_point",                    sz =  3, below_above = false }
+}
 ---------------------------------------------------------------------------
 class "UIScriptHUD" (CUIWindow)
 
@@ -224,128 +260,132 @@ function UIScriptHUD:UpdateMap()
 	-- log("Update map position: %s", t:time())
 	-- t:start()
 
-	self:UpdateSpots()
+	self:UpdateMapSpots()
 
 	-- t:stop()
 	-- log("Total: %s", t:time())
 end
 
 function UIScriptHUD:RemoveAllSpots()
-	for id in pairs(self.map_spots) do
-		table_insert(self.del_spots, id)
-	end
-	for i, v in ipairs(self.del_spots) do
-		self.map:DetachChild( self.map_spots[v] )
-		self.map_spots[v] = nil
+	for i = 1, #self.map_spots do
+		self.map:DetachChild( table.remove(self.map_spots) )
 	end
 	self.del_spots = {}
 end
 
-local lc_clsid = clsid.level_changer
-local inv_box_clsid = clsid.inventory_box
-local mine_clsid = clsid.zone_mine_field_s
-function UIScriptHUD:UpdateSpots()
+function UIScriptHUD:UpdateMapSpots()
 	amk.oau_watchdog=18813
 	-- удалим неактуальные метки
-	for id, st in pairs(self.map_spots) do
-		if db.for_map[id] == nil then
-			table_insert(self.del_spots, id)
+	if #self.del_spots > 0 then
+		local n
+		for i, v in ipairs(self.del_spots) do
+			n = self:FindSpot( v[1], v[2] )
+			if n then
+				self.map:DetachChild( table.remove(self.map_spots, n) )
+			end
+		end
+		self.del_spots = {}
+	end
+
+	self.actor_pos = Actor:position()
+
+	self:CheckNewSpots()
+	self:UpdateSpots()
+end
+function UIScriptHUD:NeedShowSpot(obj)
+	return obj and obj.online
+			and obj.position:distance_to_xz(self.actor_pos) < map_dist
+end
+function UIScriptHUD:FindSpot(obj_id, spot_type)
+	for i, v in ipairs(self.map_spots) do
+		if v.id == obj_id and v.type == spot_type then
+			return i
 		end
 	end
-	for i, v in ipairs(self.del_spots) do
-		self.map:DetachChild( self.map_spots[v] )
-		self.map_spots[v] = nil
-	end
-	self.del_spots = {}
-
+	return false
+end
+function UIScriptHUD:CheckNewSpots()
 	amk.oau_watchdog=18814
-
-	local spot, tex, sz, cls, sobj
-	local actor_pos = Actor:position()
-
-	for id, obj in pairs(db.for_map) do
-		spot = self.map_spots[id]
-		sobj = AI:object(id)
-		if sobj and sobj.online
-			and obj:position():distance_to_xz(actor_pos) < map_dist
-		then
-			amk.oau_reason="UIScriptHUD:UpdateSpots "..id
-			tex, sz = nil, nil
-			if not spot then
-				if obj:is_entity_alive() then
-					if biodetector_mode or not (obj:is_stalker() and sobj:visible_for_map()==false) then
-						tex = "ui_minimap_point"
-						sz = spot_size_npc
-					end
-				elseif not biodetector_mode then
-					cls = obj:clsid()
-					if cls == inv_box_clsid then
-						if show_gps and gps_habar.has_label(id) then
-							tex = get_GPS_texture(id)
-						elseif show_treasures and has_spot(id, "treasure")~=0 then
-							tex = "ui_mapPDA_treasure"
-						end
-						sz = spot_size_12
-					elseif cls == lc_clsid then
-						if show_lc and check_lc_spot(id) then
-							tex = "ui_mapPDA_level_changer5"
-							sz = spot_size_16
-						end
-					elseif IsAnomaly(nil, cls) and detector then
-						tex = get_anom_texture(id)
-						sz = spot_size_16
-					elseif cls == mine_clsid and has_spot(id, "anomaly_mine_location") ~= 0 then
-						tex = "anomaly_mine"
-						sz = spot_size_16
-					end
-					if ( not (tex and sz) ) and added_spots[id] then
-						tex = added_spots[id]
-						sz = spot_size_12
-					end
-				end
-				if tex and sz then
-					self.map_spots[id] = self:DrawSpot( obj, tex, sz:get() )
-				end
-			else
-				if obj:is_entity_alive() then
-					if biodetector_mode or not (obj:is_stalker() and sobj:visible_for_map()==false) then
-						local clr = get_point_color(obj)
-						if clr then
-							spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(spot_offset_npc):get() )
-							spot:SetColor(clr)
-						else
-							table_insert(self.del_spots, id)
-						end
-					end
-				elseif biodetector_mode then
-					table_insert(self.del_spots, id)
-				else
-					cls = obj:clsid()
-					if cls == inv_box_clsid then
-						sz = spot_offset_12
-					elseif (cls == lc_clsid) then
-						sz = spot_offset_16
-					elseif IsAnomaly(nil, cls) or cls == mine_clsid then
-						if has_spot(id, spot.spot_name) ~= 0 then
-							sz = spot_offset_16
-						end
-					end
-					if (not sz) and added_spots[id] then
-						sz = spot_offset_12
-					end
-					if sz then
-						spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(sz):get() )
-					else
-						table_insert(self.del_spots, id)
+	-- check relation spots
+	local sobj, t
+	for id, obj in pairs(db.creatures) do
+		if id ~= 0 and not self:FindSpot(id, "npc") then
+			sobj = AI:object(id)
+			if self:NeedShowSpot(sobj) then
+				amk.oau_reason="UIScriptHUD:UpdateNPCSpots "..id
+				if biodetector_mode
+					or not (obj:is_stalker()
+					and sobj:visible_for_map()==false)
+				then
+					local clr = get_point_color(obj)
+					if clr then
+						spot = self:DrawSpot( sobj, "npc" )
+						spot:SetColor( clr )
 					end
 				end
 			end
-		elseif spot then
-			table_insert(self.del_spots, id)
 		end
 	end
 
+	
+	if biodetector_mode then
+		return
+	end
+
 	amk.oau_watchdog=18815
+	-- check other spots
+	for i, t in ipairs(level_spots) do
+		if not self:FindSpot( t[1], t[2] ) then
+			sobj = AI:object( t[1] )
+			if self:NeedShowSpot(sobj) then
+				self:DrawSpot( sobj, t[2] )
+			end
+		end
+	end
+end
+
+function UIScriptHUD:UpdateSpots()
+	local t, sobj, obj
+	for i, spot in ipairs(self.map_spots) do
+		sobj = AI:object( spot.id )
+		obj = level_object(spot.id)
+		amk.oau_reason="UIScriptHUD:UpdateOtherSpots "..spot.id
+		if obj and self:NeedShowSpot(sobj) then
+			if spot.type == "npc" or has_spot(spot.id, spot.type) ~= 0 then
+				t = spot2texture[spot.type]
+
+				local offset = vector2():set(t.sz*kScreen/2, t.sz/2)
+				spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(offset):get() )
+
+				if t.below_above then
+					local below = self.actor_pos.y - obj:position().y
+					if below > 1.8 then
+						spot:InitTexture("ui_mini_sn_spot_below")
+					elseif below < -1.8 then
+						spot:InitTexture("ui_mini_sn_spot_above")
+					else
+						spot:InitTexture(t.tex)
+					end
+				end
+
+				if spot.type == "npc" then
+					local clr = get_point_color( obj )
+					if clr then
+						spot:SetColor( clr )
+					else
+						table_insert( self.del_spots, {spot.id, spot.type} )
+					end
+				elseif biodetector_mode then
+					table_insert( self.del_spots, {spot.id, spot.type} )
+				end
+			else
+				table_insert( self.del_spots, {spot.id, spot.type} )
+				this.remove_spot(spot.id, spot.type)
+			end
+		else
+			table_insert( self.del_spots, {spot.id, spot.type} )
+		end
+	end
 end
 
 function UIScriptHUD:ConvertRealToLocal(pos)
@@ -360,29 +400,30 @@ function UIScriptHUD:ConvertRealToLocal(pos)
 	return res
 end
 
-function UIScriptHUD:DrawSpot(obj, tex, w, h)
-	if tex == nil then return  nil end
+function UIScriptHUD:DrawSpot(obj, spot_type)
+	if spot_type == nil then return nil end
 
-	local clr
-	if tex == "ui_minimap_point" then
-		clr = get_point_color(obj)
-		if not clr then
-			return nil
-		end
+	local t = spot2texture[spot_type]
+	if not t then
+		log("[UIScriptHUD:DrawSpot] No settings for spot type '%s'", spot_type)
+		return
 	end
 
-	local pos = self:ConvertRealToLocal( obj:position() )
+	local pos = self:ConvertRealToLocal( obj.position )
+
+	local h = t.sz
+	local w = h*kScreen
 
 	local st = CUIStatic()
-	st:Init(tex, pos.x-w/2, pos.y-h/2, w, h)
+	st:Init(t.tex, pos.x-w/2, pos.y-h/2, w, h)
 	st:SetAutoDelete(true)
 	st:SetStretchTexture(true)
-	if clr then
-		st:SetColor(clr)
-	end
 	self.map:AttachChild(st)
 	st:Show(true)
-	st.spot_name = get_spot_by_texture(tex)
+	st.id = obj.id
+	st.type = spot_type
+
+	table_insert(self.map_spots, st)
 
 	return st
 end
@@ -494,78 +535,8 @@ function get_body_state_str()
 	end
 end
 
-local spot2texture = {
-	gps = {
-		gps_stalker					= "ui_mapPDA_gps_stalker",
-		habar_location				= "ui_mapPDA_habar_small",
-		habar_location_w			= "ui_icons_mapPDA_habar_small_w",
-		habar_clear_location		= "ui_mapPDA_habar_clear",
-		habar_clear_location_w		= "ui_icons_mapPDA_habar_clear_small_w"
-	},
-	anom = {
-		anomaly_zone_location		= "anomaly_zone",
-		anomaly_bald_location		= "anomaly_bald",
-		anomaly_minc_location		= "anomaly_mincer",
-		anomaly_grav_location		= "anomaly_gravi",
-		anomaly_rad_location		= "anomaly_radiation",
-		anomaly_elec_location		= "anomaly_electra",
-		anomaly_mine_location		= "anomaly_mine",
-		anomaly_burn_location		= "anomaly_burn",
-		anomaly_ice_location		= "anomaly_ice",
-		anomaly_ameba_location		= "anomaly_ameba",
-		anomaly_buzz_location		= "anomaly_buzz_green",
-		anomaly_sakbuzz_location	= "anomaly_fireball",
-		anomaly_fountain_location	= "anomaly_fountain",
-		anomaly_sphere_location		= "anomaly_sphere",
-		anomaly_smallrain_location	= "anomaly_smallrain"
-	}
-}
-local texture2spot = {}
-for k, t in pairs(spot2texture) do
-	for spot, tex in pairs(t) do
-		texture2spot[tex] = spot
-	end
-end
-
-function get_GPS_texture(obj_id)
-	for k, v in pairs(spot2texture.gps)do
-		if has_spot(obj_id, k) ~= 0 then
-			return v
-		end
-	end
-	return nil
-end
-function get_anom_texture(obj_id)
-	for k, v in pairs(spot2texture.anom)do
-		if has_spot(obj_id, k) ~= 0 then
-			return v
-		end
-	end
-	return nil
-end
 function get_spot_by_texture(tex)
 	return texture2spot[tex]
-end
-
-function check_lc_spot(obj_id)
-	for i = 1, 5 do
-		if has_spot(obj_id, "level_changer"..i) ~= 0 then
-			return true
-		end
-	end
-	return false
-end
-
-function set_detector(det)
-	if det == "detector_elite"
-		or det == "detector_elite_sak"
-		or det == "detector_elite_john"
-		or det == "detector_suit"
-	then
-		detector = det
-	else
-		detector = nil
-	end
 end
 
 local id2color = {
@@ -575,6 +546,10 @@ local id2color = {
 	[3] = GetARGB(255,168,168,168)	-- corpse
 }
 function get_point_color(obj)
+	if not obj then
+		return nil
+	end
+
 	if biodetector_mode then
 		local clr = biodetector.getColor(obj)
 		return clr and GetARGB( 255, unpack(clr) ) or nil
@@ -622,23 +597,47 @@ function rotation(pos, angle)
 end
 
 ---------------------------------------------------------------------------
-function remove_spot(id)
-	if wnd and id then
-		wnd:RemoveSpot(id)
-		added_spots[id] = nil
+function add_spot(spot_type, obj_id)
+	if not spot2texture[spot_type] then
+		return
+	end
+
+	local se_obj = AI:object(obj_id)
+	if se_obj == nil then
+		return
+	end
+	if object_level_name(se_obj) ~= level.name() then
+		return
+	end
+
+	for i, v in ipairs(level_spots) do
+		if v[1] == obj_id and v[2] == spot_type then
+			return
+		end
+	end
+
+	table_insert( level_spots, { obj_id, spot_type} )
+end
+
+function remove_spot(obj_id, spot_type)
+	for i, v in ipairs(level_spots) do
+		if v[1] == obj_id and v[2] == spot_type then
+			table.remove(level_spots, i)
+			break
+		end
 	end
 end
 
-function add_spot(id, tex)
-	local obj = level.object_by_id(id)
-	if not obj then return end
-
-	if added_spots[id] then
-		remove_spot(id)
+function load_spot_from_obj(se_obj)
+	local id = se_obj.id
+	for st in pairs(spot2texture) do
+		if st ~= "npc" and has_spot(id, st) ~= 0 then
+		--	log("load_spot_from_obj: %s (%s::%s)", se_obj:name(), id, st)
+			table_insert( level_spots, {id, st} )
+		end
 	end
-	added_spots[id] = tex
-	db.for_map[id] = obj
 end
+
 
 function init()
 	this.init_settings()
