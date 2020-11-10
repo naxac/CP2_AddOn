@@ -1,6 +1,34 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 52
+local current_fix = 53
 
+function fix_53()
+	local obj = AI:story_object( story_ids.kolmogor )
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id( story_ids.kolmogor ) )
+	end
+
+	local del = {
+		"kolm_stroy_sms_restrictor",
+		"kolmo_say_pobeda_sms_restrictor",
+		"kap_tele_restrictor",
+		"privyzka_generatorov_restrictor"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+		end
+	end
+
+	obj = AI:object( "spawn_dialog_foto_restrictor" )
+	if obj then
+		AI:release( obj, true )
+		if Actor:dont_has_info( "dialog_foto_pili" ) then
+			AI:create ( spawn_ids["spawn_dialog_foto_restrictor"] )
+		end
+	end
+end
 function fix_52()
 	local obj = AI:story_object( story_ids.lc_lost_village_to_limansk )
 	if obj then
