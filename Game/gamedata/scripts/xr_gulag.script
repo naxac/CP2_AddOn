@@ -532,23 +532,19 @@ function gulag:can_obj_begin_job( obj_id, obj )
 	if jobN and not self.Object_begin_job[obj_id] then
 		local job = self.Job[jobN]		
 		--' Спешл кейс, проверка только по вертексам графа
-          if job ~= nil then
-		if job.position_threshold == "graph" then
+		if job ~= nil then
 			local obj_gv, obj_pos = self:get_obj_game_vertex_and_position( obj_id )
 			local job_gv = GGraph:vertex( job.game_vertex_id )
-			if obj_gv:level_vertex_id() == job_gv:level_vertex_id() then
-				return true
-                end
-                return false
-            end
-        else
-            return false
-     end
-	
-		return self:distance_to_job_location(obj_id, job) < (job.position_threshold or job_position_threshold)
-	else
-		return false
+			if obj_gv:level_id() == job_gv:level_id() then
+				if job.position_threshold == "graph" then
+					return obj_gv:level_vertex_id() == job_gv:level_vertex_id()
+				else
+					return obj_pos:distance_to( job.position ) < (job.position_threshold or job_position_threshold)
+				end
+			end
+		end
 	end
+	return false
 end
 
 -- сменить состояние гулага.
@@ -682,7 +678,6 @@ function gulag:distance_to_job_location( obj_id, job )
 		return obj_pos:distance_to( job.position )
 	else
 		return obj_gv:game_point():distance_to( job_gv:game_point() )
-	--	return 10000
 	end
 end
 
