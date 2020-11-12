@@ -64,6 +64,16 @@ function mob_walker:reset_scheme()
 
 	self.last_index = nil
 	self.last_look_index = nil
+
+	-- Очистим путь от аномалий во избежание вылета по его недоступности
+	for i = 0, self.patrol_walk:count()-1 do
+		local alist = amk_anoms.get_anomaly_list_for_pos( self.patrol_walk:point(i), 1 )
+		for j, o in ipairs(alist) do
+			amk_anoms.set_online_anomaly_status(o.id,"del")
+			amk_anoms.remove_restriction(self.object, o.id, o.name, true)
+			-- log("~ remove anomaly %s from path %s[%s]", o.name, self.st.path_walk, i)
+		end
+	end
 	
 	action(self.object, move(move.run_fwd, patrol(self.st.path_walk, patrol.next, patrol.continue)),
 		cond(cond.move_end))
