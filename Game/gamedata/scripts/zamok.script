@@ -148,8 +148,6 @@ function remove_offline( box_id )
 end
 
 
-
-
 class "codelock"
 
 function codelock:__init( box, mode )
@@ -160,6 +158,7 @@ function codelock:__init( box, mode )
 	self.install = ( mode == 1 )
 
 	if not self.install then
+		hotkeys.clear_used_box()
 		self.code = ""
 		local se_box = AI:object( box:id() )
 		local data = netpk:get( se_box, netpk.fStat )
@@ -176,7 +175,6 @@ end
 
 function codelock:Quit()
 	if self.install == false then 
-		hotkeys.clear_used_box()
 		self.object:set_nonscript_usable( true )
 	end
 	self.cls = nil
@@ -225,9 +223,8 @@ function actor_open_box( box, is_fake )
 	if is_fake then
 		level.start_stop_menu( ui_invbox_new.UICarBodyNew( box ), true )
 	else
-		Actor:open_inventory_box( box )
 		hotkeys.on_use( box, Actor )
-		hotkeys.car_body_open()
+		Actor:open_inventory_box( box )
 	end
 end
 
