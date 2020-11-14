@@ -9,9 +9,11 @@ local repack = false
 --------
 function init()
 	for section, box_size in pairs(_G['ammo_sections']) do
-		ammo[section] = {}
-		ammo[section].repack = false
-		ammo[section].box = box_size
+		if box_size > 1 then
+			ammo[section] = {}
+			ammo[section].repack = false
+			ammo[section].box = box_size
+		end
 	end
 	repack = false
 	inited = true
@@ -26,6 +28,10 @@ end
 -- при взятии из нычки кучи патрон (взять всё)
 --------
 function on_take(obj)
+	if not obj:is_ammo() then
+		return
+	end 
+
 	if (not inited) then init() end
 
 	local section = obj:section()
@@ -64,7 +70,7 @@ end
 function repack_ammo(section, box_size)
 	local s, t = enum_ammo(section, box_size)
 	if (s > 0) and (#t > 1) then
-		local i, id, obj
+		local obj
 
 		for i, id in pairs(t) do
 			obj = AI:object(id)
@@ -89,14 +95,14 @@ end
 -- возвращает сумарное колличество патрон в неполных пачках и массив id-шников этих пачек
 --------
 function enum_ammo(section, box_size)
-	local i, obj, size
+	local obj, size
 	local s = 0
 	local t = {}
-	for i=0, Actor:object_count()-1 do
+	for i = 0, Actor:object_count()-1 do
 		obj = Actor:object(i)
 		if obj:section() == section then
 			size = obj:get_ammo_left()
-			if size < box_size then
+			if size > 0 and size < box_size then
 				table.insert(t, obj:id())
 				s = s + size
 			end
@@ -160,3 +166,8 @@ function ammo_fix(id, item)
 	used_box:transfer_item(item, used_box)
 end
 
+
+function attach()
+	xr_s.subscribe( "item_take", this.on_take )
+	xr_s.subscribe( "update", this.on_update, {timeout = 1000} )
+end
