@@ -202,13 +202,21 @@ function CUICarbodyAddons:Remove()
 end
 
 function CUICarbodyAddons:move_items()
+	if self.moved then return end
 	self.moved = true
 
 	local box = self.used_box
+	if not box then return end
+
+	local sobj
 	if self.droped_section then
+		local box_id = box:id()
 		Actor:iterate_inventory(function (dummy, item)
 			if item:section() == self.droped_section then
-				Actor:transfer_item(item, box)
+				sobj = AI:object(item:id())
+				if sobj and sobj.parent_id ~= box_id then
+					Actor:transfer_item(item, box)
+				end
 			end 
 		end, nil)
 
@@ -218,13 +226,19 @@ function CUICarbodyAddons:move_items()
 			for i=0, box:inv_box_count()-1 do
 				item = box:object_from_inv_box(i)
 				if item:section() == self.taken_section then
-					box:transfer_item(item, Actor)
+					sobj = AI:object(item:id())
+					if sobj and sobj.parent_id ~= 0 then
+						box:transfer_item(item, Actor)
+					end
 				end
 			end
 		else
 			box:iterate_inventory(function (dummy, item)
 				if item:section() == self.taken_section then
-					box:transfer_item(item, Actor)
+					sobj = AI:object(item:id())
+					if sobj and sobj.parent_id ~= 0 then
+						box:transfer_item(item, Actor)
+					end
 				end 
 			end, nil)
 		end
@@ -240,18 +254,14 @@ function CUICarbodyAddons:move_items()
 end
 
 function CUICarbodyAddons:on_item_drop(obj)
-	local sobj = AI:object(obj:id())
-	if sobj and sobj.parent_id == 0 then return end
-
 	self.droped_section = obj:section()
 	self.taken_section = nil
 
 	self.others_weight = self.others_weight + obj:get_weight()
 	self:ShowOthersWeight()
 
-	if ShiftPressed() and not self.moved then
-		self.moved = true
-		self.move_timer = start_small_timer(300, self.move_items, self)
+	if ShiftPressed() then
+		self:move_items()
 	end
 end
 
@@ -262,14 +272,14 @@ function CUICarbodyAddons:on_item_take(obj)
 	self.others_weight = self.others_weight - obj:get_weight()
 	self:ShowOthersWeight()
 
-	if ShiftPressed() and not self.moved then
-		self.moved = true
-		self.move_timer = start_small_timer(300, self.move_items, self)
+	if ShiftPressed() then
+		self:move_items()
 	end
 end
 
 function CUICarbodyAddons:car_body_open()
 	self.used_box = used_box
+	self.others_weight = nil
 	self:ShowOthersWeight()
 
 	xr_s.subscribe("item_take", self.on_item_take, {self = self} )
@@ -291,7 +301,6 @@ function CUICarbodyAddons:car_body_close()
 		dunin_ammo.repack_in_box(box)
 	end
 	self.used_box = nil
-	self.others_weight = nil
 
 	bind_actor.restore_weapon("carbody")
 end
