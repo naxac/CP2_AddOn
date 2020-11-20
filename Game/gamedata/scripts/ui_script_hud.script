@@ -136,13 +136,15 @@ function UIScriptHUD:__init()
 
 	self.time_static = xml:InitStatic("time_static", self)
 
+	xr_s.subscribe("key_press", self.OnKeyPress, {self = self})
+	xr_s.subscribe("key_release", self.OnKeyRelease, {self = self})
 	xr_s.subscribe("update", self.Update, {self = self})
 	self.need_update = false
 
-	if has_alife_info("pda_biodetector_mode") then
-		self:SwitchBioradar()
-	elseif has_alife_info("pda_dont_work") then
+	if has_alife_info("pda_dont_work") then
 		self:Break(true)
+	elseif biodetector_mode then
+		self:SwitchBioradar()
 	end
 end
 
@@ -438,7 +440,7 @@ function UIScriptHUD:Break(mode)
 		self.minimap_center:Show(false)
 	else
 		self.minimap_center:Show(true)
-		self:SetPDAMode(self.biodetector_mode)
+		self:SetPDAMode()
 	end
 end
 
@@ -450,11 +452,11 @@ function UIScriptHUD:SwitchBioradar()
 	if self.biodetector_mode == biodetector_mode then return end
 	self.biodetector_mode = biodetector_mode
 
-	self:SetPDAMode(biodetector_mode)
+	self:SetPDAMode()
 end
 
-function UIScriptHUD:SetPDAMode(is_biodetector)
-	if is_biodetector then
+function UIScriptHUD:SetPDAMode()
+	if biodetector_mode then
 		self.map:InitTexture("abc\\hud_empty")
 		self.map_frame:InitTexture("intro\\intro_back")
 		self.sweep:Show(true)
@@ -465,9 +467,39 @@ function UIScriptHUD:SetPDAMode(is_biodetector)
 	end
 end
 
-function UIScriptHUD:RemoveSpot(obj_id)
-	table_insert(self.del_spots, obj_id)
+function UIScriptHUD:OnKeyPress(dik, bind)
+	if bind == bind_to_show then
+		if level.main_input_receiver() ~= nil
+		--	or bind_actor.scopeUsed
+		then return end
+
+		set_static_rescale_factor(1)
+		self:Show(true)
+		self.need_update = true
+		if not show_quick_slots then
+			ui_hud_slots.ShowSlots(true)
+		end
+	end
 end
+
+function UIScriptHUD:OnKeyRelease(dik, bind)
+	if bind == bind_to_show then
+		if not self:IsShown() then return end
+		set_static_rescale_factor(kScreen)
+		self:Show(false)
+		self.need_update = false
+		if not show_quick_slots then
+			ui_hud_slots.ShowSlots(false)
+		end
+	end
+end
+
+function UIScriptHUD:Remove()
+	xr_s.unsubscribe("key_press", self.OnKeyPress)
+	xr_s.unsubscribe("key_release", self.OnKeyRelease)
+	xr_s.unsubscribe("update", self.Update)
+end
+
 ---------------------------------------------------------------------------
 function get_level_bound_rect()
 	local vol = level.get_bounding_volume()
@@ -645,38 +677,9 @@ function init()
 end
 function destroy()
 	if wnd ~= nil then
+		wnd:Remove()
 		get_hud():RemoveDialogToRender(wnd)
 		wnd = nil
-	end
-end
-
-function on_key_press(dik, bind)
-	if bind == bind_to_show then
-		if not wnd then init() end
-
-		if level.main_input_receiver() ~= nil
-		--	or bind_actor.scopeUsed
-		then return end
-
-		set_static_rescale_factor(1)
-		wnd:Show(true)
-		wnd.need_update = true
-		if not show_quick_slots then
-			ui_hud_slots.ShowSlots(true)
-		end
-	end
-end
-
-function on_key_release(dik, bind)
-	if bind == bind_to_show then
-		if not wnd then init() end
-		if not wnd:IsShown() then return end
-		set_static_rescale_factor(kScreen)
-		wnd:Show(false)
-		wnd.need_update = false
-		if not show_quick_slots then
-			ui_hud_slots.ShowSlots(false)
-		end
 	end
 end
 
@@ -726,6 +729,4 @@ function attach()
 
 	xr_s.subscribe("net_spawn", this.init)
 	xr_s.subscribe("net_destroy", this.destroy)
-	xr_s.subscribe("key_press", this.on_key_press)
-	xr_s.subscribe("key_release", this.on_key_release)
 end
