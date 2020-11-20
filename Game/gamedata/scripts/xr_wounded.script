@@ -83,6 +83,7 @@ function action_wounded:initialize ()
 	self.object:set_desired_position()
 	self.object:set_desired_direction()
 	self.sound = "nil"
+	self.in_cover = (self.object:character_rank() < math.random(50, 500))
 
 
 	if self.a.help_start_dialog then
@@ -129,11 +130,12 @@ function action_wounded:execute ()
 
 	-- отправляем чудака в кавер, если его ранг превышает заданное значение.
 	--if self.object:health > 0.05 then
-	if self.object:character_rank() >= 200 then
+	if not self.in_cover then
 		if wound_manager.cover == "true" then
 			if self.pos == nil or self.vid == nil then
 				local pt = self.object:safe_cover(self.object:position(), 20, 0)
 				if pt then
+					self.object:wounded(false)
 					self.pos = pt:position()
 					self.vid = pt:level_vertex_id()    	
 					if self.object:accessible(self.vid) == false then
@@ -161,6 +163,8 @@ function action_wounded:execute ()
 						self.object:set_movement_type  (move.walk)
 						state_mgr.set_state(self.object, "limping_walk")
 					end
+				else
+					self.in_cover = true
 				end
 				return
 			else
@@ -172,13 +176,16 @@ function action_wounded:execute ()
 			--	printf("dist to cover [%s]", self.object:position():distance_to(self.pos))
 				if self.object:position():distance_to_sqr(self.pos) > 1 then
 					return
+				else
+					self.object:wounded(true)
+					self.in_cover = true
 				end			
 			end
 		else
 			self.pos = nil
 			self.vid = nil
 		end
-	end      
+	end
     
 	wound_manager_state = xr_logic.pstor_retrieve(self.object, "wounded_state")
 	wound_manager_sound = xr_logic.pstor_retrieve(self.object, "wounded_sound")
@@ -189,7 +196,7 @@ function action_wounded:execute ()
 		h.power = 0
 		h.direction = self.object:direction()
 		h.bone = "bip01_spine"
-		h.draftsman = Actor
+		h.draftsman = self.object	--Actor
 		h.impulse = 0
 		h.type = hit.wound
 		self.object:hit(h)    
@@ -269,7 +276,7 @@ function Cwound_manager:update()
 	local sobj=AI:object(self.npc:id())
 	if sobj then
 		if sobj.wounded and (not self.a.regen) and (not self.medkit_eaten) then
-			hp=1 -- симулируем раненость
+			hp = 1 -- симулируем раненость
 		end
 	else
 		return
@@ -313,25 +320,23 @@ function Cwound_manager:unlock_medkit()
 	self.can_use_medkit = true
 end
 
+local can_use_drugs = {
+	"medkit",
+	"medkit_army",
+	"medkit_scientic",
+	"suvorotka"
+}
 function Cwound_manager:eat_medkit()
 	if self.can_use_medkit == true then
-		local medkit_eaten=false
-		if self.npc:object("medkit") ~= nil then
-			self.npc:eat(self.npc:object("medkit"))
-			medkit_eaten=true
-		elseif self.npc:object("medkit_army") ~= nil then
-			self.npc:eat(self.npc:object("medkit_army"))
-			medkit_eaten=true
-		elseif self.npc:object("medkit_scientic") ~= nil then
-			self.npc:eat(self.npc:object("medkit_scientic"))
-			medkit_eaten=true
-		end
-		if medkit_eaten then
-		--	amk.mylog("medkit eaten be "..self.npc:name())
-			local sobj=AI:object(self.npc:id())
-			sobj.wounded=false -- позволяем выйти из состояния раненности
-			self.medkit_eaten=true
-			self.can_use_medkit = false
+		for i, v in ipairs(can_use_drugs) do
+			if self.npc:object(v) ~= nil then
+				self.npc:eat( self.npc:object(v) )
+				local sobj = AI:object(self.npc:id())
+				sobj.wounded = false -- позволяем выйти из состояния раненности
+				self.medkit_eaten = true
+				self.can_use_medkit = false
+				break
+			end
 		end
 	end
 	self:hit_callback()
@@ -503,7 +508,7 @@ local wounded_by_state = {
 }
 
 function init_wounded(npc, ini, section, st, scheme)
-	printf("WOUNDED SECTION [%s][%s]", tostring(section), tostring(scheme))
+--	printf("WOUNDED SECTION [%s][%s]", tostring(section), tostring(scheme))
 
 	if tostring(section) == st.wounded_section and
 		tostring(section) ~= "nil" 
@@ -542,12 +547,12 @@ function init_wounded(npc, ini, section, st, scheme)
 
 	else
 		local state = wounded_by_state[math_mod(npc:id(), 3)]
-		def.hp_state      = "10|"..state.."@help_heavy"
-		def.hp_state_see    = "10|"..state.."@help_heavy"
+		def.hp_state      = "30|"..state.."@help_heavy"
+		def.hp_state_see    = "30|"..state.."@help_heavy"
 		def.psy_state     = "50|{=best_pistol}psy_armed,psy_pain@wounded_psy|20|{=best_pistol}psy_shoot,psy_pain@{=best_pistol}wounded_psy_shoot,wounded_psy"
-		def.hp_victim     = "10|nil"
-		def.hp_cover      = "10|false"
-		def.hp_fight      = "10|false"
+		def.hp_victim     = "30|nil"
+		def.hp_cover      = "30|false"
+		def.hp_fight      = "30|false"
 		def.syndata       = ""
 		def.help_dialog     = "dm_help_wounded_medkit_dialog"
 		def.help_start_dialog = nil
