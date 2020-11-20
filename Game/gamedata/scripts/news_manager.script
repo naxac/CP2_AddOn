@@ -287,7 +287,7 @@ local tips_icons = {
 	vesker 		= {0,1786,"вескер:"},
 	viking 		= {415,94,"викинг:"},
 	vitamin 	= {83,1786,"витамин:"},
-	vol 		= {913,517}, -- волазар первый
+	vol 		= {913,517,"волазар:"}, -- волазар первый
 	vol_new 	= {913,564,"волазар:"},
 	volkov	 	= {249,1645,"профессор волков:"},
 	voronin 	= {332,423,"воронин:"},
@@ -370,32 +370,25 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, ozvuchka, func,
 		end
 	end
 
-	if showtime == nil then showtime = 5000 end
+	--' Играем дефолтный звук
+	pda_tips:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
 
+	--' играем озвучку
+	local snd_obj
 	if ozvuchka then
-		--' играем озвучку
 		xr_sound.stop_prev_sms_sound()
-		local ozvuchka_snd = xr_sound.get_safe_sound_object(ozvuchka)
-		ozvuchka_snd:play(Actor, timeout, sound_object.s2d)
-		
+		snd_obj = xr_sound.get_safe_sound_object(ozvuchka)
+	elseif news[news_id] ~= nil then
+		snd_obj = xr_sound.get_safe_sound_object(news[news_id])
+	end
+	if snd_obj then
+		snd_obj:play(Actor, timeout+1, sound_object.s2d)
 		--' Необходимо поставить время показа по длине сцены
-		showtime = ozvuchka_snd:length() + 500
-	else
-		--' Играем дефолтный звук
-		pda_tips:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
-	--	pda_tips:play(Actor, timeout, sound_object.s2d)
-		if news[news_id] ~= nil then
-			local snd_obj = xr_sound.get_safe_sound_object(news[news_id])
-			--' Играем звук забитый
-			snd_obj:play(Actor, timeout+1, sound_object.s2d)
-			--' Необходимо поставить время показа по длине сцены
-			local length = snd_obj:length()
-			if length > showtime then
-				showtime = length
-			end
-		end
+		showtime = snd_obj:length() + 1000
 	end
 	
+	if showtime == nil then showtime = 5000 end
+
 	if func then
 		start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
 	end
