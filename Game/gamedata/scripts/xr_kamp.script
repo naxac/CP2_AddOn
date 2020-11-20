@@ -177,10 +177,11 @@ function action_go_position:execute ()
 	action_base.execute (self)
 
 	if xr_logic.try_switch_to_another_section(self.object, self.a, Actor) then
+		xr_logic.pstor_store(self.object, "vused", nil)
 		return
 	end
 	
-	local tmp_pos_vertex = kamps[self.a.center_point]:getDestVertex(self.object:id(), self.a.radius)
+	local tmp_pos_vertex = kamps[self.a.center_point]:getDestVertex(self.object, self.a.radius)
 	if tmp_pos_vertex and self.a.pos_vertex ~= tmp_pos_vertex then
 		self.a.pos_vertex = tmp_pos_vertex
 		
@@ -220,6 +221,7 @@ end
 function action_wait:execute()
 	action_base.execute (self)
 	if xr_logic.try_switch_to_another_section(self.object, self.a, Actor) then
+		xr_logic.pstor_store(self.object, "vused", nil)
 		return
 	end
 	local state, sound, substate = kamps[self.a.center_point]:updateNpc(self.object)
@@ -491,6 +493,7 @@ function CKampManager:__init(path)
 	self.npc = {}
 	self.population = 0
 	self.kamp_state = "idle"
+--[[---------------------------------------------------------------
 	-- Где то здесь распарсим патрульный путь и проапдейтим вектор позиций.
 	-- 0 вершина - центр лагеря.
 	-- 1 флаг - сектор занят, в поинте можно сидеть.
@@ -520,6 +523,7 @@ function CKampManager:__init(path)
 		end		
 	end
 	--print_table(self.position)
+--]]---------------------------------------------------------------
 	--Таблица соответствий состояния лагеря и допустимых анимаций и звуков.	
 	self.avail_state = {
 		idle = {
@@ -709,14 +713,16 @@ function CKampManager:__init(path)
 	-- Хранилище для режиссера лагеря. Режиссерем является сталкер, затеявший необычное поведение
 	self.director = nil
 end
-function CKampManager:selectPosition(npc_id)
+--[[---------------------------------------------------------------
+function CKampManager:selectPosition(npc)
 	-- создаем список доступных позиций
+	local npc_id = npc:id()
 	--printf("KAMP. [%s] called select position", npc_id)
 --	log1("~ "..self.kamp_name..": selectPosition for "..npc_id)
 	local free = {}
-	for k,v in pairs(self.position) do
+	for i,v in ipairs(self.position) do
 		if not v.used then
-			table.insert(free, k)
+			table.insert(free, i)
 		end
 	end
 	--' затем из доступных позиций выбрать рандомно одну.
@@ -729,7 +735,7 @@ function CKampManager:selectPosition(npc_id)
 			n = free[rr]
 			v = self.position[n].vertex
 			if v then
-				if used_verts[v] then	-- вертекс занят
+				if used_verts[v] and used_verts[v]~=npc_id then	-- вертекс занят кем-то другим
 				--	log1("1 - pont #"..n.." used, vertex: "..v)
 					self.position[n].used = -1
 					table.remove(free, rr)
@@ -750,35 +756,49 @@ function CKampManager:selectPosition(npc_id)
 		end
 	end
 end
+--]]---------------------------------------------------------------
 
-function CKampManager:getDestVertex(npc_id, radius)
-	if npc_id == nil then return nil end
+function CKampManager:getDestVertex(npc, radius)
+	if npc == nil then return nil end
+	local npc_id = npc:id()
 	if not ( self.npc and self.npc[npc_id] ) then return nil end
 	--printf("get dest Vertex called [%s]", npc_id)
 	
 	local t = self.npc[npc_id]
-	if t.position == nil then return nil end
-	
-	local pos = self.position[t.position]
-	if pos.vertex ~= nil then return pos.vertex end
-	
+
 	-- посчитанный ранее
 	if t.vused then return t.vused end
-	
-	-- высчитываем вертекс по направлению
-	local v = level.vertex_in_direction(
-		level.vertex_in_direction( self.center, pos.dir, radius ),
-		vector():set( math.random( -1, 1 ), 0, math.random( -1, 1 ) ),
-		math.random( 0, 0.5 )
-	)
-	if used_verts[v] then	-- вертекс занят - садим непися подальше от костра
-		v = level.vertex_in_direction(
-			level.vertex_in_direction( self.center, pos.dir, radius + 2 ),
-			vector():set( math.random( -1, 1 ), 0, math.random( -1, 1 ) ),
-			math.random( 0, 0.5 ) )
+
+	local v = xr_logic.pstor_retrieve(npc, "vused")
+
+	if not v then
+		local add_r = 0
+		while true do
+			local tmp = table.copy( {}, self.position )
+			local b = false
+			
+			for i = 1, #tmp do
+				local pos = table.remove( tmp, math.random(#tmp) )
+				v = level.vertex_in_direction(
+					level.vertex_in_direction( self.center, pos.dir, radius + add_r ),
+					vector():set( math.random( -1, 1 ), 0, math.random( -1, 1 ) ),
+					math.random( 0, 0.5 )
+				)
+				if used_verts[v] == nil then
+					b = true
+					break
+				end
+			end
+			if b then break end
+			add_r = add_r + 1.5
+		end
+
+		xr_logic.pstor_store(npc, "vused", v)
 	end
+
 	used_verts[v] = npc_id
 	t.vused = v
+
 	return v
 end
 
@@ -1172,7 +1192,7 @@ function CKampManager:addNpc(npc)
 		}
 	end
 	
-	self:selectPosition(npc_id)
+--	self:selectPosition(npc)
 
 	if db.story_by_id[npc_id] == nil then
 		local char_ini1 = ini_file("scripts\\stories.ltx")
@@ -1198,10 +1218,7 @@ function CKampManager:removeNpc(npc)
 			xr_sound.set_sound(npc, nil)
 			stop_play_sound(npc)
 		end
-	
-		if t.position and self.position[t.position] then
-			self.position[t.position].used = nil
-		end
+
 		if t.vused then used_verts[t.vused] = nil end
 		self.npc[npc_id] = nil
 	end
