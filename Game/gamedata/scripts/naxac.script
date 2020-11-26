@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 54
+local current_fix = 55
 
 function fix_55()
 	local obj = AI:story_object( story_ids.lc_atp_to_pripyat )
@@ -8,6 +8,36 @@ function fix_55()
 			dest_direction = vector():set(0,-0.050400383770466,0)
 		}, netpk.fState )
 	end
+	local npcs = {
+		"generators_prizrak",
+		"generators_black_dok",
+		"frits"
+	}
+	for i, name in ipairs(npcs) do
+		obj = AI:object(name)
+		if obj then
+			local data = netpk:get(obj, netpk.fState)
+			local cd = netpk:parse_custom_data(data.custom_data)
+			cd.logic = {
+				cfg = "scripts\\generators\\"..name..".ltx"
+			}
+			data.custom_data = netpk:gen_custom_data(cd)
+			netpk:set(obj, data, netpk.fState + netpk.fConvert)
+		end
+	end
+
+	local del = {
+		"gen_hit_heli_hit_sms_restrictor",
+		"gen_hit1_heli1_hit1_sms_restrictor",
+		"sms_doc_letit_restrictor"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then AI:release(obj, true) end
+	end
+
+	AI:create(spawn_ids.frits_zone_restrictor)
+
 	obj = AI:story_object( story_ids.lc_aes_to_generators )
 	if obj then
 		netpk:modify( obj, {

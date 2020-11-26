@@ -862,7 +862,7 @@ function CKampManager:proceedState(npc)
 	for k,v in pairs(temp) do
 		p = p - v
 		if p <= 0 then
-			printf("Selected [%s]", k)
+		--	printf("Selected [%s]", k)
 			if k == "idle" then
 				self.director = nil
 				if self.kamp_state ~= "idle" then
@@ -950,6 +950,7 @@ function CKampManager:updateNpc(npc)
     if npc_id == nil
 		or self.npc == nil
 		or self.npc[npc_id] == nil
+		or npc:is_talking()
 	then return nil, nil, nil end
 	
 	-- Проверка что сталкер может делать, а что нет.
@@ -1011,10 +1012,10 @@ function CKampManager:updateNpc(npc)
 				if self.story_last==nil then
 					self.story_last=0
 					self.story_max=1
-				--	xr_sound.set_sound_play(npc, "threat_back", math.random(1000,2000))
+					xr_sound.set_sound_play(npc, "threat_back", math.random(1000,2000))
 					--- dirty hack
 					self.kamp_state="idle"
-					self.forbiddendirector=self.director
+				--	self.forbiddendirector=self.director
 					self.director=nil
 				end
 			end
@@ -1059,11 +1060,10 @@ function CKampManager:updateNpc(npc)
 	-- Выбор реальных звуков
 	if sound == "idle" then
 		sound = "weather, state"
-	elseif sound == "reac_guitar" then
-		sound = "reac_music"
-    elseif sound == "reac_balalaika" then
-		sound = "reac_music"
-	elseif sound == "reac_harmonica" then
+	elseif sound == "reac_guitar"
+		or sound == "reac_balalaika"
+		or sound == "reac_harmonica"
+	then
 		sound = "reac_music"
 	elseif sound == "reac_joke" then
 		sound = ""	
@@ -1094,7 +1094,7 @@ function CKampManager:updateNpc(npc)
 		sound = ""
 	end
 
-	--printf("Proceed Update Npc [%s] sound [%s]", state, sound)	
+	--printf("Proceed Update Npc [%s] sound [%s]", state, sound)
 	return state, sound, substate
 end
 function CKampManager:checkNpcAbility(npc)
