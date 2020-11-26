@@ -10,6 +10,7 @@ local math_floor = math.floor
 local math_random = math.random
 local string_find = string.find
 local string_sub = string.sub
+local string_format = string.format
 ---------------------------------------------------------------------------------------------------------------------
 --Evaluators
 ----------------------------------------------------------------------------------------------------------------------
@@ -83,7 +84,7 @@ function action_wounded:initialize ()
 	self.object:set_desired_position()
 	self.object:set_desired_direction()
 	self.sound = "nil"
-	self.in_cover = (self.object:character_rank() < math.random(50, 500))
+	self.in_cover =  false	-- (self.object:character_rank() < math.random(50, 500))
 
 
 	if self.a.help_start_dialog then
@@ -506,6 +507,44 @@ local wounded_by_state = {
 	[1] = "wounded_heavy_2",
 	[2] = "wounded_heavy_3"
 }
+local def_wounded_settings = {
+	["monolith"] = {
+		hp_state_f     = "20|%s@nil",
+		hp_state_see_f = "20|%s@nil",
+		psy_state      = "",
+		hp_victim      = "20|nil",
+		hp_cover       = "20|false",
+		hp_fight       = "20|false",
+		syndata        = "",
+		help_dialog    = nil,
+	--	help_start_dialog = nil,
+		use_medkit     = false
+	},
+	["zombied"] = {
+		hp_state_f     = "50|%s@nil",
+		hp_state_see_f = "50|%s@nil",
+		psy_state      = "",
+		hp_victim      = "50|nil",
+		hp_cover       = "50|false",
+		hp_fight       = "50|false",
+		syndata        = "",
+		help_dialog    = nil,
+	--	help_start_dialog = nil,
+		use_medkit     = false
+	},
+	["stalker"] = {
+		hp_state_f     = "20|%s@help_heavy",
+		hp_state_see_f = "20|%s@help_heavy",
+		psy_state      = "50|{=best_pistol}psy_armed,psy_pain@wounded_psy|20|{=best_pistol}psy_shoot,psy_pain@{=best_pistol}wounded_psy_shoot,wounded_psy",
+		hp_victim      = "20|nil",
+		hp_cover       = "20|false",
+		hp_fight       = "20|false",
+		syndata        = "",
+		help_dialog    = "dm_help_wounded_medkit_dialog",
+	--	help_start_dialog = nil,
+		use_medkit     = true
+	}
+}
 
 function init_wounded(npc, ini, section, st, scheme)
 --	printf("WOUNDED SECTION [%s][%s]", tostring(section), tostring(scheme))
@@ -518,47 +557,12 @@ function init_wounded(npc, ini, section, st, scheme)
 
 	st.wounded_section = utils.to_str(section)
 
-	local def = {}  
 	local npc_community = npc:character_community()
-	if npc_community == "monolith" then
-		local state = wounded_by_state[math_mod(npc:id(), 3)]
-		def.hp_state      = "50|"..state.."@nil"
-		def.hp_state_see    = "50|"..state.."@nil"
-		def.psy_state     = ""
-		def.hp_victim     = "50|nil"
-		def.hp_cover      = "50|false"
-		def.hp_fight      = "50|false"
-		def.syndata       = ""
-		def.help_dialog     = nil
-		def.help_start_dialog = nil
-		def.use_medkit      = false
-
-	elseif npc_community == "zombied" then
-		def.hp_state      = "50|wounded_zombie@nil"
-		def.hp_state_see    = "50|wounded_zombie@nil"
-		def.psy_state     = ""
-		def.hp_victim     = "50|nil"
-		def.hp_cover      = "50|false"
-		def.hp_fight      = "50|false"
-		def.syndata       = ""
-		def.help_dialog     = nil
-		def.help_start_dialog = nil
-		def.use_medkit      = false
-
-	else
-		local state = wounded_by_state[math_mod(npc:id(), 3)]
-		def.hp_state      = "30|"..state.."@help_heavy"
-		def.hp_state_see    = "30|"..state.."@help_heavy"
-		def.psy_state     = "50|{=best_pistol}psy_armed,psy_pain@wounded_psy|20|{=best_pistol}psy_shoot,psy_pain@{=best_pistol}wounded_psy_shoot,wounded_psy"
-		def.hp_victim     = "30|nil"
-		def.hp_cover      = "30|false"
-		def.hp_fight      = "30|false"
-		def.syndata       = ""
-		def.help_dialog     = "dm_help_wounded_medkit_dialog"
-		def.help_start_dialog = nil
-		def.use_medkit      = true
-	end   
-
+	local state = (npc_community == "zombied" and "wounded_zombie")
+		or wounded_by_state[math_mod(npc:id(), 3)]
+	local def = def_wounded_settings[npc_community] or def_wounded_settings["stalker"]
+	def.hp_state = string_format(def.hp_state_f, state)
+	def.hp_state_see = string_format(def.hp_state_see_f, state)
 
 	if tostring(section) == "nil" then
 		-- Загружаем дефолты!
