@@ -85,41 +85,49 @@ function mob_home:hit_callback(obj, amount, local_direction, who, bone_index)
 		return
 	end
 
-	self:alarm(who)
+	self:alarm(who, amount/10)
 end
 
-function mob_home:alarm(who)
+function mob_home:alarm(who, amount)
 	if not ( who and ( IsStalker(who) or IsMonster(who) ) ) then
 		return
 	end
 
 	local group = home_group[self.st.home]
 	if group then
-		local st
+		local st, obj
 		for id in pairs(group) do
-			st = db.storage[id]
-			if st and st.mob_home then
-				if not st.mob_home.attaked_time then
-					xr_logic.issue_event(self.object, st.mob_home, "on_attaked", who)
+			obj = db.creatures[id]
+			if obj and AI:object(id) and obj:alive() then
+				st = db.storage[id]
+				if st and st.mob_home then
+					if not st.mob_home.attaked_time then
+						xr_logic.issue_event(obj, st.mob_home, "on_attaked", who, amount)
+					else
+						st.mob_home.attaked_time = math.min(
+							st.mob_home.attaked_time + math.random(5000, 10000)*amount,
+							80000
+						)
+					end
+				else
+					-- выкидываем зверушку из группы.
+					group[id] = nil
+					obj:remove_home()
 				end
-			else
-				-- выкидываем зверушку из группы.
-				group[id] = nil
-				self.object:remove_home()
 			end
 		end
 	end
 end
 
 function mob_home:death_callback(victim, who)
-	self:alarm(who)
+	self:alarm(who, 1)
 end
 
 -- дадим возможность зверушке отомстить обидчику, выбежав за пределы home
 -- who - обидчик
-function mob_home:on_attaked(who)
---	log("[mob_home:on_attaked] %s, %s", self.st.home, self.object:name())
-	self.st.attaked_time = time_global() + math.random(40000, 60000)
+function mob_home:on_attaked(who, amount)
+--	log("[mob_home:on_attaked] %s (%s) -> %s", self.st.home, self.object:name(), who and who:name() or "nil")
+	self.st.attaked_time = time_global() + math.random(30000, 60000)* amount
 	remove_from_home(self.st.home, self.object)
 	self.object:remove_home()
 	self.object:set_custom_panic_threshold(0)
@@ -151,19 +159,21 @@ function mob_home:update(delta)
 		return
 	end
 	
+	if self.st.attaked_time then
+		if self.st.attaked_time < time_global() then
+			-- Возвращаем монстра обратно
+			self.st.attaked_time = nil
+			mob_panic.reset_panic(self.object, self.st.scheme, self.st, self.st.section)
+			self:reset_scheme()
+		else
+			return
+		end
+	end
+
 	-- Монстр после выхода из alife может уже быть не под скриптом, поэтому взять опять под скрипт
 	if not xr_logic.mob_captured(self.object) then
 		self:reset_scheme()
 		return
-	end
-
-	-- Возвращаем монстра обратно
-	if self.st.attaked_time and self.st.attaked_time < time_global() then
-		self.st.attaked_time = nil
-		add_to_home(self.st.home, self.object)
-		self.object:set_home(self.st.home, self.st.home_min_radius, self.st.home_max_radius, self.st.aggressive)
-	--	self.object:set_default_panic_threshold	()
-		mob_panic.reset_panic(self.object, self.st.scheme, self.st, self.st.section)
 	end
 end
 
