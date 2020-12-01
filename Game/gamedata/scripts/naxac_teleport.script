@@ -9,111 +9,260 @@ function start_menu(self)
 	level.start_stop_menu(wnd, true)
 end
 
+
+class "list_item" (CUIListItemEx)
+
+function list_item:__init(tbl) super()
+	self:SetWndRect		(0,0,240,20)
+
+	self.tx                 = CUIStatic()
+	self.tx:SetAutoDelete  (true)
+	self.tx:ClipperOn      ()
+	self:AttachChild       (self.tx)
+	self.tx:SetWndRect     (1,1,140,18)
+	self.tx:SetText        (tbl.name)
+	self.tx:SetFont        (GetFontLetterica18Russian())
+	self.tx:SetTextColor   (255,216,186,140)
+
+	self.ln                 = CUIStatic()
+	self.ln:SetAutoDelete  (true)
+	self.ln:ClipperOn      ()
+	self:AttachChild       (self.ln)
+	self.ln:SetWndRect     (120,3,100,18)
+	self.ln:SetTextST      (tbl.lvl_name)
+	self.ln:SetTextColor   (255,160,160,160)
+	self.ln:SetTextAlign   (CGameFont.alRight)
+end
+
+
 class "teleport" (CUIScriptWnd)
 
 function teleport:__init() 
 	super()
+
+	if registered == true then 
+		xr_s.unsubscribe("update", naxac_teleport.update)
+		registered = false
+	end
+
 	self:InitControls()
+	self:InitCallbacks()
+	self:FillData()
+	self:FillList()
 end
 
 function teleport:__finalize() end
 
 function teleport:InitControls()
 	self:Init(0,0,1024,768)
-	
-	local back = CUIFrameWindow()
-	back:SetAutoDelete(true)
-	back:Init("ui_icons_PDA_dialog_frame",150, 100, 256,256)
-	self:AttachChild(back)
-	
-	self.edit_x = CUIEditBox()
-	self.edit_x:SetAutoDelete(true)
-	self.edit_x:Init(50,50,180,25)
-	self.edit_x:InitTexture("ui_icons_PDA_dialog_string")
-	self.edit_x:SetFont(GetFontLetterica18Russian())
-	back:AttachChild(self.edit_x)
-	
-	self.edit_y = CUIEditBox()
-	self.edit_y:SetAutoDelete(true)
-	self.edit_y:Init(50,85,180,25)
-	self.edit_y:InitTexture("ui_icons_PDA_dialog_string")
-	self.edit_y:SetFont(GetFontLetterica18Russian())
-	back:AttachChild(self.edit_y)
-	
-	self.edit_z = CUIEditBox()
-	self.edit_z:SetAutoDelete(true)
-	self.edit_z:Init(50,120,180,25)
-	self.edit_z:InitTexture("ui_icons_PDA_dialog_string")
-	self.edit_z:SetFont(GetFontLetterica18Russian())
-	back:AttachChild(self.edit_z)
-	
+
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_naxac_teleport.xml")
+
+	local back = xml:InitFrame("back_frame", self)
+
+	xml:InitStatic("coord_text", back)
+	xml:InitStatic("coord_x_text", back)
+	xml:InitStatic("coord_y_text", back)
+	xml:InitStatic("coord_z_text", back)
+	xml:InitStatic("edit_name_text", back)
+	xml:InitStatic("level_text", back)
+	xml:InitStatic("label", back)
+
+	self.edit_x     = xml:InitEditBox("edit_x", back)
+	self.edit_y     = xml:InitEditBox("edit_y", back)
+	self.edit_z     = xml:InitEditBox("edit_z", back)
+	self.edit_name  = xml:InitEditBox("edit_name", back)
+	self.level_name = xml:InitStatic("level_name", back)
+
 	if last_pos~=nil then
-		self.edit_x:SetText(tostring(last_pos.x))
-		self.edit_y:SetText(tostring(last_pos.y))
-		self.edit_z:SetText(tostring(last_pos.z))
+		self.edit_x:SetText( tostring(last_pos.x) )
+		self.edit_y:SetText( tostring(last_pos.y) )
+		self.edit_z:SetText( tostring(last_pos.z) )
+		self.level_name:SetTextST( level.name() )
 	end
 	
-	local st
-	st = CUIStatic()
-	st:SetAutoDelete(true)
-	st:Init(20,17,100,25)
-	st:SetText("Введите координаты:")
-	st:SetFont(GetFontLetterica18Russian())
-	back:AttachChild(st)
-	
-	st = CUIStatic()
-	st:SetAutoDelete(true)
-	st:Init(15,50,40,25)
-	st:SetText("X =")
-	st:SetTextColor(255,216,186,140)
-	back:AttachChild(st)
-	
-	st = CUIStatic()
-	st:SetAutoDelete(true)
-	st:Init(15,85,40,25)
-	st:SetText("Y =")
-	st:SetTextColor(255,216,186,140)
-	back:AttachChild(st)
-	
-	st = CUIStatic()
-	st:SetAutoDelete(true)
-	st:Init(15,120,40,25)
-	st:SetText("Z =")
-	st:SetTextColor(255,216,186,140)
-	back:AttachChild(st)
-	
-	st = CUIStatic()
-	st:SetAutoDelete(true)
-	st:Init(160,236,70,20)
-	st:SetText("made by naxac ©")
-	st:SetTextColor(255,255,127,150)
-	back:AttachChild(st)
-	
-	local btn
-	btn = CUI3tButton()
-	btn:SetAutoDelete(true)
-	btn:Init("ui_button_ordinary", 7, 200, 117, 29)
-	btn:SetText("Обзор локации")
-	btn:SetTextAlign(CGameFont.alCenter)
-	btn:SetTextColor(255,216,186,140)
-	back:AttachChild(btn)
-	self:Register(btn, "btn_polet")
-	self:AddCallbackEx("btn_polet", ui_events.BUTTON_CLICKED, self.on_ButtonFly_clicked)
-	
-	btn = CUI3tButton()
-	btn:SetAutoDelete(true)
-	btn:Init("ui_button_ordinary", 132, 200, 117, 29)
-	btn:SetText("Телепортироваться")
-	btn:SetTextAlign(CGameFont.alCenter)
-	btn:SetTextColor(255,216,186,140)
-	back:AttachChild(btn)
-	self:Register(btn, "btn_teleport")
-	self:AddCallbackEx("btn_teleport", ui_events.BUTTON_CLICKED, self.on_ButtonTeleport_clicked)
+	local fr = xml:InitFrame("pic_frame", back)
+	self.picture = xml:InitStatic("picture", fr)
+
+	self:Register( xml:Init3tButton("btn_polet",         back), "btn_polet"      )
+	self:Register( xml:Init3tButton("btn_teleport",      back), "btn_teleport"   )
+	self:Register( xml:Init3tButton("btn_save_point",    back), "btn_save_point" )
+	self:Register( xml:Init3tButton("btn_del_point",     back), "btn_del_point"  )
+	self:Register( xml:Init3tButton("btn_clear",         back), "btn_clear"      )
+	self:Register( xml:Init3tButton("btn_show_position", back), "btn_show_pos"   )
+
+	fr = xml:InitFrame("list_frame", back)
+	self.list = xml:InitList("list_points", fr)
+	self.list:ShowSelectedItem(true)
+	self:Register(self.list, "list_points")
+
+	self.message_box = CUIMessageBoxEx()
+--	self:Register(self.message_box, "message_box")
+end
+
+function teleport:InitCallbacks()
+	self:AddCallbackEx( "btn_polet",      ui_events.BUTTON_CLICKED,    self.on_ButtonFly_clicked      )
+	self:AddCallbackEx( "btn_teleport",   ui_events.BUTTON_CLICKED,    self.on_ButtonTeleport_clicked )
+	self:AddCallbackEx( "btn_save_point", ui_events.BUTTON_CLICKED,    self.on_ButtonSave_clicked     )
+	self:AddCallbackEx( "btn_del_point",  ui_events.BUTTON_CLICKED,    self.on_ButtonDelete_clicked   )
+	self:AddCallbackEx( "btn_clear",      ui_events.BUTTON_CLICKED,    self.on_ButtonClear_clicked    )
+	self:AddCallbackEx( "btn_show_pos",   ui_events.BUTTON_CLICKED,    self.on_ButtonShowPos_clicked  )
+	self:AddCallbackEx( "list_points",    ui_events.LIST_ITEM_CLICKED, self.OnListItemClicked         )
+end
+
+function teleport:on_ButtonClear_clicked()
+	self.picture:InitTexture("ui\\ui_noise")
+	self.edit_name:SetText("")
+	self.edit_x:SetText("")
+	self.edit_y:SetText("")
+	self.edit_z:SetText("")
+	self.level_name:SetText("")
+	last_pos = nil
+	self.selected_point = nil
+end
+
+function teleport:FillData()
+	self.data_points = {}
+	local flist = getFS():file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"*.point.dds")
+	local n = flist:Size()
+	if n == 0 then
+		return
+	end
+
+	local file_name, pname, pdata
+	for	i = 0, n-1 	do
+		file_name = flist:GetAt(i):NameFull():sub(1, -11)
+		pname, pdata = string.match(file_name, "^(.-)@(.+)$")
+		if pname and pdata then
+			local t = string.explode(pdata, "l", true)
+			if table.getn(t) ~= 4 then
+				log("! [teleport:FillData] Invalid point data. Delete file %s", file_name)
+				getFS():file_delete("$game_saves$", file_name..".point.dds")
+			else
+				local tmp = {}
+				tmp.fname = file_name
+				tmp.name = pname
+				tmp.pos = vector():set( tonumber(t[1]), tonumber(t[2]), tonumber(t[3]) )
+				tmp.lvl = tonumber(t[4])
+				tmp.lvl_name = AI:level_name(tmp.lvl)
+				table.insert(self.data_points, tmp)
+			end
+		end
+	end
+end
+
+function teleport:FillList()
+	table.sort(self.data_points, this.sort_points)
+	for i, v in ipairs(self.data_points) do
+		local _itm = list_item(v)
+		self.list:AddItem(_itm)
+	end
+end
+
+function teleport:on_ButtonSave_clicked()
+	local name = self.edit_name:GetText()
+	if string.len(name) == 0 then
+		self.message_box:Init("message_box_empty_file_name")
+		self.message_box:SetText("Введите название точки!")
+		self:GetHolder():start_stop_menu(self.message_box, true)
+		return
+	end
+
+	xr_s.subscribe( "update", this.save_game, {
+		userobj = string.gsub(name, "@", ""),
+		timeout = 100,
+		once = true
+	} )
+
+	self:OnQuit()
+end
+
+function save_game(delta, name)
+	get_console():execute("save save_point_"..name)
+	xr_s.subscribe( "update", this.save_point, {
+		userobj = name,
+		timeout = 700,
+		once = true
+	} )
+end
+function save_point(delta, name)
+	local fs = getFS()
+	local file_name = "save_point_"..name
+	if fs:exist("$game_saves$", file_name..".sav") ~= nil then
+		fs:file_delete("$game_saves$", file_name..".sav")
+	end
+	local file_name = file_name..".dds"
+	if fs:exist("$game_saves$", file_name) ~= nil then
+		local pos = Actor:position()
+		local lvl = AI:level_id()
+		local new_file_name = string.format("%s@%.2fl%.02fl%.02fl%d.point.dds", name, pos.x, pos.y, pos.z, lvl)
+		local f1 = fs:update_path("$game_saves$", file_name)
+		local f2 = fs:update_path("$game_saves$", new_file_name)
+		fs:file_copy(f1, f2)
+		fs:file_delete(f1)
+	end
+end
+
+function teleport:on_ButtonDelete_clicked()
+	local itm_index = self.list:GetSelectedItem()
+	local item = self.list:GetItem(itm_index)
+	local t = self.data_points[itm_index+1]
+	if item == nil or t == nil then
+		return
+	end
+
+	local fs = getFS()
+	if fs:exist("$game_saves$", t.fname..".point.dds") then
+		fs:file_delete("$game_saves$", t.fname..".point.dds")
+	end
+	table.remove(self.data_points, itm_index+1)
+	self.list:RemoveItem(itm_index)
+	self.list:SetSelectedItem(-1)
+	self.selected_point = nil
+end
+
+function teleport:OnListItemClicked()
+	last_pos = nil
+	local itm_index = self.list:GetSelectedItem()
+
+	local item = self.list:GetItem(itm_index)
+	local t = self.data_points[itm_index+1]
+	if item == nil or t == nil then
+		self.picture:InitTexture("ui\\ui_noise")
+		self.edit_name:SetText("")
+		return
+	end
+
+	self.selected_point = itm_index
+
+
+	if getFS():exist("$game_saves$", t.fname..".point.dds") then
+		self.picture:InitTexture(t.fname..".point")
+	else
+		self.picture:InitTexture("ui\\ui_noise")
+		self.edit_name:SetText("")
+		return
+	end
+
+	self.edit_x:SetText(tostring(t.pos.x))
+	self.edit_y:SetText(tostring(t.pos.y))
+	self.edit_z:SetText(tostring(t.pos.z))
+	self.level_name:SetTextST(t.lvl_name)
+	self.edit_name:SetText(t.name)
+end
+
+function teleport:on_ButtonShowPos_clicked()
+	local pos = Actor:position()
+	self.edit_x:SetText(tostring(pos.x))
+	self.edit_y:SetText(tostring(pos.y))
+	self.edit_z:SetText(tostring(pos.z))
+	self.level_name:SetTextST( level.name() )
 end
 
 function teleport:on_ButtonFly_clicked()
 	last_pos = nil
-	if registered==false then
+	if registered == false then
 		registered = true
 		xr_s.subscribe("update", naxac_teleport.update)
 	end
@@ -122,22 +271,52 @@ function teleport:on_ButtonFly_clicked()
 end
 
 function teleport:on_ButtonTeleport_clicked()
-	if registered == true then 
-		xr_s.unsubscribe("update", naxac_teleport.update)
-		registered = false
+	if last_pos ~= nil then
+		level.add_pp_effector("teleport.ppe",5000, false)
+		Actor:set_actor_position( last_pos )
+		last_pos = nil
+	elseif self.selected_point ~= nil then
+		local t = self.data_points[self.selected_point+1]
+		if t then
+			if t.lvl ~= AI:level_id() then
+				local v = 0
+				local gv, new_gv, new_lv, dist
+				local min_dist = math.huge
+				local f = false
+				while GGraph:valid_vertex_id(v) do
+					gv = GGraph:vertex(v)
+					if gv:level_id() == t.lvl then
+						f = true
+						dist = gv:level_point():distance_to( t.pos )
+						if dist < min_dist then
+							min_dist = dist
+							new_gv = v
+							new_lv = gv:level_vertex_id()
+						end
+					elseif f == true then
+						break
+					end
+					v = v + 1
+				end
+				level_changers.create_teleport_on_actor(t.pos, new_lv, new_gv)
+			else
+				level.add_pp_effector("teleport.ppe",5000, false)
+				Actor:set_actor_position( t.pos )
+			end
+		end
+	else
+		local x = text_to_number(self.edit_x:GetText())
+		local y = text_to_number(self.edit_y:GetText())
+		local z = text_to_number(self.edit_z:GetText())
+		if x==nil or y==nil or z==nil then
+			self.message_box:Init("message_box_invalid_host")
+			self.message_box:SetText("Некорректно заданы координаты!")
+			self:GetHolder():start_stop_menu(self.message_box, true)
+			return
+		end
+		level.add_pp_effector("teleport.ppe",5000, false)
+		Actor:set_actor_position( vector():set(x,y,z) )
 	end
-	local x = text_to_number(self.edit_x:GetText())
-	local y = text_to_number(self.edit_y:GetText())
-	local z = text_to_number(self.edit_z:GetText())
-	if x==nil or y==nil or z==nil then
-		news_manager.send_tip("Некорректно заданы координаты!")
-		return
-	end
-	level.add_pp_effector("teleport.ppe",5000, false)
-	local pos = vector()
-	pos.x = x; pos.y = y; pos.z = z;
-	Actor:set_actor_position(pos)
-	last_pos = nil
 	self:OnQuit()
 end
 
@@ -148,6 +327,9 @@ end
 
 function teleport:OnKeyboard(dik, keyboard_action)
 	CUIScriptWnd.OnKeyboard(self,dik,keyboard_action)
+
+	check_input_language(self,dik,keyboard_action)
+
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
 		if dik == DIK_keys.DIK_ESCAPE then
 			self:OnQuit()
@@ -157,6 +339,7 @@ function teleport:OnKeyboard(dik, keyboard_action)
 	end
 	return true
 end
+
 
 function update(delta)
 	local pos = device().cam_pos
@@ -170,6 +353,10 @@ function update(delta)
 		return
 	end
 	last_pos = pos
+end
+
+function sort_points(t1, t2)
+		return t1.name < t2.name
 end
 
 function text_to_number(str)
