@@ -177,7 +177,6 @@ function action_go_position:execute ()
 	action_base.execute (self)
 
 	if xr_logic.try_switch_to_another_section(self.object, self.a, Actor) then
-		xr_logic.pstor_store(self.object, "vused", nil)
 		return
 	end
 	
@@ -221,7 +220,6 @@ end
 function action_wait:execute()
 	action_base.execute (self)
 	if xr_logic.try_switch_to_another_section(self.object, self.a, Actor) then
-		xr_logic.pstor_store(self.object, "vused", nil)
 		return
 	end
 	local state, sound, substate = kamps[self.a.center_point]:updateNpc(self.object)
@@ -246,6 +244,7 @@ function action_wait:finalize()
 end
 function action_wait:deactivate(npc)
 	kamps[self.a.center_point]:removeNpc(npc)
+	xr_logic.pstor_store(self.object, "vused", nil)
 end
 function action_wait:death_callback(npc)
 	kamps[self.a.center_point]:removeNpc(npc)
@@ -1012,7 +1011,7 @@ function CKampManager:updateNpc(npc)
 				if self.story_last==nil then
 					self.story_last=0
 					self.story_max=1
-					xr_sound.set_sound_play(npc, "threat_back", math.random(1000,2000))
+					xr_sound.set_sound_play(npc, "weather", math.random(1000,2000))
 					--- dirty hack
 					self.kamp_state="idle"
 				--	self.forbiddendirector=self.director
