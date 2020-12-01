@@ -413,7 +413,7 @@ function actor_binder:map_location_added_callback(spot_type_str, object_id)
 	ui_script_hud.add_spot(spot_type_str, object_id)
 end
 ----------------------------------------------------------------------------------------------------------------------
-scopeUsed = false
+_G.scopeUsed = false
 function actor_binder:update(delta)
 	local time = time_global()
 	local actor = self.object
@@ -529,25 +529,25 @@ function actor_binder:update(delta)
 		
 		amk.oau_watchdog=304
 		if bit_and(actor:get_actor_int(nil, 1480), 1) == 1 then
-			if not scopeUsed then
+			if not _G.scopeUsed then
 				if actor_active_item then
 					local section = actor_active_item:section()
 					local cls = actor_active_item:clsid()
 					--log1("- actor:active_item():section()="..tostring(section))
 						
 					if cls == clsid.wpn_binocular_s then
-						scopeUsed = true
+						_G.scopeUsed = true
 					elseif IAmAWeapon[cls] then
-						scopeUsed = ( bit_and(actor_active_item:get_addon_flags(), addon_flags.scope) ~= 0
+						_G.scopeUsed = ( bit_and(actor_active_item:get_addon_flags(), addon_flags.scope) ~= 0
 							or sys_ini:r_u32(section, "scope_status") == 1 )
 					end
-					if scopeUsed then
+					if _G.scopeUsed then
 						hud_scope.on_scope_used( section )
 					end
 				end
 			end
-		elseif scopeUsed then
-			scopeUsed = false
+		elseif _G.scopeUsed then
+			_G.scopeUsed = false
 									 
 			hud_scope.on_scope_unused()
 		end
