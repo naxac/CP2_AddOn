@@ -8,7 +8,7 @@ if file then
 			line = ""
 		elseif string.find(line, "^%-%-%+") then
 			n = n + 1
-			line = string.sub( line, string.find(line, "[%w_]") )
+			line = string.sub( line, (string.find(line, "[%w_]")) )
 		elseif n ~= 0 then
 			local key, value = string.match(line, "^([%w_]+)%s*=%s*(%d+)")
 			if key and value then
