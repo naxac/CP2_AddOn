@@ -103,17 +103,14 @@ function turret_firmware:find_enemy()
 		return best_enemy
 	end
 	min_dist_sqr = self.st.search_dist_sqr
-	local npc
-	for id, v in pairs(db.creatures) do
-		npc = level_object(id)
-		if npc then
-			dist_sqr = self:distance_sqr(npc)
+	for id, obj in pairs(db.creatures) do
+		if AI:object(id) and obj and obj:alive() then
+			dist_sqr = self:distance_sqr(obj)
 			if dist_sqr < min_dist_sqr
-				and npc:alive()
-				and self.heli:isVisible(npc)
-				and is_enemy(self.community, npc)
+				and self.heli:isVisible(obj)
+				and is_enemy(self.community, obj)
 			then
-				best_enemy = npc
+				best_enemy = obj
 				min_dist_sqr = dist_sqr
 			end
 		end
