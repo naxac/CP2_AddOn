@@ -117,6 +117,13 @@ function generic_scheme_overrides(npc)
 --  section - имя секции logic
 --  gulag_name - имя гулага, если скрипт включается гулагом, а не биндером
 --]]
+local string_find = string.find
+local string_gfind = string.gfind
+local string_len = string.len
+local string_match = string.match
+local string_sub = string.sub
+local table_insert = table.insert
+
 local tabl_netpda_varnames={
 	-- Strelok
 	["s_teleport0_1"] = true,
@@ -209,7 +216,7 @@ function configure_schemes(npc, ini, ini_filename, stype, section_logic, gulag_n
 			end
 --]]
 		else
-			printf("_bp: enable_scripts: object '%s' has NO external configuration file, using '%s'", npc:name(), ini_filename)
+		--	printf("_bp: enable_scripts: object '%s' has NO external configuration file, using '%s'", npc:name(), ini_filename)
 			actual_ini_filename = ini_filename
 			actual_ini = ini
 		end
@@ -266,7 +273,7 @@ function determine_section_to_activate(npc, ini, section_logic, actor)
 	if active_section and db.storage[npc:id()].stype
 		and db.storage[npc:id()].stype<=1
 		-- and db.storage[npc:id()].stype~=stypes[utils.get_scheme_by_section(active_section)]
-		and db.storage[npc:id()].stype~=stypes[string.match( active_section, "^[_%a]+" )]
+		and db.storage[npc:id()].stype~=stypes[string_match( active_section, "^[_%a]+" )]
 	then
 		-- Блокируем активацию схемы для зверушек в человеческих гулагах. Dirty Hack.
 		return "nil"
@@ -396,7 +403,7 @@ function enable_generic_schemes(ini, npc, stype, section)
 end
 
 function activate_by_section(npc, ini, section, loading)
-	printf("DEBUG: object '%s': activate_by_section: looking for section '%s'", npc:name(), section)
+--	printf("DEBUG: object '%s': activate_by_section: looking for section '%s'", npc:name(), section)
 
 	if loading == nil then
 		abort("[xr_logic.activate_by_section] : loading field is nil, true or false expected")
@@ -430,7 +437,7 @@ function activate_by_section(npc, ini, section, loading)
 
 	if section and ini:section_exist(section) then
 	--	local scheme = utils.get_scheme_by_section(section)
-		local scheme = string.match( section, "^[_%a]+" )
+		local scheme = string_match( section, "^[_%a]+" )
 		if scheme == nil then
 			abort("[xr_logic.activate_by_section] object '%s': unable to determine scheme name from section name '%s'",
 				npc:name(), section)
@@ -471,7 +478,7 @@ end
 --  новой схемы.
 --]]
 function reset_generic_schemes_on_scheme_switch(npc, scheme, section)
-	printf("_bp: reset_generic_schemes_on_scheme_switch: npc:name()='%s'", npc:name())
+--	printf("_bp: reset_generic_schemes_on_scheme_switch: npc:name()='%s'", npc:name())
 	local st = db.storage[npc:id()]
 
 	if not st.stype then
@@ -585,9 +592,9 @@ function pick_section_from_condlist(actor, npc, condlist)
 	--printf("_bp: pick_section_from_condlist: rval = %d", rval)
 
 	local infop_conditions_met
-	for n, cond in pairs(condlist) do
+	for n, cond in ipairs(condlist) do
 		infop_conditions_met = true -- изначально считаем, что все условия переключения удовлетворены
-		for inum, infop in pairs(cond.infop_check) do
+		for inum, infop in ipairs(cond.infop_check) do
 			if infop.prob then
 				if not rval then
 					rval = math.random(100)
@@ -598,7 +605,7 @@ function pick_section_from_condlist(actor, npc, condlist)
 				end
 			elseif infop.func then
 				local func=nil
-				local module,fname=string.match(infop.func,"(.+)[.](.+)")
+				local module,fname=string_match(infop.func,"(.+)[.](.+)")
 				if not fname then
 					func=xr_conditions[infop.func]
 				else
@@ -645,10 +652,10 @@ function pick_section_from_condlist(actor, npc, condlist)
 		if infop_conditions_met then
 			-- Условия выполнены. Независимо от того, задана ли секция, нужно проставить требуемые
 			-- infoportions:
-			for inum, infop in pairs(cond.infop_set) do
+			for inum, infop in ipairs(cond.infop_set) do
 				if infop.func then
 					local func=nil
-					local module,fname=string.match(infop.func,"(.+)[.](.+)")
+					local module,fname=string_match(infop.func,"(.+)[.](.+)")
 					if not fname then
 						func=xr_effects[infop.func]
 					else
@@ -723,7 +730,7 @@ function try_switch_to_another_section(npc, st, actor)
 	local switched = false
 	local name
 	for _, c in pairs(l) do
-		name = string.match(c.name, '^[%a_]+')
+		name = string_match(c.name, '^[%a_]+')
 
 		if name == "on_actor_dist_le" then
 			switched = see_actor(npc) and distance_between(actor, npc) <= c.v1
@@ -792,10 +799,10 @@ function parse_infop1(rslt, str)
 	if str then
 		local infop_name, sign
 		local infop_n = 1
-		for s in string.gfind(str, "%s*([%-%+%~%=%!][^%-%+%~%=%!%s]+)%s*") do
+		for s in string_gfind(str, "%s*([%-%+%~%=%!][^%-%+%~%=%!%s]+)%s*") do
 			--printf("_bp: parse_infop: s=%s", utils.to_str(s))
-			sign = string.sub(s, 1, 1)
-			infop_name = string.sub(s, 2)
+			sign = string_sub(s, 1, 1)
+			infop_name = string_sub(s, 2)
 			if sign == "+" then
 				rslt[infop_n] = { name = infop_name, required = true }
 			elseif sign == "-" then
@@ -817,10 +824,10 @@ end
 function parse_func_params(str)
 	local lst = {}
 	local n
-	for par in string.gfind(str, "%s*([^:]+)%s*") do
+	for par in string_gfind(str, "%s*([^:]+)%s*") do
 		n = tonumber(par)
-		if n then table.insert(lst, n)
-		else table.insert(lst, par) end
+		if n then table_insert(lst, n)
+		else table_insert(lst, par) end
 	end
 	return lst
 end
@@ -829,44 +836,42 @@ function parse_infop(rslt, str)
 	--printf("_bp: parse_infop1: %s", utils.to_str(str))
 	if str then
 		local infop_name, sign
-		local infop_n = 1
 		local at, params
-		for s in string.gfind(str, "%s*([%-%+%~%=%!][^%-%+%~%=%!%s]+)%s*") do
+		for s in string_gfind(str, "%s*([%-%+%~%=%!][^%-%+%~%=%!%s]+)%s*") do
 			--printf("_bp: parse_infop: s=%s", utils.to_str(s))
-			sign = string.sub(s, 1, 1)
-			infop_name = string.sub(s, 2)
+			sign = string_sub(s, 1, 1)
+			infop_name = string_sub(s, 2)
 			params = nil
 
 			-- парсим параметры функций
-			at = string.find(infop_name, "%(")
+			at = string_find(infop_name, "%(")
 			if at then
-				if string.sub(infop_name, -1) ~= ")" then
+				if string_sub(infop_name, -1) ~= ")" then
 					abort("[xr_logic.parse_infop] wrong condlist %s", str)
 				end
-				if at < string.len(infop_name) - 1 then
-					params = parse_func_params(string.sub(infop_name, at + 1, -2))
+				if at < string_len(infop_name) - 1 then
+					params = parse_func_params(string_sub(infop_name, at + 1, -2))
 				else
 					params = {}
 				end
-				infop_name = string.sub(infop_name, 1, at - 1)
+				infop_name = string_sub(infop_name, 1, at - 1)
 			end
 
 			if sign == "+" then
-				rslt[infop_n] = { name = infop_name, required = true }
+				table_insert( rslt, { name = infop_name, required = true } )
 			elseif sign == "-" then
-				rslt[infop_n] = { name = infop_name, required = false }
+				table_insert( rslt, { name = infop_name, required = false } )
 			elseif sign == "~" then
-				rslt[infop_n] = { prob = tonumber(infop_name) }
+				table_insert( rslt, { prob = tonumber(infop_name) } )
 			elseif sign == "=" then
 				--printf("_bp: n = %s; r = %s", infop_name, utils.to_str(params))
-				rslt[infop_n] = { func = infop_name, expected = true, params = params }
+				table_insert( rslt, { func = infop_name, expected = true, params = params } )
 			elseif sign == "!" then
 				--printf("_bp: n = %s; r = %s", infop_name, utils.to_str(params))
-				rslt[infop_n] = { func = infop_name, expected = false, params = params }
+				table_insert( rslt, { func = infop_name, expected = false, params = params } )
 			else
 				abort("[xr_logic.parse_infop] wrong condlist %s", str)
 			end
-			infop_n = infop_n + 1
 		end
 	end
 end
@@ -886,19 +891,19 @@ function parse_condlist(npc, section, field, src)
 
 	--printf("_bp: src = %s", src)
 
-	local n = 1
-	for fld in string.gfind(src, "%s*([^,]+)%s*") do
+--	local n = 1
+	for fld in string_gfind(src, "%s*([^,]+)%s*") do
 		-- Здесь fld это набор infoportions в {} и имя секции, на которую переключиться.
-		lst[n] = {}
+		local t = {}
 		--printf("_bp: iter %d: fld = %s", n, fld)
 
 		-- Выделяем список infoportions для проверки:
-		at, to, infop_check_lst = string.find(fld, "{%s*(.*)%s*}")
+		at, to, infop_check_lst = string_find(fld, "{%s*(.*)%s*}")
 		if infop_check_lst then
 			--printf("_bp: infop_check_lst: [%s]", infop_check_lst)
 
 			-- Выделяем оставшуюся часть поля, т.е. имя секции плюс список infoportions для установки:
-			remainings = string.sub(fld, 1, at - 1) .. string.sub(fld, to + 1)
+			remainings = string_sub(fld, 1, at - 1) .. string_sub(fld, to + 1)
 		else
 			-- Список infoportions для проверки не был задан, следовательно, ничего не удаляем:
 			remainings = fld
@@ -906,10 +911,10 @@ function parse_condlist(npc, section, field, src)
 		--printf("_bp: remainings: %s", remainings)
 
 		-- Выделяем список infoportions для установки из remainings:
-		at, to, infop_set_lst = string.find(remainings, "%%%s*(.*)%s*%%")
+		at, to, infop_set_lst = string_find(remainings, "%%%s*(.*)%s*%%")
 		if infop_set_lst then
 			-- Выделяем оставшуюся часть поля, т.е. имя секции:
-			newsect = string.sub(remainings, 1, at - 1) .. string.sub(remainings, to + 1)
+			newsect = string_sub(remainings, 1, at - 1) .. string_sub(remainings, to + 1)
 		else
 			-- Список infoportions для установки не был задан, следовательно, remainings и есть имя секции.
 			newsect = remainings
@@ -917,25 +922,26 @@ function parse_condlist(npc, section, field, src)
 		--printf("_bp: newsect: %s", newsect)
 
 		-- И сразу trim имя секции:
-		at, to, newsect = string.find(newsect, "%s*(.*)%s*")
+		newsect = trim(newsect)
 		if not newsect then
 			abort_syntax_error_in_cond(npc, section, field)
 		end
 
 		-- Имя секции теперь можно сохранить:
-		lst[n].section = newsect
+		t.section = newsect
 
 		-- Теперь нужно распарсить infoportions в строке infop_check_lst и
 		-- заполнить массив infop_check: { "infop_name" = true/false }.
 		-- На входе имеем строку вида "  +infop1  -infop2 +infop3 ... "
-		lst[n].infop_check = {}
-		parse_infop(lst[n].infop_check, infop_check_lst)
+		t.infop_check = {}
+		parse_infop(t.infop_check, infop_check_lst)
 
 		-- То же самое для устанавливаемых infoportions:
-		lst[n].infop_set = {}
-		parse_infop(lst[n].infop_set, infop_set_lst)
+		t.infop_set = {}
+		parse_infop(t.infop_set, infop_set_lst)
 
-		n = n + 1
+		table_insert(lst, t)
+		-- n = n + 1
 	end
 
 	return lst
@@ -1087,7 +1093,7 @@ function cfg_get_overrides(ini, section, npc)
 	l.on_combat         = cfg_get_condlist(ini, section, "on_combat", npc)
 	l.companion_enabled = utils.cfg_get_bool(ini, section, "companion_enabled", npc, false)
 
-	if string.find(section, "kamp") ~= nil then
+	if string_find(section, "kamp") ~= nil then
 		l.soundgroup    = utils.cfg_get_string(ini, section, "center_point", npc, false, "")
 	else
 		l.soundgroup    = utils.cfg_get_string(ini, section, "soundgroup", npc, false, "")
@@ -1110,8 +1116,8 @@ function cfg_get_npc_and_zone(ini, section, field, npc)
 			end
 		else
 			t.npc_id = -1
-			printf("WARNING: object '%s': section '%s': field '%s': can't use story_id without simulation!",
-				npc:name(), section, field)
+		--	printf("WARNING: object '%s': section '%s': field '%s': can't use story_id without simulation!",
+		--		npc:name(), section, field)
 		end
 	end
 
@@ -1435,10 +1441,10 @@ function get_customdata_or_ini_file(npc, filename)
 		else
 			return ini_file([[scripts\dummy.ltx]])
 		end
-	elseif string.find( filename, "*" ) == 1 then
+	elseif string_find( filename, "*" ) == 1 then
 		-- динамический ltx
-		local p = string.find( filename, "*", 2 )
-		return gulag_tasks.loadLtx( string.sub(filename, 2, p-1), string.sub(filename, p+1) )
+		local p = string_find( filename, "*", 2 )
+		return gulag_tasks.loadLtx( string_sub(filename, 2, p-1), string_sub(filename, p+1) )
 	else
 		return ini_file(filename)
 	end
