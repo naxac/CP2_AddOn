@@ -20,7 +20,7 @@ function get_disp_crouch_factor() return Actor:get_actor_float(1500) end
 function get_disp_crouch_no_accel_factor()  return Actor:get_actor_float(1504) end
 -- получение некоторых целых и логических значений
 -- режим прицеливания
-function zoom_mode() return bit_and(Actor:get_actor_int(nil, 1480), 1) end -- возвращает 0/1
+function zoom_mode() return bit_and(Actor:get_actor_int(nil, 1480), 1) == 1 end -- возвращает false/true
 --[[
 EActorCameras = {
 	eacFirstEye = 0,
@@ -130,3 +130,84 @@ function change_actor_weight(delta)
 	Actor:set_actor_max_walk_weight(mww + delta)
 end
 
+-------------------------------------------------------
+local actor_flags = {
+	AF_GODMODE			= 1,
+	AF_INVISIBLE		= 2,
+	AF_ALWAYSRUN		= 4,
+	AF_UNLIMITEDAMMO	= 8,
+	AF_RUN_BACKWARD		= 16,
+	AF_AUTOPICKUP		= 32,
+	AF_PSP				= 64
+}
+-- флажки состояния тела актера
+local body_states = {
+	current		= -1,
+	fwd			= 1,
+	back		= 2,
+	l_strafe	= 4,
+	r_strafe	= 8,
+	crouch		= 16,
+	accel		= 32,
+	turn		= 64,
+	jump		= 128,
+	fall		= 256,
+	landing		= 512,
+	landing2	= 1024,
+	climb		= 2048,
+	sprint		= 4096,
+	l_lookout	= 8192,
+	r_lookout	= 16384
+}
+body_states.any_move = body_states.fwd + body_states.back + body_states.l_strafe + body_states.r_strafe
+body_states.lookout  = body_states.l_lookout + body_states.r_lookout
+body_states.is_accel = body_states.crouch + body_states.climb + body_states.jump + body_states.landing + body_states.landing2
+
+function isActorAccelerated(mstate)
+	local res = false
+	if bit_and(mstate, body_states.accel) ~= 0 then
+		res = bit_and(get_actor_flags(), actor_flags.AF_ALWAYSRUN) == 0
+	else
+		res = bit_and(get_actor_flags(), actor_flags.AF_ALWAYSRUN) ~= 0
+	end
+	if bit_and(mstate, body_states.is_accel) then
+		return res
+	end
+	if bit_and(mstate, body_states.lookout) ~= 0 or zoom_mode() then
+		return false
+	end
+	return res
+end
+
+function get_body_state_str()
+	local state = Actor:actor_body_state()
+
+	if body_states.current == state then
+		return nil
+	end
+	body_states.current = state
+
+	if bit_and(state, body_states.climb) ~= 0 then
+		return "climb"
+	else
+		if bit_and(state, body_states.crouch) ~= 0 then
+			if not isActorAccelerated(state) then
+				return "creep"
+			else
+				return "crouch"
+			end
+		else
+			if bit_and(state, body_states.sprint) ~= 0 then
+				return "sprint"
+			else
+				if bit_and(state, body_states.any_move) ~= 0
+					and isActorAccelerated(state)
+				then
+					return "run"
+				else
+					return "normal"
+				end
+			end
+		end
+	end
+end

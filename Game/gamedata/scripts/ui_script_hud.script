@@ -173,7 +173,7 @@ function UIScriptHUD:Update(delta)
 end
 
 function UIScriptHUD:UpdateIndicators()
-	local str = get_body_state_str()
+	local str = xr_actor.get_body_state_str()
 	if str then
 		self.body_state:InitTexture("ui_hud_soldier_"..str)
 	end
@@ -326,7 +326,6 @@ function UIScriptHUD:CheckNewSpots()
 		end
 	end
 
-	
 	if biodetector_mode then
 		return
 	end
@@ -509,63 +508,6 @@ function get_level_bound_rect()
 		vol.max.x,
 		vol.max.z
 	)
-end
--- флажки состояния тела актера
-local body_states = {
-	current		= -1,
-	fwd			= 1,
-	back		= 2,
-	l_strafe	= 4,
-	r_strafe	= 8,
-	crouch		= 16,
-	accel		= 32,
-	turn		= 64,
-	jump		= 128,
-	fall		= 256,
-	landing		= 512,
-	landing2	= 1024,
-	climb		= 2048,
-	sprint		= 4096,
-	l_lookout	= 8192,
-	r_lookout	= 16384
-}
-body_states.any_move = body_states.fwd + body_states.back + body_states.l_strafe + body_states.r_strafe
-
-function get_body_state_str()
-	local state = Actor:actor_body_state()
-
-	if body_states.current == state then
-		return nil
-	end
-	body_states.current = state
-
-	if bit_and(state, body_states.climb) ~= 0 then
-		return "climb"
-	else
-		if bit_and(state, body_states.crouch) ~= 0 then
-			if bit_and(state, body_states.accel) ~= 0 then
-				return "creep"
-			else
-				return "crouch"
-			end
-		else
-			if bit_and(state, body_states.sprint) ~= 0 then
-				return "sprint"
-			else
-				if bit_and(state, body_states.any_move) ~= 0
-					and bit_and(state, body_states.accel) == 0
-				then
-					return "run"
-				else
-					return "normal"
-				end
-			end
-		end
-	end
-end
-
-function get_spot_by_texture(tex)
-	return texture2spot[tex]
 end
 
 local id2color = {
