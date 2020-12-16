@@ -320,7 +320,10 @@ function worker(index, level)
 
 		-- снимаем отскок
 		if job.invul_off then
-			AI:release(AI:object(Actor:object("af_invul"):id()))
+			local art = Actor:object("af_invul")
+			if art then
+				del_obj_by_id( art:id() )
+			end
 		end
 
 		-- выдаем поршень
@@ -787,7 +790,8 @@ function akim1_done()
 end
 
 function kalinin1_done()
-	AI:release(snp.object_by_section_offline("snp_nolik"))
+	local obj = snp.object_by_section_offline("snp_nolik")
+	if obj then AI:release(obj, true) end
 	snp.create_restrictor(vector():set(513.66589355469,-0.015384167432785,162.50059509277),160431,2603,2000,"fly_island.chaes2")
 end
 function chaes2()
@@ -1009,7 +1013,7 @@ function snegir_start_done2()
 	xr_sound.get_safe_sound_object([[anomaly\teleport_work_1]]):play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 	for id,obj in pairs(db.creatures) do
 		if obj:section() == "snegir_2chaes" or obj:section() == "snegir2_2chaes" or obj:section() == "snegir3_2chaes" then
-			AI:release(AI:object(id))
+			del_obj_by_id(id)
 		end
 	end
 	local obj = AI:create("snegir_kordon",vector():set(-205.52618408203,-19.880298614502,-134.23291015625),47209,58)

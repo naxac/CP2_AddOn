@@ -564,15 +564,15 @@ function CArenaext:startup()
 		end
 		
 		-- удаление 'деревянного' долговца
-		local obj = AI:object("level_prefix_physic_object_0004")
+		local obj = AI:object("bar_physic_object_0004")
 		if obj ~= nil then
-			AI:release(obj)
+			AI:release(obj, true)
 		end
 		
 		-- освободим место в баре, если оно занято
 		local obj = AI:object("bar_bar_visitors_1_2")
 		if obj ~= nil then
-			AI:release(obj)
+			AI:release(obj, true)
 		end
 	end
 	timeup()
@@ -684,7 +684,7 @@ function CArenaext:cleanup()
 		obj = AI:object(id)
 		if obj ~= nil then
 			if string.find(obj:name(), "aem_") then
-				AI:release(obj)
+				AI:release(obj, true)
 			end
 		end
 	end
@@ -836,7 +836,7 @@ function CArenaext:reinit()
 		if obj ~= nil then
 			section = obj:section()
 			if section == "aem_sound" or section == "aem_timer" then
-				AI:release(AI:object(id), true)
+				del_obj_by_id(id)
 			end
 		end
 	end
@@ -883,7 +883,7 @@ function CArenaext:update()
 		if id == 0 then
 			npc = AI:object("bar_arena_man")
 			if npc ~= nil then
-				AI:release(npc)
+				AI:release(npc, true)
 				local obj = AI:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
 				-- сохранение id
 				id = obj.id
@@ -1986,7 +1986,7 @@ function clear_items(items)
 		obj = Actor:object(i)
 		if items[obj:section()] == true then
 			--printf(" section='%s'", obj:section())
-			AI:release(AI:object(obj:id()), true)
+			del_obj_by_id(obj:id())
 		end
 	end
 end
@@ -2000,7 +2000,7 @@ function clear_box(box)
 	local obj
 	local ids = enum_box_items(box)
 	for i, id in pairs(ids) do
-		AI:release(AI:object(id), true)
+		del_obj_by_id(id)
 	end
 end
 

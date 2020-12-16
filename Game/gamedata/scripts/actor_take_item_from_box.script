@@ -94,7 +94,7 @@ check_item_tbl['snp_note30'] = function(obj)
 	AI:create_no_ai("n_inventory_box_vp6",vector():set(205.22360229492,-25.027803421021,-258.54818725586),419629,3765)
 end
 check_item_tbl['snp_note45'] = function(obj)
-	AI:release(AI:object(obj:id()))
+	del_obj_by_id(obj:id())
 end
 check_item_tbl['af_fobos'] = function(obj)
 	if not has_alife_info("snpt_jupiter5_done") then
@@ -117,9 +117,12 @@ check_item_tbl['snp_pftp'] = function(obj)
 	end
 end
 check_item_tbl['snp_pda_profi1'] = function(obj)
-	AI:release(AI:object(obj:id()))
+	del_obj_by_id(obj:id())
 	for i=1,20 do
-		AI:release(AI:object(Actor:object("snp_profi"..tostring(i)):id()))
+		obj = Actor:object("snp_profi"..tostring(i))
+		if obj then
+			del_obj_by_id(obj:id())
+		end
 	end
 	news_manager.send_tip("Файл с найденного ПДА скопирован в раздел \"Журнал\\Данные на КПК.\"", nil, "nano", 10000)
 	kostya_dialog.delete_teleport("snp_profi_tp0")
@@ -165,7 +168,10 @@ check_item_tbl['grenade_rgd5_new'] = function (item, box)
 	level.add_pp_effector( "agr_u_fade.ppe", 8120804, false ) -- чтоб красивее было
 
 	start_real_timer("run", 1, "braad_test.mina_band3()")
-	AI:release(snp.object_by_section_offline("prov_ruk"))
+	local obj = snp.object_by_section_offline("prov_ruk")
+	if obj then
+		AI:release(obj, true)
+	end
 	braad_test.kalmyak_tele2()
 end
 check_item_tbl['zamok'] = function (item, box)
