@@ -1,0 +1,200 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local get_seconds = amk.game_seconds
+local bad_charge_level = 0.0	-- аккумулятор непригоден на замену
+local upd_step_accum = 500	-- частота апдейта заряда аккумулятора, мс
+
+class "energy_consuming_binder" ( object_binder )
+
+function energy_consuming_binder:__init( obj )
+	super( obj )
+
+	self.current_src = 0
+	self.current_charge = 0
+	self.upd_time_accum = 0
+	self.time_left = 0
+	self.need_update = false
+end
+
+function energy_consuming_binder:__finalize()
+end
+
+function energy_consuming_binder:net_spawn( data )
+	if not object_binder.net_spawn( self, data ) then return false end
+
+	local pk = netpk:get( data, netpk.fState )
+	local cd = netpk:parse_custom_data( pk.custom_data )
+	if cd.accumm then
+		self.current_src    = tonumber( cd.accumm.src_idx )
+		self.current_charge = tonumber( cd.accumm.charge)
+	end
+
+	self:set_accumm( self.power_sourses[ self.current_src ], self.current_charge, true )
+
+	return true
+end
+
+function energy_consuming_binder:net_destroy()
+	object_binder.net_destroy( self )
+	self:save_accumm()
+end
+function energy_consuming_binder:save( packet )
+	object_binder.save( self, packet )
+	self:save_accumm()
+end
+
+function energy_consuming_binder:set_accumm( sect, charge, first_run )
+	if ( self.cur_accumm_sect ~= sect ) or first_run then
+		local weight = self.object:get_weight()
+		if self.cur_accumm_sect then
+			weight = weight - sys_ini:r_float( self.cur_accumm_sect, "inv_weight" )
+		end
+
+		if sect == nil then
+			self.time_left = 0
+			self.current_src = 0
+			self.current_charge = 0
+			self.object:set_weight( weight )
+			return
+		end
+
+		self.cur_accumm_sect = sect
+		self.object:set_weight( weight + sys_ini:r_float( sect, "inv_weight" ) )
+
+		if not first_run then
+			self.current_src = 0
+			for i, v in ipairs( self.power_sourses ) do
+				if v == sect then
+					self.current_src = i
+					break
+				end
+			end
+
+			if self.current_src == 0 then
+				abort( "[energy_consuming_binder:set_accumm] accumm type '%s' is no for this item [%s]", sect, self.section )
+			end
+		end
+	end
+
+	local accumm_capacity = sys_ini:r_float( self.cur_accumm_sect, "power_capacity" )
+	self.full_time = accumm_capacity / self.power_consumption * 3600	-- game seconds
+	self.time_left = self.full_time * charge
+	self.current_charge = charge
+	self.last_time = get_seconds()
+	self.need_update = true
+end
+
+function energy_consuming_binder:save_accumm()
+	local se_obj = AI:object( self.object:id() )
+	if se_obj then
+		local pk = netpk:get( se_obj, netpk.fState )
+		local cd = netpk:parse_custom_data( pk.custom_data )
+		cd.accumm = {
+			src_idx = self.current_src,
+			charge = self.current_charge
+		}
+		pk.custom_data = netpk:gen_custom_data( cd )
+		netpk:set( se_obj, pk, netpk.fState )
+	end
+end
+
+function energy_consuming_binder:reinit()
+	object_binder.reinit( self )
+
+	self.section = self.object:secton()
+	if sys_ini:r_bool_ex( self.section, "energy_consuming", false ) == false then
+		log( "! Attempt to bind energy consuming object '%s' but this not need!", self.object:name() )
+		return
+	end
+
+	self.power_sourses     = string.explode( sys_ini:r_string( self.section, "power_sourses" ), ",", true )
+	self.power_consumption = sys_ini:r_float( self.section, "power_consumption" )
+	self.update_power = function ( obj, delta )
+		if not obj.need_update then return end
+
+		if obj.upd_time_accum < upd_step_accum then
+			obj.upd_time_accum = obj.upd_time_accum + delta
+			return
+		end
+		obj.upd_time_accum = 0
+
+		local sec = get_seconds()
+		local time_shift = sec - obj.last_time
+		obj.last_time = sec
+
+		obj.time_left = obj.time_left - time_shift
+		if obj.time_left < 0 then
+			obj.time_left = 0
+			obj.need_update = false
+		end
+		obj.current_charge = obj.time_left/obj.full_time
+	end
+end
+
+function outfit_binder:get_charge()
+	return self.current_charge, self.cur_accumm_sect
+end
+
+function energy_consuming_binder:charge( accumm )
+	if accumm == nil then 
+		log( "! Attempt to charge object '%s': accumm is nil!", self.object:name() )
+		return false
+	end
+
+	local new_charge = accumm:condition()
+	if new_charge <= bad_charge_level then
+		ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой", "red")
+		return false
+	end
+
+	self:set_accumm( accumm:section(), new_charge )
+	del_obj_by_id( accumm:id() )
+	return true
+end
+
+function energy_consuming_binder:discharge()
+	if self.current_charge > 0 then
+		local accum = AI:create(self.cur_accumm_sect, vector():set(0,0,0), 0, 0, 0)
+		netpk:modify(accum, {condition = cond}, netpk.fState)
+		level.client_spawn_manager():add(accum.id, -1,
+			function(condition, id, obj)
+				obj:set_condition(condition)
+			end,
+		cond)
+		self:set_accumm( nil )
+	end
+end
+--------------------------------------------------------------------------------------------
+function init(obj)
+	obj:bind_object( energy_consuming_binder( obj ) )
+end
+
+
+local subscribed_items = {}
+
+function on_item_from_slot( item )
+	if subscribed_items[ item:id() ] then
+		subscribed_items[ item:id() ] = nil
+		local binder = item:binded_object()
+		xr_s.unsubscribe( "update", binder.update_power )
+		-- if ShiftPressed() then
+			-- binder:discharge()
+		-- end
+	end
+end
+
+function on_item_to_slot( item )
+	if sys_ini:r_bool_ex( item:section(), "energy_consuming", false ) == true then
+		local binder = item:binded_object()
+		if binder then
+			xr_s.subscribe( "update", binder.update_power, { self = binder } )
+			subscribed_items[ item:id() ] = true
+		end
+	end
+end
+
+function attach()
+	xr_s.subscribe( "item_to_ruck", this.on_item_from_slot )
+	xr_s.subscribe( "item_drop",    this.on_item_from_slot )
+	xr_s.subscribe( "item_to_slot", this.on_item_to_slot   )
+	xr_s.subscribe( "item_to_belt", this.on_item_to_slot   )
+end
