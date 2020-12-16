@@ -102,8 +102,8 @@ function torch_binder:net_spawn(data)
 	self.time_left = self.full_charge_time - self.se_torch.worked_time
 
 	if self:get_charge_level() > 0 then
-		local accum_sect = sys_ini:r_string( self.section, "energy_source" )
-		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+		self.accum_sect = sys_ini:r_string( self.section, "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(self.accum_sect, "inv_weight") )
 	end
 
 	self.need_init = true
@@ -224,6 +224,10 @@ function torch_binder:get_charge_level()
 	return self.time_left/self.full_charge_time
 end
 
+function torch_binder:get_current_accumm()
+	return self.accum_sect
+end
+
 function torch_binder:charge(new_charge)
 	if has_alife_info("no_pnv") then
 		ui_inv_add.show_inv_msg("Невозможно заменить батарею: устройство неисправно", "red")
@@ -237,15 +241,14 @@ function torch_binder:charge(new_charge)
 
 	local old_charge = self:get_charge_level()
 	if old_charge > 0 then
-		local accum_sect = sys_ini:r_string(self.section, "energy_source")
-		local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		local accum = AI:create(self.accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = old_charge}, netpk.fState)
 		level.client_spawn_manager():add(accum.id, -1,
 			function(condition, id, obj)
 				obj:set_condition(condition)
 			end,
 		old_charge)
-		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(self.accum_sect, "inv_weight") )
 	end
 
 	self.time_left = self.full_charge_time * new_charge
@@ -381,8 +384,7 @@ function on_item_from_slot(item)
 		if ShiftPressed() then
 			local cond = binder:get_charge_level()
 			if cond > 0 then
-				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
-				local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+				local accum = AI:create(binder.accum_sect, vector():set(0,0,0), 0, 0, 0)
 				netpk:modify(accum, {condition = cond}, netpk.fState)
 				level.client_spawn_manager():add(accum.id, -1,
 					function(condition, id, obj)

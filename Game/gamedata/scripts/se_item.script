@@ -3,7 +3,8 @@ local registred_items = {}
 
 class "se_outfit" (cse_alife_item_custom_outfit)
 function se_outfit:__init (section) super (section)
-	self.worked_time = 0
+	self.current_src = 0
+	self.charge = 0
 end
 function se_outfit:on_register()
 	cse_alife_item_custom_outfit.on_register( self )
@@ -21,13 +22,25 @@ end
 function se_outfit:STATE_Write (packet)
 	cse_alife_item_custom_outfit.STATE_Write( self, packet )
 
-	packet:w_s32(self.worked_time)
+	packet:w_s32(0)
+	packet:w_u8(self.current_src)
+	packet:w_float(self.charge)
 end
 function se_outfit:STATE_Read (packet, size)
 	cse_alife_item_custom_outfit.STATE_Read( self, packet, size )
 
 	if not packet:r_eof() then
-		self.worked_time = packet:r_s32()
+		local worked_time = packet:r_s32()
+		if not packet:r_eof() then
+			self.current_src = packet:r_u8()
+			self.charge = packet:r_float()
+		else
+			if worked_time > 0 then
+				self.current_src = 1
+				local full_time = sys_ini:r_float_ex( self:section_name(), "working_time", 1200 ) * 60
+				self.charge = (full_time - worked_time)/full_time
+			end
+		end
 	end
 end
 
@@ -162,7 +175,7 @@ function se_item_torch:STATE_Read (packet, size)
 end
 
 
---' ФИзобъекты
+--' Физобъекты
 class "se_physic" (cse_alife_object_physic)
 function se_physic:__init (section) super (section)
 end

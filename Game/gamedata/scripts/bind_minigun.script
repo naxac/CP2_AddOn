@@ -16,8 +16,8 @@ function minigun_binder:reinit()
 	self.worked_time = self.se_wpn.worked_time
 
 	if self:get_charge_level() > 0 then
-		local accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
-		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
+		self.accum_sect = sys_ini:r_string( self.object:section(), "energy_source" )
+		self.object:set_weight( self.object:get_weight() + sys_ini:r_float(self.accum_sect, "inv_weight") )
 	end
 end
 
@@ -64,6 +64,10 @@ function minigun_binder:update(delta)
 	end
 end
 
+function minigun_binder:get_current_accumm()
+	return self.accum_sect
+end
+
 function minigun_binder:on_key_press(dik, bind)
 	if bind ~= key_bindings.kWPN_FIRE then return end
 	if level.main_input_receiver() == nil then
@@ -90,15 +94,14 @@ function minigun_binder:charge(new_charge)
 
 	local old_charge = self:get_charge_level()
 	if old_charge > 0 then
-		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
-		local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
+		local accum = AI:create(self.accum_sect, vector():set(0,0,0), 0, 0, 0)
 		netpk:modify(accum, {condition = old_charge}, netpk.fState)
 		level.client_spawn_manager():add(accum.id, -1,
 			function(condition, id, obj)
 				obj:set_condition(condition)
 			end,
 		old_charge)
-		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
+		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(self.accum_sect, "inv_weight") )
 	end
 
 	self.worked_time = self.full_charge_time - self.full_charge_time * new_charge

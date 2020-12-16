@@ -92,6 +92,10 @@ function give_5drink(first_speaker, second_speaker)
 	shiftCheckDropItem()
 	inventory.out_items("energy_drink",5)
 end
+function give_7beer(first_speaker, second_speaker)
+	shiftCheckDropItem()
+	inventory.out_items("beer_a",7)
+end
 function give_3drink(first_speaker, second_speaker)
 	shiftCheckDropItem()
 	inventory.out_items("energy_drink",3)
@@ -116,6 +120,9 @@ function drink3_have()
 end
 function drink5_have()
   	return inventory.search("energy_drink",5) ~= false 
+end
+function beer2_have()
+  	return inventory.search("beer_a",7) ~= false 
 end
 function bread5_have()
   	return inventory.search("bread",5) ~= false 
@@ -302,16 +309,50 @@ function add_ammo_gauss(first_speaker, second_speaker)
 	dialogs.relocate_item_section(first_speaker, "ammo_gauss", "in")
 end
 function add_akkumul(first_speaker, second_speaker)
-	inventory.give_items("ekza_akkumul",1)
+	inventory.give_items("ekza_akkumul_sci",1)
 end
 function add_2akkumul(first_speaker, second_speaker)
-	inventory.give_items("ekza_akkumul",2)
+	inventory.give_items("ekza_akkumul_sci",2)
 end
+local check_accum_tbl = {
+	["ekza_akkumul"] = 0,
+	["ekza_akkumul_fre"] = 0,
+	["ekza_akkumul_dol"] = 0,
+	["ekza_akkumul_mil"] = 0,
+	["ekza_akkumul_kil"] = 0,
+	["ekza_akkumul_sci"] = 0,
+	["ekza_akkumul_mon"] = 0,
+	["ekza_akkumul_ban"] = 0
+}
 function ekza_akkumul4_bad_have(first_speaker, second_speaker)
-	return inventory.has_by_condition("ekza_akkumul", 4, 0, 0.2)
+	local need = 4
+	local sec = ""
+	Actor:iterate_inventory( function( dummy, item )
+		sec = item:section()
+		if check_accum_tbl[sec] then
+			local cond = item:condition()
+			if cond >= 0 and cond <= 0.2 then
+				table.add(check_accum_tbl, sec)
+				need = need - 1
+			end
+			if need == 0 then return true end
+		end
+	end,
+	Actor )
+	return false
 end
 function give_4ekza_akkumul_bad(first_speaker, second_speaker)
-	return inventory.out_by_condition("ekza_akkumul", 4, 0, 0.2)
+	for k, v in pairs(check_accum_tbl) do
+		if v > 0 then
+			inventory.out_by_condition(k, v, 0, 0.2)
+			check_accum_tbl[k] = 0
+		end
+	end
+end
+function clear_akkumul()
+	for k, v in pairs(check_accum_tbl) do
+		check_accum_tbl[k] = 0
+	end
 end
 function take_fox_spot()
 	sak.add_spot_of_docent(5)
@@ -650,57 +691,45 @@ function add_toz(first_speaker, second_speaker)
 end
 function add_5ammo_9x39_pab9(first_speaker, second_speaker)
 	inventory.give_items("ammo_9x39_pab9",5)
---	dialogs.relocate_item_section(first_speaker, "ammo_9x39_pab9", "in")
 end
 function add_4ammo_9x39_sp5(first_speaker, second_speaker)
 	inventory.give_items("ammo_9x39_sp5",4)
---	dialogs.relocate_item_section(first_speaker, "ammo_9x39_sp5", "in")
 end
 function add_3ammo_9x39_ap(first_speaker, second_speaker)
 	inventory.give_items("ammo_9x39_ap",3)
---	dialogs.relocate_item_section(first_speaker, "ammo_9x39_ap", "in")
 end
 function add_5ammo_556x45_ss190(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.56x45_ss190",5)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.56x45_ss190", "in")
 end
 function add_3ammo_556x45_ap(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.56x45_ap",3)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.56x45_ap", "in")
 end
 function add_3ammo_556x45_gd(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.56x45_gd",3)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.56x45_gd", "in")
 end
 function add_3ammo_545x39_ap(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.45x39_ap",3)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.45x39_ap", "in")
 end
 function add_5ammo_5_45_fmj(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.45x39_fmj",5)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.45x39_fmj", "in")
 end
 function add_ammo_5_45_fmj(first_speaker, second_speaker)
 	dialogs.relocate_item_section(first_speaker, "ammo_5.45x39_fmj", "in")
 end
 function add_ammo_5_45_fmj2(first_speaker, second_speaker)
 	inventory.give_items("ammo_5.45x39_fmj",2)
---	dialogs.relocate_item_section(first_speaker, "ammo_5.45x39_fmj", "in")
 end
 function add_ammo_7_62_fmj2(first_speaker, second_speaker)
 	inventory.give_items("ammo_7.62x39_fmj",2)
---	dialogs.relocate_item_section(first_speaker, "ammo_7.62x39_fmj", "in")
 end
 function add_ammo_7_62_ap3(first_speaker, second_speaker)
 	inventory.give_items("ammo_7.62x39_ap",3)
---	dialogs.relocate_item_section(first_speaker, "ammo_7.62x39_ap", "in")
 end
 function add_ammo_7_62_ap(first_speaker, second_speaker)
 	dialogs.relocate_item_section(first_speaker, "ammo_7.62x54_ap", "in")
 end
 function add_ammo_7_62_ap2(first_speaker, second_speaker)
 	inventory.give_items("ammo_7.62x54_ap",2)
---	dialogs.relocate_item_section(first_speaker, "ammo_7.62x54_ap", "in")
 end
 function add_ammo_rgd2(first_speaker, second_speaker)
 	inventory.give_items("grenade_rgd5",2)
@@ -725,6 +754,9 @@ end
 function add_3ammo_9x18_pmm(first_speaker, second_speaker)
 	inventory.give_items("ammo_9x18_pmm",3)
 --	dialogs.relocate_item_section(first_speaker, "ammo_9x18_pmm", "in")
+end
+function add_ekza_accumm_ban()
+	inventory.give_items("ekza_akkumul_ban",1)
 end
 function add_wpn_ak74(first_speaker, second_speaker)
 	dialogs.relocate_item_section(first_speaker, "wpn_ak74", "in")

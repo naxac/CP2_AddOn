@@ -99,7 +99,88 @@ function InvWnd:InitControls()
 	self.rad_level = xml:InitProgressBar("radiation_progress", self)
 	self.rad_upd_time = 1000
 
+	self.accumm_slot = xml:InitStatic("accumm_slot", self)
+	self:Register(self.accumm_slot, "accumm_slot")
+	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_RECEIVED, self.acum_slot_focus)
+	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_LOST, self.acum_slot_focus_lost)
+
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
+end
+
+function InvWnd:InitAccummSlot()
+	local outfit = Actor:get_current_outfit()
+	local sect = outfit and outfit:section()
+	if (not sect) or not ( sys_ini:line_exist(sect, "energy_consuming")
+		and sys_ini:r_bool(sect, "energy_consuming") == true )
+	then
+		self.accumm_slot:Show(false)
+		return
+	end
+
+	if not self.accumm_slot.btn then
+		local sz = self.accumm_slot:GetWndSize()
+		local b = CUIStatic()
+		b:SetAutoDelete(true)
+		b:SetStretchTexture(true)
+		b:Init("ui\\ui_icon_equipment", 0, 0, sz.x, sz.y)
+		self.accumm_slot:AttachChild(b)
+		self.accumm_slot.btn = b
+		self:Register(b, "accumm_btn")
+		self:AddCallbackEx("accumm_btn", ui_events.WINDOW_LBUTTON_DB_CLICK, self.RemoveAccumm)
+	end
+
+	if self.fake_accumm then
+		self.fake_accumm:destroy()
+	end
+
+	local cond = outfit:get_charge_level()
+	if (cond or 0) == 0 then
+		self.accumm_slot.btn:SetOriginalRect( 0, 0, 1, 1 )
+		self.fake_accumm = nil
+	else
+		local binder = outfit:binded_object()
+		if binder then
+			local accumm_sect = binder:get_current_accumm()
+			local icn = GetIconParams(accumm_sect)
+			self.accumm_slot.btn:SetOriginalRect( icn.x, icn.y, icn.w, icn.h )
+			self.fake_accumm = fake_inventory_item.fake_item( {
+				s = accumm_sect,
+				c = cond
+			} )
+		else
+			self.accumm_slot.btn:SetOriginalRect( 0, 0, 1, 1 )
+			self.fake_accumm = nil
+		end
+	end
+	self.accumm_slot:Show(true)
+end
+function InvWnd:CheckAccumm(item)
+	if actor_outfit then
+		self:on_drag_drop(item, actor_outfit)
+		self:InitAccummSlot()
+	end
+end
+
+function InvWnd:RemoveAccumm()
+	if actor_outfit then
+		local binder = actor_outfit:binded_object()
+		if binder and binder.energy_consuming then
+			binder:unload_accumm()
+			self:InitAccummSlot()
+		end
+	end
+end
+function InvWnd:acum_slot_focus()
+	self.acum_slot_in_focus = true
+	if self.fake_accumm then
+		self.DescrWnd:OnItemFocus(self.fake_accumm)
+	end
+end
+function InvWnd:acum_slot_focus_lost()
+	self.acum_slot_in_focus = nil
+	if self.fake_accumm then
+		self.DescrWnd:OnItemFocusLost(self.fake_accumm)
+	end
 end
 
 local reg_callbacks = {
@@ -125,6 +206,7 @@ function InvWnd:inventory_open()
 		end
 	end
 	self.DescrWnd:subscribe()
+	self:InitAccummSlot()
 
 	bind_actor.hide_weapon("inv")
 	xr_actor.change_move("inv", false)
@@ -203,26 +285,29 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 		end
 
 		local sec = drop_on_item:section()
-		if sys_ini:r_bool_ex(sec, "volatile", false) == true then
-			local energy_src = sys_ini:r_string_ex(sec, "energy_source")
-			if energy_src == "artefact" then
-				if drag_item:is_artefact() then
-					this.charge_device(drag_item, drop_on_item)
-				end
-			elseif energy_src == section then
-				local binder = drop_on_item:binded_object()
-				if binder then
-					if binder:charge( drag_item:condition() ) then
-						drop_on_item:set_weight( drop_on_item:get_weight() + drag_item:get_weight() )
-
+		if sys_ini:r_bool_ex(sec, "energy_consuming", false) == true then
+			local energy_src = sys_ini:r_list(sec, "energy_source")
+			if energy_src then
+				if table.find(energy_src, "artefact") then
+					if drag_item:is_artefact() then
+						this.charge_device(drag_item, drop_on_item)
+					end
+				elseif table.find(energy_src, section) then
+					local binder = drop_on_item:binded_object()
+					if binder then
+						if binder:charge( drag_item:condition(), section ) then
+							del_obj_by_id( drag_item:id() )
+							zvuki.use_snd(section)
+							if actor_outfit and actor_outfit:id() == drop_on_item:id() then
+								self:InitAccummSlot()
+							end
+						end
+					else
+						drop_on_item:set_condition(1)
+						netpk:modify( AI:object(drop_on_item:id()), {condition = 1} )
 						del_obj_by_id( drag_item:id() )
 						zvuki.use_snd(section)
 					end
-				else
-					drop_on_item:set_condition(1)
-					netpk:modify( AI:object(drop_on_item:id()), {condition = 1} )
-					del_obj_by_id( drag_item:id() )
-					zvuki.use_snd(section)
 				end
 			end
 		end
@@ -245,6 +330,8 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 			section2slot[section] = self.quick_slot
 			slot2section[self.quick_slot] = section
 			self:DrawSlotIcon(self.quick_slot)
+		elseif self.acum_slot_in_focus then
+			self:CheckAccumm(drag_item)
 		end
 	end
 
@@ -291,6 +378,9 @@ function InvWnd:DetachWnd()
 	if self.skat_panel then self.skat_panel:Remove() end
 	self.owner:DetachChild(self)
 	self.owner = nil
+	if self.fake_accumm then
+		self.fake_accumm:destroy()
+	end
 
 	xr_s.unsubscribe( "inventory_open", self.inventory_open )
 	xr_s.unsubscribe( "inventory_close", self.inventory_close )
@@ -338,7 +428,7 @@ function InvWnd:on_update( delta )
 	if self.rad_upd_time > 1000 then
 		self.rad_upd_time = 0
 		if arc_inventory.IsRadDetected() then
-			self.rad_level:SetProgressPos( 100 * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY )
+			self.rad_level:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
 		else
 			self.rad_level:SetProgressPos(0)
 		end
@@ -363,8 +453,7 @@ function slot_fix( id, item )
 --	Actor:move_to_slot( item )
 end
 
--- Кастомная заливка предметов в слотах, как в старых билдах
--- + шкала состояния на иконках оружия и брони
+-- Шкала состояния на иконках оружия и брони
 local tex_name, tex_rect = get_texture_info( "ui_inventory_item_status_bar" )
 function on_create_cell_item( item )
 	local st = CUIFrameWindow():GetTitleStatic()
@@ -448,6 +537,11 @@ function charge_device( art, device )
 	if rem > 0 then
 		AI:create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
 	end
+end
+
+function reinit_accumm_slot()
+	if not wnd then return end
+	wnd:InitAccummSlot()
 end
 ------------------------------------------------------------------------------------------
 function on_net_spawn()

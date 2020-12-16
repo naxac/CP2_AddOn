@@ -15,7 +15,6 @@ local upd_step_carrying	= 2000	-- частота апдейта грузопод
 local current_outfit_id = 0
 
 local function set_additional_weight(binder, condition)
-	local sect = binder.object:section()
 	if binder.add_weight > 0 then
 		binder.object:set_additional_inventory_weight(binder.add_weight * condition)
 	end
@@ -36,9 +35,9 @@ function outfit_binder:__init(obj)
 	self.upd_time_carrying = 0
 	self.upd_time_accum = 0
 
-	self.volatile = false
-	self.full_charge_time = 1
-	self.current_chrg = 1
+	self.energy_consuming = false
+	self.full_charge_time = -1
+	self.current_chrg = 0
 	self.last_time = 0
 	self.time_left = 0
 end
@@ -47,37 +46,28 @@ function outfit_binder:net_spawn(data)
 	if not object_binder.net_spawn(self, data) then return false end
 
 	local sect = self.object:section()
-	if sys_ini:line_exist(sect, "volatile") and sys_ini:r_bool(sect, "volatile")==true then
-		self.volatile = true
 
-		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
-		self.full_charge_time = sys_ini:r_float( sect, "working_time" ) * 60
-		self.se_obj = AI:object( self.object:id() )
-		self.time_left = self.full_charge_time - (self.se_obj and self.se_obj.worked_time or 0)
-		self.last_time = get_seconds()
-		self.current_chrg = self.time_left/self.full_charge_time
-		self.last_chrg = self.current_chrg
-	end
 	self.add_weight = sys_ini:r_float_ex(sect, "additional_inventory_weight", 0)
 	self.add_weight2 = sys_ini:r_float_ex(sect, "additional_inventory_weight2", 0)
 
-	local cond = self.object:condition() * self:get_weight_koef()
-	if cond < 0.99 then
-		set_additional_weight(self, cond)
+	if sys_ini:line_exist(sect, "energy_consuming") and sys_ini:r_bool(sect, "energy_consuming")==true then
+		self.energy_consuming = true
+
+		self.se_obj = AI:object( self.object:id() )
+
+		self.power_loss = sys_ini:r_float_ex(sect, "power_loss", 1)
+		self.power_sourses     = sys_ini:r_list( sect, "energy_source" )
+		self.power_consumption = sys_ini:r_float( sect, "power_consumption" )
+		self.current_src = self.se_obj and self.se_obj.current_src or 0
+		self.current_chrg = self.se_obj and self.se_obj.charge or 0
+		self:set_accumm(self.power_sourses[self.current_src], self.current_chrg, false)
+	else
+		local cond = self.object:condition()
+		if cond < 0.99 then
+			set_additional_weight(self, cond)
+		end
+		self.last_cond = cond
 	end
-	if self.volatile then
-		if self.current_chrg < chrg_power_loss then
-			set_power_loss(self, self.current_chrg )
-		end
-		if self.current_chrg < chrg_sprint_off then
-			self.object:set_inventory_item_flags(ii_flags.allow_sprint, false)
-		end
-		if self.current_chrg > 0 then
-			local accum_sect = sys_ini:r_string( sect, "energy_source" )
-			self.object:set_weight( self.object:get_weight() + sys_ini:r_float(accum_sect, "inv_weight") )
-		end
-	end
-	self.last_cond = cond
 
 	return true
 end
@@ -101,7 +91,7 @@ function outfit_binder:update(delta)
 		end
 	end
 
-	if self.volatile == false then return end
+	if self.energy_consuming == false then return end
 
 	if self.upd_time_accum < upd_step_accum then
 		self.upd_time_accum = self.upd_time_accum + delta
@@ -120,11 +110,11 @@ function outfit_binder:update(delta)
 	local act = Actor
 	local m = 0.7
 	if act:is_actor_running() then				-- бежит
-		m = 1.1
+		m = 1.2
 	elseif act:is_actor_crouching() then		-- идёт в полуприсяди
 		m = 1.1
 	elseif act:is_actor_sprinting() then		-- бежит спринтом
-		m = 1.3
+		m = 1.4
 	elseif act:is_actor_creeping() then			-- ползёт в полном присяде
 		m = 1.1
 	elseif act:is_actor_climbing() then			-- ползёт по лестнице
@@ -144,17 +134,17 @@ function outfit_binder:update(delta)
 	self.time_left = math.max(self.time_left - time_shift, 0)
 
 	if self.se_obj then
-		self.se_obj.worked_time = self.full_charge_time - self.time_left
+		self.current_chrg = self.time_left/self.full_charge_time
+		self.se_obj.charge = self.current_chrg
 	else
 		local sobj = AI:object(self.object:id())
 		if sobj then
 			self.se_obj = sobj
-			self.time_left = self.full_charge_time - self.se_obj.worked_time
-			self.current_chrg = self.time_left/self.full_charge_time
-			self.last_chrg = self.current_chrg
+			self:set_accumm(self.power_sourses[se_obj.current_src], self.se_obj.charge, false)
 		end
+		self.current_chrg = self.time_left/self.full_charge_time
 	end
-	self.current_chrg = self.time_left/self.full_charge_time
+	log("* current_chrg %s", self.current_chrg)
 
 	if math.abs(self.current_chrg - self.last_chrg) >= 0.01 then
 		set_power_loss(self, self.current_chrg)
@@ -164,8 +154,72 @@ function outfit_binder:update(delta)
 	end
 end
 
+function outfit_binder:set_accumm(sect, chrg, unload)
+	log("# [outfit_binder:set_accumm] %s: %s, %s, %s", self.object:name(), tostring(sect), tostring(chrg), tostring(unload))
+	local w = 0
+	if sect then
+		w = sys_ini:r_float(sect, "inv_weight")
+	end
+	if self.current_accumm then
+		w = w - sys_ini:r_float(self.current_accumm, "inv_weight")
+		if unload and self.current_chrg > 0 then
+			local accum = AI:create(self.current_accumm, vector():set(0,0,0), 0, 0, 0)
+			netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
+			level.client_spawn_manager():add(accum.id, -1,
+				function(condition, id, obj)
+					obj:set_condition(condition)
+				end,
+			self.current_chrg)
+		end
+	end
+	if w ~= 0 then
+		self.object:set_weight( self.object:get_weight() + w )
+	end
+
+	if self.current_accumm ~= sect then
+		if sect == nil then
+			self.current_src = 0
+			self.full_charge_time = -1
+		else
+			for i, v in ipairs(self.power_sourses) do
+				if v == sect then
+					self.current_src = i
+					break
+				end
+			end
+			local p = sys_ini:r_float(sect, "power_capacity")
+			self.full_charge_time = 3600 * p/self.power_consumption
+		end
+		if self.se_obj then
+			self.se_obj.current_src = self.current_src
+		end
+
+		self.current_accumm = sect
+	end
+	log("full_charge_time: %s", self.full_charge_time)
+
+	if self.se_obj then
+		self.se_obj.charge = chrg
+	end
+	self.current_chrg = chrg
+	self.time_left = self.full_charge_time*self.current_chrg
+	self.last_time = get_seconds()
+	self.last_chrg = self.current_chrg
+	self.last_cond = self.object:condition() * self:get_weight_koef()
+	log("current_chrg: %s", self.current_chrg)
+	log("time_left: %s", self.time_left)
+
+	set_additional_weight(self, self.last_cond)
+	set_power_loss(self, chrg)
+	self.object:set_inventory_item_flags(ii_flags.allow_sprint, chrg>chrg_sprint_off)
+	if Actor:is_in_slot(self.object) then
+		set_actor_params(chrg)
+	end
+	log("- [outfit_binder:set_accumm] OK")
+end
+
 function outfit_binder:get_weight_koef()
-	if not self.volatile then
+	if not self.energy_consuming then
 		return 1
 	end
 	return 1 - math.max( chrg_dec_carrying - self.current_chrg, 0 )/chrg_dec_carrying
@@ -174,8 +228,12 @@ end
 function outfit_binder:get_charge_level()
 	return self.current_chrg
 end
+function outfit_binder:get_current_accumm()
+	return self.current_accumm
+end
 
-function outfit_binder:charge(new_charge, no_test)
+
+function outfit_binder:charge(new_charge, accumm_sect, no_test)
 	if not no_test then
 		if new_charge <= bad_charge_level then
 			ui_inv_add.show_inv_msg("Этот аккумулятор непригоден, используйте другой", "red")
@@ -185,44 +243,19 @@ function outfit_binder:charge(new_charge, no_test)
 		end
 	end
 
-	if self.current_chrg > 0 and not no_test then
-		local accum_sect = sys_ini:r_string(self.object:section(), "energy_source")
-		local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
-		netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
-		level.client_spawn_manager():add(accum.id, -1,
-			function(condition, id, obj)
-				obj:set_condition(condition)
-			end,
-		self.current_chrg)
-		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
+	if type(accumm_sect) == "number" then
+		accumm_sect = self.power_sourses[accumm_sect]
 	end
-
-	self.time_left = self.full_charge_time * new_charge
-	if self.se_obj then
-		self.se_obj.worked_time = self.full_charge_time - self.time_left
-	end
-	self.current_chrg = new_charge
-	self.last_cond = self.object:condition() * self:get_weight_koef()
-
-	set_additional_weight(self, self.last_cond)
-	set_power_loss(self, new_charge)
-	self.object:set_inventory_item_flags(ii_flags.allow_sprint, new_charge>chrg_sprint_off)
-	if Actor:is_in_slot(self.object) then
-		set_actor_params(new_charge)
-	end
+	self:set_accumm(accumm_sect, new_charge, not no_test)
 
 	return true
 end
 
 function outfit_binder:discharge()
-	self.time_left = 0
-	if self.se_obj then
-		self.se_obj.worked_time = self.full_charge_time
-	end
-	self.current_chrg = 0
-	self.last_cond = 0
-	set_additional_weight(self, 0)
-	set_power_loss(self, 0)
+	self:set_accumm(nil, 0, false)
+end
+function outfit_binder:unload_accumm()
+	self:set_accumm(nil, 0, true)
 end
 ------------------------------------------------------------------------------
 function init(obj)
@@ -259,24 +292,7 @@ function on_item_from_slot(item)
 
 	set_actor_params(1)
 	current_outfit_id = 0
-	if ShiftPressed() then
-		local binder = item:binded_object()
-		if binder and binder.volatile then
-			local cond = binder:get_charge_level()
-			if cond > 0 then
-				local accum_sect = sys_ini:r_string(item:section(), "energy_source")
-				local accum = AI:create(accum_sect, vector():set(0,0,0), 0, 0, 0)
-				netpk:modify(accum, {condition = cond}, netpk.fState)
-				level.client_spawn_manager():add(accum.id, -1,
-					function(condition, id, obj)
-						obj:set_condition(condition)
-					end,
-				cond)
-				binder:discharge()
-				item:set_weight( item:get_weight() - sys_ini:r_float(accum_sect, "inv_weight") )
-			end
-		end
-	end
+	ui_inv_add.reinit_accumm_slot()
 end
 function on_item_to_slot(item)
 	if not item:is_outfit() then return end
@@ -287,6 +303,7 @@ function on_item_to_slot(item)
 		set_actor_params( binder:get_charge_level() )
 	end
 	current_outfit_id = item:id()
+	ui_inv_add.reinit_accumm_slot()
 end
 
 function attach()

@@ -198,7 +198,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 
 	local charge = item:get_charge_level()
 	if charge then
-		self:ShowVolatileItemParams(charge)
+		self:ShowEnergyConsumingItemParams(charge)
 	end
 
 	-- artefacts
@@ -211,7 +211,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 			if arc_inventory.IsRadDetected() then
 				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") / actor_conditions.radiation_restore_speed
 				if rd > 0 then
-					description = description.." Радиоактивно, при замере показывает излучение "..string.format("%d", rd).." Кюри."
+					description = description.." Радиоактивно, при замере показывает излучение "..string_format("%d", rd).." Кюри."
 				end
 			end
 		end
@@ -231,6 +231,11 @@ function CUIDescriptionWnd:ShowDescription(item)
 			local p = { { "radiation_2", "Радиация: %c[red]+"..string_format("%dКи", r) } }
 			self:ShowProps(p)
 		end
+	elseif sys_ini:line_exist(self.section, "power_capacity") then
+		local p = sys_ini:r_float(self.section, "power_capacity")
+		self:ShowProps( {
+			{ "shock", "Энергоёмкость: %c[green]"..string_format("%dАч", p) }
+		} )
 	end
 
 	-- if game_options.DEBUG then
@@ -659,7 +664,7 @@ function CUIDescriptionWnd:ShowOutfitParams()
 	end
 end
 -- Показываем параметры энергозависимых предметов
-function CUIDescriptionWnd:ShowVolatileItemParams(charge)
+function CUIDescriptionWnd:ShowEnergyConsumingItemParams(charge)
 	charge = math.clamp(charge, 0, 1)
 
 	local caption = sys_ini:r_string_ex(self.section, "energy_level_text", "ui_st_charge")
@@ -672,36 +677,54 @@ function CUIDescriptionWnd:ShowVolatileItemParams(charge)
 
 	st.scale_b = CUIStatic()
 	st:AttachChild(st.scale_b)
-	st.scale_b:Init( "ui_mg_progress_efficiency_full_1", 22, 16, 150, 3 )
+	st.scale_b:Init( "ui_inventory_progress_bar", 22, 11, 150, 8 )
 	st.scale_b:SetStretchTexture(true)
-	st.scale_b:SetColor( GetARGB(255, 210, 210, 255) )
+	st.scale_b:SetColor( GetARGB(255, 255, 210, 210) )
 
 	st.scale = CUIStatic()
 	st:AttachChild(st.scale)
-	st.scale:Init( "ui_mg_progress_efficiency_full_1", 22, 16, 150*charge, 3 )
+	local tex_name, tex_rect = get_texture_info( "ui_inventory_progress_bar" )
+	st.scale:Init( tex_name, 22, 11, 150*charge, 8 )
 	st.scale:SetStretchTexture(true)
-	st.scale:SetColor( GetARGB(255, 20, 40, 255) )
-	st.scale:SetText( get_string(caption)..": "..string.format("%d%%", charge*100) )
-	st.scale:SetTextY(-18)
+	st.scale:SetOriginalRect( tex_rect.x1, tex_rect.y1, tex_rect.x2*charge, tex_rect.y2 )
+	st.scale:SetColor( GetARGB(255, 255, 40, 20) )
+	st.scale:SetText( get_string(caption)..": "..string_format("%d%%", charge*100) )
+	st.scale:SetTextY(-13)
 
 	self.addH = self.addH + 25
 	
 	local tm = sys_ini:r_float_ex(self.section, "working_time")
-	if tm then
+	local p = sys_ini:r_float_ex(self.section, "power_consumption")
+	if p then
+		self:ShowProps( { {"power_loss", string_format("энергопотребление: %.02fА", p)} } )
+	elseif tm then
 		tm = charge * tm
 		local h = math.floor(tm/60)
 		local txt
 		if h >= 1 then
-			txt = string.format("%dч. %dмин.", h, tm%60)
+			txt = string_format("%dч. %dмин.", h, tm%60)
 		else
-			txt = string.format("%dмин.", tm)
+			txt = string_format("%dмин.", tm)
 		end
 		self:ShowProps( { {"time", "время работы: "..txt} } )
 	end
 
-	local accum = sys_ini:r_string_ex(self.section, "energy_source")
-	if accum then
-		self:ShowPropFromIni( GetIconParams(accum), string.format("Источник питания: %s", get_string( get_inv_name(accum) )) )
+	local accums = sys_ini:r_list(self.section, "energy_source")
+	if accums then
+		local cur_accumm = ""
+		local b = self.item:binded_object()
+		if b and b.get_current_accumm then
+			cur_accumm = b:get_current_accumm()
+		end
+		local clr
+		for i, v in ipairs(accums) do
+			if cur_accumm == v then
+				clr = {255, 160, 255, 160}
+			else
+				clr = nil
+			end
+			self:ShowPropFromIni( GetIconParams(v), get_inv_name(v), clr )
+		end
 	end
 end
 
