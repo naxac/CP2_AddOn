@@ -20,24 +20,19 @@ function evaluator_leader:__init (name, storage) super (nil, name)
 end
 --------
 function evaluator_leader:evaluate ()
-    -- Лидер уже есть
-    if self.st.leader_id ~= nil then return true end
+	-- Лидер уже есть
+	if self.st.leader_id ~= nil then return true end
 
-    -- Если задан story id лидера, то будем его щупать. 
-    -- В результате должны получить его id
-    if self.st.leader ~= nil then 
-       local sim = alife ()
-       if sim then
-          local se_obj = sim:story_object (tonumber(self.st.leader))
-          if se_obj then
-             if level.object_by_id(se_obj.id) ~= nil then
-                self.st.leader_id = se_obj.id
-                return true
-             end
-          end
-       end
-       return false
-    end         
+	-- Если задан story id лидера, то будем его щупать. 
+	-- В результате должны получить его id
+	if self.st.leader ~= nil then 
+		local obj = level_object_by_sid( tonumber(self.st.leader) )
+		if obj then
+			self.st.leader_id = obj:id()
+			return true
+		end
+		return false
+	end         
     abort ("Don't use followers as patrol soldier in gulag system. Use XR_PATROL scheme")
 --[[    
     -- В противном случае будем требовать лидера из гулага
@@ -104,7 +99,7 @@ function action_wait:execute ()
     action_base.execute (self)
 
     --printf("follower<wait.execute>: try_switch_to_another_section")
-    if xr_logic.try_switch_to_another_section (self.object, self.st, db.actor) then
+    if xr_logic.try_switch_to_another_section (self.object, self.st, Actor) then
        return 
     end
     
@@ -150,7 +145,7 @@ function action_follow:execute ()
     end
     
     --printf("follower<follow.execute>: try_switch_to_another_section")
-    if xr_logic.try_switch_to_another_section (self.object, self.st, db.actor) then
+    if xr_logic.try_switch_to_another_section (self.object, self.st, Actor) then
        self.st.leader_id = nil
        return 
     end
@@ -160,14 +155,14 @@ function action_follow:execute ()
     --local pos = self.object:position ()
     --printf ("FOLLWER %s POSITION x = %f, y = %f, z = %f", self.object:name (), pos.x, pos.y, pos.z)
     -- проверим, а жив ли еще старшОй.
-    local leader = level.object_by_id(self.st.leader_id)
-    if leader == nil then
+    local leader = self.st.leader_id and level.object_by_id(self.st.leader_id)
+    if not leader then
        self:free ()
        return 
     end
        
     if self.st.stub_for_corpse == false then
-       if leader == nil or leader:alive () == false then
+       if (not leader) or leader:alive () == false then
           self.st.signals["leader_dead"] = true
           --self:free ()
           return 
@@ -177,23 +172,23 @@ function action_follow:execute ()
     -- проверим нахождение нас в списке
     self:check_list ()
     
-    if self.st.leader_section == nil then
-       self.st.leader_section = db.storage[self.st.leader_id].active_section
-       --if self.st.leader_section ~= nil then
-          --printf ("FOLLOWER %s, LEADER SCHEME  = %s", self.object:name (), self.st.leader_section)
-       --end   
-    end
+    -- if self.st.leader_section == nil then
+       -- self.st.leader_section = db.storage[self.st.leader_id].active_section
+       -- --if self.st.leader_section ~= nil then
+          -- --printf ("FOLLOWER %s, LEADER SCHEME  = %s", self.object:name (), self.st.leader_section)
+       -- --end   
+    -- end
            
-    if db.storage[self.st.leader_id].active_section ~= self.st.leader_section then
-       self.st.signals["leader_section_changed"] = true 
-       self:free ()
-       return
-    end    
+    -- if db.storage[self.st.leader_id].active_section ~= self.st.leader_section then
+       -- self.st.signals["leader_section_changed"] = true 
+       -- self:free ()
+       -- return
+    -- end    
     
     
     --получим целевую точку, дистанцию до нее и позицию.
     local vid, vdist, vpos = self:calculate_position ()
-    --printf ("FOLLOWER %s HAVE A %d VERTEX ID", self.object:name (), vid)
+  --  log ("FOLLOWER %s HAVE A %d VERTEX ID, vdist: %s", self.object:name (), vid, vdist)
     if self.state == 0 then
        if vdist > 1 then 
           self.object:set_dest_level_vertex_id (vid)
@@ -229,7 +224,7 @@ function action_follow:execute ()
        else
           -- FIXME (remove stub for corpse)
           if self.st.stub_for_corpse == true then
-             if leader == nil or leader:alive () == false then
+             if (not leader) or leader:alive () == false then
                 self.st.signals["leader_dead"] = true
                 --self:free ()
                 return 
@@ -327,7 +322,7 @@ function action_follow:check_list ()
     -- и занесем туда себя любимого под номером 1
     if storage.followers == nil then
        storage.followers = {}
-       table.insert (storage.followers, self.object:id ())
+       table.insert (storage.followers, id)
        --printf ("SET OBJECT %s AS FOLLOWER 1", self.object:name ())
        self.index = 1
        return
@@ -340,7 +335,7 @@ function action_follow:check_list ()
         end
     end
     -- не нашли... добавим.
-    table.insert (storage.followers, self.object:id ())
+    table.insert (storage.followers, id)
     self.index = table.getn (storage.followers)
     --printf ("SET OBJECT %s AS FOLLOWER %d", self.object:name (), self.index)
 end
@@ -356,7 +351,7 @@ function action_follow:free ()
        end   
     else
        --printf("follower<follow.free>: try_switch_to_another_section")
-       xr_logic.try_switch_to_another_section (self.object, self.st, db.actor)
+       xr_logic.try_switch_to_another_section (self.object, self.st, Actor)
     end
 end
 --------
@@ -366,9 +361,7 @@ function action_follow:reset_scheme ()
     self.index = nil
     self.state = 0 -- 0 - идем, 1 - стоим
     self.st.signals = {}
-    self.st.signals["leader_section_changed"] = false
-    self.st.signals["leader_dead"] = false
-    self.st.signals["leader_section_changed"] = false
+--    self.st.signals["leader_section_changed"] = false
     self.st.signals["leader_dead"] = false
     --xr_sound.set_sound(self.object, self.st.sound_theme)
 end
@@ -428,7 +421,7 @@ function set_scheme (npc, ini, scheme, section, gulag_name)
 	st.logic = xr_logic.cfg_get_switch_conditions (ini, section, npc)
 	
 	st.leader = utils.cfg_get_string (ini, section, "leader",  npc, false, "")
-	st.leader_section = nil
+--	st.leader_section = nil
 	st.animation_move = utils.cfg_get_string (ini, section, "anim_walk",  npc, false, "", "patrol")
 	st.animation_run = utils.cfg_get_string (ini, section, "anim_run",  npc, false, "", "run")
 	st.animation_sprint = utils.cfg_get_string (ini, section, "anim_sprint",  npc, false, "", "sprint")
