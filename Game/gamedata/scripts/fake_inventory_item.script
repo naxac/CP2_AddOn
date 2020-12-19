@@ -11,7 +11,8 @@ local saved_fields = {
 	["ammo_type"]    = { name = "at", def = function(s) return 0 end },
 	["addon_flags"]  = { name = "af", def = function(s) return 0 end   },
 	["ammo_ids"]     = { name = "ai", def = function(s) return nil end },
-	["worked_time"]  = { name = "wt", def = function(s) return 0 end   }
+	["worked_time"]  = { name = "wt", def = function(s) return 0 end   },
+	["current_src"]  = { name = "cs", def = function(s) return 0 end   }
 }
 	
 local fake_items = {}
@@ -81,6 +82,7 @@ function fake_item:set_obj(obj)
 	local data = netpk:get(AI:object(obj:id()))
 	self.custom_data = data.custom_data
 	self.worked_time = data.worked_time
+	self.current_src = data.current_src
 	self.ammo_left = data.ammo_left
 	self.ammo_type = data.ammo_type
 	self.addon_flags = data.addon_flags
@@ -92,6 +94,8 @@ function fake_item:write_server_object(se_obj)
 	t.custom_data = self.custom_data
 	t.condition = self:condition()
 	t.worked_time = self.worked_time
+	t.current_src = self.current_src
+	t.charge = self.charge_level
 	t.ammo_elapsed = self.ammo_elapsed
 	t.ammo_type = self.ammo_type
 	t.ammo_left = self.ammo_left
@@ -204,6 +208,10 @@ end
 
 function fake_item:get_charge_level()
 	return self.charge_level
+end
+
+function fake_item:binded_object()
+	return nil
 end
 
 function fake_item:destroy()
