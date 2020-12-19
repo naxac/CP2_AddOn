@@ -144,7 +144,7 @@ function outfit_binder:update(delta)
 		end
 		self.current_chrg = self.time_left/self.full_charge_time
 	end
-	log("* current_chrg %s", self.current_chrg)
+--	log("* current_chrg %s", self.current_chrg)
 
 	if math.abs(self.current_chrg - self.last_chrg) >= 0.01 then
 		set_power_loss(self, self.current_chrg)
@@ -155,7 +155,7 @@ function outfit_binder:update(delta)
 end
 
 function outfit_binder:set_accumm(sect, chrg, unload)
-	log("# [outfit_binder:set_accumm] %s: %s, %s, %s", self.object:name(), tostring(sect), tostring(chrg), tostring(unload))
+--	log("# [outfit_binder:set_accumm] %s: %s, %s, %s", self.object:name(), tostring(sect), tostring(chrg), tostring(unload))
 	local w = 0
 	if sect then
 		w = sys_ini:r_float(sect, "inv_weight")
@@ -196,7 +196,7 @@ function outfit_binder:set_accumm(sect, chrg, unload)
 
 		self.current_accumm = sect
 	end
-	log("full_charge_time: %s", self.full_charge_time)
+--	log("full_charge_time: %s", self.full_charge_time)
 
 	if self.se_obj then
 		self.se_obj.charge = chrg
@@ -206,8 +206,8 @@ function outfit_binder:set_accumm(sect, chrg, unload)
 	self.last_time = get_seconds()
 	self.last_chrg = self.current_chrg
 	self.last_cond = self.object:condition() * self:get_weight_koef()
-	log("current_chrg: %s", self.current_chrg)
-	log("time_left: %s", self.time_left)
+--	log("current_chrg: %s", self.current_chrg)
+--	log("time_left: %s", self.time_left)
 
 	set_additional_weight(self, self.last_cond)
 	set_power_loss(self, chrg)
@@ -215,7 +215,7 @@ function outfit_binder:set_accumm(sect, chrg, unload)
 	if Actor:is_in_slot(self.object) then
 		set_actor_params(chrg)
 	end
-	log("- [outfit_binder:set_accumm] OK")
+--	log("- [outfit_binder:set_accumm] OK")
 end
 
 function outfit_binder:get_weight_koef()
@@ -259,8 +259,13 @@ function outfit_binder:unload_accumm()
 end
 ------------------------------------------------------------------------------
 function init(obj)
-	local new_binder = outfit_binder(obj)
-	obj:bind_object(new_binder)
+	local sect = obj:section()
+	if sys_ini:r_bool_ex(sect, "energy_consuming", false) == true
+		or sys_ini:r_float_ex(sect, "additional_inventory_weight", 0) > 0
+		or sys_ini:r_float_ex(sect, "additional_inventory_weight2", 0) > 0
+	then
+		obj:bind_object( outfit_binder(obj) )
+	end
 end
 ------------------------------------------------------------------------------
 
@@ -297,10 +302,12 @@ end
 function on_item_to_slot(item)
 	if not item:is_outfit() then return end
 	local binder = item:binded_object()
-	if binder then
+	if binder and binder.energy_consuming then
 		binder.last_time = get_seconds()
 		binder.upd_time_accum = upd_step_accum + 1
 		set_actor_params( binder:get_charge_level() )
+	else
+		set_actor_params(1)
 	end
 	current_outfit_id = item:id()
 	ui_inv_add.reinit_accumm_slot()
