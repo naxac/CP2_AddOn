@@ -66,6 +66,7 @@ function CTreasure:__init()
 		t.name			= self.ini:r_string(id, "name")
 		--' Отметим тайник как новый
 		t.active = false
+		t.done = false
 
 		if t.target > 65535 then	-- вдруг забуду
 			log("[CTreasure:__init]: treasure %s story_id [%s]: it more than 65535! It cannot be saved!", id, t.target)
@@ -123,11 +124,13 @@ function CTreasure:use(npc)
 	local tr_sum = 0
 	local treasure_prob
 
+	local pick_section_from_condlist = xr_logic.pick_section_from_condlist
+	local parse_condlist = xr_logic.parse_condlist
+
 	for k,v in pairs(self.treasure_info) do
-		if v.active == false then
-			--local treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc, v.condlist)
-			treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc,
-				xr_logic.parse_condlist(Actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
+		if v.active == false and v.done == false then
+			treasure_prob = pick_section_from_condlist(Actor, npc,
+				parse_condlist(Actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
 			)
 
 			if treasure_prob == "" or treasure_prob == nil then
@@ -152,7 +155,9 @@ function CTreasure:use(npc)
 	end
 
 	local tr_w = math.random(tr_sum)
-	for k,v in pairs(avail) do
+	local v
+	while #avail > 0 do
+		v = table.remove( avail, math.random( #avail ) )
 		tr_w = tr_w - v.prob
 		if tr_w <= 0 then
 			--' Выдать тайник
@@ -173,14 +178,13 @@ end
 function CTreasure:remind()
 	local obj
 	local have = false
+	local lid = AI:level_id()
 	local text = "%c[255,255,120,160]Тайники:\\n%c[190,200,200,200]"
 	
 	for k,v in pairs(self.treasure_info) do
 		if v.active then
 			obj = AI:story_object(v.target)
-			if obj and GGraph:vertex(obj.m_game_vertex_id):level_id() == AI:level_id()
-				and level.map_has_object_spot(obj.id, "treasure") ~= 0
-			then
+			if obj and GGraph:vertex(obj.m_game_vertex_id):level_id() == lid then
 				text = text..game.translate_string(v.name).."\\n"
 				have = true
 			end
@@ -238,7 +242,7 @@ function CTreasure:give_treasure(k)
 		if AI ~= nil and obj.online then
 			AI:set_switch_online  (obj.id, false)
 			AI:set_switch_offline (obj.id, true)
-			amk.convert_npc[obj.id]=1 -- ставим в очередь на вывод в онлайн
+			amk.convert_npc[obj.id] = 1 -- ставим в очередь на вывод в онлайн
 		end
 	else
 		log("! TREASURE %s, target doesnt exist", k)
@@ -254,9 +258,10 @@ function CTreasure:treasure_empty(box, box_story_id)
 	end
 
 	local v = self.treasure_info[k]
-	if v.active and level.map_has_object_spot( box:id(), "treasure" ) ~= 0 then
+	if v.active then
 		-- если тайник не именной, то переведен его в онлайн для следующей выдачи
-		v.active = (v.named == false)
+		v.active = false
+		v.done = v.named
 		actor_stats.add_points("treasures", v.name, 1, 1)
 	end
 
@@ -266,18 +271,16 @@ end
 function CTreasure:save(p)
 	p:w_u16(65534)
 	--' Сохраняем размер таблицы
-	local size = 0
+	local tmp = {}
 	for k,v in pairs(self.treasure_info) do
 		-- пишем состояние только активных тайников
-		if v.active then
-			size = size + 1
+		if v.active or v.done then
+			table.insert(tmp, v.target)
 		end
 	end
-	p:w_u16(size)
-	for k,v in pairs(self.treasure_info) do
-		if v.active then
-			p:w_u16(v.target)
-		end
+	p:w_u16( table.getn(tmp) )
+	for i,v in ipairs(tmp) do
+		p:w_u16(v)
 	end
 end
 --' Загрузка
@@ -285,17 +288,20 @@ function CTreasure:load(p)
 	local cnt = p:r_u16()
 	local k
 	if cnt ~= 65534 then
-		local b1, b2 = false, false
 		for i = 1, cnt do
 			k = self.treasure_by_target[p:r_u16()]
-			b1, b2 = p:r_bool(), p:r_bool()
-			self.treasure_info[k].active = true
+			self.treasure_info[k].active = p:r_bool()
+			self.treasure_info[k].done = p:r_bool()
 		end
 	else
 		cnt = p:r_u16()
+		local sid, b = 0, false
 		for i = 1, cnt do
-			k = self.treasure_by_target[p:r_u16()]
-			self.treasure_info[k].active = true
+			sid = p:r_u16()
+			k = self.treasure_by_target[sid]
+			b = (level.map_has_object_spot( id_by_sid(sid), "treasure") ~= 0)
+			self.treasure_info[k].active = b
+			self.treasure_info[k].done = not b
 		end
 	end
 end
@@ -346,12 +352,14 @@ function CTreasure:dialog(npc)
 	local tr_sum = 0
 	local treasure_prob
 	
+	local pick_section_from_condlist = xr_logic.pick_section_from_condlist
+	local parse_condlist = xr_logic.parse_condlist
+
 	for k,v in pairs(self.treasure_info) do
-		if v.active == false then
-			--local treasure_prob = xr_logic.pick_section_from_condlist(Actor, npc, v.condlist)
-			treasure_prob = xr_logic.pick_section_from_condlist(
+		if v.active == false and v.done == false then
+			treasure_prob = pick_section_from_condlist(
 				Actor, npc,
-				xr_logic.parse_condlist(
+				parse_condlist(
 					Actor, "treasure_manager", "condlist",
 					self.ini:r_string_ex(k, "condlist", "")
 				)
@@ -372,8 +380,11 @@ function CTreasure:dialog(npc)
 	if tr_sum == 0 then
 		return
 	end
+
 	local tr_w = math.random(tr_sum)
-	for k,v in pairs(avail) do
+	local v
+	while #avail > 0 do
+		v = table.remove( avail, math.random( #avail ) )
 		tr_w = tr_w - v.prob
 		if tr_w <= 0 then
 			self:give_treasure(v.k)
