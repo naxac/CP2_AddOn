@@ -207,11 +207,11 @@ function CTreasure:give_treasure(k)
 		local lname = object_level_name(obj)
 		news_manager.send_treasure(v.name, lname)
 
-		--' Пометить на карте		
-		local text = "%c[255,238,155,23]"..game.translate_string(v.name).."\\n"..
-			"%c[default]"..game.translate_string(self.ini:r_string(k, "description"))
 
 		if level.map_has_object_spot(obj.id, "treasure") == 0 then
+			--' Пометить на карте		
+			local text = "%c[255,238,155,23]"..game.translate_string(v.name).."\\n"..
+				"%c[default]"..game.translate_string(self.ini:r_string(k, "description"))
 			level.map_add_object_spot_ser(obj.id, "treasure", text)
 		else
 			log("~ Treasure %s[%s] already has mapspot", k, obj:name())
@@ -278,7 +278,7 @@ function CTreasure:save(p)
 			table.insert(tmp, v.target)
 		end
 	end
-	p:w_u16( table.getn(tmp) )
+	p:w_u16( #tmp )
 	for i,v in ipairs(tmp) do
 		p:w_u16(v)
 	end
@@ -299,7 +299,7 @@ function CTreasure:load(p)
 		for i = 1, cnt do
 			sid = p:r_u16()
 			k = self.treasure_by_target[sid]
-			b = (level.map_has_object_spot( id_by_sid(sid), "treasure") ~= 0)
+			b = ( level.map_has_object_spot( id_by_sid(sid), "treasure" ) ~= 0 )
 			self.treasure_info[k].active = b
 			self.treasure_info[k].done = not b
 		end
