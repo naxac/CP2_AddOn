@@ -288,6 +288,7 @@ function is_known_art(section)
 	local t = artefacts[section]
 	if t == nil then return true end
 	if has_alife_info("peshera_go") then return true end
+	if t.parent then return artefacts[t.parent].known end
 	return t.known
 end
 
@@ -298,11 +299,6 @@ function add_art_info(art)
 	if t.known == true then return end
 
 	t.known = true
-	if art2child[art] then
-		for i, v in ipairs( art2child[art] ) do
-			artefacts[v].known = true
-		end
-	end
 
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_locations", "ui_iconsTotal_locations")
 	local news_text = "%c[gray2]Получена информация об артефакте:\\n"..
@@ -377,11 +373,6 @@ function first_run()
 				if not t.known then
 					t.known = true
 					log("~ add known artefact [%s], info [%s]", art, info)
-					if art2child[art] then
-						for i, v in ipairs( art2child[art] ) do
-							artefacts[v].known = true
-						end
-					end
 				end
 			end
 		end
@@ -493,7 +484,7 @@ function precondition_unknown_art(first_speaker, second_speaker, dialog_id, prev
 	end
 
 	if obj then
-		return artefacts[art].known == false
+		return is_known_art(art) == false
 			and Actor:money() >= obj:cost()*t.pay
 	end
 
@@ -518,8 +509,10 @@ function has_unknown_arts()
 	local res = false
 	Actor:iterate_inventory(function (dummy, item)
 		sect = item:section()
-		if artefacts[sect] and not artefacts[sect].known then
-			res = true
+		if artefacts[sect] then
+			if not is_known_art(sect) then
+				res = true
+			end
 		end
 	end,
 	nil)
