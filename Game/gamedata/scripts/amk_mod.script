@@ -1688,23 +1688,18 @@ end
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **   **    AMK_METKA     **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
-local beakons={}
-function check_beacon_drop(obj)
-	if AI:object(obj:id())~=nil and _G['biznes_remove_special_item'] == nil then
-		beakons[obj:id()]=true
+function check_beacon_drop( obj )
+	if AI:object( obj:id() ) ~= nil and _G['biznes_remove_special_item'] == nil then
+		if not Actor:alive() then return end
+		start_small_timer( 500, this.check_metka, obj:id() )
 	end
 end
 
-function check_metka()
-	for id,v in pairs(beakons) do
-		local obj=level.object_by_id(id)
-		if obj then
-			beakons[id]=nil
-			if obj:parent()==nil then
-				local spwn=ui_dots.dots(get_hud(),id)
-				level.start_stop_menu(spwn,true)
-			end
-		end
+function check_metka( obj_id )
+	local obj=level.object_by_id( obj_id )
+	if obj and obj:parent() == nil then
+		local spwn = ui_dots.dots( get_hud(), obj_id )
+		level.start_stop_menu( spwn, true )
 	end  
 end
 local last_update=0 
