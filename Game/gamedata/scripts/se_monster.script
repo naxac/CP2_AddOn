@@ -5,6 +5,7 @@
 	5 - сохранение поля was_in_smart_terrain
 	modyfied by xStream
 ]]
+custom_data_on_spawn = nil
 
 need_be_online = {}
 
@@ -43,7 +44,8 @@ local levels_types = {
 	zaton = 0,
 	pripyat = 0,
 	jupiter_underground = 0,
-	labx8 = 1
+	labx8 = 1,
+	l41_darkscape_ogse = 0
 }
 
 class "se_monster" (cse_alife_monster_base)
@@ -80,7 +82,13 @@ end
 --------------------
 function se_monster:get_ini()
 	if not self.ini_initialized then
-		self.ini             = self:spawn_ini ()
+		if custom_data_on_spawn then
+			self.ini = create_ini_file( custom_data_on_spawn )
+			netpk:modify( self, { custom_data = custom_data_on_spawn }, netpk.fState )
+			custom_data_on_spawn = nil
+		else
+			self.ini             = self:spawn_ini ()
+		end
 		self.ini_initialized = true
 		
 		self.spawner_present = self.ini:section_exist ("spawner")

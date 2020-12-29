@@ -309,10 +309,19 @@ function se_respawn:create(prob)
     
     local obj
     if parent_id == nil then
+	  if self.creature_binded_logic then	-- AMK respawners
+		se_monster.custom_data_on_spawn =	"[smart_terrains]\nnone = true\n"..
+											"[logic]\ncfg = scripts\\amk\\"..self.creature_binded_logic..".ltx"
+		log("* [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
+	  end
       obj = AI:create(spawn_section, 
             self.position,
             self.m_level_vertex_id, 
             self.m_game_vertex_id)
+	  if se_monster.custom_data_on_spawn then
+		log("! [se_respawn:create] incorrect update logic: object %s", obj:name())
+	    se_monster.custom_data_on_spawn = nil
+	  end
     else
       obj = AI:create(spawn_section, 
             self.position,
@@ -689,6 +698,10 @@ function init_respawn_params(obj)
   obj.respawn_radius = ini:r_float_ex(section_name, "respawn_radius", -1)
   obj.parent = ini:r_float_ex(section_name, "parent", nil)
   obj.item_spawn = ini:r_bool_ex(section_name, "item_spawn", false)
+
+  if ini:line_exist (section_name, "creature_binded_logic") then
+    obj.creature_binded_logic = ini:r_string(section_name, "creature_binded_logic")
+  end
   
   -- производим первичную инициализацию
   if obj.rt_read == false then
