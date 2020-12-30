@@ -182,284 +182,236 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 class "se_respawn" ( cse_alife_smart_zone )
 function se_respawn:__init( section ) super( section )
-  self.spawned_obj = {}
-  -- Таблица для кеширования свойств секций респавна.
-  self.sectSpawnProps = {}
-  self.rt_read = false
-  self.proxy_initialized = false
+	self.spawned_obj = {}
+	-- Таблица для кеширования свойств секций респавна.
+	self.sectSpawnProps = {}
+	self.rt_read = false
 end
 -- сохранение
 function se_respawn:STATE_Write( packet )
-  cse_alife_smart_zone.STATE_Write( self, packet )
+	cse_alife_smart_zone.STATE_Write( self, packet )
 
-  local table_size = #self.spawned_obj
---  printf("SPAWNER SAVE table_size[%d]", table_size)
---  print_table(self.spawned_obj)
+	local table_size = #self.spawned_obj
+	-- printf("SPAWNER SAVE table_size[%d]", table_size)
+	-- print_table(self.spawned_obj)
   
-  packet:w_u8(table_size)
-  for i=1,table_size do
-    packet:w_u16(self.spawned_obj[i])
-  end
+	packet:w_u8(table_size)
+	for i=1,table_size do
+		packet:w_u16(self.spawned_obj[i])
+	end
 
-  utils.w_CTime(packet, self.respawn_time)
+	utils.w_CTime(packet, self.respawn_time)
 
-  if self.respawn_time == nil then
-    self.respawn_time = game.CTime()
-  end
-  --sak.dbglog("%s write respawn_time %s %s", tostring(self:name()), self.respawn_time:dateToString(0), self.respawn_time:timeToString(1))
+	if self.respawn_time == nil then
+		self.respawn_time = game.CTime()
+	end
 end
 -- восстановление
 function se_respawn:STATE_Read( packet, size )
-  cse_alife_smart_zone.STATE_Read( self, packet, size )
-  
-  if editor() then
-    return
-  end
+	cse_alife_smart_zone.STATE_Read( self, packet, size )
 
-  local table_size = packet:r_u8()
-  for i=1,table_size do
-    table.insert(self.spawned_obj, packet:r_u16())
-  end
+	if editor() then return end
 
---  printf("SPAWNER READ table_size[%d]", table_size)
---  print_table(self.spawned_obj) 
+	local table_size = packet:r_u8()
+	for i=1,table_size do
+		table.insert(self.spawned_obj, packet:r_u16())
+	end
 
-  if not packet:r_eof() then
-    self.respawn_time = utils.r_CTime(packet)
-    self.rt_read = true
-    --sak.dbglog("%s read respawn_time %s %s", tostring(self:name()), self.respawn_time:dateToString(0), self.respawn_time:timeToString(1))
-  end
+	-- printf("SPAWNER READ table_size[%d]", table_size)
+	-- print_table(self.spawned_obj) 
+
+	if not packet:r_eof() then
+		self.respawn_time = utils.r_CTime(packet)
+		self.rt_read = true
+	end
 end
 -- инициализация объекта.
 -- вызывается симулятором.
 function se_respawn:on_register()
-  cse_alife_smart_zone.on_register( self )
-  --printf("RESPAWN: [%s] se_respawn on_register", tostring(self:name()))
+	cse_alife_smart_zone.on_register( self )
+	-- printf("RESPAWN: [%s] se_respawn on_register", tostring(self:name()))
 	init_respawn_params(self)
 end
+
 -- Создаем объект
 function se_respawn:create(prob)
 	local b = tostring(prob)
-	if b=="true" then
-		prob=80
-	elseif b=="false" then
-		prob=0
+	if b == "true" then
+		prob = 80
+	elseif b == "false" then
+		prob = 0
 	end
-  if tonumber(prob) == nil then   
-    print_table(self.conditions)
-    abort("RESPAWN[%s]spawn probability doesn't set", tostring(self:name()))
-    prob = 0
-    return false
-  end
-  
-  if math.random(100) <= tonumber(prob) then
-    local spawn_section = ""
-    local sum = 0
-    -- Производим рандомную взвешенную выборку
-    -- с учетом уже заспавленного количества человек.
-    for k,v in pairs(self.respawn_section) do
---'     local tt = self.sectSpawnProps[v.section]
---'     local community_rank = tt.community.."_"..tt.rank
---'     local s_count = simMaxCount[community_rank]
---'     if s_count == nil then
---'       s_count = 0
---'     end
---'     if tt.check == false or
---'        self.item_spawn == true or
---'        sim_statistic.simNpcCount(tt.community, tt.rank) < s_count
---'     then  
-        sum = sum + v.prob
---'     end
-    end
-    sum = math.random(0, sum)
-    for k,v in pairs(self.respawn_section) do
---'     local tt = self.sectSpawnProps[v.section]
---'     local community_rank = tt.community.."_"..tt.rank
---'     local s_count = simMaxCount[community_rank]
---'     if s_count == nil then
---'       s_count = 0
---'     end     
---'     if tt.check == false or
---'        self.item_spawn == true or
---'        sim_statistic.simNpcCount(tt.community, tt.rank) < s_count 
---'     then  
-        sum = sum - v.prob      
-        if sum <= 0 then
-          spawn_section = v.section
-          break
-        end
---'     end
-    end
-    
-    if spawn_section == "" then
---      printf("SPAWNING [%s], CANT SPAWN, SIMULATION POPULATION EXCEED", tostring(self:name()))
-      --sak.dbglog("SPAWNING [%s], CANT SPAWN, SIMULATION POPULATION EXCEED", tostring(self:name()))
-      return false
-    end
-    
-    local parent_id = nil
-    if self.parent ~= nil then
-      local s_obj = AI:story_object(self.parent)
-      if s_obj == nil then
-        abort("SPAWNING [%s], cant find parent with SID [%s]", self:name(), self.parent)
-        return
-      end
-      parent_id = s_obj.id
-    end
-    
-    local obj
-    if parent_id == nil then
-	  if self.creature_binded_logic then	-- AMK respawners
-		se_monster.custom_data_on_spawn =	"[smart_terrains]\nnone = true\n"..
-											"[logic]\ncfg = scripts\\amk\\"..self.creature_binded_logic..".ltx"
-		log("* [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
-	  end
-      obj = AI:create(spawn_section, 
-            self.position,
-            self.m_level_vertex_id, 
-            self.m_game_vertex_id)
-	  if se_monster.custom_data_on_spawn then
-		log("! [se_respawn:create] incorrect update logic: object %s", obj:name())
-	    se_monster.custom_data_on_spawn = nil
-	  end
-    else
-      obj = AI:create(spawn_section, 
-            self.position,
-            self.m_level_vertex_id, 
-            self.m_game_vertex_id,
-            parent_id)
-    end
 
---	get_console():execute("load ~ Информация о спавне: ["..tostring(self:name()).."] -> ["..obj:name().."]")
+	if tonumber(prob) == nil then   
+		print_table(self.conditions)
+		abort("RESPAWN [%s] spawn probability doesn't set", tostring(self:name()))
+		return false
+	end
+
+	if math.random(100) > tonumber(prob) then
+		return false
+	end
+
+	local spawn_section = ""
+	local sum = 0
+	-- Производим рандомную взвешенную выборку
+	-- с учетом уже заспавленного количества человек.
+	for k,v in pairs(self.respawn_section) do
+		sum = sum + v.prob
+	end
+	sum = math.random(0, sum)
+	for k,v in pairs(self.respawn_section) do
+		sum = sum - v.prob      
+		if sum <= 0 then
+			spawn_section = v.section
+			break
+		end
+	end
+
+	if spawn_section == "" then
+		-- printf("SPAWNING [%s], CANT SPAWN, SIMULATION POPULATION EXCEED", tostring(self:name()))
+		return false
+	end
+
+	local parent_id = nil
+	if self.parent ~= nil then
+		local s_obj = AI:story_object(self.parent)
+		if s_obj == nil then
+			abort("SPAWNING [%s], cant find parent with SID [%s]", self:name(), self.parent)
+			return
+		end
+		parent_id = s_obj.id
+	end
+
+	local obj
+	if parent_id == nil then
+		if self.creature_binded_logic then	-- AMK respawners
+			se_monster.custom_data_on_spawn =	"[smart_terrains]\nnone = true\n"..
+												"[logic]\ncfg = scripts\\amk\\"..self.creature_binded_logic..".ltx"
+			log("# [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
+		end
+		obj = AI:create(spawn_section, 
+						self.position,
+						self.m_level_vertex_id, 
+						self.m_game_vertex_id)
+		if se_monster.custom_data_on_spawn then
+			log("! [se_respawn:create] incorrect update logic: object %s", obj:name())
+			se_monster.custom_data_on_spawn = nil
+		end
+	else
+		obj = AI:create(spawn_section, 
+				self.position,
+				self.m_level_vertex_id, 
+				self.m_game_vertex_id,
+				parent_id)
+	end
+
 	amk.on_REspawn(obj,self)
-    local tt = self.sectSpawnProps[spawn_section]
+	local tt = self.sectSpawnProps[spawn_section]
 
---    printf("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
-  --sak.dbglog("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
+	-- printf("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
 
-    if self.item_spawn == false then        
-      if tt.check == true and not self.amk_name then
-        obj:brain():update()
-        local smart_terrain_id = obj:smart_terrain_id()
+	if self.item_spawn == false then        
+		if tt.check == true and not self.amk_name then
+			obj:brain():update()
+			local smart_terrain_id = obj:smart_terrain_id()
+			if smart_terrain_id == 65535 then
+				AI:release(obj, true)
+				return false
+			end
+		end
+	end
 
-		--get_console():execute("load ~ smart_terrain_id = ["..tostring(smart_terrain_id).."]")
-          --sak.dbglog("SPAWN [%s] move_offline [%s], interactive [%s], smart_terrain_id [%s]", tostring(self:name()), tostring(self:move_offline()), tostring(self:interactive()), smart_terrain_id)
-        --printf("SPAWN [%s] move_offline [%s], interactive [%s], smart_terrain_id [%s]", tostring(self:name()), tostring(self:move_offline()), tostring(self:interactive()), smart_terrain_id)
-
-        if smart_terrain_id ~= 65535 then   
-          table.insert(self.spawned_obj ,obj.id)
-          local pos = obj.position
---          printf("SPAWNING [%s] -> [%s], position [%s][%s][%s]", tostring(self:name()), spawn_section, pos.x, pos.y, pos.z)
-          local sm_obj = AI:object(smart_terrain_id)
-
---          printf("SPAWNING for SMART [%s] : [%s] -> [%s]", self:name(), obj:name(), sm_obj:name())
-          --sak.dbglog("SPAWNING for SMART [%s] : [%s] -> [%s]", self:name(), obj:name(), sm_obj:name())  
-          
-		return true
-        else
-		  --get_console():execute("load ~ Released ["..tostring(self:name()).."] -> ["..obj:name().."]")
-		--	log1("released object '"..obj:name().."' from respawn "..self:name())
-          AI:release(obj, true)
-          --sak.dbglog("SPAWNING [%s] -> [%s], CANT SPAWN. NO SMART_TERRAIN AVAILABLE!!!", tostring(self:name()), spawn_section)
---          printf("SPAWNING [%s] -> [%s], CANT SPAWN. NO SMART_TERRAIN AVAILABLE!!!", tostring(self:name()), spawn_section)
-          return false
-        end
-      end
-    end
-    table.insert(self.spawned_obj ,obj.id)
-    return true
-  end
+	table.insert(self.spawned_obj ,obj.id)
+	log( "# Spawn info: [%s] -> %s[%s]", self:name(), tostring(#self.spawned_obj), obj:name() )
+	return true
 end
 -- Попытка спаунить объекты. Анализируется сколько уже заспавнено и выбирается один из механизмов - либо 
 -- мы доспавниваем до минимального количества, либо спавним с заданной вероятностью
 function se_respawn:spawn()	
---  printf("RESPAWN: [%s] spawn execute", tostring(self:name()))
-  --sak.dbglog("RESPAWN: [%s] spawn execute", tostring(self:name()))
+	-- printf("RESPAWN: [%s] spawn execute", tostring(self:name()))
 	if not self.spawn_once then
 		-- Пробегаемся по списку уже заспавненных объектов и удаляем из них мертвые либо уничтоженные.
 		local obj
 		local parentid = self.parent and id_by_sid(self.parent) or -1
-		for k,v in pairs(self.spawned_obj) do
+		local v
+		for i = #self.spawned_obj, 1, -1 do
+			v = self.spawned_obj[i]
 			obj = AI:object(v)
 
 			if obj ~= nil then
 				if (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) then
 					if obj:alive() ~= true then
-						table.remove(self.spawned_obj, k)
-					--	log1("remove from respawn ["..self:name().."] object: "..obj:name())
+						table.remove(self.spawned_obj, i)
+						log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 					end
 				elseif self.parent then
 					if obj.parent_id ~= parentid then
-						table.remove(self.spawned_obj, k)
-					--	log1("remove from respawn ["..self:name().."] object: "..obj:name())
+						table.remove(self.spawned_obj, i)
+						log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 					end
 				else
-					table.remove(self.spawned_obj, k)
-				--	log1("remove from respawn ["..self:name().."] object: "..obj:name())
+					table.remove(self.spawned_obj, i)
+					log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 				end
 			else
-				table.remove(self.spawned_obj, k)
-			--	log1("remove from respawn ["..self:name().."] object: <<nil>>")
+				table.remove(self.spawned_obj, i)
+				log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
 			end
 		end 
 	end
-  if xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.conditions) == "0" then
---    printf("SPAWNING [%s], CANT SPAWN. PROBABILITY ZERO!!!", tostring(self:name()))
-  --sak.dbglog("SPAWNING [%s], CANT SPAWN. PROBABILITY ZERO!!!", tostring(self:name()))
---    sim_statistic.respawn_enabled(self, false) -- эта статистика не нужна
-    return
-  end
---  sim_statistic.respawn_enabled(self, true) -- эта статистика не нужна
-  
+
+	if xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.conditions) == "0" then
+		-- printf("SPAWNING [%s], CANT SPAWN. PROBABILITY ZERO!!!", tostring(self:name()))
+		-- sim_statistic.respawn_enabled(self, false) -- эта статистика не нужна
+		return
+	end
+	-- sim_statistic.respawn_enabled(self, true) -- эта статистика не нужна
+
 	if self.spawn_once and not self.already_once_spawned then 
 		self.already_once_spawned = true
 	end
-  -- экстренный спаун минимального количества объектов
-  if #self.spawned_obj < self.min_count then 
-    while #self.spawned_obj < self.min_count do
-      --sak.dbglog("RESPAWN: [%s] very small object", tostring(self:name()))
-      if self:create(100) == false then
-        return
-      end
-    end
-    return
-  end
-  
-  -- делаем несколько попыток заспаунить объект.
-  for i=1,self.max_spawn do   
-    if self.max_count ~= -1 and #self.spawned_obj >= self.max_count then
-        --sak.dbglog("RESPAWN: [%s] max count reached", tostring(self:name()))
+	-- экстренный спаун минимального количества объектов
+	if #self.spawned_obj < self.min_count then 
+		while #self.spawned_obj < self.min_count do
+			--sak.dbglog("RESPAWN: [%s] very small object", tostring(self:name()))
+			if self:create(100) == false then
+				return
+			end
+		end
+		return
+	end
 
---      printf("SPAWNING [%s], CANT SPAWN. MAX COUNT REACHED!!!", tostring(self:name()))
-      return
-    end   
-    if self:create(xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.conditions)) == false then
-      return
-    end
-  end   
+	-- делаем несколько попыток заспаунить объект.
+	for i=1,self.max_spawn do   
+		if self.max_count ~= -1 and #self.spawned_obj >= self.max_count then
+			-- printf("SPAWNING [%s], CANT SPAWN. MAX COUNT REACHED!!!", tostring(self:name()))
+			return
+		end   
+		if self:create(xr_logic.pick_section_from_condlist(db.actor_proxy, self, self.conditions)) == false then
+			return
+		end
+	end   
 end
 --' Удаляем уже заспавненный объект из списка заспавненных
 --' Используется только  для ящиком со шмотками в смарттеррейнах
 function se_respawn:remove_spawned(id)
-  for i,v in ipairs(self.spawned_obj) do
-    if id == v then
-      table.remove(self.spawned_obj, i)
-	  break
-    end       
-  end 
+	for i,v in ipairs(self.spawned_obj) do
+		if id == v then
+			table.remove(self.spawned_obj, i)
+			break
+		end       
+	end 
 end
 -- Обновление респавнера. В зависимости от настроек обновляется либо только в офлайне, либо и там и там.
 function se_respawn:execute()
---  printf("RESPAWN: [%s] se_respawn execute", tostring(self:name()))
+	-- printf("RESPAWN: [%s] se_respawn execute", tostring(self:name()))
 	if self.already_once_spawned==true then return end
-  --' Выходим, если у нас установлен событийный спавн.
-  if self.idle_spawn_min < 0 then return end
+	--' Выходим, если у нас установлен событийный спавн.
+	if self.idle_spawn_min < 0 then return end
   
-  if self.respawn_time < game.get_game_time() then
---    if not self.proxy_initialized then
---      db.actor_proxy:init()
---      self.proxy_initialized = true
---    end
+	if self.respawn_time < game.get_game_time() then
+
     local idle_time = game.CTime()
     local now = game.get_game_time()
 

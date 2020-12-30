@@ -3533,29 +3533,6 @@ end
 function mesto_gg_na_chaes2_sms()
 	news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Клык, я на позиции. Вижу ворота, через которые должен пройти этот чмырь всех времён и народов.", nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_93]])
 
-	-- удаляем лишнее
-	local for_del = {"chaes2_arhara_beter2_kluk", "chaes_arh_mine_1", "chaes_arh_mine_2", "reakshon_vzruv_sms_restrictor", "chaes2_musik_restrictor"}
-	local obj
-	for i, v in ipairs(for_del) do
-		obj = AI:object(v)
-		if obj then AI:release(obj, true) end
-	end
-	-- переспавниваем БТР
-	AI:create(AI:spawn_id(story_ids.chaes2_arhara_beter2_kluk))
-
-	-- дописываем логику цели БТР
-	obj = AI:story_object(story_ids.chaes2_mono_fugas)
-	if obj then
-		local data = netpk:get(obj, netpk.fState)
-		local cd = netpk:parse_custom_data(data.custom_data)
-		cd.logic.on_death = "death"
-		cd.death = {on_info = "%=arhara_dialog.kluk_pogib_sms5%"}
-		data.custom_data = netpk:gen_custom_data(cd)
-		netpk:set(obj, data)
-	end
-
-	-- перезаписываем логику рестриктора
-	naxac.rewrite_restr_logic("kluk_btr_restrictor", "scripts\\chaes2\\kluk_btr_restrictor.ltx")
 end
 function kluk_pogib_sms1()
 	news_manager.send_tip(
@@ -3585,7 +3562,6 @@ function kluk_pogib_sms4()
 	)
 end
 function kluk_pogib_sms5()
-	if has_alife_info("mono_ogon_spawn") then return end
 	news_manager.send_tip(
 		"%c[gray2]КЛЫК:\\n%c[red_sms]Эх, пушку заклинило... Но ты, Звездочётишко, чмошная козявка, зря радуешься. Катафалк уже едет. Меняй памперсы, лось, если успеешь...",
 		nil, nil, 35000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_49]]
@@ -3607,15 +3583,6 @@ function after_kluk_pogib_sms2()
 	)
 
 	Actor:give_info_portion("spawnim_3otsek")
-	local obj = AI:object("hospital_pantera_girl")
-	if obj then
-		local cd = {}
-		cd.spawner			= { cond = "{+spawnim_3otsek}" }
-		cd.smart_terrains	= { none = "true" }
-		cd.logic			= { cfg = "scripts\\hospital\\hospital_pantera.ltx" }
-		local data			= { custom_data = netpk:gen_custom_data(cd) }
-		netpk:modify(obj, data, netpk.fState)
-	end
 end
 function after_kluk_pogib_sms3()
 	news_manager.send_tip(
@@ -3642,7 +3609,6 @@ function nachalo_bazara_otsek_sms()
 		"%c[gray2]ЧЁРНЫЙ ДОКТОР:\\n%c[red_sms]А, вот и Вы! Прежде всего попрошу унять вашу девушку, она выдвигает безумные требования и опасно обращается с оружием.",
 		nil, "doctor_black", 25000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_119]]
 	)
-	naxac.rewrite_restr_logic("poshel_bazar_otsek_restrictor", "scripts\\hospital\\poshel_bazar_otsek_restrictor.ltx")
 end
 function poshel_bazar_otsek_sms1()
 	news_manager.send_tip(
@@ -3693,25 +3659,49 @@ function poshel_bazar_otsek_sms6()
 	arhara_dialog.spawn_tele_1_hosp_verh1()
 end
 function poshel_bazar_otsek_sms7()
-news_manager.send_tip("%c[gray2]ПАНТЕРА:\\n%c[red_sms]Отец???!!! Это ты?? Как же так, а я-то... А ты... Значит, не болел ты совсем...", nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_58]], "arhara_dialog.poshel_bazar_otsek_sms8()")
+	news_manager.send_tip(
+		"%c[gray2]ПАНТЕРА:\\n%c[red_sms]Отец???!!! Это ты?? Как же так, а я-то... А ты... Значит, не болел ты совсем...",
+		nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_58]],
+		"arhara_dialog.poshel_bazar_otsek_sms8()"
+	)
 end
 function poshel_bazar_otsek_sms8()
-news_manager.send_tip("%c[gray2]ОТЕЦ ПАНТЕРЫ:\\n%c[red_sms]Дочка... Я до последнего момента не знал, что ты в Зоне и ищешь для меня этот артефакт... иначе, всё было бы по-другому. Сейчас я к тебе спущусь, только скажу пару слов твоему другу - начатое дело обязательно надо закончить.", nil, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_112]])
+	news_manager.send_tip(
+		"%c[gray2]ОТЕЦ ПАНТЕРЫ:\\n%c[red_sms]Дочка... Я до последнего момента не знал, что ты в Зоне и ищешь для меня этот артефакт... иначе, всё было бы по-другому. Сейчас я к тебе спущусь, только скажу пару слов твоему другу - начатое дело обязательно надо закончить.",
+		nil, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_112]]
+	)
 end
 function sidor_mina_sms()
-news_manager.send_tip("%c[gray2]СИДОРОВИЧ:\\n%c[red_sms]Вот мина под ногою и товарищ инвалид... Хех... Что-то меня на грустную романтику потянуло.", nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_144]])
+	news_manager.send_tip(
+		"%c[gray2]СИДОРОВИЧ:\\n%c[red_sms]Вот мина под ногою и товарищ инвалид... Хех... Что-то меня на грустную романтику потянуло.",
+		nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_144]]
+	)
 end
 function sms_k_generalu()
-news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Генерал, привет. Это $actor. С внучкой всё ок. Скоро увидитесь.", nil, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_102]])
+	news_manager.send_tip(
+		"%c[gray2]$actor:\\n%c[red_sms]Генерал, привет. Это $actor. С внучкой всё ок. Скоро увидитесь.",
+		10, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_102]],
+		"arhara_dialog.sms_k_prizraku()"
+	)
 end
 function sms_k_prizraku()
-news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Призрак, привет. У меня, вроде, всё получилось. Иду с Мухой на Агропром. Тропка открывается где-то у высоковольтки. Подходи.", nil, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_103]])
+	news_manager.send_tip(
+		"%c[gray2]$actor:\\n%c[red_sms]Призрак, привет. У меня, вроде, всё получилось. Иду с Мухой на Агропром. Тропка открывается где-то у высоковольтки. Подходи.",
+		7, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_103]],
+		"sak.add_new_hospital_to_agroprom()"
+	)
 end
 function sms_k_prizraku1()
-news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Призрак, привет. Я на Агропром. Тропка открывается где-то у высоковольтки.", nil, nil, 15000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_104]])
+	news_manager.send_tip(
+		"%c[gray2]$actor:\\n%c[red_sms]Призрак, привет. Я на Агропром. Тропка открывается где-то у высоковольтки.",
+		nil, nil, 15000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_104]]
+	)
 end
 function sms_k_muhe()
-news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Муха, пойдём. Идти придётся далеко - на Агропром.", nil, nil, 15000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_105]])
+	news_manager.send_tip(
+		"%c[gray2]$actor:\\n%c[red_sms]Муха, пойдём. Идти придётся далеко - на Агропром.",
+		nil, nil, 15000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_105]]
+	)
 end
 function atp_torgovetz_sms()
 news_manager.send_tip("%c[gray2]СЕДОЙ:\\n%c[red_sms]$actor, это Седой, если помнишь такого. Я тут заметил, что ты там редисок не хило нашинковал... Крепкий ты орешек, танк прямо. Короче, Рэмбо, заканчивай там геноцид, сделай паузу, скушай, так сказать Твикс. Не... Твёкс... Я хрен его знает, напридумывали, блин, херни заграничной, фиг выговоришь. Лучше сделай паузу и рубай русский гематоген. У тебя есть пару минут, чтобы собрать барахлишко - мой верт идёт на посадку у автобусной остановки, что у тебя под боком. Стоянка как обычно - 6-8 минут.", nil, nil, 35000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_129]])
@@ -3765,7 +3755,7 @@ local final_sms = {
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_152]]
 	}, {
 		-- agro_boltobny_sms9
-		text = "%c[gray2]$actor:\\n%c[red_sms]На сколько мне сейчас известно, с Зоной ничего не случится - как была, так и останется - по крайней мере - в ближайшем будущем. Те, кто думает, что она исследована - ошибаются. Загадок ещё полно.",
+		text = "%c[gray2]Стрелок:\\n%c[red_sms]На сколько мне сейчас известно, с Зоной ничего не случится - как была, так и останется - по крайней мере - в ближайшем будущем. Те, кто думает, что она исследована - ошибаются. Загадок ещё полно.",
 		snd = [[characters_voice\human_03\stalker\talk\leaves\leaves_107]]
 	}, {
 		-- agro_boltobny_sms10
@@ -3781,7 +3771,7 @@ local final_sms = {
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_155]]
 	}, {
 		-- agro_boltobny_sms13
-		text = "%c[gray2]МУХА:\\n%c[red_sms]Дядя $actor, неужели мне лететь с этими барыгами? И где дядя Клык?",
+		text = "%c[gray2]МУХА:\\n%c[red_sms]Дядя Стрелок, неужели мне лететь с этими барыгами? И где дядя Клык?",
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_156]]
 	}, {
 		-- agro_boltobny_sms14
@@ -3792,7 +3782,7 @@ local final_sms = {
 		text = "%c[gray2]БОРОВ:\\n%c[red_sms]О, белая и пушистая... Да ещё и в очках. Пойдём со мной, не обижу..."
 	}, {
 		-- agro_boltobny_sms16
-		text = "%c[gray2]$actor:\\n%c[red_sms]Ара, Боров. Вы уже опоздали. Муха, полетишь с моими друзьями. А Клык... Я передам ему привет от тебя. Призрак, Док, Пилигрим - не прощаемся. Я знаю, где вас найти. Главное - смотрите, чтобы с Мухой ничего не случилось - я Клыку обещал... Да, Кузнецов - перед рюмкой - доставь девочку своему боссу из Москвы - глядишь, полковником станешь.",
+		text = "%c[gray2]Стрелок:\\n%c[red_sms]Ара, Боров. Вы уже опоздали. Муха, полетишь с моими друзьями. А Клык... Я передам ему привет от тебя. Призрак, Док, Пилигрим - не прощаемся. Я знаю, где вас найти. Главное - смотрите, чтобы с Мухой ничего не случилось - я Клыку обещал... Да, Кузнецов - перед рюмкой - доставь девочку своему боссу из Москвы - глядишь, полковником станешь.",
 		snd = [[characters_voice\human_03\stalker\talk\leaves\leaves_108]]
 	}, {
 		-- agro_boltobny_sms17
@@ -3800,7 +3790,7 @@ local final_sms = {
 		snd = [[characters_voice\human_03\stalker\talk\leaves\leaves_119]]
 	}, {
 		-- agro_boltobny_sms18
-		text = "%c[gray2]$actor:\\n%c[red_sms]Последний вопрос к собравшимся: кто-нибудь знает, кто такой Фриц? Он в каске немецкой ходит.",
+		text = "%c[gray2]Стрелок:\\n%c[red_sms]Последний вопрос к собравшимся: кто-нибудь знает, кто такой Фриц? Он в каске немецкой ходит.",
 		snd = [[characters_voice\human_03\stalker\talk\leaves\leaves_109]]
 	}, {
 		-- agro_boltobny_sms19
@@ -3824,7 +3814,7 @@ local final_sms = {
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_161]]
 	}, {
 		-- agro_boltobny_sms24
-		text = "%c[gray2]АКИМ:\\n%c[red_sms]Похоже, $actor - либо кто-то чего-то не договаривает, либо никто из собравшихся действительно не знает. Э... А может он из какой новой группировки? Никто ж не знает, насколько далеко тянется Зона за ЧАЭС и кто там обитает. Вероятно, $actor, тебе придётся выяснять это самому.",
+		text = "%c[gray2]АКИМ:\\n%c[red_sms]Похоже, Стрелок - либо кто-то чего-то не договаривает, либо никто из собравшихся действительно не знает. Э... А может он из какой новой группировки? Никто ж не знает, насколько далеко тянется Зона за ЧАЭС и кто там обитает. Вероятно, Стрелок, тебе придётся выяснять это самому.",
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_177]]
 	}, {
 		-- agro_boltobny_sms25
@@ -3844,17 +3834,17 @@ local final_sms = {
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_164]]
 	}, {
 		-- agro_boltobny_sms29
-		text = "%c[gray2]$actor:\\n%c[red_sms]Ну, понеслась... Летите уж скорей что ли... Интеллигенты...",
+		text = "%c[gray2]Стрелок:\\n%c[red_sms]Ну, понеслась... Летите уж скорей что ли... Интеллигенты...",
 		snd = [[characters_voice\human_03\stalker\talk\leaves\leaves_110]],
 		info = "komanda_na_posadku1"
 	}, {
 		-- agro_boltobny_sms30
-		text = "%c[gray2]ДОКТОР:\\n%c[red_sms]$actor, ещё увидимся за рюмкой чая. Я на Припять пока, а там - видно будет. Муха! Давай, не отставай - ждать нас не будут.",
+		text = "%c[gray2]ДОКТОР:\\n%c[red_sms]Стрелок, ещё увидимся за рюмкой чая. Я на Припять пока, а там - видно будет. Муха! Давай, не отставай - ждать нас не будут.",
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_165]],
 		info = "komanda_gg_posadka"
 	}, {
 		-- agro_boltobny_sms31
-		text = "%c[gray2]МУХА:\\n%c[red_sms]Да-да, иду. $actor, пока и спасибо!!! Жду вас с Клыком в гости!",
+		text = "%c[gray2]МУХА:\\n%c[red_sms]Да-да, иду. Стрелок, пока и спасибо!!! Жду вас с Клыком в гости!",
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_166]],
 		info = "agro_muxa_way2"
 	}, {
@@ -3870,7 +3860,7 @@ local final_sms = {
 		info = "final_muzon"
 	}, {
 		-- agro_boltobny_sms34
-		text = "%c[gray2]ШАХТЁР:\\n%c[red_sms]Пока, $actor! Ещё увидимся.",
+		text = "%c[gray2]ШАХТЁР:\\n%c[red_sms]Пока, Стрелок! Ещё увидимся.",
 		snd = [[characters_voice\human_03\stalker\talk\leave\leave_169]],
 		info = "spawn_final_arhara"
 	}
@@ -3908,10 +3898,6 @@ end
 	
 function agro_boltobny_sms1(actor, npc)
 	arhara_dialog.next_sms_skhodka(1)
-end
-
-function rewrite_restrict_skhodka()
-	naxac.rewrite_restr_logic("final_agro_boltobny_restrictor", "scripts\\skhodka_final_sms_rest.ltx")
 end
 
 function arh_finish_sms1()
@@ -6014,13 +6000,20 @@ end
 function hosp_podmena()
 	inventory.out_items("af_part_monolit1",1)
 	inventory.out_items("af_water_flower",1)
-end
-function hosp_taik_new_art(actor, npc) 
-	dialogs.relocate_item_section(second_speaker, "af_part_monolit2","in")
-	dialogs.relocate_item_section(second_speaker, "af_water_flower1","in")
+	inventory.give_items("af_part_monolit2",1)
+	inventory.give_items("af_water_flower1",1)
 	news_manager.send_tip(
 		"%c[gray2]ПОЛУЧЕНА ИНФОРМАЦИЯ:\\n%c[red_sms]Несколько артефактов изменили свои свойства.",
-		nil, "nano", 15000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_174]])
+		nil, "nano", 15000, nil, [[characters_voice\human_03\stalker\talk\leave\leave_174]]
+	)
+	local obj = AI:object( "door_hospital_01_l_0003" )
+	if obj then
+		AI:release( obj, true )
+	end
+	obj = AI:object( "door_hospital_01_r_0003" )
+	if obj then
+		AI:release( obj, true )
+	end
 end
 
 --' убираем голограмму ЧД 
