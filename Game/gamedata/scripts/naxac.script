@@ -1,7 +1,11 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 65
+local current_fix = 66
 
-function fix_65()
+function fix_66()
+	if has_alife_info( "info_pri1_lab" ) then
+		level_changers.create_level_changer("lc_east_pripyat_to_labx8", true)
+	end
+
 	-- Установим логику дверям в подземке Юпитера
 	local obj
 	local doors = {
@@ -10,7 +14,9 @@ function fix_65()
 		"jund_pas_b400_door_downstairs",
 		"jund_pas_b400_physic_door_0000",
 		"jund_pas_b400_door_hall",
-		"jund_pas_b400_door_way"
+		"jund_pas_b400_door_way",
+		"lx8_physic_door",
+		"lx8_door_katakomb_big_2_lock_0000"
 	}
 	for i, v in ipairs(doors) do
 		obj = AI:object(v)
@@ -20,7 +26,16 @@ function fix_65()
 		AI:create( spawn_ids[v] )
 	end
 
+	if Actor:has_info( "dimak_tele_done" ) then
+		Actor:give_info_portion( "x8_code_door_code" )
+	end
+
+	local obj = AI:object( "sms_girl3_nachalo_restrictor" )
+	if obj then AI:release( obj, true ) end
+end
+function fix_65()
 	local n = 0
+	local obj
 	local del = {
 		["under_tele_1"] = true,
 		["under_tele_2"] = true,
@@ -31,9 +46,10 @@ function fix_65()
 		if obj and del[ obj:section_name() ] then
 			AI:release(obj, true)
 			n = n + 1
-			if n == 3 then return end
+			if n == 3 then break end
 		end
 	end
+
 end
 function fix_64()
 	if AI:story_object( story_ids.lc_generators_to_hospital ) ~= nil then
@@ -1479,6 +1495,8 @@ function repair()
 	if fix == current_fix then return end
 
 	amk.save_variable( "nfx", current_fix )
+	prefetch("spawn_ids_rewrite")
+	prefetch("spawn_ids")
 
 	if fix == 0 then return end
 
