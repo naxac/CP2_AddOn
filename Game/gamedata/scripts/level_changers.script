@@ -1,11 +1,17 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local lc_ini = ini_file("misc\\level_changers.ltx")
 
-function create_level_changer(str_sid)
+function create_level_changer(str_sid, silent)
 	local story_id = story_ids[str_sid]
 	ASSERT(story_id, "[level_changers.create_level_changer]: story_id '%s' not exist in [story_ids]", str_sid)
 
 	ASSERT(lc_ini:section_exist(str_sid), "[level_changers.create_level_changer]: section '%s' not exist in 'level_changers.ltx'", str_sid)
+
+	local objt = AI:story_object(story_id)
+	if objt then
+		log("~ [level_changers.create_level_changer]: level changer with story_id [%s] already exist! Respawn...", str_sid)
+		AI:release(objt, true)
+	end
 
 	local pos = lc_ini:r_vector(str_sid, "position")
 	local lv = lc_ini:r_u32(str_sid, "level_vertex")
@@ -61,7 +67,7 @@ function create_level_changer(str_sid)
 		)
 	end
 
-	if lc_ini:r_bool_ex(str_sid, "no_sms") then return end
+	if lc_ini:r_bool_ex(str_sid, "no_sms") or silent then return end
 
 	local prev_lvl = game.translate_string( AI:level_name(GGraph:vertex(gv):level_id()) )
 	local dest_lvl = game.translate_string( string.lower(data.dest_level_name) )
