@@ -1,6 +1,37 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 66
+local current_fix = 67
 
+function fix_67()
+	local t = {
+		["strannik_lima_restrictor"]          = "podval_lima_done",
+		["strelka_obmorok_restrictor"]        = "uhod_iz_mg_start",
+		["dcity_obmorok"]                     = "nachlo_zvonka",
+		["dcity_bodyguard_obmorok"]           = false,
+		["pili_sdelal_psevdofoto_restrictor"] = "pili_poddelka_est"
+	}
+	local obj
+	for k, v in pairs(t) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if (not v) or Actor:dont_has_info( v ) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+
+	local del = {
+		"sms_after_semetskiy_restrictor",
+		"sms_preduprezhd_odnonogogo_restrictor",
+		"sms_preduprezhd1_odnonogogo1_restrictor",
+		"sms_preduprezhd2_odnonogogo2_restrictor",
+		"molniy_posle_foto_restrictor"
+	}
+	for k, v in ipairs(del) do
+		obj = AI:object( v )
+		if obj then AI:release( obj, true ) end
+	end
+end
 function fix_66()
 	if has_alife_info( "info_pri1_lab" ) then
 		level_changers.create_level_changer("lc_east_pripyat_to_labx8", true)
@@ -1495,10 +1526,10 @@ function repair()
 	if fix == current_fix then return end
 
 	amk.save_variable( "nfx", current_fix )
-	prefetch("spawn_ids_rewrite")
-	prefetch("spawn_ids")
 
 	if fix == 0 then return end
+
+--	prefetch("spawn_ids_rewrite")
 
 	local fn = ""
 	for i = fix+1, current_fix, 1 do
