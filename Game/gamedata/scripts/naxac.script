@@ -1530,6 +1530,7 @@ function repair()
 	if fix == 0 then return end
 
 --	prefetch("spawn_ids_rewrite")
+	this.spawn_ids_update()
 
 	local fn = ""
 	for i = fix+1, current_fix, 1 do
@@ -1537,10 +1538,62 @@ function repair()
 		if this[ fn ] then
 			log("~ [naxac.repair] work fix#%s", tostring( i ))
 			this[ fn ]()
+			log("- Successfully")
 		end
 	end
 end
 
+function spawn_ids_update()
+	local fs = getFS()
+	local ex = fs:exist("$game_scripts$", "spawn_ids.script")
+	if not (ex and ex.modif ~= 0) then
+		return
+	end
+
+	local t = {}
+	_G.spawn_ids = t
+
+	local filename = fs:update_path("$game_scripts$", "spawn_ids.script")
+
+	local file = io.open(filename, "r")
+	local n = 0
+	local tmp = {}
+	local key, value = "", 0
+	if file then
+		for line in file:lines() do
+			if string.find(line, "^%-%-%-") then
+				n = n - 1
+				line = ""
+			elseif string.find(line, "^%-%-%+") then
+				n = n + 1
+				line = string.sub( line, (string.find(line, "[%w_]")) )
+				key, value = string.match(line, "^([%w_]+)%s*=%s*(%d+)")
+				if key and value then
+					t[key] = tonumber(value)
+				end
+			else
+				key, value = string.match(line, "^([%w_]+)%s*=%s*(%d+)")
+				if key and value then
+					value = tonumber(value) + n
+					t[key] = value
+					line = key.." = "..tostring(value)
+				end
+			end
+			if line ~= "" then
+				table.insert(tmp, line)
+			end
+		end
+		file:close(file)
+	end
+
+	file = io.open(filename, "w")
+	if file then
+		for i, v in ipairs(tmp) do
+			file:write(v, "\n")
+		end
+		file:close(file)
+	end
+end
 ---------------------------------------------------------------------------------------
 function treasure_ss_1()
 	local items = {
