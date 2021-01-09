@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 67
+local current_fix = 69
 
 function fix_69()
 	local t = {
@@ -22,6 +22,45 @@ function fix_69()
 		end
 	end
 end
+function fix_68()
+	local del = {
+		"parfum_sms_kontrik_restrictor",
+		"sms_zlobnomu_rasstrel_restrictor",
+		"esc_pantera_stop_sms_restrictor"
+	}
+	local obj
+	for k, v in ipairs( del ) do
+		obj = AI:object( v )
+		if obj then AI:release( obj, true ) end
+	end
+	local t = {
+		["spawn_molniy2_restrictor"]          = "spawn_dead_city_molniy",
+		["esc_pantera_spawn_restrictor"]      = "father_est_2dialog",
+		["aver_kluk0_put0_restrictor"]        = "kluk_na_1",
+		["aver_kluk1_put1_restrictor"]        = "kluk_na_2",
+		["aver_kluk2_put2_restrictor"]        = "kluk_na_3",
+		["aver_kluk3_put3_restrictor"]        = "kluk_posled",
+		["aver_kluk4_put4_restrictor"]        = "kluk_na_walk",
+		["yantar_psi_radiotion_sound"]        = "yan_kill_brain_done",
+		["yantar_psi_radiotion_sound"]        = "yan_labx16_switcher_primary_try",
+		["hos_zamena_art_restrictor"]         = "podlovim_chiterov"
+	}
+	for k, v in pairs( t ) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if (not v) or Actor:dont_has_info( v ) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+
+	obj = AI:story_object( story_ids.esc_pantera_bomba )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.esc_pantera_bomba ) )
+	end
+end
 function fix_67()
 	local t = {
 		["strannik_lima_restrictor"]          = "podval_lima_done",
@@ -33,7 +72,7 @@ function fix_67()
 		["soldier_v_piyanux_restrictor"]      = "poshla1_piyan1_gulyt1"
 	}
 	local obj
-	for k, v in pairs(t) do
+	for k, v in pairs( t ) do
 		obj = AI:object( k )
 		if obj then
 			AI:release( obj, true )
@@ -65,7 +104,7 @@ function fix_67()
 		"narod_napilsy_sms_restrictor",
 		"pereh_warlab_na_gener_restrictor"
 	}
-	for k, v in ipairs(del) do
+	for k, v in ipairs( del ) do
 		obj = AI:object( v )
 		if obj then AI:release( obj, true ) end
 	end
@@ -1455,8 +1494,6 @@ function fix_4()
 	end
 end
 function fix_3()
-	-- исправим рестриктор в Х-16 - стобы при отключенной установке не пищало в голове
-	naxac.rewrite_restr_logic( "yantar_psi_radiotion_sound", "scripts\\yan\\yantar_psi_radiotion_sound.ltx" )
 	-- уберём сделавшую своё дело мину на Янтаре
 	local obj = AI:object("yantar_arhara_mine1")
 	if obj and has_alife_info("sms_barmen_otvet") then
@@ -1539,7 +1576,6 @@ function fix_1()
 		if obj then AI:release( obj, true ) end
 		obj = AI:object( "podlovim_chiterov1_restrictor" )
 		if obj then AI:release( obj, true ) end
-		start_small_timer( 2000, naxac.rewrite_restr_logic, "hos_zamena_art_restrictor", "scripts\\hospital\\hos_zamena_art_restrictor.ltx" )
 	end
 -------------------------------------------------------------------------------------------------------------------
 	if not has_alife_info( "naxac_test_repair2" ) then
