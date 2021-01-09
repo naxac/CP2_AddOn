@@ -11,6 +11,7 @@ local use_tradability_restrictions = game_options.TradeCondition
 local lock_belt_slot_items         = game_options.UntradeSlotsAndBelt
 local ungroup_belt_slot_items      = true
 local min_trade_condition          = 0.1		-- неписи не покупают предметы с состоянием меньше указанного здесь
+local trade_ini = ini_file("misc\\trade\\trade_quest_items.ltx")
 
 local clr = {
 	red = 0,
@@ -82,7 +83,12 @@ function can_trade_general(trader, item)
 		return false
 	end
 
-	if not artefact_hunter.trader_know_art(trader, item:section()) then
+	local section = item:section()
+	if not artefact_hunter.trader_know_art(trader, section) then
+		return false
+	end
+
+	if trade_ini:line_exist("dont_buy_items", section) then
 		return false
 	end
 
@@ -98,11 +104,12 @@ local item_place = {
 function treat_item(item, place, npc)
 	-- если есть собеседник, т.е. идёт разговор или торговля, 
 	-- и он не купит предмет из-за плохого состояния
-	if (use_tradability_restrictions and npc and not item_tradable_for_npc(npc, item))
+	if npc and (
+		( use_tradability_restrictions and not item_tradable_for_npc(npc, item) )
 		or not can_trade_general(npc, item)
-	then
+	) then
 		-- то делаем предмет негруппируемым, подсвеченным и непродаваемым
-		local fl = ii_flags.ungroupable + ii_flags.always_untradable + ii_flags.manual_highlighting
+		local fl = ii_flags.always_untradable + ii_flags.manual_highlighting	-- + ii_flags.ungroupable
 		item:set_inventory_item_flags(fl, true)
 		item:set_inventory_item_flags(ii_flags.always_tradable, false)
 		item:set_custom_color_ids(clr.red) -- красным
@@ -163,12 +170,7 @@ function on_npc_use(npc, who)
 end
 
 function get_second_talker()
-	local talk_wnd = level.get_talk_wnd()
-	if talk_wnd and talk_wnd:IsShown() then
-		return level.get_second_talker()
-	end
-	local trade_wnd = level.get_trade_wnd()
-	if trade_wnd and trade_wnd:IsShown() then
+	if Actor:is_talking() then
 		return level.get_second_talker()
 	end
 	return nil
