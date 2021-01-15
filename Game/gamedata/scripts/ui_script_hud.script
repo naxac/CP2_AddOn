@@ -4,6 +4,7 @@ local show_npc = true
 local show_enemy = false
 local show_corpse = true
 local show_time = true
+local show_compass = true
 local show_quick_slots = false
 local biodetector_mode = false
 ---------------------------------------------------------------------------
@@ -17,7 +18,7 @@ local table_insert = table.insert
 
 local wnd = nil
 
-local step_angle = 1.5/(180/math.pi) -- шаг за апдейт в радианах (скорость поворота)
+local step_angle = 1.5/(180/math.pi) -- шаг за миллисекунду в радианах (скорость поворота локатора)
 local two_pi = 2*math.pi
 
 local map_zoom = 2
@@ -115,7 +116,10 @@ function UIScriptHUD:__init()
 	self.map_spots = {}
 	self.del_spots = {}
 
-	xml:InitStatic("background", self)
+	st = xml:InitStatic("background", self)
+
+	self.compass = xml:InitStatic("minimap_compass", st)
+	self.compass:Show(show_compass)
 
 	self.body_state = xml:InitStatic("body_state", self)
 
@@ -245,6 +249,9 @@ function UIScriptHUD:UpdateMap()
 
 	-- Update map position
 	self.map:SetHeading(self.map_angle)
+	if show_compass then
+		self.compass:SetHeading(self.map_angle)
+	end
 	local pos = self:ConvertRealToLocal( Actor:position() )
 	local new_pos = vector2()
 	new_pos:sub(pos)
@@ -311,7 +318,7 @@ function UIScriptHUD:CheckNewSpots()
 		if id ~= 0 and not self:FindSpot(id, "npc") then
 			sobj = AI:object(id)
 			if self:NeedShowSpot(sobj) then
-				amk.oau_reason="UIScriptHUD:UpdateNPCSpots "..id
+				amk.oau_reason="UIScriptHUD:CheckNewSpots "..id
 				if biodetector_mode
 					or not (obj:is_stalker()
 					and sobj:visible_for_map()==false)
@@ -347,7 +354,7 @@ function UIScriptHUD:UpdateSpots()
 	for i, spot in ipairs(self.map_spots) do
 		sobj = AI:object( spot.id )
 		obj = level_object(spot.id)
-		amk.oau_reason="UIScriptHUD:UpdateOtherSpots "..spot.id
+		amk.oau_reason="UIScriptHUD:UpdateSpots "..spot.id
 		if obj and self:NeedShowSpot(sobj) then
 			if spot.type == "npc" or has_spot(spot.id, spot.type) ~= 0 then
 				t = spot2texture[spot.type]
@@ -447,6 +454,7 @@ function UIScriptHUD:SwitchBioradar()
 	if not show_time then
 		self.time_static:SetText("")
 	end
+	self.compass:Show(show_compass and not biodetector_mode)
 
 	if self.biodetector_mode == biodetector_mode then return end
 	self.biodetector_mode = biodetector_mode
@@ -640,6 +648,7 @@ function init_settings()
 	show_enemy			= has_alife_info("pda_show_enemy") and dif == game_difficulty.novice
 	show_corpse			= has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
 	show_time			= has_alife_info("pda_show_time")
+	show_compass		= has_alife_info("pda_show_compass")
 	show_quick_slots	= has_alife_info("pda_show_quick_slots") and (game_options.QuickSlotsOnHUD ~= 1)
 	biodetector_mode	= has_alife_info("pda_biodetector_mode")
 							and ( inventory.on_belt("bioradar")
