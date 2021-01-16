@@ -60,7 +60,11 @@ function outfit_binder:net_spawn(data)
 		self.power_consumption = sys_ini:r_float( sect, "power_consumption" )
 		self.current_src = self.se_obj and self.se_obj.current_src or 0
 		self.current_chrg = self.se_obj and self.se_obj.charge or 0
+		if self.current_chrg > 0 and self.current_src == 0 then	-- FIX
+			self.current_src = 1
+		end
 		self:set_accumm(self.power_sourses[self.current_src], self.current_chrg, false)
+	--	log("[outfit_binder:net_spawn] %s current_chrg = %s, current_src = %s", sect, tostring(self.current_chrg), tostring(self.current_src))
 	else
 		local cond = self.object:condition()
 		if cond < 0.99 then
