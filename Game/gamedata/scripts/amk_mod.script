@@ -180,21 +180,8 @@ end
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **      NEWS_AMK          **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
-local tmp_news = {}
-function show_tmp_news(sender)
-	if #tmp_news == 0 then return end
-	local x, y, sndr = news_manager.get_sender_icon(tmp_news[1])
-	local icon = sender
-	if sndr ~= "default" then
-		icon = sndr
-	end
-	news_manager.send_tip(tmp_news[1], 0, icon, 7000, nil, nil,
-		'amk_mod.show_tmp_news('..(sender and '"'..sender..'"' or '')..')',
-	math_random(2,4) )
-	table.remove(tmp_news, 1)
-end
-function explode_news_str(text)
-	tmp_news = {}
+function show_news_queue(text, sender)
+	local tmp_news = {}
 	local f
 	while true do
 		f = string.find(text, "%c[gray2]", 9, true)
@@ -206,6 +193,21 @@ function explode_news_str(text)
 	end
 	if #text > 0 then
 		table.insert( tmp_news, text )
+	end
+
+	if #tmp_news == 0 then return end
+
+	local x, y, sndr = news_manager.get_sender_icon(tmp_news[1])
+	local icon = sender
+	if sndr ~= "default" then
+		icon = sndr
+	end
+
+	local timeout = 0
+	local showtime = 7000
+	for i, v in ipairs(tmp_news) do
+		news_manager.send_tip(v, timeout/1000, icon, showtime)
+		timeout = timeout + showtime + math_random(1500, 3000)
 	end
 end
 
@@ -239,8 +241,7 @@ function show_news()
 		end
 		sender = "uniq"
 	end
-	this.explode_news_str(news_text)
-	this.show_tmp_news(sender)
+	this.show_news_queue(news_text, sender)
 end
 
 --'*******************************************************************************
@@ -2592,6 +2593,7 @@ end
 function spawn_unspawned_respawners()
 	local iniFileName = "scripts\\amk\\amk_respawns.ltx"
 	local sini = ini_file(iniFileName)
+	local result, id, value = nil, nil, nil
 	
 	local dv = {}
 	if sini:section_exist("default_values") then
