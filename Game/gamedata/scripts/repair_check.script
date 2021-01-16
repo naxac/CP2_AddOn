@@ -28,6 +28,14 @@ local ammo, item, cond, count, have, slot, parts, pay = "", 0, 0, 0, 0, 0, {}, 0
 local parts_wpn = {"art_acumm"}
 local parts_armor = {"art_acumm"}
 
+local repair_limit = {
+	[game_difficulty.novice] = 1.5,
+	[game_difficulty.stalker] = 1.3,
+	[game_difficulty.veteran] = 1.0,
+	[game_difficulty.master] = 0.8
+}
+
+
 -- мелкий ремонт с помощью ремкомплекта
 function repair_repkit(repkit, item)
 	if not danger.actor_not_in_danger("", "") then
@@ -60,7 +68,22 @@ function repair_repkit(repkit, item)
 		end
 	end
 
-	item:set_condition(cnd+rep_percent)
+	local obj = AI:object( item:id() )
+	local data = netpk:get( obj, netpk.fState )
+	local cd = netpk:parse_custom_data( data.custom_data )
+	if cd.repair == nil then cd.repair = {} end
+
+	local used_cond = cd.repair.used_cond and tonumber(cd.repair.used_cond) or 0
+	if used_cond > repair_limit[ level.get_game_difficulty() ] then
+		ui_inv_add.show_inv_msg("Ремонт невозможен: "..item_name.." уже слишком изношен.", "red")
+		return
+	end
+
+	cd.repair.used_cond = used_cond + math.min(rep_percent, 1 - cnd)
+	data.custom_data = netpk:gen_custom_data(cd)
+	netpk:set(obj, data)
+
+	item:set_condition( math.min(1, cnd + rep_percent) )
 	inventory.force_update( item:section() )
 
 	actor_use_item.check(repkit)
@@ -88,17 +111,46 @@ function can_repair(first_speaker, second_speaker)
 	return true
 end
 
+local repair_temp = {}
+function init_repair_preconditions()
+	local slots = {
+		inventory_slots.PISTOL,
+		inventory_slots.RIFLE,
+		inventory_slots.OUTFIT
+	}
+	for i, v in ipairs(slots) do
+		repair_temp[v] = {}
+		local t = repair_temp[v]
+		local item = Actor:item_in_slot(v)
+		if item then
+			t.exist = true
+			local condition = item:condition()
+			t.is_ok = condition > cond_ok
+			local data = netpk:get( AI:object( item:id() ), netpk.fState )
+			local cd = netpk:parse_custom_data( data.custom_data )
+			local used_cond = ( cd.repair and cd.repair.used_cond and tonumber(cd.repair.used_cond) ) or 0
+			t.is_bad = ( used_cond > repair_limit[ level.get_game_difficulty() ] ) or ( condition < min_cond_item )
+			t.used_cond = used_cond
+			t.cd = cd
+		else
+			t.exist = false
+		end
+	end
+--	log("# [repair_check.init_repair_preconditions]")
+--	table.print(repair_temp)
+end
 -- есть ли предмет в слоте?
 function is_item(slt)
-	return Actor:item_in_slot(slt) ~= nil
+	return repair_temp[slt].exist
 end
 function is_item1()	return is_item( inventory_slots.PISTOL ) end
-function is_item2()	return is_item( inventory_slots.RIFLE ) end
+function is_item2()	return is_item( inventory_slots.RIFLE )  end
 function is_item6()	return is_item( inventory_slots.OUTFIT ) end
 
 -- слишком убитый предмет?
 function too_bad_item(slt)
-	return Actor:item_in_slot(slt):condition() < min_cond_item
+	local t = repair_temp[slt]
+	return t.is_bad and not t.is_ok
 end
 function too_bad_item1() return too_bad_item( inventory_slots.PISTOL ) end
 function too_bad_item2() return too_bad_item( inventory_slots.RIFLE ) end
@@ -106,7 +158,7 @@ function too_bad_item6() return too_bad_item( inventory_slots.OUTFIT ) end
 
 -- полностью исправный предмет?
 function ok(slt)
-	return Actor:item_in_slot(slt):condition() > cond_ok
+	return repair_temp[slt].is_ok
 end
 function ok1() return ok( inventory_slots.PISTOL ) end
 function ok2() return ok( inventory_slots.RIFLE ) end
@@ -114,7 +166,8 @@ function ok6() return ok( inventory_slots.OUTFIT ) end
 
 -- нужен ли ремонт?
 function need(slt)
-	return not too_bad_item(slt) and not ok(slt)
+	local t = repair_temp[slt]
+	return (not t.is_bad) and (not t.is_ok)
 end
 function need1() return need( inventory_slots.PISTOL ) end
 function need2() return need( inventory_slots.RIFLE ) end
@@ -128,21 +181,25 @@ function talk_parts(slt)
 	count = 1
 	local text = ""
 
-	if slot == 6 then
+	if slot == inventory_slots.OUTFIT then
 		if cond > cond_double then
-			text = "Для ремонта брони мне нужно "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "repair_talk_parts_outfit1"
 		else
 			count = 2
-			text = "Броня сильно потрепана, поэтому для ремонта мне нужно два артефакта "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "repair_talk_parts_outfit2"
 		end
 	else
 		if cond > cond_double then
-			text = "Для ремонта мне нужен любой ствол такого же калибра на запчасти, "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "repair_talk_parts_weapon1"
 		else
 			count = 2
-			text = "Этот ствол изрядно потрепан. Поэтому мне нужно два любых ствола такого же калибра на запчасти, два артефакта "..parts_list().." и "..tostring(parts_money()).." рублей. Будем ремонтироваться?"
+			text = "repair_talk_parts_weapon2"
 		end
 	end
+	text = format_text_pairs(
+		game.translate_string(text),
+		{ parts = parts_list(), money = tostring(parts_money()) }
+	)
 
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
 	Actor:give_talk_message(text, task_texture, task_rect, "simple_answer_item")
@@ -155,7 +212,7 @@ function talk_parts6() return talk_parts( inventory_slots.OUTFIT ) end
 function parts_list()
 	local text = ""
 	
-	if slot == 6 then
+	if slot == inventory_slots.OUTFIT then
 		parts = parts_armor
 	else
 		parts = parts_wpn
@@ -202,7 +259,7 @@ function have_all()
 	end
 
 	-- стволы по калибру, проверка по патронам
-	if slot ~= 6 then
+	if slot ~= inventory_slots.OUTFIT then
 		ammo = sys_ini:r_list(item:section(), "ammo_class")[1]
 		have = 0
 		Actor:iterate_inventory(kalibr_count,Actor)
@@ -237,14 +294,20 @@ function npc_repair(first_speaker, second_speaker)
 	end
 
 	-- отбираем стволы и ремонтируем
-	if slot ~= 6 then
+	if slot ~= inventory_slots.OUTFIT then
 		have = 0
 		Actor:iterate_inventory(kalibr_remove,Actor)
-		item:set_condition(1)
-		inventory.force_update(item:section())
-	else
-		amk_mod.repair_armor(1)
 	end
+	local old_condition = item:condition()
+	item:set_condition(1)
+	inventory.force_update(item:section())
+
+	local t = repair_temp[slot]
+	if not t.cd.repair then
+		t.cd.repair =  {}
+	end
+	t.cd.repair.used_cond = t.used_cond + (1 - old_condition)
+	netpk:modify( AI:object( item:id() ), { custom_data = netpk:gen_custom_data(t.cd) } )
 end
 
 -- проверка калибра
