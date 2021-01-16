@@ -2593,33 +2593,32 @@ function spawn_unspawned_respawners()
 	local iniFileName = "scripts\\amk\\amk_respawns.ltx"
 	local sini = ini_file(iniFileName)
 	
-	local dv={}
-	if iniLineSectionExist("default_values", iniFileName) then
-		local result, id, value = nil, nil, nil
-		for a=0,iniLinesCount("default_values", iniFileName)-1 do
-			result, id, value = getIniLine("default_values",a,"","", iniFileName)
-			if id~=nil and trim(id)~="" and trim(id)~=nil then
-				dv[trim(id)]=trim(value)
+	local dv = {}
+	if sini:section_exist("default_values") then
+		for a = 0, sini:line_count("default_values")-1 do
+			result, id, value = sini:r_line("default_values",a,"","")
+			id = id and trim(id)
+			if id and id ~= "" then
+				dv[id] = trim(value)
 			end
 		end
 	end
 
-	if iniLineSectionExist("amk_respawns", iniFileName) then
-		local tmp={}
-		local result, id, value = nil, nil, nil
-		for a=0,iniLinesCount("amk_respawns", iniFileName)-1 do
-			result, id, value = getIniLine("amk_respawns",a,"","", iniFileName)
-			if id~=nil and trim(id)~="" and trim(id)~=nil then
-				table.insert(tmp, trim(id))
+	if sini:section_exist("amk_respawns") then
+		local tmp = {}
+		for a=0, sini:line_count("amk_respawns")-1 do
+			result, id, value = sini:r_line("amk_respawns",a,"","")
+			id = id and trim(id)
+			if id and id ~= "" then
+				table.insert(tmp, id)
 			end
 		end
 		
 		for k,v in pairs(tmp) do
 			--local flag = utils.cfg_get_bool(sini, "amk_respawns", v, true, false, false)
-			local flag = getIniValueBool("amk_respawns", v, false, iniFileName)
-			if not respawners[v] and flag==true then
-				--local t = amk.parse_ini_section_to_array(sini, v)
-				local t = amk.parse_ini_section_to_array_new(iniFileName, v)
+			local flag = sini:r_bool_ex("amk_respawns", v, false)
+			if ( not respawners[v] ) and flag == true then
+				local t = amk.parse_ini_section_to_array(sini, v)
 				local xyzlg = string.explode(t.xyzlg, ",", true)
 				local pos = vector():set(tonumber(xyzlg[1]),tonumber(xyzlg[2]),tonumber(xyzlg[3]))
 				local respawner = amk.spawn_item("respawn",pos,tonumber(xyzlg[5]),tonumber(xyzlg[4]))
@@ -2637,8 +2636,7 @@ function spawn_unspawned_respawners()
 				se_respawn.reinit_spawner_params(respawner:name())
 				--amk.add_spot_on_map(respawner.id,"red_location", v)
 				--amk.mylog("spawned respawn "..respawner.id)
-			end
-			if flag==false then
+			elseif flag==false then
 				local o = se_respawn.get_respawner_by_name(v)
 				if o then
 					--amk.mylog("released respawn "..o.id)
