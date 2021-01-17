@@ -10,8 +10,7 @@ by Stohe (Диденко Руслан)
 local section_name = "respawn"
 local i,k,v = 0,0,0
 
---[[------------‐-------
--- Таблица ограничений на спаун: всего в симуляции не должно быть больше, чем указано.
+--[[ Таблица ограничений на спаун: всего в симуляции не должно быть больше, чем указано.
 local simMaxCount = {
 	stalker_novice = 30, stalker_regular = 35, stalker_veteran = 35, stalker_master = 35,
 	monolith_novice = 10, monolith_regular = 35, monolith_veteran = 39, monolith_master = 45,
@@ -45,12 +44,12 @@ local simMaxCount = {
 	bloodsucker_weak = 18, bloodsucker_normal = 60, bloodsucker_strong = 27,
 	fracture_weak = 5, fracture_normal = 7, fracture_strong = 9
 }
---]]------------‐-------
+]]
 
 local idle_spawn_preset = {
-	seldom  = 60*60*96,
+	seldom = 60*60*96,
 	medium = 60*60*48,
-	often      = 60*60*24,
+	often  = 60*60*24,
 	once   = -100000
 }
 local idle_spawn_rnd = 4*60*60
@@ -275,7 +274,7 @@ function se_respawn:create(prob)
 		if self.creature_binded_logic then	-- AMK respawners
 			self.custom_data_on_spawn =	"[smart_terrains]\nnone = true\n"..
 										"[logic]\ncfg = scripts\\amk\\"..self.creature_binded_logic..".ltx"
-		--	log("# [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
+			-- log("# [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
 			se_monster.custom_data_on_spawn = self.custom_data_on_spawn
 		end
 		obj = AI:create(spawn_section, 
@@ -315,7 +314,7 @@ function se_respawn:create(prob)
 	end
 
 	table.insert(self.spawned_obj ,obj.id)
---	log( "# Spawn info: [%s] -> %s[%s]", self:name(), tostring(#self.spawned_obj), obj:name() )
+	-- log( "# Spawn info: [%s] -> %s[%s]", self:name(), tostring(#self.spawned_obj), obj:name() )
 	return true
 end
 -- Попытка спаунить объекты. Анализируется сколько уже заспавнено и выбирается один из механизмов - либо 
@@ -333,7 +332,7 @@ function se_respawn:spawn()
 
 			if obj == nil then
 				table.remove(self.spawned_obj, i)
-			--	log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
+				-- log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
 			elseif self.parent then
 				if obj.parent_id ~= parentid then
 					table.remove(self.spawned_obj, i)
@@ -373,7 +372,7 @@ function se_respawn:spawn()
 	end
 
 	-- делаем несколько попыток заспаунить объект.
-	for i=1,self.max_spawn do   
+	for i = 1,self.max_spawn do   
 		if self.max_count ~= -1 and #self.spawned_obj >= self.max_count then
 			-- printf("SPAWNING [%s], CANT SPAWN. MAX COUNT REACHED!!!", tostring(self:name()))
 			return
@@ -446,9 +445,7 @@ function spawn(name)
 		return
 	end
 
-	--sak.dbglog("spawn("..tostring(spawner:name())..")")
-
-	for i=1,spawner.max_spawn do
+	for i = 1,spawner.max_spawn do
 		if spawner.max_count ~= -1 and #spawner.spawned_obj >= spawner.max_count then
 			-- printf("SPAWNING [%s], CANT SPAWN. MAX COUNT REACHED!!!", tostring(spawner:name()))
 			return
@@ -616,7 +613,7 @@ function init_respawn_params(obj)
 	obj.conditions = xr_logic.parse_condlist(obj, section_name, "conditions", obj.str_conditions)
 	obj.respawn_radius = ini:r_float_ex(section_name, "respawn_radius", -1)
 	if obj.amk_name and obj.respawn_radius == 1 then
-		obj.respawn_radius = 170
+		obj.respawn_radius = -1
 	end
 	obj.parent = ini:r_float_ex(section_name, "parent", nil)
 	obj.item_spawn = ini:r_bool_ex(section_name, "item_spawn", false)
