@@ -330,20 +330,22 @@ function se_respawn:spawn()
 			v = self.spawned_obj[i]
 			obj = AI:object(v)
 
-			if obj ~= nil then
-				if (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) then
-					if obj:alive() ~= true then
-						table.remove(self.spawned_obj, i)
-					--	log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
-					end
-				else
-				else
+			if obj == nil then
+				table.remove(self.spawned_obj, i)
+			--	log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
+			elseif self.parent then
+				if obj.parent_id ~= parentid then
 					table.remove(self.spawned_obj, i)
 				--	log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 				end
+			elseif (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) then
+				if obj:alive() ~= true then
+					table.remove(self.spawned_obj, i)
+					--	log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
+				end
 			else
 				table.remove(self.spawned_obj, i)
-			--	log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
+				--	log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 			end
 		end 
 	end
