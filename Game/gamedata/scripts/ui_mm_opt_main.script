@@ -285,6 +285,7 @@ function options_dialog:GameSetupMenuLoad()
 	self.transparent_treasure:SetCheck    ( game_options.TrTrs )
 	self.horrortime:SetCheck              ( game_options.HorrorTime )
 	self.turrets:SetCheck                 ( game_options.Turrets )
+	self.rep_limit:SetCheck               ( game_options.RepairLimit )
 
 	self.trade_cond:SetCheck              ( game_options.TradeCondition )
 	self.untrade_belt_slots:SetCheck      ( game_options.UntradeSlotsAndBelt )
@@ -315,6 +316,7 @@ function options_dialog:GameSetupMenuLoad()
 
 	self.userName:SetText                 ( user_name() )
 	self.time_factor:SetValue             ( level.present() and level.get_time_factor() or sys_ini:r_u32( "alife", "time_factor" ) )
+	self.actor_accel:SetValue             ( game_options.ActorAccel )
 
 	self.saves_count:SetValue             ( game_options.LastSavesCount )
 	self.save_rename:SetCheck             ( game_options.SaveRen )
@@ -355,6 +357,7 @@ function options_dialog:GameSetupMenuSave()
 	game_options.TrTrs                = self.transparent_treasure:GetCheck()
 	game_options.HorrorTime           = self.horrortime:GetCheck()
 	game_options.Turrets              = self.turrets:GetCheck()
+	game_options.RepairLimit          = self.rep_limit:GetCheck()
 
 	game_options.TradeCondition       = self.trade_cond:GetCheck()
 	game_options.UntradeSlotsAndBelt  = self.untrade_belt_slots:GetCheck()
@@ -397,6 +400,8 @@ function options_dialog:GameSetupMenuSave()
 	game_options.RunnerForever        = self.runner_frvr:GetCheck()
 	game_options.NewTreasures         = self.smart_treasures:GetCheck()
 
+	game_options.ActorAccel           = self.actor_accel:GetValue()
+
 	user_name( self.userName:GetText() )
 
 	ui_mm_opt_add.SetUserText( self.prev_buy, self.buy:GetText(), "buy" )
@@ -424,6 +429,7 @@ function options_dialog:GameSetupMenuSave()
 				_G[v].on_options_change()
 			end
 		end
+		xr_actor.set_walk_accel(game_options.ActorAccel)
 	end
 	
 	game_options.save_game_options()
