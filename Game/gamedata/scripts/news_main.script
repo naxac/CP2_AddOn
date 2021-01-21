@@ -799,8 +799,9 @@ function show_news(text, from, timeout, showtime, section)
 --	dbglog("show_news ==> ["..timeout.."] "..from..": "..text)
 	
 	table.insert(spammers, from)
-	
-	amk.send_tip(text, from, timeout, showtime, section)
+
+	text = "%c[gray2]"..from.."\\n%c[default]"..text
+	news_manager.send_tip(text, timeout, showtime*1000, section)
 	timer_last_showed = amk.game_minutes()
 end
 
@@ -1514,9 +1515,9 @@ function check_news()
 
 	spammers = {}
 	amk.oau_reason="cn start_timer"	
-  if not has_timer("news_check") then
-    start_game_timer("news_check", 0, 0, timer_check_freq)
-  end  
+	if not has_timer("news_check") then
+		start_game_timer("news_check", 0, 0, timer_check_freq)
+	end  
 end
 
 function add_spawned_object(obj)
@@ -1733,14 +1734,14 @@ function on_daytime()
 				if (texts) then
 					local name = "[источник неизвестен]"
 					local i = 0
-					for k, v in pairs(texts) do
+					for k, v in ipairs(texts) do
 						if (comments == nil) then
 						--	local name_, sname_ = amk_names_lists.get_strings(true)
 						--	name = name_.." "..sname_
 							name = amk_names_lists.get_strings(true)
 						end
 						s_text = v
-						show_news(s_text, name, base_wait + k * 2, 5)
+						show_news(s_text, name, base_wait + k * 2, 7)
 						i = i + 1
 					end
 					if (probl and comments and news_data.comments_templates[comments] and math_random() < probl) then
@@ -1962,140 +1963,149 @@ function do_seen_monster()
 		end
 	end
 
-	if #avail > 0 then
-		local t = table_random(avail)
-		local z = news_data.do_seen_monster_templates[t]
-		local obj
-		if (z) then
-			-- Вытягиваем что надо.
-			local spawn = z.spawn
-			local text = z.text
-			if (z.author) then 
-				o_author = z.author
-				s_author = z.author
-			end
-			if (z.icon) then icon = z.icon end
-			local bInfo = true
-			local info = z.has_info
-			if (info) then				
-				local tbl = string.explode(trim(info), ",", true)
-				if #tbl>0 then
-					bInfo = false
-					for ki, vi in pairs(tbl) do
-						if has_alife_info(vi) then
-							bInfo = true
-						end
-					end
-				end
-			end
-			if (bInfo == false) then
-				if _debug == true then mylog("do_seen_monster skip - "..text)	end
-				return
-			end
-			if (text and spawn and (#spawn > 0)) then
-				local b_ok = false
-				for l,m in pairs(spawn) do
-					local class = m.class
-					local count = m.count
-					local point = m.point
-					local lv = m.lv
-					local gv = m.gv
-					if (class and count and point and lv and gv) then
-						local index
-						local new_pos, x_offset, z_offset
-						for index=1, count do
-							x_offset = math_random(5)
-							z_offset = math_random(5)
-							new_pos = vector():set( point[1], point[2], point[3])
-							new_pos.x = new_pos.x + x_offset
-							new_pos.z = new_pos.z + z_offset
-							if (point_is_far(new_pos, lv, gv, dist_far) == false) then
-								-- Слишком близко.
-								return
-							end
-							se_monster.custom_data_on_spawn = "[smart_terrains]\n".."none = true"
-							obj = AI:create(class, new_pos, lv, gv)
-							log("# [news_main.do_seen_monster] create monster for news: %s", obj:name())
-							if se_monster.custom_data_on_spawn then
-								log("~ [news_main.do_seen_monster] spawned obj is no monster: %s", obj:name())
-								se_monster.custom_data_on_spawn = nil
-							end
-							if (obj) then
-								if (o_author == "") then
-									local author = get_nearest_stalker(get_object_levelname(obj), get_object_position(obj), dist_seen, 0)
-									if (author and get_npc_name(author) ~= "") then
-										s_author = get_npc_name(author)
-										o_author = s_author
-										author_id = author.id
-									end
-								end
-								if (where == "" and string_find(text,"$where")) then
-									local m_where = get_point_description(get_object_levelname(obj), get_object_position(obj))
-									if m_where then
-										text = string_gsub(text, "$where", m_where)
-										where = m_where
-									end
-								end
-								if IAmAMonster[obj:clsid()] then
-									local tbl = netpk:get(obj, netpk.fState)
-									local cd = netpk:parse_custom_data(tbl.custom_data)
-									if not cd.smart_terrains then cd.smart_terrains={} end
-									cd.smart_terrains.none = "true"
-									-- Микроквест
-									if (z.reward and z.reward.c_min and z.reward.c_max and index == 1 and l == 1) then
-										if not cd.microquest then cd.microquest={} end
-										cd.microquest.reward_money = math_random(z.reward.c_min, z.reward.c_max) * 100
-										cd.microquest.reward_items = ""
-										local re_npc = author_id and AI:object(author_id)
-										local rank
-										if re_npc then
-											rank = ranks.get_obj_rank_name(re_npc)
-										else
-											rank = ranks.get_rank_name_by_val( math_random(100, 5000), true )
-										end
-										if (rank and news_data.miniquest_rewards[rank]) then
-											for i=1, math_random(1,3) do
-												local section = table_random(news_data.miniquest_rewards[rank])
-												if (section) then
-													if (cd.microquest.reward_items == "" or cd.microquest.reward_items == "<nil>") then
-														cd.microquest.reward_items = section
-													else
-														cd.microquest.reward_items = cd.microquest.reward_items..","..section
-													end
-													cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
-												end
-											end
-										end
-										cd.microquest.reward_from = s_author
-										cd.microquest.trader = z.reward.from
-										if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", text) end
-									end
-									tbl.custom_data = netpk:gen_custom_data(cd)
-									netpk:set(obj, tbl, netpk.fState)
-								end
-								b_ok = true
-							end
-						end					
-					end
-				end
-				if (b_ok == true) then
-					if (s_author ~= "") then
-						if author_id then
-							do_news(text, s_author, math_random(timer_spawn, timer_spawn * 3), 7, icon, author_id, 1)
-						else
-							show_news(text, s_author, math_random(timer_spawn, timer_spawn * 3), 7, icon)
-						end
-					end					
-					news_data.do_seen_monster_templates[t].enabled = false				
-					timer_def_spawn = amk.game_minutes()					
-				end
-			end
-		end
-	else
+	if #avail == 0 then
 		if _debug == true then mylog("do_seen_monster - no free news left.") end
 		for k,v in pairs(news_data.do_seen_monster_templates) do
 			v.enabled = true
 		end
+		return
+	end
+
+	local t = table_random(avail)
+	local z = news_data.do_seen_monster_templates[t]
+	-- Вытягиваем что надо.
+	local spawn = z.spawn
+	local text = z.text
+	if not (text and spawn and (#spawn > 0)) then
+		return
+	end
+
+	if (z.author) then 
+		o_author = z.author
+		s_author = z.author
+	end
+	if (z.icon) then icon = z.icon end
+	local bInfo = true
+	local info = z.has_info
+	if (info) then				
+		local tbl = string.explode(trim(info), ",", true)
+		if #tbl>0 then
+			bInfo = false
+			for ki, vi in ipairs(tbl) do
+				if has_alife_info(vi) then
+					bInfo = true
+				end
+			end
+		end
+	end
+	if (bInfo == false) then
+		if _debug == true then mylog("do_seen_monster skip - "..text)	end
+		return
+	end
+
+	local b_ok = false
+	local microquest_created = false
+	local obj
+	for l,m in ipairs(spawn) do
+		local class = m.class
+		local count = m.count
+		local point = m.point
+		local lv = m.lv
+		local gv = m.gv
+		if (class and count and point and lv and gv) then
+			local index
+			local new_pos, x_offset, z_offset
+			for index=1, count do
+				x_offset = math_random(5)
+				z_offset = math_random(5)
+				new_pos = vector():set( point[1], point[2], point[3])
+				new_pos.x = new_pos.x + x_offset
+				new_pos.z = new_pos.z + z_offset
+				if (point_is_far(new_pos, lv, gv, dist_far) == false) then
+					-- Слишком близко.
+					return
+				end
+				log("# [news_main.do_seen_monster] create monster for news: %s", class)
+				se_monster.custom_data_on_spawn = "[smart_terrains]\n".."none = true"
+				obj = AI:create(class, new_pos, lv, gv)
+				if se_monster.custom_data_on_spawn then
+					log("~ [news_main.do_seen_monster] spawned obj is no monster: %s", obj:name())
+					se_monster.custom_data_on_spawn = nil
+				end
+				if (obj) then
+					if (o_author == "") then
+						local author = get_nearest_stalker(get_object_levelname(obj), get_object_position(obj), dist_seen, 0)
+						if (author and get_npc_name(author) ~= "") then
+							s_author = get_npc_name(author)
+							o_author = s_author
+							author_id = author.id
+						end
+					end
+					if (where == "" and string_find(text,"$where")) then
+						local m_where = get_point_description(get_object_levelname(obj), get_object_position(obj))
+						if m_where then
+							text = string_gsub(text, "$where", m_where)
+							where = m_where
+						end
+					end
+					if IAmAMonster[obj:clsid()] then
+						local tbl = netpk:get(obj, netpk.fState)
+						local cd = netpk:parse_custom_data(tbl.custom_data)
+						if not cd.smart_terrains then cd.smart_terrains={} end
+						cd.smart_terrains.none = "true"
+						-- Микроквест
+						if (not microquest_created) and (z.reward and z.reward.c_min and z.reward.c_max) then
+							microquest_created = true
+							if not cd.microquest then cd.microquest={} end
+							cd.microquest.reward_money = math_random(z.reward.c_min, z.reward.c_max) * 100
+							cd.microquest.reward_items = ""
+							local re_npc = author_id and AI:object(author_id)
+							local rank
+							if re_npc then
+								rank = ranks.get_obj_rank_name(re_npc)
+							else
+								rank = ranks.get_rank_name_by_val( math_random(100, 5000), true )
+							end
+							if (rank and news_data.miniquest_rewards[rank]) then
+								for i=1, math_random(1,3) do
+									local section = table_random(news_data.miniquest_rewards[rank])
+									if (section) then
+										if (cd.microquest.reward_items == "" or cd.microquest.reward_items == "<nil>") then
+											cd.microquest.reward_items = section
+										else
+											cd.microquest.reward_items = cd.microquest.reward_items..","..section
+										end
+										cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
+									end
+								end
+							end
+							cd.microquest.reward_from = s_author
+							cd.microquest.trader = z.reward.from
+							if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", text) end
+						end
+						tbl.custom_data = netpk:gen_custom_data(cd)
+						netpk:set(obj, tbl, netpk.fState)
+					end
+					b_ok = true
+				end
+			end					
+		end
+	end
+	if (b_ok == true) then
+		if (s_author ~= "") then
+			if microquest_created then
+				-- сообщение о микроквесте будем выводить независимо от очереди,
+				-- чтобы наверняка не потерялось после перезагрузки
+				text = "%c[gray2]"..s_author.."\\n%c[default]"..text
+				news_manager.send_tip(text, math_random(timer_spawn, timer_spawn * 3), 7000, icon)
+			elseif author_id then
+				do_news(text, s_author, math_random(timer_spawn, timer_spawn * 3), 7, icon, author_id, 1)
+			else
+				show_news(text, s_author, math_random(timer_spawn, timer_spawn * 3), 7, icon)
+			end
+		end					
+		news_data.do_seen_monster_templates[t].enabled = false				
+		timer_def_spawn = amk.game_minutes()					
 	end
 end
 
@@ -2308,36 +2318,43 @@ function on_news()
 	local avail = {}
 	if news_stack then 
 		amk.oau_reason="cn on_news first pass"
-		for k,v in pairs(news_stack) do
-			if v.activated == nil then
-				if (v.lifetime <= amk.game_minutes()) then
-					-- Новость устарела.
-						-- mylog("Too old - "..v.from..": "..v.text)
-					table_remove(news_stack, k)
+		local v
+		if #news_stack > 0 then
+			for i = #news_stack, 1, -1 do
+				v = news_stack[i]
+				if v.activated == nil then
+					if (v.lifetime <= amk.game_minutes()) then
+						-- Новость устарела.
+							-- mylog("Too old - "..v.from..": "..v.text)
+						table_remove(news_stack, i)
+					end
+				else -- Новость уже была.
+					table_remove(news_stack, i)
 				end
-			else -- Новость уже была.
-				table_remove(news_stack, k)
 			end
 		end
-		amk.oau_reason="cn on_news sort"
-		-- Отсортируем.
-		table_sort(news_stack, news_sort)
-		--amk.dump_table(news_stack)
-		amk.oau_reason="cn on_news second pass"
-		for k,v in pairs(news_stack) do
-			if v.activated == nil then
-				if (v.lifetime > amk.game_minutes()) then
-					if (v.timeout < amk.game_minutes()) then -- Новость актуальна.
-						table.insert(avail, k)
-					else
-						if _debug == true then mylog("Not ready yet - ".. v.from..": "..v.text) end -- Еще не время.
-					end
-				else -- Новость устарела.
+		if #news_stack > 0 then
+			amk.oau_reason="cn on_news sort"
+			-- Отсортируем.
+			table_sort(news_stack, news_sort)
+			--amk.dump_table(news_stack)
+			amk.oau_reason="cn on_news second pass"
+			for i = #news_stack, 1, -1 do
+				v = news_stack[i]
+				if v.activated == nil then
+					if (v.lifetime > amk.game_minutes()) then
+						if (v.timeout < amk.game_minutes()) then -- Новость актуальна.
+							table.insert(avail, i)
+						else
+					--		if _debug == true then mylog("Not ready yet - ".. v.from..": "..v.text) end -- Еще не время.
+						end
+					else -- Новость устарела.
 						if _debug == true then mylog("Too old - "..v.from..": "..v.text) end
-					table_remove(news_stack, k)
+						table_remove(news_stack, i)
+					end
+				else -- Новость уже была.
+					table_remove(news_stack, i)
 				end
-			else -- Новость уже была.
-				table_remove(news_stack, k)
 			end
 		end
 	end
@@ -2345,41 +2362,45 @@ function on_news()
 	if avail and #avail > 0 then
 		amk.oau_reason="cn on_news get available"
 		--local t = avail[math_random(#avail)]
-		local t = avail[1]
-		local z = news_stack[t]
-		if (z) then
-			local bAlive = false
-			local m_author_id = tonumber(z.author_id)
-			if (m_author_id ~= nil) then
-				amk.oau_reason="cn on_news check author"
-				bAlive = false
-				local obj = AI:object(m_author_id)
-				amk.oau_reason="cn on_news check author obj"
-				if (obj) then
-					amk.oau_reason="cn on_news author obj exists"
-					if (IAmAStalker[obj:clsid()]) then
-						amk.oau_reason="cn on_news author obj is NPC"
-						if IsNpcStalker(obj) then
-							amk.oau_reason="cn on_news check author alive"
-					if (obj.alive and obj:alive()==true and obj.health and obj:health() > 0) then
-						if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", z.from..": "..z.text) end
-								amk.oau_reason="cn on_news author is alive"
-						bAlive = true
+		local tmt = 0
+		for i, t in ipairs(avail) do
+			local z = news_stack[t]
+			if (z) then
+				local bAlive = false
+				local m_author_id = tonumber(z.author_id)
+				if (m_author_id ~= nil) then
+					amk.oau_reason="cn on_news check author"
+					bAlive = false
+					local obj = AI:object(m_author_id)
+					amk.oau_reason="cn on_news check author obj"
+					if (obj) then
+						amk.oau_reason="cn on_news author obj exists"
+						if (IAmAStalker[obj:clsid()]) then
+							amk.oau_reason="cn on_news author obj is NPC"
+							if IsNpcStalker(obj) then
+								amk.oau_reason="cn on_news check author alive"
+								if (obj.alive and obj:alive()==true and obj.health and obj:health() > 0) then
+									if (_debug == true) then amk.add_spot_on_map(obj.id, "red_location", z.from..": "..z.text) end
+									amk.oau_reason="cn on_news author is alive"
+									bAlive = true
+								end
+							end
+						end
 					end
+				else
+					bAlive = true
 				end
-					end
+				if (bAlive == true) then
+					amk.oau_reason="cn on_news show_news"
+					--show_news(z.from, z.text, z.timeout, z.showtime, z.section)
+					-- show_news(z.text, z.from, 0, z.showtime, z.section)
+					show_news(z.text, z.from, tmt, z.showtime, z.section)
+					tmt = tmt + 9
+					amk.oau_reason="cn on_news set activated"
+					z.activated = amk.game_minutes()
+				else
+					amk.oau_reason="cn on_news show_news alive is false"
 				end
-			else
-				bAlive = true
-			end
-			if (bAlive == true) then
-				amk.oau_reason="cn on_news show_news"
-				--show_news(z.from, z.text, z.timeout, z.showtime, z.section)
-				show_news(z.text, z.from, 0, z.showtime, z.section)
-				amk.oau_reason="cn on_news set activated"
-				z.activated = amk.game_minutes()
-			else
-				amk.oau_reason="cn on_news show_news alive is false"
 			end
 		end
 	else
