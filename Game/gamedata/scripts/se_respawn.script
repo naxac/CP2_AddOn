@@ -10,7 +10,8 @@ by Stohe (Диденко Руслан)
 local section_name = "respawn"
 local i,k,v = 0,0,0
 
---[[ Таблица ограничений на спаун: всего в симуляции не должно быть больше, чем указано.
+--[[---------------------------------------------------------------------------
+-- Таблица ограничений на спаун: всего в симуляции не должно быть больше, чем указано.
 local simMaxCount = {
 	stalker_novice = 30, stalker_regular = 35, stalker_veteran = 35, stalker_master = 35,
 	monolith_novice = 10, monolith_regular = 35, monolith_veteran = 39, monolith_master = 45,
@@ -44,7 +45,7 @@ local simMaxCount = {
 	bloodsucker_weak = 18, bloodsucker_normal = 60, bloodsucker_strong = 27,
 	fracture_weak = 5, fracture_normal = 7, fracture_strong = 9
 }
-]]
+--]]---------------------------------------------------------------------------
 
 local idle_spawn_preset = {
 	seldom = 60*60*96,
@@ -53,6 +54,7 @@ local idle_spawn_preset = {
 	once   = -100000
 }
 local idle_spawn_rnd = 4*60*60
+local def_idle_spawn_min = 12*60*60
 
 -- Список респавнеров, для сбора статистики
 local respawners = {}
@@ -274,7 +276,7 @@ function se_respawn:create(prob)
 		if self.creature_binded_logic then	-- AMK respawners
 			self.custom_data_on_spawn =	"[smart_terrains]\nnone = true\n"..
 										"[logic]\ncfg = scripts\\amk\\"..self.creature_binded_logic..".ltx"
-			-- log("# [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
+			log("# [se_respawn:create] create object with amk-logic '%s'", self.creature_binded_logic)
 			se_monster.custom_data_on_spawn = self.custom_data_on_spawn
 		end
 		obj = AI:create(spawn_section, 
@@ -314,7 +316,7 @@ function se_respawn:create(prob)
 	end
 
 	table.insert(self.spawned_obj ,obj.id)
-	-- log( "# Spawn info: [%s] -> %s[%s]", self:name(), tostring(#self.spawned_obj), obj:name() )
+	log( "# Spawn info: [%s] -> %s[%s]", self:name(), tostring(#self.spawned_obj), obj:name() )
 	return true
 end
 -- Попытка спаунить объекты. Анализируется сколько уже заспавнено и выбирается один из механизмов - либо 
@@ -332,20 +334,20 @@ function se_respawn:spawn()
 
 			if obj == nil then
 				table.remove(self.spawned_obj, i)
-				-- log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
+				log( "~ remove from respawn [%s], object: %s", self:name(), "nil" )
 			elseif self.parent then
 				if obj.parent_id ~= parentid then
 					table.remove(self.spawned_obj, i)
-					-- log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
+					log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 				end
 			elseif (IAmAStalker[obj:clsid()] or IAmAMonster[obj:clsid()]) then
 				if obj:alive() ~= true then
 					table.remove(self.spawned_obj, i)
-					-- log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
+					log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 				end
 			else
 				table.remove(self.spawned_obj, i)
-				-- log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
+				log( "~ remove from respawn [%s], object: %s", self:name(), obj:name() )
 			end
 		end 
 	end
@@ -403,10 +405,12 @@ function se_respawn:execute()
 		local idle_time = game.CTime()
 		local now = game.get_game_time()
 
-		local msec = math.random(self.idle_spawn_min, self.idle_spawn_max)*1000
+		local msec = 0
 		-- частый респаун
 		if game_options.FastRespawn then
-			msec = msec/2
+			msec = 12*60*60*1000
+		else
+			msec = math.random(self.idle_spawn_min, self.idle_spawn_max)*1000
 		end
 		idle_time:setHMSms( 0, 0, 0, msec)
 		self.respawn_time = now + idle_time
@@ -599,11 +603,11 @@ function init_respawn_params(obj)
 	obj.max_spawn = ini:r_float_ex(section_name, "max_spawn", 1)
 
 	local mn, mx = r_2nums(ini, section_name, "idle_spawn")
-	if mn == nil then
+	if not mn then
 		abort("RESPAWN: [%s] field 'idle_spawn' doesn't exist.", obj:name())
 	end
 	-- check "once" or <0
-	obj.idle_spawn_min = idle_spawn_preset[mn] or tonumber(mn) or 1
+	obj.idle_spawn_min = idle_spawn_preset[mn] or tonumber(mn) or def_idle_spawn_min
 	obj.idle_spawn_max = mx and (idle_spawn_preset[mx] or tonumber(mx))
 	if (not obj.idle_spawn_max) or obj.idle_spawn_max <= obj.idle_spawn_min then
 		obj.idle_spawn_max = obj.idle_spawn_min + math.random(1, idle_spawn_rnd)
@@ -612,7 +616,7 @@ function init_respawn_params(obj)
 	obj.str_conditions = ini:r_string_ex(section_name, "conditions", 100) 
 	obj.conditions = xr_logic.parse_condlist(obj, section_name, "conditions", obj.str_conditions)
 	obj.respawn_radius = ini:r_float_ex(section_name, "respawn_radius", -1)
-	if obj.amk_name and obj.respawn_radius == 1 then
+	if obj.amk_name and obj.respawn_radius == 1 then	-- FIX
 		obj.respawn_radius = -1
 	end
 	obj.parent = ini:r_float_ex(section_name, "parent", nil)
