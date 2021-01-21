@@ -1662,28 +1662,38 @@ function add_killed_by_actor(obj)
 	end	
 end
 
+local convert_weather_tbl = {
+	["beta"] = "clear",
+	["dry"] = "clear",
+	["foggy"] = "fog",
+	["rainy"] = "rain",
+	["grey"] = "pasmurno",
+	["stormy"] = "pasmurno",
+	["thunder"] = "groza"
+}
 function on_weather_change(old_weather, new_weather)
+	log("# [news_main.on_weather_change]: %s -> %s", tostring(old_weather), tostring(new_weather))
 -- clear, pasmurno, rain, groza
-	if (old_weather and new_weather) then
-		if (amk.game_minutes() - timer_weather_showed > timer_weather_freq) then	
-			local s_weather = old_weather.."_"..new_weather
-			local m_h = level:get_time_hours()
-			local s_list = nil
-			if m_h >= 6 and m_h < 21 then
-				s_list = news_data.weather_templates_day
-			else
-				s_list = news_data.weather_templates_night
-			end
-			if (s_list and s_list[s_weather]) then
-				local s_text = s_list[s_weather][math_random(#s_list[s_weather])]
-				if (math_random() < prob) then
-				--	local name, sname = amk_names_lists.get_strings()
-					--mylog("on_weather_change ["..s_weather.."] "..s_text)
-				--	show_news(s_text, name.." "..sname, math_random(timer_weather, timer_weather * 5), 15, "gen_info")
-					local name = amk_names_lists.get_strings()
-					show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
-					timer_weather_showed = amk.game_minutes()
-				end
+	old_weather = convert_weather_tbl[ string.match(old_weather, "^[^_]+") ]
+	new_weather = convert_weather_tbl[ string.match(new_weather, "^[^_]+") ]
+	if not (old_weather and new_weather) then return end
+	log("old_weather: %s, new_weather: %s", old_weather, new_weather)
+
+	if (amk.game_minutes() - timer_weather_showed > timer_weather_freq) then	
+		local s_weather = old_weather.."_"..new_weather
+		local m_h = level:get_time_hours()
+		local s_list = nil
+		if m_h >= 6 and m_h < 21 then
+			s_list = news_data.weather_templates_day
+		else
+			s_list = news_data.weather_templates_night
+		end
+		if s_list[s_weather] then
+			local s_text = table.random(s_list[s_weather])
+			if (math_random() < prob) then
+				local name = amk_names_lists.get_strings(true)
+				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
+				timer_weather_showed = amk.game_minutes()
 			end
 		end
 	end
