@@ -41,19 +41,17 @@ end
 
 class "CTreasure"
 function CTreasure:__init()
-	--' На конструкторе вычитываем LTX и создаем заготовки квестов.
 	self.ini = ini_file("misc\\treasure_manager.ltx")
 
-	--' Итерируемся по всем настройкам фраз
-	if not self.ini:section_exist("list") then
-		abort("There is no section [list] in treasure_manager.ltx")
-	end
+	ASSERT(self.ini:section_exist("list"), "There is no section [list] in treasure_manager.ltx")
 	
 	local n = self.ini:line_count("list")
 	local result, id, value = 0,"",""
 
 	--' начальная установка
 	self.treasure_info = {}
+	--' Вспомогательные таблицы для облегчения поиска
+	self.treasure_by_target = {}
 
 	for i=0,n-1 do
 		result, id, value	= self.ini:r_line("list",i,"","")
@@ -69,15 +67,10 @@ function CTreasure:__init()
 		t.done = false
 
 		if t.target > 65535 then	-- вдруг забуду
-			log("[CTreasure:__init]: treasure %s story_id [%s]: it more than 65535! It cannot be saved!", id, t.target)
+			abort("[CTreasure:__init]: treasure %s story_id [%s]: it more than 65535! Cannot be saved!", id, t.target)
 		end
 		--print_table(self.treasure_info)
-	end
-
-	--' Вспомогательные таблицы для облегчения поиска
-	self.treasure_by_target = {}
-	for k,v in pairs(self.treasure_info) do
-		self.treasure_by_target[v.target] = k	
+		self.treasure_by_target[t.target] = id
 	end
 
 	self.used_npc = {}
@@ -101,12 +94,6 @@ function CTreasure:use(npc)
 
 	lootmoney.lootmoney(npc)
 
-	if npc ~= nil then
-		self.npc_rank = npc:character_rank()
-	else 
-		self.npc_rank = nil
-	end
-
 	local rarets
 	-- если выбран редкий тип тайников, то снизим вероятность его выпадения
 	if game_options.AmkTrs == 2 then 
@@ -119,6 +106,18 @@ function CTreasure:use(npc)
 		return
 	end
 
+--	if math.random(100) < 50 then
+		self:process_treasure(npc)
+--	end
+end
+
+function CTreasure:process_treasure(npc)
+	if npc ~= nil then
+		self.npc_rank = npc:character_rank()
+	else 
+		self.npc_rank = nil
+	end
+
 	--' Нужно рандомно выбрать один из тайников.
 	local avail = {}
 	local tr_sum = 0
@@ -128,17 +127,16 @@ function CTreasure:use(npc)
 	local parse_condlist = xr_logic.parse_condlist
 
 	for k,v in pairs(self.treasure_info) do
-		if v.active == false and v.done == false then
+		if not (v.active or v.done) then
 			treasure_prob = pick_section_from_condlist(Actor, npc,
-				parse_condlist(Actor, "treasure_manager", "condlist", self.ini:r_string_ex(k, "condlist", ""))
+				parse_condlist(Actor, "treasure_manager", "condlist",
+					self.ini:r_string_ex(k, "condlist", "")
+				)
 			)
 
-			if treasure_prob == "" or treasure_prob == nil then
-				treasure_prob = 0
-			end
-
-			if tonumber(treasure_prob) >= 0 then
-				if tonumber(treasure_prob) == 100 then
+			treasure_prob = tonumber(treasure_prob) or 0
+			if treasure_prob >= 0 then
+				if treasure_prob == 100 then
 					self:give_treasure(k)
 				else
 					table.insert(avail, {k = k, prob = treasure_prob})
@@ -148,11 +146,7 @@ function CTreasure:use(npc)
 		end
 	end
 
-	if tr_sum == 0
-		or math.random(100) < 50
-	then
-		return
-	end
+	if tr_sum == 0 then return end
 
 	local tr_w = math.random(tr_sum)
 	local v
@@ -341,58 +335,6 @@ function CTreasure:give_item_list()
 	return ret
 end
 
-function CTreasure:dialog(npc)
-	if npc ~= nil then
-		self.npc_rank = npc:character_rank()
-	else 
-		self.npc_rank = nil
-	end
-
-	local avail = {}
-	local tr_sum = 0
-	local treasure_prob
-	
-	local pick_section_from_condlist = xr_logic.pick_section_from_condlist
-	local parse_condlist = xr_logic.parse_condlist
-
-	for k,v in pairs(self.treasure_info) do
-		if v.active == false and v.done == false then
-			treasure_prob = pick_section_from_condlist(
-				Actor, npc,
-				parse_condlist(
-					Actor, "treasure_manager", "condlist",
-					self.ini:r_string_ex(k, "condlist", "")
-				)
-			)
-			if treasure_prob == "" or treasure_prob == nil then
-				treasure_prob = 0
-			end
-			if tonumber(treasure_prob) >= 0 then
-				if tonumber(treasure_prob) == 100 then
-					self:give_treasure(k)
-				else
-					table.insert(avail, {k = k, prob = treasure_prob})
-					tr_sum = tr_sum + treasure_prob
-				end
-			end
-		end
-	end
-	if tr_sum == 0 then
-		return
-	end
-
-	local tr_w = math.random(tr_sum)
-	local v
-	while #avail > 0 do
-		v = table.remove( avail, math.random( #avail ) )
-		tr_w = tr_w - v.prob
-		if tr_w <= 0 then
-			self:give_treasure(v.k)
-			break
-		end
-	end
-end
-
 -----------------------------------------------------------------------------------------
 function get_treasure_manager()
 	if treasure_manager == nil then
@@ -428,11 +370,11 @@ function is_active_treasure(box_story_id)
 	return false
 end
 
-function give_random_tresure()
+function give_random_treasure()
 	local mgr = get_treasure_manager()
 	local tmp = {}
 	for k, v in pairs(mgr.treasure_info) do
-		if not (v.active or v.named) then
+		if not (v.active or v.done or v.named) then
 			table.insert(tmp, k)
 		end
 	end
