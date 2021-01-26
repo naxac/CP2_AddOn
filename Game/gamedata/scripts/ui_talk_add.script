@@ -1,0 +1,30 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local use_key = nil
+local quit_key = nil
+
+function on_talk_open()
+	use_key = bind_to_dik( key_bindings.kUSE )
+	quit_key = bind_to_dik( key_bindings.kQUIT )
+	local console = get_console()
+	console:execute("unbind quit")
+	console:execute("unbind_sec quit")
+	console:execute("unbind use")
+	console:execute("unbind_sec use")
+end
+
+function on_talk_close()
+	local console = get_console()
+
+	local key = hotkeys.dik2key( quit_key )
+	if not key:find("MOUSE") then key = "k"..key end
+	console:execute( "bind quit "..string.lower( key ) )
+
+	key = hotkeys.dik2key( use_key )
+	if not key:find("MOUSE") then key = "k"..key end
+	console:execute( "bind use "..string.lower( key ) )
+end
+
+function attach()
+	xr_s.subscribe( "talk_open", this.on_talk_open )
+	xr_s.subscribe( "talk_close", this.on_talk_close )
+end
