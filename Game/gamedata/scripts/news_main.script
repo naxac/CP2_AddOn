@@ -25,7 +25,6 @@ local timer_heli 				= 10	-- При замеченном вертолетике
 
 local timer_last_showed 		= 0 	-- Последняя показанная новость
 local timer_show_freq 			= 6		-- Сколько ждать между новостями минимально (игровые минуты)
-local time_factor 				= 1
 local timer_next_blow 			= 0			-- Тамер до след. выброса
 local timer_blow_showed			= 0			-- Последняя показанная новость о Выбросе
 local timer_blow_freq 			= 10 * 60  	-- Как часто новости о Выбросе показывать (игровые минуты)
@@ -65,9 +64,6 @@ local dist_heli_seen = 400
 local dist_hear_min = 50
 local dist_hear_max = 400
 
-local rel_enemy = -1000
-local rel_friend = 1000
-
 news_stack = {}
 table_spawned = {}
 table_killed_by_actor = {}
@@ -79,7 +75,7 @@ function init()
 
 		-- Реально в игре проходит timer_check_freq * 1000 * 60 * level.get_time_factor() секунд
 		-- Реально проходит х секунд
-		timer_last_showed = amk.game_minutes()
+		timer_last_showed = game_time_minutes
 		timer_random_spawn = timer_last_showed - math_random(timer_random_spawn_freq)
 		timer_def_spawn = timer_last_showed - math_random(timer_def_spawn_freq)
 		timer_eternal_stalker = timer_last_showed - math_random(timer_eternal_stalker_freq)
@@ -88,9 +84,6 @@ function init()
 		timer_alife_showed = timer_last_showed - math_random(timer_alife_freq)
 		timer_weather_showed = timer_last_showed - math_random(timer_weather_freq)
 		timer_daytime_showed = timer_last_showed - math_random(timer_daytime_freq)
-		
-		rel_enemy = sys_ini:r_float("game_relations", "goodwill_enemy")
-		rel_friend = sys_ini:r_float("game_relations", "goodwill_friend")
 
 	    if not has_timer("news_check") then
 			start_game_timer("news_check", 0, 0, timer_check_freq)
@@ -744,13 +737,13 @@ end
 function add_news(news_text, news_from, news_type, news_timeout, news_showtime, news_section, author_id, priority)
 	newsitem = {
 		eventType = news_type,
-		created = amk.game_minutes(),
+		created = game_time_minutes,
 		text = news_text,
 		from = news_from,
-		timeout = amk.game_minutes() + (news_timeout / 60),
+		timeout = game_time_minutes + (news_timeout / 60),
 		showtime = news_showtime,
 		section = news_section,
-		lifetime = amk.game_minutes() + (news_timeout / 60) + 20,
+		lifetime = game_time_minutes + (news_timeout / 60) + 20,
 		activated = nil,
 		author_id = tonumber(author_id),
 		priority = priority
@@ -768,11 +761,10 @@ function show_news(text, from, timeout, showtime, section)
 	local blow = amk.load_variable("blowout",-1)
 	if blow > -1 and blow < 5 then return end	
 
-	local now = amk.game_minutes()
 	local diff = 0
 	if (timer_next_blow ~= 0) then	
-		diff = (timer_next_blow - now) * 60 -- Разница в игровых секундах.
-		local eventtime = timeout * time_factor -- Сколько пройдет игровых минут
+		diff = (timer_next_blow - game_time_minutes) * 60 -- Разница в игровых секундах.
+		local eventtime = timeout * level.get_time_factor() -- Сколько пройдет игровых минут
 		--trace("show_news: diff="..diff.." eventtime="..eventtime.." ["..timeout.."]")
 		--flushlog()
 		if eventtime >= diff then return end
@@ -786,8 +778,8 @@ function show_news(text, from, timeout, showtime, section)
 	table.insert(spammers, from)
 
 	text = "%c[gray2]"..from.."\\n%c[default]"..text
-	news_manager.send_tip(text, timeout, showtime*1000, section)
-	timer_last_showed = amk.game_minutes()
+	news_manager.send_tip(text, timeout, section, showtime*1000)
+	timer_last_showed = game_time_minutes
 end
 
 function format_death_by_monster(obj)
@@ -1492,7 +1484,7 @@ function check_news()
 		table_killed_by_actor = {}
 	end
 	
-	if (timer_last_showed + timer_show_freq < amk.game_minutes()) then
+	if (timer_last_showed + timer_show_freq < game_time_minutes) then
 		-- Пора показывать, если есть что.
 		amk.oau_reason="cn on_news"
 		on_news()
@@ -1649,7 +1641,7 @@ function add_killed_by_actor(obj)
 end
 
 local convert_weather_tbl = {
-	["beta"] = "clear",
+--	["beta"] = "clear",
 	["dry"] = "clear",
 	["foggy"] = "fog",
 	["rainy"] = "rain",
@@ -1687,7 +1679,7 @@ end
 
 function on_daytime()
 -- ночь, рассвет, закат...
-	if (amk.game_minutes() - timer_daytime_showed > timer_daytime_freq) then
+	if (game_time_minutes - timer_daytime_showed > timer_daytime_freq) then
 		local m_h = level:get_time_hours()
 		local m_m = level:get_time_minutes()
 		local m_t = m_h * 60 + m_m
@@ -1698,7 +1690,7 @@ function on_daytime()
 				s_text = news_data.morning_templates[math_random(#news_data.morning_templates)]
 				local name = amk_names_lists.get_strings(true)
 				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
-				timer_daytime_showed = amk.game_minutes()
+				timer_daytime_showed = game_time_minutes
 			end
 		elseif(m_t >= 20*60+30 and m_t <= 22*60) then 
 			-- 20:30 - 22:00 Закат
@@ -1706,7 +1698,7 @@ function on_daytime()
 				s_text = table_random(news_data.evening_templates)
 				local name = amk_names_lists.get_strings(true)
 				show_news(s_text, name, math_random(timer_weather, timer_weather * 5), 7)
-				timer_daytime_showed = amk.game_minutes()
+				timer_daytime_showed = game_time_minutes
 			end
 		elseif(m_t >= 23*60 and m_t <= 24*60) or (m_t >= 0*60 and m_t <= 4*60) then 
 			--23:00 - 04:00 Ночь			
@@ -1734,7 +1726,7 @@ function on_daytime()
 						local name = amk_names_lists.get_strings(true)
 						show_news(s_text, name, base_wait + (i+1) * 3, 7)
 					end
-					timer_daytime_showed = amk.game_minutes()
+					timer_daytime_showed = game_time_minutes
 				end				 
 			end
 			
@@ -1806,7 +1798,7 @@ end
 
 -- где-то веролет дает прикурить (heli_combat:round, heli_combat.heli_combat:search, heli_combat.heli_combat:flyby)
 function on_heli_combat(obj)
-	if (obj and amk.game_minutes() - timer_heli_showed > timer_heli_freq) then	
+	if (obj and game_time_minutes - timer_heli_showed > timer_heli_freq) then	
 		if (math_random() < 0.5) then -- Не надо слишком часть о вертолетике сообщать
 			if (math_random() < prob) then
 			--	local name, sname = amk_names_lists.get_strings()
@@ -1821,7 +1813,7 @@ function on_heli_combat(obj)
 				end
 				--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
 				do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
-				timer_heli_showed = amk.game_minutes()
+				timer_heli_showed = game_time_minutes
 			end
 		end
 	end
@@ -1829,7 +1821,7 @@ end
 
 -- видели вертолет
 function on_heli_seen(obj)
-	if (obj and amk.game_minutes() - timer_heli_showed > timer_heli_freq) then
+	if (obj and game_time_minutes - timer_heli_showed > timer_heli_freq) then
 		if (math_random() < prob) then
 		--	local name, sname = amk_names_lists.get_strings()
 			local s_author = amk_names_lists.get_strings()	--name.." "..sname
@@ -1843,14 +1835,14 @@ function on_heli_seen(obj)
 			end
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
 			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
-			timer_heli_showed = amk.game_minutes()
+			timer_heli_showed = game_time_minutes
 		end
 	end
 end
 
 -- подбили вертолет
 function on_heli_flame(obj)
-	if (obj and amk.game_minutes() - timer_heli_showed > timer_heli_freq) then	
+	if (obj and game_time_minutes - timer_heli_showed > timer_heli_freq) then	
 		if (math_random() < prob) then
 		--	local name, sname = amk_names_lists.get_strings()
 			local s_author = amk_names_lists.get_strings()	--name.." "..sname
@@ -1864,14 +1856,14 @@ function on_heli_flame(obj)
 			end
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
 			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
-			timer_heli_showed = amk.game_minutes()
+			timer_heli_showed = game_time_minutes
 		end
 	end
 end
 
 -- упал вертолет
 function on_heli_die(obj)
-	if (obj and amk.game_minutes() - timer_heli_showed > timer_heli_freq) then	
+	if (obj and game_time_minutes - timer_heli_showed > timer_heli_freq) then	
 		if (math_random() < prob) then
 		--	local name, sname = amk_names_lists.get_strings()
 			local s_author = amk_names_lists.get_strings()	--name.." "..sname
@@ -1885,14 +1877,14 @@ function on_heli_die(obj)
 			end			
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
 			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
-			timer_heli_showed = amk.game_minutes()
+			timer_heli_showed = game_time_minutes
 		end
 	end
 end
 
 -- улетел вертолетик
 function on_heli_retreat(obj)
-	if (obj and amk.game_minutes() - timer_heli_showed > timer_heli_freq) then	
+	if (obj and game_time_minutes - timer_heli_showed > timer_heli_freq) then	
 		if (math_random() < prob) then
 		--	local name, sname = amk_names_lists.get_strings()
 			local s_author = amk_names_lists.get_strings()	-- name.." "..sname
@@ -1906,7 +1898,7 @@ function on_heli_retreat(obj)
 			end			
 			--show_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 15, "gen_info")
 			do_news(m_str, s_author, math_random(timer_heli, timer_heli * 5), 7, nil, author.id, 1)
-			timer_heli_showed = amk.game_minutes()
+			timer_heli_showed = game_time_minutes
 		end
 	end
 end
@@ -2082,7 +2074,7 @@ function do_seen_monster()
 				-- сообщение о микроквесте будем выводить независимо от очереди,
 				-- чтобы наверняка не потерялось после перезагрузки
 				text = "%c[gray2]"..s_author.."\\n%c[default]"..text
-				news_manager.send_tip(text, math_random(timer_spawn, timer_spawn * 3), 7000, icon)
+				news_manager.send_tip(text, math_random(timer_spawn, timer_spawn * 3), icon, 7000)
 			elseif author_id then
 				do_news(text, s_author, math_random(timer_spawn, timer_spawn * 3), 7, icon, author_id, 1)
 			else
@@ -2090,7 +2082,7 @@ function do_seen_monster()
 			end
 		end					
 		news_data.do_seen_monster_templates[t].enabled = false				
-		timer_def_spawn = amk.game_minutes()					
+		timer_def_spawn = game_time_minutes					
 	end
 end
 
@@ -2227,11 +2219,11 @@ function do_eternal_stalker()
 	local m_string = m_name..", "..m_level..", "..m_killer_str.."."
 	local sem_timeout = math_random(timer_stalker_death, timer_stalker_death * 5)
 	show_news(m_string, "Погиб сталкер:", sem_timeout, 5, "death")
-	timer_eternal_stalker = amk.game_minutes()
+	timer_eternal_stalker = game_time_minutes
 end
 
 function next_blow(timer)
-	timer_next_blow = amk.game_minutes() + timer
+	timer_next_blow = game_time_minutes + timer
 end
 
 --[[------------------------ новости о времени до выброса ----------------------]]
@@ -2243,8 +2235,7 @@ function do_blow_news()
 	local bl = amk.load_variable("blowout",-1)
 	if (bl > -1 and bl < 5) then return end
 
-	local m_time = amk.game_minutes()
-	local diff = (timer_next_blow - m_time) / 60 -- Разница в игровых часах
+	local diff = (timer_next_blow - game_time_minutes) / 60 -- Разница в игровых часах
 	if diff < 1 then return end
 	local item = table_random(news_data.blowout_templates)
 	local stext = item["text"]
@@ -2285,7 +2276,7 @@ function do_blow_news()
 	--	local name, sname = amk_names_lists.get_strings()
 		sfrom = amk_names_lists.get_strings(true, 'nebo', 'trader', 'green', 'stalker', 'ecolog', 'freedom', 'dolg')	--name.." "..sname					
 		show_news(stext, sfrom, math_random(10, timer_general), 5)
-		timer_blow_showed = amk.game_minutes()
+		timer_blow_showed = game_time_minutes
 	end
  end
 --[[--------------------------------- lsclon -----------------------------------]]
@@ -2308,7 +2299,7 @@ function on_news()
 			for i = #news_stack, 1, -1 do
 				v = news_stack[i]
 				if v.activated == nil then
-					if (v.lifetime <= amk.game_minutes()) then
+					if (v.lifetime <= game_time_minutes) then
 						-- Новость устарела.
 							-- mylog("Too old - "..v.from..": "..v.text)
 						table_remove(news_stack, i)
@@ -2327,8 +2318,8 @@ function on_news()
 			for i = #news_stack, 1, -1 do
 				v = news_stack[i]
 				if v.activated == nil then
-					if (v.lifetime > amk.game_minutes()) then
-						if (v.timeout < amk.game_minutes()) then -- Новость актуальна.
+					if (v.lifetime > game_time_minutes) then
+						if (v.timeout < game_time_minutes) then -- Новость актуальна.
 							table.insert(avail, i)
 						else
 					--		if _debug == true then mylog("Not ready yet - ".. v.from..": "..v.text) end -- Еще не время.
@@ -2347,8 +2338,10 @@ function on_news()
 	if avail and #avail > 0 then
 		amk.oau_reason="cn on_news get available"
 		--local t = avail[math_random(#avail)]
+		local cnt = math_random(1, 2)
 		local tmt = 0
-		for i, t in ipairs(avail) do
+		for i = 1, cnt do
+			local t = avail[i]
 			local z = news_stack[t]
 			if (z) then
 				local bAlive = false
@@ -2382,7 +2375,7 @@ function on_news()
 					show_news(z.text, z.from, tmt, z.showtime, z.section)
 					tmt = tmt + 9
 					amk.oau_reason="cn on_news set activated"
-					z.activated = amk.game_minutes()
+					z.activated = game_time_minutes
 				else
 					amk.oau_reason="cn on_news show_news alive is false"
 				end
@@ -2399,13 +2392,13 @@ function on_news()
 		timer_next_blow = (timer.time or 0)/60000
 	end
 
-    local gtime = amk.game_minutes()
+    local gtime = game_time_minutes
 	
 	if (gtime - timer_alife_showed > timer_alife_freq) then
 		amk.oau_reason="cn on_news offline_alife start"
 		amk_offline_alife.offline_alife()
 		amk.oau_reason="cn on_news offline_alife exit"
-		timer_alife_showed = amk.game_minutes()
+		timer_alife_showed = gtime
 	end
 	if (gtime - timer_blow_showed > timer_blow_freq) then
 		do_blow_news()
