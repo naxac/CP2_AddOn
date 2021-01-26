@@ -1,0 +1,48 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+
+local scroll_items = {}
+local start_pos_y = nil
+local vert_interval = 20
+
+function set_pos_indicator(st)
+	local y = start_pos_y
+	local idx = st.in_scroll
+	for i, v in ipairs(scroll_items) do
+		if i < idx then
+			y = y + v:GetHeight() + vert_interval
+		else
+			v:SetWndPos(v:GetHPos(), y)
+			break
+		end
+	end
+end
+
+function add_indicator(st)
+	if start_pos_y == nil then
+		start_pos_y = st:GetVPos()
+		xr_s.subscribe("net_destroy", this.destroy_indicators)
+	end
+	table.insert(scroll_items, st)
+	local n = #scroll_items
+	st.in_scroll = n
+	set_pos_indicator(st)
+end
+
+function remove_indicator(st)
+	ASSERT(st.in_scroll~=nil, "[ui_scroll_indicators.remove_indicator] Indicatorr can not remover because is it not added!")
+	local n = st.in_scroll
+	table.remove(scroll_items, n)
+	for i, v in ipairs(scroll_items) do
+		if i >= n then
+			v.in_scroll = i
+			set_pos_indicator(v)
+		end
+	end
+end
+
+function destroy_indicators()
+	for i = 1, #scroll_items do
+		scroll_items[i] = nil
+	end
+end
+

@@ -91,7 +91,12 @@ function update_indicator()
 
 	local clr
 	if n == 0 then
-		clr = GetARGB(0,0,0,0)
+		if get_hud():GetCustomStatic("cs_thirst") ~= nil then
+			ui_scroll_indicators.remove_indicator(icon_wnd)
+			get_hud():RemoveCustomStatic("cs_thirst")
+		end
+		icon_wnd = nil
+		return
 	else
 		local mn = tIndicatorThresholds[1]
 		local mx = tIndicatorThresholds[#tIndicatorThresholds]
@@ -107,6 +112,7 @@ function update_indicator()
 	if icon_wnd == nil then
 		local cs = get_hud():AddCustomStatic("cs_thirst", true)
 		icon_wnd = cs:wnd()
+		ui_scroll_indicators.add_indicator(icon_wnd)
 	end
 
 	icon_wnd:SetColor(clr)
