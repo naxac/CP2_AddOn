@@ -4381,13 +4381,13 @@ end
 function superzhekan_sms()
 	news_manager.send_tip(
 		"%c[gray2]СООБЩЕНИЕ СИСТЕМЫ:\\n%c[red_sms]Под действием неизвестного компонента часть патронов в рюкзаке может подвергнуться изменениям.",
-		nil, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\labux\labux_18]]
+		16, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\labux\labux_18]]
 	)
 end
 function superzhekan_sms1()
 	news_manager.send_tip(
 		"%c[gray2]$actor:\\n%c[red_sms]Клык, я к Клёнову в Варлаб. Узнал интересные сведения из записочки одной... Да, для сведения - в одной из пещерок, что на склоне холма у подбитого танка - начинается тропка в Варлаб. Это очень кстати. Попробую сейчас её отыскать.",
-		9, nil, 30000, nil, [[characters_voice\human_03\stalker\talk\labux\labux_53]]
+		16, nil, 30000, nil, [[characters_voice\human_03\stalker\talk\labux\labux_53]]
 	)
 end
 function foto_mozg_ok_sms()
@@ -6614,6 +6614,12 @@ end
 ---------------------------------------------------------------------------------------------
 --' замена патронов в кр. лесу
 function forest_del_pistonu()
+	if not inventory.search("izomorf_kristal", 1) then
+		start_real_timer("run", 5, "arhara_dialog.forest_del_pistonu()")
+		return
+	end
+	inventory.out_items("izomorf_kristal", 1)
+
 	local n = 0
 	local obj
 	Actor:iterate_inventory(function (dummy, vItem)
@@ -6624,17 +6630,12 @@ function forest_del_pistonu()
 		end
 	end,
 	Actor)
-	if n==0 then return end
-	news_manager.relocate_item(Actor, "out", "ammo_12x76_zhekan", n)
-	news_manager.relocate_item(Actor, "in", "ammo_zhekan_izomorf", n)
-	amk.spawn_ammo_in_inv("ammo_zhekan_izomorf", n)
-end
---' получим изоморфные пистоны
-function forest_izom_est(first_speaker, second_speaker)
-end
---' получим псевдоизоморф кристалл
-function psevdokristall_have(first_speaker, second_speaker)
-dialogs.relocate_item_section(second_speaker, "psevdokristall","in")
+	if n > 0 then
+		news_manager.relocate_item(Actor, "out", "ammo_12x76_zhekan", n)
+		news_manager.relocate_item(Actor, "in", "ammo_zhekan_izomorf", n)
+		amk.spawn_ammo_in_inv("ammo_zhekan_izomorf", n)
+	end
+	inventory.give_items("psevdokristall", 1)
 end
 ---------------------------------------------------------------------------------------------
 --' замена препластилина
