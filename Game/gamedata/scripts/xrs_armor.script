@@ -2,16 +2,16 @@
 -- made by xStream 03.2008
 ----------------------------------
 local table_remove = table.remove
+local table_insert = table.insert
 local math_random = math.random
 local math_floor = math.floor
 local string_find = string.find
 
 local armor_ini = ini_file("misc\\xrs_armor.ltx")
 
-local upgrade_delta = 720
 local upgrade_exp = 270
 local upgrade_phase = 0
-local stalkers = {}
+
 local upgrade_steps={
 	[0]={
 		npc_num = 15,
@@ -30,39 +30,41 @@ local upgrade_steps={
 		prb = 0.4
 	}
 }
+local upgrade_delta = 12*60/table.size(upgrade_steps)		-- игровые минуты
 local auto_upgrades = true
 local visible_auto_upgrades = false
+
 local upgrade_top_lvl={
-	l01_escape = 2,
-	l02_garbage = 2,
-	l03_agroprom = 2,
-	l03u_agr_underground=1,
-	l04_darkvalley=2,
-	l04u_labx18=2,
-	l05_bar=3,
-	l06_rostok=3,
-	l07_military=4,
-	l08_yantar=3,
-	l08u_brainlab=3,
-	l10_radar=4,
-	l10u_bunker=4,
-	l11_pripyat=4,
-	l12_stancia=4,
-	l12_stancia_2=4,
-	l12u_control_monolith=4,
-	l12u_sarcofag=4,
-	atp_for_test22=3,
-	limansk=4,
-	hospital=4,
-	generators=4,
-	warlab=4,
-	lost_village=4,
-	marsh=3,
-	dead_city=4,
-	zaton=4,
-	jupiter=4,
-	pripyat=4,
-	l41_darkscape_ogse=3
+	l01_escape            = 2,
+	l02_garbage           = 2,
+	l03_agroprom          = 2,
+	l03u_agr_underground  = 1,
+	l04_darkvalley        = 2,
+	l04u_labx18           = 2,
+	l05_bar               = 3,
+	l06_rostok            = 3,
+	l07_military          = 4,
+	l08_yantar            = 3,
+	l08u_brainlab         = 3,
+	l10_radar             = 4,
+	l10u_bunker           = 4,
+	l11_pripyat           = 4,
+	l12_stancia           = 4,
+	l12_stancia_2         = 4,
+	l12u_control_monolith = 4,
+	l12u_sarcofag         = 4,
+	atp_for_test22        = 3,
+	limansk               = 4,
+	hospital              = 4,
+	generators            = 4,
+	warlab                = 4,
+	lost_village          = 4,
+	marsh                 = 3,
+	dead_city             = 4,
+	zaton                 = 4,
+	jupiter               = 4,
+	pripyat               = 4,
+	l41_darkscape_ogse    = 4
 }
 local upgrade_over_top_chance = 0.1
 
@@ -74,15 +76,9 @@ local armors_by_visuals = {
 		stalker_bandit_master = 4,
 		stalker_bandit_exoskeleton = 4
 	},
-	sniper = {
-		stalker_bandit_veteran = 3,
-		stalker_bandit_master = 4
-	},
-	green = {
-	    hunter5 = 3,
-	    hunter4 = 3,
+	hunters = {
 		hunter1 = 3,
-		hunter3 = 3
+		hunter2 = 3
 	},
 	nebo = {
 		stalker_nebo_rukzak = 1,
@@ -113,7 +109,8 @@ local armors_by_visuals = {
 		stalker_ki_mask = 1,
 		stalker_ki_antigas = 2,
 		stalker_ki_nauchniy = 3,
-		stalker_ki_exoskeleton = 4
+		stalker_ki_exoskeleton = 4,
+		stalker_fantom_exoskeleton = 4
 	},
 	militari = {
 		stalker_militari_antigas_1 = 3,
@@ -127,6 +124,8 @@ local armors_by_visuals = {
 		stalker_mo_head1 = 1,
 		stalker_mo_nauchniy = 3,
 		stalker_mo_elite = 3,
+		tank_exo_x003 = 4,
+		act_tank = 4,
 		stalker_mo_exo = 4
 	},
 	neytral = {
@@ -157,7 +156,9 @@ local armors_by_visuals = {
 		soldier_mask = 1,
 		soldier_antigas = 2,
 		stalker_military_black = 3,
-		stalker_military_green = 3
+		stalker_military_green = 3,
+		soldier_spetsnaz = 3,
+		stalker_zp_exoskeleton = 4
 	},
 	svoboda = {
 		stalker_sv_rukzak_1_1 = 1,
@@ -166,20 +167,23 @@ local armors_by_visuals = {
 		stalker_sv_hood_91 = 2,
 		stalker_sv_nauchniy = 3,
 		stalker_sv_exoskeleton = 4
+	},
+	inkvizitors = {
+		inkvizitor_cherep = 4,
+		inkvizitor_exolight = 4,
+		inkvizitor_light = 4
 	}
 }
 
 local armors_by_community = {
 	stalker={
-		"novice","neytral"
+		"novice","neytral","inkvizitors"
 	},
 	monolith={
 		"monolit"
 	},
 	killer={
-		"killer","neytral"
-	},
-	ecolog={
+		"killer","neytral","inkvizitors"
 	},
 	dolg={
 		"dolg"
@@ -188,77 +192,24 @@ local armors_by_community = {
 		"svoboda"
 	},
 	bandit={
-		"svoboda","dolg","neytral","militari"
+		"svoboda","dolg","neytral","killer"
 	},
 	sniper={
 		"killer","neytral"
 	},
 	green={
-		"svoboda","dolg","neytral","militari"
+		"hunters","militari"
 	},
     nebo={
 		"nebo"
 	},
 	military = {
-		"militari"
+		"militari", "soldier"
 	}
-}
-
-local armor_levels={
-	green_stalker_suit = 0,
-	novice_suit = 0,
-	bandit_suit = 0,
-	bandit_black_suit = 2,
-	bandit_brown_suit = 2,
-	stalker_killer_suit = 2,
-	monolit_suit = 3,
-	specnaz_suit = 2,
-	specnaz_soldier_suit = 2,
-	stalker_suit = 2,
-	stalker_guard_suit = 2,
-	stalker_suit_m1g = 2,
-	stalker_suit_m2g = 2,
-	stalker_suit_v1 = 2,
-	stalker_suit_v1g = 2,
-	stalker_suit_v2 = 2,
-	stalker_suit_v2g = 2,
-	stalker_suit_v3 = 2,
-	stalker_suit_v3g = 2,
-	exoskelet = 4,
-	exoskelet_mo_skunk = 4,
-	exoskelet_sv_skunk = 4,
-	exoskelet_ki_skunk = 4,
-	exoskelet_ne_skunk = 4,
-	exoskelet_do_skunk = 4,
-	bandit_exoskelet = 4,
-	svoboda_light_suit = 1,
-	svoboda_heavy_suit = 2,
-	dolg_suit = 2,
-	stalker_scient_suit = 3,
-	stalker_dolg_nauchniy_suit = 3,
-	stalker_free_nauchniy_suit = 3,
-	stalker_kill_nauchniy_suit = 3,
-	stalker_mono_nauchniy_suit = 3,
-    monolit_suit_black = 3,
-	ecolog_suit = 3,
-	scientist_suit = 3,
-	scientist_white = 3,
-	stalker_military_suit = 3,
---	soldier_suit = 1,
-    nebo_light_suit = 1,
-	nebo_heavy_suit = 2,
-	nebo_nauchniy_suit = 3,
-	exoskelet_nebo = 4,
-	stalker_comander_suit = 3
 }
 
 local suits_to_visuals = {
 	stalker={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
 		novice_suit = {
 			[[novice\green_stalker_2]],
 			[[novice\green_stalker_3]],
@@ -268,12 +219,6 @@ local suits_to_visuals = {
 			[[bandit\stalker_bandit_3]],
 			[[bandit\stalker_bandit_5]],
 			[[bandit\stalker_bandit_8]]
-		},
-		bandit_brown_suit = {
-			[[bandit\stalker_bandit_veteran]]
-		},
-		bandit_black_suit = {
-			[[bandit\stalker_bandit_master]]
 		},
 		stalker_killer_suit = {
 			[[killer\stalker_ki_mask]],
@@ -288,61 +233,13 @@ local suits_to_visuals = {
 			[[soldier\soldier_antigas]],
 			[[soldier\soldier_spetsnaz]]
 		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
 		stalker_suit = {
 			[[neytral\stalker_neytral_hood_8]],
 			[[neytral\stalker_neytral_balon_8]]
 		},
-		stalker_guard_suit = {
-			[[neytral\stalker_bar_security]]
-		},
-		stalker_suit_m1g = {
-			[[neytral\stalker_neytral_hood_9]]
-		},
-		stalker_suit_m2g = {
-			[[neytral\stalker_neytral_hood_92]]
-		},
-		stalker_suit_v1g = {
-			[[neytral\stalker_2_gas]]
-		},
-		stalker_suit_v2g = {
-			[[neytral\stalker_3_gas]]
-		},
-		stalker_suit_v3g = {
-			[[neytral\stalker_4_gas]]
-		},
 		stalker_suit_v1 = {
 			[[neytral\stalker_2_mask]],
 			[[neytral\stalker_2_ochki]]
-		},
-		stalker_suit_v2 = {
-			[[neytral\stalker_3_mask]]
-		},
-		stalker_suit_v3 = {
-			[[neytral\stalker_4_ochki]]
-		},
-		exoskelet = {
-			[[neytral\stalker_neytral_exoskeleton]]
-		},
-		exoskelet_mo_skunk = {
-			[[monolit\stalker_mo_exo]]
-		},
-		exoskelet_sv_skunk = {
-			[[svoboda\stalker_sv_exoskeleton]]
-		},
-		exoskelet_ki_skunk = {
-			[[killer\stalker_ki_exoskeleton]]
-		},
-		exoskelet_ne_skunk = {
-			[[neytral\stalker_ne_exoskeleton]]
-		},
-		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
-		},
-		bandit_exoskelet = {
-			[[bandit\stalker_bandit_exoskeleton]]
 		},
 		svoboda_light_suit = {
 			[[svoboda\stalker_sv_rukzak_1_1]],
@@ -357,782 +254,210 @@ local suits_to_visuals = {
 			[[dolg\stalker_do_balon_8]],
 			[[dolg\stalker_do_mask]]
 		},
-		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
-		},
-		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
-		},
-        monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
-  
-		},
-		nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
-		},
-		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
-		},
-		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
-		},
-		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
-		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
 		stalker_military_suit = {
 			[[militari\stalker_militari_antigas_1]],
 			[[militari\stalker_militari_1]]
 		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
 		stalker_comander_suit = {
 			[[militari\stalker_militari_antigas_2]],
 			[[militari\stalker_militari_2]]
 		}
 	},
 	nebo={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-			[[bandit\stalker_bandit_3]],
-			[[bandit\stalker_bandit_5]],
-			[[bandit\stalker_bandit_8]]
-		},
-		bandit_brown_suit = {
-			[[bandit\stalker_bandit_veteran]]
-		},
-		bandit_black_suit = {
-			[[bandit\stalker_bandit_master]]
-		},
 		stalker_killer_suit = {
-			[[killer\stalker_ki_mask]],
-			[[killer\stalker_ki_antigas]]
-		},
-		monolit_suit = {
-			[[monolit\stalker_mo_mask]],
-			[[monolit\stalker_mo_hood_9]],
-			[[monolit\stalker_mo_head1]]
-		},
-                monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-			[[soldier\soldier_antigas]],
-			[[soldier\soldier_spetsnaz]]
-		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
-		stalker_suit = {
-			[[neytral\stalker_neytral_hood_8]],
-			[[neytral\stalker_neytral_balon_8]]
-		},
-		stalker_guard_suit = {
-			[[neytral\stalker_bar_security]]
-		},
-		stalker_suit_m1g = {
-			[[neytral\stalker_neytral_hood_9]]
-		},
-		stalker_suit_m2g = {
-			[[neytral\stalker_neytral_hood_92]]
-		},
-		stalker_suit_v1g = {
-			[[neytral\stalker_2_gas]]
-		},
-		stalker_suit_v2g = {
-			[[neytral\stalker_3_gas]]
-		},
-		stalker_suit_v3g = {
-			[[neytral\stalker_4_gas]]
-		},
-		stalker_suit_v1 = {
-			[[neytral\stalker_2_mask]],
-			[[neytral\stalker_2_ochki]]
-		},
-		stalker_suit_v2 = {
-			[[neytral\stalker_3_mask]]
-		},
-		stalker_suit_v3 = {
-			[[neytral\stalker_4_ochki]]
-		},
-		exoskelet = {
-			[[neytral\stalker_neytral_exoskeleton]]
-		},
-		exoskelet_mo_skunk = {
-			[[monolit\stalker_mo_exo]]
-		},
-		exoskelet_sv_skunk = {
-			[[svoboda\stalker_sv_exoskeleton]]
-		},
-		exoskelet_ki_skunk = {
-			[[killer\stalker_ki_exoskeleton]]
-		},
-		exoskelet_ne_skunk = {
-			[[neytral\stalker_ne_exoskeleton]]
-		},
-		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
-		},
-		bandit_exoskelet = {
-			[[bandit\stalker_bandit_exoskeleton]]
-		},
-		svoboda_light_suit = {
-			[[svoboda\stalker_sv_rukzak_1_1]],
-			[[svoboda\stalker_sv_rukzak_3_1]]
-		},
-		svoboda_heavy_suit = {
-			[[svoboda\stalker_sv_hood_9]],
-			[[svoboda\stalker_sv_hood_91]]
-		},
-		dolg_suit = {
-			[[dolg\stalker_do_antigas]],
-			[[dolg\stalker_do_balon_8]],
-			[[dolg\stalker_do_mask]]
-		},
-		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
-		},
-		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
-		},
-		stalker_nano_suit = {
-			[[nano\stalker_nano]]
-		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
-		},
-		nebo_light_suit = {
 			[[nebo\stalker_nebo_rukzak]]
 		},
-		nebo_heavy_suit = {
+		monolit_suit = {
 			[[nebo\stalker_nebo_balon_1]]
 		},
-		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
+		stalker_suit = {
+			[[nebo\stalker_nebo_balon_1]]
 		},
-		exoskelet_nebo = {
+		stalker_suit_v1 = {
+			[[nebo\stalker_nebo_balon_1]]
+		},
+		svoboda_light_suit = {
+			[[nebo\stalker_nebo_rukzak]]
+		},
+		svoboda_heavy_suit = {
+			[[nebo\stalker_nebo_balon_1]]
+		},
+		dolg_suit = {
+			[[nebo\stalker_nebo_balon_1]]
+		},
+		exoskelet_sv_skunk = {
 			[[nebo\stalker_nebo_exoskeleton]]
 		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
+		exoskelet_ki_skunk = {
+			[[nebo\stalker_nebo_exoskeleton]]
 		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
+		exoskelet_do_skunk = {
+			[[nebo\stalker_nebo_exoskeleton]]
 		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
+		bandit_exoskelet = {
+			[[nebo\stalker_nebo_exoskeleton]]
 		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
+		exoskelet_mo_skunk = {
+			[[nebo\stalker_nebo_exoskeleton]]
+		},
+		stalker_scient_suit = {
+			[[nebo\stalker_nebo_nauchniy]]
+		},
+		stalker_dolg_nauchniy_suit = {
+			[[nebo\stalker_nebo_nauchniy]]
+		},
+		stalker_free_nauchniy_suit = {
+			[[nebo\stalker_nebo_nauchniy]]
+		},
+		stalker_mono_nauchniy_suit = {
+			[[nebo\stalker_nebo_nauchniy]]
+		},
+		stalker_kill_nauchniy_suit = {
+			[[nebo\stalker_nebo_nauchniy]]
 		}
 	},
 	monolith={
-		green_stalker_suit = {
-		},
-		novice_suit = {
-		},
-		bandit_suit = {
-		},
 		stalker_killer_suit = {
-		},
-		monolit_suit = {
-		},
-		monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-		},
-		specnaz_soldier_suit = {
-		},
-		stalker_suit = {
-		},
-		stalker_guard_suit = {
-		},
-		exoskelet = {
-		},
-		exoskelet_mo_skunk = {
-			[[monolit\stalker_mo_exo]]
-		},
-		exoskelet_sv_skunk = {
-		},
-		exoskelet_ki_skunk = {
-		},
-		exoskelet_ne_skunk = {
-		},
-		exoskelet_do_skunk = {
-		},
-		bandit_exoskelet = {
-		},
-		svoboda_light_suit = {
-		},
-		svoboda_heavy_suit = {
-		},
-		dolg_suit = {
-		},
-		stalker_scient_suit = {
-		},
-		stalker_dolg_nauchniy_suit = {
-		},
-		stalker_free_nauchniy_suit = {
-		},
-		stalker_kill_nauchniy_suit = {
-		},
-		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
-		},
-		ecolog_suit = {
-		},
-                nebo_light_suit = {
-		},
-		nebo_heavy_suit = {
-		},
-		nebo_nauchniy_suit = {
-		},
-		exoskelet_nebo = {
-		},
-		scientist_suit = {
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-		},
---		soldier_suit = {
---		},
-		stalker_comander_suit = {
-		}	
-	},
-	killer={
-		green_stalker_suit = {
-		},
-		novice_suit = {
-		},
-		bandit_suit = {
-		},
-		stalker_killer_suit = {
-			[[killer\stalker_ki_antigas]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		monolit_suit = {
-		},
-                monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-		},
-		specnaz_soldier_suit = {
-		},
-		stalker_suit = {
-		},
-		stalker_guard_suit = {
-		},
-		exoskelet = {
-		},
-		exoskelet_mo_skunk = {
-		},
-		exoskelet_sv_skunk = {
-		},
-		exoskelet_ki_skunk = {
-			[[killer\stalker_ki_exoskeleton]]
-		},
-		exoskelet_ne_skunk = {
-		},
-		exoskelet_do_skunk = {
-		},
-		bandit_exoskelet = {
-		},
-		svoboda_light_suit = {
-		},
-		svoboda_heavy_suit = {
-		},
-		dolg_suit = {
-		},
-		stalker_scient_suit = {
-		},
-		stalker_dolg_nauchniy_suit = {
-		},
-		stalker_free_nauchniy_suit = {
-		},
-		stalker_kill_nauchniy_suit = {
-		},
-		stalker_mono_nauchniy_suit = {
-		},
-		ecolog_suit = {
-		},
-                nebo_light_suit = {
-		},
-		nebo_heavy_suit = {
-		},
-		nebo_nauchniy_suit = {
-		},
-		exoskelet_nebo = {
-		},
-		scientist_suit = {
-		},
-		stalker_military_suit = {
-		},
---		soldier_suit = {
---		},
-		stalker_comander_suit = {
-		}	
-	},
-	ecolog={
-		green_stalker_suit = {
-		},
-		novice_suit = {
-		},
-		bandit_suit = {
-		},
-		stalker_killer_suit = {
-		},
-		monolit_suit = {
-		},
-                monolit_suit_black = {
-		},
-		specnaz_suit = {
-		},
-		specnaz_soldier_suit = {
-		},
-		stalker_suit = {
-		},
-		stalker_guard_suit = {
-		},
-		exoskelet = {
-		},
-		exoskelet_mo_skunk = {
-		},
-		exoskelet_sv_skunk = {
-		},
-		exoskelet_ki_skunk = {
-		},
-		exoskelet_ne_skunk = {
-		},
-		exoskelet_do_skunk = {
-		},
-		bandit_exoskelet = {
-		},
-		svoboda_light_suit = {
-		},
-		svoboda_heavy_suit = {
-		},
-		dolg_suit = {
-		},
-		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
-		},
-		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
-		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
-		},
-                nebo_light_suit = {
-		},
-		nebo_heavy_suit = {
-		},
-		nebo_nauchniy_suit = {
-		    [[nebo\stalker_nebo_nauchniy]]
-		},
-		exoskelet_nebo = {
-		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-		},
---		soldier_suit = {
---		},
-		stalker_comander_suit = {
-		}	
-	},
-	sniper={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-			[[bandit\stalker_bandit_3]],
-			[[bandit\stalker_bandit_5]],
-			[[bandit\stalker_bandit_8]]
-		},
-		bandit_brown_suit = {
-			[[bandit\stalker_bandit_veteran]]
-		},
-		bandit_black_suit = {
-			[[bandit\stalker_bandit_master]]
-		},
-		stalker_killer_suit = {
-			[[killer\stalker_ki_mask]],
-			[[killer\stalker_ki_antigas]]
-		},
-		monolit_suit = {
 			[[monolit\stalker_mo_mask]],
 			[[monolit\stalker_mo_hood_9]],
 			[[monolit\stalker_mo_head1]]
 		},
-                monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-			[[soldier\soldier_antigas]],
-			[[soldier\soldier_spetsnaz]]
-		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
 		stalker_suit = {
-			[[neytral\stalker_neytral_hood_8]],
-			[[neytral\stalker_neytral_balon_8]]
-		},
-		stalker_guard_suit = {
-			[[neytral\stalker_bar_security]]
-		},
-		stalker_suit_m1g = {
-			[[neytral\stalker_neytral_hood_9]]
-		},
-		stalker_suit_m2g = {
-			[[neytral\stalker_neytral_hood_92]]
-		},
-		stalker_suit_v1g = {
-			[[neytral\stalker_2_gas]]
-		},
-		stalker_suit_v2g = {
-			[[neytral\stalker_3_gas]]
-		},
-		stalker_suit_v3g = {
-			[[neytral\stalker_4_gas]]
+			[[monolit\stalker_mo_mask]],
+			[[monolit\stalker_mo_hood_9]],
+			[[monolit\stalker_mo_head1]]
 		},
 		stalker_suit_v1 = {
-			[[neytral\stalker_2_mask]],
-			[[neytral\stalker_2_ochki]]
+			[[monolit\stalker_mo_mask]],
+			[[monolit\stalker_mo_hood_9]],
+			[[monolit\stalker_mo_head1]]
 		},
-		stalker_suit_v2 = {
-			[[neytral\stalker_3_mask]]
+		dolg_suit = {
+			[[monolit\stalker_mo_mask]],
+			[[monolit\stalker_mo_hood_9]],
+			[[monolit\stalker_mo_head1]]
 		},
-		stalker_suit_v3 = {
-			[[neytral\stalker_4_ochki]]
+		svoboda_light_suit = {
+			[[monolit\stalker_mo_mask]],
+			[[monolit\stalker_mo_hood_9]],
+			[[monolit\stalker_mo_head1]]
+		},
+		svoboda_heavy_suit = {
+			[[monolit\stalker_mo_mask]],
+			[[monolit\stalker_mo_hood_9]],
+			[[monolit\stalker_mo_head1]]
 		},
 		exoskelet = {
-			[[neytral\stalker_neytral_exoskeleton]]
-		},
-		exoskelet_mo_skunk = {
 			[[monolit\stalker_mo_exo]]
 		},
 		exoskelet_sv_skunk = {
-			[[svoboda\stalker_sv_exoskeleton]]
+			[[monolit\stalker_mo_exo]]
 		},
 		exoskelet_ki_skunk = {
-			[[killer\stalker_ki_exoskeleton]]
+			[[monolit\stalker_mo_exo]]
 		},
 		exoskelet_ne_skunk = {
-			[[neytral\stalker_ne_exoskeleton]]
+			[[monolit\stalker_mo_exo]]
 		},
 		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
+			[[monolit\stalker_mo_exo]]
 		},
 		bandit_exoskelet = {
-			[[bandit\stalker_bandit_exoskeleton]]
-		},
-		svoboda_light_suit = {
-			[[svoboda\stalker_sv_rukzak_1_1]],
-			[[svoboda\stalker_sv_rukzak_3_1]]
-		},
-		svoboda_heavy_suit = {
-			[[svoboda\stalker_sv_hood_9]],
-			[[svoboda\stalker_sv_hood_91]]
-		},
-		dolg_suit = {
-			[[dolg\stalker_do_antigas]],
-			[[dolg\stalker_do_balon_8]],
-			[[dolg\stalker_do_mask]]
+			[[monolit\stalker_mo_exo]]
 		},
 		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
-		},
-		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		stalker_mono_nauchniy_suit = {
 			[[monolit\stalker_mo_nauchniy]]
 		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
+		stalker_dolg_nauchniy_suit = {
+			[[monolit\stalker_mo_nauchniy]]
 		},
-                nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
+		stalker_free_nauchniy_suit = {
+			[[monolit\stalker_mo_nauchniy]]
 		},
-		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
+		stalker_kill_nauchniy_suit = {
+			[[monolit\stalker_mo_nauchniy]]
 		},
 		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
+			[[monolit\stalker_mo_nauchniy]]
 		},
 		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
-		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
+			[[monolit\stalker_mo_exo]]
 		}
 	},
-	green={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-			[[bandit\stalker_bandit_3]],
-			[[bandit\stalker_bandit_5]],
-			[[bandit\stalker_bandit_8]]
-		},
-		bandit_brown_suit = {
-			[[bandit\stalker_bandit_veteran]]
-		},
-		bandit_black_suit = {
-			[[bandit\stalker_bandit_master]]
-		},
+	killer={
 		stalker_killer_suit = {
-			[[killer\stalker_ki_mask]],
 			[[killer\stalker_ki_antigas]]
 		},
-		monolit_suit = {
-			[[monolit\stalker_mo_mask]],
-			[[monolit\stalker_mo_hood_9]],
-			[[monolit\stalker_mo_head1]]
-		},
-                monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-			[[soldier\soldier_antigas]],
-			[[soldier\soldier_spetsnaz]]
-		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
-		stalker_suit = {
-			[[neytral\stalker_neytral_hood_8]],
-			[[neytral\stalker_neytral_balon_8]]
-		},
-		stalker_guard_suit = {
-			[[neytral\stalker_bar_security]]
-		},
-		stalker_suit_m1g = {
-			[[neytral\stalker_neytral_hood_9]]
-		},
-		stalker_suit_m2g = {
-			[[neytral\stalker_neytral_hood_92]]
-		},
-		stalker_suit_v1g = {
-			[[neytral\stalker_2_gas]]
-		},
-		stalker_suit_v2g = {
-			[[neytral\stalker_3_gas]]
-		},
-		stalker_suit_v3g = {
-			[[neytral\stalker_4_gas]]
-		},
-		stalker_suit_v1 = {
-			[[neytral\stalker_2_mask]],
-			[[neytral\stalker_2_ochki]]
-		},
-		stalker_suit_v2 = {
-			[[neytral\stalker_3_mask]]
-		},
-		stalker_suit_v3 = {
-			[[neytral\stalker_4_ochki]]
-		},
 		exoskelet = {
-			[[neytral\stalker_neytral_exoskeleton]]
+			[[killer\stalker_ki_exoskeleton]]
 		},
 		exoskelet_mo_skunk = {
-			[[monolit\stalker_mo_exo]]
+			[[killer\stalker_ki_exoskeleton]]
 		},
 		exoskelet_sv_skunk = {
-			[[svoboda\stalker_sv_exoskeleton]]
-		},
-		exoskelet_ki_skunk = {
 			[[killer\stalker_ki_exoskeleton]]
 		},
 		exoskelet_ne_skunk = {
-			[[neytral\stalker_ne_exoskeleton]]
+			[[killer\stalker_ki_exoskeleton]]
 		},
 		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
+			[[killer\stalker_ki_exoskeleton]]
 		},
 		bandit_exoskelet = {
-			[[bandit\stalker_bandit_exoskeleton]]
-		},
-		svoboda_light_suit = {
-			[[svoboda\stalker_sv_rukzak_1_1]],
-			[[svoboda\stalker_sv_rukzak_3_1]]
-		},
-		svoboda_heavy_suit = {
-			[[svoboda\stalker_sv_hood_9]],
-			[[svoboda\stalker_sv_hood_91]]
-		},
-		dolg_suit = {
-			[[dolg\stalker_do_antigas]],
-			[[dolg\stalker_do_balon_8]],
-			[[dolg\stalker_do_mask]]
+			[[killer\stalker_ki_exoskeleton]]
 		},
 		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
+			[[killer\stalker_ki_nauchniy]]
 		},
 		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
+			[[killer\stalker_ki_nauchniy]]
 		},
 		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
 			[[killer\stalker_ki_nauchniy]]
 		},
 		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
+			[[killer\stalker_ki_nauchniy]]
+		},
+		nebo_nauchniy_suit = {
+			[[killer\stalker_ki_nauchniy]]
+		},
+		exoskelet_nebo = {
+			[[killer\stalker_ki_exoskeleton]]
+		}
+	},
+	ecolog={
+		exoskelet = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		exoskelet_mo_skunk = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		exoskelet_sv_skunk = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		exoskelet_ki_skunk = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		exoskelet_ne_skunk = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		exoskelet_do_skunk = {
+			[[stalker_ecologi_2exoskeleton]]
+		},
+		bandit_exoskelet = {
+			[[stalker_ecologi_2exoskeleton]]
 		},
 		ecolog_suit = {
 			[[ecolog\stalker_ecolog]]
 		},
-                nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
-		},
-		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
-		},
-		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
-		},
 		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
+			[[stalker_ecologi_2exoskeleton]]
 		},
 		scientist_suit = {
 			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
 		}
 	},
 	dolg={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-		},
-		stalker_killer_suit = {
-		},
-		monolit_suit = {
-		},
-                monolit_suit_black = {
-		},
-		specnaz_suit = {
-		},
-		specnaz_soldier_suit = {
-		},
 		stalker_suit = {
 			[[dolg\stalker_do_antigas]],
 			[[dolg\stalker_do_balon_8]],
@@ -1184,6 +509,7 @@ local suits_to_visuals = {
 			[[dolg\stalker_do_mask]]
 		},
 		exoskelet = {
+			[[dolg\stalker_do_exoskeleton]]
 		},
 		exoskelet_mo_skunk = {
 			[[dolg\stalker_do_exoskeleton]]
@@ -1197,17 +523,10 @@ local suits_to_visuals = {
 		exoskelet_ne_skunk = {
 			[[dolg\stalker_do_exoskeleton]]
 		},
-		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
-		},
 		bandit_exoskelet = {
 			[[dolg\stalker_do_exoskeleton]]
 		},
-		svoboda_light_suit = {
-		},
 		svoboda_heavy_suit = {
-		},
-		dolg_suit = {
 			[[dolg\stalker_do_antigas]],
 			[[dolg\stalker_do_balon_8]],
 			[[dolg\stalker_do_mask]]
@@ -1227,62 +546,24 @@ local suits_to_visuals = {
 		stalker_mono_nauchniy_suit = {
 			[[dolg\stalker_do_nauchniy]]
 		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
-		},
-                nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
+		nebo_light_suit = {
+			[[dolg\stalker_do_antigas]],
+			[[dolg\stalker_do_balon_8]],
+			[[dolg\stalker_do_mask]]
 		},
 		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
+			[[dolg\stalker_do_antigas]],
+			[[dolg\stalker_do_balon_8]],
+			[[dolg\stalker_do_mask]]
 		},
 		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
+			[[dolg\stalker_do_nauchniy]]
 		},
 		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
-		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
+			[[dolg\stalker_do_exoskeleton]]
 		}
 	},
 	freedom={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-		},
-		stalker_killer_suit = {
-		},
-		monolit_suit = {
-		},
-                monolit_suit_black = {
-		},
-		specnaz_suit = {
-		},
-		specnaz_soldier_suit = {
-		},
 		stalker_suit = {
 			[[svoboda\stalker_sv_rukzak_1_1]],
 			[[svoboda\stalker_sv_rukzak_3_1]]
@@ -1324,11 +605,9 @@ local suits_to_visuals = {
 			[[svoboda\stalker_sv_rukzak_3_1]]
 		},
 		exoskelet = {
-		},
-		exoskelet_mo_skunk = {
 			[[svoboda\stalker_sv_exoskeleton]]
 		},
-		exoskelet_sv_skunk = {
+		exoskelet_mo_skunk = {
 			[[svoboda\stalker_sv_exoskeleton]]
 		},
 		exoskelet_ki_skunk = {
@@ -1343,21 +622,10 @@ local suits_to_visuals = {
 		bandit_exoskelet = {
 			[[svoboda\stalker_sv_exoskeleton]]
 		},
-		svoboda_light_suit = {
-			[[svoboda\stalker_sv_rukzak_1_1]],
-			[[svoboda\stalker_sv_rukzak_3_1]]
-		},
-		svoboda_heavy_suit = {
-			[[svoboda\stalker_sv_hood_9]],
-			[[svoboda\stalker_sv_hood_91]]
-		},
 		stalker_scient_suit = {
 			[[svoboda\stalker_sv_nauchniy]]
 		},
 		stalker_dolg_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
 			[[svoboda\stalker_sv_nauchniy]]
 		},
 		stalker_kill_nauchniy_suit = {
@@ -1369,279 +637,63 @@ local suits_to_visuals = {
 		ecolog_suit = {
 			[[ecolog\stalker_ecolog]]
 		},
-                nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
+        nebo_light_suit = {
+			[[svoboda\stalker_sv_rukzak_1_1]],
+			[[svoboda\stalker_sv_rukzak_3_1]]
 		},
 		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
+			[[svoboda\stalker_sv_hood_9]],
+			[[svoboda\stalker_sv_hood_91]]
 		},
 		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
+			[[svoboda\stalker_sv_nauchniy]]
 		},
 		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
-		},
-		scientist_suit = {
-			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
-		}	
-	},
-	bandit={
-		green_stalker_suit = {
-			[[novice\green_stalker_1]],
-			[[novice\green_stalker_10]],
-			[[novice\green_stalker_antigas]]
-		},
-		novice_suit = {
-			[[novice\green_stalker_2]],
-			[[novice\green_stalker_3]],
-			[[novice\green_stalker_4]]
-		},
-		bandit_suit = {
-			[[bandit\stalker_bandit_3]],
-			[[bandit\stalker_bandit_5]],
-			[[bandit\stalker_bandit_8]]
-		},
-		bandit_brown_suit = {
-			[[bandit\stalker_bandit_veteran]]
-		},
-		bandit_black_suit = {
-			[[bandit\stalker_bandit_master]]
-		},
-		stalker_killer_suit = {
-			[[killer\stalker_ki_mask]],
-			[[killer\stalker_ki_antigas]]
-		},
-		monolit_suit = {
-			[[monolit\stalker_mo_mask]],
-			[[monolit\stalker_mo_hood_9]],
-			[[monolit\stalker_mo_head1]]
-		},
-                monolit_suit_black = {
-			[[monolit\stalker_mo_elite]]
-		},
-		specnaz_suit = {
-			[[soldier\soldier_antigas]],
-			[[soldier\soldier_spetsnaz]]
-		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
-		stalker_suit = {
-			[[neytral\stalker_neytral_hood_8]],
-			[[neytral\stalker_neytral_balon_8]]
-		},
-		stalker_guard_suit = {
-			[[neytral\stalker_bar_security]]
-		},
-		stalker_suit_m1g = {
-			[[neytral\stalker_neytral_hood_9]]
-		},
-		stalker_suit_m2g = {
-			[[neytral\stalker_neytral_hood_92]]
-		},
-		stalker_suit_v1g = {
-			[[neytral\stalker_2_gas]]
-		},
-		stalker_suit_v2g = {
-			[[neytral\stalker_3_gas]]
-		},
-		stalker_suit_v3g = {
-			[[neytral\stalker_4_gas]]
-		},
-		stalker_suit_v1 = {
-			[[neytral\stalker_2_mask]],
-			[[neytral\stalker_2_ochki]]
-		},
-		stalker_suit_v2 = {
-			[[neytral\stalker_3_mask]]
-		},
-		stalker_suit_v3 = {
-			[[neytral\stalker_4_ochki]]
-		},
-		exoskelet = {
-			[[neytral\stalker_neytral_exoskeleton]]
-		},
-		exoskelet_mo_skunk = {
-			[[monolit\stalker_mo_exo]]
-		},
-		exoskelet_sv_skunk = {
 			[[svoboda\stalker_sv_exoskeleton]]
 		},
-		exoskelet_ki_skunk = {
-			[[killer\stalker_ki_exoskeleton]]
-		},
-		exoskelet_ne_skunk = {
-			[[neytral\stalker_ne_exoskeleton]]
-		},
-		exoskelet_do_skunk = {
-			[[dolg\stalker_do_exoskeleton]]
-		},
-		bandit_exoskelet = {
-			[[bandit\stalker_bandit_exoskeleton]]
-		},
-		svoboda_light_suit = {
-			[[svoboda\stalker_sv_rukzak_1_1]],
-			[[svoboda\stalker_sv_rukzak_3_1]]
-		},
-		svoboda_heavy_suit = {
-			[[svoboda\stalker_sv_hood_9]],
-			[[svoboda\stalker_sv_hood_91]]
-		},
-		dolg_suit = {
-			[[dolg\stalker_do_antigas]],
-			[[dolg\stalker_do_balon_8]],
-			[[dolg\stalker_do_mask]]
-		},
-		stalker_scient_suit = {
-			[[neytral\stalker_neytral_nauchniy]]
-		},
-		stalker_dolg_nauchniy_suit = {
-			[[dolg\stalker_do_nauchniy]]
-		},
-		stalker_free_nauchniy_suit = {
-			[[svoboda\stalker_sv_nauchniy]]
-		},
-		stalker_kill_nauchniy_suit = {
-			[[killer\stalker_ki_nauchniy]]
-		},
-		stalker_mono_nauchniy_suit = {
-			[[monolit\stalker_mo_nauchniy]]
-		},
-		ecolog_suit = {
-			[[ecolog\stalker_ecolog]]
-		},
-                nebo_light_suit = {
-			[[nebo\stalker_nebo_rukzak]]
-		},
-		nebo_heavy_suit = {
-			[[nebo\stalker_nebo_balon_1]]
-		},
-		nebo_nauchniy_suit = {
-			[[nebo\stalker_nebo_nauchniy]]
-		},
-		exoskelet_nebo = {
-			[[nebo\stalker_nebo_exoskeleton]]
-		},
 		scientist_suit = {
 			[[ecolog\stalker_ecolog_military]]
-		},
-		scientist_white = {
-			[[scientist\nauchniy_white]]
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---			[[hero\stalker_soldier]]
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
 		}
 	},
 	military = {
-		green_stalker_suit = {
-		},
-		novice_suit = {
-		},
-		bandit_suit = {
-		},
-		stalker_killer_suit = {
-		},
-		monolit_suit = {
-		},
-                monolit_suit_black = {
-		},
-		specnaz_suit = {
-			[[soldier\soldier_antigas]],
-			[[soldier\soldier_spetsnaz]]
-		},
-		specnaz_soldier_suit = {
-			[[soldier\soldier_mask]]
-		},
-		stalker_suit = {
-		},
-		stalker_guard_suit = {
-		},
 		exoskelet = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_mo_skunk = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_sv_skunk = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_ki_skunk = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_ne_skunk = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_do_skunk = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		bandit_exoskelet = {
-		},
-		svoboda_light_suit = {
-		},
-		svoboda_heavy_suit = {
-		},
-		dolg_suit = {
-		},
-		stalker_scient_suit = {
-		},
-		stalker_dolg_nauchniy_suit = {
-		},
-		stalker_free_nauchniy_suit = {
-		},
-		stalker_kill_nauchniy_suit = {
-		},
-		stalker_mono_nauchniy_suit = {
-		},
-		ecolog_suit = {
-		},
-                nebo_light_suit = {
-		},
-		nebo_heavy_suit = {
-		},
-		nebo_nauchniy_suit = {
+			[[soldier\stalker_zp_exoskeleton]]
 		},
 		exoskelet_nebo = {
-		},
-		scientist_suit = {
-		},
-		scientist_white = {
-		},
-		stalker_military_suit = {
-			[[militari\stalker_militari_antigas_1]],
-			[[militari\stalker_militari_1]]
-		},
---		soldier_suit = {
---		},
-		stalker_comander_suit = {
-			[[militari\stalker_militari_antigas_2]],
-			[[militari\stalker_militari_2]]
-		}	
-	}
+			[[soldier\stalker_zp_exoskeleton]]
+		}
+	},
+	sniper={},
+	green={},
+	bandit={}
 }
+	
 
 local level_by_visual = {}
 
 function get_outfit_level(section)
-	local vis_suit = sys_ini:r_string(section, "visual")
-	vis_suit = string.match(vis_suit, ".*\\([%w_%-]+)")
-
-	return armor_levels[vis_suit] or 0
+	if armor_ini:line_exist("outfit_level", section) then
+		return armor_ini:r_u32("outfit_level", section)
+	end
+	return 0
 end
 
 function get_npc_visual_level(visual)
@@ -1675,19 +727,32 @@ end
 
 function check_armor(npc, item)
 	if item:is_outfit() then
-		local vis = sys_ini:r_string(item:section(), "visual")
-		vis = string.match(vis, ".*\\([%w_%-]+)")
+		local section = item:section()
+		local outfit_level = get_outfit_level( section )
+		if get_npc_current_visual_level( npc:id() ) <= outfit_level then
+			if npc:position():distance_to(Actor:position()) > 120 or not Actor:see(npc) then
 
-		local vis_tbl = suits_to_visuals[ npc:character_community() ][vis]
-		if vis_tbl then
-			if #vis_tbl > 0 and get_npc_current_visual_level( npc:id() ) <= armor_levels[vis] then
-				if ((not Actor:see(npc) and npc:position():distance_to(Actor:position())>1) or 
-					npc:position():distance_to(Actor:position())>100) then
-					
-					change_vis( npc:id(), "actors\\"..vis_tbl[math_random(#vis_tbl)], armor_levels[vis], true )
-					local se_item = AI:object( item:id() )
-					if se_item then AI:release( se_item, true ) end
+				local vis_tbl = suits_to_visuals[ npc:character_community() ]
+				local vis = sys_ini:r_string(section, "visual")
+				vis = string.match(vis, ".*\\([%w_%-]+)")
+
+				local new_vis
+				if vis_tbl[vis] then
+					new_vis = "actors\\"..table.random( vis_tbl[vis] )
+				elseif suits_to_visuals.stalker[vis] then
+					new_vis = "actors\\"..table.random( suits_to_visuals.stalker[vis] )
+				else
+					if sys_ini:line_exist(section, "npc_visual") then
+						new_vis = sys_ini:r_string(section, "npc_visual")
+					else
+						new_vis = sys_ini:r_string(section, "actor_visual")
+						new_vis = string.match(new_vis, ".*\\([%w_%-]+)")
+					end
 				end
+
+				change_vis( npc:id(), new_vis, outfit_level, true )
+				local se_item = AI:object( item:id() )
+				if se_item then AI:release( se_item, true ) end
 			end
 		end
 	end
@@ -1716,12 +781,12 @@ local name2armor = {
 	["gar_seryi"]         = "neytral_gaz_outfit_m2"
 }
 function get_suit_sect(vis, npc_name)
-	local sect = nil
 	-- для эксклюзивных нпс броник можно прописать в таблицу name2armor
 	if npc_name and name2armor[npc_name] then
 		return name2armor[npc_name]
 	end
 
+	local sect = nil
 	if armor_ini:line_exist("visual2section", vis) then
 		sect = armor_ini:r_string("visual2section", vis)
 	elseif string_find(vis,"stalker_bandit") then
@@ -1789,164 +854,187 @@ function look_for_armor(sobj,vis)
 end
 
 local xrs_armor_time = -1
+local cur_upgr_lvl = 0
 function update()
 	--armor upgrade part
-	if auto_upgrades==true then
-	    local _time = amk.game_minutes()
-		if xrs_armor_time < 0 then	-- if first run
-			xrs_armor_time = xr_logic.pstor_retrieve(Actor,"xrs_armor_t",nil)
-			if xrs_armor_time == nil then
-				xrs_armor_time = _time+upgrade_delta
-				xr_logic.pstor_store(Actor,"xrs_armor_t", xrs_armor_time)
-			end
-		elseif _time > xrs_armor_time then
-			stalkers={}
-			local sobj, npc_sec, map, lvl
-			for a=1,65534 do
-				sobj = AI:object(a)
-				if sobj and (not sobj.online)
-					and IAmAStalker[sobj:clsid()] and sobj:alive()
-					and (not sobj.wounded)
-				then
-					npc_sec = protected_items.get_obj_name(sobj)
-					if not armor_ini:line_exist("excluded_npcs", npc_sec) then
-						if sobj.m_game_vertex_id and GGraph:valid_vertex_id(sobj.m_game_vertex_id) then
-							map = object_level_name(sobj)
-							if map and upgrade_top_lvl[map]~=nil then
-								lvl = get_npc_level(a)
-								if lvl<upgrade_top_lvl[map] or math_random()<upgrade_over_top_chance then
-									if not stalkers[lvl] then 
-										stalkers[lvl]={}
-									end
-									table.insert(stalkers[lvl],a)
-								end
-							end
-						end
-					end
-				end
-			end
-			local max_lvl = #upgrade_steps-1
-			if max_lvl>0 then
-				for a=0,max_lvl do
-					if upgrade_steps[a]~=nil and upgrade_steps[a].npc_num~=nil and upgrade_steps[a].prb~=nil then
-						for b = 1,upgrade_steps[a].npc_num do
-							local cnt = #stalkers[a]
-							if cnt>0 then
-								local idx=math_random(cnt)
-								local npc_id=stalkers[a][idx]
-								if math_random()<upgrade_steps[a].prb then
-									if select_next_visual(npc_id,visible_auto_upgrades)==true then
-										if not stalkers[a+1] then 
-											stalkers[a+1]={}
-										end
-										table.insert(stalkers[a+1],npc_id)
-									end
-									table_remove(stalkers[a],idx)
-								end
-							end
-						end
-					end
-				end
-			end
-			xrs_armor_time = _time+upgrade_delta
-			xr_logic.pstor_store(Actor, "xrs_armor_t", xrs_armor_time)
-		end
-	end	
-end
+	if not auto_upgrades then return end
 
-function select_next_visual(id,now)
-	local sobj=AI:object(id)
-	if sobj then
-		local level = get_npc_level(id)
-		local com = sobj:community()
-		if com and armors_by_community[com] and #armors_by_community[com] > 0 then
-			local new_vis=""
-			local nl=100
-			for vname,allowed_armors in pairs(armors_by_community[com]) do
-				if armors_by_visuals[allowed_armors] then
-					for k,v in pairs(armors_by_visuals[allowed_armors]) do
-						if v>level and v<=nl then
-							if v<nl then
-								new_vis = allowed_armors.."\\"..k
-							elseif v==nl and math_random()>0.5 then
-								new_vis = allowed_armors.."\\"..k
-							end
-							nl=v
+	if xrs_armor_time < 0 then	-- if after load
+		local t = xr_logic.pstor_retrieve(Actor,"xrs_armor_t",nil)
+		if t == nil then	-- if first run
+			xrs_armor_time = game_time_minutes + upgrade_delta
+			cur_upgr_lvl = 0
+			xr_logic.pstor_store( Actor,"xrs_armor_t", {xrs_armor_time, 0} )
+		elseif type(t) == "number" then		-- fix
+			xrs_armor_time = t
+			cur_upgr_lvl = 0
+		else
+			xrs_armor_time = t[1]
+			cur_upgr_lvl = t[2]
+		end
+	end
+
+	if game_time_minutes < xrs_armor_time then
+		return
+	end
+
+	log("# [xrs_armor.update]: start upgrade level %s", cur_upgr_lvl)
+	local stalkers = {}
+	local sobj, npc_sec, map, lvl
+	for a = 1, 65534 do
+		sobj = AI:object(a)
+		if sobj and (not sobj.online)
+			and sobj:can_switch_online()
+			and IAmAStalker[ sobj:clsid() ] and sobj:alive()
+			and (not sobj.wounded)
+		then
+			npc_sec = protected_items.get_obj_name(sobj)
+			if not armor_ini:line_exist("excluded_npcs", npc_sec) then
+				if sobj.m_game_vertex_id and GGraph:valid_vertex_id(sobj.m_game_vertex_id) then
+					map = object_level_name(sobj)
+					if upgrade_top_lvl[map] ~= nil then
+						lvl = get_npc_level(a)
+						if cur_upgr_lvl == lvl
+							and ( lvl < upgrade_top_lvl[map]
+							or    math_random() < upgrade_over_top_chance )
+						then
+							table_insert( stalkers, a )
+							log("insert stalker %s:%s[%s] (%s)", sobj:name(), a, lvl, map)
 						end
 					end
 				end
-			end
-			
-			if new_vis~="" then
-				change_vis(id,"actors\\"..new_vis,nl,now)
-				return true
 			end
 		end
 	end
+
+	if #stalkers > 0
+		and upgrade_steps[cur_upgr_lvl] ~= nil
+		and upgrade_steps[cur_upgr_lvl].npc_num ~= nil
+		and upgrade_steps[cur_upgr_lvl].prb ~= nil
+	then
+		log("upgrade stalkers: %s", tostring(#stalkers))
+		for b = 1,upgrade_steps[cur_upgr_lvl].npc_num do
+			local cnt = #stalkers
+			if cnt > 0 then
+				if math_random() < upgrade_steps[cur_upgr_lvl].prb then
+					local npc_id = table_remove( stalkers, math_random(cnt) )
+					if select_next_visual(npc_id, visible_auto_upgrades) == true then
+					end
+				end
+			else
+				break
+			end
+		end
+	end
+
+	xrs_armor_time = game_time_minutes + upgrade_delta
+	cur_upgr_lvl = cur_upgr_lvl + 1
+	if upgrade_steps[cur_upgr_lvl] == nil then
+		cur_upgr_lvl = 0
+	end
+	xr_logic.pstor_store( Actor, "xrs_armor_t", {xrs_armor_time, cur_upgr_lvl} )
+end
+
+function select_next_visual(id, now)
+	local sobj = AI:object(id)
+	if not sobj then return false end
+
+	local cur_lvl = get_npc_level(id)
+	local com = sobj:community()
+	if com and armors_by_community[com] and #armors_by_community[com] > 0 then
+		local new_vis = ""
+		local new_lvl = 100
+		local tmp = table.copy( {}, armors_by_community[com] )
+		for i = 1, #tmp do
+			local allowed_armors = table_remove( tmp, math_random(#tmp) )
+			if armors_by_visuals[allowed_armors] then
+				for k, v in pairs( armors_by_visuals[allowed_armors] ) do
+					if v > cur_lvl and v <= new_lvl then
+						if v < new_lvl
+							or (v == new_lvl and math_random() < 0.4)
+						then
+							new_vis = allowed_armors.."\\"..k
+						end
+						new_lvl = v
+					end
+				end
+			end
+		end
+
+		if new_vis ~= "" then
+			new_vis = "actors\\"..new_vis
+			ASSERT(getFS():exist("$game_meshes$", new_vis..".ogf") ~= nil, "[xrs_armor.select_next_visual] model file '%s' not found", new_vis)
+			change_vis(id, new_vis, new_lvl, now)
+			log("- change visual: %s -> %s", tostring(id), new_vis)
+			return true
+		end
+	end
+
 	return false
 end
 
 
+--[[----------------------------------------------------------------------
 -- Квестовики, заспавненные скриптом, почему-то все равно переодеваются. Принудительно переодеваем их в оригинальный визуал при лоаде
 -- Потому что функция protected_items.get_obj_name возвращала неведомую хренотень
 local redress_nps = {
-	-- {story_id = 19901, visual = "snp\\kotobegemot"},	-- kotobegemot_bar
-	-- {story_id = 19902, visual = "snp\\fenrir"},			-- fenrir_zaton
-	-- {story_id = 19903, visual = "snp\\resident_evil"},	-- resident_evil_zaton
-	-- {story_id = 19904, visual = "snp\\anna"},			-- anna_zaton
-	-- {story_id = 19905, visual = "snp\\bubulyka"},		-- bubulyka_zaton
-	-- {story_id = 19906, visual = "snp\\lobsang"},		-- lobsang_zaton
-	-- {story_id = 19907, visual = "snp\\proper70"},		-- proper70_jupiter
-	-- {story_id = 19908, visual = "snp\\resident_evil"},	-- resident_evil_jupiter
-	-- {story_id = 19909, visual = "snp\\anna"},			-- anna_jupiter
-	-- {story_id = 19911, visual = "snp\\fenrir"},			-- fenrir_jupiter
-	-- {story_id = 19914, visual = "snp\\brodaga"},		-- brodaga_zaton
-	-- {story_id = 19915, visual = "snp\\boroda"},			-- boroda_zaton
-	-- {story_id = 19916, visual = "snp\\ludmila"},		-- ludmila_zaton
-	-- {story_id = 19917, visual = "actors\\woman\\ariadna"},	-- ariadna_bar
-	-- {story_id = 19920, visual = "snp\\kotobegemot"},	-- kotobegemot_zaton
-	-- {story_id = 19921, visual = "actors\\woman\\ariadna"},	-- ariadna_zaton
-	-- {story_id = 19922, visual = "snp\\proper70"},		-- proper70_zaton
-	-- {story_id = 19923, visual = "snp\\anna"},			-- anna_zaton2
-	-- {story_id = 19924, visual = "new\\supernevidimka"},	-- wolffrend_talk_zaton2
-	-- {story_id = 19925, visual = "new\\supernevidimka"},	-- wolffrend_talk_zaton
-	-- {story_id = 19926, visual = "new\\supernevidimka"},	-- bibliofrend_talk_zaton
-	-- {story_id = 19927, visual = "new\\supernevidimka"},	-- bibliofrend_talk_black_zaton
-	-- {story_id = 19928, visual = "snp\\maria"},			-- maria_kordon
-	-- {story_id = 19929, visual = "snp\\snegir"},			-- snegir_2chaes
-	-- {story_id = 19930, visual = "snp\\snegir"},			-- snegir_kordon
-	-- {story_id = 19931, visual = "actors\\woman\\missis_saharova"},	-- elsa_yantar
-	-- {story_id = 19932, visual = "actors\\ucheniy\\ucheniy_1_strong"},	-- gena_oso
-	-- {story_id = 19933, visual = "snp\\vesker"},			-- vesker_zaton
-	-- {story_id = 19934, visual = "actors\\nano\\stalker_nano"},	-- volazar
-	-- {story_id = 19935, visual = "actors\\ucheniy\\ucheniy"},	-- volazar_new
-	-- {story_id = 19936, visual = "actors\\ucheniy\\ucheniy_golo"},	-- ozersky
-	-- {story_id = 21003, visual = "actors\\neytral\\stalker_2_gas"},	-- dragunof_npc
-	-- {story_id = 21004, visual = "actors\\green_shapka"},	-- fotograf_npc
-	-- {story_id = 21005, visual = "actors\\akill"},			-- akill_npc
-	-- {story_id = 21006, visual = "actors\\neytral\\stalker_3_gas"},	-- klesh_npc
-	-- {story_id = 21008, visual = "actors\\dolg\\stalker_do_balon_1"},	-- grom_npc
-	-- {story_id = 21009, visual = "new\\zlobnuy"},					-- noi_npc
-	-- {story_id = 21010, visual = "actors\\woman\\sky_blonda_1"},		-- zaton_masha
-	-- {story_id = 21011, visual = "actors\\woman\\sky_redhead_1"},	-- zaton_dasha
-	-- {story_id = 21012, visual = "actors\\woman\\sky_blonda_1"},		-- masha_npc
-	-- {story_id = 21013, visual = "actors\\woman\\sky_redhead_1"},	-- dasha_npc
-	-- {story_id = 21014, visual = "actors\\neytral\\nazar"},			-- nazar_npc
-	-- {story_id = 21015, visual = "actors\\stalker_snork\\snorkzombie"},	-- chudak_npc
-	-- {story_id = 21016, visual = "actors\\armor_voshod"},			-- grif_volna
-	-- {story_id = 21017, visual = "actors\\neytral\\nazar"},			-- nazar_volna
-	-- {story_id = 21018, visual = "actors\\hunters\\hunter2"},		-- kogot_volna
-	-- {story_id = 21019, visual = "actors\\armor_voshod"},			-- fenix_volna
-	-- {story_id = 21020, visual = "actors\\armor_voshod"},			-- elbrus_volna
-	-- {story_id = 21021, visual = "actors\\armor_voshod"},			-- locman_volna
-	-- {story_id = 21022, visual = "actors\\armor_voshod"},			-- gromoboi_volna
-	-- {story_id = 22006, visual = "actors\\stalker_zombi\\corp_monolit"},	-- labirint_shade_monolit1
-	-- {story_id = 22007, visual = "actors\\nebo\\holodov"},			-- agr_nebo_chromov1
-	-- {story_id = 22008, visual = "new\\new_kruglov"},				-- yan_ecolog_help1
-	-- {story_id = 30130, visual = "actors\\inkvizitors\\inkvizitor_redeye"},	-- esc_buusty
-	-- {story_id = 30131, visual = "actors\\woman\\wife_pvt_voronin"},	-- esc_kuzmat
-	-- {story_id = 30132, visual = "actors\\exoskelet_black"},			-- buusty_team_1
-	-- {story_id = 728,   visual = "actors\\svoboda\\stalker_sv_cook"}
+	{story_id = 19901, visual = "snp\\kotobegemot"},	-- kotobegemot_bar
+	{story_id = 19902, visual = "snp\\fenrir"},			-- fenrir_zaton
+	{story_id = 19903, visual = "snp\\resident_evil"},	-- resident_evil_zaton
+	{story_id = 19904, visual = "snp\\anna"},			-- anna_zaton
+	{story_id = 19905, visual = "snp\\bubulyka"},		-- bubulyka_zaton
+	{story_id = 19906, visual = "snp\\lobsang"},		-- lobsang_zaton
+	{story_id = 19907, visual = "snp\\proper70"},		-- proper70_jupiter
+	{story_id = 19908, visual = "snp\\resident_evil"},	-- resident_evil_jupiter
+	{story_id = 19909, visual = "snp\\anna"},			-- anna_jupiter
+	{story_id = 19911, visual = "snp\\fenrir"},			-- fenrir_jupiter
+	{story_id = 19914, visual = "snp\\brodaga"},		-- brodaga_zaton
+	{story_id = 19915, visual = "snp\\boroda"},			-- boroda_zaton
+	{story_id = 19916, visual = "snp\\ludmila"},		-- ludmila_zaton
+	{story_id = 19917, visual = "actors\\woman\\ariadna"},	-- ariadna_bar
+	{story_id = 19920, visual = "snp\\kotobegemot"},	-- kotobegemot_zaton
+	{story_id = 19921, visual = "actors\\woman\\ariadna"},	-- ariadna_zaton
+	{story_id = 19922, visual = "snp\\proper70"},		-- proper70_zaton
+	{story_id = 19923, visual = "snp\\anna"},			-- anna_zaton2
+	{story_id = 19924, visual = "new\\supernevidimka"},	-- wolffrend_talk_zaton2
+	{story_id = 19925, visual = "new\\supernevidimka"},	-- wolffrend_talk_zaton
+	{story_id = 19926, visual = "new\\supernevidimka"},	-- bibliofrend_talk_zaton
+	{story_id = 19927, visual = "new\\supernevidimka"},	-- bibliofrend_talk_black_zaton
+	{story_id = 19928, visual = "snp\\maria"},			-- maria_kordon
+	{story_id = 19929, visual = "snp\\snegir"},			-- snegir_2chaes
+	{story_id = 19930, visual = "snp\\snegir"},			-- snegir_kordon
+	{story_id = 19931, visual = "actors\\woman\\missis_saharova"},	-- elsa_yantar
+	{story_id = 19932, visual = "actors\\ucheniy\\ucheniy_1_strong"},	-- gena_oso
+	{story_id = 19933, visual = "snp\\vesker"},			-- vesker_zaton
+	{story_id = 19934, visual = "actors\\nano\\stalker_nano"},	-- volazar
+	{story_id = 19935, visual = "actors\\ucheniy\\ucheniy"},	-- volazar_new
+	{story_id = 19936, visual = "actors\\ucheniy\\ucheniy_golo"},	-- ozersky
+	{story_id = 21003, visual = "actors\\neytral\\stalker_2_gas"},	-- dragunof_npc
+	{story_id = 21004, visual = "actors\\green_shapka"},	-- fotograf_npc
+	{story_id = 21005, visual = "actors\\akill"},			-- akill_npc
+	{story_id = 21006, visual = "actors\\neytral\\stalker_3_gas"},	-- klesh_npc
+	{story_id = 21008, visual = "actors\\dolg\\stalker_do_balon_1"},	-- grom_npc
+	{story_id = 21009, visual = "new\\zlobnuy"},					-- noi_npc
+	{story_id = 21010, visual = "actors\\woman\\sky_blonda_1"},		-- zaton_masha
+	{story_id = 21011, visual = "actors\\woman\\sky_redhead_1"},	-- zaton_dasha
+	{story_id = 21012, visual = "actors\\woman\\sky_blonda_1"},		-- masha_npc
+	{story_id = 21013, visual = "actors\\woman\\sky_redhead_1"},	-- dasha_npc
+	{story_id = 21014, visual = "actors\\neytral\\nazar"},			-- nazar_npc
+	{story_id = 21015, visual = "actors\\stalker_snork\\snorkzombie"},	-- chudak_npc
+	{story_id = 21016, visual = "actors\\armor_voshod"},			-- grif_volna
+	{story_id = 21017, visual = "actors\\neytral\\nazar"},			-- nazar_volna
+	{story_id = 21018, visual = "actors\\hunters\\hunter2"},		-- kogot_volna
+	{story_id = 21019, visual = "actors\\armor_voshod"},			-- fenix_volna
+	{story_id = 21020, visual = "actors\\armor_voshod"},			-- elbrus_volna
+	{story_id = 21021, visual = "actors\\armor_voshod"},			-- locman_volna
+	{story_id = 21022, visual = "actors\\armor_voshod"},			-- gromoboi_volna
+	{story_id = 22006, visual = "actors\\stalker_zombi\\corp_monolit"},	-- labirint_shade_monolit1
+	{story_id = 22007, visual = "actors\\nebo\\holodov"},			-- agr_nebo_chromov1
+	{story_id = 22008, visual = "new\\new_kruglov"},				-- yan_ecolog_help1
+	{story_id = 30130, visual = "actors\\inkvizitors\\inkvizitor_redeye"},	-- esc_buusty
+	{story_id = 30131, visual = "actors\\woman\\wife_pvt_voronin"},	-- esc_kuzmat
+	{story_id = 30132, visual = "actors\\exoskelet_black"},			-- buusty_team_1
+	{story_id = 728,   visual = "actors\\svoboda\\stalker_sv_cook"}
 }
 
 function redress()
@@ -1962,4 +1050,4 @@ function redress()
 		end
 	end
 end
-
+--]]----------------------------------------------------------------------
