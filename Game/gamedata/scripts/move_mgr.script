@@ -245,11 +245,13 @@ function validate_accessibility(npc,ppname)
 			for i=0,pp:count()-1 do
 				lv = pp:level_vertex_id(i)
 
-				if not npc:accessible( lv ) then	-- вертекс недоступен
-				--	log("~ move_mgr.validate_accessibility: "..
-				--		"point [%s] on path [%s] not accessible for npc '%s'",
-				--		i, ppname, npc:name() )
-					valid =  false
+				local alist=amk_anoms.get_anomaly_list_for_pos(pp:point(i),1)
+				for j,o in ipairs(alist) do
+					-- Отключаем аномалию. И немедленно убираем её из рестрикторов непися.
+					-- Для остальных неписей она удалится на следующем апдейте
+					log("~ move_mgr: disabling anom [%s] for npc %s", o.name, npc:name())
+					amk_anoms.set_online_anomaly_status(o.id,"del")
+					amk_anoms.remove_restriction(npc,o.id,o.name,true)
 				end
 
 				if lv > max_lv then			-- вертекс невалиден
@@ -262,13 +264,11 @@ function validate_accessibility(npc,ppname)
 					valid = false
 				end
 
-				local alist=amk_anoms.get_anomaly_list_for_pos(pp:point(i),1)
-				for j,o in ipairs(alist) do
-					-- Отключаем аномалию. И немедленно убираем её из рестрикторов непися.
-					-- Для остальных неписей она удалится на следующем апдейте
-				--	log("~ move_mgr: disabling anom [%s] for npc %s", o.name, npc:name())
-					amk_anoms.set_online_anomaly_status(o.id,"del")
-					amk_anoms.remove_restriction(npc,o.id,o.name,true)
+				if not npc:accessible( lv ) then	-- вертекс недоступен
+					log("~ move_mgr.validate_accessibility: "..
+						"point [%s] on path [%s] not accessible for npc '%s'",
+						i, ppname, npc:name() )
+					valid =  false
 				end
 			end
 			t[ppname] = valid
