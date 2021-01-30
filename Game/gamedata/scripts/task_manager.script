@@ -1243,6 +1243,20 @@ function CRandomTask:remind()
 				end
 				str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(txt_desc).."\\n"
 			end
+		elseif task_desc.status == "selected" then
+			if task_desc.type == "eliminate_lager"
+				or task_desc.type == "kill_stalker"
+			then
+				local oo = AI:object(task_desc.selected_target)
+				if oo and GGraph:vertex(oo.m_game_vertex_id):level_id() == AI:level_id() then
+					sid = tonumber(story_by_parent[task_desc.parent])
+					parent = AI:story_object(sid)
+					if not sms[sid] then 
+						sms[sid] = get_parent_name(parent, sid)
+					end
+					str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(task_desc.name).."\\n"
+				end
+			end
 		end       
 	end
 
