@@ -157,6 +157,16 @@ function gulag:validate_jobs()
 	end
 end
 
+local function read_switches(sini, section, override_section, line)
+	if override_section and sys_ini:line_exist(override_section, line) then
+		return sys_ini:r_string(override_section, line)
+	elseif sini:line_exist(section, line) then
+		return sini:r_string(section, line)
+	else
+		return ""
+	end
+end
+
 -- подготовка гулага к работе
 function gulag:initialize()
 	self.ObjectJobPathName = {} --' по id. имя патрульного пути места работы персонажа
@@ -170,10 +180,17 @@ function gulag:initialize()
 	local sect = "smart_terrain"
 	if not ini:section_exist( sect ) then
 		sect = "gulag1"
+		if not ini:section_exist( sect ) then
+			abort("[gulag:initialize] smart_terrain %s: there is no section with settings in custom_data", self.name)
+		end
+	end
+	local override_sect = "gulag_overrides."..self.name
+	if not sys_ini:section_exist(override_sect) then
+		override_sect = nil
 	end
 
-	self.state_switch_0 = xr_logic.parse_condlist( self.smrttrn, "gulag1", "switch_0", utils.cfg_get_string(ini, sect, "switch_0", self.smrttrn, false, "", "") )
-	self.state_switch_1 = xr_logic.parse_condlist( self.smrttrn, "gulag1", "switch_1", utils.cfg_get_string(ini, sect, "switch_1", self.smrttrn, false, "", "") )
+	self.state_switch_0 = xr_logic.parse_condlist( self.smrttrn, sect, "switch_0", read_switches(ini, sect, override_sect, "switch_0") )
+	self.state_switch_1 = xr_logic.parse_condlist( self.smrttrn, sect, "switch_1", read_switches(ini, sect, override_sect, "switch_1") )
 
 	self.JobLoaded = nil
 end
