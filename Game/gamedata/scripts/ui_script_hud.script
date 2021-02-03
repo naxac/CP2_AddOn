@@ -124,20 +124,20 @@ function UIScriptHUD:__init()
 
 	self.body_state = xml:InitStatic("body_state", self)
 
+	self.progress_torch = xml:InitStatic("static_torch", self)
+	self.progress_torch.scale = xml:InitProgressBar("torch_progress", self.progress_torch)
+
 	st = xml:InitStatic("static_power", self)
 	self.progress_power = xml:InitProgressBar("power_progress", st)
-
-	self.progress_luminosity = xml:InitProgressBar("luminosity_progress", st)
-	self.progress_noise = xml:InitProgressBar("noise_progress", st)
 
 	st = xml:InitStatic("static_health", self)
 	self.progress_health = xml:InitProgressBar("progress_bar_health", st)
 
-	st = xml:InitStatic("static_armor", self)
-	self.progress_armor = xml:InitProgressBar("progress_bar_armor", st)
+	self.progress_armor = xml:InitStatic("static_armor", self)
+	self.progress_armor.scale = xml:InitProgressBar("progress_bar_armor", self.progress_armor)
 
-	st = xml:InitStatic("static_radiation", self)
-	self.progress_radiation = xml:InitProgressBar("progress_bar_radiation", st)
+	self.progress_radiation = xml:InitStatic("static_radiation", self)
+	self.progress_radiation.scale = xml:InitProgressBar("progress_bar_radiation", self.progress_radiation)
 
 	self.time_static = xml:InitStatic("time_static", self)
 
@@ -187,19 +187,23 @@ function UIScriptHUD:UpdateIndicators()
 	self.progress_health:SetProgressPos( Actor.health * 100 )
 
 	if arc_inventory.IsRadDetected() then
-		self.progress_radiation:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
-	else
-		self.progress_radiation:SetProgressPos(0)
+		if not self.progress_radiation:IsShown() then
+			self.progress_radiation:Show(true)
+		end
+		self.progress_radiation.scale:SetProgressPos( 100 * math.min(arc_radiation.RAD_DOSE/arc_radiation.DOSE_DEADLY, 1) )
+	elseif self.progress_radiation:IsShown() then
+		self.progress_radiation:Show(false)
 	end
 
 	local outfit_id = -1
 	if actor_outfit then
-		self.progress_armor:SetProgressPos( actor_outfit:condition() * 100 )
-		self.progress_noise:SetProgressPos( (actor_outfit:get_charge_level() or 0) * 100 )
+		if not self.progress_armor:IsShown() then
+			self.progress_armor:Show(true)
+		end
+		self.progress_armor.scale:SetProgressPos( actor_outfit:condition() * 100 )
 		outfit_id = actor_outfit:id()
-	elseif self.last_outfit_id ~= -1 then
-		self.progress_armor:SetProgressPos(0)
-		self.progress_noise:SetProgressPos(0)
+	elseif self.last_outfit_id ~= -1 and self.progress_armor:IsShown() then
+		self.progress_armor:Show(false)
 	end
 
 	local inv_weight = Actor:get_inventory_weight()
@@ -233,9 +237,14 @@ function UIScriptHUD:UpdateIndicators()
 	local item = Actor:item_in_slot( inventory_slots.TORCH )
 	local val = 0
 	if item then
+		if not self.progress_torch:IsShown() then
+			self.progress_torch:Show(true)
+		end
 		val = item:get_charge_level() or 0
+		self.progress_torch.scale:SetProgressPos( val * 100 )
+	elseif self.progress_torch:IsShown() then
+		self.progress_torch:Show(false)
 	end
-	self.progress_luminosity:SetProgressPos( val * 100 )
 
 	if show_time then
 		self.time_static:SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
