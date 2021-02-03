@@ -291,8 +291,8 @@ class CUIWindow {
 	void		DetachFromParent();
 	void		BringToTop();
 	void		Update();
-	float<x>	GetVPos();
-	float<y>	GetHPos();
+	float<x>	GetHPos();
+	float<y>	GetVPos();
 	float<x>	GetCursorX();
 	float<y>	GetCursorY();
 	float<x>	GetAbsolutePosX();
