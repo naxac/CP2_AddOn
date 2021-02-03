@@ -29,18 +29,24 @@ function add_indicator(st)
 end
 
 function remove_indicator(st)
-	ASSERT(st.in_scroll~=nil, "[ui_scroll_indicators.remove_indicator] Indicatorr can not remover because is it not added!")
+	ASSERT(st.in_scroll~=nil, "[ui_scroll_indicators.remove_indicator] Indicatorr can not removed because it is not added!")
 	local n = st.in_scroll
 	table.remove(scroll_items, n)
-	for i, v in ipairs(scroll_items) do
-		if i >= n then
-			v.in_scroll = i
-			set_pos_indicator(v)
+	if #scroll_items == 0 then
+		start_pos_y = nil
+		xr_s.unsubscribe("net_destroy", this.destroy_indicators)
+	else
+		for i, v in ipairs(scroll_items) do
+			if i >= n then
+				v.in_scroll = i
+				set_pos_indicator(v)
+			end
 		end
 	end
 end
 
 function destroy_indicators()
+	if #scroll_items == 0 then return end
 	for i = 1, #scroll_items do
 		scroll_items[i] = nil
 	end
