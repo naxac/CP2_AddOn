@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local hud_name = game_options.CurrentHUD
+local af_panel = game_options.ArtPanel
 
 local t_clock = {}
 local t_rad = {}
@@ -53,7 +54,11 @@ function show_time( f )
 		if cs == nil then
 			cs = hud:AddCustomStatic( "hud_show_time", true )
 			local w = cs:wnd()
-			w:Init( unpack(t_clock.pos) )
+			if is_16_9_mode() and t_clock.pos_16 then
+				w:Init( unpack(t_clock.pos_16) )
+			else
+				w:Init( unpack(t_clock.pos) )
+			end
 			w:SetTextColor( unpack( t_clock.color ) )
 		end
 		cs:wnd():SetText( string.format( "%02d:%02d", level.get_time_hours(), level.get_time_minutes() ) )
@@ -92,6 +97,7 @@ function table2number( t )
 	for i = 1, #t do
 		t[i] = tonumber( t[i] )
 	end
+	return t
 end
 
 function init()
@@ -106,35 +112,32 @@ function init()
 		return
 	end
 
-	local v = ini:r_float( hud_name, "dosimeter_y" )
-	arc_ui_dosimeter.set_dosimeter_pos( v )
+	local v = table2number( ini:r_list( hud_name, "dosimeter_pos" ) )
+	arc_ui_dosimeter.set_dosimeter_pos( unpack(v) )
 
 	local i = ini:r_u32( hud_name, "add_indicators" )
 
 	t_clock = {}
 	t_clock.enabled = bit_and( i, 1 ) ~= 0
 	if t_clock.enabled then
-		v = ini:r_string( hud_name, "clock_pos" )
-		t_clock.pos = string.explode( v, ",", true )
-		table2number( t_clock.pos )
-		v = ini:r_string( hud_name, "clock_color" )
-		t_clock.color = string.explode( v, ",", true )
-		table2number( t_clock.color )
+		t_clock.pos = table2number( ini:r_list( hud_name, "clock_pos" ) )
+		if ini:line_exist( hud_name, "clock_pos_16" ) then
+			t_clock.pos_16 = table2number( ini:r_list( hud_name, "clock_pos_16" ) )
+		end
+		t_clock.color = table2number( ini:r_list( hud_name, "clock_color" ) )
 	end
 
 	t_rad = {}
 	t_rad.enabled = bit_and( i, 2 ) ~= 0
 	if t_rad.enabled then
-		v = ini:r_string( hud_name, "rad_back_pos" )
-		t_rad.back = string.explode( v, ",", true )
-		table2number( t_rad.back )
-		v = ini:r_string( hud_name, "rad_pos" )
-		t_rad.scale = string.explode( v, ",", true )
-		table2number( t_rad.scale )
+		t_rad.back = table2number( ini:r_list( hud_name, "rad_back_pos" ) )
+		t_rad.scale = table2number( ini:r_list( hud_name, "rad_pos" ) )
 	end
 end
 
 function on_change_hud()
+	local result = false
+
 	local new_hud_name = game_options.CurrentHUD
 	if hud_name ~= new_hud_name then
 		local ini = ini_file( "misc\\ui_huds.ltx" )
@@ -148,9 +151,27 @@ function on_change_hud()
 			fs:file_copy( f1, f2 )
 		end
 		hud_name = new_hud_name
-		return true
+		result = true
 	end
-	return false
+
+	local need_panel = game_options.ArtPanel
+	if (need_panel ~= af_panel) or (result and need_panel) then
+		local fs = getFS()
+		local f1, f2, path = "", "", ""
+		for i, v in ipairs( {"", "_16"} ) do
+			path = "config\\ui\\maingame"..v..iif(need_panel, "_af.xml", ".xml" )
+			if fs:exist( "$game_huds$", hud_name.."\\"..path ) ~= nil then
+				f1 = fs:update_path( "$game_huds$", hud_name.."\\"..path )
+				f2 = fs:update_path( "$game_data$", "config\\ui\\maingame"..v..".xml" )
+				fs:file_copy( f1, f2 )
+				result = true
+			end
+		end
+
+		af_panel = need_panel
+	end
+
+	return result
 end
 
 function get_all_huds()

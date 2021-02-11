@@ -292,12 +292,22 @@ function options_dialog:GameSetupMenuLoad()
 	self.amk_music:SetCheck               ( game_options.DynMusic )
 
 	self.cursor_type:SetValue             ( game_options.CurrentCursor )
-	self.hud_type:SetValue                ( game_options.CurrentHUD )
+
+	-- self.hud_type:SetValue                ( game_options.CurrentHUD )
+	local cur_hud = game_options.CurrentHUD
+	for i, v in ipairs( self.hud_types ) do
+		if v.id == cur_hud then
+			self.list_hud_type:SetCurrentID(i - 1)
+			break
+		end
+	end
+
 	self.amk_hud:SetCheck                 ( game_options.DynHud )
 	self.hud_blood:SetCheck               ( game_options.DynHudBlood )
 	self.hud_bleed:SetCheck               ( game_options.DynHudBleed )
 	self.gg_kick:SetCheck                 ( game_options.GGKick )
 	self.hud_rad:SetCheck                 ( game_options.HudRad )
+	self.art_panel:SetCheck               ( game_options.ArtPanel )
 	self.hud_slots:SetValue               ( game_options.QuickSlotsOnHUD )
 	self.hud_time:SetCheck                ( game_options.HudTIme )
 	self:OnAMKHudChanged                  ()
@@ -363,7 +373,14 @@ function options_dialog:GameSetupMenuSave()
 	game_options.DynMusic             = self.amk_music:GetCheck()
 
 	game_options.CurrentCursor        = self.cursor_type:GetValue()
-	game_options.CurrentHUD           = self.hud_type:GetValue()
+	-- game_options.CurrentHUD           = self.hud_type:GetValue()
+	local str = self.list_hud_type:GetText()
+	for i, v in ipairs(self.hud_types) do
+		if v.name == str then
+			game_options.CurrentHUD = v.id
+			break
+		end
+	end
 	game_options.DynHud               = self.amk_hud:GetCheck()
 	game_options.DynHudBlurs          = self.hud_blurs:GetCheck()
 	game_options.DynHudZoom           = self.hud_zoom:GetCheck()
@@ -371,6 +388,7 @@ function options_dialog:GameSetupMenuSave()
 	game_options.DynHudBleed          = self.hud_bleed:GetCheck()
 	game_options.GGKick               = self.gg_kick:GetCheck()
 	game_options.HudRad               = self.hud_rad:GetCheck()
+	game_options.ArtPanel             = self.art_panel:GetCheck()
 	game_options.QuickSlotsOnHUD      = self.hud_slots:GetValueIndex()
 	game_options.HudTIme              = self.hud_time:GetCheck()
 
@@ -511,8 +529,14 @@ function options_dialog:OnBtnShowCursor()
 end
 
 function options_dialog:OnBtnShowHud()
-	local hud_name = self.hud_type:GetValue()
-	self:DrawPreviewWnd("hud_screen\\"..hud_name)
+	-- local hud_name = self.hud_type:GetValue()
+	local str = self.list_hud_type:GetText()
+	for i, v in ipairs(self.hud_types) do
+		if v.name == str then
+			self:DrawPreviewWnd("hud_screen\\"..v.id)
+			break
+		end
+	end
 end
 
 function options_dialog:DrawPreviewWnd(texture)
