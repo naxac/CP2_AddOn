@@ -177,14 +177,14 @@ function peshera_end()
 end
 
 -- Холодное оружие перенесено в hotkeys.script
-function kuv_hit()
-	if actor_active_item == nil then return end
-	
-	local sect = actor_active_item:section()
-	local cond = actor_active_item:condition()
-	
+function on_wpn_hit()
+	local wpn = actor_active_item
+	if wpn == nil then return end
+	if not isMagazinedWeapon(wpn) then return end
+
+	local cond = wpn:condition()
 	-- Взрыв убитого ствола
-	if cond < 0.1 and math.random() < 0.2-cond*2 and sect ~= "wpn_shmel" then
+	if cond < 0.1 and math.random() < 0.2-cond*2 and wpn:section() ~= "wpn_shmel" then
 		amk_particle.amk_particle({
 			particle="explosions\\explosion_fuelcan",
 			pos=Actor:position(),
@@ -201,7 +201,8 @@ function kuv_hit()
 		h.impulse = 200
 		Actor:hit(h)
 
-		start_small_timer(200, function() kostya_dialog.remove_wpn(actor_active_item:id()) end)
+		start_small_timer( 200, del_obj_by_id, wpn:id() )
+		Actor:drop_item(wpn)
 	end
 end
 function remove_wpn(id)
