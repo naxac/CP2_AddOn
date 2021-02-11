@@ -127,6 +127,10 @@ function set_vert_interval(val)
 	vert_interval = val
 end
 
+---------------------------------------------------------------------------
+local first_run_queue = {}
+local can_update = false
+
 function get_scroll()
 	if icons_scroll == nil then
 		icons_scroll = UIScrollIndicators()
@@ -135,6 +139,21 @@ function get_scroll()
 	return icons_scroll
 end
 
-function update_indicator(...)
-	get_scroll():update_indicator(...)
+function update_indicator(name, ini_line, value)
+	if can_update then
+		get_scroll():update_indicator(name, ini_line, value)
+	else
+		first_run_queue[name] = { ini_line, value }
+	end
+end
+
+function first_update()
+	can_update = true
+	for k, v in pairs(first_run_queue) do
+		update_indicator( k, v[1], v[2] )
+	end
+end
+
+function attach()
+	xr_s.subscribe("first_update", this.first_update)
 end
