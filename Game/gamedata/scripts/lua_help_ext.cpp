@@ -274,11 +274,11 @@ class key_bindings {
 	const DUMMY			= 78;
 };
 
-class key_bindings {
-	const DIK_keys.DUMMY		= 0;
-	const DIK_LMOUSE			= 337;
-	const DIK_RMOUSE			= 338;
-	const DIK_WMOUSE			= 339;
+class DIK_keys {
+	const DUMMY			= 0;
+	const DIK_LMOUSE	= 337;
+	const DIK_RMOUSE	= 338;
+	const DIK_WMOUSE	= 339;
 };
 
 class CGameFont {
@@ -352,10 +352,10 @@ class mtlFlags = {
 	const flSlowDown			= 2147483648	// 31   замедляет движение
 };
 
-End of list of the classes exported to LUA
+// End of list of the classes exported to LUA
 
 
-List of the namespaces exported to LUA
+// List of the namespaces exported to LUA
 
 namespace {
 	void			log1(char<message>);
