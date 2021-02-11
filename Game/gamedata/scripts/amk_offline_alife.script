@@ -128,7 +128,7 @@ local base_fp = 1400			-- Эталон firepower\distance при distance = 1 к
 
 local dist_coeff = 8			-- Коэффициент для расстояния
 
-local sell_limit = 5000			-- Вещи дешевле продает торговцам, дороже - через новости
+local sell_limit = 6000			-- Вещи дешевле продает торговцам, дороже - через новости
 
 local rate_kill_base = 100		-- Рейтинг за убийство. При убийстве более слабого - 0.5 * rate_kill_base, более сильного - 2 * rate_kill_base
 local rate_art_found = 100		-- Рейтинг за артефакты
@@ -1457,7 +1457,7 @@ end
 function process_trade(npc)
 	-- Имеет смысл проверять на наличие trade в секции [logic]...
 	if npc and IAmAStalker[npc:clsid()] and npc:alive()
-		and npc.m_story_id~=nil and npc.m_story_id == 4294967296
+		and npc.m_story_id and npc.m_story_id == 4294967296
 		and items[npc.id] and #(items[npc.id])>0
 		and not protected_items.is_no_offline_alife_npc(npc)
 	then
@@ -1481,11 +1481,11 @@ function process_trade(npc)
 		local t_remove = {}
 		for ok,ov in ipairs(npc_items) do
 			obj = AI:object(ov.id)
-			if obj and obj.parent_id == nid then
+			if obj and obj.parent_id and obj.parent_id == nid then
 				if obj and obj:name()==ov.name then
 					sect = obj:section_name()
 					if protected_items.actor_items_keep(sect)
-						or no_sell_table[sect] == true
+						or no_sell_table[sect]
 					then
 						-- Это нам не надо.
 					else
@@ -1527,7 +1527,7 @@ function process_trade(npc)
 			
 			local weapons = {}
 			local ammoss = {}
-			for k,v in pairs(item_list) do			
+			for k,v in ipairs(item_list) do			
 				local sect = v:section_name()
 				local cls = v:clsid()
 				if IAmAWeapon[cls] and not (table.find(xrs_grenade.gr_types, sect) or sect == "wpn_knife") then
@@ -1916,11 +1916,23 @@ function get_flags(npc_id)
 		if IAmAMonster[obj:clsid()] or IAmAStalker[obj:clsid()] then
 			local char_ini = xr_logic.get_customdata_or_ini_file(obj, "<customdata>")
 			if char_ini:section_exist("logic") then
-				if char_ini:line_exist("logic", "on_hit") then
-					flags = bit_or(flags, 1)
-				end
-				if char_ini:line_exist("logic", "on_death") then
-					flags = bit_or(flags, 2)
+				if char_ini:line_exist("logic", "cfg") then
+					local logic_ini = ini_file( char_ini:r_string("logic", "cfg") )
+					if logic_ini and logic_ini:section_exist("logic") then
+						if logic_ini:line_exist("logic", "on_hit") then
+							flags = bit_or(flags, 1)
+						end
+						if logic_ini:line_exist("logic", "on_death") then
+							flags = bit_or(flags, 2)
+						end
+					end
+				else
+					if char_ini:line_exist("logic", "on_hit") then
+						flags = bit_or(flags, 1)
+					end
+					if char_ini:line_exist("logic", "on_death") then
+						flags = bit_or(flags, 2)
+					end
 				end
 			end
 		end
