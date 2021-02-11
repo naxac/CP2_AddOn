@@ -41,7 +41,7 @@ function update_rad_scale( f )
 		p_width = t_rad.scale[3]
 	end
 
-	new_width = p_width * arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY
+	new_width = p_width * math.min(arc_radiation.RAD_DOSE / arc_radiation.DOSE_DEADLY, 1)
 	if saved_width ~= new_width then
 		cs_rad:wnd():SetWidth( new_width )
 		saved_width = new_width
@@ -71,7 +71,7 @@ end
 
 function update( delta )
 	amk.oau_watchdog = 91999
-	amk.oau_reason="ui_hud.update"
+	amk.oau_reason="ui_hud_control.update"
 	local bShow = not scopeUsed
 
 	if t_clock.enabled then
@@ -100,11 +100,11 @@ function table2number( t )
 	return t
 end
 
-function init()
-	if hud == nil then
-		hud = get_hud()
-	end
+function init_hud()
+	hud = get_hud()
+end
 
+function init()
 	local ini = ini_file( "misc\\ui_huds.ltx" )
 	hud_name = game_options.CurrentHUD
 	if not ini:section_exist( hud_name ) then
@@ -132,6 +132,10 @@ function init()
 	if t_rad.enabled then
 		t_rad.back = table2number( ini:r_list( hud_name, "rad_back_pos" ) )
 		t_rad.scale = table2number( ini:r_list( hud_name, "rad_pos" ) )
+	end
+
+	if ini:line_exist( hud_name, "scroll_interval" ) then
+		ui_scroll_indicators.set_vert_interval( ini:r_float( hud_name, "scroll_interval" ) )
 	end
 end
 
@@ -186,7 +190,8 @@ function get_all_huds()
 end
 
 function attach()
-	xr_s.subscribe( "first_update", this.init, { once = true } )
-	xr_s.subscribe( "update", this.update )
+	xr_s.subscribe( "net_spawn",    this.init     )
+	xr_s.subscribe( "first_update", this.init_hud )
+	xr_s.subscribe( "update",       this.update   )
 end
 
