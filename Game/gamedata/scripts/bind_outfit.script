@@ -303,66 +303,8 @@ function set_actor_params(cond)
 end
 
 ---- low battery indicator ----------------------------------------------------------------------
-local current_threshold = nil
-local icon_wnd = nil
-local inited = false
-local tIndicatorThresholds = {}
-
-local function init_indicator()
-	local tmp = string.explode( sys_ini:r_string("main_ingame_indicators_thresholds", "outfit_charge"), ",", true)
-	for i = #tmp, 1, -1 do
-		table.insert(tIndicatorThresholds, tonumber(tmp[i]))
-	end
-	table.insert(tIndicatorThresholds, 0)
-	xr_s.subscribe("net_destroy", this.destroy)
-end
 function update_low_battery_indicator(charge)
-	if not inited then
-		init_indicator()
-		inited = true
-	end
-
-	local n = #tIndicatorThresholds
-	for i, v in ipairs(tIndicatorThresholds) do
-		if charge > v then
-			n = i-1
-			break
-		end
-	end
-	if current_threshold == n then return end
-	current_threshold = n
-
-	local clr
-	if n == 0 then
-		if get_hud():GetCustomStatic("cs_low_charge_outfit") ~= nil then
-			ui_scroll_indicators.remove_indicator(icon_wnd)
-			get_hud():RemoveCustomStatic("cs_low_charge_outfit")
-		end
-		icon_wnd = nil
-		return
-	else
-		local mn = tIndicatorThresholds[#tIndicatorThresholds]
-		local mx = tIndicatorThresholds[1]
-		local k = (tIndicatorThresholds[n] - mn)/(mx - mn)
-		clr = GetARGB(
-			255,
-			math.min( (1-k)*510, 255 ),
-			math.min( k*510, 255 ),
-			0
-		)
-	end
-
-	if icon_wnd == nil then
-		local cs = get_hud():AddCustomStatic("cs_low_charge_outfit", true)
-		icon_wnd = cs:wnd()
-		ui_scroll_indicators.add_indicator(icon_wnd)
-	end
-
-	icon_wnd:SetColor(clr)
-end
-
-function destroy()
-	icon_wnd = nil
+	ui_scroll_indicators.update_indicator( "low_charge", "outfit_expend", 1-charge )
 end
 -------------------------------------------------------------------------------------------------
 

@@ -1,54 +1,136 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
-local scroll_items = {}
-local start_pos_y = nil
-local vert_interval = 20
+local icons_scroll = nil
+local right_ident = 2
+local vert_interval = 0
 
-function set_pos_indicator(st)
-	local y = start_pos_y
-	local idx = st.in_scroll
-	for i, v in ipairs(scroll_items) do
-		if i < idx then
-			y = y + v:GetHeight() + vert_interval
+class "UIScrollIndicators"
+
+function UIScrollIndicators:__init()
+	self.scroll_items = {}
+	self.tIndicatorThresholds = {}
+	self.current_thresholds = {}
+
+	self.xml = CScriptXmlInit()
+	self.xml:ParseFile("maingame.xml")
+
+	self.scroll = get_hud():AddCustomStatic("icons_scroll", true):wnd()
+
+	local st = self.xml:InitStatic("icons_scroll_view", nil)
+	self.scroll:SetWndPos( st:GetHPos(), st:GetVPos() + st:GetHeight() )
+end
+
+function UIScrollIndicators:get_indicator(name)
+	for i, v in ipairs(self.scroll_items) do
+		if v.name == name then
+			return v
+		end
+	end
+
+	local y = vert_interval
+	for i, v in ipairs(self.scroll_items) do
+		y = y + v:GetHeight() + vert_interval
+	end
+	local st = self.xml:InitStatic(name.."_static", self.scroll)
+	table.insert(self.scroll_items, st)
+	st.name = name
+	st:SetWndPos(right_ident, y)
+	return st
+end
+
+function UIScrollIndicators:remove_indicator(name)
+	local n = math.huge
+	local y = vert_interval
+	for i, v in ipairs(self.scroll_items) do
+		if n > i then
+			if v.name == name then
+				n = i
+				self.scroll:DetachChild(v)
+			else
+				y = y + v:GetHeight() + vert_interval
+			end
 		else
-			v:SetWndPos(v:GetHPos(), y)
+			v:SetWndPos(right_ident, y)
+			y = y + v:GetHeight() + vert_interval
+		end
+	end
+	if n < math.huge then
+		table.remove(self.scroll_items, n)
+	end
+end
+
+function UIScrollIndicators:init_indicator(name, ini_line)
+	local t = {}
+	local tmp = sys_ini:r_list("main_ingame_indicators_thresholds", ini_line)
+	for i, v in ipairs(tmp) do
+		t[i] = tonumber(v)
+	end
+	table.insert(t, 1)
+	self.tIndicatorThresholds[name] = t
+	return t
+end
+function UIScrollIndicators:update_indicator(name, iniline, value)
+	local thresholds = self.tIndicatorThresholds[name]
+	if not thresholds then
+		thresholds = self:init_indicator(name, iniline)
+	end
+
+	local n = #thresholds
+	for i, v in ipairs(thresholds) do
+		if value < v then
+			n = i-1
 			break
 		end
 	end
-end
+	
+	if self.current_thresholds[name] == n then return end
+	self.current_thresholds[name] = n
 
-function add_indicator(st)
-	if start_pos_y == nil then
-		start_pos_y = st:GetVPos()
-		xr_s.subscribe("net_destroy", this.destroy_indicators)
+	if n == 0 then
+		self:remove_indicator(name)
+		return
 	end
-	table.insert(scroll_items, st)
-	local n = #scroll_items
-	st.in_scroll = n
-	set_pos_indicator(st)
+
+	local st = self:get_indicator(name)
+	local k = (n - 1) / (#thresholds - 2)
+	-- local mn = thresholds[1]
+	-- local mx = thresholds[#thresholds]
+	-- local k = (thresholds[n] - mn)/(mx - mn)
+	local clr = GetARGB(
+		255,
+		math.min( k*510, 255 ),
+		math.min( (1-k)*510, 255 ),
+		0
+	)
+	st:SetColor(clr)
 end
 
-function remove_indicator(st)
-	ASSERT(st.in_scroll~=nil, "[ui_scroll_indicators.remove_indicator] Indicatorr can not removed because it is not added!")
-	local n = st.in_scroll
-	table.remove(scroll_items, n)
-	if #scroll_items == 0 then
-		start_pos_y = nil
-		xr_s.unsubscribe("net_destroy", this.destroy_indicators)
-	else
-		for i, v in ipairs(scroll_items) do
-			if i >= n then
-				v.in_scroll = i
-				set_pos_indicator(v)
-			end
+function UIScrollIndicators:destroy_indicators()
+	if #self.scroll_items > 0 then
+		for i = 1, #self.scroll_items do
+			self.scroll_items[i] = nil
 		end
 	end
+	self.xml = nil
+	self.scroll = nil
+	get_hud():RemoveCustomStatic("icons_scroll")
 end
+
 
 function destroy_indicators()
-	if #scroll_items == 0 then return end
-	for i = 1, #scroll_items do
-		scroll_items[i] = nil
-	end
+	if icons_scroll == nil then return end
+	icons_scroll:destroy_indicators()
+	icons_scroll = nil
 end
 
+function get_scroll()
+	if icons_scroll == nil then
+		icons_scroll = UIScrollIndicators()
+		xr_s.subscribe( "net_destroy", this.destroy_indicators )
+	end
+	return icons_scroll
+end
+
+function update_indicator(...)
+	get_scroll():update_indicator(...)
+end
