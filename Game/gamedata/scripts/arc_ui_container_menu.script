@@ -1,5 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local container_types = { 1, 3, 8 }
+
 local db_click_timeout = 300
 local used_container = -1
 local actor_radiation_v = sys_ini:r_float('actor_condition', 'radiation_v')
@@ -30,6 +30,7 @@ function arc_containers_menu:__init(obj, arts)
 	self.artefacts = {}
 	self.containers = {}
 	self.containers_for_save = {}
+	self.container_types = {}
 	self.arts_weight = 0
 	self.arts_rad = 0
 
@@ -69,7 +70,7 @@ function arc_containers_menu:InitControls()
 	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_RECEIVED, self.OnBagFocus, "container")
 	self:AddCallbackEx("container", ui_events.STATIC_FOCUS_LOST, self.OnBagFocusLost, "container")
 
-	for i, n in ipairs(container_types) do
+	for n in pairs(self.container_types) do
 		st = xml:InitStatic("dragdrop_container_"..n, cont)
 		self["container_"..n] = ui_dragdrop_list.UIDragDropList( st:GetWidth(), st:GetHeight(), st:GetText() )
 		st:AttachChild(self["container_"..n])
@@ -157,8 +158,10 @@ function arc_containers_menu:insert_container(id, section, arts)
 	local t = {}
 	t.container = {
 		section = section,
-		id = id
+		id = id,
+		slots = sys_ini:r_u32( section, "container_slots" )
 	}
+	self.container_types[t.slots] = true
 	if not arts then
 		arts = arc_containers.get_container_arts(id)
 	end
@@ -195,7 +198,7 @@ end
 
 function arc_containers_menu:FillContainer()
 	local t_cont = self.containers[self.container_index]
-	self.container_slots = sys_ini:r_u32(t_cont.container.section, "container_slots")	--#t_cont.arts
+	self.container_slots = t_cont.slots
 	if #t_cont.arts > self.container_slots then
 		log("! artefacts count [%s] in container [%s:%s] more than slots count [%s]",
 			#t_cont.arts, t_cont.container.section, t_cont.container.id, self.container_slots)
@@ -204,7 +207,7 @@ function arc_containers_menu:FillContainer()
 	self.current_dragdrop =  "container_"..self.container_slots
 	self.cont_protection = sys_ini:r_float(t_cont.container.section, "rad_protection")
 
-	for i, v in ipairs(container_types) do
+	for v in pairs(self.container_types) do
 		if self.container_slots ~= v then
 			self["container_"..v]:Enable(false)
 			self["container_"..v]:Show(false)
@@ -470,7 +473,7 @@ function arc_containers_menu:Quit()
 	if not key:find("MOUSE") then key = "k"..key end
 	get_console():execute( "bind quit "..string.lower( key ) )
 
-	for i, v in ipairs(container_types) do
+	for v in pairs(self.container_types) do
 		self["container_"..v]:Destroy()
 		self["container_"..v] = nil
 	end
