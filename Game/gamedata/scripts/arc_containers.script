@@ -1,15 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local inv_containers = {}
-local cfg_containers = {
-	["arc_art_box_8basic"] = true,
-	["arc_art_box_basic"] = true,
-	["arc_art_box_1basic"] = true
-}
 
 
 function on_take_container(item)
 	local cont_section = item:section()
-	if not cfg_containers[cont_section] then return false end
+	if not sys_ini:line_exist(cont_section, "container_slots") then return false end
 
 	local cont_id = item:id()
 	local arts = inv_containers[cont_id]
@@ -35,9 +30,6 @@ function on_take_container(item)
 end
 
 function on_lose_container(item)
-	local cont_section = item:section()
-	if not cfg_containers[cont_section] then return end
-
 	local arts = inv_containers[ item:id() ]
 	if not arts then return end
 
@@ -55,7 +47,7 @@ function on_lose_container(item)
 end
 
 function on_use_container(item)
-	if not cfg_containers[ item:section() ] then return false end
+	if not inv_containers[ item:id() ] then return false end
 
 	arc_ui_container_menu.show_menu(item)
 end
