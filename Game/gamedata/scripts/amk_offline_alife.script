@@ -135,10 +135,20 @@ local rate_art_found = 100		-- Рейтинг за артефакты
 
 local to_actor = 150			-- расстояние до актёра, на котором работает оффлайн-алайф
 
-function init()
-	build_tables()
-	iTime = (game_time_minutes - iFreq) + 3
-	off_npcs={}
+local function insert_npc_item(se_obj)
+	local npc_id = se_obj.parent_id
+	if items[npc_id] then
+		local obj_id = se_obj.id
+		for i, v in ipairs( items[npc_id] ) do
+			if v.id == obj_id then
+				return false
+			end
+		end
+	else
+		items[npc_id] = {}
+	end
+	table.insert( items[npc_id], { id = se_obj.id, name = se_obj:name() } )
+	return true
 end
 
 function update()
@@ -241,8 +251,7 @@ function add_fresh_meat(obj)
 		then
 			local zz = AI:object(obj.parent_id)
 			if zz then
-				if not items[obj.parent_id] then items[obj.parent_id] = {} end
-				table.insert(items[obj.parent_id], {id = obj.id, name=obj:name()})
+				insert_npc_item(obj)
 				gps_habar.insert_item(obj.parent_id, obj) -- Idler++-- корректируем хабар в помеченных тайниках
 			end
 		end
@@ -318,12 +327,10 @@ function offline_alife()
 	for i = 1, st do
 		table.insert(idxs, i)
 	end
-	local rnd, idx = 0, 0
+	local rnd = 0
 	for search = 1, math.min(st, search_intensivity) do
 		amk.oau_reason="cn offline_alife chp3"
-		idx = math_random(#idxs)
-		rnd = idxs[idx]
-		table.remove(idxs, idx)
+		rnd = table.remove(idxs, math_random(#idxs))
 		amk.oau_reason="cn offline_alife chp4"
 		if npcs.stalkers[rnd] then 
 			amk.oau_reason="cn offline_alife chp5"
@@ -823,7 +830,7 @@ function on_monsters_found(victim, vdata)
 	--amk.oau_reason=rsn.."begin"
 	if (victim == nil or vdata == nil) then return end
 	if (amk.is_debug == true) then
-		local lname = news_main.get_object_levelname(victim)
+		local lname = object_level_name(victim)
 		local s = "found monsters ("..#vdata.monsters..") for "..victim.id.." ["..victim:community().."] on map "..lname
 		amk.mylog(s)
 		--amk.add_spot_on_map(victim.id,"red_location", s)
@@ -1276,7 +1283,7 @@ function on_inv_boxes_found(victim, vdata)
 							end
 						end
 					else
-						invbox_new.offline_npc_found_box(victim, v_obj)
+						invbox_new.offline_npc_found_box(victim, object)
 					end
 				end
 			end
@@ -1291,8 +1298,7 @@ end
 function pick_fake_item(npc, sect)
 	local new = AI:create(sect, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
 	if new and new.parent_id then
-		if not items[new.parent_id] then items[new.parent_id] = {} end
-		table.insert(items[new.parent_id], {id = new.id, name = new:name()})
+		insert_npc_item(new)
 	end
 	return new
 end
@@ -1303,11 +1309,6 @@ function pick_item(npc, obj)
 		local section = obj:section_name()
 		new = AI:create(section, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
 		if (new) then
-			if (new.parent_id) then
-				if not items[new.parent_id] then items[new.parent_id] = {} end
-				table.insert(items[new.parent_id], {id = new.id, name = new:name()})
-				gps_habar.insert_item(new.parent_id, new) -- Idler++-- корректируем хабар в помеченных тайниках
-			end
 			if (obj.parent_id and items[obj.parent_id] and #items[obj.parent_id]>0) then
 				for z=1, #items[obj.parent_id] do
 					if (items[obj.parent_id][z] and items[obj.parent_id][z].id == obj.id) then
@@ -1321,6 +1322,11 @@ function pick_item(npc, obj)
 				end
 			end
 			del_obj_by_id(obj.id)
+
+			if (new.parent_id) then
+				insert_npc_item(new)
+				gps_habar.insert_item(new.parent_id, new) -- Idler++-- корректируем хабар в помеченных тайниках
+			end
 		end
 	end
 	return new
@@ -1418,7 +1424,7 @@ function list_npc_items(obj)
 			if (it and it.parent_id == obj.id) then
 				log1("~ -> "..it:name().." "..it:section_name())
 				if (IAmAWeapon[it:clsid()]) then
-					table.insert(items[obj.id], {id = it.id, name = it:name()})
+					insert_npc_item(it)
 					return it
 				end
 			end			
@@ -1484,11 +1490,9 @@ function process_trade(npc)
 			if obj and obj.parent_id and obj.parent_id == nid then
 				if obj and obj:name()==ov.name then
 					sect = obj:section_name()
-					if protected_items.actor_items_keep(sect)
-						or no_sell_table[sect]
+					if ( not protected_items.actor_items_keep(sect) )
+						and no_sell_table[sect] == nil
 					then
-						-- Это нам не надо.
-					else
 						table.insert(item_list, obj)
 					end
 				end
@@ -1943,8 +1947,6 @@ end
 function is_valuable(item, section)
 	if not (item or section) then return false end
 
-	local result = false
-
 	local sect = section or item:section_name()
 	local cls = section and sys_ini:r_clsid(section, "class") or item:clsid()
 
@@ -1955,11 +1957,16 @@ function is_valuable(item, section)
 		end
 
 		local cost = sys_ini:r_float_ex(sect, "cost")
-		if IAmAWeapon[cls] and cost >= 1000 then
-			result = true
-		elseif cost >= 800 then
-			result = true
+		if (IAmAWeapon[cls] and cost >= 1000) or (cost >= 800) then
+			return true
 		end
 	end
-	return result
+	return false
 end
+
+function init()
+	build_tables()
+	iTime = (game_time_minutes - iFreq) + 3
+	off_npcs={}
+end
+
