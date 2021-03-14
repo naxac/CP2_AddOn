@@ -12,14 +12,6 @@ local vert_interval = 1		-- параметр vert_interval в скролле
 local shift_show_descr = 700  -- через какое время после наведения курсора будет показано окно, ms
 
 
-local reg_callbacks = {
-	cell_item_focus = "OnItemFocus",
-	cell_item_focus_lost = "OnItemFocusLost",
-	key_press = "OnKeyPress",
-	mouse_wheel = "OnMouseWheel",
-	update = "OnUpdate"
-}
-
 -- съедобное
 local is_eatable = {
 	[clsid.obj_antirad]	= true,
@@ -70,6 +62,14 @@ local eatable_params = {
 }
 --------------------------------------------------------------------------------------------------------
 class "CUIDescriptionWnd" (CUIScriptWnd)
+
+local reg_callbacks = {
+	cell_item_focus = "OnItemFocus",
+	cell_item_focus_lost = "OnItemFocusLost",
+	key_press = "OnKeyPress",
+	mouse_wheel = "OnMouseWheel",
+	update = "OnUpdate"
+}
 
 function CUIDescriptionWnd:__init(owner, autosubscribe) super()
 	self.owner = owner
@@ -365,41 +365,46 @@ function CUIDescriptionWnd:GetContainerParams()
 	self.arts_list = {}
 
 	local p = sys_ini:r_float_ex(self.section, "rad_protection", nil)
-	local slots = sys_ini:r_u32(self.section, "container_slots")
-	local t = {}
-	local r = 0
-	for i, v in ipairs(arts) do
-		if v.s ~= "_" then
-			table.add(t, v.s)
-			r = r + math.max(sys_ini:r_float(v.s, "radiation_restore_speed") - p, 0)
+	if arts then
+		local t = {}
+		local r = 0
+		for i, v in ipairs(arts) do
+			if v.s ~= "_" then
+				table.add(t, v.s)
+				r = r + math.max(sys_ini:r_float(v.s, "radiation_restore_speed") - p, 0)
+			end
+		end
+
+		if table.size(t) > 0 then
+			local art_name
+			for k,v in pairs(t) do
+				if artefact_hunter.is_known_art(k) then
+					art_name = get_inv_name(k)
+				else
+					art_name = "unknown_art"
+				end
+				table_insert(self.arts_list, {
+					GetIconParams(k),
+					get_string(art_name)..(v>1 and " x"..v or "")
+				})
+			end
+			if r > 0 then
+				if arc_inventory.IsRadDetected() then
+					r = r/actor_conditions.radiation_restore_speed
+					self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
+				end
+			end
 		end
 	end
 
-	if table.size(t) > 0 then
-		local art_name
-		for k,v in pairs(t) do
-			if artefact_hunter.is_known_art(k) then
-				art_name = get_inv_name(k)
-			else
-				art_name = "unknown_art"
-			end
-			table_insert(self.arts_list, {
-				GetIconParams(k),
-				get_string(art_name)..(v>1 and " x"..v or "")
-			})
-		end
-		if r > 0 then
-			if arc_inventory.IsRadDetected() then
-				r = r/actor_conditions.radiation_restore_speed
-				self:ShowProps( { {"radiation_2", "Радиация: %c[red]+"..string_format("%dКи",r)} } )
-			end
-		end
-	end
-
-	r = sys_ini:r_float(self.section, "rad_protection")
-	r = r/actor_conditions.radiation_restore_speed
-	local p = { { "radiation", "Уровень защиты: %c[green]"..string_format("%dКи", r) } }
-	self:ShowProps(p)
+	p = p/actor_conditions.radiation_restore_speed
+	self:ShowProps( {
+		{ "radiation", "Уровень защиты: %c[green]"..string_format("%dКи", p) }
+	} )
+	p = sys_ini:r_u32(self.section, "container_slots")
+	self:ShowProps( {
+		{ "settings", "Количество ячеек: %c[green]"..string_format("%d", p) }
+	} )
 end
 -- Показываем описание оружия
 function CUIDescriptionWnd:ShowWeaponParams()
