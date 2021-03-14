@@ -524,37 +524,40 @@ end
 -- TODO а если в начале эксклюзивный, а потом в любой?
 -- вариант: any=condlist
 function se_smart_terrain:obj_accepts_smart_terrain( obj )
-  if obj.smart_terrain_conditions then
-    local any_exclusive = false
-    local s
+	-- Если объекту запрещено переходить в online,
+	-- то не пускаем его в смарт в любом случае
+	if obj:can_switch_online() == false then
+		return disagreed
+	end
 
-    for name, condlist in pairs(obj.smart_terrain_conditions) do
-      s = xr_logic.pick_section_from_condlist( db.actor_proxy, obj, condlist )
+	if obj.smart_terrain_conditions then
+		-- local any_exclusive = false
+		local s
 
-      if s ~= nil then
-        if name == "none" then        
-          return disagreed
-        elseif name == self:name() then
---'         if obj:name() == "esc_wolf" then
---'           printf("[%s] obj_accepts_smart_terrain[%s] = agreed_exclusive", self:name(), obj:name())
---'         end
-          return agreed_exclusive
-        end
-      else
-        --' Если текущий смарттеррейн эксклюзивный и недоступен
-        if name == self:name() then
-          return disagreed
-        end
-      end
-    end
+		for name, condlist in pairs(obj.smart_terrain_conditions) do
+			s = xr_logic.pick_section_from_condlist( db.actor_proxy, obj, condlist )
+
+			if s ~= nil then
+				if name == "none" then        
+					return disagreed
+				elseif name == self:name() then
+					return agreed_exclusive
+				end
+			else
+				--' Если текущий смарттеррейн эксклюзивный и недоступен
+				if name == self:name() then
+					return disagreed
+				end
+			end
+		end
 
 		--' Если объекту запрещено переходить в online и эксклюзивные
 		--' смарты недоступны, то не пускаем его никуда. Это исключает
 		--' переброску отключенных до (или после) определённого события
 		--' людей и мутантов в другой неэксклюзивный смарт.
-		if obj:can_switch_online() == false then
-			return disagreed
-		end
+		-- if obj:can_switch_online() == false then
+			-- return disagreed
+		-- end
 
     --' Надо убедиться что эксклюзивный смарттеррейн доступен, прежде чем запрещать все остальные
 --'   if any_exclusive then
@@ -563,13 +566,9 @@ function se_smart_terrain:obj_accepts_smart_terrain( obj )
 --'     end
 --'     return disagreed
 --'   end
-  end
+	end
 
---' if obj:name() == "esc_wolf" then
---'   printf("[%s] obj_accepts_smart_terrain[%s] = agreed", self:name(), obj:name())
---' end
-
-  return agreed
+	return agreed
 end
 
 -- может ли объект быть добавлен в smart terrain?
