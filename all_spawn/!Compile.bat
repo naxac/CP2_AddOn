@@ -11,7 +11,7 @@ if exist all.spawn.new (
 
 pushd spawn_unpack\
 
-perl acdc.pl -c all.ltx -o ..\all.spawn.new
+C:\Perl_old\perl\bin\perl acdc.pl -c all.ltx -o ..\all.spawn.new
 
 del /Q acdc.pl
 rd /S /Q stkutils
