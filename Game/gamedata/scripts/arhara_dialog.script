@@ -706,7 +706,7 @@ function ecolog_out_phone(first_speaker, second_speaker)
 	local obj = npc:object("telefon")
 	if obj then
 		npc:transfer_item(obj, Actor)
-		news_manager.relocate_item(Actor, "in", "telefon")
+		news_manager.relocate_item("in", "telefon")
 	end
 end
 
@@ -4196,6 +4196,7 @@ function vopros_k_prizraku_sms1()
 	)
 end
 function pili_sdelal_psevdofoto_sms()
+	if Actor:has_info("pili_poddelka_est") then return end
 	news_manager.send_tip(
 		"%c[gray2]ПИЛИГРИМ:\\n%c[red_sms]$actor, вроде фото готово. Забирай.",
 		130, nil, 20000, nil, [[characters_voice\human_03\stalker\talk\labux\labux_25]],
@@ -6511,9 +6512,9 @@ function radar_udalyem_art()
 	Actor)
 	if bulizCnt==0 then return end
 	for sect, cnt in pairs(tDel) do
-		news_manager.relocate_item(Actor, "out", sect, cnt)
+		news_manager.relocate_item("out", sect, cnt)
 	end
-	news_manager.relocate_item(Actor, "in", "af_buliz", bulizCnt)
+	news_manager.relocate_item("in", "af_buliz", bulizCnt)
     news_manager.send_tip(
 		"%c[gray2]$actor:\\n%c[red_sms]Действительно, что-то с артами не так. Вероятно, срок действия некоторых закончился. Надо проверить пояс и рюкзак.",
 		5, nil, 25000, nil, [[characters_voice\human_03\stalker\talk\leaves\leaves_61]]
@@ -6579,9 +6580,9 @@ function laba_dell_art()
 	Actor)
 	if bulizCnt==0 then return end
 	for sect, cnt in pairs(tDel) do
-		news_manager.relocate_item(Actor, "out", sect, cnt)
+		news_manager.relocate_item("out", sect, cnt)
 	end
-	news_manager.relocate_item(Actor, "in", "af_buliz", bulizCnt)
+	news_manager.relocate_item("in", "af_buliz", bulizCnt)
 end
 --' получим  булыжники
 function laba_bul(first_speaker, second_speaker)
@@ -6615,9 +6616,9 @@ function laba_del_artu()
 	Actor)
 	if spiralCnt==0 then return end
 	for sect, cnt in pairs(tDel) do
-		news_manager.relocate_item(Actor, "out", sect, cnt)
+		news_manager.relocate_item("out", sect, cnt)
 	end
-	news_manager.relocate_item(Actor, "in", "af_spiral", spiralCnt)
+	news_manager.relocate_item("in", "af_spiral", spiralCnt)
 end
 --' получим спиральки
 function laba_spir(first_speaker, second_speaker)
@@ -6642,8 +6643,8 @@ function forest_del_pistonu()
 	end,
 	Actor)
 	if n > 0 then
-		news_manager.relocate_item(Actor, "out", "ammo_12x76_zhekan", n)
-		news_manager.relocate_item(Actor, "in", "ammo_zhekan_izomorf", n)
+		news_manager.relocate_item("out", "ammo_12x76_zhekan", n)
+		news_manager.relocate_item("in", "ammo_zhekan_izomorf", n)
 		amk.spawn_ammo_in_inv("ammo_zhekan_izomorf", n)
 	end
 	inventory.give_items("psevdokristall", 1)
@@ -6664,8 +6665,8 @@ function mozg_del_preplastilin()
 	end,
 	Actor)
 	if s==0 then return end
-	news_manager.relocate_item(Actor, "out", "preplastilin", s)
-	news_manager.relocate_item(Actor, "in", "izomorf_plastilin", s)
+	news_manager.relocate_item("out", "preplastilin", s)
+	news_manager.relocate_item("in", "izomorf_plastilin", s)
 end
 --' получим пластилин
 function mozg_plastilin_est(first_speaker, second_speaker) 
@@ -6888,12 +6889,12 @@ end
 
 --' "отдадим" сломанный ПДА
 function pda_mechenyi_otdal(first_speaker, second_speaker)
-	news_manager.relocate_item(Actor, "out", "device_pda")
+	news_manager.relocate_item("out", "device_pda")
 end
 
 --' "заберём" ПДА у Доцента
 function dosemt_pda_zabral(first_speaker, second_speaker)
-	news_manager.relocate_item(Actor, "in", "device_pda")
+	news_manager.relocate_item("in", "device_pda")
 	-- таймер вместо рестриктора
 	start_real_timer("run", 25, "arhara_dialog.pda_sdelan_sms()")
 	-- на случай, если пришли не в первый раз
@@ -6988,6 +6989,8 @@ end
 --' заспавним имитатор фотоперехода
 function spawn_imit_tele_foto()
 	AI:create_no_ai("imitator_tele_final1",vector():set(-21.340,69.629,-31.520),598,2417)
+	local obj = snp.object_by_section_offline("anomal_pole_foto")
+	if obj then AI:release(obj, true) end
 end
 
 --' проверяет наличие фотки
@@ -7524,16 +7527,22 @@ end
 
 --' проверим наличие вещей сталкера
 function plot_dialog_say_have()
-return inventory.search("pisma_stalka",1) ~= false and
-inventory.search("wpn_desert_eagle",1) ~= false
+	return inventory.search("pisma_stalka",1) ~= false and
+		inventory.search("wpn_desert_eagle",1) ~= false
 end
 
 --' отдадим вещи сталкера
 function otdal_veschi(first_speaker, second_speaker)
-inventory.out_items("wpn_desert_eagle",1)
-inventory.out_items("pisma_stalka",1)
-local se_obj = AI:create_no_ai("m_inventory_box35", vector():set(52.520462036133,-0.035371631383896,-295.6975402832),221820,253)
- end
+	local npc = first_speaker:id() == 0 and second_speaker or first_speaker
+	local obj = Actor:object("wpn_desert_eagle")
+	if obj then
+		Actor:transfer_item(obj, npc)
+		news_manager.relocate_item("out", "wpn_desert_eagle")
+	end
+	inventory.out_items("wpn_desert_eagle",1)
+	inventory.out_items("pisma_stalka",1)
+	AI:create_no_ai("m_inventory_box35", vector():set(52.520462036133,-0.035371631383896,-295.6975402832),221820,253)
+end
 
 --' убираем запасного фото с кордона
 function dell_zapasnoy_foto_muz()
@@ -7885,7 +7894,7 @@ function remove_tema_likvidator_metka()
 end
 -- Выдадим ГГ покоцаный ствол, раз у него ничего больше нет
 function marader_weapon()
-	news_manager.relocate_item(Actor, "in", "wpn_toz34_short")
+	news_manager.relocate_item("in", "wpn_toz34_short")
 	inventory.give_items("ammo_12x70_buck")
 	local se_obj = amk.spawn_item_in_inv("wpn_toz34_short")
 	level.client_spawn_manager():add( se_obj.id, 0, 
@@ -7935,7 +7944,7 @@ function starshoy_say_one_have()
 	return inventory.search("medkit",10) ~= false and
 		inventory.search("wpn_ak74u",2) ~= false and
 		inventory.search("vodka",5) ~= false and
-		inventory.search("ammo_5.45x39_ap",10) ~= false and
+		inventory.search("ammo_5.45x39_ap",5) ~= false and
 		inventory.search("conserva",20) ~= false
 end
 
@@ -7944,7 +7953,7 @@ function starshoy_say_one_done(first_speaker, second_speaker)
 	inventory.out_items("medkit",10)
 	inventory.out_items("wpn_ak74u",2)
 	inventory.out_items("vodka",5)
-	inventory.out_items("ammo_5.45x39_ap",10)
+	inventory.out_items("ammo_5.45x39_ap",5)
 	inventory.out_items("conserva",20)
 	arhara_dialog.parfum_sms_kontrik1()
 end
