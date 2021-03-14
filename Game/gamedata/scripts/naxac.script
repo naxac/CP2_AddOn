@@ -1,6 +1,57 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 76
+local current_fix = 79
 
+function fix_79()
+	log("- all.spawn cleanup...")
+end
+function fix_78()
+	local obj = AI:object("atp_dcity_pobeg_restrictor")
+	if obj then
+		AI:release(obj, true)
+		if Actor:dont_has_info("agro_tainik_norman_start") then
+			AI:create( spawn_ids.atp_dcity_pobeg_restrictor )
+		end
+	end
+end
+function fix_77()
+	local obj = AI:object( "lim_physic_object_0031" )
+	if obj then
+		AI:release( obj, true )
+		AI:create( spawn_ids.lim_physic_object_0031 )
+	end
+	local t = {
+		["sp_btr_nevid1_restrictor"] = "sp_btr_nevid1",
+		["sp_btr_nevid2_restrictor"] = "sp_btr_nevid2"
+	}
+	for k, v in pairs(t) do
+		obj = AI:object(k)
+		if obj then
+			AI:release(obj, true)
+			if not has_alife_info(v) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+	local del = {
+		"podval_btr_nevid1",
+		"podval_btr_nevid2"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+	obj = AI:story_object(story_ids.svalka_plot_stalk)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.svalka_plot_stalk) )
+	end
+	if Actor:has_info("pili_foto_poddelka_start") then
+		Actor:disable_info_portion("pili_foto_poddelka_start")
+		Actor:give_info_portion("pili_foto_poddelka_start")
+	end
+end
 function fix_76()
 	local obj = AI:story_object( story_ids.lc_sarkofag_to_aes2 )
 	if obj then
