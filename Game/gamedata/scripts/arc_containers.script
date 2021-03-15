@@ -29,17 +29,17 @@ function on_take_container(item)
 	return true
 end
 
-function on_lose_container( item )
+function on_lose_container(item)
 	local arts = inv_containers[ item:id() ]
 	if not arts then return end
 
-	local rad_protect = sys_ini:r_float( item:section(), "rad_protection" )
-	for i, v in ipairs( arts ) do
+	local rad_protect = sys_ini:r_float(item:section(), "rad_protection")
+	for i, v in ipairs(arts) do
 		if v.s ~= "_" then
-			local inv_rad = sys_ini:r_float( v.s, "radiation_restore_speed" )
-			inv_rad = math.max( inv_rad, 0 )
+			local inv_rad = sys_ini:r_float(v.s, "radiation_restore_speed")
+			inv_rad = math.max(inv_rad, 0)
 			if inv_rad > rad_protect then
-				arc_radiation.change_inv_radiation( rad_protect-inv_rad )
+				arc_radiation.change_inv_radiation(rad_protect-inv_rad)
 			end
 		end
 	end
@@ -52,8 +52,8 @@ function on_use_container(item)
 	arc_ui_container_menu.show_menu(item)
 end
 
-function get_container_arts( cont_id )
-	local sobj = AI:object( cont_id )
+function get_container_arts(cont_id)
+	local sobj = AI:object(cont_id)
 	if sobj==nil then
 		log("! [arc_containers.get_container_arts] sobj with id [%s] is nil!", cont_id)
 		return nil
@@ -70,9 +70,9 @@ function get_container_arts( cont_id )
 
 	if cd and cd.arts then
 		local sect, cond
-		for n, str in pairs( cd.arts ) do
+		for n, str in pairs(cd.arts) do
 			sect, cond = unpack( string.explode(str, ":", true) )
-			ret[ tonumber(n) ] = { s = sect, c = tonumber(cond) or 1 }
+			ret[tonumber(n)] = { s = sect, c = tonumber(cond) or 1 }
 		end
 	else
 		local count = sys_ini:r_u32( sobj:section_name(), "container_slots" )
