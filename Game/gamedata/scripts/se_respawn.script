@@ -292,11 +292,28 @@ function se_respawn:create(prob)
 			self.custom_data_on_spawn = nil
 		end
 	else
-		obj = AI:create(spawn_section, 
+		local parent_obj = level.object_by_id(parent_id)
+		if parent_obj then
+			obj = AI:create(spawn_section, 
+				Actor:position(),
+				Actor:level_vertex_id(), 
+				Actor:game_vertex_id(),
+				Actor:id())
+			level.client_spawn_manager():add(obj.id, -1,
+				function(pid, id, item)
+					local parent = level.object_by_id(pid)
+					if parent then
+						Actor:transfer_item(item, parent)
+					end
+				end,
+			parent_id)
+		else
+			obj = AI:create(spawn_section, 
 				self.position,
 				self.m_level_vertex_id, 
 				self.m_game_vertex_id,
 				parent_id)
+		end
 	end
 
 	amk.on_REspawn(obj,self)
