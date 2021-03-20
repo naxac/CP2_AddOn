@@ -127,6 +127,13 @@ function peshera_start()
 	end
 	
 	create_teleport("peshera_blok_tp",vector():set(-112.609199523926,-9.9281539916992,-34.9218902587891),12288,2868)
+	local pos = Actor:position()
+	local t = {
+		pos = {pos.x, pos.y, pos.z},
+		lv = Actor:level_vertex_id(),
+		gv = Actor:game_vertex_id()
+	}
+	amk.save_table("pesh_exit", t)
 
 	Actor:give_info_portion("peshera_go")
 	if peshera_table == nil then init_peshera_table() end
@@ -174,6 +181,21 @@ function peshera_end()
 
 	delete_teleport("peshera_blok_tp")
 	Actor:disable_info_portion("peshera_go")
+
+	local place = amk.load_table("pesh_exit")
+	level.start_stop_menu(level.main_input_receiver(), true)
+	level.disable_input()
+	start_small_timer(2000, function()
+		level.add_pp_effector ("teleport.ppe", 2006, false)
+	end)
+	start_small_timer(2500, function()
+		level.enable_input()
+		level_changers.create_teleport_on_actor(
+			vector():set(unpack(place.pos)),
+			place.lv,
+			place.gv
+		)
+	end )
 end
 
 -- Холодное оружие перенесено в hotkeys.script
