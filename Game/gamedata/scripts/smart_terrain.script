@@ -465,65 +465,40 @@ local level_groups = {
 }
 
 function se_smart_terrain:smart_terrain_accepts_obj( obj, obj_agreement )
-  if obj_agreement == disagreed then
---    printf("[%s] disagreed", obj:name())
-    return false
-  end
+	if obj_agreement == disagreed then
+		-- printf("[%s] disagreed", obj:name())
+		return false
+	end
 
---' if obj:name() == "esc_wolf" then
---'   printf("before checking: pop = %s, cap = %s", tostring(self.gulag:get_non_exclusive_population()), tostring(self.gulag.capacity_non_exclusive))
---' end
+	if obj_agreement == agreed_exclusive or
+		self.gulag:get_non_exclusive_population() < self.gulag.capacity_non_exclusive
+	then
+		--' Проверка что смарттеррейн и НПС находятся в одном кластере уровней (чтобы не ходили через БАР)
+		local smart_level_group = object_level_name(self)
+		local npc_level_group = object_level_name(obj)
 
-  if obj_agreement == agreed_exclusive or
-     self.gulag:get_non_exclusive_population() < self.gulag.capacity_non_exclusive
-  then
-    local community, is_stalker = self:get_obj_community( obj )
+		if level_groups[smart_level_group] ~= level_groups[npc_level_group] then
+			return false
+		end
 
-        --' Проверка что смарттеррейн и НПС находятся в одном кластере уровней (чтобы не ходили через БАР)
-        local smart_level_group = object_level_name(self)
-        local npc_level_group = object_level_name(obj)
+		local community, is_stalker = self:get_obj_community( obj )
 
---'   if obj:name() == "esc_wolf" then
---'     printf("smart=%s stalker=%s", tostring(smart_level_group), tostring(npc_level_group))
---'   end
+		if self.accepted_communities and not self.accepted_communities[community] then
+			return false
+		end
 
-        if level_groups[smart_level_group] ~= level_groups[npc_level_group] then
-            return false
-        end
-    
+		if not self:check_preset( community, obj:rank(), self.gparams.preset_name ) then
+			return false
+		end
 
---' if obj:name() == "esc_wolf" then
---'   printf( "comm=%s is_stalker=%s", community, tostring( is_stalker ) )
---' end
+		if not xr_gulag.checkNpc( community, is_stalker, self.gparams.type, obj:rank(), obj ) then
+			return false
+		end
 
-    if self.accepted_communities and not self.accepted_communities[community] then
-      return false
-    end
-
---'   if obj:name() == "esc_wolf" then
---'     printf( "community=%s rank=%d reputation=%d", community, obj:rank(), obj:reputation() )
---'   end
-  
-    if not self:check_preset( community, obj:rank(), self.gparams.preset_name ) then
-      return false
-    end
-
---'   if obj:name() == "esc_wolf" then
---'     printf( "check_preset ok" )
---'   end
-
-    if not xr_gulag.checkNpc( community, is_stalker, self.gparams.type, obj:rank(), obj ) then
-      return false
-    end
-
---' if obj:name() == "esc_wolf" then
---'   printf( "checkNpc ok" )
---' end
-
-    return self.gulag:is_there_any_suitable_job( self:fill_npc_info( obj ), obj_agreement == agreed_exclusive )
-  else
-    return false
-  end
+		return self.gulag:is_there_any_suitable_job( self:fill_npc_info( obj ), obj_agreement == agreed_exclusive )
+	else
+		return false
+	end
 end
 
 --[[ подходит ли гулаг объекту?
@@ -769,15 +744,13 @@ end
 
 -- изменть ранг сталкера при регистрации в смарт
 function se_smart_terrain:update_obj_rank( obj )
-  local community, is_stalker = self:get_obj_community( obj )
+	local community, is_stalker = self:get_obj_community( obj )
 
-  if is_stalker then
-    local old_rank = obj:rank()
-
-    obj:set_rank( old_rank + math.random( self.rank_inc_min, self.rank_inc_max ) )
-
---    printf( "[smart_terrain %s] obj=%s rank %d -> %d", self:name(), obj:name(), old_rank, obj:rank() )
-  end
+	if is_stalker then
+		local old_rank = obj:rank()
+		obj:set_rank( old_rank + math.random( self.rank_inc_min, self.rank_inc_max ) )
+		-- printf( "[smart_terrain %s] obj=%s rank %d -> %d", self:name(), obj:name(), old_rank, obj:rank() )
+	end
 end
 
 -- выгнать из-под смарттеррейна первого попавшегося неэксклюзивного персонажа,
@@ -797,12 +770,12 @@ end
 
 -- выдать объекту задание.
 function se_smart_terrain:task( obj )
-  local path_name = self.gulag:get_obj_job_path_name( obj.id )
-  if not path_name then
-    -- printf("[smart_terrain %s] task: obj=%s job_path=nil, CLEARING", self:name(), obj:name() )
-    self:unregister_npc(obj) --'Затычка против вылета.
-    return CALifeSmartTerrainTask("simulation_default_path")
-  end
+	local path_name = self.gulag:get_obj_job_path_name( obj.id )
+	if not path_name then
+		-- printf("[smart_terrain %s] task: obj=%s job_path=nil, CLEARING", self:name(), obj:name() )
+		self:unregister_npc(obj) --'Затычка против вылета.
+		return CALifeSmartTerrainTask("simulation_default_path")
+	end
 
 --' printf("SEETING TASK PATH %s = %s", obj:name(), path_name)
   --' Пробуем проапдейтить типс чувака на карте
@@ -817,7 +790,7 @@ function se_smart_terrain:task( obj )
 --'   level.map_change_spot_hint(obj.id, spot, str)   
 --' end
 
-  return CALifeSmartTerrainTask( path_name )
+	return CALifeSmartTerrainTask( path_name )
 end
 
 -- может ли данный гулаг создаться в данный момент?
