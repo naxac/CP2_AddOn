@@ -61,7 +61,7 @@ check_item_tbl['snp_almaz_note12'] = function(obj)
 end
 check_item_tbl['snp_almaz_note13'] = function(obj)
 	amk.remove_item_from_inventory_by_name("snp_almaz_note12",Actor)
-	news_manager.send_tip("%c[gray2]".."КОТОБЕГЕМОТ:".."\\n".."%c[red_sms]Похоже, ты нашёл все доспехи Монолита, которые тебе нужны. Теперь тебе нужно поговорить с Тенью Монолита. Он должен отдать тебе последний череп и сказать, где и как их нужно активировать.".."\n", 5, nil, 30000)
+	news_manager.send_tip("snp_almaz_note13_sms", 5, nil, 30000)
 end
 check_item_tbl['snp_note11'] = function(obj)
 	amk.remove_item_from_inventory_by_name("snp_note10",Actor)
@@ -78,7 +78,7 @@ check_item_tbl['snp_note26'] = function(obj)
 		amk_mod.spawn_military_tech_pack(AI:create("vehicle_btr",vector():set(-116.92964172363,26.800518035889,-467.65985107422),523498,3714) ,"vehicle_btr", "scripts\\snp\\btr.ltx")
 	else
 		Actor:give_info_portion("snpt_jupiter2_fail")
-		news_manager.send_tip("%c[gray2]".."ОБИТЕЛЬ ЗЛА:".."\\n".."%c[red_sms]Записку нужно было доставать с полигона, что перед тобой. А ты пошёл каким-то иным путём, поэтому задание не засчитано.".."\n", nil, nil, 30000)
+		news_manager.send_tip("snp_note26_sms_fail", nil, nil, 30000)
 	end
 	Actor:give_info_portion("snp_tmp_reset")
 	Actor:disable_info_portion("snp_tmp_reset")
@@ -99,20 +99,20 @@ end
 check_item_tbl['af_fobos'] = function(obj)
 	if not has_alife_info("snpt_jupiter5_done") then
 		Actor:give_info_portion("snpt_jupiter5_done")
-		news_manager.send_tip("%c[gray2]".."БОРОДА:".."\\n".."%c[red_sms]Здорово, что ты нашёл рюкзак! Но это не все. Нужно ещё выбраться из этой заварухи. Что-то мне подсказывает, что Монолит ещё вернётся... Пока ты лез за рюкзаком, я попросил Доцента, чтобы он перенастроил приборы вертолётов Монолита, чтобы они не видели тебя, хотя бы некоторое время. Но он сделал по другому. Он связался с оборудованием, что на антенне над тобой, и сделал под антенной невидимую для приборов зону. Думаю, она будет для тебя не лишней. Прячься в неё, похоже, сейчас будет настоящая жесть!".."\n", 3, nil, 30000)
+		news_manager.send_tip("snpt_jupiter5_done_sms", 3, nil, 30000)
 		start_real_timer("run",15,"snp_spawn.snpt_jupiter6_run1()")
 	end
 end
 check_item_tbl['af_kamen_udachy2'] = function(obj)
 	if has_alife_info("snp_kamen_udachy_not_found") then
-		news_manager.send_tip("%c[gray2]".."ПРОПЕР СЕМИДЕСЯТЫЙ:".."\\n".."%c[red_sms]$actor, ты добрался до тайника с использованием гравипушки. Но этот тайник берётся без неё. И вообще без подкладывания под ноги каких-либо предметов. Конечно, это непросто, иначе я бы не приберёг этот тайник тебе на подарок. Чтобы добраться до него без гравипушки и предметов, тебе вновь нужно применить нестандартное мышление, а также открыть для себя некоторые новые возможности по перемещению. А в случае более простого пути с использованием гравипушки и предметов Фенрир артефакт у тебя примет, но выполнение задания засчитано не будет.".."\n", nil, nil, 50000)
+		news_manager.send_tip("snp_kamen_udachy_fail_sms", nil, nil, 50000)
 		Actor:give_info_portion("snp_kamen_udachy_fail")
 	end
 	Actor:give_info_portion("snp_kamen_udachy_have")
 end
 check_item_tbl['snp_pftp'] = function(obj)
 	if not has_alife_info("snp_pftp_have") then
-		news_manager.send_tip("%c[gray2]".."ПФТП:".."\\n".."%c[red_sms]Функция фиксации теневой позиции для владельца ПФТП активирована. Во избежание нежелательных сбоев не убирайте прибор из активного слота. Следующая точка теневой позиции - Юпитер, вышка, указывающая на вагон. Время: 16.30.".."\n", nil, "nano", 50000)
+		news_manager.send_tip("snp_pftp_have_sms", nil, "nano", 50000)
 		Actor:give_info_portion("snp_pftp_have")
 	end
 end
@@ -124,7 +124,7 @@ check_item_tbl['snp_pda_profi1'] = function(obj)
 			del_obj_by_id(obj:id())
 		end
 	end
-	news_manager.send_tip("Файл с найденного ПДА скопирован в раздел \"Журнал\\Данные на КПК.\"", nil, "nano", 10000)
+--	news_manager.send_tip("Файл с найденного ПДА скопирован в раздел \"Журнал\\Данные на КПК.\"", nil, "nano", 10000)
 	kostya_dialog.delete_teleport("snp_profi_tp0")
 	xr_sound.get_safe_sound_object([[snp\pripyat_1986]]):play_at_pos(Actor, vector():set(0,30,0), 150, sound_object.s3d)
 	Actor:give_info_portion("snp_profi_done")
@@ -205,9 +205,9 @@ check_box_tbl['n_inventory_box_dt3'] = function()
 end
 check_box_tbl['n_inventory_box_agro1'] = function()
 	if has_alife_info("snpt_agro1_fail") then
-		news_manager.send_tip("%c[gray2]КОМАНДА СОЗДАТЕЛЕЙ ОП-2:\\n%c[red_sms]Зря ты, $user, использовал гравипушку, чтобы добраться до этого тайника. Очень зря. Мы настоятельно рекомендуем тебе переиграть этот эпизод и все-таки постараться выбраться здесь за границу территории без использования гравипушки. У тебя уже достаточно опыта, чтобы сделать это. Выход настолько прост и настолько красив, что удовольствие от его нахождения ты запомнишь очень надолго!", 3, nil, 40000)
+		news_manager.send_tip("snpt_agro1_fail_sms", 3, nil, 40000)
 	else
-		news_manager.send_tip("%c[gray2]КОМАНДА СОЗДАТЕЛЕЙ ОП-2:\\n%c[red_sms]Красивый выход, правда, $user?! Это тот редкий случай, когда радость от нахождения пути к тайнику больше, чем радость от содержимого тайника!", 3, nil, 30000)
+		news_manager.send_tip("snpt_agro1_have_sms", 3, nil, 30000)
 	end
 	Actor:give_info_portion("snpt_agro1_have")
 end
@@ -240,11 +240,11 @@ end
 check_box_tbl['n_inventory_box_vp1_4'] = function()
 	amk.remove_item_from_inventory_by_name("snp_note4",Actor)
 	Actor:give_info_portion("snpt_vp2_done")
-	news_manager.send_tip("%c[gray2]ОБИТЕЛЬ ЗЛА:\\n%c[red_sms]$actor, если ещё интересуют подобные нестандартные тайники - зайди, поговорим.", 3, nil, 20000)
+	news_manager.send_tip("snpt_vp2_done_sms", 3, nil, 20000)
 end
 check_box_tbl['n_inventory_box_vp7'] = function()
 	if not has_alife_info("snpt_kl1_found2") then
-		news_manager.send_tip("%c[gray2]ДОЦЕНТ:\\n%c[red_sms]$actor, ты добрался до тайника каким-то другим путём, а не от причала, как я тебе говорил. Поэтому блокноты я у тебя приму, но выполнение задания не засчитано.", nil, nil, 30000)
+		news_manager.send_tip("snpt_kl1_fail_sms", nil, nil, 30000)
 		Actor:give_info_portion("snpt_kl1_fail")
 	end
 	Actor:give_info_portion("snpt_kl1_have2")
@@ -269,7 +269,7 @@ check_box_tbl['n_inventory_box_limansk2_2'] = function()
 end
 check_box_tbl['n_inventory_box_limansk3'] = function()
 	Actor:give_info_portion("snpt_limansk3_done")
-	news_manager.send_tip("%c[gray2]ОБИТЕЛЬ ЗЛА:\\n%c[red_sms]$actor, ты куда пропал? Фенрир сказал, ты должен зайти.", 3, nil, 15000)
+	news_manager.send_tip("snpt_limansk3_done_sms", 3, nil, 15000)
 end
 check_box_tbl['n_inventory_box_limansk4'] = function()
 	Actor:give_info_portion("snpt_limansk4_have")
@@ -293,7 +293,7 @@ check_box_tbl['n_inventory_box_almaz14'] = function()
 	xr_sound.get_safe_sound_object([[snp\heartbeat100]]):stop()
 	amk.remove_item_from_inventory_by_name("snp_almaz_note13",Actor)
 	Actor:give_info_portion("snp_almaz1")
-	news_manager.send_tip("%c[gray2]ТЕНЬ МОНОЛИТА:\\n%c[red_sms]Избранный, наконец ты собрал все Алмазные черепа! Найди же место активации и активируй их! Продолжай слушать своё сердце, Избранный! Оно приведёт тебя к истине, смертный!", 5, nil, 15000)
+	news_manager.send_tip("snp_almaz1_sms", 5, nil, 15000)
 	kostya_dialog.create_teleport("tele_almaz_act",vector():set(166.77569580078,43.172966003418,386.25317382813),172634,2987)
 	AI:create("zone_monolith_snp",vector():set(174.08480834961,55.11833190918,386.01168823242),172632,2987)
 	snp.start_sound()
@@ -328,7 +328,7 @@ check_box_tbl['n_inventory_box_kl1'] = function()
 end
 check_box_tbl['n_inventory_box_kl3'] = function()
 	if not has_alife_info("snpt_kl1_found1") then
-		news_manager.send_tip("%c[gray2]ДОЦЕНТ:\\n%c[red_sms]В Красном Лесу существует единственный прямой выход за границу территории. Но ты, судя по всему, им не воспользовался, а пошёл каким-то другим, неизвестным мне путём. Поэтому блокноты я у тебя приму, но выполнение задания не засчитано.", nil, nil, 30000)
+		news_manager.send_tip("snpt_kl1_fail_sms1", nil, nil, 30000)
 		Actor:give_info_portion("snpt_kl1_fail")
 	end
 	Actor:give_info_portion("snpt_kl1_have1")
@@ -343,7 +343,7 @@ end
 check_box_tbl['n_inventory_box_pp1'] = function()
 	Actor:give_info_portion("snpt_pp1_have1")
 	snp.create_restrictor(vector():set(14.366353034973,26.801988601685,3.5365107059479),21893,3792,2,"snp_spawn.n_inventory_box_pp1")
-	news_manager.send_tip("%c[gray2]ФЕНРИР:\\n%c[red_sms]Братишка, лезь на кран-балку, оттуда лучше обзор будет.", 10, nil, 20000)
+	news_manager.send_tip("snpt_pp1_have1_sms", 10, nil, 20000)
 end
 check_box_tbl['n_inventory_box_td1'] = function()
 	if not has_alife_info("snpt_td1_have1") then
@@ -355,7 +355,7 @@ end
 check_box_tbl['n_inventory_box_garbage1'] = function () snp_spawn.n_inventory_box_garbage1() end
 check_box_tbl['n_inventory_box_garbage2'] = function () snp_spawn.n_inventory_box_garbage2() end
 check_box_tbl['n_inventory_box_garbage3_1'] = function ()
-	news_manager.send_tip("%c[gray2][источник неизвестен]\\n%c[red_sms]Между цистернами.", nil, nil, 10000)
+	news_manager.send_tip("n_inventory_box_garbage3_1_sms", nil, nil, 10000)
 	kostya_dialog.create_teleport("snp_receipt_parts2_tp2",vector():set(69.402984619141,7.087566614151,98.179962158203),239958,370)
 end
 check_box_tbl['n_inventory_box_garbage3_2'] = function ()
@@ -410,16 +410,16 @@ check_box_tbl['n_inventory_box_jupiter11'] = function()
 end
 check_box_tbl['n_inventory_box_2chaes1'] = function()
 	snp.create_item_and_restrictor("fenrir_2chaes",vector():set(941.21911621094,13.052788734436,273.22985839844),250079,2642)
-	news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Фенрир, падла, кинуть меня решил?", 4, nil, 15000)
+	news_manager.send_tip("fenrir_2chaes_sms", 4, nil, 15000)
 end	
 check_box_tbl['n_inventory_box_2chaes2'] = function()
-	news_manager.send_tip("%c[gray2]КОМАНДА СОЗДАТЕЛЕЙ ОП-2:\\n%c[red_sms]Да, $user! Да, ты сделал это! Ты нашёл сюда путь! Ну что тут скажешь? Ты - настоящий S.T.A.L.K.E.R.!", 3, nil, 50000)
+	news_manager.send_tip("n_inventory_box_2chaes2_sms", 3, nil, 50000)
 	kostya_dialog.delete_teleport("fli_block_tp1")
 	kostya_dialog.delete_teleport("fli_block_tp2")
 end
 check_box_tbl['n_inventory_box_as2'] = function()
 	local se_obj = AI:create_no_ai("n_inventory_box_dt3",vector():set(-61.349769592285,-0.71912717819214,470.66595458984),20316,1384)
-	amk.add_spot_on_map(se_obj.id,"crlc_mdl","Место поиска следующей информации от Эльзы") 
+	amk.add_spot_on_map(se_obj.id,"crlc_mdl","st_elza_search_place") 
 end
 check_box_tbl['n_inventory_box_mg1'] = function()
 	AI:create_no_ai("n_inventory_box_limansk12",vector():set(10.524602584839,1.8927528858185,-391.09912109375),30960,3006)
@@ -470,9 +470,9 @@ check_box_tbl['n_inventory_box_x162'] = function()
 	Actor:give_info_portion("snpt_x161_done")
 	Actor:give_info_portion("snp_video_arhiv_done")
 	archievements.acv_task()
-	news_manager.send_tip("%c[gray2]АННА:\\n%c[red_sms]Дядя $actor, тут сталкер один зашёл недавно на Скадовск. Говорит, что он настоящий профессионал в деле прятания тайников, что наслышан про вас и хочет лично с вами познакомиться. Сказал, что таких тайников, какие есть у него, вы ещё не видели.", 10, nil, 30000)
+	news_manager.send_tip("snp_video_arhiv_done_sms", 10, nil, 30000)
 	if not has_alife_info("sidor_delo_done") then
-		news_manager.send_tip("%c[gray2]АННА:\\n%c[red_sms]Только он сказал, что если вы ещё не закончили все дела с Волазаром и не выполнили просьбу дяди Сидоровича разобраться с его плохими контактами, то он с вами говорить не будет - приходите, как все сделаете. А почему - я не знаю...", 20, nil, 40000)
+		news_manager.send_tip("snp_video_arhiv_done_sms1", 20, nil, 40000)
 	end
 	local obj = AI:create("vesker_zaton",vector():set(128.0725402832,-7.3395228385925,189.58338928223),1186465,3686)
 	set_story_id(obj, story_ids.vesker_zaton)
@@ -507,7 +507,7 @@ check_box_tbl['n_inventory_box_profi6'] = function()
 	kostya_dialog.delete_teleport("snp_profi_tp6")
 end
 check_box_tbl['v_inventory_box0'] = function()
-	news_manager.send_tip("%c[gray2]ВОЛАЗАР:\\n%c[red_sms]Верно, это мой небольшой презент тебе, $user! Пользуйся на своё усмотрение. Ты уже полностью прошёл игру, поэтому эта халява в виде полётов никак не испортит тебе впечатление от Зоны. Так что наслаждайся. И не забывай: во время полёта можно пользоваться любым оружием. Особенно рекомендую РПГ, шмели, гранаты, и вообще любое другое тяжёлое оружие - очень интересно выходит! Да, как наиграешься, не забудь - тебя ждёт Ариадна!", 3, nil, 40000)
+	news_manager.send_tip("vol_info_temp_sms", 3, nil, 40000)
 	Actor:give_info_portion("vol_info_temp")
 	Actor:give_info_portion("vol_fly")
 end
