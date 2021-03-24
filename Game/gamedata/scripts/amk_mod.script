@@ -1555,21 +1555,25 @@ end
 -- запускаем трансофрмацию 
 -- результаты могут быть многочисленны (несколько целей, полное отторжение компонентов, несколько вырождений)
 local transform_params = nil
+function get_transforms()
+	if not transform_params then
+		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
+	end
+	return transform_params
+end
 
 function as_start_universal_transform_timer(rec_name, result, vremya, pos, gv, lv, remove_anomaly_id)
 	-- сохраняемые данные
-	if transform_params == nil then
-		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
-	end
+	local tbl = get_transforms()
 
 	-- для возможности запускать несколько варок по одному и тому же рецепту...
 	local i = 0
 	local var = rec_name
-	while transform_params[var]~=nil do
+	while tbl[var]~=nil do
 		var = rec_name..":"..i
 		i = i + 1
 	end
-	transform_params[var] = {
+	tbl[var] = {
 		result	= result,
 		pos		= pos,
 		gv		= gv,
@@ -1582,10 +1586,8 @@ end
 -- завершаем варку/мутацию
 -- может быть много результатов
 function af_transform_universal_end(var)
-	if transform_params == nil then
-		transform_params = xr_logic.pstor_get_custom(Actor, "af_var", "af_var")
-	end
-	local params = transform_params[var]
+	local tbl = get_transforms()
+	local params = tbl[var]
 		or abort("af_transform_universal_end: not found params for transform: %s", utils.to_str(var))
 
 	local rec_name = string.match(var, "^([^:]+)")
@@ -1660,8 +1662,8 @@ function af_transform_universal_end(var)
 		amk_anoms.release_anomaly( AI:object(params.rem_anom) )
 	end
 
-	transform_params[var] = nil
-	if table.size(transform_params) == 0 then
+	tbl[var] = nil
+	if table.size(tbl) == 0 then
 		xr_logic.pstor_clear_custom(Actor, "af_var")
 		transform_params = nil
 	end
