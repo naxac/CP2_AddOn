@@ -5,6 +5,7 @@
   5 - сохранение поля was_in_smart_terrain
   6 - сохранение поля death_droped
 ]]
+custom_data_on_spawn = nil
 
 class "se_stalker"  (cse_alife_human_stalker)
 --------------------
@@ -42,7 +43,12 @@ end
 --------------------
 function se_stalker:get_ini()
 	if not self.ini_initialized then
-		self.ini             = self:spawn_ini ()
+		if custom_data_on_spawn then
+			self.ini = create_ini_file(custom_data_on_spawn)
+			custom_data_on_spawn = nil
+		else
+			self.ini             = self:spawn_ini ()
+		end
 		self.ini_initialized = true
 
 		if self.ini:section_exist("spawner") then
