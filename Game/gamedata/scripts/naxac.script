@@ -1,6 +1,14 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local current_fix = 81
 
+function fix_83()
+	local obj = AI:story_object( story_ids.lc_generators_to_warlab )
+	if obj then AI:release( obj, true ) end
+	obj = AI:object( "generators_door_0001" )
+	if obj then AI:release( obj, true ) end
+	obj = AI:create( AI:spawn_id( story_ids.lc_generators_to_warlab ) )
+	level.map_add_object_spot_ser( obj.id, "level_changer3", "to_warlab" )
+end
 function fix_81()
 	local obj = AI:object("sms_molniy_bar_restrictor")
 	if obj then AI:release(obj, true) end
@@ -493,8 +501,6 @@ function fix_58()
 	end
 end
 function fix_57()
-	level_changers.create_allspawn_lc("lc_generators_to_warlab", "to_warlab", nil, 3, true)
-	AI:create( spawn_ids.generators_door_0001 )
 end
 function fix_56()
 	local obj = AI:story_object( story_ids.marsh_udav )
@@ -2319,4 +2325,24 @@ end
 function bar_guard_precond_3(first_speaker, second_speaker)
 	return get_precondition_rnd(3, second_speaker:name(), true) == 3
 end
+---------------------------------
+local used_timeout = 0
+function lc_from_generators_to_warlab(actor, npc)
+	if used_timeout > time_global() then return end
+	used_timeout = time_global() + 2000
 
+	local func_yes = function()
+		level_changers.create_teleport_on_actor(
+			vector():set(5.89471292495728,9.42465782165527,22.2922420501709),
+			5450,
+			3210,
+			vector():set(0,3.04576086997986,0)
+		)
+	end
+	local text = string.format(
+		game.translate_string( "st_sr_level_changer" ),
+		game.translate_string( "generators" ),
+		game.translate_string( "warlab" )
+	)
+	ShowMessageBox("yes_no_alarm", text, func_yes)
+end
