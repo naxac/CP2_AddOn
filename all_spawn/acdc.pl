@@ -2833,6 +2833,7 @@ sub write {
 sub read_header {
 	my $self = shift;
 	my ($cf) = @_;
+	print "reading header...\n";
 	(
 		$self->{version},
 		$self->{guid},
@@ -2846,6 +2847,7 @@ sub write_header {
 	my $self = shift;
 	my ($cf) = @_;
 
+	print "writing header...\n";
 	my $data = pack('Va[16]a[16]VV',
 		$self->{version},
 		$self->{guid},
@@ -2857,6 +2859,7 @@ sub write_header {
 sub read_alife {
 	my $self = shift;
 	my ($cf) = @_;
+	print "reading alife objects...\n";
 	while (1) {
 		my ($index, $size) = $cf->r_chunk_open();
 		defined($index) or last;
@@ -2882,6 +2885,7 @@ sub read_alife {
 sub write_alife {
 	my $self = shift;
 	my ($cf) = @_;
+	print "writing alife objects...\n";
 	$cf->w_chunk_open(1);
 	$cf->w_chunk(0, pack('V', $#{$self->{alife_objects}} + 1));
 	$cf->w_chunk_open(1);
@@ -2906,16 +2910,19 @@ if (0 and ($class_name eq 'se_stalker' or $class_name eq 'se_monster') and $obje
 sub read_af_spawn_slots {
 	my $self = shift;
 	my ($cf) = @_;
+	print "reading artefact spawn places...\n";
 	$self->{section2_raw_data} = $cf->r_chunk_data();
 }
 sub write_af_spawn_slots {
 	my $self = shift;
 	my ($cf) = @_;
+	print "writing artefact spawn places...\n";
 	$cf->w_chunk(2, $self->{section2_raw_data});
 }
 sub read_way {
 	my $self = shift;
 	my ($cf) = @_;
+	print "reading way objects...\n";
 	while (1) {
 		my ($index, $size) = $cf->r_chunk_open();
 		defined($index) or last;
@@ -2941,6 +2948,7 @@ sub write_way {
 	my $self = shift;
 	my ($cf) = @_;
 
+	print "writing way objects...\n";
 	$cf->w_chunk_open(3);
 	$cf->w_chunk(0, pack('V', $#{$self->{way_objects}} + 1));
 	$cf->w_chunk_open(1);
@@ -2956,11 +2964,13 @@ sub write_way {
 sub read_graph {
 	my $self = shift;
 	my ($cf) = @_;
+	print "reading graph...\n";
 	$self->{section4_raw_data} = $cf->r_chunk_data();
 }
 sub write_graph {
 	my $self = shift;
 	my ($cf) = @_;
+	print "writing graph...\n";
 	$cf->w_chunk(4, $self->{section4_raw_data});
 }
 sub import {
@@ -2993,6 +3003,7 @@ sub import_alife {
 	foreach my $fn (split /,/, ($if->value('alife', 'source_files') or die)) {
 		$fn =~ s/^\s*|\s*$//g;
 		my $lif = stkutils::ini_file->new($fn, 'r') or die;
+		print "importing alife objects from file $fn...\n";
 		foreach my $section (@{$lif->{sections_list}}) {
 			my $object = alife_object->new();
 			$object->state_import($lif, $section);
@@ -3025,6 +3036,7 @@ sub import_way {
 	foreach my $fn (split /,/, ($if->value('way', 'source_files'))) {
 		$fn =~ s/^\s*|\s*$//g;
 		my $lif = stkutils::ini_file->new($fn, 'r') or die;
+		print "importing way objects from file $fn...\n";
 		foreach my $section (@{$lif->{sections_list}}) {
 			my $object = way_object->new();
 			$object->state_import($lif, $section);
@@ -3045,6 +3057,7 @@ sub import_graph {
 	my $self = shift;
 	my ($if) = @_;
 
+	print "importing graph...\n";
 	my $fn = $if->value('graph', 'binary_files') or die;
 	my $bin_fh = IO::File->new($fn, 'r') or die "cannot open $fn\n";
 	binmode $bin_fh;
@@ -3088,6 +3101,7 @@ sub export_alife {
 		my $lif = $if_by_level{$level};
 		if (!defined $lif) {
 			$lif = stkutils::ini_file->new("alife_$level.ltx", 'w') or die;
+			print "exporting alife objects on level $level...\n";
 			$if_by_level{$level} = $lif;
 			push @levels, "alife_$level.ltx";
 		}
@@ -3103,6 +3117,7 @@ sub export_af_spawn_slots {
 	my $self = shift;
 	my ($if) = @_;
 
+	print "exporting raw data...\n";
 	my $fn = 'section2.bin';
 	my $bin_fh = IO::File->new($fn, 'w') or die "cannot open $fn\n";
 	binmode $bin_fh;
@@ -3150,7 +3165,9 @@ sub export_way {
 	}
 
 	my $id = 0;
-	foreach my $info (values %info_by_level) {
+#	foreach my $info (values %info_by_level) {
+	while (my ($level, $info) = each %info_by_level) {
+		print "exporting way objects on level $level...\n";
 		foreach my $object (sort {$$a->{name} cmp $$b->{name}}  @{$info->{way_objects}}) {
 			$$object->state_export($info->{lif}, $id++);
 		}
