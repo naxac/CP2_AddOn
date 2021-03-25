@@ -1,6 +1,21 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 83
+local current_fix = 84
 
+function fix_84()
+	local tbl = {
+		"val_kocherga",
+		"sim_stalker_fraer"
+	}
+	for i, v in ipairs( tbl ) do
+		obj = AI:object( v )
+		if obj and obj:alive() then
+			local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
+			AI:release( obj, true )
+			obj = AI:create( spawn_ids[v] )
+			AI:teleport_object( "", pos, lv, gv, obj.id )
+		end
+	end
+end
 function fix_83()
 	local obj = AI:story_object( story_ids.lc_generators_to_warlab )
 	if obj then AI:release( obj, true ) end
