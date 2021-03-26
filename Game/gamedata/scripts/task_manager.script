@@ -1217,6 +1217,7 @@ function CRandomTask:remind()
 	local parent, sid, task_desc, txt_desc
 	local sms = {}
 	local str = ""
+	local level_id = AI:level_id()
 
 	for k,v in pairs(self.active_task_by_type) do
 		task_desc = self.task_info[v]
@@ -1227,11 +1228,11 @@ function CRandomTask:remind()
 
 			if parent
 				and (parent:clsid() == clsid.script_trader or parent:alive())
-				and GGraph:vertex(parent.m_game_vertex_id):level_id() == AI:level_id()
+				and GGraph:vertex(parent.m_game_vertex_id):level_id() == level_id
 			then
 				-- формируем сообщение
 				if not sms[sid] then 
-					sms[sid] = get_parent_name(parent, sid)
+					sms[sid] = reminder.get_npc_name(parent, sid)
 				end
 				if task_desc.type == "artefact"
 					or task_desc.type == "monster_part"
@@ -1245,14 +1246,15 @@ function CRandomTask:remind()
 			end
 		elseif task_desc.status == "selected" then
 			if task_desc.type == "eliminate_lager"
+				or task_desc.type == "defend_lager"
 				or task_desc.type == "kill_stalker"
 			then
 				local oo = AI:object(task_desc.selected_target)
-				if oo and GGraph:vertex(oo.m_game_vertex_id):level_id() == AI:level_id() then
+				if oo and GGraph:vertex(oo.m_game_vertex_id):level_id() == level_id then
 					sid = tonumber(story_by_parent[task_desc.parent])
 					parent = AI:story_object(sid)
 					if not sms[sid] then 
-						sms[sid] = get_parent_name(parent, sid)
+						sms[sid] = reminder.get_npc_name(parent, sid)
 					end
 					str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(task_desc.name).."\\n"
 				end
@@ -1581,15 +1583,6 @@ function parse_reward_items( str )
 		table.add(ret, last_sect)
 	end
 	return ret
-end
-
--- имя вендора
-function get_parent_name(obj, sid)
-	local trader_names = {
-		[story_ids.Escape_Trader]	= "Сидорович", 
-		[story_ids.marsh_remont]	= "Василий"
-	}
-	return trader_names[sid] or naxac_netpk.get_character_name(obj)
 end
 
 -- функции наград

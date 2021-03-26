@@ -12,10 +12,11 @@ local tmr
 function remind()
 	local storyline = remind_storyline()
 	local random_task = task_manager.get_random_task():remind()
-	if (not storyline) and (not random_task) then
-		send_info("%c[255,127,255,255]Нет активных заданий, по которым возможны напоминания\\n")
+	local treasure = treasure_manager.get_treasure_manager():remind()
+	if storyline or random_task or treasure then
+		return
 	end
-	treasure_manager.get_treasure_manager():remind()
+	send_info("%c[255,127,255,255]Нет напоминаний\\n")
 end
 
 function start_remind()
@@ -106,7 +107,7 @@ function send_info(info_text)
 		cs:wnd():SetText(info_text)
 	else
 		local t = cs:wnd():GetText()
-		t = t.."\\n \\n"..info_text
+		t = t.." \\n"..info_text
 		cs:wnd():SetText(t)
 	end
 end
