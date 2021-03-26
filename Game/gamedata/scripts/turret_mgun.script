@@ -166,7 +166,7 @@ end
 class "se_turret_mgun" (cse_alife_helicopter)
 
 function se_turret_mgun:__init(section) super(section)
-	self.spawner_present = false
+	self.spawner = nil
 	self.health = 1.0
 	self.direction = vector():set(0, 0, 0)
 	self.ammo_elapsed = 0
@@ -181,20 +181,21 @@ function se_turret_mgun:can_switch_online()
 		return false
 	end
 
-	if self.spawner_present == nil then
+	if self.spawner == nil then
 		local ini = self:spawn_ini()
-		self.spawner_present = ini:section_exist("spawner")
+		if ini:section_exist("spawner") and ini:line_exist("spawner", "cond") then
+			self.spawner = xr_logic.parse_condlist(Actor, "spawner", "cond", ini:r_string("spawner", "cond"))
+		else
+			self.spawner = false
+		end
 	end
 
-	if self.spawner_present == false then
+	if (not self.spawner)
+		or (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil)
+	then
 		return cse_alife_helicopter.can_switch_online(self)
-	end
-
-	local chck = xr_spawner.check_spawn(self)
-	if chck ~= nil then
-		return chck
 	else
-		return cse_alife_helicopter.can_switch_online(self)
+		return false
 	end
 end    
 

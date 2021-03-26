@@ -1,10 +1,10 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 ---------------------------------------------------------------------
 class "se_car" (cse_alife_car)
 --------------------
 function se_car:__init (section) super (section)
 	--log("_bp: set_car:__init")
-	self.ini = nil
-	self.spawner_present = false
+	self.spawner = nil
 end
 --------------------
 function se_car:can_switch_offline ()
@@ -12,15 +12,22 @@ function se_car:can_switch_offline ()
 end
 --------------------
 function se_car:can_switch_online ()
-	if self.ini == nil then
-		self.ini = self:spawn_ini() 
-		self.spawner_present = self.ini:section_exist("spawner")
+	if self.spawner == nil then
+		local ini = self:spawn_ini()
+		if ini:section_exist("spawner") and ini:line_exist("spawner", "cond") then
+			self.spawner = xr_logic.parse_condlist(Actor, "spawner", "cond", ini:r_string("spawner", "cond"))
+		else
+			self.spawner = false
+		end
 	end
 
-	if self.ini == nil or self.spawner_present == false then 
+	if (not self.spawner)
+		or (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil)
+	then
 		return cse_alife_car.can_switch_online(self)
-	end    
-	return xr_spawner.check_spawn (self)
+	else
+		return false
+	end
 end    
 --------------------
 
