@@ -3,8 +3,8 @@
 local get_string = game.translate_string
 local tasks_info = {}
 local trader_names = {
-	["Escape_Trader"] = "Сидорович", 
-	["marsh_remont"] = "Василий"
+	[story_ids.Escape_Trader] = "Сидорович", 
+	[story_ids.marsh_remont] = "Василий"
 }
 local need_init = true
 local tmr
@@ -50,7 +50,7 @@ function remind_storyline()
 	for sid, v in pairs(tasks_info) do
 		obj = AI:story_object(story_ids[sid])
 		if obj then
-			npc_name = "%c[255,0,255,255]"..get_npc_name(obj, sid).." > "
+			npc_name = "%c[255,0,255,255]"..get_npc_name(obj).." > "
 			for task_id, ob in pairs(v) do
 				if Actor:get_task_state(task_id, ob) == task.in_progress then
 					t = CGameTask()
@@ -90,12 +90,9 @@ function all_subtasks_done(task_id, t)
 end
 
 -- имя квестовика
-function get_npc_name(obj, sid)
-	if obj:clsid() == clsid.script_trader then
-		return trader_names[sid]
-	else
-		return naxac_netpk.get_character_name(obj)
-	end
+function get_npc_name(obj)
+	return trader_names[obj.m_story_id]
+		or naxac_netpk.get_character_name(obj)
 end
 
 -- выдача информации

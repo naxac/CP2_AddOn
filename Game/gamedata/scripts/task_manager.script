@@ -1232,7 +1232,7 @@ function CRandomTask:remind()
 			then
 				-- формируем сообщение
 				if not sms[sid] then 
-					sms[sid] = reminder.get_npc_name(parent, sid)
+					sms[sid] = reminder.get_npc_name(parent)
 				end
 				if task_desc.type == "artefact"
 					or task_desc.type == "monster_part"
@@ -1253,10 +1253,12 @@ function CRandomTask:remind()
 				if oo and GGraph:vertex(oo.m_game_vertex_id):level_id() == level_id then
 					sid = tonumber(story_by_parent[task_desc.parent])
 					parent = AI:story_object(sid)
-					if not sms[sid] then 
-						sms[sid] = reminder.get_npc_name(parent, sid)
+					if parent and (parent:clsid() == clsid.script_trader or parent:alive()) then
+						if not sms[sid] then 
+							sms[sid] = reminder.get_npc_name(parent)
+						end
+						str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(task_desc.name).."\\n"
 					end
-					str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(task_desc.name).."\\n"
 				end
 			end
 		end       
