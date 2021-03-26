@@ -43,7 +43,7 @@ local levels_types = {
 	jupiter = 0,
 	zaton = 0,
 	pripyat = 0,
-	jupiter_underground = 0,
+	jupiter_underground = 1,
 	labx8 = 1,
 	l41_darkscape_ogse = 0
 }
@@ -53,8 +53,6 @@ class "se_monster" (cse_alife_monster_base)
 function se_monster:__init (section) super (section)
 	self.ini = nil
 	self.ini_initialized = false
-
-	self.spawner_present = false
 
 	self.smart_terrain_conditions = nil
 	self.smart_terrain_conditions_initialized = false
@@ -76,6 +74,8 @@ function se_monster:__init (section) super (section)
 
 	self.day_begin=-1
 	self.day_end=-1
+
+	self.spawner = nil
 	
 	self.state = nil
 end
@@ -89,11 +89,9 @@ function se_monster:get_ini()
 			self.ini             = self:spawn_ini ()
 		end
 		self.ini_initialized = true
-		
-		self.spawner_present = self.ini:section_exist ("spawner")
 
-		if self.ini ~= nil and self.spawner_present == true then
-		  if self.ini:line_exist ("spawner", "check_distance") == true then
+		if self.ini ~= nil and self.ini:section_exist ("spawner") then
+			if self.ini:line_exist ("spawner", "check_distance") == true then
 				self.check_distance = 	utils.cfg_get_bool(self.ini, "spawner", "check_distance", 	self, false, false)
 			end
 			if self.ini:line_exist ("spawner", "min_distance") == true then
@@ -101,6 +99,9 @@ function se_monster:get_ini()
 			end
 			if self.ini:line_exist ("spawner", "day_night_switch") == true then
 				self.day_night_switch = utils.cfg_get_bool(self.ini, "spawner", "day_night_switch", self, false, false)
+			end
+			if self.ini:line_exist ("spawner", "cond") then
+				self.spawner = xr_logic.parse_condlist(Actor, "spawner", "cond", self.ini:r_string("spawner", "cond"))
 			end
 		end
 		
@@ -164,9 +165,9 @@ function se_monster:can_switch_online ()
 		end
 
 		-- Если в custom_data зверушки есть cond в секции [spawner], то это условие должно иметь приоритет.
-		local chk_spawner=xr_spawner.check_spawn(self)
-		if chk_spawner~=nil then
-		--	if rpt then amk.mylog(self:name().." off check spawn "..tostring(chk_spawner)) end
+		if self.spawner ~= nil then
+			local chk_spawner = (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil)
+				and cse_alife_monster_base.can_switch_online(self)
 			return save_state(self, chk_spawner)
 		end
 
@@ -321,9 +322,9 @@ function is_creature_day(obj, day_night_switch)
 		if obj.day_begin~=-1 and obj.day_end~=-1 then
 			local hrs = level.get_time_hours()
 			local de = obj.day_end
-			if obj.day_begin>obj.day_end then
+			if obj.day_begin > de then
 				hrs = hrs+24
-				de=de+24
+				de = de+24
 			end
 			if not (hrs >= obj.day_begin and hrs < de) then
 				return false
@@ -334,10 +335,7 @@ function is_creature_day(obj, day_night_switch)
 end
 --------------------
 function select_logic(obj)
-	local is_underground = 1
-	if GGraph:valid_vertex_id(obj.m_game_vertex_id) then
-		is_underground = levels_types[ object_level_name(obj) ]
-	end
+	local is_underground = levels_types[ object_level_name(obj) ] or 1
 	local day_night_switch,check_distance
 	if is_underground==0 then
 		day_night_switch = true
