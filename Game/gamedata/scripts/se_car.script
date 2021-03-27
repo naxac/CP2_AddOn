@@ -4,7 +4,6 @@ class "se_car" (cse_alife_car)
 --------------------
 function se_car:__init (section) super (section)
 	--log("_bp: set_car:__init")
-	self.spawner = nil
 end
 --------------------
 function se_car:can_switch_offline ()
@@ -12,22 +11,8 @@ function se_car:can_switch_offline ()
 end
 --------------------
 function se_car:can_switch_online ()
-	if self.spawner == nil then
-		local ini = self:spawn_ini()
-		if ini:section_exist("spawner") and ini:line_exist("spawner", "cond") then
-			self.spawner = xr_logic.parse_condlist(Actor, "spawner", "cond", ini:r_string("spawner", "cond"))
-		else
-			self.spawner = false
-		end
-	end
-
-	if (not self.spawner)
-		or (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil)
-	then
-		return cse_alife_car.can_switch_online(self)
-	else
-		return false
-	end
+	return cse_alife_car.can_switch_online(self)
+		and xr_spawner.check_spawn(self)
 end    
 --------------------
 

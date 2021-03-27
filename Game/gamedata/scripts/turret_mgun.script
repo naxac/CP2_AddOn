@@ -103,11 +103,11 @@ end
 
 
 function is_friendly_turret(npc, turret, position)
-    -- сначала выясним, турель ли это вообще.
+    -- сначала выЯсним, турель ли это вообще.
     local k,v
     if turret == nil then
         -- ссылки на объект нет. что ж, бывает, попробуем
-        -- определить по месту расположения.
+        -- определить по месту расположениЯ.
         for k,v in pairs(db.turret) do
             local test_position = v:position()
             if test_position.x == position.x and
@@ -166,7 +166,6 @@ end
 class "se_turret_mgun" (cse_alife_helicopter)
 
 function se_turret_mgun:__init(section) super(section)
-	self.spawner = nil
 	self.health = 1.0
 	self.direction = vector():set(0, 0, 0)
 	self.ammo_elapsed = 0
@@ -181,22 +180,8 @@ function se_turret_mgun:can_switch_online()
 		return false
 	end
 
-	if self.spawner == nil then
-		local ini = self:spawn_ini()
-		if ini:section_exist("spawner") and ini:line_exist("spawner", "cond") then
-			self.spawner = xr_logic.parse_condlist(Actor, "spawner", "cond", ini:r_string("spawner", "cond"))
-		else
-			self.spawner = false
-		end
-	end
-
-	if (not self.spawner)
-		or (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil)
-	then
-		return cse_alife_helicopter.can_switch_online(self)
-	else
-		return false
-	end
+	return cse_alife_helicopter.can_switch_online(self)
+		and xr_spawner.check_spawn(self)
 end    
 
 function se_turret_mgun:STATE_Read(packet, size)

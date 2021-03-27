@@ -1,0 +1,22 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+----------------------------------------------------------------------------------------------------------------------
+--  Проверка условий разрешения или запрещения спавна
+--  автор: Диденко Руслан (Stohe)
+--  TODO:
+----------------------------------------------------------------------------------------------------------------------
+local spawn_list = {}
+
+function check_spawn (s_object)
+	local obj_id = s_object.id
+	if spawn_list[obj_id] == nil then
+		local ini = s_object:spawn_ini()
+		if ini and ini:section_exist("spawner") and ini:line_exist("spawner", "cond") then
+			spawn_list[obj_id] = xr_logic.parse_condlist( s_object, "spawner", "cond", ini:r_string("spawner", "cond") )
+		else
+			spawn_list[obj_id] = false
+		end
+	end
+
+	return ( not spawn_list[obj_id] )
+		or ( xr_logic.pick_section_from_condlist( Actor, s_object, spawn_list[obj_id] ) ~= nil )
+end
