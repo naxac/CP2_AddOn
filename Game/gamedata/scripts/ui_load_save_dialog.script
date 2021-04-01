@@ -127,6 +127,7 @@ function load_save_dialog:InitControls()
 
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
+	self.message_box.check = xml:InitCheck("msgbox_check", self.message_box)
 
 	self.msgbox_id	= 0
 end
@@ -182,6 +183,7 @@ function load_save_dialog:OnButton_del_ex_clicked()
 	local text = string.gsub( game.translate_string("st_mm_delete_excess_files"), "%$cnt", tostring(self.last_saves_count) )
 	self.message_box:Init("message_box_delete_file_name")
 	self.message_box:SetText(text)
+	self.message_box.check:Show(true)
 	self:GetHolder():start_stop_menu(self.message_box, true)
 end
 
@@ -200,6 +202,7 @@ function load_save_dialog:OnButton_ren_clicked()
 	self.msgbox_id = 4
 	self.message_box:Init("message_box_confirm_load_save")
 	self.message_box:SetText( game.translate_string("st_mm_file_rename") )
+	self.message_box.check:Show(false)
 	self:GetHolder():start_stop_menu(self.message_box, true)
 end
 
@@ -290,10 +293,26 @@ function load_save_dialog:DeleteExcessFiles()
 
 	flist:Sort(FS.FS_sort_by_modif_down)
 
-	local file, file_name, dds_name
-	for it = self.last_saves_count, f_cnt-1 do
-		file = flist:GetAt(it)
-		file_name = file:NameFull()
+	local shift_auto = self.message_box.check:GetCheck()
+
+	local file_name
+	local tmp = {}
+	for it = 0, f_cnt-1 do
+		file_name = flist:GetAt(it):NameFull()
+		if shift_auto then
+			if (string.find(file_name, "^День%s%d+%.%s%d%d%-%d%d")) ~= nil then
+				table.insert(tmp, file_name)
+			end
+		else
+			table.insert(tmp, file_name)
+		end
+	end
+
+	if #tmp <= self.last_saves_count then return end
+
+	local dds_name
+	for i = self.last_saves_count+1, #tmp do
+		file_name = tmp[i]
 		dds_name = file_name:sub(1, -4).."dds"
 		if fs:exist("$game_saves$", file_name) then
 			fs:file_delete("$game_saves$",file_name)
@@ -368,12 +387,14 @@ function load_save_dialog:OnButton_load_clicked()
 			self:load_game_internal(fname)
 		else
 			self.msgbox_id = 3
-			self.message_box:Init("message_box_confirm_load_save")		
+			self.message_box:Init("message_box_confirm_load_save")
+			self.message_box.check:Show(false)
 			self:GetHolder():start_stop_menu(self.message_box, true)
 		end
 	else
 		self.msgbox_id = 0
-		self.message_box:Init("message_box_invalid_saved_game")		
+		self.message_box:Init("message_box_invalid_saved_game")
+		self.message_box.check:Show(false)
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	end
 end
@@ -386,7 +407,8 @@ function load_save_dialog:OnButton_save_clicked()
 	--// check for empty name
 	if string.len(self.new_save) == 0 then
 		self.msgbox_id = 0
-		self.message_box:Init("message_box_empty_file_name")		
+		self.message_box:Init("message_box_empty_file_name")
+		self.message_box.check:Show(false)
 		self:GetHolder():start_stop_menu(self.message_box, true)
 		return
 	end
@@ -395,6 +417,7 @@ function load_save_dialog:OnButton_save_clicked()
 	if file_exist(self.new_save..".sav") then
 		self.msgbox_id = 2
 		self.message_box:Init("message_box_file_already_exist")
+		self.message_box.check:Show(false)
 		self:GetHolder():start_stop_menu(self.message_box, true)
 		return
 	end
@@ -427,7 +450,8 @@ function load_save_dialog:OnButton_del_clicked()
 	if self.list:GetItem(index) == nil then return end
 	self.msgbox_id = 1
 	
-	self.message_box:Init("message_box_delete_file_name")		
+	self.message_box:Init("message_box_delete_file_name")
+	self.message_box.check:Show(false)
 	self:GetHolder():start_stop_menu(self.message_box, true)
 end
 
