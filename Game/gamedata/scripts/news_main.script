@@ -2460,7 +2460,12 @@ end
 
 -- Кого-то грохнули в оффлайн.
 function on_offline_death(victim, killer, weapon)
-	if (victim and killer) then
+	if (victim and AI:object(victim.id) and killer and AI:object(killer.id)) then
+		amk.oau_reason=string.format("[news_main.on_offline_death]: %s kill %s from %s",
+			(victim and victim:name() or "nil"),
+			(killer and killer:name() or "nil"),
+			(weapon and weapon:name() or "nil")
+		)
 		if (IAmAStalker[victim:clsid()]) then
 			if (IsNpcStalker(victim)) then
 				on_offline_stalker_death(victim, killer, weapon)
