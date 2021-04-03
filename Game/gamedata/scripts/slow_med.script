@@ -1,12 +1,12 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local med_data = {
-	health    = { offset = 220, line = "eat_health",       delta = 0.00002, func = function( v ) Actor.health              = v   end },
-	power     = { offset = 224, line = "eat_power",        delta = 0.00005, func = function( v ) Actor.power               = v   end },
-	bleeding  = { offset = 240, line = "wounds_heal_perc", delta = 0.00003, func = function( v ) Actor:heal_wounds         ( v ) end },
-	satiety   = { offset = 228, line = "eat_satiety",      delta = 0.00002, func = function( v ) Actor.satiety             = v   end },
-	radiation = { offset = 232, line = "eat_radiation",    delta = 0.0003,  func = function( v ) arc_radiation.use_antirad ( v ) end },
-	psy       = { offset = nil, line = "eat_psy_health",   delta = 0.00003, func = function( v ) Actor.psy_health          = v   end },
-	thirst    = { offset = nil, line = "eat_thirst",       delta = 0.00003, func = function( v ) thirst.change_thirst      ( v ) end }
+	health    = { offset = 220, line = "eat_health",       delta = 0.00002, func = function( v ) Actor.health              = v   end, it = true  },
+	power     = { offset = 224, line = "eat_power",        delta = 0.00005, func = function( v ) Actor.power               = v   end, it = true  },
+	bleeding  = { offset = 240, line = "wounds_heal_perc", delta = 0.00003, func = function( v ) Actor:heal_wounds         ( v ) end, it = false },
+	satiety   = { offset = 228, line = "eat_satiety",      delta = 0.00002, func = function( v ) Actor.satiety             = v   end, it = true  },
+	radiation = { offset = 232, line = "eat_radiation",    delta = 0.0003,  func = function( v ) arc_radiation.use_antirad ( v ) end, it = false },
+	psy       = { offset = nil, line = "eat_psy_health",   delta = 0.00003, func = function( v ) Actor.psy_health          = v   end, it = true  },
+	thirst    = { offset = nil, line = "eat_thirst",       delta = 0.00003, func = function( v ) thirst.change_thirst      ( v ) end, it = false }
 }
 local medkits = {}
 
@@ -95,6 +95,7 @@ function start_healing( var, val )
 		xr_s.subscribe( "update", this.update_med_params )
 	end
 	med_params[var] = ( med_params[var] or 0 ) + val
+	ui_scroll_indicators.add_restore_indicator( var, med_data[var].it == (med_params[var] > 0) )
 end
 function update_med_params( delta )
 	local t, dec, fdelta
@@ -109,6 +110,7 @@ function update_med_params( delta )
 
 			if dec ~= ( med_params[k] < 0 ) then
 				med_params[k] = false
+				ui_scroll_indicators.remove_restore_indicator(k)
 			end
 		end
 	end
@@ -135,6 +137,9 @@ function load()
 	local t = amk.load_table( "slow_med" )
 	for k, v in pairs( t ) do
 		this.start_healing( k, v )
+	end
+	if has_timer("block_sleep_menu") then
+		xr_s.subscribe("update", slow_med.add_power_nrg)
 	end
 end
 

@@ -3,6 +3,9 @@
 local icons_scroll = nil
 local right_ident = 2
 local vert_interval = 0
+local right_ident2 = -35
+local vert_interval2 = 10
+local vert_shift2 = 120
 
 class "UIScrollIndicators"
 
@@ -10,6 +13,8 @@ function UIScrollIndicators:__init()
 	self.scroll_items = {}
 	self.tIndicatorThresholds = {}
 	self.current_thresholds = {}
+
+	self.restore_indicators = {}
 
 	self.xml = CScriptXmlInit()
 	self.xml:ParseFile("maingame.xml")
@@ -105,10 +110,64 @@ function UIScrollIndicators:update_indicator(name, iniline, value)
 	st:SetColor(clr)
 end
 
+function UIScrollIndicators:add_restore_indicator(name, bclr)
+	local st
+	for i, v in ipairs(self.restore_indicators) do
+		if v.name == name then
+			st = v
+			break
+		end
+	end
+
+	if not st then
+		local y = vert_interval2 - vert_shift2
+		for i, v in ipairs(self.restore_indicators) do
+			y = y + v:GetHeight() + vert_interval2
+		end
+		st = self.xml:InitStatic(name.."_restore_static", self.scroll)
+		table.insert(self.restore_indicators, st)
+		st.name = name
+		st:SetWndPos(right_ident2, y)
+	end
+
+	local clr = GetARGB(
+		200,
+		(bclr and 160 or 255),
+		(bclr and 255 or 160),
+		160
+	)
+	st:SetColor(clr)
+end
+function UIScrollIndicators:remove_restore_indicator(name)
+	local n = math.huge
+	local y = vert_interval2 - vert_shift2
+	for i, v in ipairs(self.restore_indicators) do
+		if n > i then
+			if v.name == name then
+				n = i
+				self.scroll:DetachChild(v)
+			else
+				y = y + v:GetHeight() + vert_interval2
+			end
+		else
+			v:SetWndPos(right_ident2, y)
+			y = y + v:GetHeight() + vert_interval2
+		end
+	end
+	if self.restore_indicators[n] then
+		table.remove(self.restore_indicators, n)
+	end
+end
+
 function UIScrollIndicators:destroy_indicators()
 	if #self.scroll_items > 0 then
 		for i = 1, #self.scroll_items do
 			self.scroll_items[i] = nil
+		end
+	end
+	if #self.restore_indicators > 0 then
+		for i = 1, #self.restore_indicators do
+			self.restore_indicators[i] = nil
 		end
 	end
 	self.xml = nil
@@ -129,6 +188,7 @@ end
 
 ---------------------------------------------------------------------------
 local first_run_queue = {}
+local first_run_queue2 = {}
 local can_update = false
 
 function get_scroll()
@@ -147,10 +207,29 @@ function update_indicator(name, ini_line, value)
 	end
 end
 
+function add_restore_indicator(name, bclr)
+	if can_update then
+		get_scroll():add_restore_indicator(name, bclr)
+	else
+		first_run_queue2[name] = bclr
+	end
+end
+function remove_restore_indicator(name)
+	if can_update then
+		get_scroll():remove_restore_indicator(name)
+	else
+		first_run_queue2[name] = nil
+	end
+end
+
 function first_update()
 	can_update = true
+	local scroll = get_scroll()
 	for k, v in pairs(first_run_queue) do
-		update_indicator( k, v[1], v[2] )
+		scroll:update_indicator( k, v[1], v[2] )
+	end
+	for k, v in pairs(first_run_queue2) do
+		scroll:add_restore_indicator(k, v)
 	end
 end
 
