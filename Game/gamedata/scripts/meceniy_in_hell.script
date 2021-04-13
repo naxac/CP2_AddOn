@@ -119,52 +119,88 @@ local tabl_pp_effectors = {
 
 local tabl_horror_by_level = {-- Нету уровня - нету ЧУ. На уровне указано среднее количество спавна. Чем ближе к ЧАЭС, тем немного больше
 	l01_escape = {
-		spawn = 20,
-		actor_hit_power = {radiation = 0.0008, shock = 0.00001}
+		spawn = 15,
+		actor_hit_power = {radiation = 0.0008, shock = 0.00001, telepatic = 0.4}
 	},
 	l02_garbage = {
-		spawn = 20,
-		actor_hit_power = {radiation = 0.0005, shock = 0.00001}
+		spawn = 18,
+		actor_hit_power = {radiation = 0.0005, shock = 0.00001, telepatic = 0.4}
 	},
 	l03_agroprom = {
 		spawn = 20,
-		actor_hit_power = {radiation = 0.001, shock = 0.00001}
+		actor_hit_power = {radiation = 0.001, shock = 0.00001, telepatic = 0.4}
+	},
+	l04_darkvalley = {
+		spawn = 22,
+		actor_hit_power = {radiation = 0.0012, shock = 0.00001, telepatic = 0.4}
 	},
 	l06_rostok = {
 		spawn = 25,
-		actor_hit_power = {radiation = 0.002, shock = 0.00001}
-	},
-	l04_darkvalley = {
-		spawn = 25,
-		actor_hit_power = {radiation = 0.0012, shock = 0.00001}
+		actor_hit_power = {radiation = 0.002, shock = 0.00001, telepatic = 0.5}
 	},
 	l07_military = {
-		spawn = 30,
-		actor_hit_power = {radiation = 0.005, shock = 0.0002}
+		spawn = 27,
+		actor_hit_power = {radiation = 0.005, shock = 0.0002, telepatic = 0.5}
 	},
 	l08_yantar = {
-		spawn = 33,
-		actor_hit_power = {radiation = 0.005, shock = 0.0002}
+		spawn = 30,
+		actor_hit_power = {radiation = 0.005, shock = 0.0002, telepatic = 0.5}
 	},
 	l10_radar = {
-		spawn = 35,
-		actor_hit_power = {radiation = 0.005, shock = 0.0004}
+		spawn = 33,
+		actor_hit_power = {radiation = 0.005, shock = 0.0004, telepatic = 0.6}
 	},
 	l11_pripyat = {
-		spawn = 40,
-		actor_hit_power = {radiation = 0.01, shock = 0.0007}
+		spawn = 35,
+		actor_hit_power = {radiation = 0.01, shock = 0.0007, telepatic = 0.6}
+	},
+	atp_for_test22 = {
+		spawn = 25,
+		actor_hit_power = {radiation = 0.01, shock = 0.0008, telepatic = 0.5}
+	},
+	aver = {
+		spawn = 21,
+		actor_hit_power = {radiation = 0.005, shock = 0.0006, telepatic = 0.5}
+	},
+	generators = {
+		spawn = 30,
+		actor_hit_power = {radiation = 0.01, shock = 0.0008, telepatic = 0.6}
+	},
+	dead_city = {
+		spawn = 36,
+		actor_hit_power = {radiation = 0.01, shock = 0.0008, telepatic = 0.6}
+	},
+	limansk = {
+		spawn = 29,
+		actor_hit_power = {radiation = 0.014, shock = 0.001, telepatic = 0.6}
+	},
+	marsh = {
+		spawn = 20,
+		actor_hit_power = {radiation = 0.001, shock = 0.0007, telepatic = 0.4}
+	},
+	puzir = {
+		spawn = 18,
+		actor_hit_power = {radiation = 0.001, shock = 0.00001, telepatic = 0.4}
+	},
+	red_forest = {
+		spawn = 28,
+		actor_hit_power = {radiation = 0.012, shock = 0.0008, telepatic = 0.6}
 	},
 	zaton = {
-		spawn = 45,
-		actor_hit_power = {radiation = 0.02, shock = 0.001}
+		spawn = 40,
+		actor_hit_power = {radiation = 0.02, shock = 0.001, telepatic = 0.6}
 	},
 	jupiter = {
-		spawn = 45,
-		actor_hit_power = {radiation = 0.02, shock = 0.001}
+		spawn = 40,
+		actor_hit_power = {radiation = 0.02, shock = 0.001, telepatic = 0.6}
 	},
 	pripyat = {
-		spawn = 45,
-		actor_hit_power = {radiation = 0.02, shock = 0.001}
+		spawn = 40,
+		actor_hit_power = {radiation = 0.02, shock = 0.001, telepatic = 0.6}
+	},
+	l41_darkscape_ogse = {
+		spawn = 29,
+		actor_hit_power = {radiation = 0.01, shock = 0.0008, telepatic = 0.5}
 	}
 }
 
@@ -173,7 +209,7 @@ local horror_time_begin = 22
 local horror_time_rnd = 3
 local horror_time_max = 150
 local horror_time_min = 90
-local horror_prob = 1.0
+local horror_prob = 0.7
 
 function start_horror_timer()
 	if has_timer("horror") then
@@ -284,7 +320,7 @@ function start_horror()
 	npc2state = {}
 
 	local h = level.get_time_hours()
-	if (h >= 22 and h <= 2)
+	if (h >= 22 or h <= 2)
 		and math.random() <= horror_prob
 	then
 		Actor:give_info_portion("horror")
@@ -368,23 +404,15 @@ end
 function hit_actor(level_name)
 	local horror_hit = hit()
 	horror_hit.direction = vector():set(0,0,0)
-	horror_hit.impulse = 0.3
-	horror_hit.power = 0.4
-	horror_hit.type = hit.telepatic
-	horror_hit.draftsman = Actor
-	Actor:hit(horror_hit)
-
 	horror_hit.impulse = 0
+	horror_hit.draftsman = Actor
 
 	local ht = tabl_horror_by_level[level_name]["actor_hit_power"]
-
-	horror_hit.power = ht["radiation"]
-	horror_hit.type = hit.radiation
-	Actor:hit(horror_hit)
-	
-	horror_hit.power = ht["shock"]
-	horror_hit.type = hit.shock
-	Actor:hit(horror_hit)
+	for k, v in pairs(ht) do
+		horror_hit.power = v
+		horror_hit.type = hit[k]
+		Actor:hit(horror_hit)
+	end
 end
 
 -- Выбор Эффектора
