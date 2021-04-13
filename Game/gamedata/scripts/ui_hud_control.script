@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local hud_name = game_options.CurrentHUD
+local def_hud_name = "pda_script"
 local af_panel = game_options.ArtPanel
 
 local t_clock = {}
@@ -101,6 +102,7 @@ function table2number( t )
 end
 
 function init_hud()
+	check_need_update_files()
 	hud = get_hud()
 end
 
@@ -139,6 +141,36 @@ function init()
 	end
 end
 
+function check_need_update_files()
+	local fs = getFS()
+	local ex = fs:exist("$game_config$", "ui\\maingame.xml")
+	local need_update = false
+	if ex.modif == 0 then
+		if hud_name ~= def_hud_name then
+			need_update = true
+		end
+	else
+		local path = fs:update_path("$fs_root$", "gamedata.dbh_fix")
+		local modif = lfs.attributes(path, "modification")
+		if ex.modif < modif then
+			need_update = true
+		end
+	end
+
+	if need_update then
+		hud_name = "nil"
+		on_change_hud()
+		start_small_timer(2000, this.show_quit_msg)
+	end
+end
+
+function show_quit_msg()
+	local func = function()
+		get_console():execute("quit")
+	end
+	ShowMessageBox( "yes_no_alarm", "st_force_restart_game", func )
+end
+
 function on_change_hud()
 	local result = false
 
@@ -159,17 +191,14 @@ function on_change_hud()
 	end
 
 	local need_panel = game_options.ArtPanel
-	if (need_panel ~= af_panel) or (result and need_panel) then
+	if (need_panel ~= af_panel) or result then
 		local fs = getFS()
-		local f1, f2, path = "", "", ""
-		for i, v in ipairs( {"", "_16"} ) do
-			path = "config\\ui\\maingame"..v..iif(need_panel, "_af.xml", ".xml" )
-			if fs:exist( "$game_huds$", hud_name.."\\"..path ) ~= nil then
-				f1 = fs:update_path( "$game_huds$", hud_name.."\\"..path )
-				f2 = fs:update_path( "$game_data$", "config\\ui\\maingame"..v..".xml" )
-				fs:file_copy( f1, f2 )
-				result = true
-			end
+		local path = hud_name.."\\config\\ui\\artefact_panel"..iif(need_panel, "_on.xml", "_off.xml" )
+		if fs:exist( "$game_huds$", path ) ~= nil then
+			local f1 = fs:update_path( "$game_huds$", path )
+			local f2 = fs:update_path( "$game_data$", "config\\ui\\artefact_panel.xml" )
+			fs:file_copy( f1, f2 )
+			result = true
 		end
 
 		af_panel = need_panel
