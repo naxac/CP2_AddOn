@@ -13,17 +13,14 @@ class "main_menu" (CUIScriptWnd)
 function main_menu:__init() super()
 	local loaded = level.present()
 
-	if loaded and _G.press_any_key_on_start then
+	if not loaded then
+		if string.find( command_line(), "-load_last_save", 1, true ) and AI == nil then
+			get_console():execute ("load_last_save")
+			return
+		end
+	elseif _G.press_any_key_on_start then
 		_G.press_any_key_on_start = false
 		autopause.on_mm_init(self)
-		return
-	end
-
-	if ( not loaded )
-		and string.find( command_line(), "-load_last_save", 1, true )
-		and AI == nil
-	then
-		get_console():execute ("load_last_save")
 		return
 	end
 

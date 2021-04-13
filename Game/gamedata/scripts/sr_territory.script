@@ -16,25 +16,25 @@ function action_territory:update(delta)
 	end	
 end
 function action_territory:hit_callback(obj, amount, local_direction, who, bone_index)
-	printf("territory hit callback: [%s][%s]", tostring(amount), tostring(who:name()))
+--	printf("territory hit callback: [%s][%s]", tostring(amount), tostring(who:name()))
 	if who:id() ~= Actor:id() then
 		return
 	end
 	if obj:relation(Actor) == game_object.enemy then
 		return
 	end	
-  xr_logic.pstor_store(obj,"wasenemy",false) -- выстрел в нейтрала или друга. запомним
+	xr_logic.pstor_store(obj,"wasenemy",false) -- выстрел в нейтрала или друга. запомним
 	xr_logic.pick_section_from_condlist(Actor, obj, self.st.territory_hit)
 end
 function action_territory:death_callback(victim, who)
-	printf("territory death callback: [%s]", tostring(victim:name()), tostring(who:name()))
+--	printf("territory death callback: [%s]", tostring(victim:name()), tostring(who:name()))
 	if who:id() ~= Actor:id() then
 		return
 	end
-  if xr_logic.pstor_retrieve(victim,"wasenemy",true) then
-    amk.mylog("preventing reaction to territory kill for "..victim:name())
-    return -- ГГ убил врага. Не будем обижаться
-  end
+	if xr_logic.pstor_retrieve(victim,"wasenemy",true) then
+		-- amk.mylog("preventing reaction to territory kill for "..victim:name())
+		return -- ГГ убил врага. Не будем обижаться
+	end
 --	if victim:relation(Actor) == game_object.enemy then
 --		return
 --	end	

@@ -139,6 +139,8 @@ function UIScrollIndicators:add_restore_indicator(name, bclr)
 	st:SetColor(clr)
 end
 function UIScrollIndicators:remove_restore_indicator(name)
+	if #self.restore_indicators == 0 then return end
+
 	local n = math.huge
 	local y = vert_interval2 - vert_shift2
 	for i, v in ipairs(self.restore_indicators) do
@@ -188,7 +190,6 @@ end
 
 ---------------------------------------------------------------------------
 local first_run_queue = {}
-local first_run_queue2 = {}
 local can_update = false
 
 function get_scroll()
@@ -211,14 +212,14 @@ function add_restore_indicator(name, bclr)
 	if can_update then
 		get_scroll():add_restore_indicator(name, bclr)
 	else
-		first_run_queue2[name] = bclr
+		first_run_queue[name] = bclr
 	end
 end
 function remove_restore_indicator(name)
 	if can_update then
 		get_scroll():remove_restore_indicator(name)
 	else
-		first_run_queue2[name] = nil
+		first_run_queue[name] = nil
 	end
 end
 
@@ -226,11 +227,13 @@ function first_update()
 	can_update = true
 	local scroll = get_scroll()
 	for k, v in pairs(first_run_queue) do
-		scroll:update_indicator( k, v[1], v[2] )
+		if type(v) == "boolean" then
+			scroll:add_restore_indicator(k, v)
+		else
+			scroll:update_indicator( k, v[1], v[2] )
+		end
 	end
-	for k, v in pairs(first_run_queue2) do
-		scroll:add_restore_indicator(k, v)
-	end
+	first_run_queue = nil
 end
 
 function attach()

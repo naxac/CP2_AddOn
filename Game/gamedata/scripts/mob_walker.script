@@ -22,7 +22,7 @@ end
 function mob_walker:reset_scheme()
 --	printf("_bp: mob_walker:reset_scheme: %s", self.object:name())
 	
-	mob_state_mgr.set_state(self.object, db.actor, self.st.state)
+	mob_state_mgr.set_state(self.object, Actor, self.st.state)
 
 	self.st.signals = {}
 
@@ -85,9 +85,7 @@ function mob_walker:update(delta)
 	--	return
 	--end
 
-	local actor = db.actor
-
-	if mob_alife_mgr.alife_control(self.object, actor, self.st.alife_mode) then
+	if mob_alife_mgr.alife_control(self.object, Actor, self.st.alife_mode) then
 		return
 	end
 	
@@ -99,7 +97,7 @@ function mob_walker:update(delta)
 
 --	if self:arrived_to_first_waypoint() then
 	if self:arrived_to_first_waypoint() or self.st.alife_mode.actor_friendly then	-- В ОП-2 для дружественных зверушек нужна постоянная проверка смены логики, а не только в конце пути
-		if xr_logic.try_switch_to_another_section(self.object, self.st, actor) then
+		if xr_logic.try_switch_to_another_section(self.object, self.st, Actor) then
 			return
 		end
 	end
@@ -163,9 +161,9 @@ function mob_walker:waypoint_callback(obj, action_type, index)
 	
 	local beh = self.path_walk_info[index]["b"]
 	if beh then
-		mob_state_mgr.set_state(self.object, db.actor, beh)
+		mob_state_mgr.set_state(self.object, Actor, beh)
 	else
-		mob_state_mgr.set_state(self.object, db.actor, self.st.state)
+		mob_state_mgr.set_state(self.object, Actor, self.st.state)
 	end
 	
 	local search_for = self.path_walk_info[index].flags
@@ -202,9 +200,9 @@ function mob_walker:waypoint_callback(obj, action_type, index)
 
 		local beh = self.path_walk_info[index]["b"]
 		if beh then
-			mob_state_mgr.set_state(self.object, db.actor, beh)
+			mob_state_mgr.set_state(self.object, Actor, beh)
 		else
-			mob_state_mgr.set_state(self.object, db.actor, self.st.state)
+			mob_state_mgr.set_state(self.object, Actor, self.st.state)
 		end
 
 		if pt_chosen_idx ~= self.last_look_index then -- если уже смотрели туда - не поворачиваться
