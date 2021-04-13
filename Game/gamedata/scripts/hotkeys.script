@@ -359,19 +359,17 @@ function run_or_return()
 	end
 end
 function set_input_key()
-	local msg = "Будет произведена настройка клавиши возвращателя/ускорителя.\\nДля продолжения нажмите \"Да\", а затем назначаемую клавишу.\\nДля отмены нажмите \"Нет\"."
 	local func_yes = function()
 		xr_s.subscribe( "key_press", this.wait_key, { once = true } )
 	end
-	ShowMessageBox( "yes_no_alarm", msg, func_yes )
+	ShowMessageBox( "yes_no_alarm", "st_set_input_key", func_yes )
 end
 function wait_key( dik, bind )
 	if bind ~= key_bindings.DUMMY then
-		local msg = "Эта клавиша уже занята, выберите другую!"
 		local func = function()
 			xr_s.subscribe( "key_press", this.wait_key, { once = true } )
 		end
-		ShowMessageBox( "ok_red", msg, func )
+		ShowMessageBox( "ok_red", "st_set_input_key_fail", func )
 		return
 	end
 	dik_actions[game_options.RunnerKey] = nil
@@ -379,7 +377,10 @@ function wait_key( dik, bind )
 	game_options.RunnerKey = dik
 	game_options.save_game_options()
 	local dik_name = this.dik2key( dik )
-	local msg = "На управление возвращателем/ускорителем назначена клавиша "..dik_name..".\\nДля изменения клавиши нажмите Shift + "..dik_name.."."
+	local msg = format_text_pairs(
+		game.translate_string("st_set_input_key_done"),
+		{dik_name = dik_name}
+	)
 	ShowMessageBox( "ok_info", msg )
 end
 -------------------------------------------------------------------------------------------
