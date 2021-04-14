@@ -319,7 +319,7 @@ class CUIStatic : CUIWindow {
 	void		AdjustHeightToText();	// xml: adjust_height_to_text
 	void		AdjustWeigthToText();	// xml: adjust_width_to_text
 	void		SetTextPos(float<x>, float<y>);
-	bool		CanRotate();
+	bool		CanRotate(bool);
 	vector2*	GetWndSize();
 };
 
