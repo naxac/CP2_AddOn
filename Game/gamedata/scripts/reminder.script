@@ -8,6 +8,7 @@ local trader_names = {
 }
 local need_init = true
 local tmr
+local m_ClockWnd = nil
 
 function remind()
 	local storyline = remind_storyline()
@@ -23,11 +24,40 @@ function start_remind()
 	if need_init then init() end
 
 	if game_options.HudTIme then
-		local cs_os_time = get_hud():AddCustomStatic("cs_os_time", true)
-		cs_os_time:wnd():SetText( os.date("%H:%M") )
+		if m_ClockWnd == nil then
+			local cs_os_time = get_hud():AddCustomStatic("cs_os_time", true)
+			m_ClockWnd = cs_os_time:wnd()
+			for i, v in ipairs( {"hours", "minutes", "seconds"} ) do
+				local w = CUIStatic()
+				m_ClockWnd[v] = w
+				w:SetAutoDelete(true)
+				w:Init( "ui_clock_"..v.."_arrow", 0, 0, m_ClockWnd:GetWidth(), m_ClockWnd:GetHeight() )
+				w:SetStretchTexture( m_ClockWnd:GetStretchTexture() )
+				w:CanRotate(true)
+				m_ClockWnd:AttachChild(w)
+			end
+		end
+		m_ClockWnd:Show(true)
+		this.update_clock()
+		xr_s.subscribe( "update", this.update_clock, {timeout = 200} )
 	end
 
 	tmr = start_small_timer(1000, this.remind)
+end
+
+local last_sec = -1
+function update_clock(delta)
+	local tm = os.date("*t")
+	if last_sec == tm.sec then return end
+
+	local two_pi = -2*math.pi
+
+	local sec_step = two_pi/60
+	local sec_angle = sec_step*tm.sec
+	m_ClockWnd.seconds:SetHeading(sec_angle)
+	m_ClockWnd.minutes:SetHeading(sec_step*tm.min + sec_angle/60)
+	local hour = tm.hour%12
+	m_ClockWnd.hours:SetHeading(two_pi/12*hour + (two_pi/12) * (tm.min/60))
 end
 
 function on_key_release(dik, bind)
@@ -37,8 +67,10 @@ function on_key_release(dik, bind)
 		if hud:GetCustomStatic("cs_reminder") then
 			hud:RemoveCustomStatic("cs_reminder")
 		end
-		if hud:GetCustomStatic("cs_os_time") then
-			hud:RemoveCustomStatic("cs_os_time")
+		if m_ClockWnd then
+			xr_s.unsubscribe("update", this.update_clock)
+			m_ClockWnd = nil
+			get_hud():RemoveCustomStatic("cs_os_time")
 		end
 	end
 end
