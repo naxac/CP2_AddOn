@@ -193,11 +193,18 @@ function on_change_hud()
 	local need_panel = game_options.ArtPanel
 	if (need_panel ~= af_panel) or result then
 		local fs = getFS()
-		local path = hud_name.."\\config\\ui\\artefact_panel"..iif(need_panel, "_on.xml", "_off.xml" )
-		if fs:exist( "$game_huds$", path ) ~= nil then
-			local f1 = fs:update_path( "$game_huds$", path )
+		local path = hud_name.."\\config\\ui\\artefact_panel"..iif(need_panel, "_on", "_off" )
+		if fs:exist( "$game_huds$", path..".xml" ) ~= nil then
+			local f1 = fs:update_path( "$game_huds$", path..".xml" )
 			local f2 = fs:update_path( "$game_data$", "config\\ui\\artefact_panel.xml" )
 			fs:file_copy( f1, f2 )
+
+			if fs:exist( "$game_huds$", path.."_16.xml" ) then
+				f1 = fs:update_path( "$game_huds$", path.."_16.xml" )
+			end
+			f2 = fs:update_path( "$game_data$", "config\\ui\\artefact_panel_16.xml" )
+			fs:file_copy( f1, f2 )
+
 			result = true
 		end
 
