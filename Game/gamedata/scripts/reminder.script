@@ -76,25 +76,45 @@ function on_key_release(dik, bind)
 end
 -- сюжетные задания
 function remind_storyline()
-	local obj, t, npc_name
+	local obj, npc_name
 	local str = ""
 
+	local t = CGameTask()
 	for sid, v in pairs(tasks_info) do
 		obj = AI:story_object(story_ids[sid])
 		if obj then
-			npc_name = "%c[255,0,255,255]"..get_npc_name(obj).." > "
-			for task_id, ob in pairs(v) do
-				if Actor:get_task_state(task_id, ob) == task.in_progress then
-					t = CGameTask()
-					t:load(task_id)
+			npc_name = "%c[green_blue]"..get_npc_name(obj).." > "
+			for i, vv in ipairs(v) do
+				if Actor:get_task_state(vv.task_id, vv.ob) == task.in_progress then
+					t:load(vv.task_id)
 
-					if ob > 0 or all_subtasks_done(task_id, t) then
-						if ob == 0 then 
-							ob = t:get_objectives_cnt()-1
+					local o = vv.ob
+					local check = true
+					if o == 0 then
+						for j = 1, t:get_objectives_cnt()-2 do
+							if Actor:get_task_state(vv.task_id, j) ~= task.completed then
+								check = false
+								break
+							end
+						end
+					else
+						if vv.ob_check then
+							for n, oo in ipairs(vv.ob_check) do
+								if Actor:get_task_state(vv.task_id, tonumber(oo)) ~= task.completed then
+									check = false
+									break
+								end
+							end
+						end
+					end
+
+					if check then
+						if o == 0 then 
+							o = t:get_objectives_cnt()-1
 						end
 
-						str = str..npc_name.."%c[255,127,255,255]"..get_string(t:get_title())..
-							": %c[default]"..get_string(t:get_objective(ob):get_description()).."\\n"
+						str = str..npc_name.."%c[green_blue_light2]"..get_string(t:get_title())..
+							": %c[default]"..get_string(t:get_objective(o):get_description()).."\\n"
 					end
 				end
 			end
@@ -110,16 +130,6 @@ function remind_storyline()
 	return false
 end
 
--- все ли подзадания выполнены?
-function all_subtasks_done(task_id, t)
-	for i=1,t:get_objectives_cnt()-2 do
-		if Actor:get_task_state(task_id, i) ~= task.completed then
-			return false
-		end
-	end
-	
-	return true
-end
 
 -- имя квестовика
 function get_npc_name(obj)
@@ -136,7 +146,7 @@ function send_info(info_text)
 		cs:wnd():SetText(info_text)
 	else
 		local t = cs:wnd():GetText()
-		t = t.." \\n"..info_text
+		t = t..info_text
 		cs:wnd():SetText(t)
 	end
 end
@@ -144,12 +154,16 @@ end
 function init()
 	need_init = false
 	tasks_info = {}
-	
+
+	local string_match = string.match
+	local string_find = string.find
+	local string_sub = string.sub
+	local table_insert = table.insert
 	local ini = ini_file("misc\\reminder.ltx")
 	local result, id, sid, task_id, ob, obj
 	for i=0,ini:line_count("tasks")-1 do
 		result, id, sid = ini:r_line("tasks",i,"","")
-		task_id, ob = string.match(id, "(.+)[_](.+)")
+		task_id, ob = string_match(id, "(.+)[_](.+)")
 		if story_ids[sid] then
 			obj = AI:story_object(story_ids[sid])
 			if obj and (obj:clsid() == clsid.script_trader or obj:alive())
@@ -158,10 +172,25 @@ function init()
 				if tasks_info[sid] == nil then
 					tasks_info[sid] = {}
 				end
-				tasks_info[sid][task_id] = tonumber(ob)
+
+				local v = {}
+				v.task_id = task_id
+				local f = string_find(ob, "%-")
+				if f then
+					local s = string.explode(ob, "%-")
+					v.ob = tonumber( table.remove(s, 1) )
+					v.ob_check = s
+				else
+					v.ob = tonumber(ob)
+				end
+
+				table_insert( tasks_info[sid], v )
 			end
 		end
 	end
+
+	-- log("# reminder init")
+	-- table.print(tasks_info)
 
 	xr_s.subscribe( "key_release", this.on_key_release )
 end
