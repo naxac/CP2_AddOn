@@ -1213,6 +1213,19 @@ function CRandomTask:unregister_target(obj)
 	end
 end
 --' Напоминания
+local function format_time(sec)
+	if not sec then return "" end
+
+	local m = sec/60
+	local h = m/60
+	m = m%60
+	local d = h/24
+	h = h%24
+	return " ("..
+		(d > 0 and d.."дн." or "")..
+		(h > 0 and h.."ч." or "")..
+		m.."мин.)"
+end
 function CRandomTask:remind()
 	local parent, sid, task_desc, txt_desc
 	local sms = {}
@@ -1242,7 +1255,11 @@ function CRandomTask:remind()
 				else
 					txt_desc = return_task_by_type[task_desc.type]
 				end
-				str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(txt_desc).."\\n"
+				str = str..
+					"%c[255,0,255,255]"..sms[sid]..
+					" > %c[255,127,255,255]"..get_string(task_desc.type)..
+					": %c[default]"..get_string(txt_desc)..
+					format_time(task_desc.time).."\\n"
 			end
 		elseif task_desc.status == "selected" then
 			if task_desc.type == "eliminate_lager"
@@ -1257,7 +1274,11 @@ function CRandomTask:remind()
 						if not sms[sid] then 
 							sms[sid] = reminder.get_npc_name(parent)
 						end
-						str = str.."%c[255,0,255,255]"..sms[sid].." > %c[255,127,255,255]"..get_string(task_desc.type).. ": %c[default]"..get_string(task_desc.name).."\\n"
+						str = str..
+							"%c[255,0,255,255]"..sms[sid]..
+							" > %c[255,127,255,255]"..get_string(task_desc.type)..
+							": %c[default]"..get_string(task_desc.name)..
+							format_time(task_desc.time).."\\n"
 					end
 				end
 			end
