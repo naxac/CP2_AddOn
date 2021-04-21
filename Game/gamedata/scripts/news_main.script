@@ -2597,55 +2597,77 @@ function on_offline_npc_death(victim_, killer_, weapon_)
 	if (victim_ == nil) then
 		return
 	end
+	local ss="news_main.on_offline_npc_death "
+	amk.oau_reason=ss.."1"
 	local m_victim = ""
 	local m_killer = ""
 	local aid = nil
 	m_victim = format_death_npc_corpse(victim_)
+	amk.oau_reason=ss.."2"
 	if (killer_) then
+		amk.oau_reason=ss.."3"
 		if IAmAMonster[killer_:clsid()] then
+			amk.oau_reason=ss.."3.1"
 			m_killer = format_death_by_monster(killer_)
 		elseif (IsNpcStalker(killer_)) then -- Хм, и кто ж его так? Или свои, или ГГ
+			amk.oau_reason=ss.."3.2"
 			m_killer = format_death_by_weapon(weapon_)
 		elseif (IsNpcOther(killer_)) then -- Ага. Или бандиты, или вояки, или киллеры... Вобщем, люди.
+			amk.oau_reason=ss.."3.4"
 			m_killer = format_death_by_weapon(weapon_)
 		elseif (IsAnomaly(killer_)) then
+			amk.oau_reason=ss.."3.5"
 			m_killer = format_death_by_anomaly(killer_)
 		else
+			amk.oau_reason=ss.."3.6"
 			m_killer = ""
 			if _debug == true then mylog("On offline npc death - unknown killer. "..killer:name().." clsid="..get_clsid(killer))	end
 		end
 	else
+		amk.oau_reason=ss.."4"
 		if _debug == true then mylog("Хм. no killer. "..victim_:name()) end
 	end
+	amk.oau_reason=ss.."5"
 	if (math_random() < prob) then
 	--	local name, sname = amk_names_lists.get_strings()
 		local s_from = "" --name.." "..sname
 		local s_author = s_from
 		local m_str = ""
+		amk.oau_reason=ss.."6"
 		if (math_random() < 0.5) then
+			amk.oau_reason=ss.."7"
 			if (math_random() < 0.5) then
+				amk.oau_reason=ss.."7.1"
 				m_str = m_victim.." "..m_killer..""
 			else
+				amk.oau_reason=ss.."7.2"
 				m_str = m_victim..""
 			end
+			amk.oau_reason=ss.."8"
 			local author = get_nearest_stalker(get_object_levelname(victim_), get_object_position(victim_), dist_seen, 0)
 			if (author) then
+				amk.oau_reason=ss.."9"
 				s_author = get_npc_name(author)
 				s_from = s_author
 				aid = author.id
 			end			
 		else
+			amk.oau_reason=ss.."10"
 			local author = get_nearest_stalker(get_object_levelname(victim_), get_object_position(victim_), dist_hear_max, dist_hear_min)
 			if (author) then
+				amk.oau_reason=ss.."11"
 				s_author = get_npc_name(author)
 				s_from = s_author
 				aid = author.id
 			else
+				amk.oau_reason=ss.."12"
 				return
 			end		
+			amk.oau_reason=ss.."13"
 			m_str = format_death_hear_sounds(victim_, killer_, weapon_)
 		end
 		if (m_str ~= "" and s_from ~= "") then
+			amk.oau_reason=ss.."14"
 			do_news(m_str, s_from, math_random(timer_corpse, timer_corpse *5), 7, nil, aid)
 			if _debug == true then mylog("Offline: "..s_from.." "..m_str) end
 		end
