@@ -1226,9 +1226,9 @@ local function format_time(sec)
 		(h > 0 and h.."ч." or "")..
 		m.."мин.)"
 end
+local parent_names = {}
 function CRandomTask:remind()
 	local parent, sid, task_desc, txt_desc
-	local sms = {}
 	local str = ""
 	local level_id = AI:level_id()
 
@@ -1244,8 +1244,8 @@ function CRandomTask:remind()
 				and GGraph:vertex(parent.m_game_vertex_id):level_id() == level_id
 			then
 				-- формируем сообщение
-				if not sms[sid] then 
-					sms[sid] = reminder.get_npc_name(parent)
+				if not parent_names[sid] then 
+					parent_names[sid] = reminder.get_npc_name(parent)
 				end
 				if task_desc.type == "artefact"
 					or task_desc.type == "monster_part"
@@ -1256,8 +1256,8 @@ function CRandomTask:remind()
 					txt_desc = return_task_by_type[task_desc.type]
 				end
 				str = str..
-					"%c[255,0,255,255]"..sms[sid]..
-					" > %c[255,127,255,255]"..get_string(task_desc.type)..
+					"%c[green_blue]"..parent_names[sid]..
+					" > %c[green_blue_light2]"..get_string(task_desc.type)..
 					": %c[default]"..get_string(txt_desc)..
 					format_time(task_desc.time).."\\n"
 			end
@@ -1271,12 +1271,12 @@ function CRandomTask:remind()
 					sid = tonumber(story_by_parent[task_desc.parent])
 					parent = AI:story_object(sid)
 					if parent and (parent:clsid() == clsid.script_trader or parent:alive()) then
-						if not sms[sid] then 
-							sms[sid] = reminder.get_npc_name(parent)
+						if not parent_names[sid] then 
+							parent_names[sid] = reminder.get_npc_name(parent)
 						end
 						str = str..
-							"%c[255,0,255,255]"..sms[sid]..
-							" > %c[255,127,255,255]"..get_string(task_desc.type)..
+							"%c[green_blue]"..parent_names[sid]..
+							" > %c[green_blue_light2]"..get_string(task_desc.type)..
 							": %c[default]"..get_string(task_desc.name)..
 							format_time(task_desc.time).."\\n"
 					end
