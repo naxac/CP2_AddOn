@@ -1,6 +1,17 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local current_fix = 89
 
+function fix_89()
+	local obj = AI:object("val_watchtower_bandit_respawn")
+	if not obj then
+		AI:create( spawn_ids.val_watchtower_bandit_respawn )
+	end
+	obj = AI:object("val_fireball")
+	if obj then
+		AI:release(obj, true)
+	end
+	naxac.val_watchtowers_online()
+end
 function fix_88()
 	local obj = AI:story_object(story_ids.lc_zaton_to_jupiter)
 	if obj then
@@ -2424,4 +2435,56 @@ function lc_from_generators_to_warlab(actor, npc)
 		game.translate_string( "warlab" )
 	)
 	ShowMessageBox("yes_no_alarm", text, func_yes)
+end
+
+-- бандиты и сталкеры - дружба навек!
+function darkvalley_frienship(npc_id)
+	local smarts = {
+		"val_watchtower1", "val_watchtower2", "val_watchtower3", "val_watchtower4", "val_watchtower5",
+		"val_sacrifice", "val_x18_exit_base", "val_smart_bandit_2", "val_lager_bandits", "val_escort"
+	}
+	for i, v in ipairs(smarts) do
+		local gulag = xr_gulag.get_gulag(v)
+		if gulag then
+			for id in pairs(gulag.npc_info) do
+				relation_registry.set_goodwill(npc_id, id, 1000)
+				relation_registry.set_goodwill(id, npc_id, 1000)
+			end
+		end
+	end
+end
+
+function friendly_sak_lager()
+	local gulag = xr_gulag.get_gulag("sak_lager")
+	if gulag then	
+		for id in pairs(gulag.npc_info) do
+			darkvalley_frienship(id)
+		end
+	end
+end
+function messer_bandit_friend(fs, ss)
+	local npc = AI:story_object(story_ids.val_sos_stalker)
+	if npc then
+		darkvalley_frienship(npc.id)
+	end
+end
+
+function val_watchtowers_online()
+	if level.name() ~= "l04_darkvalley" then
+		start_real_timer("run", 20, "naxac.val_watchtowers_online()")
+		return
+	end
+
+	for i = 1, 5 do
+		local gname = "val_watchtower"..i
+		local g = xr_gulag.get_gulag(gname)
+		if g then
+			for id in pairs(g.npc_info) do
+				local o = AI:object(id)
+				if o then
+					netpk:modify(o, {object_flags = -65}, netpk.fConvert)
+				end
+			end
+		end
+	end
 end

@@ -108,7 +108,7 @@ if gulag_type == "val_escort" then
 		return npc_community == "bandit"
 	end
 	if gulag_type == "val_watchtower" then
-		return true
+		return npc_community == "bandit"
 	end
 	if gulag_type == "val_soldiers_raid" then
 		return npc_community == "military"
@@ -1353,11 +1353,11 @@ end
 --------------------------------------------------------------------------
 -- Predicates ------------------------------------------------------------
 function wt_predicate_g(npc_info, gulag) -- guard
-    return string.find(npc_info.name, gulag.name) ~= nil
+    return string.find(npc_info.name, gulag.type) ~= nil
 end
 
 function wt_predicate_s(npc_info, gulag) -- sniper
-    return string.find(npc_info.name, gulag.name) ~= nil and npc_info.is_sniper == true
+    return string.find(npc_info.name, gulag.type) ~= nil and npc_info.is_sniper == true
 end
 
 -- Jobs ------------------------------------------------------------------
@@ -1386,8 +1386,8 @@ gulags.val_watchtower.job = function(sj, gname, type, squad, groups)
                    "combat_ignore = combat_ignore\n" ..
 
                    "[walker@" .. idstr .. "]\n" ..
-                   --"meet                = meet@generic_lager_guard\n" ..
-                   "combat_ignore_cond  = {=check_fighting(400) -val_escort_captive_enemy}, {=check_fighting(401) -val_sacrifice_finish}\n" ..
+				   "combat_ignore_cond  = {=check_fighting(400) -val_escort_captive_enemy}, {=check_fighting(401) -val_sacrifice_finish}, {=check_fighting(422)}\n" ..
+                   -- "meet                = meet@generic_lager_guard\n" ..
                    "path_walk           = guard_" .. i .. "_walk\n" ..
                    "def_state_moving1   = patrol\n" ..
                    "def_state_moving2   = patrol\n"
@@ -1457,5 +1457,7 @@ gulags.val_watchtower.job = function(sj, gname, type, squad, groups)
         i = i + 1
     end
 
-    gulags.val_watchtower.ltx = ltx
+    gulags.val_watchtower.ltx = (gulags.val_watchtower.ltx or "")..ltx
 end
+
+
