@@ -61,17 +61,16 @@ function quick_save_rename()
 	if fs:exist("$game_saves$", save_name..".sav") == nil then return end
 
 	local f1 = fs:update_path("$game_saves$", save_name..".sav")
-	local f2, f3
 	if game_options.SaveRen then
 		local new_svname = string.format( "День %d. %02d-%02d. %s",
 			(amk.game_days()+1), level.get_time_hours(), level.get_time_minutes(),
 			game.translate_string(level.name()) )
 		new_svname = new_svname:clear()
-		f2 = fs:update_path("$game_saves$", new_svname..".sav")
+		local f2 = fs:update_path("$game_saves$", new_svname..".sav")
 		fs:file_copy(f1, f2)
 		if fs:exist("$game_saves$", save_name..".dds") then
 			f2 = fs:update_path("$game_saves$", save_name..".dds")
-			f3 = fs:update_path("$game_saves$", new_svname..".dds")
+			local f3 = fs:update_path("$game_saves$", new_svname..".dds")
 			fs:file_copy(f2, f3)
 		end
 	end
@@ -80,7 +79,7 @@ function quick_save_rename()
 	if user_old ~= user then
 		local re_name = user.."_quicksave"
 		re_name = re_name:clear()
-		f2 = fs:update_path("$game_saves$", re_name..".sav")
+		local f2 = fs:update_path("$game_saves$", re_name..".sav")
 		fs:file_rename(f1, f2, true)
 		get_console():execute( "load_last_save "..re_name )
 		if fs:exist("$game_saves$", save_name..".dds") then
@@ -111,9 +110,9 @@ function auto_save_rename(old_level)
 	end
 end
 
-function on_quicksave()
+function on_save()
 	if Actor:alive() then
-		start_small_timer( 300, this.show_game_saved, user_name().."_quicksave" )
+		xr_s.subscribe( "update", u3_utils.check_show_game_saved, { userobj = user_name().."_quicksave" } )
 		if tmr then remove_small_timer(tmr) end
 		tmr = start_small_timer( 700, u3_utils.quick_save_rename )
 	end
@@ -128,6 +127,12 @@ function load_quicksave()
 	end
 end
 
+function check_show_game_saved( delta, save_name )
+	if get_hud():GetCustomStatic("game_saved") ~= nil then
+		xr_s.unsubscribe("update", u3_utils.check_show_game_saved)
+		show_game_saved( save_name )
+	end
+end
 function show_game_saved( save_name )
 	local cs = get_hud():AddCustomStatic( "game_saved", true )
 	if cs then
