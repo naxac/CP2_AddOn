@@ -123,25 +123,37 @@ function ui_add_spot:on_ButtonSearchtreasures_clicked()
 	local show_empty = self.check_p:GetCheck()
 	local act_level = level.name()
 	local treasures = {}
-	local obj, obj_name, tmp, pid, p
+	local obj, obj_name, pid, p
 	local invbox_clsid = clsid.inventory_box
+	local get_string = game.translate_string
 	for i=1,65534 do
 		obj = AI:object(i)
-		if obj and obj.parent_id then
-			pid = obj.parent_id
-			p = AI:object(pid)
-			if p and pid~=0 and pid~=65535 and p:clsid() == invbox_clsid then
-				if on_level==false or object_level_name(p) == act_level then
-					if treasures[pid] == nil then treasures[pid] = {} end
-					tmp = treasures[pid]
-					obj_name = game.translate_string(get_inv_name(obj:section_name()))
-					if obj_name==nil then abort("add_tiem_spot: can't read inv_name from section [%s]", obj:section_name()) return end
-					if tmp[obj_name] then tmp[obj_name] = tmp[obj_name]+1
-					else tmp[obj_name] = 1 end
-				end
-			elseif show_empty and obj:clsid() == invbox_clsid then
+		if obj then
+			if obj:clsid() == invbox_clsid then
 				if on_level==false or object_level_name(obj) == act_level then
-					if treasures[obj.id] == nil then treasures[obj.id] = {} end
+					local tt = invbox_new.get_box(i)
+					if tt and #tt>0 then	-- is 'smart inventory box'
+						if treasures[i] == nil then treasures[i] = {} end
+						for j,v in ipairs(tt) do
+							local stor = se_storage.get_storage(v)
+							for jj,vv in ipairs(stor) do
+								obj_name = get_string( get_inv_name( vv.s ) )
+								table.add(treasures[i], obj_name)
+							end
+						end
+					elseif show_empty then
+						if treasures[i] == nil then treasures[i] = {} end
+					end
+				end
+			elseif obj.parent_id then
+				pid = obj.parent_id
+				p = AI:object(pid)
+				if p and pid~=0 and pid~=65535 and p:clsid() == invbox_clsid then
+					if on_level==false or object_level_name(p) == act_level then
+						if treasures[pid] == nil then treasures[pid] = {} end
+						obj_name = get_string( get_inv_name( obj:section_name() ) )
+						table.add(treasures[pid], obj_name)
+					end
 				end
 			end
 		end
@@ -165,7 +177,7 @@ function ui_add_spot:on_ButtonSearchtreasures_clicked()
 		news_manager.send_tip("Метки установлены, смотрите карту.")
 		self:OnQuit()
 	else
-		self.text:SetText("ТАЙНИКИ С СОДЕРЖИМЫМ НЕ НАЙДЕНЫ")
+		self.text:SetText("ТАЙНИКИ НЕ НАЙДЕНЫ")
 		self.text:SetTextColor(255,200,0,0)
 	end
 end
@@ -186,28 +198,32 @@ function ui_add_spot:find_items()
 	self.items_ids = {}
 	if text~=nil and text~="" then
 		text = string.lower(text)
-		local obj, obj_pid, ftext
+		local obj
 		local on_level = self.check_lvl:GetCheck()
 		local no_parent = self.check_p:GetCheck()
 		local act_lvl = level.name()
 		for i=1,65534 do
 			obj = AI:object(i)
 			if obj and obj.parent_id~=0 then
-				obj_pid = obj.parent_id
 				if on_level==false or object_level_name(obj) == act_lvl then
-					local hint = get_inv_name(obj:section_name())
-					if hint~=nil then
-						hint = game.translate_string(hint)
+					local hint = obj:section_name()
+					local found = false
+					if string.find(hint, text, 1, true) then
+						found = true
+					else
+						hint = game.translate_string( get_inv_name(hint) )
 						hint = string.gsub(hint, "[ёЁ]", "е")
 						if string.find(string.lower(hint), text, 1, true) then
-							if obj_pid~=65535 then
-								local p = AI:object(obj_pid)
-								hint = hint.."\\n".."%c[gray2]Владелец: "..p:name()
-							end
-							if (no_parent==true and obj_pid==65535) or no_parent==false then
-								self.items_ids[obj.id] = hint
-								res = true
-							end
+							found = true
+						end
+					end
+
+					if found then
+						if (obj.parent_id==65535 and no_parent) or not no_parent then
+							local p = AI:object(obj.parent_id)
+							hint = hint..(p and "\\n%c[gray2]Владелец: "..p:name() or "")
+							self.items_ids[i] = hint
+							res = true
 						end
 					end
 				end
