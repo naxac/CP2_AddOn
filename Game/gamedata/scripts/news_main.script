@@ -2734,10 +2734,24 @@ function on_offline_trade(npc, item)
 	end
 end
 
+local rspl_tmeout = -1
 function send_resupply(sobj)
 	local trader_name = reminder.get_npc_name(sobj)
-	local sms = "%c[gray]"..trader_name.."\\n%c[default]"..table.random(news_data.resupply_msgs)
-	news_manager.send_tip(sms, nil, nil, 12000)
+	local rnd_name = amk_names_lists.get_strings(true, "stalker")
+	local text = table.remove( news_data.resupply_msgs, math.random(#news_data.resupply_msgs) )
+	text = format_text_pairs( text, {rnd_npc = rnd_name} )
+	local sms = "%c[gray]"..trader_name.."\\n%c[default]"..text
+
+	local timeout = 5
+	local tg = time_global()
+	if tg < rspl_tmeout then
+		timeout = (rspl_tmeout - tg)/1000
+		rspl_tmeout = rspl_tmeout + 15000
+	else
+		rspl_tmeout = tg + 15000
+	end
+
+	news_manager.send_tip(sms, timeout, nil, 12000)
 end
 
 
