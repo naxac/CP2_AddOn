@@ -277,14 +277,14 @@ function WeatherManager:select_weather(force)
     -- self.dyn_weather = "thunder"
 
     self.cur_weather = self:current_weather()
-	if self:need_select_weather() then
+	if self:can_select_weather() then
 		if not string.find(self.cur_weather, "transition") then
 			if self.old_weather then
 				news_main.on_weather_change(self.old_weather, self.cur_weather)
 			end
 			self.old_weather = self.cur_weather
 		end
-		level.set_weather(self.cur_weather)
+		level.set_weather(self.cur_weather, true)
 	--	log("[WeatherManager:select_weather]: set new weather [%s]", self.cur_weather)
 	end
 
@@ -389,7 +389,7 @@ function WeatherManager:load(F)
     self:convert_savedgame()
 end
 
-function WeatherManager:need_select_weather()
+function WeatherManager:can_select_weather()
 	return (amk.load_variable("blowout",0) == 0)
 		and (inventory.on_belt("af_idol_monolita") == nil)
 end
@@ -402,7 +402,7 @@ function WeatherManager:update()
     -- погода не та, какой она должна быть, поэтому, если выброс не начался,
 	-- правильная погода должна быть возобновлена
     if level.get_weather() ~= self.cur_weather
-       and self:need_select_weather()
+       and self:can_select_weather()
     then
         --self:dbgmsg("restoring weather after blowout")
         update_flag = 1
