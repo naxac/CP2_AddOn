@@ -5218,8 +5218,20 @@ function show_must_go_on(data)
 	
 	-- спавн монстров/неписей
 	if cur_wave["enemy"] then
+		local obj
+		local cd = "[smart_terrains]\n".."none = true"
+		local is_monster, need_cd = false, false
 		for s,p in pairs(cur_wave["enemy"]) do
+			is_monster = IAmAMonster[ sys_ini:r_clsid(s, "class") ] ~= nil
+			need_cd = not sys_ini:line_exist(s, "custom_data")
 			for i=1,p do
+				if need_cd then
+					if is_monster then
+						se_monster.custom_data_on_spawn = cd
+					else
+						se_stalker.custom_data_on_spawn = cd
+					end
+				end
 				pos, lv = get_pos(cur_wave.dist, sector)
 				AI:create(s, pos, lv, Actor:game_vertex_id())
 				monster_cnt = monster_cnt+1
