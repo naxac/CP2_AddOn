@@ -1619,10 +1619,13 @@ end
 -- поэтому вынужденно проверяем по серверному объекту. Но ид параметром не передать, поэтому эта функция подходит только для парада Монолита. 
 -- если нужна аналогичная - делайте копию.
 -- параметры: [dist]
+local tm_obj = nil
 function parad_distance_to_tm_le(actor, npc, p)
-	if snp_parad.tm then							
-		local res = npc:position():distance_to_sqr(snp_parad.tm:position()) <= p[1]*p[1]
-		return res
+	if tm_obj == nil then
+		tm_obj = level_object_by_sid(story_ids.parad_shadow_monolith)
+	end
+	if tm_obj then
+		return npc:position():distance_to_sqr(tm_obj:position()) <= p[1]*p[1]
 	end
 	return false
 end

@@ -1,8 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Парад Монолита на Юпитере
 
-tm = nil
-local tm_id = nil
 local box_parad = nil
 
 -- начало парада
@@ -117,8 +115,7 @@ end
 
 -- Спавн неписей возле БТР и их логика
 function create_npc_before_btr(section,pos,lv,gv,point,row,col,side,timer_off)
-	local params = {}
-	params.custom_data = 
+	local cd = 
 		"[smart_terrains]\n"..
 		"none = true\n"..
 
@@ -174,50 +171,56 @@ function create_npc_before_btr(section,pos,lv,gv,point,row,col,side,timer_off)
 
 		"[combat_ignore]\n"..
 		"combat_ignore_cond = always\n"
-	se_stalker.custom_data_on_spawn = params.custom_data
+	se_stalker.custom_data_on_spawn = cd
 	local obj = AI:create(section,pos,lv,gv)
-	netpk:modify(obj,params,netpk.fState)
+	netpk:modify(obj,{custom_data = cd},netpk.fState)
 end
 
 -- логика вертолетов, которые высаживают БТР
 function vert_btr_logic(point)
+	local path_move = "parad_vert"..tostring(point).."_walk"
+	local path_look = "parad_vert"..tostring(point).."_look"
+	local path_move_down = "parad_vert_down"..tostring(point).."_walk"
+	local path_look_down = "parad_vert_down"..tostring(point).."_look"
+	local path_move_die = "parad_vert"..tostring(point).."_die"
+
 	return "[logic]\n"..
 		"active = heli_move@on\n"..
 
 		"[heli_move@on]\n"..
-		"path_move = parad_vert"..tostring(point).."_walk\n"..
-		"path_look = parad_vert"..tostring(point).."_look\n"..
+		"path_move = "..path_move.."\n"..
+		"path_look = "..path_look.."\n"..
 		"default_velocity = 200\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_info = {+snp_parad_slava_start} heli_move@quiet\n"..
 
 		"[heli_move@quiet]\n"..
-		"path_move = parad_vert"..tostring(point).."_walk\n"..
-		"path_look = parad_vert"..tostring(point).."_look\n"..
+		"path_move = "..path_move.."\n"..
+		"path_look = "..path_look.."\n"..
 		"engine_sound = false\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_info = {+snp_parad_slava_done} heli_move@wait\n"..
 
 		"[heli_move@wait]\n"..
-		"path_move = parad_vert"..tostring(point).."_walk\n"..
-		"path_look = parad_vert"..tostring(point).."_look\n"..
+		"path_move = "..path_move.."\n"..
+		"path_look = "..path_look.."\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_info = {+snp_parad_vert_down} heli_move@down\n"..
 
 		"[heli_move@down]\n"..
-		"path_move = parad_vert_down"..tostring(point).."_walk\n"..
-		"path_look = parad_vert_down"..tostring(point).."_look\n"..
-		"default_velocity = "..tostring(patrol("parad_vert"..tostring(point).."_walk"):point(0):distance_to(patrol("parad_vert_down"..tostring(point).."_walk"):point(0))/4).."\n"..
+		"path_move = "..path_move_down.."\n"..
+		"path_look = "..path_look_down.."\n"..
+		"default_velocity = "..tostring( patrol(path_move):point(0):distance_to(patrol(path_move_down):point(0))/4 ).."\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_info = {+snp_parad_vert_off} heli_move@off\n"..
 
 		"[heli_move@off]\n"..
-		"path_move = parad_vert"..tostring(point).."_die\n"..
-		"default_velocity = "..tostring(patrol("parad_vert_down"..tostring(point).."_walk"):point(0):distance_to(patrol("parad_vert"..tostring(point).."_die"):point(0))/4).."\n"..
+		"path_move = "..path_move_die.."\n"..
+		"default_velocity = "..tostring( patrol(path_move_down):point(0):distance_to(patrol(path_move_die):point(0))/4 ).."\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_signal = die | nil %=release%\n"
@@ -225,12 +228,18 @@ end
 
 -- логика фоновых вертолетов
 function vert_logic(point)
+	local path_move = "parad_vert"..tostring(point).."_walk"
+	local path_look = "parad_vert"..tostring(point).."_look"
+	local path_move_down = "parad_vert_down"..tostring(point).."_walk"
+	local path_look_down = "parad_vert_down"..tostring(point).."_look"
+	local path_move_die = "parad_vert"..tostring(point).."_die"
+
 	return "[logic]\n"..
 		"active = heli_move@on\n"..
 
 		"[heli_move@on]\n"..
-		"path_move = parad_vert"..tostring(point).."_walk\n"..
-		"path_look = parad_vert"..tostring(point).."_look\n"..
+		"path_move = "..path_move.."\n"..
+		"path_look = "..path_look.."\n"..
 		"default_velocity = 200\n"..
 		"engine_sound = false\n"..
 		"invulnerable = true\n"..
@@ -238,17 +247,17 @@ function vert_logic(point)
 		"on_info = {+snp_parad_vert_down} heli_move@down\n"..
 
 		"[heli_move@down]\n"..
-		"path_move = parad_vert_down"..tostring(point).."_walk\n"..
-		"path_look = parad_vert_down"..tostring(point).."_look\n"..
-		"default_velocity = "..tostring(patrol("parad_vert"..tostring(point).."_walk"):point(0):distance_to(patrol("parad_vert_down"..tostring(point).."_walk"):point(0))/4).."\n"..
+		"path_move = "..path_move_down.."\n"..
+		"path_look = "..path_look_down.."\n"..
+		"default_velocity = "..tostring( patrol(path_move):point(0):distance_to(patrol(path_move_down):point(0))/4 ).."\n"..
 		"engine_sound = false\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
 		"on_info = {+snp_parad_vert_off} heli_move@off\n"..
 
 		"[heli_move@off]\n"..
-		"path_move = parad_vert"..tostring(point).."_die\n"..
-		"default_velocity = "..tostring(patrol("parad_vert_down"..tostring(point).."_walk"):point(0):distance_to(patrol("parad_vert"..tostring(point).."_die"):point(0))/4).."\n"..
+		"path_move = "..path_move_die.."\n"..
+		"default_velocity = "..tostring( patrol(path_move_down):point(0):distance_to(patrol(path_move_die):point(0))/4 ).."\n"..
 		"engine_sound = false\n"..
 		"invulnerable = true\n"..
 		"combat_enemy = nil\n"..
@@ -292,8 +301,7 @@ end
 
 -- Спавн неписей на мосту и их логика
 function create_npc_row(section,pos,lv,gv,row,col,sector,timer_off)
-	local params = {}
-	params.custom_data = 
+	local cd = 
 		"[smart_terrains]\n"..
 		"none = true\n"..
 		"[logic]\n"..
@@ -402,9 +410,9 @@ function create_npc_row(section,pos,lv,gv,row,col,sector,timer_off)
 
 		"[combat_ignore]\n"..
 		"combat_ignore_cond = always\n"
-	se_stalker.custom_data_on_spawn = params.custom_data
+	se_stalker.custom_data_on_spawn = cd
 	local obj = AI:create(section,pos,lv,gv)
-	netpk:modify(obj,params,netpk.fState)
+	netpk:modify(obj,{custom_data = cd},netpk.fState)
 end
 
 -- логика вертолета, который высаживает БТР на мосту
@@ -484,8 +492,7 @@ end
 
 -- Тень Монолита на мосту, его спавн и логика
 function parad_tm()
-	local params = {}
-	params.custom_data = 
+	local cd = 
 		"[smart_terrains]\n"..
 		"none = true\n"..
 
@@ -585,11 +592,10 @@ function parad_tm()
 
 		"[combat_ignore]\n"..
 		"combat_ignore_cond = always\n"
-	se_stalker.custom_data_on_spawn = params.custom_data
+	se_stalker.custom_data_on_spawn = cd
 	local obj = AI:create("parad_tm",vector():set(173,23.962846755981,-291),1010007,3735)
-	tm_id = obj.id
-	start_real_timer("run2", 1, "snp_parad.get_parad_tm_obj()")
-	netpk:modify(obj,params,netpk.fState)
+	netpk:modify(obj,{custom_data = cd},netpk.fState)
+	set_story_id(obj, story_ids.parad_shadow_monolith)
 end
 
 -- Тень Монолита на мосту, логика вертолета
@@ -822,11 +828,6 @@ end
 -- Монолит нейтрал
 function monolit_neytral()
 	relation_registry.set_community_goodwill("monolith", Actor:id(), 1250)
-end
-
--- получение клиентского объекта Тени Монолита
-function get_parad_tm_obj()
-	tm = level.object_by_id(tm_id)
 end
 
 -- удаление метки с карты
