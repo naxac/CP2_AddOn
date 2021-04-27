@@ -101,7 +101,7 @@ function ui_add_spot:InitControls()
 	btn:SetTextColor(255,216,186,140)
 	back:AttachChild(btn)
 	self:Register(btn, "btn_treasures")
-	self:AddCallbackEx("btn_treasures", ui_events.BUTTON_CLICKED, self.on_ButtonSearchtreasures_clicked)
+	self:AddCallbackEx("btn_treasures", ui_events.BUTTON_CLICKED, self.on_ButtonSearchTreasures_clicked)
 end
 
 function ui_add_spot:on_ButtonDelete_clicked()
@@ -118,7 +118,7 @@ function ui_add_spot:on_ButtonDelete_clicked()
 	self.text:SetTextColor(255,0,200,0)
 end
 
-function ui_add_spot:on_ButtonSearchtreasures_clicked()
+function ui_add_spot:on_ButtonSearchTreasures_clicked()
 	local on_level = self.check_lvl:GetCheck()
 	local show_empty = self.check_p:GetCheck()
 	local act_level = level.name()
@@ -158,21 +158,25 @@ function ui_add_spot:on_ButtonSearchtreasures_clicked()
 			end
 		end
 	end
+
 	local hint
 	for id, tbl in pairs(treasures) do
 		hint = ""
+		local tmp = {}
 		for name, num in pairs(tbl) do
-			hint = hint..name.."("..num.."), "
+			table.insert(tmp, name.."("..num..")")
 		end
-		if #hint==0 then hint = "Пустой, " end
+		table.sort(tmp, function (s1, s2) return s1 < s2 end)
+		hint = table.concat(tmp, ", ")
+		if #hint==0 then hint = "Пустой" end
 		hint = "%c[255,150,245,25]Тайник: "..AI:object(id):name().."\\n%c[default]"..hint
-		hint = hint:sub(1,-3)
 		if level.map_has_object_spot(id, "red_location_1")~=0 then
 			level.map_change_spot_hint(id, "red_location_1", hint)
 		else
 			level.map_add_object_spot(id, "red_location_1", hint)
 		end
 	end
+
 	if hint~=nil then
 		news_manager.send_tip("Метки установлены, смотрите карту.")
 		self:OnQuit()
@@ -202,6 +206,7 @@ function ui_add_spot:find_items()
 		local on_level = self.check_lvl:GetCheck()
 		local no_parent = self.check_p:GetCheck()
 		local act_lvl = level.name()
+		local get_string = game.translate_string
 		for i=1,65534 do
 			obj = AI:object(i)
 			if obj and obj.parent_id~=0 then
@@ -209,22 +214,52 @@ function ui_add_spot:find_items()
 					local hint = obj:section_name()
 					local found = false
 					if string.find(hint, text, 1, true) then
-						found = true
+						found = ((not no_parent) or obj.parent_id==65535)
 					else
-						hint = game.translate_string( get_inv_name(hint) )
+						hint = get_string( get_inv_name(hint) )
 						hint = string.gsub(hint, "[ёЁ]", "е")
 						if string.find(string.lower(hint), text, 1, true) then
-							found = true
+							found = ((not no_parent) or obj.parent_id==65535)
+						end
+					end
+
+					if (not found) and (not no_parent)
+						and obj:clsid() == clsid.inventory_box
+					then
+						local tt = invbox_new.get_box(i)
+						if tt and #tt>0 then
+							for j,v in ipairs(tt) do
+								local stor = se_storage.get_storage(v)
+								for jj,vv in ipairs(stor) do
+									hint = vv.s
+									if string.find(hint, text, 1, true) then
+										found = true
+										break
+									else
+										hint = get_string( get_inv_name( hint ) )
+										hint = string.gsub(hint, "[ёЁ]", "е")
+										if string.find(string.lower(hint), text, 1, true) then
+											found = true
+											break
+										end
+									end
+								end
+								if found then
+									hint = hint.."\\n%c[gray2]Владелец: "..obj:name()
+									self.items_ids[i] = hint
+									res = true
+									found = false
+									break
+								end
+							end
 						end
 					end
 
 					if found then
-						if (obj.parent_id==65535 and no_parent) or not no_parent then
-							local p = AI:object(obj.parent_id)
-							hint = hint..(p and "\\n%c[gray2]Владелец: "..p:name() or "")
-							self.items_ids[i] = hint
-							res = true
-						end
+						local p = AI:object(obj.parent_id)
+						hint = hint..(p and "\\n%c[gray2]Владелец: "..p:name() or "")
+						self.items_ids[i] = hint
+						res = true
 					end
 				end
 			end
@@ -235,15 +270,20 @@ end
 
 function ui_add_spot:on_ButtonAddSpot_clicked()
 	local added = false
+	local obj
 	for id, hint in pairs(self.items_ids) do
-		local obj = AI:object(id)
-		if obj.parent_id~=65535 then
-			id = obj.parent_id
+		obj = AI:object(id)
+		if obj then
+			if obj.parent_id~=65535 then
+				id = obj.parent_id
+			end
+			if level.map_has_object_spot(id, "red_location_1")==0 then
+				level.map_add_object_spot(id, "red_location_1", hint)
+			else
+				level.map_change_spot_hint(id, "red_location_1", hint)
+			end
+			added = true
 		end
-		if level.map_has_object_spot(id, "red_location_1")==0 then
-			level.map_add_object_spot(id, "red_location_1", hint)
-		end
-		added = true
 	end
 	
 	if added == false then
