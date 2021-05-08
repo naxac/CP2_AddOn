@@ -5,8 +5,8 @@ local move_delta = 3    -- сколько пикселей прибавляем/
 local min_zoom = nil	-- минимальный масштаб
 local max_zoom = 5		-- максимальный масштаб
 local zoom_shift = 0.4	-- изменение масштаба за один клик
-local zoom_shift_w = zoom_shift/2  -- изменение масштаба колесиком мыши
-local spot_size = 12        -- размер меток на аномалиях
+local zoom_shift_w = zoom_shift/4  -- изменение масштаба колесиком мыши
+local spot_size = 15       -- размер меток на аномалиях
 
 local map_st = {}           -- текущее положение карты
 local scale = 1             -- текущий масштаб
@@ -76,6 +76,8 @@ function UIPdaTeleport:__init(in_zone, item) super()
 	
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
+
+	bind_actor.hide_weapon("scan")
 end
 
 function UIPdaTeleport:__finalize()
@@ -169,19 +171,19 @@ end
 function UIPdaTeleport:ZoomAdd()
 	if scale<max_zoom then
 		scale = math.min(scale+zoom_shift, max_zoom)
-		self:ResizeMap()
+		self:ResizeMap(false)
 	end
 end
 function UIPdaTeleport:ZoomSub()
 	if scale>min_zoom then
 		scale = math.max(scale-zoom_shift, min_zoom)
-		self:ResizeMap()
+		self:ResizeMap(false)
 	end
 end
 function UIPdaTeleport:ZoomDefault()
 	if scale~=min_zoom then
 		scale = min_zoom
-		self:ResizeMap()
+		self:ResizeMap(false)
 	end
 end
 
@@ -214,6 +216,9 @@ function UIPdaTeleport:onMapFocusLost( map )
 end
 
 function UIPdaTeleport:onAnomalyClicked( lvl, id )
+	if self.started then return end
+	self.started = true
+
 	local t = spatial_subway.levels[ lvl ][ id ]
 		or abort( "%s: zone %s not found on level %s", script_name(), id, lvl )
 
@@ -221,8 +226,6 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 	local need_charge = dist / max_dist
 	local cond_scaner = self.object:condition()
 	if need_charge <= cond_scaner then
-		self:on_quit()
-
 		local new_cond = cond_scaner - need_charge
 		self.object:set_condition( new_cond )
 		netpk:modify( AI:object( self.object:id() ), { condition = new_cond }, netpk.fState )
@@ -234,27 +237,42 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 		snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 		start_small_timer(400, spatial_subway.go_to, lvl, id)
 		start_small_timer(700, bind_subway.block_sms, false )
+
+		self:on_quit()
 	else
 		self.message_box:Init("select_map")
-		self.message_box:SetText("Недостаточно заряда для перемещения в данную точку: дозарядите сканер")
+		self.message_box:SetText("subway_scaner_low_charge_move")
 		self:GetHolder():start_stop_menu(self.message_box, true)
 	end
 end
 
-function UIPdaTeleport:ResizeMap()
+function UIPdaTeleport:ResizeMap(bCheckZoomIn)
 	local rect = self:GetFrect("global_map", "bound_rect")
 	
 	local wnd = self.global_map
-	local oldW = wnd:GetWidth()
-	local oldH = wnd:GetHeight()
+	local wnd_size_old = wnd:GetWndSize()
+	local wnd_pos = wnd:GetWndPos()
 	wnd:SetWndRect(rect:mul(scale))
-	local newW = wnd:GetWidth()
-	local newH = wnd:GetHeight()
+	local wnd_size = wnd:GetWndSize()
+
+	local mb_size = self.map_back:GetWndSize()
+	map_st.mxr = mb_size.x - wnd_size.x
+	map_st.mxd = mb_size.y - wnd_size.y
+	mb_size:div(2)
+
+	local cur_pos = bCheckZoomIn
+		and self:GetCursorPos():sub( self.map_back:GetWndPos() )
+		or mb_size
+
+	local cur_pos_wnd = wnd_pos:sub( cur_pos )
+	if bCheckZoomIn then
+		cur_pos = cur_pos:add( mb_size:sub(cur_pos):div(8) )
+	end
+	wnd_size:div( wnd_size_old:get() )
+	local new_wnd_pos = cur_pos_wnd:mul( wnd_size:get() ):add( cur_pos )
 	
-	map_st.mxr = self.map_back:GetWidth() - newW
-	map_st.mxd = self.map_back:GetHeight() - newH
-	map_st.x = math.clamp(map_st.x*newW/oldW, map_st.mxr, 0)
-	map_st.y = math.clamp(map_st.y*newH/oldH, map_st.mxd, 0)
+	map_st.x = math.clamp(new_wnd_pos.x, map_st.mxr, 0)
+	map_st.y = math.clamp(new_wnd_pos.y, map_st.mxd, 0)
 	
 	wnd:SetWndPos(map_st.x, map_st.y)
 	
@@ -349,16 +367,16 @@ function UIPdaTeleport:Update()
 end
 
 function UIPdaTeleport:OnMouseWheel( mode )
-	local f = false
+	local f = nil
 	if ( not mode ) and scale < max_zoom then
 		scale = math.min( scale + zoom_shift_w, max_zoom )
 		f = true
 	elseif mode and scale > min_zoom then
 		scale = math.max( scale - zoom_shift_w, min_zoom )
-		f = true
+		f = false
 	end
-	if f then
-		self:ResizeMap()
+	if f~=nil then
+		self:ResizeMap(f)
 	end
 end
 
@@ -430,6 +448,7 @@ function UIPdaTeleport:on_quit()
 	amk.save_table( "SS", { scale, map_st.x, map_st.y } )
 
 	xr_s.unsubscribe( "mouse_wheel", self.OnMouseWheel )
+	bind_actor.restore_weapon("scan")
 
 	self.object = nil
 	self.ini = nil
