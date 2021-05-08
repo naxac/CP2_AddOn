@@ -2477,40 +2477,29 @@ end
 
 --спавним Александрыча
 function alexandrych_spawn()
-	AI:create("stalker_alexandrych",vector():set(-155.71984863281,0.81847321987152,87.442039489746),67186,3379)
+	local obj = AI:create("stalker_alexandrych",vector():set(-155.71984863281,0.81847321987152,87.442039489746),67186,3379)
+	set_story_id(obj, story_ids.alexandrych_marsh)
 end
 
 --ставим метку на Александрыча
 function set_metka_alexandrych()
-local obj
-for a=1,65534 do
-  obj = AI:object(a)
-  if obj then
-   if obj:section_name()=="stalker_alexandrych" then
-    amk.add_spot_on_map(obj.id,"crlc_big","Александрыч")
-    return
-   end
-  end
- end
+	local obj = AI:story_object(story_ids.alexandrych_marsh)
+	if obj then
+		level.map_add_object_spot_ser(obj.id, "crlc_big", "alexandrych_name")
+	end
 end
 
 --удаляем метку на Александрыча
 function remove_metka_alexandrych()
-local obj
-for a=1,65534 do
-  obj = AI:object(a)
-  if obj then
-   if obj:section_name()=="stalker_alexandrych" then
-    level.map_remove_object_spot(obj.id,"crlc_big")
-    break
-   end
-  end
-end
+	local obj = AI:story_object(story_ids.alexandrych_marsh)
+	if obj then
+		level.map_remove_object_spot(obj.id,"crlc_big")
+	end
 end
 
 --проверка ящиков для Александрыча 
 function box_alexandrych_have()
-return inventory.search("box_alexandrych",3) ~= false 
+	return inventory.search("box_alexandrych",3) ~= false 
 end
 
 --отдадим ящики Александрычy и он друг
@@ -2521,11 +2510,11 @@ end
 
 --' получим награду от Александрыча - картечь и бабки
 function alexandrych_otvalil_babulek(t1,t2)
-local npc=t1
-if npc:id()==Actor:id() then
-npc=t2
-end
-dialogs.relocate_money(npc,8000,"in")
+	local npc=t1
+	if npc:id()==Actor:id() then
+		npc=t2
+	end
+	dialogs.relocate_money(npc,8000,"in")
 end
 
 --спавним тайник Александрыча на Юпитере
