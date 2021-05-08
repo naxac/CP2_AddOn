@@ -7,7 +7,7 @@ local CheatFoto = game_options.FotoCheat
 local territory_from_places = {
 	[1] = { -- Затон гаусс-установка
 		-- точка, которую фотаем: позиция, угол захвата в градусах (точность фото), использовать ли увеличение, территория, поршень о наличии задания, смс об успешном фото
-		position=vector():set(-421.85653686523,26.832511901855,-382.17221069336), angle=3.0, scope=false, loc="zaton", danger=false, has_info="volna_foto_start", sms="Снимок установки с этого ракурса получен.",
+		position=vector():set(-421.85653686523,26.832511901855,-382.17221069336), angle=3.0, scope=false, loc="zaton", danger=false, has_info="volna_foto_start", sms="make_volna_foto_sms",
 		places = {
 			-- места, с которых нужно сфотать точку: позиция, радиус зоны для удачного фото, какой выдать поршень.
 			{position=vector():set(-427.55120849609,25.158079147339,-386.2109375), radius=1.0, info="volna_foto_gauss1"},
@@ -17,14 +17,14 @@ local territory_from_places = {
 		}
 	},
 	[2] = { -- Х-18 эмбрион
-		position=vector():set(25.546020889282,-9.0142399215698,-27.526565170288), angle=3.0, scope=true, loc="l04u_labx18", danger=false, has_info="bar_dolg_petrenko_electra_flash_start", sms="Снимок эмбриона с этого ракурса получен.",
+		position=vector():set(25.546020889282,-9.0142399215698,-27.526565170288), angle=3.0, scope=true, loc="l04u_labx18", danger=false, has_info="bar_dolg_petrenko_electra_flash_start", sms="make_embrion_foto_sms",
 		places = {
 			{position=vector():set(22.200523376465,-9.6393566131592,-26.628593444824), radius=0.5, info="petrenko_foto_embrion1"},
 			{position=vector():set(13.896068572998,-8.6110229492188,-17.953956604004), radius=0.5, info="petrenko_foto_embrion2"}
 		}
 	},
 	[3] = { -- ЧАЭС2 Фото Стрелка
-		position=vector():set(106.22660064697,63.244293212891,126.69090270996), angle=3.0, scope=false, loc="l12_stancia_2", danger=false, has_info="foto_strelok_start", sms="Фотография Саркофага получена.",
+		position=vector():set(106.22660064697,63.244293212891,126.69090270996), angle=3.0, scope=false, loc="l12_stancia_2", danger=false, has_info="foto_strelok_start", sms="make_sarkofag_foto_sms",
 		places = {
 			{position=vector():set(-26.665603637695,0.29913738369942,201.48274230957), radius=8.0, info="foto_strelok_done"}
 		}
@@ -250,7 +250,7 @@ function foto_binder:update(delta)
 
 			if db.debug then
 				-- если это сообщение на тесте перестало приходить - завис биндер фотика, смотри лог.
-				news_manager.send_tip("Сделано фото.", nil, nil, 10000)
+				news_manager.send_tip("make_foto_sms", nil, nil, 10000)
 			end
 			-- вызываем поочередно проверки. останавливаем при первой удачной
 			if self:check_creatures() or self:check_anomaly() or self:check_territory_from_places() then
@@ -307,8 +307,8 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 4, 5.0, true, nil, true) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip("%c[gray2]$actor:\\n%c[red_sms]Захар, я подкрался к очередному монстру и успешно его сфотографировал.", nil, nil, 15000)
-				news_manager.send_tip("%c[gray2]ЗАХАР:\\n%c[red_sms]Отлично. Неси фото и ищи следующего.", 15, nil, 15000)
+				news_manager.send_tip("silent_hunt_sms", nil, nil, 15000)
+				news_manager.send_tip("silent_hunt_answer_sms", 15, nil, 15000)
 				Actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
 				return true
 				
@@ -319,7 +319,7 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip("Уникальный монстр сфотографирован.", nil, nil, 10000)
+				news_manager.send_tip("make_foto_monster_uniq_sms", nil, nil, 10000)
 				Actor:give_info_portion(foto_unique_monster[section].info)
 				return true
 
@@ -329,7 +329,7 @@ function foto_binder:check_creatures()
 				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
 			then
 				-- удачный снимок и такого еще не было
-				news_manager.send_tip("Монстр сфотографирован.", nil, nil, 10000)
+				news_manager.send_tip("make_foto_monster_sms", nil, nil, 10000)
 				Actor:give_info_portion(foto_ohota_monsters[section])
 				return true
 			end
@@ -350,7 +350,7 @@ function foto_binder:check_anomaly()
 			for _, anom in ipairs(anoms) do 	-- внутри это: {id=id,name=obj:name(),pos=o.pos,radius=o.radius}
 				if string.find(anom.name, anom_sect) and ( CheatFoto or self:obj_in_shot(anom.pos, 5, 10, 3.5, false, nil, false) ) then
 					-- удачный снимок
-					news_manager.send_tip("Аномалия сфотографирована.", nil, nil, 10000)
+					news_manager.send_tip("make_foto_anomaly_sms", nil, nil, 10000)
 					Actor:give_info_portion(info)
 					return true
 				end

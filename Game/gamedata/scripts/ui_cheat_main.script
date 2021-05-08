@@ -181,13 +181,16 @@ function show_restrictors()
 		local obj, p
 		for i=1,65534 do
 			-- показываем только заспавненные скриптом рестрикторы
-			obj = level.object_by_id(i)
-			if obj and obj:clsid() == clsid.script_restr then
-				if obj:name() == obj:section()..i then
+			obj = AI:object(i)
+			if obj and obj:clsid() == clsid.script_restr and obj.online then
+				if obj:name() == obj:section_name()..i then
 					p = particles_object("ghoul\\anomal-04-blue-field")
-					p:play_at_pos(obj:position())
-					table.insert(particles, {particle=p,pos=obj:position(),id=obj:id()})
-					level.map_add_object_spot(obj:id(), "red_location_1", obj:name())
+					p:play_at_pos(obj.position)
+					table.insert(particles, {particle=p,pos=obj.position,id=i})
+					local hint = obj:name()
+					local pk = netpk:get(obj)
+					hint = hint.."\\n--- LOGIC ---:\\n"..pk.custom_data
+					level.map_add_object_spot(i, "red_location_1", hint)
 				end
 			end
 		end

@@ -831,8 +831,8 @@ end
 
 -- Вокруг монстры! Что же делать..
 function on_monsters_found(victim, vdata)
-	-- local rsn = "on_monsters_found ["..victim:name().."] "
-	-- amk.oau_reason=rsn.."begin"
+	local rsn = "on_monsters_found ["..victim:name().."] "
+	amk.oau_reason=rsn.."begin"
 	if (victim == nil or vdata == nil) then return end
 	if (amk.is_debug == true) then
 		local lname = object_level_name(victim)
@@ -850,7 +850,7 @@ function on_monsters_found(victim, vdata)
 	local firepower = get_weapon_firepower(wpn)
 	local player = {player = victim, weapon = wpn, rank = rank, health = health, firepower = firepower, flags = get_flags(victim.id)}
 	table.insert(team_A, player)
-	-- amk.oau_reason=rsn.."chp1"
+	amk.oau_reason=rsn.."chp1"
 	if (vdata.friends and #vdata.friends > 0) then
 		for i=1, #vdata.friends do
 			v_obj = vdata.friends[i]
@@ -865,37 +865,37 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
-	-- amk.oau_reason=rsn.."chp2"
+	amk.oau_reason=rsn.."chp2"
 	local params
 	for i=1, #vdata.monsters do
-	-- amk.oau_reason=rsn.."chp2.1"
+	amk.oau_reason=rsn.."chp2.1"
 		v_obj = vdata.monsters[i]
 		obj = AI:object(v_obj.id)
-	-- amk.oau_reason=rsn.."chp2.2"
+	amk.oau_reason=rsn.."chp2.2"
 		if (obj and obj:name() == v_obj.name) then
-	-- amk.oau_reason=rsn.."chp2.3 "..v_obj.name
+	amk.oau_reason=rsn.."chp2.3 "..v_obj.name
 			params = get_monster_params(obj)
-	-- amk.oau_reason=rsn.."chp2.4"
+	amk.oau_reason=rsn.."chp2.4"
 			if (params) then
-	-- amk.oau_reason=rsn.."chp2.5"
+	amk.oau_reason=rsn.."chp2.5"
 				rank = obj:rank()
-	-- amk.oau_reason=rsn.."chp2.6"
+	amk.oau_reason=rsn.."chp2.6"
 				health = obj:health()
-	-- amk.oau_reason=rsn.."chp2.7"
+	amk.oau_reason=rsn.."chp2.7"
 				firepower = params.attack * base_fp
-	-- amk.oau_reason=rsn.."chp2.8"
+	amk.oau_reason=rsn.."chp2.8"
 				player = {player = obj, speed = params.speed, attack_dist = params.dist, immunity = params.immunity, rank = rank, health = health, firepower = firepower, flags = get_flags(obj.id) }
-	-- amk.oau_reason=rsn.."chp2.9"
+	amk.oau_reason=rsn.."chp2.9"
 				table.insert(team_B, player)
-	-- amk.oau_reason=rsn.."chp2.10"
+	amk.oau_reason=rsn.."chp2.10"
 			else
-	-- amk.oau_reason=rsn.."chp2.11"
+	amk.oau_reason=rsn.."chp2.11"
 				-- amk.mylog("get_monster_params returns nil for "..obj:name())
-	-- amk.oau_reason=rsn.."chp2.12"
+	amk.oau_reason=rsn.."chp2.12"
 		end
 	end
 	end
-	-- amk.oau_reason=rsn.."chp3"
+	amk.oau_reason=rsn.."chp3"
 	local distances = {}
 	for a=1, #team_A do
 		local from = team_A[a].player
@@ -913,7 +913,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end
 	end
-	-- amk.oau_reason=rsn.."chp4"
+	amk.oau_reason=rsn.."chp4"
 	-- Берем тех, у кого самый высокий rank и мин. distance
 	table_sort(team_A, function(a,b) return a.rank > b.rank end)
 	table_sort(team_B, function(a,b) return a.rank > b.rank end)
@@ -922,7 +922,7 @@ function on_monsters_found(victim, vdata)
 	local size_B = #team_B
 	local died_A = 0
 	local died_B = 0
-	-- amk.oau_reason=rsn.."chp5"
+	amk.oau_reason=rsn.."chp5"
 	for i=1, max_rounds do
 		if (#team_A >0 and #team_B > 0) then
 			local index = #team_A
@@ -933,11 +933,11 @@ function on_monsters_found(victim, vdata)
 			local distance_hit_chance
 			local hit_chance
 			if (#team_B > index) then index = #team_B end
-	-- amk.oau_reason=rsn.."chp5.1 : "..i
+	amk.oau_reason=rsn.."chp5.1 : "..i
 			for j = 1, index do
 				attacker = team_A[j]
 				defender = team_B[math_random(#team_B)]
-	-- amk.oau_reason=rsn.."chp5.2 : "..i..":"..j
+	amk.oau_reason=rsn.."chp5.2 : "..i..":"..j
 				if (attacker and defender and attacker.player and defender.player and attacker.health>0 and defender.health>0 and distances[attacker.player.id][defender.player.id]) then
 					-- amk.mylog(attacker.player:name().." [team_A] нападает на "..defender.player:name().." [team_B] ("..defender.health..")")
 					attack_info = distances[attacker.player.id][defender.player.id]
@@ -949,7 +949,7 @@ function on_monsters_found(victim, vdata)
 					hit_chance = distance_hit_chance + rank_hit_chance
 					if ((math_random() * 100) < hit_chance) then
 						-- Попал таки, гад. Посмотрим, как сильно.
-	-- amk.oau_reason=rsn.."chp5.3 : "..i..":"..j
+	amk.oau_reason=rsn.."chp5.3 : "..i..":"..j
 						if ( math_floor(attack_info.fp * defender.immunity) >= base_fp) then
 							-- Все, убил.
 							defender.health = 0
@@ -972,27 +972,22 @@ function on_monsters_found(victim, vdata)
 										attacker.player:set_rank(attacker.player:rank() + math_floor(rate_kill_base * coeff))
 									end
 								end
-  -- amk.oau_reason=rsn.."chp5.4.0"
+  amk.oau_reason=rsn.."chp5.4.0"
 								-- amk.mylog("on_offline_death - "..defender.player:name()..", "..attacker.player:name()..", "..attacker.weapon:name())
 								news_main.on_offline_death(defender.player, attacker.player, attacker.weapon)
 								-- Заберем вещички с трупа
-  -- amk.oau_reason=rsn.."chp5.4 : "..i..":"..j
-								local itA, v_itA
-								local l_objA
+  amk.oau_reason=rsn.."chp5.4 : "..i..":"..j
 								if (items[defender.player.id] and #items[defender.player.id] > 0) then
+									local itA, v_itA
+									local l_objA
 									-- amk.mylog("В трупе "..defender.player:name().." "..#items[defender.player.id].." вещичек.")
+									amk.oau_reason=rsn.."chp5.4 : pick_items"
 									for a=1,#items[defender.player.id] do
 										v_itA = items[defender.player.id][a]
 										if (v_itA) then
 											itA = AI:object(v_itA.id)
 											if (itA and itA:name()==v_itA.name and itA.parent_id == defender.player.id) then
-												l_objA = pick_item(attacker.player, itA)
-											else
-												if(itA) then
-													local mm = itA.parent_id
-													if mm == nil then mm = "nil" end
-													-- amk.mylog("В трупе "..defender.player:name().." странная вещичка - "..itA:name().." parent_id="..mm)
-												end											
+												l_objA = pick_item(attacker.player, itA)									
 											end			
 										end
 									end
@@ -1000,12 +995,9 @@ function on_monsters_found(victim, vdata)
 								process_trade(attacker.player)
 							end
 						end
-						--amk.mylog(attacker.player:name().." [team_A] попал в "..defender.player:name().." [team_B] ("..defender.health..")")
-					else
-						--amk.mylog(attacker.player:name().." [team_A] промазал в "..defender.player:name().." [team_B] ("..defender.health..")")
 					end
 				end
-  -- amk.oau_reason=rsn.."chp5.5 : "..i
+  amk.oau_reason=rsn.."chp5.5 : "..i..":"..j
 				-- team_B - защищается
 				if (team_B[j] ~= nil) then
 					attacker = team_B[j]
@@ -1035,7 +1027,9 @@ function on_monsters_found(victim, vdata)
 										if (defender.rank < attacker.rank) then coeff = 0.5 end
 										if (defender.rank > attacker.rank) then coeff = 2 end
 										-- amk.mylog("on_offline_death - "..defender.player:name()..", "..attacker.player:name()..", nil")
+  amk.oau_reason=rsn.."chp5.5.1 : "..i..":"..j
 										news_main.on_offline_death(defender.player, attacker.player, nil)
+  amk.oau_reason=rsn.."chp5.5.2 : "..i..":"..j
 										-- Забитрать вещички с трупа не будем. Хотя, может некоторые клептоманы...
 										-- А вот труп грохнуть... Надо подумать :)
 									end
@@ -1054,7 +1048,7 @@ function on_monsters_found(victim, vdata)
 			-- Теперь и событие можно сформировать для новостей
 			break
 		end
- -- amk.oau_reason=rsn.."chp5.6 : "..i
+ amk.oau_reason=rsn.."chp5.6 : "..i
 		-- Почистим таблицы от трупов
 		for kk, vv in pairs(team_A) do
 			if (vv.health <=0) then
@@ -1069,7 +1063,7 @@ function on_monsters_found(victim, vdata)
 				table_remove(team_A, kk)
 			end
 		end
- -- amk.oau_reason=rsn.."chp5.7 : "..i
+ amk.oau_reason=rsn.."chp5.7 : "..i
 		for kk, vv in pairs(team_B) do
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды B погиб. "..vv.player:name())
@@ -1084,7 +1078,7 @@ function on_monsters_found(victim, vdata)
 			end
 		end		
 	end	
-  -- amk.oau_reason=rsn.."end"
+  amk.oau_reason=rsn.."end"
 	-- amk.mylog("Бой с монстрами закончен. Команда А - было "..size_A.." осталось "..size_A-died_A..". Команда Б - было "..size_B.." осталось "..size_B-died_B..".")
 end
 
@@ -1467,12 +1461,15 @@ end
 ]]
 function process_trade(npc)
 	-- Имеет смысл проверять на наличие trade в секции [logic]...
+	amk.oau_reason="on offline_alife: process_trade chp1"
 	if npc and IAmAStalker[npc:clsid()] and npc:alive()
 		and npc.m_story_id and npc.m_story_id == 4294967296
 		and items[npc.id] and #(items[npc.id])>0
 		and not protected_items.is_no_offline_alife_npc(npc)
 	then
-	--	log1("# process_trade: "..npc:name())
+		local rsn = "on offline_alife: process_trade "..npc:name()
+	--	log("# [amk_offline_alife.process_trade] %s", npc:name())
+		amk.oau_reason=rsn.." chp2"
 		local item_list = {}
 		local sell_list = {}
 		local m_comm = npc:community()
@@ -1485,6 +1482,7 @@ function process_trade(npc)
 			return
 		end
 			
+		amk.oau_reason=rsn.." chp3"
 		--Фильтруем квестовые items - no_sell_table
 		local nid = npc.id
 		local npc_items = items[nid]
@@ -1505,6 +1503,7 @@ function process_trade(npc)
 				table.insert(t_remove, ok)
 			end
 		end
+		amk.oau_reason=rsn.." chp4"
 		if #t_remove>0 then
 		--	table.print(t_remove)
 			for i = #t_remove, 1, -1 do
@@ -1513,6 +1512,7 @@ function process_trade(npc)
 		end
 	--	log1("item_list")
 	--	table.print(item_list)
+		amk.oau_reason=rsn.." chp5"
 		if #item_list > 0 then
 			table_sort(item_list, function(a,b) return get_item_cost(a) > get_item_cost(b) end)		
 			-- Выберем, что за оружие оставит себе NPC.
@@ -1534,6 +1534,7 @@ function process_trade(npc)
 			local cnt_addons = 0
 			local cnt_mparts = 0
 			
+			amk.oau_reason=rsn.." chp6"
 			local weapons = {}
 			local ammoss = {}
 			for k,v in ipairs(item_list) do			
@@ -1651,6 +1652,7 @@ function process_trade(npc)
 			end
 		--	log("~ amk_offline_alife.process_trade '%s'", npc:name())
 
+			amk.oau_reason=rsn.." chp6.1"
 		--	log("\nweapons:")
 		--	table.print(weapons)
 			local modes = rx_wmgr.read_wm_modes(npc:community(),ranks.get_obj_rank_name(npc),npc:section_name())
@@ -1680,6 +1682,7 @@ function process_trade(npc)
 					table.insert(weapons_types[params.typ],{obj = w.obj,ammo = w.ammo,prm = prm})
 				end
 			end
+			amk.oau_reason=rsn.." chp6.2"
 		--	log("\ncheck weapon types:")
 		--	table.print(weapons_types)
 			-- Так, теперь у нас отсортированны все пушки НПС. Найдем ту, для которой есть патроны...
@@ -1724,6 +1727,7 @@ function process_trade(npc)
 			-- Так, с оружием закончили...
 			-- Все, что осталось - надо продать.
 			-- 1 самое дорогое можно попробовать через новости...
+			amk.oau_reason=rsn.." chp7"
 			item_list = nil
 			local money = 0
 		--	log1("sell_list:")
@@ -1738,11 +1742,13 @@ function process_trade(npc)
 				if zz and b_stalker == true and (get_item_cost(zz) >= sell_limit) then
 					-- Продадим через новости.
 				--	log("~ news_main.on_offline_trade: %s -> %s", npc:name(), zz:name())
+					amk.oau_reason=rsn.." chp7.1"
 					news_main.on_offline_trade(npc, zz)
 					table_remove(sell_list, 1)
 				end
 			end
-			for kk,vv in pairs(sell_list) do
+			amk.oau_reason=rsn.." chp7"
+			for kk,vv in ipairs(sell_list) do
 				local cost = get_item_cost(vv)
 				if (cost > 0) then
 					local coeff = math_random(30,50) / 100
@@ -1760,8 +1766,9 @@ function process_trade(npc)
 					end
 				--	log("* sell [%s]", vv:name())
 					AI:release(vv, true)
-				end				
+				end
 			end
+			amk.oau_reason=rsn.." chp8"
 			if (money > 0) then
 				local tbl = netpk:get( npc, netpk.fState )
 				tbl.money = tbl.money + money

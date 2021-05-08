@@ -1,6 +1,63 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 89
+local current_fix = 93
 
+function fix_93()
+	local obj = snp.object_by_section_offline("stalker_alexandrych")
+	if obj then
+		netpk:modify(obj, {visual_name = "actors\\neytral\\alex_stalker"}, netpk.fConvert)
+		set_story_id(obj, story_ids.alexandrych_marsh)
+	end
+end
+function fix_92()
+	if Actor:has_info("spatial_subway_start") then
+		Actor:disable_info_portion("spatial_subway_start")
+		AI:create("subway_scaner_doc3", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
+	else
+		local obj
+		for i = 1, 65534 do
+			obj = AI:object(i)
+			if obj and obj:section_name() == "device_scaner" then
+				local parent = AI:object(obj.parent_id)
+				if parent and parent:clsid() == clsid.inventory_box
+					and parent.m_level_vertex_id == 1427937
+					and parent.m_game_vertex_id == 3745
+				then
+					AI:create("subway_scaner_doc3", parent.position, parent.m_level_vertex_id, parent.m_game_vertex_id, parent.id)
+					break
+				end
+			end
+		end
+	end
+	mil_tasks.add_watertower_sid()
+end
+function fix_91()
+	-- Надо удалить лишний рестриктор по теням,
+	-- который появляется после взятия рюкзака Шадовмена в Красном Лесу
+	local obj
+	local tmp = {}
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and obj:clsid() == clsid.script_restr
+			and obj.m_game_vertex_id == 3630
+			and obj.m_level_vertex_id == 283236
+			and obj.position:distance_to( vector():set(-64.039001464844,2.2065124511719,73.642807006836) ) < 0.5
+		then
+			table.insert(tmp, i)
+		end
+	end
+	if #tmp > 0 then
+		log("[naxac.fix_91] : %s restrictions found", #tmp)
+		while #tmp > 1 do
+			del_obj_by_id( table.remove(tmp) )
+		end
+		if #tmp > 0
+			and ( Actor:dont_has_info("snp_wolffrend3_done")
+			or Actor:has_info("snp_shadows_start") )
+		then
+			del_obj_by_id( tmp[1] )
+		end
+	end
+end
 function fix_90()
 	local obj = AI:object("dark_no_gravity_vuxod")
 	if obj then
@@ -1294,10 +1351,7 @@ function fix_25()
 
 	if has_alife_info("kostya_pripyat_taynik_done") then
 		Actor:give_info_portion("kostya_pripyat_kamp")
-		news_manager.send_tip(
-			"%c[gray2]КОСТЯ:\\n%c[red_sms]$actor, привет! Если буду нужен - ищи меня в Центральной Припяти. Надоело мне на Складах, скучно...",
-			7, "kostya", 10000
-		)
+		news_manager.send_tip("naxac_fix_kostya_sms", 7, "kostya", 10000)
 	end
 end
 function fix_24()
@@ -2000,6 +2054,7 @@ function treasure_ss_2()
 
 	AI:create( "zamok", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
 	AI:create( "device_scaner", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
+	AI:create( "subway_scaner_doc3", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id )
 end
 function ss_teleports()
 	AI:create( "ss_tele_1", vector():set(-427.43768310547,35.865772247314,-323.46566772461),137286,3664)
@@ -2339,13 +2394,13 @@ function get_map_dist( start_level, start_pos, to_level, to_pos )
 		max_dist = ini:r_rect("global_map", "bound_rect"):height() *0.9
 	end
 
-	log("[get_map_dist_from_actor]: dist = %s, max_dist = %s", dist, max_dist)
+--	log("[get_map_dist_from_actor]: dist = %s, max_dist = %s", dist, max_dist)
 
 	return dist, max_dist
 end
 ----------------------------------------------------------------------------------
 function get_actor_pursuit()
-	log("[naxac.get_actor_pursuit]")
+--	log("[naxac.get_actor_pursuit]")
 	local pos = Actor:position()
 	local be
 	local enemies = {}
@@ -2363,7 +2418,7 @@ function get_actor_pursuit()
 		end
 	end
 	amk.save_variable("pursuit", enemies)
-	table.print(enemies)
+--	table.print(enemies)
 end
 function set_actor_pursuit()
 	local enemies = amk.load_table("pursuit")

@@ -14,9 +14,9 @@ local system_data = {
 			return Actor.health > 0.5
 		end,
 		drugs ={ "medkit", "medkit_army", "medkit_scientic", "suvorotka" },
-		sms_warning = "Ваше состояние здоровья ниже 50%. Если у вас есть медпрепараты, то Система Жизненной Поддержки произведёт лечение.",
-		sms_ok = "Обнаружены медпрепараты. Произвожу применение.",
-		sms_fail = "Медпрепараты не обнаружены."
+		sms_warning = "st_meceniy_health_sms_warning",
+		sms_ok = "st_meceniy_health_sms_ok",
+		sms_fail = "st_meceniy_health_sms_fail"
 	},
 	["bleeding"] = {
 		info = "skat_health_on",
@@ -24,9 +24,9 @@ local system_data = {
 			return Actor:get_bleeding() <= 0.5
 		end,
 		drugs ={ "bandage", "suvorotka" },
-		sms_warning = "У вас сильное кровотечение. Если у вас есть медпрепараты, то Система Жизненной Поддержки произведёт лечение.",
-		sms_ok = "Обнаружены медпрепараты. Произвожу применение.",
-		sms_fail = "Медпрепараты не обнаружены."
+		sms_warning = "st_meceniy_bleeding_sms_warning",
+		sms_ok = "st_meceniy_bleeding_sms_ok",
+		sms_fail = "st_meceniy_bleeding_sms_fail"
 	},
 	["radiation"] = {
 		info = "skat_rad_on",
@@ -34,9 +34,9 @@ local system_data = {
 			return arc_radiation.RAD_DOSE < arc_radiation.DOSE_HARMFUL
 		end,
 		drugs = { "antirad", "medkit_scientic", "suvorotka" },
-		sms_warning = "Полученная доза радиации близка к критической. Если у Вас есть антирадиационные препараты, то Система Жизненной Поддержки выведет радиацию из организма.",
-		sms_ok = "Обнаружены антирадиационные препараты. Система Жизненой Поддержки производит применение.",
-		sms_fail = "Антирадиационные препараты не обнаруженны."
+		sms_warning = "st_meceniy_radiation_sms_warning",
+		sms_ok = "st_meceniy_radiation_sms_ok",
+		sms_fail = "st_meceniy_radiation_sms_fail"
 	},
 	["psy"] = {
 		info = "skat_psy_on",
@@ -44,9 +44,9 @@ local system_data = {
 			return Actor.psy_health >= 0.4
 		end,
 		drugs ={ "antizombie" },
-		sms_warning = "Полученная доза пси-излучения привела к Вашему зомбированию. Если у вас есть антидоты, то Система Жизненной Поддержки выведет пси-излучение из организма.",
-		sms_ok = "Обнаружены антидоты. Система Жизненой Поддержки производит применение.",
-		sms_fail = "Антидоты не обнаруженны."
+		sms_warning = "st_meceniy_psy_sms_warning",
+		sms_ok = "st_meceniy_psy_sms_ok",
+		sms_fail = "st_meceniy_psy_sms_fail"
 	},
 	["power"] = {
 		info = "skat_power_on",
@@ -54,9 +54,9 @@ local system_data = {
 			return Actor.power > 0.35
 		end,
 		drugs ={ "energy_drink" },
-		sms_warning = "Вы устали. Ищу энергетики.",
-		sms_ok = "Обнаруженны энергетики. Произвожу применение.",
-		sms_fail = "Энергетиков нет. Отдохните."
+		sms_warning = "st_meceniy_power_sms_warning",
+		sms_ok = "st_meceniy_power_sms_ok",
+		sms_fail = "st_meceniy_power_sms_fail"
 	}
 }
 
@@ -162,7 +162,11 @@ function system_outfit( t )
 	end
 
 	if not t.f then
-		news_manager.send_tip("%c[gray2]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[red_sms]"..t.sms_warning, nil, "nano", 5000)
+		news_manager.send_tip(
+			"%c[gray2]"..game.translate_string("st_meceniy_outfit_system")..
+			"\\n%c[red_sms]"..game.translate_string(t.sms_warning),
+			nil, "nano", 5000
+		)
 		t.f = true
 	end
 
@@ -227,7 +231,11 @@ function do_heal(a,str)
 	else
 		play_snd([[meceniy\outfit\net_med]])
 	end
-	news_manager.send_tip("%c[gray2]СИСТЕМА ЖИЗНЕННОЙ ПОДДЕРЖКИ:\\n%c[red_sms]"..str, nil, "nano", 5000)
+	news_manager.send_tip(
+		"%c[gray2]"..game.translate_string("st_meceniy_outfit_system")..
+		"\\n%c[red_sms]"..game.translate_string(str),
+		nil, "nano", 5000
+	)
 end
 
 function play_snd(snd)
