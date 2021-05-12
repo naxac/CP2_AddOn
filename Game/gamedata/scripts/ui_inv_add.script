@@ -535,7 +535,14 @@ function charge_device( art, device )
 
 	local rem = cond + add_power - 1
 	if rem > 0 then
-		AI:create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
+		cond = math.min(0.4 + 0.6*rem, 1)
+		local sobj = AI:create( "af_buliz", vector():set(0,0,0), 0, 0, 0 )
+		netpk:modify( sobj, { condition = cond }, netpk.fState )
+		level.client_spawn_manager():add( sobj.id, -1,
+			function( condition, id, obj )
+				obj:set_condition( condition )
+			end,
+		cond)
 	end
 end
 
