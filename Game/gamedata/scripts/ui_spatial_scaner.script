@@ -1,16 +1,12 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
--- Настройки управления
-local move_shift = 5	-- кол-во пикселей, на которое перемещается карта за апдейт
-local move_delta = 3    -- сколько пикселей прибавляем/отнимаем от move_shift при нажатии Shift/Ctrl
+
 local min_zoom = nil	-- минимальный масштаб
 local max_zoom = 5		-- максимальный масштаб
-local zoom_shift = 0.4	-- изменение масштаба за один клик
-local zoom_shift_w = zoom_shift/4  -- изменение масштаба колесиком мыши
+local zoom_shift = 0.36	-- изменение масштаба за один клик
+local zoom_shift_w = 0.1 -- изменение масштаба колесиком мыши
 local spot_size = 15       -- размер меток на аномалиях
 
-local map_st = {}           -- текущее положение карты
-local scale = 1             -- текущий масштаб
-local scale_show = 1.5      -- минимальный масштаб, при котором видно аномалии
+local scale_show = 1.6      -- минимальный масштаб, при котором видно аномалии
 
 local iniCache = {}
 
@@ -20,11 +16,11 @@ function UIPdaTeleport:__init(in_zone, item) super()
 	self.level_maps = {}
 	self.anoms = {}
 	self.ini = game_ini()
+	self.scale = 1
 
 	self.in_zone = in_zone
 	self.object = item
-	
-	self.move = { [1] = false, [2] = false, [3] = false, [4] = false }
+
 	self.map_in_focus = {}
 
 	xr_s.subscribe( "mouse_wheel", self.OnMouseWheel, {self = self} )
@@ -37,6 +33,7 @@ function UIPdaTeleport:__init(in_zone, item) super()
 	xml:InitStatic("background", self)
 	
 	self.map_back = xml:InitStatic("map_static", self)
+	self.map_back:ClipperOn()
 	
 	-- рисуем карту
 	self:DrawMap()
@@ -45,17 +42,9 @@ function UIPdaTeleport:__init(in_zone, item) super()
 	xml:InitStatic("pda", self)
 	self.map_name = xml:InitStatic("map_name", self)
 
-	-- Кнопки навигации
-	xml:InitStatic("st_center", self)
-	self:Register(xml:InitButton("btn_left",self), "btn_left")
-	self:AddCallbackEx("btn_left", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 1 )
-	self:Register(xml:InitButton("btn_right",self), "btn_right")
-	self:AddCallbackEx("btn_right", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 2 )
-	self:Register(xml:InitButton("btn_up",self), "btn_up")
-	self:AddCallbackEx("btn_up", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 3 )
-	self:Register(xml:InitButton("btn_down",self), "btn_down")
-	self:AddCallbackEx("btn_down", ui_events.BUTTON_DOWN, self.onButtonMoveClicked, 4 )
 	-- Зум
+	self:Register(xml:InitButton("btn_center", self), "zoom_center")
+	self:AddCallbackEx("zoom_center", ui_events.BUTTON_DOWN, self.ZoomCenter)
 	self:Register(xml:InitButton("btn_zoom_plus",self), "zoom_plus")
 	self:AddCallbackEx("zoom_plus", ui_events.BUTTON_DOWN, self.ZoomAdd)
 	self:Register(xml:InitButton("btn_zoom_minus",self), "zoom_minus")
@@ -89,28 +78,27 @@ function UIPdaTeleport:DrawMap()
 	rect = self:GetFrect("global_map", "bound_rect")
 	texture = self.ini:r_string("global_map", "texture")
 	
+	if min_zoom == nil then	-- if first time
+		min_zoom = self.map_back:GetWidth()/rect:width()
+	end
+	local p = amk.load_table( "SS", { nil, 0, 0 } )
+	self.scale = p[1] or min_zoom
+	local posX = p[2]
+	local posy = p[3]
+	rect:mul(self.scale)
+	rect:add(posX, posy)
+
 	self.global_map = CUIStatic()
 	local gMap = self.global_map
 	gMap:SetAutoDelete(true)
-	gMap:SetWndRect(rect:mul(scale))
+	gMap:SetWndRect(rect)
 	gMap:InitTexture(texture)
 	gMap:SetStretchTexture(true)
 	self.map_back:AttachChild(gMap)
-	
-	if min_zoom == nil then	-- if first time
-		min_zoom = self.map_back:GetWidth()/gMap:GetWidth()
-		local p = amk.load_table( "SS", { nil, 0, 0 } )
-		scale = p[1]
-		map_st.x = p[2]
-		map_st.y = p[3]
-		if scale == nil then scale = min_zoom end
-		gMap:SetWndRect( rect:mul(scale) )
-	end
 
-	map_st.mxr = self.map_back:GetWidth() - gMap:GetWidth()
-	map_st.mxd = self.map_back:GetHeight() - gMap:GetHeight()
+	local bonds = self.map_back:GetWndSize():sub( gMap:GetWndSize() )
+	self.map_bounds = Frect():set(0, 0, bonds.x, bonds.y)
 
-	gMap:SetWndPos(map_st.x, map_st.y)
 	
 	-- Читаем из ini имена уровней
 	local res, map, v
@@ -121,7 +109,7 @@ function UIPdaTeleport:DrawMap()
 	-- Рисуем карты  уровней и места положения аномалий
 	local actor_pos = Actor:position()
 	local level_name = level.name()
-	local show_anom = scale>scale_show
+	local show_anom = self.scale>=scale_show
 	local w = spot_size/2
 	for k in pairs(self.level_maps) do
 		local level_map = self:DrawLevelMap(k)
@@ -168,29 +156,40 @@ function UIPdaTeleport:DrawMap()
 	self.actor_spot = a
 end
 
+function UIPdaTeleport:ZoomCenter()
+	if self.scale < scale_show then
+		self.scale = scale_show
+		self:ResizeMap(false, false)
+	end
+
+	local map = self.level_maps[ level.name() ]
+	local map_pos = map:GetWndPos():add( self.actor_spot:GetWndPos() )
+	map_pos:sub( self.map_back:GetWndSize():div(2) )
+	map_pos.x = -map_pos.x
+	map_pos.y = -map_pos.y
+	map_pos:clamp( self.map_bounds )
+	self.global_map:SetWndPos( map_pos:get() )
+end
+
 function UIPdaTeleport:ZoomAdd()
-	if scale<max_zoom then
-		scale = math.min(scale+zoom_shift, max_zoom)
-		self:ResizeMap(false)
+	if self.scale<max_zoom then
+		self.scale = math.min(self.scale+zoom_shift, max_zoom)
+		self:ResizeMap(false, false)
 	end
 end
 function UIPdaTeleport:ZoomSub()
-	if scale>min_zoom then
-		scale = math.max(scale-zoom_shift, min_zoom)
-		self:ResizeMap(false)
+	if self.scale>min_zoom then
+		self.scale = math.max(self.scale-zoom_shift, min_zoom)
+		self:ResizeMap(false, false)
 	end
 end
 function UIPdaTeleport:ZoomDefault()
-	if scale~=min_zoom then
-		scale = min_zoom
-		self:ResizeMap(false)
+	if self.scale~=min_zoom then
+		self.scale = min_zoom
+		self:ResizeMap(false, false)
 	end
 end
 
-function UIPdaTeleport:onButtonMoveClicked( index )
-	self.move[index] = true
-	self.need_update = true
-end
 function UIPdaTeleport:onMapFocus( map )
 	table.insert(self.map_in_focus, map)
 	self.map_name:SetTextST(map)
@@ -246,51 +245,60 @@ function UIPdaTeleport:onAnomalyClicked( lvl, id )
 	end
 end
 
-function UIPdaTeleport:ResizeMap(bCheckZoomIn)
+function UIPdaTeleport:ResizeMap(bCheckCursor, bZoomIn)
 	local rect = self:GetFrect("global_map", "bound_rect")
 	
 	local wnd = self.global_map
 	local wnd_size_old = wnd:GetWndSize()
 	local wnd_pos = wnd:GetWndPos()
-	wnd:SetWndRect(rect:mul(scale))
+	wnd:SetWndRect(rect:mul(self.scale))
 	local wnd_size = wnd:GetWndSize()
 
 	local mb_size = self.map_back:GetWndSize()
-	map_st.mxr = mb_size.x - wnd_size.x
-	map_st.mxd = mb_size.y - wnd_size.y
+	self.map_bounds.x2 = mb_size.x - wnd_size.x
+	self.map_bounds.y2 = mb_size.y - wnd_size.y
 	mb_size:div(2)
 
-	local cur_pos = bCheckZoomIn
+	local cur_pos = bCheckCursor
 		and self:GetCursorPos():sub( self.map_back:GetWndPos() )
 		or mb_size
 
-	local cur_pos_wnd = wnd_pos:sub( cur_pos )
-	if bCheckZoomIn then
-		cur_pos = cur_pos:add( mb_size:sub(cur_pos):div(8) )
+	wnd_pos:sub( cur_pos )
+	if bCheckCursor then
+		if bZoomIn then
+			cur_pos = cur_pos:add( mb_size:sub(cur_pos):div(8) )
+		else
+			cur_pos:sub(mb_size)
+			cur_pos:div(1.1)
+			cur_pos:add(mb_size)
+		end
 	end
 	wnd_size:div( wnd_size_old:get() )
-	local new_wnd_pos = cur_pos_wnd:mul( wnd_size:get() ):add( cur_pos )
+	wnd_pos:mul( wnd_size:get() ):add( cur_pos )
 	
-	map_st.x = math.clamp(new_wnd_pos.x, map_st.mxr, 0)
-	map_st.y = math.clamp(new_wnd_pos.y, map_st.mxd, 0)
+	wnd_pos:clamp( self.map_bounds )
 	
-	wnd:SetWndPos(map_st.x, map_st.y)
+	wnd:SetWndPos( wnd_pos:get() )
 	
-	local show_anom = scale>scale_show
+	local show_anom = self.scale>=scale_show
 	local pos
 	local w = spot_size/2
 	for lvl,st in pairs(self.level_maps) do
 		rect = self:GetFrect(lvl, "global_rect")
-		st:SetWndRect(rect:mul(scale))
+		st:SetWndRect(rect:mul(self.scale))
 		local zones = spatial_subway.levels[lvl]
 		if zones then
 			rect = self:GetFrect(lvl, "bound_rect")
 			self.zoom = st:GetWidth()/rect:width()
 			for id, t in pairs(zones) do
-				pos = self:ConvertPosToPixel(t.pos, rect)
 				local b = self.anoms["btn_"..lvl..id]
-				b:SetWndPos(pos.x-w, pos.y-w)
-				b:Show(show_anom)
+				if show_anom then
+					pos = self:ConvertPosToPixel(t.pos, rect)
+					b:SetWndPos(pos.x-w, pos.y-w)
+					b:Show(true)
+				else
+					b:Show(false)
+				end
 			end
 		end
 	end
@@ -300,7 +308,7 @@ function UIPdaTeleport:ResizeMap(bCheckZoomIn)
 	rect = self:GetFrect( level.name(), "bound_rect" )
 	self.zoom = wnd:GetWidth() / rect:width()
 	pos = self:ConvertPosToPixel( Actor:position(), rect )
-	self.actor_spot:SetWndPos( pos.x-w/2, pos.y-spot_size/2 )
+	self.actor_spot:SetWndPos( pos.x-w, pos.y-w )
 end
 
 function UIPdaTeleport:DrawLevelMap(level)
@@ -315,7 +323,7 @@ function UIPdaTeleport:DrawLevelMap(level)
 		end
 		local st = CUIStatic()
 		st:SetAutoDelete(true)
-		st:SetWndRect(rect:mul(scale))
+		st:SetWndRect(rect:mul(self.scale))
 		st:InitTexture(tex)
 		st:SetStretchTexture(true)
 		return st
@@ -348,95 +356,47 @@ function UIPdaTeleport:GetFrect(section, line)
 	return Frect():set( unpack(t) )
 end
 
-local move2func = {
-	[1] = function() map_st.x = math.min(map_st.x + move_shift, 0) end,
-	[2] = function() map_st.x = math.max(map_st.x - move_shift, map_st.mxr) end,
-	[3] = function() map_st.y =  math.min(map_st.y + move_shift, 0) end,
-	[4] = function() map_st.y = math.max(map_st.y - move_shift, map_st.mxd) end
-}
 function UIPdaTeleport:Update()
 	CUIScriptWnd.Update(self)
 
-	if not self.need_update then return end
-
-	for i, v in ipairs(self.move) do
-		if v then move2func[i]() end
+	if self.move_map then
+		local cur_pos = self:GetCursorPos()
+		local new_pos = self.global_map:GetWndPos():sub( 
+			self.last_cur_pos:sub( cur_pos ) 
+		)
+		new_pos:clamp( self.map_bounds )
+		self.global_map:SetWndPos( new_pos:get() )
+		self.last_cur_pos = cur_pos
 	end
-	
-	self.global_map:SetWndPos(map_st.x, map_st.y)
 end
 
 function UIPdaTeleport:OnMouseWheel( mode )
 	local f = nil
-	if ( not mode ) and scale < max_zoom then
-		scale = math.min( scale + zoom_shift_w, max_zoom )
+	if ( not mode ) and self.scale < max_zoom then
+		self.scale = math.min( self.scale + zoom_shift_w, max_zoom )
 		f = true
-	elseif mode and scale > min_zoom then
-		scale = math.max( scale - zoom_shift_w, min_zoom )
+	elseif mode and self.scale > min_zoom then
+		self.scale = math.max( self.scale - zoom_shift_w, min_zoom )
 		f = false
 	end
 	if f~=nil then
-		self:ResizeMap(f)
+		self:ResizeMap(true, f)
 	end
 end
 
-local dik2move = {
-	[DIK_keys.DIK_LEFT] = 1,
-	[DIK_keys.DIK_RIGHT] = 2,
-	[DIK_keys.DIK_UP] = 3,
-	[DIK_keys.DIK_DOWN] = 4,
-	[DIK_keys.DIK_A] = 1,
-	[DIK_keys.DIK_D] = 2,
-	[DIK_keys.DIK_W] = 3,
-	[DIK_keys.DIK_S] = 4,
-	[DIK_keys.DIK_NUMPAD4] = 1,
-	[DIK_keys.DIK_NUMPAD6] = 2,
-	[DIK_keys.DIK_NUMPAD8] = 3,
-	[DIK_keys.DIK_NUMPAD2] = 4
-}
 function UIPdaTeleport:OnKeyboard(dik, keyboard_action)
 	CUIScriptWnd.OnKeyboard(self, dik, keyboard_action)
 
 	if keyboard_action == ui_events.WINDOW_KEY_PRESSED then
-		if dik == DIK_keys.DIK_ESCAPE then
+		if dik == DIK_keys.DIK_LMOUSE then
+			self.move_map = true
+			self.last_cur_pos = self:GetCursorPos()
+		elseif dik == DIK_keys.DIK_ESCAPE then
 			self:on_quit()
-		elseif dik2move[dik] then
-			self.move[ dik2move[dik] ] = true
-			self.need_update = true
-		elseif dik == DIK_keys.DIK_LSHIFT
-			or dik == DIK_keys.DIK_RSHIFT
-		then
-			move_shift = move_shift - move_delta
-		elseif dik == DIK_keys.DIK_LCONTROL
-			or dik == DIK_keys.DIK_RCONTROL
-		then
-			move_shift = move_shift + move_delta
-		elseif dik == DIK_keys.DIK_SUBTRACT then
-			self:ZoomSub()
-		elseif dik == DIK_keys.DIK_ADD then
-			self:ZoomAdd()
 		end
-
 	elseif keyboard_action == ui_events.WINDOW_KEY_RELEASED then
-		if dik == DIK_keys.DIK_LSHIFT
-			or dik == DIK_keys.DIK_RSHIFT
-		then
-			move_shift = move_shift + move_delta
-		elseif dik == DIK_keys.DIK_LCONTROL
-			or dik == DIK_keys.DIK_RCONTROL 
-		then
-			move_shift = move_shift - move_delta
-		elseif dik2move[dik] then
-			self.move[ dik2move[dik] ] = false
-			for i, v in ipairs(self.move) do
-				if v then return true end
-			end
-			self.need_update = nil
-		elseif dik == DIK_keys.DIK_LMOUSE and self.need_update then
-			for i = 1, 4 do
-				self.move[i] = false
-			end
-			self.need_update = nil
+		if dik == DIK_keys.DIK_LMOUSE then
+			self.move_map = false
 		end
 	end
 
@@ -445,7 +405,8 @@ end
 
 function UIPdaTeleport:on_quit()
 	-- сохраняем масштаб и положение карты
-	amk.save_table( "SS", { scale, map_st.x, map_st.y } )
+	local map_pos = self.global_map:GetWndPos()
+	amk.save_table( "SS", { self.scale, map_pos.x, map_pos.y } )
 
 	xr_s.unsubscribe( "mouse_wheel", self.OnMouseWheel )
 	bind_actor.restore_weapon("scan")
