@@ -39,33 +39,39 @@ local repair_limit = {
 -- мелкий ремонт с помощью ремкомплекта
 function repair_repkit(repkit, item)
 	if not danger.actor_not_in_danger("", "") then
-		ui_inv_add.show_inv_msg("Какой ремонт? Враг рядом!", "red")
+		ui_inv_add.show_inv_msg("st_repair_cant_danger", "red")
 		return
 	end
 
 	local cnd = item:condition()
 	local repkit_sect = repkit:section()
 	local item_name = game.translate_string( get_inv_name( item:section() ) )
+	local msg, msg_type
 	if repkit_sect == "repair_item_outfit" then
 		if cnd > cond_ok then
-			ui_inv_add.show_inv_msg(item_name.." не нуждается в ремонте")
-			return
+			msg = "st_repair_cant_good_item1"
 		elseif cnd < rep_cond_armor then
-			ui_inv_add.show_inv_msg(item_name.." в слишком плохом состоянии. Ремкомплектом не починить", "red")
-			return
+			msg = "st_repair_cant_bad_item"
+			msg_type = "red"
 		end
 	elseif repkit_sect == "repair_item_weapon" then
 		if item:get_slot() > 2 then return end		-- 0, 1, 2
 		if item:section() == "wpn_kolbasa" then
-			ui_inv_add.show_inv_msg("Это же колбаса - её нельзя починить :)")
-			return
+			msg = "st_repair_cant_kolbasa"
 		elseif cnd > cond_ok then
-			ui_inv_add.show_inv_msg(item_name.." не требует ремонта")
-			return
+			msg = "st_repair_cant_good_item"
 		elseif cnd < rep_cond_wpn then
-			ui_inv_add.show_inv_msg(item_name.." в слишком плохом состоянии. Ремкомплектом не починить", "red")
-			return
+			msg = "st_repair_cant_bad_item"
+			msg_type = "red"
 		end
+	end
+	if msg then
+		msg = format_text_pairs(
+			game.translate_string(msg),
+			{item_name = item_name}
+		)
+		ui_inv_add.show_inv_msg(msg, msg_type)
+		return
 	end
 
 	if game_options.RepairLimit then
@@ -76,7 +82,11 @@ function repair_repkit(repkit, item)
 
 		local used_cond = cd.repair.used_cond and tonumber(cd.repair.used_cond) or 0
 		if used_cond > repair_limit[ level.get_game_difficulty() ] then
-			ui_inv_add.show_inv_msg("Ремонт невозможен: "..item_name.." уже слишком изношен.", "red")
+			local msg = format_text_pairs(
+				game.translate_string("st_repair_cant_so_bad_item"),
+				{item_name = item_name}
+			)
+			ui_inv_add.show_inv_msg(msg, "red")
 			return
 		end
 
