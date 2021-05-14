@@ -21,11 +21,15 @@ for i=0,4 do
 		if params ~= "" then
 			msg= msg.."%c[255,255,128,128]"..params
 		end
-		news_manager.send_tip(msg, nil, "nano", 15000, nil, "device\\pda\\pda_objective")
+		local snd = xr_sound.get_safe_sound_object([[device\pda\pda_objective]])
+		snd:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
+		news_manager.send_tip(msg, nil, "nano", 15000)
 	end
 end
 func_by_string["pda_alarm"] = function ( params )
-	news_manager.send_tip("%c[255,0,255,0]БУДИЛЬНИК", nil, "nano", 15000, nil, "device\\pda\\pda_sos")
+	local snd = xr_sound.get_safe_sound_object([[device\pda\pda_sos]])
+	snd:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
+	news_manager.send_tip("%c[255,0,255,0]БУДИЛЬНИК", nil, "nano", 15000)
 	sleep_manager.stopper()
 end
 
@@ -71,6 +75,7 @@ end
 -- params = нужная функция.
 -- Ограничения: нельзя передавать в качестве параметров функции переменные, только конкретные значения.
 func_by_string["run"] = function (params)
+--	log("work timer 'run': %s", tostring(params))
 	if params then loadstring(params)() end
 end
 for i = 1, 5 do

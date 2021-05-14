@@ -82,12 +82,12 @@ end
 function UITimerWnd:FillList()
 	local timers = amk.load_table("timers")
 	local t, p, timer
-	for i = 0, 4, 1 do
-		timer = get_timer("pda_timer"..i)
-		if timer then
+	local timers = xr_timers.get_mgr()
+	for i, t in ipairs(timers.timers) do
+		if t.name == "pda_timer" then
 			local itm = list_item()
-			t = self:time2dhm(timer.time_shift/60000)
-			p = (timer.params=="" and "<no message>") or timer.params
+			t = self:time2dhm( (t.time - game_time_ms)/60000 )
+			p = (t.params=="" and "<no message>") or t.params
 			if #p>50 then p = p:sub(1,48).."..." end
 			itm.nm:SetText(p)
 			itm.tm:SetText(t)
@@ -95,14 +95,15 @@ function UITimerWnd:FillList()
 		end
 	end
 
-	timer = get_timer("pda_alarm")
-	if timer then
-		t = self:time2dhm(timer.time_shift/60000)
-		local itm = list_item()
-		itm.nm:SetText("Будильник")
-		itm.nm:SetTextColor(255,0,255,0)
-		itm.tm:SetText(t)
-		self.list_tmr:AddItem(itm)
+	for i, t in ipairs(timers.timers) do
+		if t.name == "pda_alarm" then
+			local str = self:time2dhm( (t.time - game_time_ms)/60000 )
+			local itm = list_item()
+			itm.nm:SetText("Будильник")
+			itm.nm:SetTextColor(255,0,255,0)
+			itm.tm:SetText(str)
+			self.list_tmr:AddItem(itm)
+		end
 	end
 end
 
@@ -178,20 +179,10 @@ function UITimerWnd:StartTimer()
 		self:GetHolder():start_stop_menu(self.message_box, true)
 		return
 	end
-	
-	local a = 0
-	while has_timer("pda_timer"..a) do
-		a = a + 1
-		if a>4 then
-			self.message_box:Init("select_map")
-			self.message_box:SetText("%c[red]Ошибка!\\n%c[default]Активно пять таймеров, памяти устройства недостаточно.")
-			self:GetHolder():start_stop_menu(self.message_box, true)
-			return
-		end
-	end
+
 	local msg = self.edit_msg:GetText()
-	start_game_timer("pda_timer"..a, 0, 0, t, msg)
-	
+	start_game_timer("pda_timer", 0, 0, t, msg)
+
 	self.msgbox_mode = 1
 	self.message_box:Init("msg_box_no_new_patch")
 	self.message_box:SetText("Таймер запущен на "..self:time2dhm(t))
