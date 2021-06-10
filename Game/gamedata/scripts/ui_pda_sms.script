@@ -173,39 +173,50 @@ function UIMsgWnd:OnKeyboard(dik, keyboard_action)
 	return true
 end
 
+local hello = {"привет","здоров","здаров","драсьте","здравствуй","здраствуй","хэлло"}
+local function find_hello(text)
+	for i, v in ipairs(hello) do
+		if string.find(text, v) then
+			return true
+		end
+	end
+	return false
+end
 function find_answer(text)
 	text = string.lower(text)
 	-- вопрос про выброс
 	if string.find(text, "выброс") then
-		local ask = {"когда", "во сколько", "через сколько"}
-		for i, v in ipairs(ask) do
+		for i, v in ipairs( {"когда", "во сколько", "через сколько"} ) do
 			if string.find(text, v) then
 				this.do_blow_msg()
 				return
 			end
 		end
 	end
-	
-	local ask = {"привет","здоров","здаров","драсьте","здравствуйте"}
-	for i, v in ipairs(ask) do
-		if string.find(text, v) then
-			local act_name = Actor:character_name()
-			local t = {
-				"Здорово, коль не шутишь.",
-				"Приветствую. Как оно?",
-				"Чего эфир засоряешь, "..act_name.."?!",
-				"Доброго времени. Что, "..act_name..", тоже заняться нечем? Подруливай в Бар."
-			}
-			local npc_name, comm = amk_names_lists.get_strings(true, "stalker", "dolg", "freedom")
-			amk.send_tip(table.random(t), npc_name, math.random(7,12), 10, comm)
-			break
+
+	if has_alife_info("atp_mobil_say_start") and string.find(text, "седой")
+		and xomyak.has_someone_biznes()
+	then
+		if xomyak.sedoy_biznes_check_sms(text) then
+			return
 		end
+	end
+
+	if find_hello(text) then
+		local t = {
+			"Здорово, коль не шутишь.",
+			"Приветствую. Как оно?",
+			"Чего эфир засоряешь, $actor?!",
+			"Доброго времени. Что, $actor, тоже заняться нечем? Подруливай в Бар."
+		}
+		local npc_name, comm = amk_names_lists.get_strings(true, "stalker", "dolg", "freedom", "nebo", "green")
+		local msg = "%c[gray2]"..npc_name.."\\n%c[default]"..table.random(t)
+		news_manager.send_tip(msg, math.random(7,12), comm, 10000)
 	end
 end
 
 function do_blow_msg()
 	local timer = get_timer("blow_shift")
-	local act_name = Actor:character_name()
 	
 	local h = math.floor(timer.time_shift/(3600000))
 	local d = math.floor(h/24)
@@ -237,16 +248,17 @@ function do_blow_msg()
 	
 	local icon, sender
 	local rnd =  math.random()
-	if act_name=="Стрелок" and rnd>0.8 then
-		msg = "Здравствуй, "..act_name..". Судя по всему, "..msg
+	if has_alife_info("cit_fail_first_task") and rnd>0.8 then
+		msg = "Здравствуй, $actor. Судя по всему, "..msg
 		icon, sender = "doctor", "Доктор"
 	elseif has_alife_info("agroprom_military_case_done") and rnd<0.4 then
-		msg = "Привет, "..act_name..". Наша аппаратура показывает, что "..msg
+		msg = "Привет, $actor. Наша аппаратура показывает, что "..msg
 		icon, sender = "docent", "Доцент"
 	else
 		msg = "Приветствую. Судя по показаниям приборов, "..msg
 		icon, sender = "saharov", "Сахаров"
 	end
-	amk.send_tip(msg, sender, math.random(7,12), 10, icon)
+	msg = "%c[gray2]"..sender.."\\n%c[default]"..msg
+	news_manager.send_tip(msg, math.random(7,12), icon, 10000)
 end
 
