@@ -27,7 +27,7 @@ function heli_move:__init( obj, storage )
 end
 
 function heli_move:reset_scheme( loading )
-	printf("heli_move: reset_scheme: %s", self.object:name())
+--	printf("heli_move: reset_scheme: %s", self.object:name())
 
 	self.a.signals = {}
 
@@ -137,7 +137,7 @@ function heli_move:waypoint_callback( obj, action_type, index )
 		return
 	end
 
-	printf("heli_move:waypoint_callback(): name=%s, index=%d", self.object:name(), index)
+--	printf("heli_move:waypoint_callback(): name=%s, index=%d", self.object:name(), index)
 
 	if index ~= -1 then
 		self.last_index = index
@@ -194,7 +194,7 @@ end
 function heli_move:check_signals()
 	local sig  = self:waypoint_param( self.path_move_info, self.last_index, "sig" )
 	if sig then
-		printf( "heli_move: check_signals: sig=%s", sig )
+	--	printf( "heli_move: check_signals: sig=%s", sig )
 		self.a.signals[sig] = true
 	end
 end
@@ -242,9 +242,7 @@ end
 -- подготовить обычный полёт к следующей точке
 function heli_move:prepare_move()
 	if self.heliObject:GetState() ~= CHelicopter.eMovPatrolPath or self.next_index == 0 then
-		printf( "heli_move: starting patrol '%s' from point %d", self.a.path_move, self.next_index )
---		self.object:info_clear()
---		self.object:info_add( tostring( "next point: " .. self.next_index ) )
+	--	printf( "heli_move: starting patrol '%s' from point %d", self.a.path_move, self.next_index )
 
 		self.heliObject:SetMaxVelocity     ( self:waypoint_param_num( self.path_move_info, self.last_index, "v",  self.default_velocity ) )
 		self.heliObject:SetSpeedInDestPoint( self:waypoint_param_num( self.path_move_info, self.next_index, "dv", self.default_velocity ) )
@@ -261,18 +259,18 @@ end
 
 -- подготовить полёт к следующей точке с учётом того, что в ней мы будем смотреть в точку из path_look
 function heli_move:prepare_look()
-	printf( "heli_move: going to look in the next point %d", self.next_index )
+--	printf( "heli_move: going to look in the next point %d", self.next_index )
 
 	self.look_duration = self:waypoint_param_num( self.path_look_info, self.look_index, "t" )
 
 	-- если нужно задержаться в следующей точке, то отправить в точку (destspeed=0), иначе отправить по пути (destspeed="dv")
 	if self.look_duration then
-		printf( "heli_move: sent to position" )
+	--	printf( "heli_move: sent to position" )
 
 		self.heliObject:SetSpeedInDestPoint( 0 )
 		self.heliObject:SetDestPosition( self.patrol_move:point( self.next_index ) )
 	else
-		printf( "heli_move: sent to patrol path" )
+	--	printf( "heli_move: sent to patrol path" )
 
 		self.heliObject:SetSpeedInDestPoint( self:waypoint_param_num( self.path_move_info, self.next_index, "dv", self.default_velocity ) )
 		self.heliObject:GoPatrolByPatrolPath( self.a.path_move, self.next_index )
@@ -283,12 +281,12 @@ function heli_move:prepare_look()
 	-- атаковать выбранную точку уже на подлёте, если задано "e" в следующей точке path_move
 	self:process_attack_params( self.path_move_info, self.next_index )
 
-	printf( "heli_move: dest speed = %d", self.heliObject:GetSpeedInDestPoint( 0 ) )
+--	printf( "heli_move: dest speed = %d", self.heliObject:GetSpeedInDestPoint( 0 ) )
 end
 
 -- мы на точке, в которой прописано смотрение в другую точку
 function heli_move:update_look_state()
-	printf( "heli_move: start looking" )
+--	printf( "heli_move: start looking" )
 
 	self.state = state_look
 
@@ -317,20 +315,20 @@ function heli_move:process_attack_params( path_info, index )
 	local target = self:waypoint_param( path_info, index, "e" )
 
 	if target == nil then
-		printf( "heli_move: not attacking" )
+	--	printf( "heli_move: not attacking" )
 		self.heliObject:ClearEnemy()
 
 		return
 	end
 
 	if self.a.rocket_delay then
-		printf( "set rocket delay = %d", self.a.rocket_delay )
+	--	printf( "set rocket delay = %d", self.a.rocket_delay )
 		self.heliObject.m_time_between_rocket_attack = self.a.rocket_delay
 	end
 
 	if target == "true" then
 		if self.look_index then
-			printf( "heli_move: attacking point!" )
+		--	printf( "heli_move: attacking point!" )
 		else
 			abort( "heli_move: you specified 'e' in path_mave, but didn't set any flags!" )
 		end
@@ -338,7 +336,7 @@ function heli_move:process_attack_params( path_info, index )
 		self.heliObject:SetEnemy( self.patrol_look:point( self.look_index ) )
 
 	elseif target == "actor" or target == "a" then
-		printf( "heli_move: attacking the actor!" )
+	--	printf( "heli_move: attacking the actor!" )
 
 		if Actor then
 			self.heliObject:LookAtPoint( Actor:position(), true )
@@ -347,7 +345,7 @@ function heli_move:process_attack_params( path_info, index )
 			self.heliObject:ClearEnemy()
 		end
 	else
-		printf( "heli_move: attacking object sid=%s", target )
+	--	printf( "heli_move: attacking object sid=%s", target )
 
 		target = tonumber(target) or story_ids[target]
 		local obj = level_object_by_sid( target )
@@ -363,7 +361,7 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 
 function add_to_binder( npc, ini, scheme, section, storage )
-	printf( "DEBUG: add_to_binder: npc:name()='%s', scheme='%s', section='%s'", npc:name(), scheme, section )
+--	printf( "DEBUG: add_to_binder: npc:name()='%s', scheme='%s', section='%s'", npc:name(), scheme, section )
 
 	local new_action = heli_move( npc, storage )
 
