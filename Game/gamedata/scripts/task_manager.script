@@ -1,8 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local table_remove = table.remove
-local string_len = string.len
-local string_sub = string.sub
-local math_random = math.random
 local get_string = game.translate_string
 
 local random_task = nil
@@ -60,8 +56,8 @@ local hash_to_ct = {}
 function stringhash(str)
 	local mpl = 1
 	local hash = 0
-	for i = 1, string_len(str), 1 do
-		local val = string.byte( string_sub(str,i,i) )
+	for i = 1, string.len(str), 1 do
+		local val = string.byte( string.sub(str,i,i) )
 		hash = hash+mpl*val
 		mpl = mpl*2
 		if mpl == 512 then mpl = 1 end
@@ -155,6 +151,8 @@ function CRandomTask:__init()
 		end
 		
 		curr_task_info.reward_money = self.task_ini:r_u32_ex(id, "reward_money", nil)
+		curr_task_info.reward_type = self.task_ini:r_u32_ex(id, "reward_type", nil)
+		curr_task_info.reward_count = self.task_ini:r_u32_ex(id, "reward_count", nil)
 		curr_task_info.reward_script = self.task_ini:r_string_ex(id, "reward_script", nil)
 		-- Награда информацией
 		-- amk.mylog("reward info read")
@@ -853,7 +851,7 @@ function CRandomTask:check_task_props(task_id)
 				self.task_info[task_id].enabled_props = true
 				return
 			else
-				table_remove(self.task_info[task_id].target_objects, k)
+				table.remove(self.task_info[task_id].target_objects, k)
 			end
 		end
 		self.task_info[task_id].enabled_props = false
@@ -1000,12 +998,15 @@ function CRandomTask:task_reward(npc, actor, p1, p2)
 		if can_finish == true then
 			self.task_info[v].status = "rewarded"
 
-			if task_desc.reward_money ~= nil then
-				dialogs.relocate_money(npc, task_desc.reward_money, "in")
-			end
-
-			if task_desc.reward_items ~= nil then
-				create_reward(task_desc.reward_items)
+			if game_options.RndReward then
+				create_reward_rnd(self.task_ini, task_desc)
+			else
+				if task_desc.reward_money ~= nil then
+					dialogs.relocate_money(npc, task_desc.reward_money, "in")
+				end
+				if task_desc.reward_items ~= nil then
+					create_reward(task_desc.reward_items)
+				end
 			end
 
 			if task_desc.reward_reputation ~= nil then
@@ -1190,7 +1191,7 @@ function CRandomTask:unregister_target(obj)
 			if t ~= nil then
 				for i = 1, #t do
 					if t[i] == obj_id then
-						table_remove(t, i)
+						table.remove(t, i)
 						break
 					end
 				end     
@@ -1204,7 +1205,7 @@ function CRandomTask:unregister_target(obj)
 			if t ~= nil then
 				for i = 1, #t do
 					if t[i] == obj_id then
-						table_remove(t, i)
+						table.remove(t, i)
 						break
 					end
 				end    
@@ -1486,7 +1487,7 @@ function amk_remove_target_id_from_kill_targets(id)
 	local targets=amk.load_table("kill_targets")
 	for n,v in pairs(targets) do
 		if v.id==id then
-			table_remove(targets,n)
+			table.remove(targets,n)
 			break
 		end
 	end
@@ -1507,31 +1508,51 @@ function show_reward(actor,npc,p1,p2)
 	
 	if task_details == nil then return end
 	
-	local reward_text = format_reward_text(task_details.reward_items)
-	local reward_money = task_details.reward_money
-	local f_phrase = "Я"
+	local timer_text
 	if task_details.time then
 		local tm = math.floor(task_details.time/3600)
 		local tmr
 		if tm > 48 then
 			tm = math.floor(tm/24)
-			tmr = declension(tm, " день", " дня", " дней")
+			tmr = tostring(tm)..declension(tm, " день", " дня", " дней")
 		else
-			tmr = declension(tm, " час", " часа", " часов")
+			tmr = tostring(tm)..declension(tm, " час", " часа", " часов")
 		end
-		f_phrase = "Если уложишься за "..tostring(tm)..tmr..", то я"
+		timer_text = format_text_pairs(
+			get_string( "tm_timeout_desc_"..tostring( math.random(1, 7) ) ),
+			{timer = tmr}
+		)
+	end
+	if game_options.RndReward then
+		if timer_text then
+			Actor:give_talk_message(timer_text, "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
+		end
+		return
 	end
 	
+	local reward_items = format_reward_text(task_details.reward_items)
+	local reward_money = task_details.reward_money
+	if (not reward_items) and (not reward_money) then
+		if timer_text then
+			Actor:give_talk_message(timer_text, "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
+		end
+		return
+	end
+
+	local reward_text = get_string( "tm_reward_desc_"..tostring( math.random(1, 7) ) )
+	Actor:give_talk_message(
+		(timer_text and timer_text.." " or  "")..reward_text,
+		"ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item"
+	)
 	
-	local task_texture, task_rect = get_texture_info("ui_iconsTotal_find_item")
-	if reward_text ~= nil and reward_text ~= "" then
-		Actor:give_talk_message(f_phrase.." тебе за это дам вот что:", "ui\\ui_iconstotal", Frect():set(0,0,10,10), "simple_answer_item")
-		Actor:give_talk_message(reward_text, task_texture, task_rect,"iconed_trade_info")
+	if reward_items then
+		local task_texture, task_rect = get_texture_info("ui_iconsTotal_find_item")
+		Actor:give_talk_message(reward_items, task_texture, task_rect,"iconed_trade_info")
 	end
 	
-	if reward_money ~= nil then 
-		task_texture, task_rect = get_texture_info("ui_iconsTotal_found_money")
-		if task_details.need_return and reward_text == "" then
+	if reward_money then 
+		local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_money")
+		if task_details.need_return and reward_items == "" then
 			Actor:give_talk_message(reward_money .. " RU (" .. get_string("return_for_reward") .. ")", task_texture, task_rect, "iconed_trade_info")
 		else
 			Actor:give_talk_message(reward_money .. " RU", task_texture, task_rect,"iconed_trade_info")
@@ -1544,7 +1565,7 @@ function declension(num,a1,a2,a3)
 end
 
 function format_reward_text(reward_list)
-	if reward_list == nil then return "" end
+	if reward_list == nil then return nil end
 
 	local reward_text = ""
 	local n
@@ -1553,7 +1574,7 @@ function format_reward_text(reward_list)
 		reward_text = reward_text .. get_string( artefact_hunter.get_art_name(k, true) ) .. n .. ", "
 	end
 
-	return string_sub(reward_text, 1, -3)
+	return string.sub(reward_text, 1, -3)
 end
 
 function create_reward(t)
@@ -1574,24 +1595,62 @@ end
 
 function parse_reward_items( str )
 	local ret = {}
-	local last_sect
+	local cur_sect
 	for s in string.gfind( str, "[_%w%-%.]+" ) do
-		if last_sect then
+		if cur_sect then
 			if tonumber(s) then
-				table.add(ret, last_sect, tonumber(s))
-				last_sect = nil
+				table.add(ret, cur_sect, tonumber(s))
+				cur_sect = nil
 			else
-				table.add(ret, last_sect)
-				last_sect = s
+				table.add(ret, cur_sect)
+				cur_sect = s
 			end
 		else
-			last_sect = s
+			cur_sect = s
 		end
 	end
-	if last_sect then
-		table.add(ret, last_sect)
+	if cur_sect then
+		table.add(ret, cur_sect)
 	end
 	return ret
+end
+
+function create_reward_rnd(ini, task_desc)
+	local reward_type = task_desc.reward_type
+	if reward_type == nil then
+		reward_type = math.random(2,3)
+	end
+	local reward_count = task_desc.reward_count
+	if reward_count == nil then
+		reward_count = math.random(2,4)
+	end
+
+	local section = "reward_"..tostring(reward_type)
+	if not ini:section_exist(section) then
+		abort("[task_manager.create_reward_rnd]: unknown reward_type '%s' for task [%s]", tostring(reward_type), task_desc.name)
+		return
+	end
+
+	local n = ini:line_count(section) - 1
+	local res, id, val
+	local tmp = {}
+	while reward_count > 0 do
+		res, id, val = ini:r_line(section, math.random(0, n), "", "")
+		if id and id ~= "" then
+			if task_desc.type ~= "artefact"
+				or not isArtefact( nil, sys_ini:r_clsid(id, "class") )
+			then
+				table.add(tmp, id)
+				reward_count = reward_count - 1
+			end
+		end
+	end
+
+	create_reward(tmp)
+
+	if task_desc.reward_money ~= nil or math.random() > 0.7 then
+		dialogs.relocate_money(npc, math.random(10, 50)*100, "in")
+	end
 end
 
 -- функции наград
