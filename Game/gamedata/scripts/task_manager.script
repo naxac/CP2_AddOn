@@ -141,10 +141,6 @@ function CRandomTask:__init()
 
 		curr_task_info.idle_time		= self.task_ini:r_u32_ex(id, "idle_time", def_idle_time) --' Время между выдачами задания (в игровых секундах)
 		curr_task_info.prior			= self.task_ini:r_float_ex(id, "prior", 0) --' Приоритет квеста, выдаются доступные квесты с наименьшим приоритетом
-	
-		if self.task_ini:line_exist(id, "init_condition") then
-			curr_task_info.init_condition = xr_logic.parse_condlist(Actor, "task_manager", "init_condition", self.task_ini:r_string(id, "init_condition"))
-		end
 
 		if self.task_ini:line_exist(id, "reward_item") then
 			curr_task_info.reward_items = parse_reward_items( self.task_ini:r_string(id, "reward_item") )
@@ -163,11 +159,7 @@ function CRandomTask:__init()
 		-- amk.mylog("reward info read done")
 		-- Диалог для квестовой жертвы
 		curr_task_info.target_dialog = self.task_ini:r_string_ex(id, "target_dialog", nil)
-		----------------------
-        -- всё равно не используется
-		-- if self.task_ini:line_exist(id, "community") then
-			-- curr_task_info.community = self.task_ini:r_string(id, "community")
-		-- end		
+		----------------------	
 
 		curr_task_info.reward_rank			= self.task_ini:r_float_ex(id, "reward_rank", 0)
 		curr_task_info.reward_reputation	= self.task_ini:r_float_ex(id, "reward_reputation", nil)
@@ -222,10 +214,6 @@ function CRandomTask:__init()
 		-- amk.mylog("task "..v.complex_type .. " id " .. v.completed_phrase_id)
 		--' По id фразы выдачи квеста.
 		self.task_id_by_init_phrase_id[tostring(v.init_phrase_id)] = k
-		--' По самовыдаваемости
-		if v.init_condition ~= nil then
-			table.insert(self.task_id_self_inited, k)
-		end
 	end
 end
 
@@ -748,7 +736,7 @@ function CRandomTask:task_avail(actor, npc, p1, p2, p3, calculate)
 	elseif calculate == true then
 		self:check_task_props(self.task_id_by_init_phrase_id[p3])
 
-		local t = task_desc.enabled and task_desc.enabled_props and task_desc.init_condition == nil
+		local t = task_desc.enabled and task_desc.enabled_props
 
 		--' Устанавливать обрезания по приоритетам тут.
 		if t == true and (self.current_parent_type_prior[task_desc.complex_type] == nil or
@@ -774,8 +762,7 @@ function CRandomTask:task_avail(actor, npc, p1, p2, p3, calculate)
 	--' printf("@@@enabled_props %s", tostring(self.task_info[self.task_id_by_init_phrase_id[p3]].enabled_props))
 
 	return task_desc.enabled and 
-		task_desc.enabled_props and
-		task_desc.init_condition == nil
+		task_desc.enabled_props
 end
 --' Проверка свойств таска
 function CRandomTask:check_task_props(task_id)
@@ -885,21 +872,6 @@ function CRandomTask:check_task_props(task_id)
 	else
 		self.task_info[task_id].enabled_props = true
 		return    
-	end
-end
---' Проверяем можем ли мы сейчас выдать какой либо самоинициализующийся таск
-function CRandomTask:actor_update()
-	for k,v in pairs(self.task_id_self_inited) do
-		if self.task_info[v].status == "normal" then
-			self:check_task_props(v)
-			if self.task_info[v].enabled_props == true and
-				self.task_info[v].enabled == true and
-				xr_logic.pick_section_from_condlist(Actor, Actor, self.task_info[v].init_condition) ~= nil
-			then
-				--' Нужно автоматически выдать квест
-				self:action_give_task(Actor, nil, nil, self.task_info[v].yes_phrase_id)
-			end
-		end
 	end
 end
 --' Проверяется является ли текущий таск выданным игроку
@@ -1281,16 +1253,6 @@ function CRandomTask:remind()
 	return false
 end
 
-function CRandomTask:stats(obj)
-	printf("### TASK STATISTIC ###")
-	for k,v in pairs(self.task_info) do
-		if v.init_condition ~= nil then
-			printf("[%s] %s : %s", v.status, k, tostring(v.enabled_props))
-			print_table(v.init_condition)
-		end
-	end
-end
-
 function get_random_task()
 	if random_task == nil then
 		random_task = CRandomTask()
@@ -1460,10 +1422,6 @@ function task_fail(p1, p2)
 end
 function task_callback(p1, p2, state)
 	return get_random_task():task_callback(p1, p2, state)
-end
-
-function actor_update()
-	get_random_task():actor_update()
 end
 
 
