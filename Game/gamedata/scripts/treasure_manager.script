@@ -306,7 +306,9 @@ function CTreasure:give_item_list()
 	local ret = {}
 	local rnd = math.random
 	-- сколько наименований предметов будет в тайнике
-	local i = rnd(1, 4)
+	if self.items_count == nil then
+		self.items_count = rnd(1, 4)
+	end
 
 	-- определим ранг непися
 	if self.npc_rank == nil then self.npc_rank = rnd(1, 12)*100 end
@@ -321,9 +323,9 @@ function CTreasure:give_item_list()
 	end
 	
 	local cnt = 0
-	local res, id, val, cls = "", "", "", ""
+	local res, id, val = "", "", ""
 	local n = self.ini:line_count(sect)-1
-	for j = 1, i, 1 do
+	for j = 1, self.items_count, 1 do
 		res, id, val = self.ini:r_line(sect, rnd(0, n), "", "")
 		if not sys_ini:section_exist(id) then
 			abort("[CTreasure:give_item_list]: wrong item '%s' in list '%s'", id, sect)
@@ -334,6 +336,7 @@ function CTreasure:give_item_list()
 		-- сохраняем инфу о текущем предмете
 		table.insert( ret, { section = id, prob = rnd(1,val) } )
 	end
+	self.items_count = nil
 	return ret
 end
 
@@ -372,7 +375,7 @@ function is_active_treasure(box_story_id)
 	return false
 end
 
-function give_random_treasure()
+function give_random_treasure(good_items)
 	local mgr = get_treasure_manager()
 	local tmp = {}
 	for k, v in pairs(mgr.treasure_info) do
@@ -380,6 +383,13 @@ function give_random_treasure()
 			table.insert(tmp, k)
 		end
 	end
-	mgr.npc_rank = math.random(400,1000)
+
+	if good_items then
+		mgr.npc_rank = math.random(650, 1200)
+		mgr.items_count = math.random(2,5)
+	else
+		mgr.npc_rank = math.random(400,1000)
+	end
+
 	mgr:give_treasure( table.random(tmp) )
 end
