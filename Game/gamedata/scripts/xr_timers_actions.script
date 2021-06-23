@@ -84,8 +84,12 @@ end
 -- params = нужная функция.
 -- Ограничения: нельзя передавать в качестве параметров функции переменные, только конкретные значения.
 func_by_string["run"] = function (params)
---	log("work timer 'run': %s", tostring(params))
-	if params then loadstring(params)() end
+	if params then
+		local res, err = pcall( loadstring(params) )
+		if not res then
+			abort("Work timer 'run': function [%s] execution error : %s", tostring(params), err)
+		end
+	end
 end
 for i = 1, 5 do
 	func_by_string["run"..i] = func_by_string["run"]
