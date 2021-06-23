@@ -873,7 +873,7 @@ function CArenaext:update()
 	-- проверка Арни(админа) по сохранённому id: мёртв или уничтожен	
 	if  update_time < game.get_game_time() then
 		local idle_time = game.CTime()
-		idle_time:setHMSms(0, 5, 0, 0)
+		idle_time:setHMSms(0, 10, 0, 0)
 		update_time = game.get_game_time() + idle_time
 		--printf("CArenaext:update(30sec_update_done)")
 
@@ -886,6 +886,7 @@ function CArenaext:update()
 				AI:release(npc, true)
 				local obj = AI:create("aem_arny", vector():set(149.561569213867,0.429975032806396,69.2308807373047), 40035, 1180)
 				-- сохранение id
+				set_story_id(obj, story_ids.bar_arena_manager)
 				id = obj.id
 				xr_logic.pstor_store(Actor, "aem_id", id)
 			else
@@ -924,6 +925,8 @@ function CArenaext:update()
 							Actor:give_info_portion("aem_admin_spread_out")
 						end
 						admin_dead()
+					elseif npc.m_story_id ~= story_ids.bar_arena_manager then
+						set_story_id(npc, story_ids.bar_arena_manager)
 					end
 				end
 			else
@@ -2125,7 +2128,7 @@ function msg(text)
 	msg = game.translate_string(text)
 	snd = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
 	snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
-	Actor:give_game_news("%c[255,238,155,23]"..who..":\\n%c[default]"..msg, "ui\\ui_iconstotal", icon, 0, 15000)
+	Actor:give_game_news("%c[255,238,155,23]"..who..":\\n%c[default]"..msg.."\\n ", "ui\\ui_iconstotal", icon, 0, 15000)
 end
 
 function npc(npc)
@@ -2139,9 +2142,10 @@ end
 -- время начала игры (по хорошему нужно прочесть из ltx игры)
 -------
 function time_get_start()
-	local t = game.CTime()
-	t:set(2012,5,1, 7,30,0,0)
-	return t
+	-- local t = game.CTime()
+	-- t:set(2012,5,1, 7,30,0,0)
+	-- return t
+	return amk.getStartTime()
 end
 
 -------
