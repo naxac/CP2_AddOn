@@ -6981,16 +6981,13 @@ end
 
 -- ОПАСНАЯ РАБОТА
 function capitan_filatov_spawn()
-	AI:create("capitan_filatov",vector():set(-28.599334716797,-0.41261440515518,-175.13388061523),211654,676)
+	local npc = AI:create("capitan_filatov",vector():set(-28.599334716797,-0.41261440515518,-175.13388061523),211654,676)
+	set_story_id(npc, story_ids.capitan_filatov)
 end
 function delete_capitan_filatov()
-	local obj
-	for a=1,65534,1 do
-		obj=AI:object(a)
-		if obj and obj:section_name() == "capitan_filatov" then
-			AI:release(obj,true)
-			break
-		end
+	local obj = AI:story_object(story_ids.capitan_filatov)
+	if obj then
+		AI:release(obj,true)
 	end
 end
 function find_mina_start()
@@ -7757,7 +7754,8 @@ function volna_day4_have(task, info)
 		return false
 end
 function cap_filatov_spawn()
-	AI:create("capitan_filatov",vector():set(-152.96566772461,14.272410392761,-256.41458129883),635470,3673)
+	local npc = AI:create("capitan_filatov",vector():set(-152.96566772461,14.272410392761,-256.41458129883),635470,3673)
+	set_story_id(npc, story_ids.capitan_filatov)
 end
 function volna_day4_filatov()
 	news_manager.send_tip("volna_day4_filatov_sms", nil, nil, 30000)
@@ -8632,13 +8630,9 @@ end
 function kontrik_vodka_done()
 	snp.drink_vodka()
 	AI:create_no_ai("a_inventory_box61",vector():set(266.86901855469,1.3188534975052,-87.449729919434),67181,1278)
-	local obj
-	for a=1,65534,1 do
-	obj=AI:object(a)
-	if obj and string.find(obj:name(),"a_inventory_box60") then
-	AI:release(obj,true)
-	break
-	end
+	local obj = AI:story_object(story_ids.kontik_vodka_box)
+	if obj then
+		AI:release(obj,true)
 	end
 end
 
@@ -9789,7 +9783,8 @@ function kalinin_dog_rank()
 end
 function kalinin_dog_start()
 	inventory.give_items("kolbasa",1)
-	AI:create("dog_quest",vector():set(358.57766723633,-4.405837059021,-203.89872741699),889711,2851)
+	local obj = AI:create("dog_quest",vector():set(358.57766723633,-4.405837059021,-203.89872741699),889711,2851)
+	set_story_id(obj, story_ids.kalinin_dog)
 	AI:create("dog_normal",vector():set(367.45349121094,-4.4235258102417,-206.37678527832),902868,2851)
 	AI:create("dog_strong",vector():set(354.89984130859,-5.0419201850891,-242.89402770996),884637,2847)
 	AI:create("dog_habaruch",vector():set(363.36624145508,-3.9174456596375,-268.61254882813),896634,2847)
@@ -9806,6 +9801,10 @@ function kalinin_dog_start()
 	AI:create("psyonik",vector():set(-12.132638931274,-5.8700127601624,24.875675201416),361431,2811)
 	AI:create("esc_arhara_stalker_zombied1",vector():set(-47.246391296387,-6.1158480644226,25.785842895508),310418,2809)
 	AI:create("girl_zombied3",vector():set(-96.711776733398,-6.1150856018066,33.775817871094),238241,2802)
+	start_real_timer("run", 2, "akill.kalinin_dog_start_task()")
+end
+function kalinin_dog_start_task()
+	Actor:give_info_portion("kalinin_dog_start_1")
 end
 function kalinin_dog_spawn_taynik()
 	AI:create_no_ai("a_inventory_box69",vector():set(-12.821060180664,-2.0568410110474,-370.38354492188),357827,2807)
