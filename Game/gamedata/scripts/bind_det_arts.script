@@ -3,7 +3,8 @@
 --//Автор: Singapur22 переписано Proper70
 --//Дата выхода: 10.01.2010
 --//-----------------------------------------
-local db_arts = db.artefacts
+local db_arts = {}
+local level_object = level.object_by_id
 
 -- В эту таблицу вписывать только секции, которые не начинаются с af_
 local list_arts = {
@@ -39,17 +40,23 @@ local forbiddens = {
 	["af_fosfor"] = true
 }
 
-local snd_obj = xr_sound.get_safe_sound_object("ambient\\da_beep")
+local detector_sound = sound_object("ambient\\da_beep")
 local need_del_spot = nil
 
 function is_detected_art(section)
 	return list_arts[section] or ( section:find("^af_") and not forbiddens[section] )
 end
 
-function add_artefact(sect, id)
-    if is_detected_art(sect) and db_arts[id]==nil then
-		db_arts[id] = {spot = false, tim_beep = 0}
+function add_artefact(obj_id, obj_sect)
+	-- log("add_artefact %s[%s]", obj_sect, obj_id)
+	if is_detected_art( obj_sect )
+		and db_arts[obj_id] == nil
+	then
+		db_arts[obj_id] = {spot = false, tim_beep = 0}
 	end
+end
+function del_artefact(obj_id)
+	db_arts[obj_id] = nil
 end
 
 function update()
@@ -68,18 +75,38 @@ function update()
 	end
 end
 
+local function fix_art_pos(art)
+	local lv_pos = level.vertex_position( art:level_vertex_id() )
+	if art:position():distance_to(lv_pos) > 1 then
+		local art_id = art:id()
+		AI:teleport_object(
+			"",
+			lv_pos:add( vector():set(0, 2, 0) ),
+			art:level_vertex_id(),
+			art:game_vertex_id(),
+			art_id
+		)
+		AI:object( art_id ):use_ai_locations(false)
+	end
+end
+
 function det_indy()
     local obj, dist
 	local time_g = time_global()
+	local actor_pos = Actor:position()
     for k,v in pairs(db_arts) do
-	    obj = level.object_by_id(k)
+	    obj = level_object(k)
 		if obj then
 		    if not obj:parent() then
-				dist = Actor:position():distance_to_sqr(obj:position())
+				if not v.fixed then
+					fix_art_pos(obj)
+					v.fixed = true
+				end
+				dist = actor_pos:distance_to_sqr( obj:position() )
 				if dist <= 40*40 and dist < time_g - v.tim_beep  then
-					if not snd_obj:playing() then
-						db_arts[k].tim_beep = time_g
-						snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+					if not detector_sound:playing() then
+						v.tim_beep = time_g
+						detector_sound:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 					end
 				else
 					this.del_spot(k, v)
@@ -94,19 +121,24 @@ end
 function det_izomorf()
     local obj, dist
 	local time_g = time_global()
+	local actor_pos = Actor:position()
     for k,v in pairs(db_arts) do
-	    obj = level.object_by_id(k)
+	    obj = level_object(k)
 		if obj then
 		    if not obj:parent() then
-				dist = Actor:position():distance_to_sqr(obj:position())
+				if not v.fixed then
+					fix_art_pos(obj)
+					v.fixed = true
+				end
+				dist = actor_pos:distance_to_sqr(obj:position())
 				if dist < 60*60 then
 					if not v.spot then
 						level.map_add_object_spot(k, "artefact_location", get_inv_name(obj:section()))
-						db_arts[k].spot = true
+						v.spot = true
 					end
-					if v.tim_beep < time_g and not snd_obj:playing() then
-						db_arts[k].tim_beep = time_g + 2500
-						snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+					if v.tim_beep < time_g and not detector_sound:playing() then
+						v.tim_beep = time_g + 2500
+						detector_sound:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 					end
 				else
 					this.del_spot(k, v)
@@ -119,7 +151,8 @@ function det_izomorf()
 end
 
 function det_super()
-    local sobj, dist
+    local sobj, dist, art
+	local actor_pos = Actor:position()
 	local time_g = time_global()
     for k,v in pairs(db_arts) do
 	    sobj = AI:object(k)
@@ -127,13 +160,20 @@ function det_super()
 			if sobj.parent_id == 65535 then
 				if not v.spot then
 					level.map_add_object_spot(k, "artefact_location", get_inv_name(sobj:section_name()))
-					db_arts[k].spot = true
+					v.spot = true
 				end
-				dist = Actor:position():distance_to_sqr(sobj.position)
-				if dist < 60*60 then
-					if v.tim_beep < time_g and not snd_obj:playing() then
-						db_arts[k].tim_beep = time_g + 2500
-						snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+				art = level_object(k)
+				if art then
+					if (not v.fixed) then
+						fix_art_pos(art)
+						v.fixed = true
+					end
+					dist = actor_pos:distance_to_sqr( art:position() )
+					if dist < 60*60 then
+						if v.tim_beep < time_g and not detector_sound:playing() then
+							v.tim_beep = time_g + 2500
+							detector_sound:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+						end
 					end
 				end
 			else

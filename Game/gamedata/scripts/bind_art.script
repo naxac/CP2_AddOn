@@ -1,11 +1,9 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local db_arts = db.artefacts
 
 class "art_binder" ( object_binder )
 
 
 function art_binder:__init( item ) super( item )
-	self.item_id = item:id()
 	self.netspawn = true
 end
 
@@ -26,18 +24,14 @@ end
 function art_binder:net_spawn( obj )
 	if not object_binder.net_spawn( self, obj ) then return false end
 
-	if db_arts[self.item_id] == nil
-		and bind_det_arts.is_detected_art(self.object:section())
-	then
-		db_arts[self.item_id] = { spot = false, tim_beep = 0 }
-	end
+	bind_det_arts.add_artefact( self.object:id(), self.object:section() )
 
 	return true 
-end 
+end
 
 function art_binder:net_destroy()
-	if AI:object(self.item_id) == nil then
-		db_arts[self.item_id] = nil
+	if AI:object( self.object:id() ) == nil then
+		bind_det_arts.del_artefact( self.object:id() )
 	end
 
 	object_binder.net_destroy(self)

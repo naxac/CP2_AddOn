@@ -2,11 +2,24 @@
 class "se_artefact"	(cse_alife_item_artefact)
 
 function se_artefact:__init (section) super (section)
---	log("~ se_artefact:__init: %s", section)
+	-- log("~ se_artefact:__init: %s", section)
 	self.is_day_night = sys_ini:r_bool_ex(section, "is_day_night", false)
 	self.is_transformed = false
 end
 --------------------
+function se_artefact:on_register()
+	cse_alife_item_artefact.on_register(self)
+
+	if GGraph:valid_vertex_id(self.m_game_vertex_id)
+		and GGraph:vertex(self.m_game_vertex_id):level_id() == AI:level_id()
+	then
+		bind_det_arts.add_artefact( self.id, self:section_name() )
+	end
+end
+function se_artefact:on_unregister()
+	cse_alife_item_artefact.on_unregister(self)
+	bind_det_arts.del_artefact(self.id)
+end
 function se_artefact:can_switch_offline ()
 	return cse_alife_item_artefact.can_switch_offline (self)
 end
