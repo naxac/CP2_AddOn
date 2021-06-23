@@ -285,15 +285,18 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 	--' Играем дефолтный звук
 	pda_tips:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
 
+	local news_text = game.translate_string(news_id)
 	--' играем озвучку
-	local ozvuchka = news_data_voices.get_sound(news_id)
-	if ozvuchka then
-		xr_sound.stop_prev_sms_sound()
-		local snd_obj = xr_sound.get_safe_sound_object(ozvuchka)
-		if snd_obj then
-			snd_obj:play(Actor, timeout+1, sound_object.s2d)
-			--' Необходимо поставить время показа по длине сцены
-			showtime = snd_obj:length() + 1500
+	if news_text ~= news_id then
+		local ozvuchka = news_data_voices.get_sound(news_id)
+		if ozvuchka then
+			xr_sound.stop_prev_sms_sound()
+			local snd_obj = xr_sound.get_safe_sound_object(ozvuchka)
+			if snd_obj then
+				snd_obj:play(Actor, timeout+1, sound_object.s2d)
+				--' Необходимо поставить время показа по длине сцены
+				showtime = snd_obj:length() + 1500
+			end
 		end
 	end
 	
@@ -303,7 +306,6 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 		start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
 	end
 
-	local news_text = game.translate_string(news_id)
 	if (string.find(news_text, "\\n%c[", 1, true)) == nil then
 		-- Попробуем получить имя отправителя для заголовка
 		local sender_name = nil
@@ -332,9 +334,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 
 	local x,y,s = get_sender_icon(news_text, sender)
 	Actor:give_game_news(news_text.."\\n ", "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime)
-	-- if Actor:is_talking() then	
-		-- Actor:give_talk_message(news_text, "ui\\ui_iconsTotal", Frect():set(x,y,83,47), "iconed_answer_item")
-	-- end	
+
 	return true
 end
 
