@@ -462,10 +462,13 @@ function generic_object_binder:net_destroy()
 	
 	-- АМК. Очистка рестрикторов
 	local sobj=AI:object(id)          
-	if sobj and IAmAMonster[sobj:clsid()] then
-		netpk:modify( sobj, { dynamic_in_restrictions = {} }, netpk.fState )
-	else 
-		-- Выход из игры.
+	if sobj then
+		local obj_clsid = sobj:clsid()
+		if IAmAMonster[obj_clsid] then
+			netpk:modify( sobj, { dynamic_in_restrictions = {} }, netpk.fState )
+		elseif obj_clsid == clsid.psy_dog_phantom_s then
+			AI:release(sobj, true)
+		end
 	end
 end 
 
