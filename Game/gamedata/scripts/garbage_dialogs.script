@@ -7,6 +7,22 @@ function give_dolg_bribe(actor, npc)
 	dialogs.relocate_money(npc, 1500, "out")	
 end
 
+function boars_spawn(first_speaker, second_speaker)
+	local p = xr_gulag.getGulagPopulationComed("gar_boars_nest2")
+	local need = 5
+	if p < need then
+		local cd = "[smart_terrains]\n".."gar_boars_nest2 = true"
+		local pt = patrol("gar_boars_nest2_home")
+		local pos = pt:point(0)
+		local lv = pt:level_vertex_id(0)
+		local gv = pt:game_vertex_id(0)
+		for i = 1, need-p do
+			se_monster.custom_data_on_spawn = cd
+			local obj = AI:create("boar_weak", pos, lv, gv)
+			netpk:modify(obj, {custom_data = cd})
+		end
+	end
+end
 
 function hellcar_payment (stalker, player)
 	dialogs.relocate_money(stalker, 2000, "in")
