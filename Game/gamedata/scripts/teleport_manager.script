@@ -527,23 +527,34 @@ function remove_old_teleport()
 	Actor:disable_info_portion("teleport_started")
 end
 
-function on_take_teleportator()
+function on_take_teleportator(obj)
 	shiftCheckDropItem()
-	Actor:inventory_for_each(transfer_to_teleporter)
-	news_manager.send_tip("Все имеющиеся ручные телепорты перенесены в Телепортатор.", nil, "nano", 20000)
-end
-function transfer_to_teleporter(obj)
-	local obj_sect = obj:section()
+	local obj_sect
+	local cond_total = 0
+	Actor:inventory_for_each(
+		function(item)
+			obj_sect = item:section()
+			if string.find(obj_sect,"arhara_obman") then
+				cond_total = cond_total + item:condition()
+				Actor:give_info_portion(obj_sect)
+				del_obj_by_id( item:id() )
+			end
+		end
+	)
+	news_manager.send_tip("take_teleportator_sms", nil, "nano", 20000)
 
-	if string.find(obj_sect,"arhara_obman") then
-		Actor:give_info_portion(obj_sect)
-		amk.remove_item_from_inventory(obj, Actor)
-	end
+	local new_cond = math.min(cond_total + obj:condition(), 1)
+	obj:set_condition(new_cond)
+	local sobj = AI:object( obj:id() )
+	if not sobj then return end
+	netpk:modify(sobj, {condition = new_cond}, netpk.fState)
 end
+
 
 function on_take_teleporter(obj)
 	-- нашли телепорт - добавляем его в телепортатор
-	if not Actor:object("teleportator") then return end
+	local tel = Actor:object("teleportator")
+	if not tel then return end
 	
 	local obj_sect = obj:section()
 
@@ -552,8 +563,15 @@ function on_take_teleporter(obj)
 		news_manager.send_tip("В Телепортатор добавлена новая территория: "..game.translate_string(teleports[obj_sect].autosave)..".", nil, "nano", 20000)
 		archievements.acv_cognized_zone()
 
+		local new_cond = math.min(tel:condition() + obj:condition(), 1)
+		tel:set_condition(new_cond)
+		local sobj = AI:object( tel:id() )
+		if sobj then
+			netpk:modify(sobj, {condition = new_cond}, netpk.fState)
+		end
+
 		shiftCheckDropItem()
-		amk.remove_item_from_inventory(obj, Actor)
+		del_obj_by_id( obj:id() )
 	end
 end
 
