@@ -4,7 +4,52 @@
 -- Разработчик: Evgeniy Negrobov (Jon) jon@gsc-game.kiev.ua
 -- Доработки: Andrey Fidrya (Zmey) af@svitonline.com
 ----------------------------------------------------------------------------------------------------
+local clsid_for_fix = {
+	[clsid.obj_physic]           = true,
+	[clsid.obj_phys_destroyable] = true,
+	[clsid.script_phys]          = true
+}
+local function physics_position_fix(obj)
+	local ps = obj:get_physics_shell()
+	if not ps then return end
 
+	local need_fix = false
+	local el
+	for i = 0, ps:get_elements_number()-1 do
+		el = ps:get_element_by_order(i)
+		if el and el:is_fixed() then
+			need_fix = true
+			break
+		end
+	end
+
+	if not need_fix then return end
+
+	local se_obj = AI:object( obj:id() )
+	if se_obj and se_obj.position:distance_to( obj:position() ) > 0.1 then
+		log( "~ fix position for object [%s]", obj:name() )
+		local data_old = netpk:get(se_obj)
+		local new_obj = AI:create(
+			obj:section(),
+			se_obj.position,
+			se_obj.m_level_vertex_id,
+			se_obj.m_game_vertex_id
+		)
+		new_obj.angle = se_obj.angle
+		local data = {}
+		for _, k in ipairs( {
+			"fixed_bones", "mass", "physic_type", "visual_name", "custom_data"
+		} ) do
+			data[k] = data_old[k]
+		end
+		netpk:modify(new_obj, data)
+		new_obj = AI:object(new_obj.id)
+		new_obj:use_ai_locations(false)
+		-- level.map_add_object_spot(new_obj.id, "red_location", new_obj:name())
+		start_small_timer(10, del_obj_by_id, se_obj.id)
+		log("- Successfully")
+	end
+end
 
 function init(obj)
 --	printf("_bp: init(): name='%s'", obj:name())
@@ -29,7 +74,11 @@ function init(obj)
 	if (not ini) or (not ini:section_exist("logic")) then
 		-- Прожектор нужно биндить даже без logic
 		if ini and not ini:section_exist("drop_box") then
-			if obj:clsid() ~= clsid.projector then
+			local cls = obj:clsid()
+			if cls ~= clsid.projector then
+				if clsid_for_fix[cls] then
+					obj:bind_object( physics_fix_binder(obj) )
+				end
 				return
 			end
 		end
@@ -39,6 +88,18 @@ function init(obj)
 	obj:bind_object(new_binder)
 end
 
+------------------------------------------------------------
+class "physics_fix_binder" (object_binder)
+function physics_fix_binder:__init(obj) super(obj)
+end
+function physics_fix_binder:update(delta)
+	object_binder.update(self, delta)
+
+	if not self.ph_pos_fixed then
+		physics_position_fix(self.object)
+		self.ph_pos_fixed = true
+	end
+end
 ---------------------------------------------------------------------------------------------
 class "generic_physics_binder" (object_binder)
 function generic_physics_binder:__init(obj) super(obj)
@@ -64,6 +125,13 @@ end
 
 function generic_physics_binder:update(delta)
 	object_binder.update(self, delta)
+
+	if not self.ph_pos_fixed then
+		if clsid_for_fix[ self.object:clsid() ] then
+			physics_position_fix(self.object)
+		end
+		self.ph_pos_fixed = true
+	end
 
 	if (not self.initialized) and Actor then
 		self.initialized = true
