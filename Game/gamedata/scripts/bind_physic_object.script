@@ -126,13 +126,6 @@ end
 function generic_physics_binder:update(delta)
 	object_binder.update(self, delta)
 
-	if not self.ph_pos_fixed then
-		if clsid_for_fix[ self.object:clsid() ] then
-			physics_position_fix(self.object)
-		end
-		self.ph_pos_fixed = true
-	end
-
 	if (not self.initialized) and Actor then
 		self.initialized = true
 		xr_logic.initialize_obj(self.object, self.st, self.loaded, Actor, modules.stype_item)        
@@ -149,8 +142,14 @@ function generic_physics_binder:update(delta)
         if graph_point_marker ~= nil then
             self.disable_graph_point = patrol(graph_point_marker):game_vertex_id(0)
             GGraph:accessible(self.disable_graph_point, false)
-            printf("GRAPH POINT DISABLED")
+            -- printf("GRAPH POINT DISABLED")
         end
+		
+		if clsid_for_fix[ self.object:clsid() ] then
+			if self.st.active_scheme ~= "ph_gate" then
+				physics_position_fix(self.object)
+			end
+		end
 	end
 
 	if self.st.active_section ~= nil
