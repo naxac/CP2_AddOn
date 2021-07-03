@@ -5,8 +5,9 @@ function se_artefact:__init (section) super (section)
 	-- log("~ se_artefact:__init: %s", section)
 	self.is_day_night = sys_ini:r_bool_ex(section, "is_day_night", false)
 	self.is_transformed = false
+	self.art_loss = 0
 end
---------------------
+
 function se_artefact:on_register()
 	cse_alife_item_artefact.on_register(self)
 
@@ -23,7 +24,7 @@ end
 function se_artefact:can_switch_offline ()
 	return cse_alife_item_artefact.can_switch_offline (self)
 end
---------------------
+
 function se_artefact:can_switch_online ()
     -- если есть родитель, либо арт только сварили, либо он не ночной вовсе,
 	-- то ничего не делаем
@@ -43,4 +44,17 @@ function se_artefact:can_switch_online ()
 		return false
 	end
 end
---------------------
+
+function se_artefact:STATE_Write(packet)
+	cse_alife_item_artefact.STATE_Write(self, packet)
+
+	packet:w_bool(self.is_transformed)
+	packet:w_float(self.art_loss)
+end
+function se_artefact:STATE_Read(packet, size)
+	cse_alife_item_artefact.STATE_Read(self, packet, size)
+
+	if packet:r_eof() then return end
+	self.is_transformed = packet:r_bool()
+	self.art_loss = packet:r_float()
+end

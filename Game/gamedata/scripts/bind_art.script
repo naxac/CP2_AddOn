@@ -17,6 +17,12 @@ function art_binder:update( delta )
 			local impulse = item:mass() * 1300
 			ps:apply_force( 0, impulse, 0 )
 		end
+
+		local se_obj = AI:object( self.object:id() )
+		if se_obj and se_obj.is_transformed then
+			self:set_art_loss(se_obj.art_loss)
+		end
+
 		self.netspawn = false
 	end
 end
@@ -37,6 +43,32 @@ function art_binder:net_destroy()
 	object_binder.net_destroy(self)
 end
 
+function art_binder:set_art_loss(loss)
+	if loss == 0 then return end
+
+	local cond = 1 - loss
+	local item = self.object
+
+	item:set_cost( item:cost() * cond )
+
+	local val = 0
+	local sect = item:section()
+	for k, v in pairs(artefact_offsets.conditions) do
+		val = sys_ini:r_float(sect, k)
+		item:set_inventory_item_float(nil, val*cond, v)
+	end
+
+	sect = sys_ini:r_string(sect, "hit_absorbation_sect")
+	for k, v in pairs(artefact_offsets.immunities) do
+		val = sys_ini:r_float(sect, k)
+		if val ~= 1 then
+			val = (val-1) * cond + 1
+			item:set_inventory_item_float(nil, val, v)
+		end
+	end
+
+	item:set_inventory_item_flags(ii_flags.ungroupable, true)
+end
 ---------------------------------------------------------------------------------
 function bind( item )
 	item:bind_object( art_binder( item ) )

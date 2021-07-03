@@ -1382,6 +1382,8 @@ local res2key = {
 	[1] = "virogd",	-- вырождение
 	[2] = "cel"		-- удача
 }
+local bad_art_prob = 0.3
+local good_art_prob = 0.15
 
 -- возвращает значение, возможно из умолчаний
 function get_af_transform_param(name, recept, recepti)
@@ -1632,8 +1634,8 @@ function af_transform_universal_end(var)
 		local obj
 		for sect in pairs(result) do
 			obj = AI:create_no_ai(sect, params.pos:add(vector():set(0,1,0)), params.lv, params.gv)
-			obj.is_transformed = true
 			amk.add_spot_on_map(obj.id, "red_location", text)
+			obj.is_transformed = true
 			if isWeapon(obj) then
 				this.set_wpn_after_transform(obj)
 			end
@@ -1642,13 +1644,23 @@ function af_transform_universal_end(var)
 				archievements.acv_count_event("acv_art", 100, "Сварщик")
 				actor_stats.add_points( "artefacts_2", get_inv_name(sect), 1, 1 )
 				xr_statistic.add_actor_rank( xr_statistic.get_af_rank(sect) )
+				local cls = obj:clsid()
+				if cls == clsid.artefact_s or cls == clsid.art_gravi_s then
+					if math_random() < bad_art_prob then
+						obj.art_loss = math_random(1, 50)/100
+					elseif math_random() < good_art_prob then
+						obj.art_loss = -math_random(1, 50)/100
+					end
+				end
 			end
 			xr_statistic.set_id( obj.id, true )
 		end
 
 		local where = news_main.get_point_description( AI:level_name( GGraph:vertex(params.gv):level_id() ), params.pos )
-		text = "Из %c[red_sms]"..from_komp.."\\n%c[default]"..where.."."
-		amk.send_tip(text, caption, nil, nil, "nano")
+		text = caption.."\\n"..
+			"Из %c[red_sms]"..from_komp.."\\n"..
+			"%c[default]"..where.."."
+		news_manager.send_tip(text, nil, "nano")
 	end
 	
 	-- даём инфопорцию, если есть
@@ -1671,7 +1683,7 @@ end
 
 function set_wpn_after_transform(sobj)
 	local tt = {}
-	local cond_set = math.random(20, 80)/100
+	local cond_set = math_random(20, 80)/100
 	tt.condition = cond_set
 	tt.ammo_elapsed = 0
 	netpk:modify(sobj, tt, netpk.fState)
