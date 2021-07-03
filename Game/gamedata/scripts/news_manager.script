@@ -283,7 +283,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 	end
 ]]
 	--' Играем дефолтный звук
-	pda_tips:play_no_feedback(Actor, sound_object.s2d, timeout, vector(), 1.0)
+	pda_tips:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
 
 	local news_text = game.translate_string(news_id)
 	--' играем озвучку
@@ -293,7 +293,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 			xr_sound.stop_prev_sms_sound()
 			local snd_obj = xr_sound.get_safe_sound_object(ozvuchka)
 			if snd_obj then
-				snd_obj:play(Actor, timeout+1, sound_object.s2d)
+				snd_obj:play(Actor, 1, sound_object.s2d)
 				--' Необходимо поставить время показа по длине сцены
 				showtime = snd_obj:length() + 1500
 			end
@@ -303,7 +303,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 	if showtime == nil then showtime = 5000 end
 
 	if func then
-		start_real_timer("run", timeout + showtime/1000 + (_shift or 1), func)
+		start_real_timer("run", showtime/1000 + (_shift or 1), func)
 	end
 
 	if (string.find(news_text, "\\n%c[", 1, true)) == nil then
@@ -333,7 +333,7 @@ function send_tip(news_id, timeout, sender, showtime, sender_id, func, _shift)
 	end
 
 	local x,y,s = get_sender_icon(news_text, sender)
-	Actor:give_game_news(news_text.."\\n ", "ui\\ui_iconsTotal", Frect():set(x,y,83,47), timeout*1000, showtime)
+	Actor:give_game_news(news_text.."\\n  \\n ", "ui\\ui_iconsTotal", Frect():set(x,y,83,47), 0, showtime)
 
 	return true
 end
@@ -341,10 +341,8 @@ end
 function send_tip_nosound(actor, news_id, timeout, sender)
 	if news_id == nil then return end
 
-	timeout = 0
-
 	--' Играем дефолтный звук
-	pda_tips:play(Actor, timeout, sound_object.s2d)
+	pda_tips:play(Actor, 0, sound_object.s2d)
 
 	local news_sound = news_data_voices.get_sound(news_id)
 	if news_sound then
