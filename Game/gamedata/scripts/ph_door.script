@@ -263,6 +263,9 @@ function action_door:hit_callback(obj, amount, local_direction, who, bone_index)
 		return
 	end
 end
+function action_door:net_destroy()
+	level_doors[self.object:id()] = nil
+end
 function action_door:deactivate()
 	self.object:set_tip_text("")
 end
@@ -297,16 +300,14 @@ function set_scheme(npc, ini, scheme, section, gulag_name)
 	st.tip_open  = utils.cfg_get_string(ini, section, "tip_open", npc, false, "", "tip_door_open")		
 	st.tip_unlock  = utils.cfg_get_string(ini, section, "tip_open", npc, false, "", "tip_door_locked")
 	st.tip_close = utils.cfg_get_string(ini, section, "tip_close", npc, false, "", "tip_door_close")
-	
-	
+
 --	st.snd_init        = utils.cfg_get_string(ini, section, "snd_init", npc, false, "")
 	st.snd_open_start  = utils.cfg_get_string(ini, section, "snd_open_start", npc, false, "", "trader_door_open_start")
 	st.snd_close_start = utils.cfg_get_string(ini, section, "snd_close_start", npc, false, "", "trader_door_close_start")
 	st.snd_close_stop  = utils.cfg_get_string(ini, section, "snd_close_stop", npc, false, "", "trader_door_close_stop")
 	
 	st.on_use    = xr_logic.cfg_get_condlist(ini, section, "on_use", npc)
-	
-		
+
 	st.hit_on_bone = utils.parse_data_1v(npc, utils.cfg_get_string(ini, section, "hit_on_bone", npc, false, ""))
 end
 
@@ -319,10 +320,12 @@ function try_to_open_door(npc)
 --	if true then return {} end
 	local opened_doors = {}
 	local npc_position = npc:position()
+	local st
 	for id,position in pairs(level_doors) do
 		if position and npc_position:distance_to_sqr(position) <= 9 then
-			if db.storage[id].ph_door ~= nil then
-				local action = db.storage[id].ph_door.door_action					
+			st = db.storage[id]
+			if st and st.ph_door ~= nil then
+				local action = st.ph_door.door_action					
 				if action.st.not_for_npc == false
 					and action.st.closed == true
 					and action.st.locked ~= true
@@ -342,12 +345,14 @@ function try_to_close_door(npc, doors)
 --	if true then return {} end
 	local npc_position = npc:position()
 	local closed_doors = {}
+	local st
 	for id, v in pairs(doors) do
 		if not level_doors[id] then
 			closed_doors[id] = true
 		elseif npc_position:distance_to_sqr(level_doors[id]) > 9 then
-			if db.storage[id].ph_door ~= nil then
-				local action = db.storage[id].ph_door.door_action
+			st = db.storage[id]
+			if st and st.ph_door ~= nil then
+				local action = st.ph_door.door_action
 				if action.st.not_for_npc == false
 					and action.st.closed ~= true
 					and action.st.locked ~= true
