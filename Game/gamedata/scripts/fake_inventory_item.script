@@ -12,7 +12,8 @@ local saved_fields = {
 	["addon_flags"]  = { name = "af", def = function(s) return 0 end   },
 	["ammo_ids"]     = { name = "ai", def = function(s) return nil end },
 	["worked_time"]  = { name = "wt", def = function(s) return 0 end   },
-	["current_src"]  = { name = "cs", def = function(s) return 0 end   }
+	["current_src"]  = { name = "cs", def = function(s) return 0 end   },
+	["art_loss"]     = { name = "ar", def = function(s) return 0 end   }
 }
 	
 local fake_items = {}
@@ -83,6 +84,7 @@ function fake_item:set_obj(obj)
 	self.custom_data = data.custom_data
 	self.worked_time = data.worked_time
 	self.current_src = data.current_src
+	self.art_loss = data.art_loss
 	self.ammo_left = data.ammo_left
 	self.ammo_type = data.ammo_type
 	self.addon_flags = data.addon_flags
@@ -99,13 +101,17 @@ function fake_item:write_server_object(se_obj)
 	if (self.charge_level or 0) > 0 and (self.current_src or 0) == 0 then
 		self.current_src = 1
 	end
+	if self.art_loss and self.art_loss ~= 0 then
+		t.is_transformed = true
+		t.art_loss = self.art_loss
+	end
 	t.ammo_elapsed = self.ammo_elapsed
 	t.ammo_type = self.ammo_type
 	t.ammo_left = self.ammo_left
 	t.addon_flags = self.addon_flags
 	t.upd = {}
 	t.upd.ammo_ids = self.ammo_ids
-	
+
 	netpk:modify(se_obj, t)
 end
 
@@ -183,6 +189,36 @@ function fake_item:get_container_arts()
 	end
 
 	return ret
+end
+
+local offset2iniline = {}
+for k, v in pairs(artefact_offsets) do
+	for kk, vv in pairs(v) do
+		offset2iniline[vv] = {line = kk, type = k}
+	end
+end
+function fake_item:get_inventory_item_float(offset)
+	if self:is_artefact() then
+		local t = offset2iniline[offset]
+		if t then
+			local res = 0
+			if t.type == "conditions" then
+				res = sys_ini:r_float(self.__section, t.line)
+			else
+				local s = sys_ini:r_string(self.__section, "hit_absorbation_sect")
+				res = sys_ini:r_float(s, t.line)
+			end
+			if self.art_loss and self.art_loss ~= 0 then
+				if t.type == "conditions" then
+					res = res * self.art_loss
+				else
+					res = (res - 1)*self.art_loss + 1
+				end
+			end
+			return res
+		end
+	end
+	return 0
 end
 
 function fake_item:get_power_loss()
