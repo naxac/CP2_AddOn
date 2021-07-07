@@ -54,6 +54,7 @@ end
 local valuable_clsid={
     [clsid.artefact]=true,
     [clsid.artefact_s]=true,
+    [clsid.art_gravi_s]=true,
     [clsid.device_detector_simple]=true,
     [clsid.device_pda]=true,
     [clsid.device_torch_s]=true,
@@ -198,6 +199,14 @@ function ev_see_stuff:evaluate()
 		if res then freeGObject(self.st) end
 		return false
 	end
+
+	if self.st.actor_see_us then
+		if self.st.actor_see_us > time_global() then
+			return false
+		else
+			self.st.actor_see_us = nil
+		end
+	end
 	
 	if npc:relation(Actor) == game_object.enemy and Actor:see(npc) then
 		if res then
@@ -207,10 +216,12 @@ function ev_see_stuff:evaluate()
 			local dir = Actor:position():sub(npc:position()):add(vector():set(0,1,0))
 			npc:set_sight(look.direction, dir)
 			npc:set_mental_state(anim.danger)
+			npc:enable_memory_object(Actor, true)
 		--	local pos = Actor:position()
 		--	npc:set_sight(look.point,pos)
 		--	npc:set_desired_direction(pos:sub(npc:position()))
 		end
+		self.st.actor_see_us = time_global() + 60000
 		return false
 	end
 
