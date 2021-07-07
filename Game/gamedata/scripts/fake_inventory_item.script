@@ -176,15 +176,19 @@ function fake_item:get_container_arts()
 	local ret = {}
 
 	if cd and cd.arts then
-		local sect, cond
+		local sect, cond, loss
 		for n, str in pairs(cd.arts) do
-			sect, cond = unpack( string.explode(str, ":", true) )
-			ret[tonumber(n)] = { s = sect, c = cond or 1 }
+			sect, cond, loss = unpack( string.explode(str, ":", true) )
+			ret[tonumber(n)] = {
+				s = sect,
+				c = tonumber(cond) or 1,
+				ar = loss or 0
+			}
 		end
 	else
 		local count = sys_ini:r_u32( self:section(), "container_slots" )
 		for i = 1, count do
-			ret[i] = { s = "_", c = 0 }
+			ret[i] = { s = "_", c = 0, ar = 0 }
 		end
 	end
 
