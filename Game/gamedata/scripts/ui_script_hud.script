@@ -168,6 +168,18 @@ function UIScriptHUD:Update(delta)
 		end
 	end
 
+	-- удалим неактуальные метки
+	if #self.del_spots > 0 then
+		local n
+		for i, v in ipairs(self.del_spots) do
+			n = self:FindSpot( v[1], v[2] )
+			if n then
+				self.map:DetachChild( table.remove(self.map_spots, n) )
+			end
+		end
+		self.del_spots = {}
+	end
+
 	if not self.need_update then return end
 
 	amk.oau_watchdog=18811
@@ -291,17 +303,6 @@ end
 
 function UIScriptHUD:UpdateMapSpots()
 	amk.oau_watchdog=18813
-	-- удалим неактуальные метки
-	if #self.del_spots > 0 then
-		local n
-		for i, v in ipairs(self.del_spots) do
-			n = self:FindSpot( v[1], v[2] )
-			if n then
-				self.map:DetachChild( table.remove(self.map_spots, n) )
-			end
-		end
-		self.del_spots = {}
-	end
 
 	self.actor_pos = Actor:position()
 
