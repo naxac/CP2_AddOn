@@ -306,7 +306,7 @@ function update(delta)
 		local objPos, x, y, dir, color, corner, cls
 		local custom_static
 		local dotName
-		local vect, obj
+		local vect
 		local sdir
 	--	if hardBio then
 	--		sdir = vector():set( 0,0,0 )
@@ -324,14 +324,11 @@ function update(delta)
 		end
 
 		amk.oau_watchdog = 18102
-		for id in pairs(db.creatures) do
-			obj = level_object(id)
+		for id, obj in pairs(db.creatures) do
+			if AI:object(id) then
+		--	obj = level_object(id)
 			amk.oau_reason = "biodetector update: "..( obj and obj:name() or tostring(id) )
-			cls = obj and obj.clsid and obj:clsid()
-			if AI:object(id) == nil or not cls then
-				biodetectorRemove()
-				return
-			end
+			cls = obj:clsid()
 			objPos = obj.position and obj:position()
 			if objPos and objPos:distance_to_xz(actorPos) <= max_dist
 				and ( IsHuman[cls]
@@ -398,6 +395,7 @@ function update(delta)
 				end
 			else
 				remove_dot( id )
+			end
 			end
 		end
 	else

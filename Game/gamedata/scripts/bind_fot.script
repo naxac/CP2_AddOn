@@ -296,42 +296,44 @@ function foto_binder:check_creatures()
 	local clsid, section
 	
 	for id,obj in pairs(db.creatures) do
-		clsid = obj:clsid()
-		section = obj:section()
-		
-		-- монстры
-		if IAmAMonster[clsid] and obj:alive() and Actor:see(obj) and not protected_items.is_monster_friend(section) then
-			-- сначала смотрим тихую охоту
-			if  (has_alife_info("silent_hunt_start") and not has_alife_info("silent_hunt_done")) and
-				(silent_hunt_monsters[clsid] and not has_alife_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
-				( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 4, 5.0, true, nil, true) )
-			then
-				-- удачный снимок и такого еще не было
-				news_manager.send_tip("silent_hunt_sms", nil, nil, 15000)
-				news_manager.send_tip("silent_hunt_answer_sms", 15, nil, 15000)
-				Actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
-				return true
-				
-			-- затем фото уникальных монстров
-			elseif 
-				foto_unique_monster[section] and 
-				has_alife_info(foto_unique_monster[section].has_info) and not has_alife_info(foto_unique_monster[section].info) and
-				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
-			then
-				-- удачный снимок и такого еще не было
-				news_manager.send_tip("make_foto_monster_uniq_sms", nil, nil, 10000)
-				Actor:give_info_portion(foto_unique_monster[section].info)
-				return true
+		if AI:object(id) then
+			clsid = obj:clsid()
+			section = obj:section()
+			
+			-- монстры
+			if IAmAMonster[clsid] and obj:alive() and Actor:see(obj) and not protected_items.is_monster_friend(section) then
+				-- сначала смотрим тихую охоту
+				if  (has_alife_info("silent_hunt_start") and not has_alife_info("silent_hunt_done")) and
+					(silent_hunt_monsters[clsid] and not has_alife_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
+					( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 4, 5.0, true, nil, true) )
+				then
+					-- удачный снимок и такого еще не было
+					news_manager.send_tip("silent_hunt_sms", nil, nil, 15000)
+					news_manager.send_tip("silent_hunt_answer_sms", 15, nil, 15000)
+					Actor:give_info_portion("monster_stealth_"..silent_hunt_monsters[clsid])
+					return true
+					
+				-- затем фото уникальных монстров
+				elseif 
+					foto_unique_monster[section] and 
+					has_alife_info(foto_unique_monster[section].has_info) and not has_alife_info(foto_unique_monster[section].info) and
+					( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
+				then
+					-- удачный снимок и такого еще не было
+					news_manager.send_tip("make_foto_monster_uniq_sms", nil, nil, 10000)
+					Actor:give_info_portion(foto_unique_monster[section].info)
+					return true
 
-			-- затем обычную охоту
-			elseif (has_alife_info("foto_ohota_start") and not has_alife_info("foto_ohota_done")) and
-				foto_ohota_monsters[section] and not has_alife_info(foto_ohota_monsters[section]) and
-				( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
-			then
-				-- удачный снимок и такого еще не было
-				news_manager.send_tip("make_foto_monster_sms", nil, nil, 10000)
-				Actor:give_info_portion(foto_ohota_monsters[section])
-				return true
+				-- затем обычную охоту
+				elseif (has_alife_info("foto_ohota_start") and not has_alife_info("foto_ohota_done")) and
+					foto_ohota_monsters[section] and not has_alife_info(foto_ohota_monsters[section]) and
+					( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
+				then
+					-- удачный снимок и такого еще не было
+					news_manager.send_tip("make_foto_monster_sms", nil, nil, 10000)
+					Actor:give_info_portion(foto_ohota_monsters[section])
+					return true
+				end
 			end
 		end
 	end
@@ -406,7 +408,7 @@ end
 
 function foto_binder:check_focus()
 	for id,obj in pairs(db.creatures) do
-		if IAmAMonster[obj:clsid()] and obj:alive() and Actor:see(obj) then
+		if AI:object(id) and IAmAMonster[obj:clsid()] and obj:alive() and Actor:see(obj) then
 			if self:obj_in_shot(obj:bone_position("bip01_head"), 0, 4, 5.0, true, nil, false)
 			then return true
 			elseif self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false)
