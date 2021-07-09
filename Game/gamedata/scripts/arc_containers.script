@@ -75,7 +75,7 @@ function get_container_arts( cont_id )
 			ret[ tonumber(n) ] = {
 				s = sect,
 				c = tonumber(cond) or 1,
-				ar = loss or 0
+				ar = tonumber(loss) or 0
 			}
 		end
 	else
@@ -99,7 +99,7 @@ function set_container_arts(cont_id, arts)
 
 	local t = {}
 	for i, v in ipairs(arts) do
-		t[ tostring(i) ] = string.format("%s:%s:%s", v.s, (v.c or 1), v.ar)
+		t[ tostring(i) ] = string.format( "%s:%s:%s", v.s, (v.c or 1), (v.ar or 0) )
 	end
 
 	local data = {
@@ -167,7 +167,7 @@ function container_binder:net_spawn(sobj)
 		for i, v in ipairs(arts) do
 			if v.s ~= "_" then
 				add_weight = add_weight + sys_ini:r_float(v.s, "inv_weight")
-				add_cost = add_cost + sys_ini:r_u32(v.s, "cost")*(v.c or 1)
+				add_cost = add_cost + sys_ini:r_u32(v.s, "cost")*(v.c or 1) * (1 - (v.ar or 0))
 			end
 		end
 		local ungroup = false
