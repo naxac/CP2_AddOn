@@ -213,6 +213,8 @@ function InvWnd:inventory_open()
 
 	self.use_dik = bind_to_dik(key_bindings.kUSE)
 	get_console():execute("unbind use")
+
+	xr_s.subscribe("key_press", this.key_press)
 end
 
 function InvWnd:inventory_close()
@@ -230,6 +232,8 @@ function InvWnd:inventory_close()
 	local key = hotkeys.dik2key( self.use_dik )
 	if not key:find("MOUSE") then key = "k"..key end
 	get_console():execute( "bind use "..string.lower(key) )
+
+	xr_s.unsubscribe("key_press", this.key_press)
 end
 
 function InvWnd:qslot_focus(i)
@@ -585,6 +589,26 @@ function on_net_destroy()
 		wnd:DetachWnd()
 	end
 	wnd = nil
+end
+
+local pda_binds = {
+	[key_bindings.kACTIVE_JOBS] = true,
+	[key_bindings.kMAP] = true,
+	[key_bindings.kCONTACTS] = true,
+}
+function key_press(dik, bind)
+	if pda_binds[bind] then
+		xr_s.subscribe( "inventory_close", this.open_pda, {once = true, userobj = dik} )
+		local dik = bind_to_dik( key_bindings.kQUIT )
+		level.send_event_key_press(dik)
+	--	level.send_event_key_hold(dik)
+		level.send_event_key_release(dik)
+	end
+end
+function open_pda(dik)
+	level.send_event_key_press(dik)
+--	level.send_event_key_hold(dik)
+	level.send_event_key_release(dik)
 end
 
 function attach()
