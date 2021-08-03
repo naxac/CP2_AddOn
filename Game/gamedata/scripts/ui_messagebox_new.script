@@ -21,8 +21,8 @@ function UIMessageBox:__init( type, msg, func_yes, func_no, show_time )
 	self.quit_dik = bind_to_dik( key_bindings.kQUIT )
 	get_console():execute( "unbind quit" )
 
-	self.box_name = type2box[ type or "ok_info" ]
-	self.text = msg
+	local box_name = type2box[ type or "ok_info" ]
+	local text = msg
 	
 	self.message_box = CUIMessageBoxEx()
 
@@ -52,29 +52,24 @@ function UIMessageBox:__init( type, msg, func_yes, func_no, show_time )
 	end
 
 	self.dlg = self
-	level.start_stop_menu( self, true )
 
-	xr_s.subscribe( "update", self.ShowMessageBox, { timeout = 300, self = self, once = true } )
+	self.message_box:Init( box_name )
+	self.message_box:SetText( text )
+	level.start_stop_menu( self.message_box, true )
 
 	if show_time then
-		self.timer_id = start_small_timer( show_time + 300, self.OnQuit, self, true )
+		self.timer_id = start_small_timer( show_time, self.OnQuit, self, true )
 	end
 end
 
 function UIMessageBox:__finalize()
 end
 
-function UIMessageBox:ShowMessageBox()
-	self.message_box:Init( self.box_name )
-	self.message_box:SetText( self.text )
-	self:GetHolder():start_stop_menu( self.message_box, true )
-end
-
 function UIMessageBox:OnQuit(from_timer)
 	if self.timer_id then
 		remove_small_timer( self.timer_id )
 		if from_timer then
-			self:GetHolder():start_stop_menu( self.message_box, true )
+			level.start_stop_menu( self.message_box, true )
 		end
 	end
 
@@ -86,7 +81,6 @@ function UIMessageBox:OnQuit(from_timer)
 
 	self:ClearCallbacks()
 	self.message_box = nil
-	self:GetHolder():start_stop_menu( self, true )
 	self.dlg = nil
 
 	BlockUIDescr( false )
