@@ -446,8 +446,30 @@ dik_actions[DIK_keys.DIK_J] = function()
 	naxac_test.ggg()
 end
 
+local ui_binds = {
+	[key_bindings.kACTIVE_JOBS] = "ui_pda",
+	[key_bindings.kMAP]         = "ui_pda",
+	[key_bindings.kCONTACTS]    = "ui_pda",
+	[key_bindings.kINVENTORY]   = "ui_inventory"
+}
+
 function on_key(dik, bind)
-	if get_wnd()~=nil then return end
+	if get_wnd()~=nil then
+		if ui_binds[bind] then
+			if ui_binds[bind] == "ui_inventory" then
+				local w = level.get_pda_wnd()
+				if w and w:IsShown() then
+					level.start_stop_menu(w)
+				end
+			else
+				local w = level.get_inventory_wnd()
+				if w and w:IsShown() then
+					level.start_stop_menu(w)
+				end
+			end
+		end
+		return
+	end
 	
 	if binds_actions[bind] then
 		binds_actions[bind]()
