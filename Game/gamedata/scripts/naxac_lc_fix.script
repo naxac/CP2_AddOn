@@ -1,0 +1,155 @@
+
+local script_story_ids = {
+	"lc_warlab_to_control_monolith",
+	"lc_sarkofag_to_x10",
+	"lc_x10_to_sarkofag",
+	"lc_sarkofag_to_aes2",
+	"lc_aes2_to_sarkofag",
+	"lc_military_to_limansk",
+	"lc_dead_city_to_atp_timing",
+	"lc_aver_to_east_pripyat",
+	"lc_yantar_to_east_pripyat",
+	"lc_east_pripyat_to_aver",
+	"lc_east_pripyat_to_labx8",
+	"lc_labx8_to_jup_underground",
+	"lc_jup_underground_to_east_pripyat",
+	"lc_east_pripyat_to_jupiter",
+	"lc_jupiter_to_jup_underground",
+	"lc_east_pripyat_to_zaton",
+	"lc_garbage_to_east_pripyat",
+	"lc_zaton_to_east_pripyat",
+	"lc_labx8_to_east_pripyat",
+	"lc_east_pripyat_to_pripyat",
+	"lc_pripyat_to_east_pripyat",
+	"lc_zaton_to_jupiter",
+	"lc_jupiter_to_zaton",
+	"lc_jupiter_to_east_pripyat",
+	"lc_labrint_to_sarkofag",
+	"lc_yantar_to_aes",
+	"lc_escape_to_bar",
+	"lc_bar_to_escape",
+	"lc_bar_to_pripyat",
+	"lc_pripyat_to_bar",
+	"lc_east_pripyat_to_jup_underground"
+}
+local lc_no_sid = {
+	exit_to_agr_underground_02 = "lc_agroprom_to_agr_und_1",
+	exit_to_agr_underground_03 = "lc_agroprom_to_agr_und_2",
+	exit_to_agr_underground_05 = "lc_agroprom_to_agr_und_3",
+	exit_to_agroprom_02 = "lc_agr_und_to_agroprom_1",
+	exit_to_agroprom_06 = "lc_agr_und_to_agroprom_2",
+	exit_to_labx18_01 = "lc_darkvalley_to_labx8",
+	exit_to_darkvalley_01 = {l04u_labx18 = "lc_labx8_to_darkvalley"},
+	labx18_exit_to_darkvalley_01 = "lc_labx8_to_darkvalley",
+	exit_to_brainlab_01 = "lc_yantar_to_x16",
+	exit_to_yantar_tunnel_01 = "lc_x16_to_yantar_tonnel",
+	exit_to_yantarl_01 = "lc_x16_to_yantar",
+	exit_to_bunker_01 = "lc_radar_to_bunker",
+	exit_to_radar_01 = {l10u_bunker = "lc_bunker_to_radar"},
+	bun_exit_to_radar_01 = "lc_bunker_to_radar",
+	exit_to_sarcofag_01 = {l12_stancia = "lc_aes_to_sarkofag", l12u_control_monolith = "lc_control_monolith_to_sarkofag"},
+	aes_exit_to_sarcofag_01 = "lc_aes_to_sarkofag",
+	contr_exit_to_sarcofag_01 = "lc_control_monolith_to_sarkofag",
+	exit_to_control_monolith_01 = {l12u_sarcofag = "lc_sarkofag_to_control_monolith", l12_stancia_2 = "lc_aes2_to_control_monolith"},
+	aes2_exit_to_control_monolith_01 = "lc_aes2_to_control_monolith",
+	sar_exit_to_control_monolith_01 = "lc_sarkofag_to_control_monolith",
+	exit_to_stancia2_01 = "lc_control_monolith_to_aes2"
+}
+
+function main()
+	log("# [naxac_lc_fix.main]: Start.\n")
+	local lc_script = {
+		[64488] = "lc_east_pripyat_to_jupiter"
+	}
+	for i, v in ipairs(script_story_ids) do
+		if story_ids[v] then
+			lc_script[ story_ids[v] ] = v
+		else
+			log("! Fill 'lc_script': wrong story_id %s[%s].", v, tostring(story_ids[v]))
+		end
+	end
+
+	local obj
+	local has_spot = level.map_has_object_spot
+	local add_spot = level.map_add_object_spot_ser
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and obj:clsid() == clsid.level_changer then
+			local spot = ""
+			for i = 1, 5 do
+				if has_spot( obj.id, "level_changer"..tostring(i) ) ~= 0 then
+					spot = "level_changer"..tostring(i)
+					break
+				end
+			end
+
+			local story_id = obj.m_story_id
+			log("Process object %s:%s[%s].", obj:name(), obj.id, story_id)
+			if story_id == 4294967296 then
+				log("- Respawn all.spawn's level changer no story_id: %s.", obj:name())
+				local t = lc_no_sid[obj:name() ]
+				local spawn_sid
+				if t then
+					if type(t) == "string" then
+						spawn_sid = story_ids[ t ]
+					else
+						local lvl = object_level_name(obj)
+						if t[lvl] then
+							spawn_sid = story_ids[ t[lvl] ]
+						end
+					end
+				end
+				if spawn_sid then
+					AI:release(obj, true)
+					obj = AI:create( AI:spawn_id(spawn_sid) )
+					log("Result: %s.", obj:name())
+				else
+					log("! Spawn_story_id not found for object [%s].", obj:name())
+					obj = nil
+				end
+			elseif lc_script[story_id] then
+				log("- Respawn script level changer: %s.", obj:name())
+				if story_id ~= story_ids[ lc_script[story_id] ] then
+					log("~ Release object with incorrect story_id.")
+					AI:release(obj, true)
+				end
+				obj = level_changers.create_level_changer(lc_script[story_id], true)
+				log("Result: %s", obj:name())
+				obj = nil
+			elseif obj:name() == obj:section_name()..obj.id then
+				log("~ Found unknown script level_changer [%s]. Ignore.", obj:name())
+				obj = nil
+			else
+				local spawn_id = AI:spawn_id(story_id)
+				log("spawn_id = %s", spawn_id)
+				if spawn_id <= 15515 then
+					log("- Respawn all.spawn's level changer: %s.", obj:name())
+					AI:release(obj, true)
+					obj = AI:create( spawn_id )
+					log("Result: %s", obj:name())
+				else
+					log("~ Found unknown all-spawn level_changer [%s]. Release.", obj:name())
+					local data = netpk:get(obj)
+					table.print(data)
+					AI:release(obj, true)
+					obj = nil
+				end
+			end
+
+			if obj and spot ~= "" then
+				local hint = ""
+				if story_id == story_ids.lc_rostok_to_bar then
+					hint = "bar_rostok"
+				else
+					local data = netpk:get(obj)
+					local dest_level = level_changers.get_dest_level_name(data.custom_data)
+					hint = "to_"..dest_level
+				end
+				add_spot( obj.id, spot, hint )
+				log("* Add level spot: %s, %s.", spot, hint)
+			end
+			log(" ")
+		end
+	end
+	log("# [naxac_lc_fix.main]: Done!")
+end

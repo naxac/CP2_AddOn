@@ -5874,12 +5874,12 @@ C++ class CUIWindow {
     void       DetachChild(CUIWindow* pChild);
     void       SetAutoDelete(bool auto_delete);
     bool       IsAutoDelete();
-    void       SetWndRect(Frect);
+    void       SetWndRect(Frect* rect);
     void       SetWndRect(float x, float y, float width, float height);
     void       Init(float x, float y, float width, float height);
-    void       Init(Frect*);
+    void       Init(Frect* pRect);
     void       SetWndPos(float x, float y);
-    void       SetWndSize(float width, float height);	// нерабочий метод: неправильно экспортирован
+    void       SetWndSize(float width, float height);	// нерабочий метод, неправильно экспортирован: в движке принимается vector2
     float      GetWidth() const;
     void       SetWidth(float width);
     float      GetHeight() const;

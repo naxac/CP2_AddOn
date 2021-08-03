@@ -1,6 +1,26 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 103
+local current_fix = 106
 
+function fix_106()
+	naxac_lc_fix.main()
+end
+function fix_105()
+	local obj = AI:object("aes_space_restrictor_sound_battle_0000")
+	if obj then AI:release(obj, true) end
+	obj = AI:object("aes_space_restrictor_sound_battle_0001")
+	if obj then AI:release(obj, true) end
+	if Actor:dont_has_info("sar2_monolith_miracle") then
+		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0000 )
+		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0001 )
+	else
+		naxac.del_aes_flames()
+		naxac.pri_ambient_battle_off()
+	end
+	if Actor:has_info("yantar_professor_talk_about_brain") then
+		naxac.ros_flames_off()
+	end
+end
+function fix_104() end
 function fix_103()
 	local obj = AI:object("esc_hunter_zaschita_2")
 	if obj then
@@ -219,14 +239,7 @@ function fix_83()
 	level.map_add_object_spot_ser( obj.id, "level_changer3", "to_warlab" )
 end
 function fix_82()
-	local obj = AI:story_object(story_ids.lc_control_monolith_to_garbage)
-	if obj then AI:release(obj, true) end
-	obj = AI:story_object(story_ids.lc_sarkofag_to_lost_village_foto)
-	if obj then
-		arhara_dialog.imitat_tele_final1_dell()
-		AI:release(obj, true)
-	end
-	obj = AI:object( "lim_physic_object_0031" )
+	local obj = AI:object( "lim_physic_object_0031" )
 	if obj then
 		AI:release( obj, true )
 		AI:create( spawn_ids.lim_physic_object_0031 )
@@ -242,12 +255,6 @@ function fix_81()
 	if obj then
 		AI:release(obj, true)
 		AI:create( AI:spawn_id(story_ids.forest_last_snip_proval_restrictor) )
-	end
-
-	if Actor:has_info("mozg_yantar") then
-		if AI:story_object(story_ids.lc_yantar_to_brainlab_saharov) ~= nil then
-			arhara_dialog.delete_saxar_perex()
-		end
 	end
 end
 function fix_80()
@@ -402,7 +409,7 @@ function fix_72()
 	if obj then
 		AI:release(obj, true)
 	end
-	level_changers.create_allspawn_lc("lc_warlab_to_brainlab", "to_brainlab", "info_way_arhara_warlab_brainlab", 5, true)
+	level_changers.create_allspawn_lc("lc_warlab_to_brainlab", "info_way_arhara_warlab_brainlab", 5, true)
 end
 function fix_71()
 	local obj
@@ -596,7 +603,7 @@ function fix_65()
 end
 function fix_64()
 	if AI:story_object( story_ids.lc_generators_to_hospital ) ~= nil then
-		level_changers.create_allspawn_lc("lc_generators_to_hospital", "to_hospital", "info_way_arhara_gener_hospital", 1, true)
+		level_changers.create_allspawn_lc("lc_generators_to_hospital", "info_way_arhara_gener_hospital", 1, true)
 	end
 
 	local obj = AI:object( "sms_k_generalu_restrictor" )
@@ -673,7 +680,7 @@ function fix_63()
 end
 function fix_62()
 	if AI:story_object( story_ids.lc_radar_to_warlab ) ~= nil then
-		level_changers.create_allspawn_lc("lc_radar_to_warlab", "to_warlab", "info_way_arhara_radar_warlab", 2, true)
+		level_changers.create_allspawn_lc("lc_radar_to_warlab", "info_way_arhara_radar_warlab", 2, true)
 	end
 end
 function fix_61()
@@ -840,7 +847,7 @@ function fix_51()
 	end
 end
 function fix_50()
-	level_changers.create_allspawn_lc("lc_hospital_to_limansk", "to_limansk", nil, 1, true)
+	level_changers.create_allspawn_lc("lc_hospital_to_limansk", nil, 1, true)
 
 	obj = AI:story_object( story_ids.lc_limansk_to_hospital )
 	if obj then
@@ -1218,7 +1225,7 @@ function fix_36()
 		end
 	end
 	if has_alife_info("info_way_arhara_svalka_earth") then
-		level_changers.create_allspawn_lc("lc_aver_to_svalka","to_garbage","info_way_arhara_svalka_earth",3, true)
+		level_changers.create_allspawn_lc("lc_aver_to_svalka","info_way_arhara_svalka_earth",3, true)
 	end
 end
 function fix_35()
@@ -1235,7 +1242,7 @@ function fix_35()
 	obj = AI:story_object(story_ids.lc_military_to_aver)
 	if obj then
 		AI:release(obj, true)
-		level_changers.create_allspawn_lc("lc_military_to_aver","to_aver","info_way_arhara_military_earth",3, true)
+		level_changers.create_allspawn_lc("lc_military_to_aver","info_way_arhara_military_earth",3, true)
 	end
 end
 function fix_34()
@@ -1297,10 +1304,6 @@ function fix_33()
 	end
 end
 function fix_32()
-	if has_alife_info("sar2_monolith_miracle") then
-		this.lc_mono_aes2_silent_off()
-	end
-
 	local obj
 	local doors = {
 		"mon_door_from_monolith_control",
@@ -1519,12 +1522,6 @@ function fix_18()
 		"lc_sarkofag_to_aes2",
 		"lc_aes2_to_sarkofag",
 		"lc_military_to_limansk",
-		"lc_generators_to_marsh_vert",
-		"lc_marsh_to_generators_vert",
-		"lc_sarkofag_to_lost_village_foto",
-		"lc_yantar_to_brainlab_saharov",
-		"lc_brainlab_to_yantar_mozg",
-		"lc_control_monolith_to_garbage",
 		"lc_dead_city_to_atp_timing",
 		"lc_aver_to_east_pripyat",
 		"lc_yantar_to_east_pripyat",
@@ -2136,21 +2133,6 @@ function del_ss_teleports()
 	bind_mteleport.del_teleport( "ss_tele_3" )
 end
 
--- Чтобы после первого посещения ЧАЭС переход"Припять - ЧАЭС" задавал вопрос о смене уровня
-function lc_pri_aes_silent_off()
-	-- Припять - ЧАЭС
-	local obj = AI:story_object(story_ids.lc_pripyat_to_aes)
-	if obj then
-		netpk:modify(obj, { silent_mode = 0 }, netpk.fState)
-	end
-end
-function lc_mono_aes2_silent_off()
-	local obj = AI:object( "exit_to_stancia2_01" )
-	if obj then
-		netpk:modify(obj, { silent_mode = 0 }, netpk.fState)
-	end
-end
-
 -- Спавним тайник Сыча в Х-10
 function treasure_sysh_spawn()
 	local items = {
@@ -2598,22 +2580,7 @@ function friendly_sak_lager()
 		end
 	end
 end
-function pri_electra_koleso_off()
-	for i = 1, 20 do
-		obj = AI:object( string.format("pri_zone_witches_galantine_koleso_00%02d", i) )
-		if obj then
-			AI:release(obj, true)
-		end
-	end
-end
-function pri_electra_koleso_on()
-	for i = 1, 20 do
-		obj = AI:object( string.format("pri_zone_witches_galantine_koleso_00%02d", i) )
-		if not obj then
-			AI:create( spawn_ids.pri_zone_witches_galantine_koleso + i - 1 )
-		end
-	end
-endfunction messer_bandit_friend(fs, ss)
+function messer_bandit_friend(fs, ss)
 	local npc = AI:story_object(story_ids.val_sos_stalker)
 	if npc then
 		darkvalley_frienship(npc.id)
@@ -2636,6 +2603,64 @@ function val_watchtowers_online()
 					netpk:modify(o, {object_flags = -65}, netpk.fConvert)
 				end
 			end
+		end
+	end
+end
+
+function del_aes_flames()
+	local obj
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and obj:section_name() == "zone_flame_small"
+			and object_level_name(obj) == "l12_stancia"
+			and obj:name() ~= "zone_flame_small_0038"
+		then
+			AI:release(obj, true)
+		end
+	end
+end
+function ros_flames_off()
+	local names = {
+		"zone_flame_0000",
+		"zone_flame_0001",
+		"zone_flame_0002"
+	}
+	local obj
+	for i, v in ipairs(names) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+end
+function pri_ambient_battle_off()
+	local names = {
+		"pri_ambient_battle_sound_zone_0000",
+		"pri_ambient_battle_sound_zone_0001",
+		"pri_ambient_battle_sound_zone_0002",
+		"pri_ambient_battle_sound_zone_0003"
+	}
+	local obj
+	for i, v in ipairs(names) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+end
+function pri_electra_koleso_off()
+	for i = 1, 20 do
+		obj = AI:object( string.format("pri_zone_witches_galantine_koleso_00%02d", i) )
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+end
+function pri_electra_koleso_on()
+	for i = 1, 20 do
+		obj = AI:object( string.format("pri_zone_witches_galantine_koleso_00%02d", i) )
+		if not obj then
+			AI:create( spawn_ids.pri_zone_witches_galantine_koleso + i - 1 )
 		end
 	end
 end

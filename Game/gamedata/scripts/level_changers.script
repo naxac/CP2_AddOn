@@ -1,10 +1,10 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local lc_ini = ini_file("misc\\level_changers.ltx")
 
 function create_level_changer(str_sid, silent)
 	local story_id = story_ids[str_sid]
 	ASSERT(story_id, "[level_changers.create_level_changer]: story_id '%s' not exist in [story_ids]", str_sid)
 
+	local lc_ini = ini_file("misc\\level_changers.ltx")
 	ASSERT(lc_ini:section_exist(str_sid), "[level_changers.create_level_changer]: section '%s' not exist in 'level_changers.ltx'", str_sid)
 
 	local objt = AI:story_object(story_id)
@@ -16,7 +16,7 @@ function create_level_changer(str_sid, silent)
 	local pos = lc_ini:r_vector(str_sid, "position")
 	local lv = lc_ini:r_u32(str_sid, "level_vertex")
 	local gv = lc_ini:r_u32(str_sid, "game_vertex")
-	local obj = AI:create("level_changer", pos, lv, gv)
+	local obj = AI:create("space_restrictor", pos, lv, gv)
 
 	local data = {}
 
@@ -48,33 +48,48 @@ function create_level_changer(str_sid, silent)
 
 	data.restrictor_type = 3
 
-	data.dest_game_vertex_id	= lc_ini:r_u32(str_sid, "dest_game_vertex")
-	data.dest_level_vertex_id	= lc_ini:r_u32(str_sid, "dest_level_vertex")
-	data.dest_position			= lc_ini:r_vector(str_sid, "dest_position")
-	if lc_ini:line_exist(str_sid, "dest_direction") then
-		data.dest_direction		= lc_ini:r_vector(str_sid, "dest_direction")
-	else
-		data.dest_direction		= vector():set(0,0,0)
-	end
-	data.dest_level_name		= AI:level_name( GGraph:vertex(data.dest_game_vertex_id):level_id() )
-	data.dest_graph_point		= "start_actor_99"
-	data.silent_mode			= lc_ini:r_u32_ex(str_sid, "silent_mode", 0)
+	data.custom_data = "[logic]\n"..
+		"cfg = scripts\\level_changers\\"..
+		lc_ini:r_string(str_sid, "cfg")..".ltx\n"
 
 	netpk:modify( obj, data, netpk.fState )
+
+	local dest_lvl = get_dest_level_name(data.custom_data)
 
 	if lc_ini:line_exist(str_sid, "map_spot") then
 		level.map_add_object_spot_ser(
 			obj.id,
 			lc_ini:r_string(str_sid, "map_spot"),
-			lc_ini:r_string(str_sid, "map_hint")
+			"to_"..dest_lvl
 		)
 	end
 
-	if lc_ini:r_bool_ex(str_sid, "no_sms") or silent then return end
+	if not (lc_ini:r_bool_ex(str_sid, "no_sms", false) or silent) then
+		local prev_lvl = game.translate_string( AI:level_name(GGraph:vertex(gv):level_id()) )
+		show_lc_info( prev_lvl, game.translate_string(dest_lvl) )
+	end
 
-	local prev_lvl = game.translate_string( AI:level_name(GGraph:vertex(gv):level_id()) )
-	local dest_lvl = game.translate_string( string.lower(data.dest_level_name) )
-	show_lc_info(prev_lvl, dest_lvl)
+	return obj
+end
+
+function get_dest_level_name(custom_data)
+	local cd = netpk:parse_custom_data(custom_data)
+	if cd.logic then
+		if cd.logic.active and string.find(cd.logic.active, "^sr_level_changer") then
+			local dest_gv = tonumber( cd[cd.logic.active].dest_game_vertex_id )
+			return AI:level_name( GGraph:vertex(dest_gv):level_id() )
+		elseif cd.logic.cfg then
+			local ini = ini_file(cd.logic.cfg)
+			if ini and ini:section_exist("logic") then
+				local act_sec = ini:r_string_ex("logic", "active")
+				if act_sec and string.find(act_sec, "^sr_level_changer") then
+					local dest_gv = ini:r_u32(act_sec, "dest_game_vertex_id")
+					return AI:level_name( GGraph:vertex(dest_gv):level_id() )
+				end
+			end
+		end
+	end
+	return "unknown_level"
 end
 
 function create_teleport_on_actor(dest_pos, dest_lv, dest_gv, dest_dir)
@@ -108,11 +123,9 @@ function create_teleport_on_actor(dest_pos, dest_lv, dest_gv, dest_dir)
 	data.silent_mode			= 1
 
 	netpk:modify( obj, data, netpk.fState )
-
-	bind_lc.shift_send_sms()
 end
 
-function create_allspawn_lc(str_sid, spot_hint, info, spot_dir, silent)
+function create_allspawn_lc(str_sid, info, spot_dir, silent)
 	local story_spawn_id = story_ids[str_sid]
 	ASSERT(story_spawn_id, "[level_changers.create_level_changer]: story_id '%s' not exist in [story_ids]", str_sid)
 
@@ -123,24 +136,30 @@ function create_allspawn_lc(str_sid, spot_hint, info, spot_dir, silent)
 	end
 
 	local obj = AI:create( AI:spawn_id(story_spawn_id) )
-	if obj then
-		level.map_add_object_spot_ser(obj.id, "level_changer"..tostring(spot_dir), spot_hint)
-		if info and Actor:dont_has_info(info) then
-			Actor:give_info_portion(info)
-		end
-		if not silent then
-			local data = netpk:get(obj, netpk.fState)
-			local dest_lvl = game.translate_string(string.lower(data.dest_level_name))
-			local prev_lvl = game.translate_string(AI:level_name(GGraph:vertex(data.game_vertex_id):level_id()))
-			show_lc_info(prev_lvl, dest_lvl)
-		end
+	if not obj then return false end
+
+	if info and Actor:dont_has_info(info) then
+		Actor:give_info_portion(info)
+	end
+
+	local data = netpk:get(obj, netpk.fState)
+	local dest_lvl = get_dest_level_name(data.custom_data)
+
+	level.map_add_object_spot_ser(obj.id, "level_changer"..tostring(spot_dir), "to_"..dest_lvl)
+
+	if not silent then
+		local prev_lvl = game.translate_string(AI:level_name(GGraph:vertex(data.game_vertex_id):level_id()))
+		show_lc_info( prev_lvl, game.translate_string(dest_lvl) )
 	end
 
 	return obj
 end
 
 function show_lc_info(prev_lvl, dest_lvl)
-	local news_text = "%c[gray2]Новый путь!\\n%c[white]"..prev_lvl.." >> "..dest_lvl
+	local news_text = format_text_pairs(
+		game.translate_string("st_found_new_path"),
+		{ prev_level = prev_lvl, dest_level = dest_lvl }
+	)
 	Actor:give_game_news(news_text, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), 0, 10000)
 	if Actor:is_talking() then
 		Actor:give_talk_message(news_text, "ui\\ui_iconsTotal", Frect():set(913,752,83,47), "iconed_answer_item")
@@ -156,42 +175,42 @@ function first_run()
 	5 - underground
 --]]----------------
 	local lv_changers = {
-		lc_escape_to_garbage				= { 1, "to_garbage" },
-		lc_garbage_to_agroprom				= { 4, "to_agroprom" },
-		lc_garbage_to_escape				= { 3, "to_escape" },
-		lc_garbage_to_bar					= { 1, "to_bar" },
-		lc_garbage_to_darkvalley			= { 2, "to_darkvalley" },
-		lc_agroprom_to_garbage				= { 2, "to_garbage" },
-		lc_darkvalley_to_garbage			= { 4, "to_garbage" },
-		lc_darkvalley_to_darkscape			= { 3, "to_darkscape" },
-		lc_darkscape_to_escape				= { 4, "to_escape" },
-		lc_darkscape_to_darkvalley			= { 1, "to_darkvalley" },
-		lc_bar_to_garbage					= { 3, "to_garbage" },
+		lc_escape_to_garbage				= { 1, "to_l02_garbage" },
+		lc_garbage_to_agroprom				= { 4, "to_l03_agroprom" },
+		lc_garbage_to_escape				= { 3, "to_l01_escape" },
+		lc_garbage_to_bar					= { 1, "to_l05_bar" },
+		lc_garbage_to_darkvalley			= { 2, "to_l04_darkvalley" },
+		lc_agroprom_to_garbage				= { 2, "to_l02_garbage" },
+		lc_darkvalley_to_garbage			= { 4, "to_l02_garbage" },
+		lc_darkvalley_to_darkscape			= { 3, "to_l41_darkscape_ogse" },
+		lc_darkscape_to_escape				= { 4, "to_l01_escape" },
+		lc_darkscape_to_darkvalley			= { 1, "to_l04_darkvalley" },
+		lc_bar_to_garbage					= { 3, "to_l02_garbage" },
 		lc_bar_to_rostok					= { 5, "bar_rostok" },
 		lc_rostok_to_bar					= { 1, "bar_rostok" },
-		lc_rostok_to_yantar					= { 3, "to_yantar" },
-		lc_military_to_bar					= { 4, "to_bar" },
-		lc_military_to_radar				= { 2, "to_radar" },
-		lc_pripyat_to_aes					= { 1, "to_aes" },
-		lc_pripyat_to_radar					= { 3, "to_radar" },
-		lc_yantar_to_rostok					= { 2, "to_rostok" },
-		lc_radar_to_pripyat					= { 1, "to_pripyat" },
-		lc_aes_to_pripyat					= { 3, "to_pripyat" },
+		lc_rostok_to_yantar					= { 3, "to_l08_yantar" },
+		lc_military_to_bar					= { 4, "to_l05_bar" },
+		lc_military_to_radar				= { 2, "to_l10_radar" },
+		lc_pripyat_to_aes					= { 1, "to_l12_stancia" },
+		lc_pripyat_to_radar					= { 3, "to_l10_radar" },
+		lc_yantar_to_rostok					= { 2, "to_l06_rostok" },
+		lc_radar_to_pripyat					= { 1, "to_l11_pripyat" },
+		lc_aes_to_pripyat					= { 3, "to_l11_pripyat" },
 		lc_garbage_to_puzir					= { 3, "to_puzir" },
-		lc_puzir_to_darkvalley				= { 2, "to_darkvalley" },
+		lc_puzir_to_darkvalley				= { 2, "to_l04_darkvalley" },
 		lc_limansk_to_red_forest			= { 3, "to_red_forest" },
 		lc_limansk_to_hospital				= { 1, "to_hospital" },
 		lc_hospital_to_limansk				= { 1, "to_limansk" },
 		lc_generators_to_warlab				= { 3, "to_warlab" },
 		lc_red_forest_to_atp				= { 3, "to_atp" },
 		lc_red_forest_to_limansk			= { 4, "to_limansk" },
-		lc_red_forest_to_radar				= { 1, "to_radar" },
+		lc_red_forest_to_radar				= { 1, "to_l10_radar" },
 		lc_red_forest_to_puzir				= { 2, "to_puzir" },
-		lc_marsh_to_escape_1				= { 2, "to_escape" },
-		lc_marsh_to_escape_2				= { 2, "to_escape" },
-		lc_marsh_to_agroprom				= { 1, "to_agroprom" },
-		lc_puzir_to_garbage					= { 1, "to_garbage" },
-		lc_zaton_to_escape					= { 4, "to_escape" }
+		lc_marsh_to_escape_1				= { 2, "to_l01_escape" },
+		lc_marsh_to_escape_2				= { 2, "to_l01_escape" },
+		lc_marsh_to_agroprom				= { 1, "to_l03_agroprom" },
+		lc_puzir_to_garbage					= { 1, "to_l02_garbage" },
+		lc_zaton_to_escape					= { 4, "to_l01_escape" }
 	}
 	local add_spot = level.map_add_object_spot_ser
 	local obj
@@ -270,11 +289,11 @@ function first_run()
 	}
 	local lc
 	for sid, info in pairs(out_lchangers) do
-	--	if not has_alife_info(info) then
-			lc = AI:story_object( story_ids[sid] )
-			if lc then AI:release(lc, true) end
-	--	end
+		lc = AI:story_object( story_ids[sid] )
+		if lc then
+		--	if not has_alife_info(info) then
+				AI:release(lc, true)
+		--	end
+		end
 	end
 end
-
-	

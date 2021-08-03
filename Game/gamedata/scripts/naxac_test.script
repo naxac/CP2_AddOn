@@ -9,6 +9,39 @@ end
 ------------------------------------------------------------------------------------------------------------
 	Actor:set_actor_position( vector():set(326.864013671875,19.6529998779297,300.252990722656) )
 ------------------------------------------------------------------------------------------------------------
+	local max_lv = n_vertexes.get_max_level_vertex()
+	local actor_pos = Actor:position()
+	local dist, min_dist = 0, math.huge
+	local vert = 0
+	for i = 1, max_lv do
+		local pos = level.vertex_position(i)
+		dist = pos:distance_to_sqr(actor_pos)
+		if dist < min_dist then
+			min_dist = dist
+			vert = i
+		end
+	end
+	log("nearest level_vertex: %s", vert)
+------------------------------------------------------------------------------------------------------------
+	local path_walk_name = "pri_monolith_river_port_walker_1_walk"
+	local path_look_name = "pri_monolith_river_port_walker_1_look"
+
+	local path_walk = patrol(path_walk_name)
+	local path_look = patrol(path_look_name)
+	for i = 0, path_walk:count()-1 do
+		local flw = path_walk:flags(i)
+		log("point %s[%s] : flags = %s", path_walk:name(i), tostring(i), tostring(flw:get()))
+		if flw:get() ~= 0 then
+			for j = 0, path_look:count()-1 do
+				local fll = path_look:flags(j)
+				if fll:equal(flw) then
+					log( "- found look point: #%s (%s)", path_look:name(j), tostring(fll:get()) )
+					break
+				end
+			end
+		end
+	end
+------------------------------------------------------------------------------------------------------------
 	local obj = level.get_target_obj()
 	if obj then
 		log(obj:name())
