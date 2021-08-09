@@ -332,10 +332,11 @@ function options_dialog:GameSetupMenuLoad()
 	self.zamok_ui:SetCheck                ( game_options.ZamokUICode )
 	self.zamok_lock:SetCheck              ( game_options.LockBoxOnly )
 	self.rare_parts:SetCheck              ( game_options.RareMonsterParts )
+	self.smart_treasures:SetCheck         ( game_options.NewTreasures )
 	self.real_money:SetCheck              ( game_options.RealMoney )
 	self.rnd_reward:SetCheck              ( game_options.RndReward )
 	self.runner_frvr:SetCheck             ( game_options.RunnerForever )
-	self.smart_treasures:SetCheck         ( game_options.NewTreasures )
+	self.col_trsrs:SetCheck               ( game_options.CollectorTreasuresSpot )
 
 	self.n_spawner:SetCheck               ( game_options.Spawner )
 	self.n_console:SetCheck               ( game_options.Console )
@@ -413,6 +414,7 @@ function options_dialog:GameSetupMenuSave()
 	game_options.RndReward            = self.rnd_reward:GetCheck()
 	game_options.NewRadio             = self.new_radio:GetCheck()
 	game_options.RunnerForever        = self.runner_frvr:GetCheck()
+	game_options.CollectorTreasuresSpot = self.col_trsrs:GetCheck()
 	game_options.NewTreasures         = self.smart_treasures:GetCheck()
 
 	game_options.ActorAccel           = self.actor_accel:GetValue()
@@ -458,37 +460,30 @@ end
 
 -- отключение на мастере распознавания НПС и дистанции
 function options_dialog:OnDifficultyChanged()
+	local checked_options = {
+		"check_tips",
+		"check_dist",
+		"runner_frvr",
+		"n_spawner",
+		"n_console",
+		"autograb_body",
+		"autofoto",
+		"fotofocus",
+		"col_trsrs"
+	}
 	if self.list_difficulty:CurrentID() == 3 then
-		self.check_tips:SetCheck(false)
-		self.check_tips:Enable(false)
-		self.check_dist:SetCheck(false)
-		self.check_dist:Enable(false)
-		self.runner_frvr:SetCheck(false)
-		self.runner_frvr:Enable(false)
-		self.n_spawner:SetCheck(false)
-		self.n_spawner:Enable(false)
-		self.n_console:SetCheck(false)
-		self.n_console:Enable(false)
-		self.autograb_body:SetCheck(false)
-		self.autograb_body:Enable(false)
-		self.autofoto:SetCheck(false)
-		self.autofoto:Enable(false)
-		self.fotofocus:SetCheck(false)
-		self.fotofocus:Enable(false)
+		for i, v in ipairs(checked_options) do
+			self[v]:SetCheck(false)
+			self[v]:Enable(false)
+		end
 		self.buy:SetText("")
 		self.buy:Enable(false)
-		self.trade_cond:Enable(true)
 		self.trade_cond:SetCheck(true)
 	else
-		self.check_tips:Enable(true)
-		self.check_dist:Enable(true)
-		self.runner_frvr:Enable(true)
-		self.n_spawner:Enable(true)
-		self.n_console:Enable(true)
-		self.autograb_body:Enable(true)
+		for i, v in ipairs(checked_options) do
+			self[v]:Enable(true)
+		end
 		self.buy:Enable(true)
-		self.autofoto:Enable(true)
-		self.fotofocus:Enable(true)
 	end
 end
 
