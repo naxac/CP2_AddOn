@@ -106,14 +106,21 @@ function set_scheme(obj, ini, scheme, section, gulag_name)
 
 	st.dest_level_name      = AI:level_name( GGraph:vertex(st.dest_game_vertex_id):level_id() )
 
+	local obj_id = obj:id()
+	if level.map_has_object_spot( obj_id, "level_changer" ) ~= 0 then
+		level.map_remove_object_spot( obj_id, "level_changer" )
+	end
+
 	if ini:line_exist( section, "map_spot" ) then
 		st.spot_type        = ini:r_string( section, "map_spot" )
-		if level.map_has_object_spot( obj:id(), st.spot_type ) == 0 then
-			local spot_hint = ini:r_string_ex( section, "map_hint", nil )
-			if spot_hint == nil then
-				spot_hint = "Переход "..game.translate_string( level.name() ).." - "..game.translate_string( st.dest_level_name )
-			end
-			level.map_add_object_spot_ser( obj:id(), st.spot_type, spot_hint )
+		local spot_hint = ini:r_string_ex( section, "map_hint", nil )
+		if spot_hint == nil then
+			spot_hint = "to_"..st.dest_level_name
+		end
+		if level.map_has_object_spot( obj_id, st.spot_type ) == 0 then
+			level.map_add_object_spot_ser( obj_id, st.spot_type, spot_hint )
+		else
+			level.map_change_spot_hint( obj_id, st.spot_type, spot_hint )
 		end
 	end
 end

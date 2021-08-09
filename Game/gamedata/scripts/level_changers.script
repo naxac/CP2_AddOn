@@ -57,11 +57,7 @@ function create_level_changer(str_sid, silent)
 	local dest_lvl = get_dest_level_name(data.custom_data)
 
 	if lc_ini:line_exist(str_sid, "map_spot") then
-		level.map_add_object_spot_ser(
-			obj.id,
-			lc_ini:r_string(str_sid, "map_spot"),
-			"to_"..dest_lvl
-		)
+		level.map_add_object_spot(obj.id, "level_changer", "to_"..dest_lvl)
 	end
 
 	if not (lc_ini:r_bool_ex(str_sid, "no_sms", false) or silent) then
@@ -129,7 +125,7 @@ function create_teleport_on_actor(dest_pos, dest_lv, dest_gv, dest_dir, ordinary
 	netpk:modify( obj, data, netpk.fState )
 end
 
-function create_allspawn_lc(str_sid, info, spot_dir, silent)
+function create_allspawn_lc(str_sid, info, silent)
 	local story_spawn_id = story_ids[str_sid]
 	ASSERT(story_spawn_id, "[level_changers.create_level_changer]: story_id '%s' not exist in [story_ids]", str_sid)
 
@@ -149,7 +145,7 @@ function create_allspawn_lc(str_sid, info, spot_dir, silent)
 	local data = netpk:get(obj, netpk.fState)
 	local dest_lvl = get_dest_level_name(data.custom_data)
 
-	level.map_add_object_spot_ser(obj.id, "level_changer"..tostring(spot_dir), "to_"..dest_lvl)
+	level.map_add_object_spot(obj.id, "level_changer", "to_"..dest_lvl)
 
 	if not silent then
 		local prev_lvl = game.translate_string(AI:level_name(GGraph:vertex(data.game_vertex_id):level_id()))
@@ -178,53 +174,6 @@ function first_run()
 	4 - left
 	5 - underground
 --]]----------------
-	local lv_changers = {
-		lc_escape_to_garbage				= { 1, "to_l02_garbage" },
-		lc_garbage_to_agroprom				= { 4, "to_l03_agroprom" },
-		lc_garbage_to_escape				= { 3, "to_l01_escape" },
-		lc_garbage_to_bar					= { 1, "to_l05_bar" },
-		lc_garbage_to_darkvalley			= { 2, "to_l04_darkvalley" },
-		lc_agroprom_to_garbage				= { 2, "to_l02_garbage" },
-		lc_darkvalley_to_garbage			= { 4, "to_l02_garbage" },
-		lc_darkvalley_to_darkscape			= { 3, "to_l41_darkscape_ogse" },
-		lc_darkscape_to_escape				= { 4, "to_l01_escape" },
-		lc_darkscape_to_darkvalley			= { 1, "to_l04_darkvalley" },
-		lc_bar_to_garbage					= { 3, "to_l02_garbage" },
-		lc_bar_to_rostok					= { 5, "bar_rostok" },
-		lc_rostok_to_bar					= { 1, "bar_rostok" },
-		lc_rostok_to_yantar					= { 3, "to_l08_yantar" },
-		lc_military_to_bar					= { 4, "to_l05_bar" },
-		lc_military_to_radar				= { 2, "to_l10_radar" },
-		lc_pripyat_to_aes					= { 1, "to_l12_stancia" },
-		lc_pripyat_to_radar					= { 3, "to_l10_radar" },
-		lc_yantar_to_rostok					= { 2, "to_l06_rostok" },
-		lc_radar_to_pripyat					= { 1, "to_l11_pripyat" },
-		lc_aes_to_pripyat					= { 3, "to_l11_pripyat" },
-		lc_garbage_to_puzir					= { 3, "to_puzir" },
-		lc_puzir_to_darkvalley				= { 2, "to_l04_darkvalley" },
-		lc_limansk_to_red_forest			= { 3, "to_red_forest" },
-		lc_limansk_to_hospital				= { 1, "to_hospital" },
-		lc_hospital_to_limansk				= { 1, "to_limansk" },
-		lc_generators_to_warlab				= { 3, "to_warlab" },
-		lc_red_forest_to_atp				= { 3, "to_atp" },
-		lc_red_forest_to_limansk			= { 4, "to_limansk" },
-		lc_red_forest_to_radar				= { 1, "to_l10_radar" },
-		lc_red_forest_to_puzir				= { 2, "to_puzir" },
-		lc_marsh_to_escape_1				= { 2, "to_l01_escape" },
-		lc_marsh_to_escape_2				= { 2, "to_l01_escape" },
-		lc_marsh_to_agroprom				= { 1, "to_l03_agroprom" },
-		lc_puzir_to_garbage					= { 1, "to_l02_garbage" },
-		lc_zaton_to_escape					= { 4, "to_l01_escape" }
-	}
-	local add_spot = level.map_add_object_spot_ser
-	local obj
-	for sid, t in pairs(lv_changers) do
-		obj = AI:story_object( story_ids[sid] )
-		if obj then
-			add_spot( obj.id, "level_changer"..tostring( t[1] ), t[2] )
-		end
-	end
-
 	local out_lchangers = {
 		lc_agroprom_to_escape		= "info_way100a",
 		lc_escape_to_agroprom		= "info_way101a",

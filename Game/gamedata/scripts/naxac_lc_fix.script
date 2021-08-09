@@ -72,17 +72,10 @@ function main()
 	local obj
 	local has_spot = level.map_has_object_spot
 	local add_spot = level.map_add_object_spot_ser
+	local new_ids = {}
 	for i = 1, 65535 do
 		obj = AI:object(i)
-		if obj and obj:clsid() == clsid.level_changer then
-			local spot = ""
-			for i = 1, 5 do
-				if has_spot( obj.id, "level_changer"..tostring(i) ) ~= 0 then
-					spot = "level_changer"..tostring(i)
-					break
-				end
-			end
-
+		if obj and new_ids[i] == nil and obj:clsid() == clsid.level_changer then
 			local story_id = obj.m_story_id
 			log("Process object %s:%s[%s].", obj:name(), obj.id, story_id)
 			if story_id == 4294967296 then
@@ -115,7 +108,6 @@ function main()
 				end
 				obj = level_changers.create_level_changer(lc_script[story_id], true)
 				log("Result: %s", obj:name())
-				obj = nil
 			elseif obj:name() == obj:section_name()..obj.id then
 				log("~ Found unknown script level_changer [%s]. Ignore.", obj:name())
 				obj = nil
@@ -135,18 +127,8 @@ function main()
 					obj = nil
 				end
 			end
-
-			if obj and spot ~= "" then
-				local hint = ""
-				if story_id == story_ids.lc_rostok_to_bar then
-					hint = "bar_rostok"
-				else
-					local data = netpk:get(obj)
-					local dest_level = level_changers.get_dest_level_name(data.custom_data)
-					hint = "to_"..dest_level
-				end
-				add_spot( obj.id, spot, hint )
-				log("* Add level spot: %s, %s.", spot, hint)
+			if obj then
+				new_ids[obj.id] = true
 			end
 			log(" ")
 		end

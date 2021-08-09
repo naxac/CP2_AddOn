@@ -138,7 +138,6 @@ function check_spawn()
 		local obj = AI:story_object(story_ids.lc_escape_to_darkscape)
 		if not obj then
 			obj = AI:create(AI:spawn_id(story_ids.lc_escape_to_darkscape))
-			level.map_add_object_spot_ser(obj.id, "level_changer2", "to_darkscape")
 		end
 	elseif lname=="pripyat" and sname=="jupiter_underground" then
 		local obj = AI:story_object(story_ids.lc_east_pripyat_to_jup_underground)
@@ -2257,55 +2256,13 @@ function initial_spawn(action)
 end
 
 function blowout_modif_arts()
-	local arts = {
-		[clsid.artefact] = true,
-		[clsid.artefact_s] = true
-	}
-
-	local collapse_arts = {
-		['af_spirit_1'] = true,
-		['af_spirit_2'] = true,
-		['af_spirit_3'] = true,
-		['af_spirit_4'] = true,
-		['af_cry_1'] = true,
-		['af_cry_2'] = true,
-		['af_cry_3'] = true,
-		['af_babka_1'] = true,
-		['af_babka_2'] = true,
-		['af_babka_3'] = true,
-		['af_babka_4'] = true,
-		['af_pudd_1'] = true,
-		['af_pudd_2'] = true,
-		['af_pudd_3'] = true,
-		['af_pudd_4'] = true,
-		['af_dik_1'] = true,
-		['af_dik_2'] = true,
-		['af_dik_3'] = true,
-		['af_dik_4'] = true,
-		['af_kol_1'] = true,
-		['af_kol_2'] = true,
-		['af_kol_3'] = true,
-		['af_kol_4'] = true,
-		['af_armor_1'] = true,
-		['af_armor_2'] = true,
-		['af_armor_3'] = true,
-		['af_armor_4'] = true,
-		['af_simbion'] = true,
-		['af_arhara_globus'] = true,
-		['af_power_1'] = true,
-		['af_power_2'] = true,
-		['af_power_3'] = true,
-		['af_caterpillar'] = true
-	}
-
-	local obj, b, s
+	local obj, b
 	local st_tbl = {}
 	for i=1,65534 do
 		obj = AI:object(i)
-		if obj and arts[obj:clsid()]  then
-			s = obj:section_name()
-			if collapse_arts[s] and math_random() < 0.1 then
-				st_tbl[s] = (st_tbl[s] or 0) + 1
+		if obj and isArtefact(obj) and obj.is_transformed then
+			if math_random() < 0.2 then
+				table.add(st_tbl, obj:section_name())
 				if obj.parent_id == 65535 then
 					b = AI:create_no_ai("af_buliz", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
 				else
@@ -2328,7 +2285,7 @@ function blowout_modif_arts()
 		local n = 0
 		msg = "При выбросе выродилось артефактов:\\n"
 		for k,v in pairs(st_tbl) do
-			msg = msg.."%c[green]"..game.translate_string(get_inv_name(k))..
+			msg = msg.."%c[yellow]"..game.translate_string(get_inv_name(k))..
 				"%c[default] - "..v.." шт.\\n"
 			n = n + v
 		end
