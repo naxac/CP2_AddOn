@@ -47,6 +47,13 @@ function generic_object_binder:reinit()
 	self.object:set_callback(callback.use_object, self.use_callback, self)
 end 
 
+local section2tips = {
+	dogfrend = "dogfrend_use",
+	chimera_quest = "docent_chimera_use",
+	boar_quest = "messer_kaban_use",
+	boar_child = "krest_boar_use",
+	gigant_swamp = "buusty_gigant_use"
+}
 function generic_object_binder:update(delta)
 	-- self.st.us = 100
 	object_binder.update(self, delta) 
@@ -96,6 +103,15 @@ function generic_object_binder:update(delta)
 --		self.object:name(), _time)
 
 	if self.object:alive() then 
+		if self.object:is_talk_enabled() then
+			self.object:set_tip_text("character_use")
+		else
+			if section2tips[section] then
+				self.object:set_tip_text( section2tips[section] )
+			else
+				self.object:set_tip_text("") 
+			end
+		end 
 	-- self.st.us = 95
 		if (not has_alife_info("volna_goodwill"))	 -- в Волне все эффекты отключаем 
 			and monster_effects.bloodsucker_vampire_captured == nil
@@ -135,7 +151,11 @@ function generic_object_binder:update(delta)
 		end
 	else
 	-- self.st.us = 92
-		self.object:set_tip_text_default()
+		if self.object:object_count() == 0 then
+			self.object:set_tip_text("dead_character_use_no_items")
+		else
+			self.object:set_tip_text_default()
+		end
 		battle.cleanup(self.object)
 	end 
 
@@ -381,13 +401,6 @@ function generic_object_binder:hit_callback(obj, amount, local_direction, who, b
 	end
 end 
 
-local section2tips = {
-	dogfrend = "dogfrend_use",
-	chimera_quest = "docent_chimera_use",
-	boar_quest = "messer_kaban_use",
-	boar_child = "krest_boar_use",
-	gigant_swamp = "buusty_gigant_use"
-}
 function generic_object_binder:net_spawn(sobject)
 	if not object_binder.net_spawn(self, sobject) then 
 		return false 
@@ -400,17 +413,6 @@ function generic_object_binder:net_spawn(sobject)
 	db.add_obj(self.object) 
 	if self.object:alive() then
 		db.add_monster(self.object) -- добавляем в онлайн-живых
-
-		if self.object:is_talk_enabled() then
-			self.object:set_tip_text("character_use")
-		else
-			local sect = self.object:section()
-			if section2tips[sect] then
-				self.object:set_tip_text(section2tips[sect])
-			else
-				self.object:set_tip_text("") 
-			end
-		end 
 	end
 
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
