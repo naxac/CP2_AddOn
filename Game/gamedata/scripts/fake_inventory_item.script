@@ -1,18 +1,24 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local saved_fields = {
+	-- general properties
 	["__section"]    = { name = "s",  def = function(s) return nil end },
 	["__condition"]  = { name = "c",  def = function(s) return 1 end },
 	["__cost"]       = { name = "k",  def = function(s) return sys_ini:r_u32(s, "cost") end },
 	["weight"]       = { name = "w",  def = function(s) return sys_ini:r_float(s, "inv_weight") end },
 	["custom_data"]  = { name = "cd", def = function(s) return "" end  },
-	["charge_level"] = { name = "cl", def = function(s) return nil end },
+	-- ammo
 	["ammo_left"]    = { name = "al", def = function(s) return sys_ini:r_u32_ex(s, "box_size", nil) end },
+	-- weapon
 	["ammo_elapsed"] = { name = "ae", def = function(s) return sys_ini:r_u32_ex(s, "ammo_mag_size", nil) end },
 	["ammo_type"]    = { name = "at", def = function(s) return 0 end },
 	["addon_flags"]  = { name = "af", def = function(s) return 0 end   },
 	["ammo_ids"]     = { name = "ai", def = function(s) return nil end },
+	-- energy consuming item
+	["charge_level"] = { name = "cl", def = function(s) return nil end },
 	["worked_time"]  = { name = "wt", def = function(s) return 0 end   },
 	["current_src"]  = { name = "cs", def = function(s) return 0 end   },
+	-- artefact
+	["transformed"]  = { name = "tr", def = function(s) return false end   },
 	["art_loss"]     = { name = "ar", def = function(s) return 0 end   }
 }
 	
@@ -30,12 +36,12 @@ end
 
 class "fake_item"
 
-function fake_item:__init(obj)
-	local t = type(obj)
+function fake_item:__init(src)
+	local t = type(src)
 	if t == "table" then
-		self:set_table(obj)
+		self:set_table(src)
 	elseif t == "userdata" then
-		self:set_obj(obj)
+		self:set_obj(src)
 	else
 		abort("%s: unknown sourse type [%s]", script_name(), t)
 	end
@@ -80,10 +86,12 @@ function fake_item:set_obj(obj)
 	end
 	self.charge_level = obj:get_charge_level()
 
-	local data = netpk:get(AI:object(obj:id()))
+	local se_obj = AI:object(obj:id())
+	local data = netpk:get(se_obj)
 	self.custom_data = data.custom_data
 	self.worked_time = data.worked_time
 	self.current_src = data.current_src
+	self.transformed = data.is_transformed
 	self.art_loss = data.art_loss
 	self.ammo_left = data.ammo_left
 	self.ammo_type = data.ammo_type
@@ -101,9 +109,10 @@ function fake_item:write_server_object(se_obj)
 	if (self.charge_level or 0) > 0 and (self.current_src or 0) == 0 then
 		self.current_src = 1
 	end
-	if self.art_loss and self.art_loss ~= 0 then
+	t.is_transformed = self.transformed
+	t.art_loss = self.art_loss
+	if self.art_loss ~= 0 and self.transformed == nil then
 		t.is_transformed = true
-		t.art_loss = self.art_loss
 	end
 	t.ammo_elapsed = self.ammo_elapsed
 	t.ammo_type = self.ammo_type
@@ -176,19 +185,20 @@ function fake_item:get_container_arts()
 	local ret = {}
 
 	if cd and cd.arts then
-		local sect, cond, loss
+		local sect, cond, loss, tr
 		for n, str in pairs(cd.arts) do
-			sect, cond, loss = unpack( string.explode(str, ":", true) )
+			sect, cond, loss, tr = unpack( string.explode(str, ":", true) )
 			ret[tonumber(n)] = {
 				s = sect,
 				c = tonumber(cond) or 1,
-				ar = tonumber(loss) or 0
+				ar = tonumber(loss) or 0,
+				tr = (tr=="true")
 			}
 		end
 	else
 		local count = sys_ini:r_u32( self:section(), "container_slots" )
 		for i = 1, count do
-			ret[i] = { s = "_", c = 0, ar = 0 }
+			ret[i] = { s = "_", c = 0, ar = 0, tr = false }
 		end
 	end
 

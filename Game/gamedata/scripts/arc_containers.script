@@ -69,23 +69,26 @@ function get_container_arts( cont_id )
 	local ret = {}
 
 	if cd and cd.arts then
-		local sect, cond, loss
+		local sect, cond, loss, tr
 		for n, str in pairs( cd.arts ) do
-			sect, cond, loss = unpack( string.explode(str, ":", true) )
+			sect, cond, loss, tr = unpack( string.explode(str, ":", true) )
 			ret[ tonumber(n) ] = {
 				s = sect,
 				c = tonumber(cond) or 1,
-				ar = tonumber(loss) or 0
+				ar = tonumber(loss) or 0,
+				tr = (tr == "true")
 			}
 		end
 	else
 		local count = sys_ini:r_u32( sobj:section_name(), "container_slots" )
 		for i = 1, count do
-			ret[i] = { s = "_", c = 1, ar = 0 }
+			ret[i] = { s = "_", c = 1, ar = 0, tr = false }
 		end
 	end
 
 	inv_containers[cont_id] = ret
+	-- log("# get_container_arts[%s]", sobj.id)
+	-- table.print(ret)
 
 	return ret
 end
@@ -99,7 +102,13 @@ function set_container_arts(cont_id, arts)
 
 	local t = {}
 	for i, v in ipairs(arts) do
-		t[ tostring(i) ] = string.format( "%s:%s:%s", v.s, (v.c or 1), (v.ar or 0) )
+		t[ tostring(i) ] = string.format( 
+			"%s:%s:%s:%s",
+			v.s,
+			(v.c or 1),
+			(v.ar or 0),
+			tostring(v.tr==true)
+		)
 	end
 
 	local data = {
@@ -125,15 +134,19 @@ function remove_art(cont_id, art_index)
 	arts[art_index].s = "_"
 	arts[art_index].c = 1
 	arts[art_index].ar = 0
+	arts[art_index].tr = false
 end
 
 function insert_art(cont_id, art, art_index)
 	local arts = inv_containers[cont_id]
 	if not arts then return end
 
-	arts[art_index].s = art:section()
-	arts[art_index].c = art:condition()
-	arts[art_index].ar = art.art_loss
+	arts[art_index] = {
+		s = art:section(),
+		c = art:condition(),
+		ar = art.art_loss,
+		tr = art.transformed
+	}
 end
 
 function change_container_params(cont_id, weight_delta, cost_delta)
