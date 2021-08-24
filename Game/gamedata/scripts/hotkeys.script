@@ -66,7 +66,10 @@ function switch_grenade()
 		end
 	end
 
-	if Actor:active_slot() ~= inventory_slots.GRENADE then return end
+	if Actor:active_slot() ~= inventory_slots.GRENADE then
+		reload_shotgun()
+		return
+	end
 
 	local itm = Actor:item_in_slot( inventory_slots.GRENADE )
 	if itm == nil then
@@ -98,6 +101,34 @@ function switch_grenade()
 			Actor:move_to_slot_and_activate( gr )
 			break
 		end
+	end
+end
+
+function reload_shotgun()
+	if actor_active_item and actor_active_item:clsid() == clsid.wpn_shotgun_s then
+		if actor_active_item:get_ammo_in_magazine() < sys_ini:r_u32(actor_active_item:section(), "ammo_mag_size") then
+			return
+		end
+
+		local t_ammo = sys_ini:r_list(actor_active_item:section(), "ammo_class")
+		local cnt = 0
+		for i, v in ipairs(t_ammo) do
+			if Actor:object(v) then
+				cnt = cnt + 1
+			end
+		end
+		if cnt < 2 then return end
+
+		local ammo_ids = bind_sg.get_ammo_ids(actor_active_item:id())
+		local spawn = {}
+		for i, v in ipairs(ammo_ids) do
+			table.add(spawn, t_ammo[v+1])
+		end
+		for s, n in pairs(spawn) do
+			se_respawn.create_ammo(s, vector():set(0,0,0), 0, 0, 0, n)
+		end
+
+		actor_active_item:unload_magazine()
 	end
 end
 
