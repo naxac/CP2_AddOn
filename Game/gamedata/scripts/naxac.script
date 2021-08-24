@@ -9,15 +9,30 @@ function fix_105()
 	if obj then AI:release(obj, true) end
 	obj = AI:object("aes_space_restrictor_sound_battle_0001")
 	if obj then AI:release(obj, true) end
+
 	if Actor:dont_has_info("sar2_monolith_miracle") then
 		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0000 )
 		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0001 )
 	else
 		naxac.del_aes_flames()
-		naxac.pri_ambient_battle_off()
 	end
 	if Actor:has_info("yantar_professor_talk_about_brain") then
 		naxac.ros_flames_off()
+	end
+
+	local names = {
+		"pri_ambient_battle_sound_zone_0000",
+		"pri_ambient_battle_sound_zone_0001",
+		"pri_ambient_battle_sound_zone_0002",
+		"pri_ambient_battle_sound_zone_0003"
+	}
+	local obj
+	for i, v in ipairs(names) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
 	end
 end
 function fix_104() end
@@ -2548,7 +2563,8 @@ function lc_from_generators_to_warlab(actor, npc)
 			vector():set(5.89471292495728,9.42465782165527,22.2922420501709),
 			5450,
 			3210,
-			vector():set(0,3.04576086997986,0)
+			vector():set(0,3.04576086997986,0),
+			true
 		)
 	end
 	local text = string.format(
@@ -2658,29 +2674,21 @@ function del_aes_flames()
 end
 function ros_flames_off()
 	local names = {
-		"zone_flame_0000",
-		"zone_flame_0001",
-		"zone_flame_0002"
+		["zone_flame_0000"] = true,
+		["zone_flame_0001"] = true,
+		["zone_flame_0002"] = true,
+		["zone_flame_small_0005"] = true,
+		["zone_flame_small_0006"] = true,
+		["zone_flame_small_0007"] = true,
+		["zone_flame_small_0008"] = true,
+		["zone_flame_small_0010"] = true
 	}
 	local obj
-	for i, v in ipairs(names) do
-		obj = AI:object(v)
-		if obj then
-			AI:release(obj, true)
-		end
-	end
-end
-function pri_ambient_battle_off()
-	local names = {
-		"pri_ambient_battle_sound_zone_0000",
-		"pri_ambient_battle_sound_zone_0001",
-		"pri_ambient_battle_sound_zone_0002",
-		"pri_ambient_battle_sound_zone_0003"
-	}
-	local obj
-	for i, v in ipairs(names) do
-		obj = AI:object(v)
-		if obj then
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and names[obj:name()]
+			and object_level_name(obj) == "l06_rostok"
+		then
 			AI:release(obj, true)
 		end
 	end
