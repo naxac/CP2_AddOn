@@ -111,7 +111,8 @@ function on_hit(obj, bone_index, amount)
 			if string.find(sect,t.sect) then
 				th = {}
 				th.hits = {}
-				th.part = t.part
+			--	th.part = t.part
+				th.part = sys_ini:r_string(sect, "Spawn_Inventory_Item_Section")
 				if t.part_rnd and t.rnd > math.random() then
 					unique_names[obj:name()] = t.part_rnd
 				end
@@ -192,7 +193,7 @@ function on_death(obj)
 		--Actor:give_info_portion(obj_name.."_dead")	-- эти инфо нигде, кроме спавна красных запчастей, не нужны - отключим
 	end
 
-	if game_options.RareMonsterParts or spawn_unique then
+--	if game_options.RareMonsterParts or spawn_unique then
 		if part or spawn_unique then
 			local cond = 0
 			for i, j in pairs(th.hits) do
@@ -208,18 +209,18 @@ function on_death(obj)
 				part:set_condition(cond)
 			end
 		end
-	else		-- убираем движковую, спавним свои запчасти
-		local parts_cond = {}
-		for i, j in pairs(th.hits) do
-			if j < 1 then	-- if total quantity of hit more than 1 part will not be created
-				table.insert(parts_cond, 1 - j)
-			end
-		end
-		this.remove_item(part)
-		for i, cond in ipairs(parts_cond) do
-			this.spawn_part_in_inv(obj, spawn_part, cond)
-		end
-	end
+	-- else		-- убираем движковую, спавним свои запчасти
+		-- local parts_cond = {}
+		-- for i, j in pairs(th.hits) do
+			-- if j < 1 then	-- if total quantity of hit more than 1 part will not be created
+				-- table.insert(parts_cond, 1 - j)
+			-- end
+		-- end
+		-- this.remove_item(part)
+		-- for i, cond in ipairs(parts_cond) do
+			-- this.spawn_part_in_inv(obj, spawn_part, cond)
+		-- end
+	-- end
 
 	tbl_hit[id] = nil
 end
