@@ -1,6 +1,27 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 106
+local current_fix = 107
 
+function fix_107()
+	if Actor:has_info("kontrik_vodka_start")
+		and Actor:dont_has_info("kontrik_vodka_have")
+	then
+		local obj = AI:story_object( story_ids.kontik_vodka_box )
+		if not obj then
+			local res = false
+			for i = 1, 65534 do
+				obj = AI:object(i)
+				if obj and obj:section_name() == "a_inventory_box60" then
+					set_story_id( obj, story_ids.kontik_vodka_box )
+					res = true
+					break
+				end
+			end
+			if not res then
+				xr_effects.kontrik_vodka_spawn()
+			end
+		end
+	end
+end
 function fix_106()
 	naxac_lc_fix.main()
 end
