@@ -395,24 +395,26 @@ function create_stat_pkm(level_name, position)     ----------   а это для
 end
 -------------------------------------------------------------------------------------------------------
 function show_ammo(ammo)
-	local xml = CScriptXmlInit()
-	xml:ParseFile("maingame.xml")
+	if not ammo_static then
+		local xml = CScriptXmlInit()
+		xml:ParseFile("maingame.xml")
 
-	ammo_static = CUIStatic()
-	ammo_static:SetAutoDelete(true)
-	ammo_static:Init(0,0,1024,768)
-	get_hud():AddDialogToRender(ammo_static)
+		ammo_static = CUIStatic()
+		ammo_static:SetAutoDelete(true)
+		ammo_static:Init(0,0,1024,768)
+		get_hud():AddDialogToRender(ammo_static)
 
-	local wpn_st = xml:InitStatic("static_weapon", ammo_static)
-	wpn_st:InitTexture("ui\\amk_blank")
+		local wpn_st = xml:InitStatic("static_weapon", ammo_static)
+		wpn_st:InitTexture("ui\\amk_blank")
 
-	local icon = xml:InitStatic("static_wpn_icon", wpn_st)
-	local p = GetIconParams(ammo_section)
-	icon:InitTexture("ui\\ui_icon_equipment")
-	icon:SetOriginalRect(p.x, p.y, p.w, p.h)
-	icon:SetStretchTexture(true)
+		local icon = xml:InitStatic("static_wpn_icon", wpn_st)
+		local p = GetIconParams(ammo_section)
+		icon:InitTexture("ui\\ui_icon_equipment")
+		icon:SetOriginalRect(p.x, p.y, p.w, p.h)
+		icon:SetStretchTexture(true)
 
-	ammo_static.text = xml:InitStatic("static_ammo", wpn_st)
+		ammo_static.text = xml:InitStatic("static_ammo", wpn_st)
+	end
 	ammo_static.text:SetText( string.format("%d/%d", ammo, ammo_total) )
 end
 
