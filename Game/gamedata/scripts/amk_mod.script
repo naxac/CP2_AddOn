@@ -2648,6 +2648,21 @@ function check_armor(section)
 	end
 end
 
+function dezombify(id, v)
+	local sobj = AI:object(id)
+	if not ( sobj and sobj:alive() ) then
+		return
+	end
+
+	local npc = level.object_by_id(id)
+	if npc then
+		npc:set_character_community(v.cm,0,0)
+	else
+		netpk:modify(sobj, {community_index = v.ci}, netpk.fSate)
+	end
+	relation_registry.set_goodwill(sobj.id, Actor:id(), v.gw)
+end
+
 
 btrs_friends={}
 

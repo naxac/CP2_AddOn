@@ -18,7 +18,6 @@ function motivator_binder:__init (obj) super(obj)
 	self.loaded = false
 	self.last_update = 0
 	self.prev_ammo = -1
-	----memusage.collect_info(self.object, "__init")
 
 	self.first_update = false
 	self.particles = {}
@@ -45,9 +44,6 @@ function motivator_binder:reinit()
 
 	object_binder.reinit(self)
 
---	memusage.collect_info(self.object, "reinit_start")
---	printf("motivator_binder:reinit(): self.object:name()='%s'", self.object:name())
-
 --	КОЛЛБЕКИ ЗДЕСЬ СТАВИТЬ НЕЛЬЗЯ! Здесь еще неизвестна активная схема.
 --	Ставьте коллбеки в методе update в отмеченном комментарием месте.
 
@@ -58,44 +54,30 @@ function motivator_binder:reinit()
 	self.st = db.storage[self.object:id()]
 
 --'	Создание менеджера контроля положений тела
---	memusage.collect_info(self.object, "before_statemgr")
 	self.st.state_mgr = state_mgr.bind_manager(self.object)
 
 	self.st.move_mgr = move_mgr.move_mgr(self.object)
 	self.st.move_mgr:initialize()
-
---	memusage.collect_info(self.object, "after_statemgr")
---	memusage.collect_info(self.object, "reinit_end")
 end
 ----------------------------------------------------------------------------------------------------------------------
 function motivator_binder:net_spawn(sobject)
---	printf("motivator_binder:net_spawn(): self.object:name()='%s'", self.object:name())
---	memusage.collect_info(self.object, "netspawn_start")
 	if not object_binder.net_spawn(self, sobject) then
 		return false
 	end
 
 	self.rot = self.rot_time <= amk.game_hours()
 
---[[
-	local npc=self.object
-	local zomb=amk.load_table("zombies")
+	local zomb = amk.load_table("zombies")
 	for k,v in pairs(zomb) do
-		if k==npc:id() then
-			if AI:object(v.master) and AI:object(v.master).alive and (not AI:object(v.master):alive()) then
-				if amk_mod.dezombify(k,v) then
-					zomb[k]=nil
-				end
+		if k == self.object:id() then
+			local master = AI:object(v.mr)
+			if master == nil or master:alive() == false then
+				amk_mod.dezombify(k, v)
+				zomb[k] = nil
 			end
 		end
 	end
-	amk.save_table("zombies",zomb)
-]]
-
---	if self.object:spawn_ini():section_exist("dont_spawn_online") then
---		printf("!!!OFFLINE")
---		AI:object(self.object:id()).dont_spawn_online = true
---	end
+	amk.save_table("zombies", zomb)
 
 	db.add_obj(self.object)
 
@@ -104,7 +86,6 @@ function motivator_binder:net_spawn(sobject)
 	self.object:set_callback(callback.hit, motivator_binder.hit_callback, self)
 	self.object:set_callback(callback.death, motivator_binder.death_callback, self)
 	self.object:set_callback(callback.use_object, motivator_binder.use_callback, self)
---	memusage.collect_info(self.object, "after__callback")
 
 --'	Загрузка историй для лагеря.
 	if self.loaded == false then
@@ -117,9 +98,8 @@ function motivator_binder:net_spawn(sobject)
 	manager:add_evaluator   (stalker_ids.property_anomaly, property_evaluator_const(false))
 
 --'	загрузка озвучки
---	memusage.collect_info(self.object, "before_soundmgr")
 	xr_sound.load_sound(self.object)
---	memusage.collect_info(self.object, "after_soundmgr_netspawn_end")
+
 	if self.object:alive() then
 		xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_stalker, self.loaded )
 	end
@@ -151,11 +131,7 @@ function motivator_binder:net_spawn(sobject)
 			self.npc_goodwill = 1000
 		end
 		self.com_goodwill = relation_registry.community_goodwill(self.object:character_community(), Actor:id())
-		--get_console():execute("load ~~~ self.object:character_community(): "..self.object:character_community())
-		--get_console():execute("load ~~~ self.com_goodwill: "..self.com_goodwill)
 	end
-
---	packet_table.read_packet(self.object) 
 
 	return true
 end
@@ -176,7 +152,6 @@ function motivator_binder:net_destroy()
 	amk.on_npc_go_offline(self.object)
 	-- end of addition
 
-	--printf("motivator_binder:net_destroy(): self.object:name()='%s'", self.object:name())
 	if self.object == nil then return end
 
 	local id=self.object:id()
@@ -203,10 +178,7 @@ function motivator_binder:net_destroy()
 	local sobj=AI:object(id)
 	if sobj then
 		netpk:modify( sobj, { dynamic_in_restrictions = {} }, netpk.fState )
-	else
-		-- Выход из игры.
 	end
-	-- packet_table.clear_packet(self.object)
 end
 
 function motivator_binder:clear_callbacks()
@@ -292,7 +264,6 @@ function motivator_binder:death_callback(victim, who)
 			local gulag = xr_gulag.get_npc_gulag(self.object)
 			if gulag then
 				xr_gulag.setGulagEnemy(gulag.name , Actor)
-			--	dbglog("motivator_binder:death_callback, set gulag [%s] enemy for actor", gulag.name)
 			end
 		end
 	end

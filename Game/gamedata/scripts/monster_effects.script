@@ -204,44 +204,64 @@ end
 function ef_controller(binder)
 	local npc = binder.object
 	local target = npc:get_enemy()
-	if target and npc:see(target) and target:id() == 0 then
-		if not binder.get_hit then
-			binder.get_hit = time_global() + 100
-			binder.start_anim_hit_cont = true
-		elseif binder.get_hit <= time_global() then
-			local dist = npc:position():distance_to(target:position())
-			if dist <= 1.7 then
-				if binder.start_anim_hit_cont then
-					if npc:animation_count() > 0 then
-						npc:clear_animations()
+	if target and npc:see(target) then
+		if target:id() == 0 then
+			if not binder.get_hit then
+				binder.get_hit = time_global() + 100
+				binder.start_anim_hit_cont = true
+			elseif binder.get_hit <= time_global() then
+				local dist = npc:position():distance_to(target:position())
+				if dist <= 1.7 then
+					if binder.start_anim_hit_cont then
+						if npc:animation_count() > 0 then
+							npc:clear_animations()
+						end
+						npc:add_animation("stand_walk_fwd_"..math.random(0,1), true)
+						npc:play_cycle("stand_attack_1", true)
+						
+						local song_start = xr_sound.get_safe_sound_object("monsters\\controller\\controller_hit_2")
+						song_start:play_at_pos(npc, npc:position(), sound_object.s3d)
+						binder.start_anim_hit_cont = false
 					end
-					npc:add_animation("stand_walk_fwd_"..math.random(0,1), true)
-					npc:play_cycle("stand_attack_1", true)
-					
-					local song_start = xr_sound.get_safe_sound_object("monsters\\controller\\controller_hit_2")
-					song_start:play_at_pos(npc, npc:position(), sound_object.s3d)
-					binder.start_anim_hit_cont = false
+					if not binder.hit_to_enemy then
+						binder.hit_to_enemy = time_global() + 300
+					elseif binder.hit_to_enemy <= time_global() then
+						level.add_cam_effector("camera_effects\\hit_back_left.anm", 777, false, "")
+						
+						local h = hit()
+						h.draftsman = npc
+						h.direction = vector():set(0,0,0)  
+						h:bone("bip01_spine")   
+						h.power     = 0.40     
+						h.impulse   = 1
+						h.type      = hit.wound
+						target:hit(h)
+						
+						binder.hit_to_enemy = nil
+						binder.get_hit = nil
+					end
 				end
-				if not binder.hit_to_enemy then
-					binder.hit_to_enemy = time_global() + 300
-				elseif binder.hit_to_enemy <= time_global() then
-					level.add_cam_effector("camera_effects\\hit_back_left.anm", 777, false, "")
-					
-					local h = hit()
-					h.draftsman = npc
-					h.direction = vector():set(0,0,0)  
-					h:bone("bip01_spine")   
-					h.power     = 0.40     
-					h.impulse   = 1
-					h.type      = hit.wound
-					target:hit(h)
-					
-					binder.hit_to_enemy = nil
-					binder.get_hit = nil
-				end
+			end
+		elseif target:clsid() == clsid.script_stalker
+			and target:character_community() ~= "zombied"
+			and npc:position():distance_to( target:position() ) < 20
+		then
+			local sobj = AI:object( npc:id() ) 
+			if sobj and sobj.online then
+				local zomb = amk.load_table("zombies")
+				local data = netpk:get(sobj, netpk.fState)
+				zomb[sobj.id] = {
+					mr = npc:id(),
+					cm = target:character_community(),
+					ci = data.community_index,
+					gw = relation_registry.get_goodwill( target:id(), Actor:id() )
+				}
+				amk.save_table("zombies",zomb)
+				target:set_character_community("zombied", 0, 0)
 			end
 		end
 	end
+
 	if npc:animation_count() < 1 then
 		local i = math.random(0,5)
 		npc:add_animation("stand_walk_fwd_"..i, true)
@@ -513,6 +533,15 @@ function stop_effects(binder, who)
 		if level.has_pp_effector(2012)~=0 then
 			level.remove_pp_effector(2012)
 		end
+	elseif cls == clsid.controller_s then 
+		local zomb = amk.load_table("zombies") 
+		for k, v in pairs(zomb) do 
+			if v.master == mob:id() then 
+				amk_mod.dezombify(k, v)
+				zomb[k] = nil
+			end 
+	   end 
+	   amk.save_table("zombies", zomb)
 	end
 end
 
