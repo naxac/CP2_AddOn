@@ -1,0 +1,39 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+-- спринт by RayTwitty
+local sprint = false
+local last_active_item_id = 0
+
+function hud_sprint_animation()
+	local item = actor_active_item
+    if not item then return end
+
+    if last_active_item_id ~= item:id() then
+        last_active_item_id = item:id()
+        sprint = false
+    end
+
+	local hs = item:get_hud_item_state()
+    if ( hs == 0 and item:is_knife() )
+		or ( hs == 2 and item:is_missile() )
+	then
+		if Actor:is_actor_sprinting() then
+			if not sprint then
+				local hud_section = sys_ini:r_string( item:section(), "hud" )
+				if sys_ini:line_exist(hud_section, "anim_idle_sprint") then
+					item:play_hud_animation( sys_ini:r_string(hud_section, "anim_idle_sprint"), true )
+					sprint = 1
+				else
+					sprint = 0
+				end
+			end
+		elseif sprint then
+			if sprint == 1 then
+				local hud_section = sys_ini:r_string( item:section(), "hud" )
+				item:play_hud_animation( sys_ini:r_string(hud_section, "anim_idle"), true )
+			end
+			sprint = false
+		end
+	elseif sprint then
+		sprint = false
+	end
+end
