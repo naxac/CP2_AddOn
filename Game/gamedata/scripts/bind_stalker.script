@@ -68,13 +68,14 @@ function motivator_binder:net_spawn(sobject)
 	self.rot = self.rot_time <= amk.game_hours()
 
 	local zomb = amk.load_table("zombies")
-	for k,v in pairs(zomb) do
+	for k, v in pairs( table.copy({},zomb) ) do
 		if k == self.object:id() then
 			local master = AI:object(v.mr)
 			if master == nil or master:alive() == false then
 				amk_mod.dezombify(k, v)
 				zomb[k] = nil
 			end
+			break
 		end
 	end
 	amk.save_table("zombies", zomb)

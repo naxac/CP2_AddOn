@@ -246,7 +246,7 @@ function ef_controller(binder)
 			and target:character_community() ~= "zombied"
 			and npc:position():distance_to( target:position() ) < 20
 		then
-			local sobj = AI:object( npc:id() ) 
+			local sobj = AI:object( target:id() ) 
 			if sobj and sobj.online then
 				local zomb = amk.load_table("zombies")
 				local data = netpk:get(sobj, netpk.fState)
@@ -535,8 +535,8 @@ function stop_effects(binder, who)
 		end
 	elseif cls == clsid.controller_s then 
 		local zomb = amk.load_table("zombies") 
-		for k, v in pairs(zomb) do 
-			if v.master == mob:id() then 
+		for k, v in pairs( table.copy({},zomb) ) do 
+			if v.mr == mob:id() then 
 				amk_mod.dezombify(k, v)
 				zomb[k] = nil
 			end 
