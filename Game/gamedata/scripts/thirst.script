@@ -1,57 +1,63 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local math_clamp = math.clamp
-
+--[[
+jump_power 276
+stand_power 280
+walk_power 284
+jump_weight_power 288
+walk_weight_power 292
+--]]
 THIRST = 0
 
-local thirst_v
-local thirst_critical_power
-local thirst_min_critical_power
-local thirst_critical_health
-local thirst_min_critical_health
-local thirst_power_v
-local thirst_health_v
+local thirst_v 						= 0.00004
+
+local thirst_walk_power_v 			= 0.0002
+local thirst_walk_weight_power_v	= 0.001
+local thirst_stand_power_k			= 10
+local thirst_critical_power			= 0.4
+local thirst_critical_power_restore	= 0.6
+
+local thirst_health_v				= -0.00005
+local thirst_critical_health		= 0.9
+local thirst_critical_health_min	= 0.1
+
+local walk_power = sys_ini:r_float("actor_condition", "walk_power")
+local walk_weight_power = sys_ini:r_float("actor_condition", "walk_weight_power")
+local stand_power = sys_ini:r_float("actor_condition", "stand_power")
 
 local death_timer = nil
 
 function init()
 	local v = amk.load_variable("thr", 0)
---	log("[thirst.init] %s", v)
+--	log("- [thirst.init] %s", v)
 	death_timer = math.floor(v)
 	THIRST = v - death_timer
 	if death_timer == 0 then
 		death_timer = nil
 	end
 
-	local cond_sect = sys_ini:r_string("actor", "condition_sect")
-	thirst_v = sys_ini:r_float(cond_sect, "thirst_v")
-	thirst_power_v = -sys_ini:r_float(cond_sect, "thirst_power_v")
-	thirst_health_v = -sys_ini:r_float(cond_sect, "thirst_health_v")
-	thirst_critical_power = sys_ini:r_float(cond_sect, "thirst_critical_power")
-	thirst_min_critical_power = sys_ini:r_float(cond_sect, "thirst_min_critical_power")
-	thirst_critical_health = sys_ini:r_float(cond_sect, "thirst_critical_health")
-	thirst_min_critical_health = sys_ini:r_float(cond_sect, "thirst_min_critical_health")
+	-- if true then return end
+
+	thirst_v = sys_ini:r_float("actor_condition", "thirst_v")
+	thirst_walk_power_v = sys_ini:r_float("actor_condition", "thirst_walk_power_v")
+	thirst_walk_weight_power_v = sys_ini:r_float("actor_condition", "thirst_walk_weight_power_v")
+	thirst_stand_power_k = sys_ini:r_float("actor_condition", "thirst_stand_power_k")
+	thirst_critical_power = sys_ini:r_float("actor_condition", "thirst_critical_power")
+	thirst_critical_power_restore = sys_ini:r_float("actor_condition", "thirst_critical_power_restore")
+	thirst_health_v = sys_ini:r_float("actor_condition", "thirst_health_v")
+	thirst_critical_health = sys_ini:r_float("actor_condition", "thirst_critical_health")
+	thirst_critical_health_min = sys_ini:r_float("actor_condition", "thirst_critical_health_min")
 end
+
+local upd_time_power = 0
 
 -- delta - игровые секунды
 function update(delta)
 	amk.oau_reason="thirst.update"
 
-	if Actor:is_actor_sprinting() then
-		delta = delta * 2
-	end
-
-	THIRST = math_clamp(THIRST + thirst_v*delta, 0, 1)
---	log("thirst: %s", THIRST)
-
-	if THIRST > thirst_critical_power then
-		if Actor.power > thirst_min_critical_power then
-			Actor.power = thirst_power_v * (THIRST - thirst_critical_power)/(1 - thirst_critical_power)
-		end
-	end
-
 	if THIRST > thirst_critical_health then
-		if Actor.health > thirst_min_critical_health then
-			Actor.health = thirst_health_v * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
+		if Actor.health > thirst_critical_health_min then
+			Actor.health = thirst_health_v * delta * (THIRST - thirst_critical_health)/(1 - thirst_critical_health)
 		end
 		if not death_timer then
 			death_timer = 24*60*60
@@ -64,7 +70,37 @@ function update(delta)
 		death_timer = nil
 	end
 
+	if Actor:is_actor_sprinting() then
+		delta = delta * 2
+	end
+
+	THIRST = math_clamp(THIRST + thirst_v*delta, 0, 1)
+--	log("THIRST update: %s", THIRST)
+
 	ui_scroll_indicators.update_indicator( "thirst", "thirst", THIRST )
+
+	if upd_time_power > real_time_ms then
+		return
+	end
+	upd_time_power = real_time_ms + 3000
+
+	if THIRST > thirst_critical_power then
+		local m = (THIRST - thirst_critical_power)/(1 - thirst_critical_power)
+		local v = thirst_walk_power_v * m
+		Actor:set_actor_condition_float( nil, walk_power + v, 284 )
+		v = thirst_walk_weight_power_v * m
+		Actor:set_actor_condition_float( nil, walk_weight_power + v, 292 )
+	else
+		Actor:set_actor_condition_float( nil, walk_power, 284 )
+		Actor:set_actor_condition_float( nil, walk_weight_power, 292 )
+	end
+
+	if THIRST > thirst_critical_power_restore then
+		local d = thirst_stand_power_k * (THIRST - thirst_critical_power_restore)/(1 - thirst_critical_power_restore)
+		Actor:set_actor_condition_float( nil, stand_power/d, 280 )
+	else
+		Actor:set_actor_condition_float( nil, stand_power, 280 )
+	end
 end
 
 function change_thirst(delta)
@@ -74,7 +110,6 @@ end
 function save()
 	if THIRST == 1 then THIRST = 0.99999 end
 	local v = THIRST + (death_timer and math.ceil(death_timer) or 0)
---	log("[thirst.save] %s", v)
 	amk.save_variable("thr", v)
 end
 
@@ -84,5 +119,5 @@ function attach()
 end
 
 function test(...)
-	thirst_v, thirst_power_v, thirst_health_v = ...
+	thirst_power_v, thirst_health_v = ...
 end
