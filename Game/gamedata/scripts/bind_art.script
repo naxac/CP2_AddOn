@@ -5,6 +5,7 @@ class "art_binder" ( object_binder )
 
 function art_binder:__init( item ) super( item )
 	self.netspawn = true
+	self.need_update_art_loss = true
 end
 
 function art_binder:update( delta )
@@ -17,13 +18,15 @@ function art_binder:update( delta )
 			local impulse = item:mass() * 1300
 			ps:apply_force( 0, impulse, 0 )
 		end
+		self.netspawn = nil
+	end
 
+	if not self.need_update_art_loss then
 		local se_obj = AI:object( self.object:id() )
-		if se_obj and se_obj.is_transformed then
+		if se_obj then
 			self:set_art_loss(se_obj.art_loss)
+			self.need_update_art_loss = nil
 		end
-
-		self.netspawn = false
 	end
 end
 
