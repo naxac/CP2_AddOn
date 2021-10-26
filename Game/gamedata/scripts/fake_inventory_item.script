@@ -212,27 +212,33 @@ for k, v in pairs(artefact_offsets) do
 	end
 end
 function fake_item:get_inventory_item_float(offset)
-	if self:is_artefact() then
-		local t = offset2iniline[offset]
-		if t then
-			local res = 0
-			if t.type == "conditions" then
-				res = sys_ini:r_float(self.__section, t.line)
-			else
-				local s = sys_ini:r_string(self.__section, "hit_absorbation_sect")
-				res = sys_ini:r_float(s, t.line)
-			end
-			if self.art_loss and self.art_loss ~= 0 then
-				if t.type == "conditions" then
-					res = res * self.art_loss
-				else
-					res = (res - 1)*self.art_loss + 1
-				end
-			end
-			return res
+	local t = offset2iniline[offset]
+	if t then
+		local res = 0
+		if t.type == "conditions" then
+			res = sys_ini:r_float(self.__section, t.line)
+		else
+			local s = sys_ini:r_string(self.__section, "hit_absorbation_sect")
+			res = sys_ini:r_float(s, t.line)
 		end
+		if self.art_loss and self.art_loss ~= 0 then
+			local m = 1 - self.art_loss
+			if t.type == "conditions" then
+				res = res * m
+			else
+				res = (res - 1)*m + 1
+			end
+		end
+		return res
 	end
-	return 0
+end
+
+function fake_item:get_radiation()
+	if self:is_artefact() then
+		return self:get_inventory_item_float( artefact_offsets.conditions.radiation_restore_speed )
+	else
+		return sys_ini:r_float_ex(self.__section, "radiation_restore_speed", 0)
+	end
 end
 
 function fake_item:get_power_loss()

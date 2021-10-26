@@ -18,7 +18,7 @@ function on_take_container(item)
 
 	for i = 1, slots do
 		if arts and arts[i] and arts[i].s ~= "_" then
-			local inv_rad = sys_ini:r_float(arts[i].s, "radiation_restore_speed")
+			local inv_rad = sys_ini:r_float(arts[i].s, "radiation_restore_speed") * ( 1 - (arts[i].ar or 0) )
 			inv_rad = math.max(inv_rad, 0)
 			if inv_rad > rad_protect then
 				arc_radiation.change_inv_radiation(inv_rad-rad_protect)
@@ -36,7 +36,7 @@ function on_lose_container( item )
 	local rad_protect = sys_ini:r_float( item:section(), "rad_protection" )
 	for i, v in ipairs( arts ) do
 		if v.s ~= "_" then
-			local inv_rad = sys_ini:r_float( v.s, "radiation_restore_speed" )
+			local inv_rad = sys_ini:r_float( v.s, "radiation_restore_speed" ) * ( 1 - (v.ar or 0) )
 			inv_rad = math.max( inv_rad, 0 )
 			if inv_rad > rad_protect then
 				arc_radiation.change_inv_radiation( rad_protect-inv_rad )
@@ -144,8 +144,8 @@ function insert_art(cont_id, art, art_index)
 	arts[art_index] = {
 		s = art:section(),
 		c = art:condition(),
-		ar = art.art_loss,
-		tr = art.transformed
+		ar = art.art_loss or 0,
+		tr = art.transformed == true
 	}
 end
 

@@ -209,7 +209,7 @@ function CUIDescriptionWnd:ShowDescription(item)
 			inv_name = "unknown_art"
 			description = "Неизвестное аномальное образование."
 			if arc_inventory.IsRadDetected() then
-				local rd = sys_ini:r_float(self.section, "radiation_restore_speed") / actor_conditions.radiation_restore_speed
+				local rd = item:get_inventory_item_float( artefact_offsets.conditions.radiation_restore_speed ) / actor_conditions.radiation_restore_speed
 				if rd > 0 then
 					description = description.." Радиоактивно, при замере показывает излучение "..string_format("%d", rd).." Кюри."
 				end
@@ -373,7 +373,7 @@ function CUIDescriptionWnd:GetContainerParams()
 		for i, v in ipairs(arts) do
 			if v.s ~= "_" then
 				table.add(t, v.s)
-				r = r + math.max(sys_ini:r_float(v.s, "radiation_restore_speed") - p, 0)
+				r = r + math.max(sys_ini:r_float(v.s, "radiation_restore_speed") * ( 1 - (v.ar or 0) ) - p, 0)
 			end
 		end
 

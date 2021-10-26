@@ -1316,11 +1316,16 @@ function check(item)
 	end
 
 	if sys_ini:line_exist(sect, "radiation_restore_speed") then
-		if item:is_artefact() and bind_det_arts.is_detected_art(sect) then
-			xr_statistic.addArtefact(item:id(), sect)
+		local inv_rad
+		if item:is_artefact() then
+			inv_rad = item:get_inventory_item_float( artefact_offsets.conditions.radiation_restore_speed )
+			if bind_det_arts.is_detected_art(sect) then
+				xr_statistic.addArtefact(item:id(), sect)
+			end
+		else
+			inv_rad = sys_ini:r_float(sect, "radiation_restore_speed")
 		end
 
-		local inv_rad = sys_ini:r_float(sect, "radiation_restore_speed")
 		if inv_rad > 0 then
 			arc_radiation.change_inv_radiation(inv_rad)
 		end
