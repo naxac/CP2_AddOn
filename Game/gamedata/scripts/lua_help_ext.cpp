@@ -205,6 +205,17 @@ class game_object {
 	// CPhysicShellHolder
 	char			get_bone_name();						// use with set_int_arg0(bone_id)
 	char			get_bone_name_by_id( int<bone_id> );
+	// CHudItem
+	void 					play_hud_animation(string<anim_name>, bool<mix_in>);				// проигрывает анимацию с заданным именем.
+	uint<remaining_time>	get_hud_animation_remaining_time();									//возвращает время, оставшееся до окончания текущей анимации.
+	int<length> 			get_hud_animation_length(string<anim_name>);						//возвращает длительность анимации по её имени.
+	bool<is_cyclic>			is_cyclic_hud_animation();											//возвратит true, если текущая анимация зациклена.
+	bool<has_anim>			has_hud_animation(string<anim_name>);								//возвратит true, если анимация есть в модели.
+	uint<state>				get_hud_item_state();												//возвращает номер текущего стейта.
+	int<bone_id>			get_hud_bone_id(string<bone_name>);									//возвращает id кости по имени.
+	vector<pos>				get_hud_bone_pos(string<bone_name>);								//возвращает позицию кости по имени.
+	int<is_visible>[0 or 1]	get_hud_bone_visible(string<bone_name>);							//возвращает видимость кости по имени.
+	void					set_hud_bone_visible(string<bone_name>, int<visible>[0 or 1]);		//устанавливает видимость кости по имени.
 };
 
 class ini_file {
