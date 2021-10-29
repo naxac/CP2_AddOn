@@ -2659,35 +2659,37 @@ function lc_from_generators_to_warlab(actor, npc)
 	ShowMessageBox("yes_no_alarm", text, func_yes)
 end
 
--- бандиты и сталкеры - дружба навек!
-function darkvalley_frienship(npc_id)
-	local smarts = {
-		"val_watchtower1", "val_watchtower2", "val_watchtower3", "val_watchtower4", "val_watchtower5",
-		"val_sacrifice", "val_x18_exit_base", "val_smart_bandit_2", "val_lager_bandits", "val_escort"
-	}
-	for i, v in ipairs(smarts) do
-		local gulag = xr_gulag.get_gulag(v)
-		if gulag then
-			for id in pairs(gulag.npc_info) do
-				relation_registry.set_goodwill(npc_id, id, 1000)
-				relation_registry.set_goodwill(id, npc_id, 1000)
+function messer_bandit_friend(fs, ss)
+	local npc = AI:story_object(story_ids.val_sos_stalker)
+	if npc then
+		local npc_id = npc.id
+		local smarts = {
+			"val_watchtower1", "val_watchtower2", "val_watchtower3", "val_watchtower4", "val_watchtower5",
+			"val_sacrifice", "val_x18_exit_base", "val_smart_bandit_2", "val_lager_bandits", "val_escort"
+		}
+		for i, v in ipairs(smarts) do
+			local gulag = xr_gulag.get_gulag(v)
+			if gulag then
+				for id in pairs(gulag.npc_info) do
+					relation_registry.set_goodwill(npc_id, id, 1000)
+					relation_registry.set_goodwill(id, npc_id, 1000)
+				end
 			end
 		end
 	end
 end
 
-function friendly_sak_lager()
+function check_sak_lager(npc)
+	if level.name() ~= "l04_darkvalley" then return end
+	if npc:character_community() ~= "bandit" then return end
+
 	local gulag = xr_gulag.get_gulag("sak_lager")
 	if gulag then	
+		local npc_id = npc:id()
 		for id in pairs(gulag.npc_info) do
-			darkvalley_frienship(id)
+			relation_registry.set_goodwill(npc_id, id, 1000)
+			relation_registry.set_goodwill(id, npc_id, 1000)
 		end
-	end
-end
-function messer_bandit_friend(fs, ss)
-	local npc = AI:story_object(story_ids.val_sos_stalker)
-	if npc then
-		darkvalley_frienship(npc.id)
 	end
 end
 
