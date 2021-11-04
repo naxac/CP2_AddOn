@@ -26,11 +26,18 @@ local recipts_info = {
 	["info_amk_recipt_giant_small_brother"] = {
 		art = "af_kol_4",
 		phrase = "artmod_53_61_dialog_0006"
+	},
+	["info_artmod_gold_art"] = {
+		has_info = "gold_art_start",
+		art = "gold_art",
+		phrase = "artmod_53_61_dialog_0007"
 	}
 }
 function osvedomitel_has_recipts(first_speaker, second_speaker)
 	for k, v in pairs(recipts_info) do
-		if Actor:dont_has_info(k) then
+		if Actor:dont_has_info(k)
+			and ( v.has_info == nil or Actor:has_info(v.has_info) )
+		then
 			return true
 		end
 	end
@@ -41,7 +48,9 @@ function osvedomitel_hasnt_recipts(first_speaker, second_speaker)
 end
 function show_recipts(first_speaker, second_speaker)
 	for k, v in pairs(recipts_info) do
-		if Actor:dont_has_info(k) then
+		if Actor:dont_has_info(k)
+			and ( v.has_info == nil or Actor:has_info(v.has_info) )
+		then
 			local icon = GetIconParams(v.art)
 			Actor:give_talk_message(
 				game.translate_string(v.phrase),
