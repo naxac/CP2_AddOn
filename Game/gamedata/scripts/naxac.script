@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 110
+local current_fix = 112
+
 function fix_112()
 	local objects = {
 		"upiter_dogs",
@@ -14,7 +15,50 @@ function fix_112()
 		end
 	end
 end
+function fix_111()
+	local obj
+	for i = 1, 4 do
+		obj = AI:story_object(220000+i)
+		if obj and obj:clsid() == clsid.level_changer then
+			local pk = netpk:get(obj)
+			pk.position = obj.position
+			pk.level_vertex_id = obj.m_level_vertex_id
+			pk.game_vertex_id = obj.m_game_vertex_id
+			AI:release(obj, true)
 
+			obj = AI:create("space_restrictor", pk.position, pk.level_vertex_id, pk.game_vertex_id)
+			local data = {}
+			data.object_flags = pk.object_flags
+			data.story_id = pk.story_id
+			data.shapes = pk.shapes
+			for j = 1, #data.shapes do
+				data.shapes[j].radius = data.shapes[j].radius + 0.2
+			end
+			data.restrictor_type = pk.restrictor_type
+			local cd = {
+				logic = {
+					active = "sr_level_changer"
+				},
+				sr_level_changer = {
+					dest_game_vertex_id = tostring(pk.dest_game_vertex_id),
+					dest_level_vertex_id = tostring(pk.dest_level_vertex_id),
+					dest_position = string.format("%s,%s,%s",
+						pk.dest_position.x,
+						pk.dest_position.y,
+						pk.dest_position.z
+					),
+					dest_direction = string.format("%s,%s,%s",
+						pk.dest_direction.x,
+						pk.dest_direction.y,
+						pk.dest_direction.z
+					)
+				}
+			}
+			data.custom_data = netpk:gen_custom_data(cd)
+			netpk:modify(obj, data, netpk.fState)
+		end
+	end
+end
 function fix_110()
 	for i = 0, 7 do
 		AI:create( spawn_ids[ "aes2_clmbl"..tostring(28+i) ] )

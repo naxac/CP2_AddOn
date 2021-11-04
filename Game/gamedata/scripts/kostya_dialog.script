@@ -12,7 +12,6 @@ function stealth_start2()
 end
 function stealth_rest()
 	local custom = "[logic]\ncfg = scripts\\labirint\\seif_restr_stealth.ltx"
-
 	netpk:create_restrictor( vector():set(-319.69119262695,52.752014160156,195.46728515625), 34557, 2987, custom )
 end
 function stealth1_have()
@@ -51,7 +50,7 @@ function stealth2_done()
 end
 function stealth5_done()
 	inventory.give_items("arhara_seif",1)
-	local obj = snp.object_by_section_offline("tm_brother_2chaes")
+	local obj = AI:story_object(story_ids.tm_brother_2chaes)
 	if obj then
 		AI:release(obj, true)
 	end
@@ -2177,26 +2176,33 @@ function kostya_taynik_pda21_done(task, objective)
 		params.mass = 100
 		params.fixed_bones = "joint1"
 		netpk:modify(obj, params, netpk.fState)
+	
 		AI:create("zone_event_horisont",vector():set(a.eh.x,a.eh.y+1.7,a.eh.z),a.eh.lv,a.eh.gv)
 
-		obj = AI:create("level_changer", vector():set(a.lc.x,a.lc.y,a.lc.z), a.lc.lv, a.lc.gv)
+		obj = AI:create("space_restrictor", vector():set(a.lc.x,a.lc.y,a.lc.z), a.lc.lv, a.lc.gv)
 		params = {}
 		params.object_flags	= bit_not(193)
---		params.story_id = 220000 + i
+		params.story_id = 220000 + i
 		params.shapes = {
-			[1] = {
+			{
 				shtype = 0,
 				center = vector():set(0,0,0),
-				radius = 0.5
+				radius = 0.7
 			}
 		}
 		params.restrictor_type = 3
-		params.dest_game_vertex_id	= a.to.gv
-		params.dest_level_vertex_id	= a.to.lv
-		params.dest_position		= vector():set(a.to.x,a.to.y,a.to.z)
-		params.dest_direction		= vector():set(a.dir.x,a.dir.y,a.dir.z)
-		params.dest_level_name		= a.level
-		params.silent_mode			= 0
+		local cd = {
+			logic = {
+				active = "sr_level_changer"
+			},
+			sr_level_changer = {
+				dest_game_vertex_id = tostring(a.to.gv),
+				dest_level_vertex_id = tostring(a.to.lv),
+				dest_position = string.format("%s,%s,%s", a.to.x, a.to.y, a.to.z),
+				dest_direction = string.format("%s,%s,%s", a.dir.x, a.dir.y, a.dir.z)
+			}
+		}
+		params.custom_data = netpk:gen_custom_data(cd)
 		netpk:modify(obj, params, netpk.fState)
 	end
 end
