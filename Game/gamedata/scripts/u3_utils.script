@@ -62,6 +62,9 @@ function quick_save_rename()
 
 	local f1 = fs:update_path("$game_saves$", save_name..".sav")
 	if game_options.SaveRen then
+		if game_options.QSavesLimit > 0 then
+			del_extra_saves()
+		end
 		local new_svname = string.format( "День %d. %02d-%02d. %s",
 			(amk.game_days()+1), level.get_time_hours(), level.get_time_minutes(),
 			game.translate_string(level.name()) )
@@ -90,6 +93,32 @@ function quick_save_rename()
 	end
 end
 
+function del_extra_saves()
+	local fs = getFS()
+	local flist = fs:file_list_open_ex("$game_saves$",bit_or(FS.FS_ListFiles,FS.FS_RootOnly),"День *.sav")
+	flist:Sort(FS.FS_sort_by_modif_up)
+	local fcount = flist:Size()
+	if fcount == 0 then return end
+	local need_del = fcount - game_options.QSavesLimit + 1
+	if need_del <= 0 then return end
+
+	local tmp_del = {}
+	for i = 0, fcount-1 do
+		if i < need_del then
+			table.insert(tmp_del, flist:GetAt(i):NameFull())
+		else
+			break
+		end
+	end
+	for i, save_name in ipairs(tmp_del) do
+		fs:file_delete("$game_saves$", save_name)
+		save_name = save_name:sub(1, -5)..".dds"
+		if fs:exist("$game_saves$", save_name) then
+			fs:file_delete("$game_saves$", save_name)
+		end
+	end
+end
+
 function auto_save_rename(old_level)
 	local save_name = old_user_name().."_autosave"
 	local fs = getFS()
@@ -110,9 +139,11 @@ function auto_save_rename(old_level)
 	end
 end
 
-function on_save()
+function on_quick_save()
 	if Actor:alive() then
-		xr_s.subscribe( "update", u3_utils.check_show_game_saved, { userobj = user_name().."_quicksave" } )
+		if old_user_name() ~= user_name() then
+			xr_s.subscribe( "update", u3_utils.check_show_game_saved, { userobj = user_name().."_quicksave" } )
+		end
 		if tmr then remove_small_timer(tmr) end
 		tmr = start_small_timer( 700, u3_utils.quick_save_rename )
 	end
