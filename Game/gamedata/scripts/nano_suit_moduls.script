@@ -791,16 +791,18 @@ end
 
 function sidor_start()
 	xr_sound.get_safe_sound_object([[characters_voice\volazar\vse_vyshe_vyshe]]):play(Actor, 15, sound_object.s2d)
-	news_manager.send_tip("sidor_esc_fly_start", 5, nil, 20000)
-	snp.invul_on()
+	news_manager.send_tip("sidor_esc_fly_start", 5, nil, 15000, nil, "nano_suit_moduls.sidor_start1()")
 	Actor:give_info_portion("no_landing")
 	Actor:give_info_portion("vol_info_temp")
 	xr_s.subscribe( "update", this.sidor_ammo, { timeout = 1000 } )
 end
+function sidor_start1()
+	news_manager.send_tip("sidor_esc_fly_start1", 5, nil, 20000)
+	amk.save_variable("blowout",2)
+end
 
 function sidor_stop()
 	xr_sound.get_safe_sound_object([[characters_voice\volazar\vse_vyshe_vyshe]]):stop()
-	snp.invul_off()
 	invul_4_seconds()
 	Actor:disable_info_portion("no_autosave")
 	Actor:disable_info_portion("no_landing")
@@ -813,6 +815,7 @@ function item_from_sidor()
 	inventory.give_items("wpn_rg-6",1)
 	inventory.give_items("ammo_vog-25_fly",12)
 	Actor:give_info_portion("no_autosave")
+	Actor:give_info_portion("vol_fly")
 	xr_s.subscribe( "pre_save", esc_fly.sidor_delo_fail )
 end
 
@@ -820,6 +823,8 @@ function sidor_reward()
 	inventory.out_items("wpn_rg-6",1)
 	inventory.out_items_all("ammo_vog-25_fly")
 	aem_manager.manage_money(200000, "in")	
+	amk.del_variable("blowout")
+	Actor:disable_info_portion("vol_fly")
 end
 
 -- Other
