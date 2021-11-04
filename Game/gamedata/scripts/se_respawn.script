@@ -103,67 +103,72 @@ function parse_names( s )
     return t
 end
 
-function r_spawns( spawn_ini, section, line, sectSpawnProps)
-	if spawn_ini:line_exist( section, line ) then
-		--' если default-ов больше, чем значений в ini, то забить недостающие последним значением из ini
-		local t = parse_names( spawn_ini:r_string( section, line ) )
-		local n = #t
+function r_spawns(spawn_ini, section, line, sectSpawnProps, respawn_name)
+	local t
+	if sys_ini:section_exist( respawn_name..".override" ) and sys_ini:line_exist( respawn_name..".override", line ) then
+		t = parse_names( sys_ini:r_string( respawn_name..".override", line ) )
+	elseif spawn_ini:line_exist( section, line ) then
+		t = parse_names( spawn_ini:r_string( section, line ) )
+	else
+		return nil
+	end
 
-		local ret_table = {}
-		local k = 1
-		while k <= n do
-			local spawn = {}
-			spawn.section = t[k]
-			-- Проверяем что это не последняя запись
-			if t[k+1] ~= nil then
-				local p = tonumber(t[k+1])
-				-- проверяем что вторым числом задана вероятность, а не другая секция спавну
-				if p then
-					-- забиваем число
-					spawn.prob = p
-					k = k + 2
-				else
-					-- забиваем дефолт 1
-					spawn.prob = 1
-					k = k + 1
-				end
+	--' если default-ов больше, чем значений в ini, то забить недостающие последним значением из ini
+	local n = #t
+
+	local ret_table = {}
+	local k = 1
+	while k <= n do
+		local spawn = {}
+		spawn.section = t[k]
+		-- Проверяем что это не последняя запись
+		if t[k+1] ~= nil then
+			local p = tonumber(t[k+1])
+			-- проверяем что вторым числом задана вероятность, а не другая секция спавну
+			if p then
+				-- забиваем число
+				spawn.prob = p
+				k = k + 2
 			else
+				-- забиваем дефолт 1
 				spawn.prob = 1
 				k = k + 1
 			end
+		else
+			spawn.prob = 1
+			k = k + 1
+		end
 
-			-- Вычитываем настройки секций респавна и кешируем их.
-			if sectSpawnProps[spawn.section] == nil then
-				if not sys_ini:section_exist(spawn.section) then
-					log("! [se_respawn.r_spawns]: spawn section '%s' not exist!", spawn.section)
-					spawn = nil
-				else
-					local community = sys_ini:r_string_ex(spawn.section, "community", "nil")
-					local rank = sys_ini:r_string_ex(spawn.section, "spec_rank", "nil")
-					local check = true
-					local custom_data = sys_ini:r_string_ex(spawn.section, "custom_data", nil)
-					if custom_data ~= nil then
-						local custom_data_ltx = ini_file(custom_data)
-						if custom_data_ltx:section_exist("smart_terrains") then
-							if custom_data_ltx:r_string_ex("smart_terrains", "none", "") == "true" then
-								check = false
-							end
-							if custom_data_ltx:r_string_ex("smart_terrains", "respawn_check", "") == "false" then
-								check = false
-							end                        
+		-- Вычитываем настройки секций респавна и кешируем их.
+		if sectSpawnProps[spawn.section] == nil then
+			if not sys_ini:section_exist(spawn.section) then
+				log("! [se_respawn.r_spawns]: spawn section '%s' not exist!", spawn.section)
+				spawn = nil
+			else
+				local community = sys_ini:r_string_ex(spawn.section, "community", "nil")
+				local rank = sys_ini:r_string_ex(spawn.section, "spec_rank", "nil")
+				local check = true
+				local custom_data = sys_ini:r_string_ex(spawn.section, "custom_data", nil)
+				if custom_data ~= nil then
+					local custom_data_ltx = ini_file(custom_data)
+					if custom_data_ltx:section_exist("smart_terrains") then
+						if custom_data_ltx:r_string_ex("smart_terrains", "none", "") == "true" then
+							check = false
 						end
+						if custom_data_ltx:r_string_ex("smart_terrains", "respawn_check", "") == "false" then
+							check = false
+						end                        
 					end
-
-					sectSpawnProps[spawn.section] = {community = community, rank = rank, check = check}
 				end
-			end
-			if spawn then
-				table.insert(ret_table, spawn)
+
+				sectSpawnProps[spawn.section] = {community = community, rank = rank, check = check}
 			end
 		end
-		return ret_table
+		if spawn then
+			table.insert(ret_table, spawn)
+		end
 	end
-	return nil
+	return ret_table
 end
 ----------------------------------------------------------------------------------------------------------------------
 -- Серверный объект спавнера
@@ -595,7 +600,7 @@ function init_respawn_params(obj)
 		return  
 	end
 
-	obj.respawn_section = r_spawns(ini, section_name, "respawn_section", obj.sectSpawnProps)  
+	obj.respawn_section = r_spawns(ini, section_name, "respawn_section", obj.sectSpawnProps, obj:name())  
 	if obj.respawn_section == nil then
 		abort("RESPAWN: [%s] field 'respawn_section' doesn't exist.", obj:name())
 	end
