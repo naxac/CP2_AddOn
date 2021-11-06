@@ -663,55 +663,43 @@ end
 -- отпустить npc
 -- TODO а если такого объекта уже нету?
 function se_smart_terrain:unregister_npc( obj )
-  local n = self.npc_info[obj.id]
+	local n = self.npc_info[obj.id]
 
-  --' Если анрегистрим мертвого эксклюзивного НПС, нужно уменьшить счетчик эксклюзивности
-  if not obj:alive() and obj.smart_terrain_conditions then
-    local any_exclusive = false
-    local s
+	--' Если анрегистрим мертвого эксклюзивного НПС, нужно уменьшить счетчик эксклюзивности
+	if (not obj:alive()) and obj.smart_terrain_conditions then
+		local any_exclusive = false
+		local s
 
-    for name, condlist in pairs(obj.smart_terrain_conditions) do
-      s = xr_logic.pick_section_from_condlist( db.actor_proxy, obj, condlist )
+		for name, condlist in pairs(obj.smart_terrain_conditions) do
+			s = xr_logic.pick_section_from_condlist( db.actor_proxy, obj, condlist )
 
-      if s ~= nil then
-        if name == self:name() then
-          --' уменьшаем счетчик
-          self.exclusives = self.exclusives - 1
-          self.gulag.capacity_non_exclusive = self.gulag.capacity_non_exclusive + 1
-        end
-      end
-    end
-  end
+			if s ~= nil then
+				if name == self:name() then
+					--' уменьшаем счетчик
+					self.exclusives = self.exclusives - 1
+					self.gulag.capacity_non_exclusive = self.gulag.capacity_non_exclusive + 1
+				end
+			end
+		end
+	end
 
-  if not n then
-    -- printf( "self.npc_info[obj.id] = nil !!! obj.id=%d", obj.id )
-    self:print()
-    self.gulag:print()
-  end
+	if not n then
+		-- printf( "self.npc_info[obj.id] = nil !!! obj.id=%d", obj.id )
+		self:print()
+		self.gulag:print()
+	end
 
-  self.gulag:removeObject( obj.id )
+	self.gulag:removeObject( obj.id )
 
-  obj.squad = n.o_squad
-  obj.group = n.o_group
+	obj.squad = n.o_squad
+	obj.group = n.o_group
 
-  self.npc_info[obj.id] = nil
+	self.npc_info[obj.id] = nil
 
-  obj:clear_smart_terrain()
-  obj:brain():can_choose_alife_tasks(true)	-- разрешаем мобу юзать смарты (dsh)
+	obj:clear_smart_terrain()
+	obj:brain():can_choose_alife_tasks(true)	-- разрешаем мобу юзать смарты (dsh)
 
---  sim_statistic.remove( obj ) -- эта статистка не нужна
-
---' if sim_statistic.show_stalker_spot == true and obj:alive() then
---'   local community, rank = sim_statistic.getNpcType(obj)
---'   local spot = "alife_presentation_monstr"
---'   if IAmAStalker[obj:clsid()] then
---'     spot = "alife_presentation_"..community
---'   end
---'   local str = obj:name().." "..self:name().."\\n".."<<removed>>"
---'   level.map_change_spot_hint(obj.id, spot, str)   
---' end
-
-  -- printf( "[smart_terrain %s] removed %s from gulag type=%s, strn_id=%s", self:name(), obj:name() or "<<<nil>>>", self.gparams.type, obj:smart_terrain_id())
+	-- printf( "[smart_terrain %s] removed %s from gulag type=%s, strn_id=%s", self:name(), obj:name() or "<<<nil>>>", self.gparams.type, obj:smart_terrain_id())
 end
 
 -- изменть ранг сталкера при регистрации в смарт
@@ -730,7 +718,7 @@ end
 -- TODO а если я выгоню кого-то, а его работа не подойдёт по idle ?
 function se_smart_terrain:kick_someone_non_exclusive( new_npc_info )
 	for obj_id, npc_info in pairs( self.npc_info ) do
-		if not npc_info.exclusive and self.gulag:obj1_job_suits_obj2( obj_id, new_npc_info ) then
+		if (not npc_info.exclusive) and self.gulag:obj1_job_suits_obj2( obj_id, new_npc_info ) then
 		--	printf("[smart_terrain %s] kicking %s", self:name(), npc_info.name)
 			self:unregister_npc( npc_info.se_obj )
 			return
@@ -1029,52 +1017,53 @@ end
 -- Также может вызваться принудительно из xr_effects
 -- Если мужиков в гулаге больше не осталось или условия существования гулага не выполняются, то убрать гулаг.
 function se_smart_terrain:update()
---  log( "se_smart_terrain::update called!" )
-  cse_alife_smart_zone.update( self )
+--	log( "se_smart_terrain::update called!" )
+	cse_alife_smart_zone.update( self )
 
        -- barin start
 --	smart_debug.ShowSmartInfo(self.id, self:name(), self:is_gulag_available(), self.gulag_working, object_level_name(self),
 --		r_str(self:spawn_ini(), "smart_terrain", "communities"), r_str(self:spawn_ini(), "smart_terrain", "cond"))
 	-- barin end
-  if not self.gulag_working then
-    return
-  end
+	if not self.gulag_working then
+		return
+	end
 
---' self:initialize_if_needed()
+--'	self:initialize_if_needed()
 
-  if self:is_gulag_available() then
-    if self.check_time < game.get_game_time() then
-      self.check_time = game.get_game_time() + check_period
+	if self:is_gulag_available() then
+		local game_time = game.get_game_time()
+		if self.check_time < game_time then
+			self.check_time = game_time + check_period
 
-      --' проверять, не собрался ли кто-то к этому времени уже уходить
-      for id, npc_info in pairs( self.npc_info ) do
-        if npc_info.cond and xr_logic.pick_section_from_condlist( db.actor_proxy, npc_info.se_obj, npc_info.cond ) == nil then
-          -- printf("[smart_terrain %s] leaving %s", self:name(), npc_info.name)
-          self:unregister_npc( npc_info.se_obj )
-        end
-      end
+			--' проверять, не собрался ли кто-то к этому времени уже уходить
+			for id, npc_info in pairs( self.npc_info ) do
+				if npc_info.cond and xr_logic.pick_section_from_condlist( db.actor_proxy, npc_info.se_obj, npc_info.cond ) == nil then
+					-- printf("[smart_terrain %s] leaving %s", self:name(), npc_info.name)
+					self:unregister_npc( npc_info.se_obj )
 				-- если вышло время пребывания
 				elseif (not npc_info.exclusive) and npc_info.stay_end then
 					if npc_info.stay_end < game_time then
 						log("# [se_smart_terrain] unregister npc[%s] from smart %s: stay time is over", npc_info.name, self:name())
 						self:unregister_npc( npc_info.se_obj )
 					end
+				end
+			end
 
-      if self.gulag:get_population() == 0 then
+			if self.gulag:get_population() == 0 then
+				-- barin start
+				-- smart_debug.remove_mapspots(self.id)
+				-- barin end
+				self:remove_gulag(self.id)
+			else
+				self.gulag:update()
+			end
+		end
+	else
 		-- barin start
---	smart_debug.remove_mapspots(self.id)
+		-- smart_debug.remove_mapspots(self.id)
 		-- barin end
-	    self:remove_gulag(self.id)
-      else
-        self.gulag:update()
-      end
-    end
-  else
-                -- barin start
---		smart_debug.remove_mapspots(self.id)
-		-- barin end
-    self:remove_gulag()
-  end
+		self:remove_gulag()
+	end
 end
 
 --------------------
