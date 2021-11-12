@@ -1,0 +1,28 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local current_value = game_options.InvisibleAnoms
+
+function on_save_options()
+	if current_value == game_options.InvisibleAnoms then
+		return false
+	end
+
+	current_value = game_options.InvisibleAnoms
+
+	local folder_name = current_value and "invisible" or "normal"
+	local fs = getFS()
+	local copy_path = fs:update_path("$game_config$", "zones\\"..folder_name.."\\")
+	local dest_path = fs:update_path("$game_config$", "zones\\")
+	local flist = fs:file_list_open(copy_path, FS.FS_ListFiles)
+	local fname
+	for i = 0, flist:Size()-1 do
+		fname = flist:GetAt(i)
+		fs:file_copy(copy_path..fname, dest_path..fname)
+	end
+	flist:Free()
+
+	return true
+end
+
+function init()
+	return current_value
+end
