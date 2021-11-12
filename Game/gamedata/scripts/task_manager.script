@@ -1253,6 +1253,29 @@ function CRandomTask:remind()
 	return false
 end
 
+function CRandomTask:smart_is_protected(sm)
+	local t
+	if self.active_task_by_type["defend_lager"] then
+		t = self.task_info[ self.active_task_by_type["defend_lager"] ]
+		if t.status == "selected" then
+			if (t.selected_target and t.selected_target == sm.id) 
+				or (t.defend_target and t.defend_target == sm.m_story_id)
+			then
+				return true
+			end
+		end
+	end
+	if self.active_task_by_type["eliminate_lager"] then
+		t = self.task_info[ self.active_task_by_type["eliminate_lager"] ]
+		if t.status == "selected" then
+			if t.selected_target and t.selected_target == sm.id then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 function get_random_task()
 	if random_task == nil then
 		random_task = CRandomTask()

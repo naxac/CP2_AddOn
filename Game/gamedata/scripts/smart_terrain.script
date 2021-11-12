@@ -1044,8 +1044,25 @@ function se_smart_terrain:update()
 				-- если вышло время пребывания
 				elseif (not npc_info.exclusive) and npc_info.stay_end then
 					if npc_info.stay_end < game_time then
-						log("# [se_smart_terrain] unregister npc[%s] from smart %s: stay time is over", npc_info.name, self:name())
-						self:unregister_npc( npc_info.se_obj )
+						-- если смарт используется в данный момент таск-менеджером, то продлеваем неписю время
+						-- чтобы задание не засчиталось выполненным или проваленным само по себе
+						if task_manager.get_random_task():smart_is_protected(self) then
+							npc_info.stay_end:setHMSms( math.random( self.gparams.stay_min, self.gparams.stay_max ), 0, 0, 0 )
+							npc_info.stay_end:add(game_time)
+						else
+							local se_npc = npc_info.se_obj
+							self:unregister_npc(se_npc)
+							se_npc:brain():update()
+							if game_options.DEBUG then
+								local sm_id = se_npc:smart_terrain_id()
+								local sm_name = "no smart_terrain"
+								if sm_id ~= 65535 and AI:object(sm_id) then
+									sm_name = AI:object(sm_id):name()
+								end
+								log("- [se_smart_terrain] unregister npc[%s] from smart %s: stay time is over\n* go to smart %s",
+									se_npc:name(), self:name(), sm_name)
+							end
+						end
 					end
 				end
 			end
