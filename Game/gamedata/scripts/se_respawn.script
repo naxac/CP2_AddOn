@@ -326,7 +326,7 @@ function se_respawn:create(prob)
 
 	-- printf("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
 
-	if self.item_spawn == false then        
+	if self.item_spawn == false then
 		if tt.check == true and not self.amk_name then
 			obj:brain():update()
 			local smart_terrain_id = obj:smart_terrain_id()
@@ -340,7 +340,18 @@ function se_respawn:create(prob)
 	table.insert(self.spawned_obj ,obj.id)
 
 	if game_options.DEBUG then
-		log( "# Spawn info: %s[%s] -> %s[%s]", self:name(), object_level_name(self), tostring(#self.spawned_obj), obj:name() )
+		local msg = "# Spawn info: %s[%s] -> %s[%s]"
+		local sm_name = ""
+		if self.item_spawn == false then
+			local sm_id = obj:smart_terrain_id()
+			if sm_id ~= 65535 and AI:object(sm_id) then
+				sm_name = AI:object(sm_id):name()
+			else
+				sm_name = "no smart_terrain"
+			end
+			msg = msg.."\n* go to smart %s"
+		end
+		log(msg, self:name(), object_level_name(self), tostring(#self.spawned_obj), obj:name(), sm_name)
 	end
 
 	return true
