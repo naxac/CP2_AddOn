@@ -801,7 +801,9 @@ function on_enemies_found(victim, vdata)
 			break
 		end
 		-- Почистим таблицы от трупов
-		for kk, vv in pairs(team_A) do
+		local vv
+		for kk = #team_A, 1, -1 do
+			vv = team_A[kk]
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды А погиб. "..vv.player:name())			
 				set_npc_health(vv.player, 0)
@@ -814,7 +816,8 @@ function on_enemies_found(victim, vdata)
 				table_remove(team_A, kk)
 			end
 		end
-		for kk, vv in pairs(team_B) do
+		for kk = #team_B, 1, -1 do
+			vv = team_B[kk]
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды B погиб. "..vv.player:name())
 				set_npc_health(vv.player, 0)
@@ -1052,7 +1055,9 @@ function on_monsters_found(victim, vdata)
 		end
  amk.oau_reason=rsn.."chp5.6 : "..i
 		-- Почистим таблицы от трупов
-		for kk, vv in pairs(team_A) do
+		local vv
+		for kk = #team_A, 1, -1 do
+			vv = team_A[kk]
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды А погиб. "..vv.player:name())			
 				set_npc_health(vv.player, 0)
@@ -1066,7 +1071,8 @@ function on_monsters_found(victim, vdata)
 			end
 		end
  amk.oau_reason=rsn.."chp5.7 : "..i
-		for kk, vv in pairs(team_B) do
+		for kk = #team_B, 1, -1 do
+			vv = team_B[kk]
 			if (vv.health <=0) then
 				-- amk.mylog("Участник команды B погиб. "..vv.player:name())
 				set_npc_health(vv.player, 0)
@@ -1338,7 +1344,7 @@ function get_npc_weapon(npc)
 	local fp = 0
 	if (npc) then
 		if items ~= nil and npc.id ~= nil and items[npc.id] ~= nil then -- заплатка от вылета //[fR4g]
-			for k,v in pairs(items[npc.id]) do --- вылет был тут
+			for k,v in ipairs(items[npc.id]) do --- вылет был тут
 				local wpn = AI:object(v.id)
 				if wpn and IAmAWeapon[wpn:clsid()] and wpn:name() == v.name and wpn.parent_id == npc.id then
 					local sect = wpn:section_name()
@@ -1701,7 +1707,7 @@ function process_trade(npc)
 						local b_ammo = false
 						local vac = w.ammo
 						if vac and #vac>0 then
-							for kk, vv in pairs(vac) do
+							for kk, vv in ipairs(vac) do
 								if ammoss[vv] and ammoss[vv] > 0 then -- Так, патроны есть.
 									b_ammo = true
 									break
@@ -1875,19 +1881,19 @@ function box_is_protected(v)
 			return true
 		end
 
-		for k, o in pairs(protected.sections) do
+		for k, o in ipairs(protected.sections) do
 			if o == chk then return true end
 		end
 
 		-- проверяем по имени объекта
 		chk = v:name()
-		for k, o in pairs(protected.names) do
+		for k, o in ipairs(protected.names) do
 			if o == chk then return true end
 		end
 
 		-- проверяем по ID объекта
 		chk = v.id
-		for k, o in pairs(protected.ids) do
+		for k, o in ipairs(protected.ids) do
 			if o == chk then
 				local p = zamok.reliability_code_check( chk ) + 1 /( level.get_game_difficulty()*10 + 5 )
 			--	log("# reliability_code_check: %s", tostring(p))
@@ -1897,7 +1903,7 @@ function box_is_protected(v)
 
 		-- проверяем по story ID объекта
 		chk = v.m_story_id
-		for k, o in pairs(protected.story_ids) do
+		for k, o in ipairs(protected.story_ids) do
 			if o == chk then return true end
 		end
 	end
@@ -1911,7 +1917,7 @@ function npc_smart_is_peaceful(sobj)
 			local sm = AI:object(sobj:smart_terrain_id())
 			if (sm and sm.name and sm:name()) then
 				local sn = sm:name()
-				for ks, vs in pairs(smart_filters) do
+				for ks, vs in ipairs(smart_filters) do
 					if (vs == sn) then
 						-- Ага, он у нас мирный.
 						result = true
