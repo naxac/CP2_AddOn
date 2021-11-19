@@ -553,8 +553,6 @@ function add_to_binder(object, char_ini, scheme, section, st)
   bind_scheme(object,st)
 end
 
-local cnt=0
-
 --Задаем список неписей с игнором на выброс(например постовых, которые уже находятся в зоне укрытия и могут спокойно выполнять свою работу во время выброса)
 --[[------------------------------ ignor blowout -------------------------------]]
 local npcNameBlowoutIgnore = {
@@ -567,6 +565,18 @@ local npcNameBlowoutIgnore = {
     ["bar_bar_guard"]           = true, --Гарик в баре
     ["bar_bar_osvedomitel"]     = true, --Информатор в баре
     ["bar_bar_guard_2"]         = true, --Жорик в баре
+	["bar_docent"]				= true,	--Доцент
+	["dolgovazyi"]				= true,	--Долговязый
+	["bar_bar_visitor_hunter"]	= true,	--Охотник
+	["rostok_stalker"]			= true,	--Фримен
+	["bar_bar_lisiy"]			= true,	--Лысый
+	["bar_bar_drunk_dolg"]		= true,	--Бром
+	["bar_bar_visitors_3_3"]	= true,	--Один из визитёров в Баре
+	["bar_dolg_bunker_0001"]	= true,	--Новичок в бункере "Долга" #1
+	["bar_dolg_bunker_2"]		= true,	--Новичок в бункере "Долга" #2
+	["bar_dolg_bunker_0002"]	= true,	--Новичок в бункере "Долга" #3
+	["bar_dolg_leader"]			= true,	--Воронин
+	["stalker_green_zahar"]		= true	--Захар
 }
 local npcCommunityBlowoutIgnore = {
     ["zombied"]     = true,
@@ -616,14 +626,13 @@ local npcSectionBlowoutIgnore = {
 	["predator_npc"] = true
 }
 function bind_scheme(npc,storage)  
-  local evid_wounded=xr_evaluators_id.sidor_wounded_base
-  local monolith=npc:character_community()=="monolith"
-    local zombi = npcCommunityBlowoutIgnore[npc:character_community()] or
-        npcNameBlowoutIgnore[npc:name()] or
-        npcSectionBlowoutIgnore[npc:section()] or
-npc:out_restrictions()=="bar_arena_restrictor" or
-string.find(npc:name(), "aem_a")
---[[--------------------------------- -----------------------------------]] 
+	local evid_wounded = xr_evaluators_id.sidor_wounded_base
+	local monolith = npc:character_community()=="monolith"
+	local zombi = npcCommunityBlowoutIgnore[npc:character_community()] or
+		npcNameBlowoutIgnore[npc:name()] or
+		npcSectionBlowoutIgnore[npc:section()] or
+		npc:out_restrictions()=="bar_arena_restrictor" or
+		string.find(npc:name(), "aem_a")
 
   local manager = npc:motivation_action_manager ()
   if zombi then
