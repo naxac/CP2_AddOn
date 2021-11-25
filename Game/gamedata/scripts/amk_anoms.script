@@ -552,10 +552,16 @@ function spawn_anoms()
 					t[#t+1] = tonumber(s)
 				end
 				x,y,z,r = unpack(t)
-				if not (x and y and z and r) then 
+				if not (x and y) then
 					abort("[amk_anoms.init] Error while parsing safe zones for section [%s] at line #%d[%s]", sec, (a+1), id)
 				else
-					table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
+					if z and r then
+						table_insert( anti_spawn_zones, {vector():set(x, y, z), r} )
+					elseif not (z and r) then
+						table_insert( anti_spawn_zones, {level.vertex_position(x), y} )
+					else
+						abort("[amk_anoms.init] Error while parsing safe zones for section [%s] at line #%d[%s]", sec, (a+1), id)
+					end
 				end
 			end
 		end
