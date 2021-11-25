@@ -183,36 +183,31 @@ function show_obj_info(obj)
 				--	"      "..table.concat(t, ", ").."\\n"..
 					"%c[default]spawn_story_id: %c[gray]"..tostring(data.spawn_story_id).."\\n"..
 					"%c[default]custom_data:\\n"..
-					"%c[gray]    "..( data.custom_data:gsub("\\","/"):gsub("^\\n", "\\n    ") ).."\\n"
+					"%c[gray]    "..( data.custom_data:gsub("\\","/"):gsub("[\n\r]+", "\\n    ") ).."\\n"
 		-- if data.character_name then
 			-- text = text.."%c[default]character_name: %c[gray]"..data.character_name.."\\n"
 		-- end
 		if data.fixed_bones then
 			text = text.."%c[default]fixed_bones: %c[gray]"..data.fixed_bones.."\\n"
 		end
-		if data.dynamic_out_restrictions then
-			text = text.."%c[default]dynamic_out_restrictions:%c[gray]  "
-			if table.size(data.dynamic_out_restrictions) > 0 then
-				for i, v in ipairs(data.dynamic_out_restrictions) do
-					local rest = level.object_by_id(v)
-					text = text.."\\n    "..(rest and rest:name() or "nil ["..tostring(v).."]")
-				end
-			else
-				text = text.."NONE"
+		-- Check restrictions
+		if data.base_out_restrictors then
+			if data.base_out_restrictors ~= "" then
+				text = text.."%c[default]base_out_restrictors:%c[gray]  "..data.base_out_restrictors.."\\n"
 			end
-			text = text.."\\n"
+			-- local rest = obj:out_restrictions()
+			-- if rest and rest ~= "" then
+				-- text = text.."%c[default]out_restrictions:%c[gray]  "..rest.."\\n"
+			-- end
 		end
-		if data.dynamic_in_restrictions then
-			text = text.."%c[default]dynamic_in_restrictions:%c[gray]  "
-			if table.size(data.dynamic_in_restrictions) > 0 then
-				for i, v in ipairs(data.dynamic_in_restrictions) do
-					local rest = level.object_by_id(v)
-					text = text.."\\n    "..(rest and rest:name() or "nil ["..tostring(v).."]")
-				end
-			else
-				text = text.."NONE"
+		if data.base_in_restrictors then
+			if data.base_in_restrictors ~= "" then
+				text = text.."%c[default]base_in_restrictors:%c[gray]  "..data.base_in_restrictors.."\\n"
 			end
-			text = text.."\\n"
+			-- local rest = obj:in_restrictions()
+			-- if rest and rest ~= "" then
+				-- text = text.."%c[default]in_restrictions:%c[gray]  "..rest.."\\n"
+			-- end
 		end
 	end
 
