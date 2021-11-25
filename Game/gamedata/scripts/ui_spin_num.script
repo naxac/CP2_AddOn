@@ -52,7 +52,10 @@ end
 
 function CUISpinNum:SetValue( n )
 	self.value = math.floor( n )
-	ASSERT( (n >= self.min_value and n <= self.max_value), "[CUISpinNum:SetValue] value [%s] is out of range!", tostring(n) )
+	if n < self.min_value or n > self.max_value then
+		log("! [CUISpinNum:SetValue] %s: value [%s] is out of range!", self:WindowName(), tostring(n))
+		n = math.clamp(n, self.min_value, self.max_value)
+	end
 	self.edit:SetText( tostring( self.value ) )
 	if self.value <= self.min_value then
 		self.btn_down:Enable( false )
