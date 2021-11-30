@@ -1,14 +1,4 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local _wnd = nil
-
-function change_info(str)
-	local info = "skat_"..str.."_on"
-	if Actor:has_info(info) then
-		Actor:disable_info_portion(info)
-	else
-		Actor:give_info_portion(info)
-	end
-end
 
 class "UISkatInputPanel" (CUIScriptWnd)
 
@@ -32,110 +22,101 @@ local params = {
 		psy = true
 	}
 }
-local texts = {
-	health = 'Система регенерации здоровья',
-	rad = 'Антирадиационная защита',
-	power = 'Система восстановления сил',
-	psy = 'Защита мозговой деятельности'
-}
+
 local reg_callbacks = {
-	item_drop = "check_armor",
-	item_to_slot = "on_slot",
-	item_to_ruck = "check_armor"
+	item_drop = "CheckOutfit",
+	item_to_slot = "CheckOutfit",
+	item_to_ruck = "CheckOutfit"
 }
 	
-function UISkatInputPanel:__init( st, section )
+function UISkatInputPanel:__init(st)
 	super()
 
-	self.sect = section
-	
+	self.sect = ""
+
 	for k, v in pairs( reg_callbacks ) do
-		xr_s.subscribe( k, this[v] )
+		xr_s.subscribe( k, self[v], {self = self} )
 	end
-	
+
 	self:Init(0, 0, 1024, 768)
 	self:SetAutoDelete( true )
-	
-	self.frame = CUIFrameWindow()
-	self.frame:SetAutoDelete( true )
-	self.frame:Init( "ui_icons_PDA_dialog_frame", 0, 0, 200, 150 )
-	st:AttachChild( self.frame )
-	
-	local btn = CUIButton()
-	btn:SetAutoDelete( true )
-	local w = 17*kScreen
-	btn:Init( "ui_PDA_checker_t", self.frame:GetWidth()-w-4, 4, w, 17 )
-	btn:SetStretchTexture( true )
-	self.frame:AttachChild( btn )
-	self:Register( btn, "btn_quit" )
-	self:AddCallbackEx( "btn_quit", ui_events.BUTTON_CLICKED, self.Hide )
 
-	local step, n = 25, 0
-	for k, v in pairs( params[section] ) do
-		local b = CUICheckButton()
-		self["check_"..k] = b
-		b:SetAutoDelete(true)
-		b:Init( "ui_PDA_checker", 15, 25+n*step, 90, 20 )
-		b:SetText( texts[k] )
-		b:SetTextColor( 255, 216, 186, 140 )
-		self.frame:AttachChild( b )
-		self:Register( b, "check_"..k )
-		self:AddCallback( "check_"..k, ui_events.BUTTON_CLICKED, ui_skat_input.change_info, k )
-		b:SetCheck( v and has_alife_info("skat_"..k.."_on") )
-		b:Enable( v )
-		n = n + 1
+	local xml = CScriptXmlInit()
+	xml:ParseFile("ui_inv_add.xml")
+
+	self.frame = xml:InitFrame("skat_input", st)
+
+	local name = ""
+	for i, v in ipairs( {"health","rad","power","psy"} ) do
+		name = "btn_"..v
+		self[name] = xml:InitButton("skat_input:"..name, self.frame)
+		self:Register( self[name], name )
+		self:AddCallbackEx( name, ui_events.BUTTON_CLICKED, self.ChangeInfo, v )
 	end
-	
-	self:ShowWnd()
-	
-	_wnd = self
+
+	self:HideWnd()
 end
 
-function UISkatInputPanel:CheckWnd(section)
+function UISkatInputPanel:CheckOutfit(item, skip_check)
+	local outfit
+	if skip_check then
+		outfit = item
+	else
+		if not isOutfit(item) then return end
+		outfit = Actor:get_current_outfit()
+	end
+
+	if outfit and params[outfit:section()] then
+		self:ShowWnd( outfit:section() )
+	else
+		self:HideWnd()
+	end
+end
+
+function UISkatInputPanel:ShowWnd(section)
+	if not self.frame:IsShown() then 
+		self.frame:Show( true )
+	end
 	if self.sect ~= section then
 		self.sect = section
 		local t = params[section]
-		local nm
+		if not t then return end
+		local name
 		for k, v in pairs(t) do
-			nm = 'check_'..k
-			self[nm]:SetCheck( v and has_alife_info("skat_"..k.."_on") )
-			self[nm]:Enable( v )
+			name = "btn_"..k
+			if not v then
+				self[name]:SetColor( GetARGB(160,160,160,160) )
+			elseif Actor:has_info("skat_"..k.."_on") then
+				self[name]:SetColor( GetARGB(255,0,255,0) )
+			else
+				self[name]:SetColor( GetARGB(255,255,0,0) )
+			end
+			self[name]:Enable( v )
 		end
 	end
 end
 
-function UISkatInputPanel:ShowWnd()
-	if self.frame:IsShown() then return end
-	local owner = level.main_input_receiver()
-	self.frame:SetWndPos(
-		math.min( owner:GetCursorX(), 1024-self.frame:GetWidth() ),
-		math.min( owner:GetCursorY(), 768-self.frame:GetHeight() )
-	)
-	self.frame:Show( true )
+function UISkatInputPanel:HideWnd()
+	if self.frame:IsShown() then 
+		self.frame:Show( false )
+	end
 end
 
-function UISkatInputPanel:Hide()
-	self.frame:Show( false )
+function UISkatInputPanel:ChangeInfo(v)
+	local info = "skat_"..v.."_on"
+	local btn = self["btn_"..v]
+	if Actor:has_info(info) then
+		Actor:disable_info_portion(info)
+		btn:SetColor( GetARGB(255,255,0,0) )
+	else
+		Actor:give_info_portion(info)
+		btn:SetColor( GetARGB(255,0,255,0) )
+	end
 end
 
 function UISkatInputPanel:Remove()
 	for k, v in pairs( reg_callbacks ) do
-		xr_s.unsubscribe( k, this[v] )
+		xr_s.unsubscribe( k, self[v] )
 	end
 	self:ClearCallbacks()
-	_wnd = nil
-end
-
-function check_armor(item)
-	if params[item:section()] then
-		_wnd:Hide()
-	end
-end
-
-function on_slot(item)
-	if params[item:section()]==nil then
-		_wnd:Hide()
-	else
-		_wnd:CheckWnd( item:section() )
-	end
 end

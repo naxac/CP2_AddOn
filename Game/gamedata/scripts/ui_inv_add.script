@@ -99,8 +99,10 @@ function InvWnd:InitControls()
 	self.rad_level = xml:InitProgressBar("radiation_progress", self)
 	self.rad_upd_time = 1000
 
-	self.accumm_slot = xml:InitStatic("accumm_slot", self)
-	self:Register(self.accumm_slot, "accumm_slot")
+	self.accumm_slot = xml:InitFrame("accumm_slot", self)
+	self.accumm_slot.line = xml:InitStatic("accumm_slot:line", self.accumm_slot)
+	self.accumm_slot.grid = xml:InitStatic("accumm_slot:grid", self.accumm_slot)
+	self:Register(self.accumm_slot.grid, "accumm_slot")
 	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_RECEIVED, self.acum_slot_focus)
 	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_LOST, self.acum_slot_focus_lost)
 
@@ -108,8 +110,16 @@ function InvWnd:InitControls()
 end
 
 function InvWnd:InitAccummSlot()
+	if not self.subscribed then return end
+
 	local outfit = Actor:get_current_outfit()
 	local sect = outfit and outfit:section()
+
+	if not self.skat_panel then
+		self.skat_panel = ui_skat_input.UISkatInputPanel(self)
+		self.skat_panel:CheckOutfit(outfit, true)
+	end
+
 	if (not sect) or not ( sys_ini:line_exist(sect, "energy_consuming")
 		and sys_ini:r_bool(sect, "energy_consuming") == true )
 	then
@@ -118,12 +128,12 @@ function InvWnd:InitAccummSlot()
 	end
 
 	if not self.accumm_slot.btn then
-		local sz = self.accumm_slot:GetWndSize()
+		local sz = self.accumm_slot.grid:GetWndSize()
 		local b = CUIStatic()
 		b:SetAutoDelete(true)
 		b:SetStretchTexture(true)
 		b:Init("ui\\ui_icon_equipment", 0, 0, sz.x, sz.y)
-		self.accumm_slot:AttachChild(b)
+		self.accumm_slot.grid:AttachChild(b)
 		self.accumm_slot.btn = b
 		self:Register(b, "accumm_btn")
 		self:AddCallbackEx("accumm_btn", ui_events.WINDOW_LBUTTON_DB_CLICK, self.RemoveAccumm)
@@ -184,7 +194,6 @@ function InvWnd:acum_slot_focus_lost()
 end
 
 local reg_callbacks = {
-	cell_item_clicked = "on_item_select",
 	item_drop = "on_item_drop",
 	item_take = "on_item_take",
 	drag_drop = "on_drag_drop",
@@ -195,6 +204,7 @@ function InvWnd:inventory_open()
 	for k,v in pairs(reg_callbacks) do
 		xr_s.subscribe( k, self[v], {self = self} )
 	end
+	self.subscribed = true
 	-- update slots color
 	for i, sec in ipairs(slot2section) do
 		if sec~="" then
@@ -222,6 +232,10 @@ function InvWnd:inventory_close()
 		end
 	end
 	self.DescrWnd:unsubscribe()
+	self.subscribed = false
+
+	self.skat_panel:Remove()
+	self.skat_panel = nil
 
 	amk.save_table("quick_slots", slot2section)
 	bind_actor.restore_weapon("inv")
@@ -375,7 +389,6 @@ function InvWnd:DetachWnd()
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
 	self:ClearCallbacks()
-	if self.skat_panel then self.skat_panel:Remove() end
 	self.owner:DetachChild(self)
 	self.owner = nil
 	if self.fake_accumm then
@@ -386,17 +399,6 @@ function InvWnd:DetachWnd()
 	xr_s.unsubscribe( "inventory_close", self.inventory_close )
 end
 
-function InvWnd:ShowSkatPanel(section)
-	if not self.skat_panel then
-		self.skat_panel = ui_skat_input.UISkatInputPanel(self, section)
-	else
-		self.skat_panel:CheckWnd(section)
-		self.skat_panel:ShowWnd()
-	end
-end
-function InvWnd:HideSkatPanel()
-	if self.skat_panel then self.skat_panel:Hide() end
-end
 ------------------------------------------------------------------------------------------
 function InvWnd:on_item_take(item)
 	local sect = item:section()
@@ -410,16 +412,6 @@ function InvWnd:on_item_drop(item)
 	-- использовали последний предмет из ячейки при открытом инвентаре
 	if section2slot[sect] and inventory.search(sect)==false then
 		self.slots[section2slot[sect]].icn:SetColor(GetARGB(70, 200, 200, 200))
-	end
-end
-
--- Выделение предмета в инвентаре
-function InvWnd:on_item_select( item )
-	if Actor:is_in_slot( item ) then
-		local sect = item:section()
-		if sect:find( "exo_mil_exoskeleton_add" ) then
-			self:ShowSkatPanel( sect )
-		end
 	end
 end
 
