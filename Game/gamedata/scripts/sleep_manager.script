@@ -11,11 +11,13 @@ sleep_factor = false
 sleep_pp_threshold = false
 sleep_critical = false
 
+local scaling_time_factor = 3460
 local start_sleep_time = 0
 local isSleepActive = false
 local set_sleep_time = 0
 local get_seconds = amk.game_seconds
 local time_factor = nil
+local last_health = 0
 
 local function check_sleep_time()
 	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
@@ -42,22 +44,33 @@ end
 
 function starter(scale)
 	start_sleep_time = amk.game_minutes()
+	last_health = Actor.health
 
 	game.start_tutorial("time_scaling")
 
 	set_sleep_time = get_seconds() + scale*3600
 
 	time_factor = level.get_time_factor()
-	level.set_time_factor(10000)
+	level.set_time_factor(scaling_time_factor)
 	level.add_call(check_sleep_time, restore_time_factor)
 end
 
-function dreamer()
-	if set_sleep_time > 0 then
+function stop_scaling()
+	if set_sleep_time > 0 and last_health <= Actor.health then
+		last_health = Actor.health
 		game.start_tutorial("time_scaling")
 		return
+	elseif last_health > Actor.health then
+		news_manager.send_tip("st_sleep_actory_xpenovo", 7, "str", 10000)
 	end
+	sleep_manager.dreamer()
+end
+
+function dreamer()
 	if isSleepActive then
+		level.remove_call(check_sleep_time, restore_time_factor)
+		level.set_time_factor(time_factor)
+
 		local dream = dream.sleep_video_name_callback()
 		if dream ~= "" then game.start_tutorial(dream)
 		else game.start_tutorial("without_dream") end
@@ -70,8 +83,10 @@ function stopper()
 	end
 	isSleepActive = false
 
-	level.remove_call(check_sleep_time, restore_time_factor)
-	level.set_time_factor(time_factor)
+	if level.get_time_factor() == scaling_time_factor then
+		level.remove_call(check_sleep_time, restore_time_factor)
+		level.set_time_factor(time_factor)
+	end
 
 	if Actor:alive() then
 		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "level.enable_input")
