@@ -789,10 +789,14 @@ function CKampManager:getDestVertex(npc, radius)
 				end
 			end
 			if b then break end
-			add_r = add_r + 1.5
+			add_r = add_r + 1
 		end
 
 		xr_logic.pstor_store(npc, "vused", v)
+	-- update position fix
+	elseif level.vertex_position(self.center):distance_to(npc:position()) > 10 then
+		xr_logic.pstor_store(npc, "vused", nil)
+		return self:getDestVertex(npc, radius)
 	end
 
 	used_verts[v] = npc_id
