@@ -9,6 +9,7 @@ local med_data = {
 	thirst    = { offset = nil, line = "eat_thirst",       delta = 0.00003, func = function( v ) thirst.change_thirst      ( v ) end, it = false }
 }
 local medkits = {}
+local base_time_factor = sys_ini:r_u32("alife", "time_factor")
 
 function on_before_use_item( item )
 	local section = item:section()
@@ -100,12 +101,21 @@ function start_healing( var, val )
 	end
 end
 
+local last_gtime = nil
 function update_med_params( delta )
+	if last_gtime == nil then
+		last_gtime = game_time_ms
+		return
+	end
+
+	local delta_time = (game_time_ms - last_gtime)/base_time_factor
+	last_gtime = game_time_ms
+
 	local t, dec, fdelta
 	for k, v in pairs( med_params ) do
 		if v then
 			t = med_data[k]
-			fdelta = delta * t.delta
+			fdelta = delta_time * t.delta
 			dec = v < 0
 			if dec then fdelta = -fdelta end
 			t.func( fdelta )
@@ -123,6 +133,7 @@ function update_med_params( delta )
 	end
 
 	med_params = {}
+	last_gtime = nil
 	xr_s.unsubscribe( "update", this.update_med_params )
 end
 -----------------------------------------------------------------------------------------------
