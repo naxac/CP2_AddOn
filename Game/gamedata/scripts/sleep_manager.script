@@ -56,6 +56,8 @@ function starter(scale)
 end
 
 function stop_scaling()
+	if not isSleepActive then return end
+
 	if set_sleep_time > 0 and last_health <= Actor.health then
 		last_health = Actor.health
 		game.start_tutorial("time_scaling")
@@ -63,18 +65,19 @@ function stop_scaling()
 	elseif last_health > Actor.health then
 		news_manager.send_tip("st_sleep_actory_xpenovo", 7, "str", 10000)
 	end
+
 	sleep_manager.dreamer()
 end
 
 function dreamer()
-	if isSleepActive then
-		level.remove_call(check_sleep_time, restore_time_factor)
-		level.set_time_factor(time_factor)
+	if not isSleepActive then return end
 
-		local dream = dream.sleep_video_name_callback()
-		if dream ~= "" then game.start_tutorial(dream)
-		else game.start_tutorial("without_dream") end
-	end
+	level.remove_call(check_sleep_time, restore_time_factor)
+	level.set_time_factor(time_factor)
+
+	local dream = dream.sleep_video_name_callback()
+	if dream ~= "" then game.start_tutorial(dream)
+	else game.start_tutorial("without_dream") end
 end
 
 function stopper()

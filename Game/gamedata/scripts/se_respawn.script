@@ -152,7 +152,7 @@ function r_spawns(spawn_ini, section, line, sectSpawnProps, respawn_name)
 				if custom_data ~= nil then
 					local custom_data_ltx = ini_file(custom_data)
 					if custom_data_ltx:section_exist("smart_terrains") then
-						if custom_data_ltx:r_string_ex("smart_terrains", "none", "") == "true" then
+						if custom_data_ltx:r_string_ex("smart_terrains", "none", "") ~= "" then
 							check = false
 						end
 						if custom_data_ltx:r_string_ex("smart_terrains", "respawn_check", "") == "false" then
@@ -300,15 +300,14 @@ function se_respawn:create(prob)
 		local parent_obj = level.object_by_id(parent_id)
 		if parent_obj then
 			obj = AI:create(spawn_section, 
-				Actor:position(),
+				Actor:position():add(vector():set(2,2,2)),
 				Actor:level_vertex_id(), 
-				Actor:game_vertex_id(),
-				Actor:id())
+				Actor:game_vertex_id())
 			level.client_spawn_manager():add(obj.id, -1,
 				function(pid, id, item)
 					local parent = level.object_by_id(pid)
 					if parent then
-						Actor:transfer_item(item, parent)
+						parent:transfer_item(item, parent)
 					end
 				end,
 			parent_id)
@@ -324,7 +323,7 @@ function se_respawn:create(prob)
 	amk.on_REspawn(obj,self)
 	local tt = self.sectSpawnProps[spawn_section]
 
-	-- printf("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
+--	log("SPAWN [%s] -> [%s]", tostring(self:name()), obj:name())
 
 	if self.item_spawn == false then
 		if tt.check == true and not self.amk_name then
@@ -438,21 +437,19 @@ function se_respawn:execute()
 	--' Выходим, если у нас установлен событийный спавн.
 	if (self.idle_spawn_min or -1) < 0 then return end
 
+--	log( "[se_respawn:execute] %s: %s seconds left", self:name(), tostring(self.respawn_time:diffSec(game.get_game_time())) )
 	if self.respawn_time < game.get_game_time() then
 		local idle_time = game.CTime()
-		local now = game.get_game_time()
 
-		local msec = 0
+		local msec = math.random(self.idle_spawn_min, self.idle_spawn_max)*1000
 		-- частый респаун
 		if game_options.FastRespawn then
-			msec = 12*60*60*1000
-		else
-			msec = math.random(self.idle_spawn_min, self.idle_spawn_max)*1000
+			msec = msec/2
 		end
 		idle_time:setHMSms( 0, 0, 0, msec)
-		self.respawn_time = now + idle_time
+		self.respawn_time = game.get_game_time() + idle_time
 
-		-- Производим попытку заспаунить объекты    
+		-- Производим попытку заспаунить объекты
 		self:spawn()
 		-- printf("spawn_count = %s", table.getn(self.spawned_obj))
 	end
