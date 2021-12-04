@@ -3,9 +3,7 @@
 local icons_scroll = nil
 local right_ident = 2
 local vert_interval = 0
-local right_ident2 = -35
 local vert_interval2 = 10
-local vert_shift2 = 120
 
 class "UIScrollIndicators"
 
@@ -22,7 +20,12 @@ function UIScrollIndicators:__init()
 	self.scroll = get_hud():AddCustomStatic("icons_scroll", true):wnd()
 
 	local st = self.xml:InitStatic("icons_scroll_view", nil)
-	self.scroll:SetWndPos( st:GetHPos(), st:GetVPos() + st:GetHeight() )
+	local posX, posY = st:GetHPos(), st:GetVPos() + st:GetHeight()
+	self.scroll:SetWndPos( posX, posY )
+
+	self.scroll2 = self.xml:InitStatic("indicators_scroll_view", self.scroll)
+	self.scroll2_pos0 = vector2():set(512-posX, self.scroll2:GetVPos()-posY)
+	self.scroll2:SetWndPos( self.scroll2_pos0.x, self.scroll2_pos0.y )
 end
 
 function UIScrollIndicators:get_indicator(name)
@@ -98,9 +101,6 @@ function UIScrollIndicators:update_indicator(name, iniline, value)
 
 	local st = self:get_indicator(name)
 	local k = (n - 1) / (#thresholds - 1)
-	-- local mn = thresholds[1]
-	-- local mx = thresholds[#thresholds]
-	-- local k = (thresholds[n] - mn)/(mx - mn)
 	local clr = GetARGB(
 		255,
 		math.min( k*510, 255 ),
@@ -120,14 +120,16 @@ function UIScrollIndicators:add_restore_indicator(name, bclr)
 	end
 
 	if not st then
-		local y = vert_interval2 - vert_shift2
+		local x = 0
 		for i, v in ipairs(self.restore_indicators) do
-			y = y + v:GetHeight() + vert_interval2
+			x = x + v:GetWidth() + vert_interval2
 		end
-		st = self.xml:InitStatic(name.."_restore_static", self.scroll)
+		st = self.xml:InitStatic(name.."_restore_static", self.scroll2)
 		table.insert(self.restore_indicators, st)
 		st.name = name
-		st:SetWndPos(right_ident2, y)
+		st:SetWndPos(x, 0)
+		x = x + st:GetWidth() + vert_interval2
+		self.scroll2:SetWndPos(self.scroll2_pos0.x-x/2, self.scroll2_pos0.y)
 	end
 
 	local clr = GetARGB(
@@ -142,22 +144,24 @@ function UIScrollIndicators:remove_restore_indicator(name)
 	if #self.restore_indicators == 0 then return end
 
 	local n = math.huge
-	local y = vert_interval2 - vert_shift2
+	local x = 0
 	for i, v in ipairs(self.restore_indicators) do
 		if n > i then
 			if v.name == name then
 				n = i
-				self.scroll:DetachChild(v)
+				self.scroll2:DetachChild(v)
 			else
-				y = y + v:GetHeight() + vert_interval2
+				x = x + v:GetWidth() + vert_interval2
 			end
 		else
-			v:SetWndPos(right_ident2, y)
-			y = y + v:GetHeight() + vert_interval2
+			v:SetWndPos(x, 0)
+			x = x + v:GetWidth() + vert_interval2
 		end
 	end
 	if self.restore_indicators[n] then
 		table.remove(self.restore_indicators, n)
+		x = x - vert_interval2
+		self.scroll2:SetWndPos(self.scroll2_pos0.x-x/2, self.scroll2_pos0.y)
 	end
 end
 
@@ -174,6 +178,8 @@ function UIScrollIndicators:destroy_indicators()
 	end
 	self.xml = nil
 	self.scroll = nil
+	self.scroll2 = nil
+	self.scroll2_pos0 = nil
 	get_hud():RemoveCustomStatic("icons_scroll")
 end
 
