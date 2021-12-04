@@ -69,6 +69,10 @@ function options_dialog:InitControls()
 	self.message_box = CUIMessageBoxEx()
 	self:Register(self.message_box, "message_box")
 	self.need_restart_game	= false
+
+	self.hint = xml:InitFrame("hint", self)
+	self.hint.text = xml:InitStatic("hint:st_text", self.hint)
+	self.hint:Show(false)
 end
 
 function options_dialog:UpdateControls()
@@ -218,6 +222,7 @@ function options_dialog:OnTabChange()
 	self.dlg_gameplay:Show	(i == 2)
 	self.dlg_controls:Show	(i == 3)
 	self.dlg_video_adv:Show	(false)
+	self.hint:Show(false)
 	if self.preview_screen then
 		self.preview_screen:Show(false)
 	end
@@ -578,9 +583,33 @@ function options_dialog:DrawPreviewWnd(texture)
 
 	w:Show( true )
 	self.dlg_gameplay:Show( false )
+	self.hint:Show(false)
 end
 
 function options_dialog:OnBtnHidePreview()
 	self.preview_screen:Show( false )
 	self.dlg_gameplay:Show( true )
+end
+
+function options_dialog:SetHint(st, hint_name)
+	local wnd_name = "hint_"..hint_name
+	self:Register(st, wnd_name)
+	self:AddCallbackEx(wnd_name, ui_events.STATIC_FOCUS_RECEIVED, self.ShowHint, hint_name )
+	self:AddCallbackEx(wnd_name, ui_events.STATIC_FOCUS_LOST, self.HideHint, hint_name )
+end
+
+function options_dialog:ShowHint(hint_name)
+	if self.current_hint == hint_name then return end
+
+	self.current_hint = hint_name
+	self.hint.text:SetTextST(hint_name)
+	self.hint.text:AdjustHeightToText()
+	self.hint:SetHeight(self.hint.text:GetHeight() + 20)
+	self.hint:Show(true)
+end
+function options_dialog:HideHint(hint_name)
+	if self.current_hint == hint_name then
+		self.hint:Show(false)
+		self.current_hint = nil
+	end
 end
