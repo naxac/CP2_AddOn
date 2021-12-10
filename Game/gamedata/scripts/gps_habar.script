@@ -16,8 +16,6 @@ local max_comments_strings_on_screen = 35 -- сколько строк комм�
 local labels = {} -- в таблице ссылки на тайники помеченные маячками, а также реквизиты маячка (время до заряда  и т.д.). содержит всегда актуальные значения
 local items_in_box = {}
 
-local fake_box = {}
-
 --  переменные из конфига  misc\gps_habar.ltx
 local activity_time = 0
 local warning_time = 0
@@ -704,9 +702,17 @@ function on_actor_update(delta)
 			if v.at > 0 and v.wt > 0 and v.wr == 0 and gh - v.gt > v.at - v.wt then
 --					mylog("i = " .. i)
 				aobj = AI:object(i)
-				v.wr = 1
-				lvname = news_data.level_name[ object_level_name(aobj) ][2]
-				amk.send_tip("%c[red_sms]"..lvname.." через ".. tostring(v.gt + v.at - gh) .. " ч. на маячке надо сменить батарею.", "GPS", nil, 20, "nano")
+				if aobj then
+					lvname = news_main.get_point_description( object_level_name(aobj), aobj.position )
+				--	lvname = news_data.level_name[ object_level_name(aobj) ][2]
+					amk.send_tip("%c[red_sms]"..lvname.." через ".. tostring(v.gt + v.at - gh) .. " ч. на маячке надо сменить батарею.",
+						"GPS", nil, 20, "nano")
+					v.wr = 1
+				else
+					log("~ [gps_habar.on_actor_update]: attempt to update spot on non-existent object, id[%s]", tostring(i))
+					remove_all_spots(i)
+					remove_label(i)
+				end
 				is_save_table = true
 			end
 			
@@ -729,8 +735,14 @@ function on_actor_update(delta)
 			-- если время вышло, выключаем метку
 			if v.at > 0 and gh - v.gt > v.at then
 				aobj = AI:object(i)
-				lvname = news_data.level_name[ object_level_name(aobj) ][2]
-				amk.send_tip("%c[red_sms]"..lvname.." на маячке села батарея. Связь потеряна.", "GPS", nil, 20, "nano")
+				if aobj then
+					lvname = news_main.get_point_description( object_level_name(aobj), aobj.position )
+				--	lvname = news_data.level_name[ object_level_name(aobj) ][2]
+					amk.send_tip("%c[red_sms]"..lvname.." на маячке села батарея. Связь потеряна.",
+						"GPS", nil, 20, "nano")
+				else
+					log("~ [gps_habar.on_actor_update]: attempt to update spot on non-existent object, id[%s]", tostring(i))
+				end
 
 				remove_all_spots(i)
 				remove_label(i)
@@ -775,8 +787,12 @@ function on_game_load()
 	-- mylog("Инициализация переменных модуля gps_habar.")
 
 	local gps_ini = ini_file("misc\\gps_habar.ltx")
-	
-	activity_time          = gps_ini:r_float("amk_metka", "activity_time")
+
+	if game_options.GPSLimit then
+		activity_time      = gps_ini:r_float("amk_metka", "activity_time")
+	else
+		activity_time      = 0
+	end
 	warning_time		   = gps_ini:r_float("amk_metka", "warning_time")
 	warning_icons_time     = gps_ini:r_float("amk_metka", "warning_icons_time")
 	habar_list_mode        = gps_ini:r_bool("amk_metka", "habar_list_mode")
@@ -1022,4 +1038,13 @@ end
 
 function get_labels()
 	return labels
+end
+
+function on_options_change()
+	if game_options.GPSLimit then
+		local gps_ini = ini_file("misc\\gps_habar.ltx")
+		activity_time = gps_ini:r_float("amk_metka", "activity_time")
+	else
+		activity_time = 0
+	end
 end
