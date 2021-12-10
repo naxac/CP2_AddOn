@@ -5,6 +5,10 @@ local right_ident = 2
 local vert_interval = 0
 local vert_interval2 = 10
 
+local blink_delta = 0.3
+local blink_alpha_min = 50
+local blink_alpha_max = 200
+
 class "UIScrollIndicators"
 
 function UIScrollIndicators:__init()
@@ -110,35 +114,57 @@ function UIScrollIndicators:update_indicator(name, iniline, value)
 	st:SetColor(clr)
 end
 
-function UIScrollIndicators:add_restore_indicator(name, bclr)
-	local st
+function UIScrollIndicators:get_restore_indicator(name)
 	for i, v in ipairs(self.restore_indicators) do
 		if v.name == name then
-			st = v
-			break
+			return v
 		end
 	end
 
-	if not st then
-		local x = 0
-		for i, v in ipairs(self.restore_indicators) do
-			x = x + v:GetWidth() + vert_interval2
-		end
-		st = self.xml:InitStatic(name.."_restore_static", self.scroll2)
-		table.insert(self.restore_indicators, st)
-		st.name = name
-		st:SetWndPos(x, 0)
-		x = x + st:GetWidth() + vert_interval2
-		self.scroll2:SetWndPos(self.scroll2_pos0.x-x/2, self.scroll2_pos0.y)
+	local x = 0
+	for i, v in ipairs(self.restore_indicators) do
+		x = x + v:GetWidth() + vert_interval2
 	end
-
-	local clr = GetARGB(
-		200,
+	local st = self.xml:InitStatic(name.."_restore_static", self.scroll2)
+	table.insert(self.restore_indicators, st)
+	st.name = name
+	st:SetWndPos(x, 0)
+	x = x + st:GetWidth() + vert_interval2
+	self.scroll2:SetWndPos(self.scroll2_pos0.x-x/2, self.scroll2_pos0.y)
+	return st
+end
+function UIScrollIndicators:add_restore_indicator(name, bclr)
+	local i = self:get_restore_indicator(name)
+	i.argb = {
+		blink_alpha_max,
 		(bclr and 160 or 255),
 		(bclr and 255 or 160),
 		160
-	)
-	st:SetColor(clr)
+	}
+	i.dec = true
+	i:SetColor( GetARGB( unpack(i.argb) ) )
+end
+function UIScrollIndicators:flashing_indicator(name)
+	local i = self:get_restore_indicator(name)
+	if i.blinking_time == nil then
+		i.blinking_time = real_time_ms
+		return
+	end
+
+	local delta = blink_delta * (real_time_ms - i.blinking_time)
+	i.blinking_time = real_time_ms
+	if i.dec then delta = -delta end
+	local alpha = i.argb[1]
+	alpha = alpha + delta
+	if alpha < blink_alpha_min then
+		alpha = blink_alpha_min
+		i.dec = false
+	elseif alpha > blink_alpha_max then
+		alpha = blink_alpha_max
+		i.dec = true
+	end
+	i.argb[1] = alpha
+	i:SetColor( GetARGB( unpack(i.argb) ) )
 end
 function UIScrollIndicators:remove_restore_indicator(name)
 	if #self.restore_indicators == 0 then return end
@@ -226,6 +252,11 @@ function remove_restore_indicator(name)
 		get_scroll():remove_restore_indicator(name)
 	else
 		first_run_queue[name] = nil
+	end
+end
+function flashing_indicator(name)
+	if can_update then
+		get_scroll():flashing_indicator(name)
 	end
 end
 
