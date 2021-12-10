@@ -128,6 +128,28 @@ function trader_miniquest_free_transfer(trader, actor)
 	news_main.on_miniquest_reward(trader)
 end
 
+function lisyi_klad_precond(fs, ss)
+	return Actor:has_info("lysyi_klad_nayti_done")
+		or ( Actor:has_info("lysyi_klad_nayti_start")
+		and Actor:dont_has_info("lysyi_klad_nayti_have") )
+end
+
+function bar_drunk_dolg_start(fs,ss)
+	news_manager.relocate_item("in", "bar_drunk_dolg_foto")
+end
+function bar_drunk_dolg_have()
+	return inventory.search("bar_drunk_dolg_pda") == true
+end
+function bar_drunk_dolg_not_have()
+	return not bar_drunk_dolg_have()
+end
+function bar_drunk_dolg_reward(fs,ss)
+	local npc = (fs:id()==0) and ss or fs
+	news_manager.relocate_item("out", "bar_drunk_dolg_foto")
+	dialogs.relocate_item_section(npc, "bar_drunk_dolg_pda", "out")
+	dialogs.relocate_money(npc, 2300, "in")
+	inventory.give_items("af_electra_moonlight")
+end
 --Взнос Долгу для прохода на территорию
 function has_dolg_deposite(actor, npc)
 	return actor:money() >= 1000
