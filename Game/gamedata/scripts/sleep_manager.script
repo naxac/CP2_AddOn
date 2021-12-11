@@ -7,11 +7,13 @@
 --'*******************************************************************************
 --' gg_need_sleep		- одна единица == 6 минут (0.1 часа) (бодрствования)
 --' gg_need_sleep_nrg	- одна единица == 1 час ("занятый" энергетиками у сна)
-sleep_factor = false
-sleep_pp_threshold = false
-sleep_critical = false
+local sleep_factor = false
+local sleep_pp_threshold = false
+local sleep_critical = false
 
-local scaling_time_factor = 3460
+local sleep_time_factor = 3460
+local max_sleep_hours = 24
+
 local start_sleep_time = 0
 local isSleepActive = false
 local set_sleep_time = 0
@@ -51,7 +53,7 @@ function starter(scale)
 	set_sleep_time = get_seconds() + scale*3600
 
 	time_factor = level.get_time_factor()
-	level.set_time_factor(scaling_time_factor)
+	level.set_time_factor(sleep_time_factor)
 	level.add_call(check_sleep_time, restore_time_factor)
 end
 
@@ -72,7 +74,6 @@ end
 function dreamer()
 	if not isSleepActive then return end
 
-	level.remove_call(check_sleep_time, restore_time_factor)
 	level.set_time_factor(time_factor)
 
 	local dream = dream.sleep_video_name_callback()
@@ -86,10 +87,8 @@ function stopper()
 	end
 	isSleepActive = false
 
-	if level.get_time_factor() == scaling_time_factor then
-		level.remove_call(check_sleep_time, restore_time_factor)
-		level.set_time_factor(time_factor)
-	end
+	level.remove_call(check_sleep_time, restore_time_factor)
+	level.set_time_factor(time_factor)
 
 	if Actor:alive() then
 		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "level.enable_input")
@@ -212,6 +211,7 @@ function test_for_need_sleep_matras()
 			amk.load_variable("gg_need_sleep_nrg",0)*10
 		) / sleep_factor
 	end
+	need_sleep_hours = need_sleep_hours/10
 
 	-- Проверка на выброс
 	local bl = amk.load_variable("blowout",-1)
@@ -230,7 +230,10 @@ function test_for_need_sleep_matras()
 	end
 
 --	log1("##gg_need_sleep: "..need_sleep_hours)
-	if need_sleep_hours > 10/6 then		-- можно ли хотя бы вздремнуть 10 минут
+	if need_sleep_hours > 1/6 then		-- можно ли хотя бы вздремнуть 10 минут
+		if need_sleep_hours > max_sleep_hours then
+			need_sleep_hours = max_sleep_hours
+		end
 		-- звуковое сопровождение
 		local snd = xr_sound.get_safe_sound_object("zwuk\\inv_sleeping")
 		snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 2.0)
@@ -254,6 +257,8 @@ function init_sleep()
 	sleep_factor = sys_ini:r_float(condition_sect, "sleep_wake_factor")
 	sleep_pp_threshold = sys_ini:r_float(condition_sect, "sleep_pp_threshold")
 	sleep_critical = sys_ini:r_float(condition_sect, "sleep_critical")
+	sleep_time_factor = sys_ini:r_float("actor", "sleep_time_factor")
+	max_sleep_hours = sys_ini:r_float("actor", "max_sleep_hours")
 
 	if not has_timer("gg_need_sleep") then
 		start_game_timer("gg_need_sleep",0,0,6)
