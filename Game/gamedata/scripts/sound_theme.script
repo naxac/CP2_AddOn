@@ -541,21 +541,40 @@ ph_snd_themes["metal_small_close_stop"]		= {[[device\metal_small_close_stop]]}
 
 -- Радио "Чернобыльский Апрель", 102.4 FM.
 -- Слушайте во всех радоприёмниках Зоны Отчуждения (=
+-- можно добавить любое количество композиций с произвольным именем в папку 'gamedata\sounds\radio\'
+local subst = false
 if game_options.NewRadio == true then
-	local mafons = {"taler_bar_dolg","taler_garbage_kulinar","taler_jupiter_aaz","taler_kordon_doctor","taler_limansk_freedom","taler_pripyat_dimak","taler_pripyat_doctor","taler_td_gila","prapor_music","taler_marsh_vas"}
-	local fs = getFS()
-	local n = 1
+	local mafons = {
+		"taler_bar_dolg",
+		"taler_garbage_kulinar",
+		"taler_jupiter_aaz",
+		"taler_kordon_doctor",
+		"taler_limansk_freedom",
+		"taler_pripyat_dimak",
+		"taler_pripyat_doctor",
+		"taler_td_gila",
+		"prapor_music",
+		"taler_marsh_vas"
+	}
 	local t = {}
-	-- можно добавить любое количество композиций в папку 'gamedata\sounds\radio\'
-	-- имя в формате 'music_<число>' - по порядку
-	while fs:exist("$game_sounds$", "radio\\music_"..n..".ogg") do
-		table.insert(t, "radio\\music_"..n)
-		n = n + 1
+	local fs = getFS()
+	local path = fs:update_path("$game_sounds$", "radio\\")
+	local flist = fs:file_list_open(path, FS.FS_ListFiles)
+	local fname
+	for i = 0, flist:Size()-1 do
+		fname = flist:GetAt(i)
+		if fname:sub(-4) == ".ogg" then
+			table.insert(t, "radio\\"..fname)
+		end
 	end
-	for _,v in ipairs(mafons) do
-		ph_snd_themes[v] = t
+	if #t ~= 0 then
+		for _,v in ipairs(mafons) do
+			ph_snd_themes[v] = t
+		end
+		subst = true
 	end
-else
+end
+if not subst then
 	ph_snd_themes["taler_bar_dolg"] 		= {"taler\\bar_dolg"}
 	ph_snd_themes["taler_garbage_kulinar"] 	= {"taler\\garbage_kulinar"}
 	ph_snd_themes["taler_jupiter_aaz"] 		= {"taler\\jupiter_aaz"}
