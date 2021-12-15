@@ -115,16 +115,16 @@ function InvWnd:InitAccummSlot()
 	local outfit = Actor:get_current_outfit()
 	local sect = outfit and outfit:section()
 
-	if not self.skat_panel then
-		self.skat_panel = ui_skat_input.UISkatInputPanel(self)
-		self.skat_panel:CheckOutfit(outfit, true)
-	end
-
 	if (not sect) or not ( sys_ini:line_exist(sect, "energy_consuming")
 		and sys_ini:r_bool(sect, "energy_consuming") == true )
 	then
 		self.accumm_slot:Show(false)
 		return
+	end
+
+	if not self.exo_panel then
+		self.exo_panel = ui_skat_input.UIExoControl(self)
+		self.exo_panel:CheckOutfit(outfit, true)
 	end
 
 	if not self.accumm_slot.btn then
@@ -233,9 +233,6 @@ function InvWnd:inventory_close()
 	end
 	self.DescrWnd:unsubscribe()
 	self.subscribed = false
-
-	self.skat_panel:Remove()
-	self.skat_panel = nil
 
 	amk.save_table("quick_slots", slot2section)
 	bind_actor.restore_weapon("inv")
@@ -388,6 +385,10 @@ end
 function InvWnd:DetachWnd()
 	self.DescrWnd:Remove()
 	self.DescrWnd = nil
+	if self.exo_panel then
+		self.exo_panel:Remove()
+		self.exo_panel = nil
+	end
 	self:ClearCallbacks()
 	self.owner:DetachChild(self)
 	self.owner = nil

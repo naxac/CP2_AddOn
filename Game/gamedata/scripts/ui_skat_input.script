@@ -1,8 +1,8 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
-class "UISkatInputPanel" (CUIScriptWnd)
+class "UIExoControl" (CUIScriptWnd)
 
-local params = {
+local skat_params = {
 	['exo_mil_exoskeleton_add'] = {
 		health = true,
 		rad = false,
@@ -29,7 +29,7 @@ local reg_callbacks = {
 	item_to_ruck = "CheckOutfit"
 }
 	
-function UISkatInputPanel:__init(st)
+function UIExoControl:__init(st)
 	super()
 
 	self.sect = ""
@@ -45,7 +45,6 @@ function UISkatInputPanel:__init(st)
 	xml:ParseFile("ui_inv_add.xml")
 
 	self.frame = xml:InitFrame("skat_input", st)
-
 	local name = ""
 	for i, v in ipairs( {"health","rad","power","psy"} ) do
 		name = "btn_"..v
@@ -54,10 +53,15 @@ function UISkatInputPanel:__init(st)
 		self:AddCallbackEx( name, ui_events.BUTTON_CLICKED, self.ChangeInfo, v )
 	end
 
+	self.frame2 = xml:InitFrame("det_input", st)
+	self.btn_det = xml:InitButton("det_input:button", self.frame2)
+	self:Register( self.btn_det, "btn_detector" )
+	self:AddCallbackEx( "btn_detector", ui_events.BUTTON_CLICKED, self.ChangeDetector )
+
 	self:HideWnd()
 end
 
-function UISkatInputPanel:CheckOutfit(item, skip_check)
+function UIExoControl:CheckOutfit(item, skip_check)
 	local outfit
 	if skip_check then
 		outfit = item
@@ -66,23 +70,22 @@ function UISkatInputPanel:CheckOutfit(item, skip_check)
 		outfit = Actor:get_current_outfit()
 	end
 
-	if outfit and params[outfit:section()] then
-		self:ShowWnd( outfit:section() )
+	local section = outfit and outfit:section()
+	if section and (skat_params[section] or section == "exo_doktor_outfit") then
+		if self.sect ~= section then
+			self.sect = section
+			self:ShowWnd( section )
+		end
 	else
+		self.sect = ""
 		self:HideWnd()
 	end
 end
 
-function UISkatInputPanel:ShowWnd(section)
-	if not self.frame:IsShown() then 
-		self.frame:Show( true )
-	end
-	if self.sect ~= section then
-		self.sect = section
-		local t = params[section]
-		if not t then return end
+function UIExoControl:ShowWnd(section)
+	if skat_params[section] then
 		local name
-		for k, v in pairs(t) do
+		for k, v in pairs(skat_params[section]) do
 			name = "btn_"..k
 			if not v then
 				self[name]:SetColor( GetARGB(160,160,160,160) )
@@ -93,16 +96,25 @@ function UISkatInputPanel:ShowWnd(section)
 			end
 			self[name]:Enable( v )
 		end
-	end
-end
-
-function UISkatInputPanel:HideWnd()
-	if self.frame:IsShown() then 
+		self.frame:Show( true )
+		self.frame2:Show( false )
+	elseif section == "exo_doktor_outfit" then
+		if Actor:has_info("det_suit_is_on") then
+			self.btn_det:SetColor( GetARGB(255,0,255,0) )
+		else
+			self.btn_det:SetColor( GetARGB(255,255,0,0) )
+		end
 		self.frame:Show( false )
+		self.frame2:Show( true )
 	end
 end
 
-function UISkatInputPanel:ChangeInfo(v)
+function UIExoControl:HideWnd()
+	self.frame:Show( false )
+	self.frame2:Show( false )
+end
+
+function UIExoControl:ChangeInfo(v)
 	local info = "skat_"..v.."_on"
 	local btn = self["btn_"..v]
 	if Actor:has_info(info) then
@@ -114,7 +126,19 @@ function UISkatInputPanel:ChangeInfo(v)
 	end
 end
 
-function UISkatInputPanel:Remove()
+function UIExoControl:ChangeDetector()
+	if Actor:has_info("det_suit_is_on") then
+		Actor:disable_info_portion("det_suit_is_on")
+		self.btn_det:SetColor( GetARGB(255,255,0,0) )
+		det_suit.set_detector(false)
+	else
+		Actor:give_info_portion("det_suit_is_on")
+		self.btn_det:SetColor( GetARGB(255,0,255,0) )
+		det_suit.set_detector(true)
+	end
+end
+
+function UIExoControl:Remove()
 	for k, v in pairs( reg_callbacks ) do
 		xr_s.unsubscribe( k, self[v] )
 	end

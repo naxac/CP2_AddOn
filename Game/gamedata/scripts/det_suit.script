@@ -1,26 +1,41 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 local det_suit_id = nil
+local detector_is_on = nil
 
 function update()
-	if actor_outfit and actor_outfit:section() == "exo_doktor_outfit" then
-		if not det_suit_id then
-			local obj = Actor:object("detector_suit")
-			if obj then
-				det_suit_id = obj:id()
-			else
-				obj = AI:create("detector_suit", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), 0)
-				det_suit_id = obj.id
-			end
-		end
-	else
-		if det_suit_id then
-			local obj = Actor:object("detector_suit")
-			if obj then
-				Actor:move_to_ruck(obj)
-				local det = AI:object(obj:id())
-				if det then AI:release(det, true) end
-			end
-			det_suit_id = nil
-		end
+	if detector_is_on == nil then
+		detector_is_on = Actor:has_info("det_suit_is_on")
 	end
+
+	if actor_outfit and actor_outfit:section() == "exo_doktor_outfit" then
+		if detector_is_on then
+			if not det_suit_id then
+				local obj = Actor:object("detector_suit")
+				if obj then
+					det_suit_id = obj:id()
+				else
+					obj = AI:create("detector_suit", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), 0)
+					det_suit_id = obj.id
+				end
+			end
+		elseif det_suit_id then
+			detector_off()
+		end
+	elseif det_suit_id then
+		detector_off()
+	end
+end
+
+function detector_off()
+	local obj = Actor:object("detector_suit")
+	if obj then
+		Actor:move_to_ruck(obj)
+		local det = AI:object(obj:id())
+		if det then AI:release(det, true) end
+	end
+	det_suit_id = nil
+end
+
+function set_detector(mode)
+	detector_is_on = mode
 end
