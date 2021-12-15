@@ -114,17 +114,17 @@ function UIScrollIndicators:update_indicator(name, iniline, value)
 	st:SetColor(clr)
 end
 
-function UIScrollIndicators:get_restore_indicator(name)
+function UIScrollIndicators:get_restore_indicator(name, no_create)
+	local x = 0
 	for i, v in ipairs(self.restore_indicators) do
 		if v.name == name then
 			return v
 		end
-	end
-
-	local x = 0
-	for i, v in ipairs(self.restore_indicators) do
 		x = x + v:GetWidth() + vert_interval2
 	end
+
+	if no_create then return nil end
+
 	local st = self.xml:InitStatic(name.."_restore_static", self.scroll2)
 	table.insert(self.restore_indicators, st)
 	st.name = name
@@ -134,37 +134,38 @@ function UIScrollIndicators:get_restore_indicator(name)
 	return st
 end
 function UIScrollIndicators:add_restore_indicator(name, bclr)
-	local i = self:get_restore_indicator(name)
-	i.argb = {
+	local icn = self:get_restore_indicator(name, false)
+	icn.argb = {
 		blink_alpha_max,
 		(bclr and 160 or 255),
 		(bclr and 255 or 160),
 		160
 	}
-	i.dec = true
-	i:SetColor( GetARGB( unpack(i.argb) ) )
+	icn.dec = true
+	icn:SetColor( GetARGB( unpack(icn.argb) ) )
 end
 function UIScrollIndicators:flashing_indicator(name)
-	local i = self:get_restore_indicator(name)
-	if i.blinking_time == nil then
-		i.blinking_time = real_time_ms
+	local icn = self:get_restore_indicator(name, true)
+	if not icn then return end
+	if icn.blinking_time == nil then
+		icn.blinking_time = real_time_ms
 		return
 	end
 
-	local delta = blink_delta * (real_time_ms - i.blinking_time)
-	i.blinking_time = real_time_ms
-	if i.dec then delta = -delta end
-	local alpha = i.argb[1]
+	local delta = blink_delta * (real_time_ms - icn.blinking_time)
+	icn.blinking_time = real_time_ms
+	if icn.dec then delta = -delta end
+	local alpha = icn.argb[1]
 	alpha = alpha + delta
 	if alpha < blink_alpha_min then
 		alpha = blink_alpha_min
-		i.dec = false
+		icn.dec = false
 	elseif alpha > blink_alpha_max then
 		alpha = blink_alpha_max
-		i.dec = true
+		icn.dec = true
 	end
-	i.argb[1] = alpha
-	i:SetColor( GetARGB( unpack(i.argb) ) )
+	icn.argb[1] = alpha
+	icn:SetColor( GetARGB( unpack(icn.argb) ) )
 end
 function UIScrollIndicators:remove_restore_indicator(name)
 	if #self.restore_indicators == 0 then return end
@@ -221,7 +222,7 @@ function set_vert_interval(val)
 end
 
 ---------------------------------------------------------------------------
-local first_run_queue = {}
+local first_run_queue = {cond = {}, rest = {}}
 local can_update = false
 
 function get_scroll()
@@ -236,7 +237,7 @@ function update_indicator(name, ini_line, value)
 	if can_update then
 		get_scroll():update_indicator(name, ini_line, value)
 	else
-		first_run_queue[name] = { ini_line, value }
+		first_run_queue.cond[name] = { ini_line, value }
 	end
 end
 
@@ -244,14 +245,14 @@ function add_restore_indicator(name, bclr)
 	if can_update then
 		get_scroll():add_restore_indicator(name, bclr)
 	else
-		first_run_queue[name] = bclr
+		first_run_queue.rest[name] = bclr
 	end
 end
 function remove_restore_indicator(name)
 	if can_update then
 		get_scroll():remove_restore_indicator(name)
 	else
-		first_run_queue[name] = nil
+		first_run_queue.rest[name] = nil
 	end
 end
 function flashing_indicator(name)
@@ -261,14 +262,14 @@ function flashing_indicator(name)
 end
 
 function first_update()
-	can_update = true
+	if not first_run_queue then return end
 	local scroll = get_scroll()
-	for k, v in pairs(first_run_queue) do
-		if type(v) == "boolean" then
-			scroll:add_restore_indicator(k, v)
-		else
-			scroll:update_indicator( k, v[1], v[2] )
-		end
+	for k, v in pairs(first_run_queue.cond) do
+		scroll:update_indicator( k, v[1], v[2] )
 	end
-	first_run_queue = {}
+	for k, v in pairs(first_run_queue.rest) do
+		scroll:add_restore_indicator(k, v)
+	end
+	first_run_queue = nil
+	can_update = true
 end

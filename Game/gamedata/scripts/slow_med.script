@@ -111,10 +111,10 @@ function update_med_params( delta )
 	local delta_time = (game_time_ms - last_gtime)/base_time_factor
 	last_gtime = game_time_ms
 
-	local t, dec, fdelta
+	local dec, fdelta
 	for k, v in pairs( med_params ) do
 		if v then
-			t = med_data[k]
+			local t = med_data[k]
 			fdelta = delta_time * t.delta
 			dec = v < 0
 			if dec then fdelta = -fdelta end
@@ -126,8 +126,10 @@ function update_med_params( delta )
 				ui_scroll_indicators.remove_restore_indicator(k)
 			else
 				med_params[k] = v
-				if math.abs(v/t.delta) < 4000 then
-					ui_scroll_indicators.flashing_indicator(k)
+				if game_options.RestoreIndicators then
+					if math.abs(v/t.delta) < 4000 then
+						ui_scroll_indicators.flashing_indicator(k)
+					end
 				end
 			end
 		end
@@ -155,7 +157,7 @@ end
 function load()
 	local t = amk.load_table( "slow_med" )
 	for k, v in pairs( t ) do
-		this.start_healing( k, v )
+		start_healing( k, v )
 	end
 	if has_timer("block_sleep_menu") then
 		xr_s.subscribe("update", slow_med.add_power_nrg)
