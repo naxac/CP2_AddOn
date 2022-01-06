@@ -164,6 +164,7 @@ function check_spawn()
 		if bt < 1 then
 			level.add_pp_effector("vibros.ppe", 2001, true)
 			blowout_psy_sound("start")
+			show_hideouts(true)
 		end
 	end
 end
@@ -2089,6 +2090,9 @@ function Blowout_pp(phase)
 
 	if blow > 0 and blow < 4 and bt == 2 then
 		start_game_timer("blowout", 0, 0, 3, 4)
+		amk_mod.restore_weather()
+		show_hideouts(false)
+		return
 	end
 
 	if phase == 0 then
@@ -2097,6 +2101,7 @@ function Blowout_pp(phase)
 		if bt < 1 then
 			level.set_weather("pre_blow",true)
 			level.set_weather_fx("amk_surge_day")
+			show_hideouts(true)
 		end 
 		start_game_timer("blowout", 0, 0, resuls, 1)
 
@@ -2149,6 +2154,69 @@ function Blowout_pp(phase)
 		amk.save_variable( "BLT", amk.load_variable( "BLT", 0 ) + 1 )
 		start_real_timer("run", 7, "amk_mod.restore_weather()")
    		start_real_timer("autosave_data", 10, "Выброс") -- autosave
+		show_hideouts(false)
+	end
+end
+
+local hideout_sr_sid0 = 20100
+local hideout_sr_sid
+local function get_hideout_spot_sid()
+	if hideout_sr_sid == nil then
+		local i = hideout_sr_sid0 + 1
+		while AI:story_object(i) ~= nil do
+			i = i + 1
+		end
+		hideout_sr_sid = i
+	else
+		hideout_sr_sid = hideout_sr_sid + 1
+	end
+	return hideout_sr_sid
+end
+function show_hideouts(b)
+	if not game_options.HideoutSpot then return end
+	if b then
+		local hides = amk_hideouts.hide[level.name()]
+		if hides then
+			local obj
+			for i, v in ipairs(hides) do
+				if v.center then
+					local pos = level.vertex_position(v.center)
+					local gv = n_vertexes.get_nearest_gv(pos)
+					obj = netpk:create_restrictor(pos, v.center, gv, "", 1, get_hideout_spot_sid())
+					level.map_add_object_spot_ser(obj.id, "crlc_small", "st_hideout_spot_hint")
+				else
+					local max_lv = n_vertexes.get_max_level_vertex()
+					local lv, gv, min_dist, vdist
+					for j, t in ipairs(v.zone) do
+						local v1 = vector():set( unpack(t.p1) )
+						local v2 = t.p3 and vector():set( unpack(t.p3) ) or vector():set( unpack(t.p2) )
+						local pos = v1:sub(v2):div(2):add(v2)
+						-- log("show_hideouts: %s::%s", i, j)
+						-- xr_extensions.print_vector(pos)
+						gv = n_vertexes.get_nearest_gv(pos)
+						min_dist = math.huge
+						for vv = 1, max_lv do
+							vdist = level.vertex_position(vv):distance_to(pos)
+							if vdist < min_dist then
+								min_dist = vdist
+								lv = vv
+							end
+						end
+						obj = netpk:create_restrictor(pos, lv, gv, "", 1, get_hideout_spot_sid())
+						level.map_add_object_spot_ser(obj.id, "crlc_small", "st_hideout_spot_hint")
+					end
+				end
+			end
+		end
+	else
+		local sid = hideout_sr_sid0 + 1
+		local obj
+		while true do
+			obj = AI:story_object(sid)
+			if not obj then break end
+			AI:release(obj, true)
+			sid = sid + 1
+		end
 	end
 end
 
