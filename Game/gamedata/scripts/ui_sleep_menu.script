@@ -6,6 +6,7 @@ class "UISleepWnd" ( CUIScriptWnd )
 
 function UISleepWnd:__init( hours )
 	super()
+	-- log("[UISleepWnd:__init]: %s", hours)
 
 	self.can_sleep_time = hours
 
@@ -72,7 +73,7 @@ function UISleepWnd:Initialize()
 			hours = hours - 24
 		end
 		self.sleep_st_tbl[i]:SetText(hours.."ч")
-		if i+1 > self.can_sleep_time then
+		if i-1 > self.can_sleep_time then
 			self.sleep_st_tbl[i]:SetTextColor(180, 160, 80, 80)
 		else
 			self.sleep_st_tbl[i]:SetTextColor(255, 80, 160, 80)
@@ -116,6 +117,7 @@ end
 function UISleepWnd:OnButtonSleep()
 	local sleep_time = self.time_track:GetFValue() * 24
 	sleep_time = math.clamp(sleep_time, 1/6, self.can_sleep_time)
+	-- log("[UISleepWnd:OnButtonSleep]: sleep_time = %s", sleep_time)
 	self:OnButtonCancel()
 	sleep_manager.main( sleep_time )
 	local w = level.main_input_receiver()
