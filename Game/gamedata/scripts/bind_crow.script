@@ -102,6 +102,10 @@ function respawn_crows()
 	local n = level_for_crows[level.name()]
 	if not n then return end
 
+	if level.name() == "l10_radar" and not has_alife_info("bar_deactivate_radar_done") then
+		return
+	end
+
 	if  table.size(level_crows) < n then
 		AI:create("m_crow", vector():set(0,0,0), Actor:level_vertex_id(), Actor:game_vertex_id())
 		start_small_timer(30000, bind_crow.respawn_crows)
@@ -111,8 +115,5 @@ function respawn_crows()
 end
 
 function attach()
-	if level.name() == "l10_radar" and not has_alife_info("bar_deactivate_radar_done") then
-		return
-	end
 	xr_timers.get_mgr():start_small_timer(30000, bind_crow.respawn_crows)
 end
