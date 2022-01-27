@@ -80,28 +80,21 @@ function UITimerWnd:OnButtonAlarm()
 end
 
 function UITimerWnd:FillList()
-	local timers = amk.load_table("timers")
-	local t, p, timer
 	local timers = xr_timers.get_mgr()
-	for i, t in ipairs(timers.timers) do
-		if t.name == "pda_timer" then
+	local tt
+	for i, t in ipairs(timers.timers.game) do
+		if t.name == "pda_timer" or t.name == "pda_alarm" then
 			local itm = list_item()
-			t = self:time2dhm( (t.time - game_time_ms)/60000 )
-			p = (t.params=="" and "<no message>") or t.params
-			if #p>50 then p = p:sub(1,48).."..." end
-			itm.nm:SetText(p)
-			itm.tm:SetText(t)
-			self.list_tmr:AddItem(itm)
-		end
-	end
-
-	for i, t in ipairs(timers.timers) do
-		if t.name == "pda_alarm" then
-			local str = self:time2dhm( (t.time - game_time_ms)/60000 )
-			local itm = list_item()
-			itm.nm:SetText("Будильник")
-			itm.nm:SetTextColor(255,0,255,0)
-			itm.tm:SetText(str)
+			tt = self:time2dhm( (t.time - game_time_ms)/60000 )
+			if t.name == "pda_timer" then
+				local text = (t.params=="" and "<no message>") or t.params
+				if #text>50 then text = text:sub(1,48).."..." end
+				itm.nm:SetText(text)
+			else
+				itm.nm:SetText("Будильник")
+				itm.nm:SetTextColor(255,0,255,0)
+			end
+			itm.tm:SetText(tt)
 			self.list_tmr:AddItem(itm)
 		end
 	end
@@ -113,7 +106,7 @@ function UITimerWnd:time2dhm(m)
 	m = m%60
 	local d = math.floor(h/24)
 	h = h%24
-	return string.format("%d дн. %d ч. %d мин.", d, h, m)
+	return string.format("%dдн. %dч. %dмин.", d, h, m)
 end
 
 function UITimerWnd:ShowList()
