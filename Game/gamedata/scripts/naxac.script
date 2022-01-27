@@ -1,6 +1,25 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 116
+local current_fix = 117
 
+function fix_117()
+	local obj = AI:object("dar_m_poltergeist_normal_flame_0000")
+	if (obj == nil)
+		and Actor:dont_has_info("x18_actor_fall")
+		and Actor:has_info("dar_door3_free")
+	then
+		Actor:disable_info_portion("dar_door3_free")
+		local cd = "[smart_terrains]\n".."dar_control_poltergeist = true"
+		se_monster.custom_data_on_spawn = cd
+		obj = AI:create("m_poltergeist_normal_flame",
+			vector():set(14.560417175293,-10.8184814453125,-21.9602661132813),
+			4981, 1139)
+		local data = {
+			custom_data = cd,
+			base_out_restrictors = "dar_poltergeist_territory"
+		}
+		netpk:modify(obj, data)
+	end
+end
 function fix_116()
 	if Actor:dont_has_info("portal_na_mg") then
 		local obj = AI:object("udalyem_molniu_restrictor")
