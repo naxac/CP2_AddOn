@@ -4,6 +4,42 @@
 
 RvP()	-- init Lua extension
 
+--[[--------------------------------------------------------
+local dir 		= "$fs_root$"
+local ext_path 	= "bin\\extensions"
+local path  	= getFS():update_path(dir, ext_path)
+
+package.cpath = package.cpath..";"..path.."\\?.dll"
+
+local function IsDll(fname)
+	return fname:sub(-4) == ".dll"
+end
+
+if type(init_external_libs) == "function" then
+	init_external_libs()
+end
+
+if not lfs then
+	fail("check lfs namespace")
+end
+for file in lfs.dir(path) do
+	log1("file: "..file)
+	if file ~= "." and file ~= ".." then
+		if IsDll(file) then
+			local mod = file:sub(1, -5)
+			log1("--try to load " .. file)
+			log1("fname: "..mod)
+			local rez, msg = pcall(require, mod)
+			if (not(not rez)) then
+				log1("~~    loaded")
+			else
+				log1("!!    error, msg : " .. tostring(msg))
+			end
+		end
+	end
+end
+--]]--------------------------------------------------------
+
 _G.sys_ini = system_ini()
 _G.is_16_9_mode = function()
 	return device().width/device().height > (1024/768 + 0.01)
