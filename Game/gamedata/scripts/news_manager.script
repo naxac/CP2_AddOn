@@ -368,11 +368,8 @@ local cycle_task = {
 	"find_item"
 }
 
-function send_task(actor, type, task, objective)
-	-- u3_utils.printf("send_task function started with type: "..type..".")
-	if Actor == nil then return false end
-	
-	local task_title = task:get_title()
+function send_task(_type, _task, objective)
+	local task_title = _task:get_title()
 	local task_time = string.find(task_title, "\\n", 1, true)
 	if task_time then
 		task_title = string.sub(task_title, 1, task_time-1)
@@ -386,7 +383,7 @@ function send_task(actor, type, task, objective)
 
 	-- цвет сообщения
 	local text_color = "%c[gray2]"
-	if type == "fail" then
+	if _type == "fail" then
 		text_color = "%c[red]"
 	end
 	
@@ -405,29 +402,29 @@ function send_task(actor, type, task, objective)
 		--' Циклическое задание - берем координаты из текстуры таска
 		task_texture, task_rect = get_texture_info("ui_iconsTotal_"..cycle_task[cycle_task_type], "ui_iconsTotal_stalker10")
 		
-		news_text = text_color..game.translate_string(action_descr_by_type[type]).."\\n"..
-		"%c[green_blue]"..game.translate_string(task_title)..": %c[green_blue_light2]"..game.translate_string(task:get_objective(1):get_description())
+		news_text = text_color..game.translate_string(action_descr_by_type[_type]).."\\n"..
+		"%c[green_blue]"..game.translate_string(task_title)..": %c[green_blue_light2]"..game.translate_string(_task:get_objective(1):get_description())
 	else
 		--' Берем координаты единой текстуры
 		task_texture, task_rect = get_texture_info("ui_iconsTotal_stalker10", "ui_iconsTotal_stalker10")
 		
-		news_text = text_color..game.translate_string(action_descr_by_type[type]).."\\n"..
+		news_text = text_color..game.translate_string(action_descr_by_type[_type]).."\\n"..
 		"%c[green_blue]"..game.translate_string(task_title)
 		
-		if type ~= "complete" and type ~= "fail" then
+		if _type ~= "complete" and _type ~= "fail" then
 			-- workaround for incomplete objective list
-			if task:get_objectives_cnt() == objective_index then
+			if _task:get_objectives_cnt() == objective_index then
 				objective_index = objective_index - 1
 			end
 			
-			if type == "new" then
-				local obj_desc = task:get_objective(objective_index):get_description()
+			if _type == "new" then
+				local obj_desc = _task:get_objective(objective_index):get_description()
 				if obj_desc ~= nil then
 					news_text = news_text..": %c[green_blue_light2]"..game.translate_string(obj_desc)
 				end
-			elseif type == "update" then
-				local obj_desc1 = task:get_objective(objective_index-1):get_description()
-				local obj_desc2 = task:get_objective(objective_index):get_description()
+			elseif _type == "update" then
+				local obj_desc1 = _task:get_objective(objective_index-1):get_description()
+				local obj_desc2 = _task:get_objective(objective_index):get_description()
 				if obj_desc1 ~= nil then
 					news_text = news_text.."\\n".."%c[green_blue_light2]Завершено: "..game.translate_string(obj_desc1)
 				end
@@ -438,9 +435,9 @@ function send_task(actor, type, task, objective)
 		end
 		
 		-- считаем задания
-		if type == "update" then
+		if _type == "update" then
 			xr_statistic.add_subtask()
-		elseif type == "complete" then
+		elseif _type == "complete" then
 			xr_statistic.add_subtask()
 			xr_statistic.add_task()
 		end
@@ -452,39 +449,110 @@ function send_task(actor, type, task, objective)
 	--выдаем в любом случае чтобы попало в дневник
 	Actor:give_game_news(news_text, task_texture, task_rect, 0, 10000)
 	
-	if type == "new" or
-		type == "update"
+	if _type == "new" or
+		_type == "update"
 	then
 		--' Выдать новое подзадание
-		if task:get_objectives_cnt() == objective_index then
+		if _task:get_objectives_cnt() == objective_index then
 			return
 		end
-		news_text = game.translate_string(task:get_objective(objective_index):get_description())
+		news_text = game.translate_string(_task:get_objective(objective_index):get_description())
 	else
-		news_text = text_color..game.translate_string(action_descr_by_type[type])..
+		news_text = text_color..game.translate_string(action_descr_by_type[_type])..
 		"\\n".."%c[green_blue]"..game.translate_string(task_title)
 	end
 
 	-- автосохранение только при получении и сдаче задания. циклические задания игнорируются.
-	if not skip_autosave then
+	if (not skip_autosave)
+		and (_type == "new" or _type == "complete")
+	then
 		local news_text_save = game.translate_string(task_title)
-		if type == "complete" then
+		if _type == "complete" then
 			news_text_save = news_text_save.." - завершено"
 		end
 		
 		-- удаляем предыдущий таймер на сохранение при сдаче/получении нескольких квестов в одном диалоге 
 		-- сохраняем только самый последний автосейв по завершении диалога
-		if type == "new" or type == "complete" then
-			remove_timer("autosave")
-			start_real_timer("autosave", 3, news_text_save)
-		end
+		remove_timer("autosave")
+		start_real_timer("autosave", 3, news_text_save)
 	end
 
-	local hud = get_hud()
-	hud:AddCustomStatic("main_task", true)
-	hud:GetCustomStatic("main_task"):wnd():SetTextST(news_text)
-	hud:GetCustomStatic("main_task").m_endTime = time_global()/1000 + 7
+	local st = get_hud():AddCustomStatic("main_task", true)
+	st:wnd():SetTextST(news_text)
+	st.m_endTime = time_global()/1000 + 7
 end
+
+function restart_completed_subtask(task_name, objective_index)
+	if Actor:get_task_state(task_name, objective_index) == task.in_progress
+		or Actor:get_task_state(task_name, 0) ~= task.in_progress
+	then
+		return
+	end
+
+	Actor:set_task_state(task.in_progress, task_name, objective_index)
+
+	local _task = CGameTask()
+	_task:load(task_name)
+	local task_title = _task:get_title()
+	local task_time = string.find(task_title, "\\n", 1, true)
+	if task_time then
+		task_title = string.sub(task_title, 1, task_time-1)
+	end
+	
+	local obj_desc = _task:get_objective(objective_index):get_description()
+
+	local news_text = "%c[gray2]"..game.translate_string("general_update_task").."\\n"..
+		"%c[green_blue]"..game.translate_string(task_title)..": "..
+		"%c[green_blue_light2]"..game.translate_string(obj_desc)
+	
+	local task_texture, task_rect = get_texture_info("ui_iconsTotal_stalker10", "ui_iconsTotal_stalker10")
+	if Actor:is_talking() then	
+		Actor:give_talk_message(news_text, task_texture, task_rect, "iconed_answer_item")
+	end	
+	--выдаем в любом случае чтобы попало в дневник
+	Actor:give_game_news(news_text, task_texture, task_rect, 0, 10000)
+
+	--' Играем дефолтный звук
+	pda_task:play(Actor, 0, sound_object.s2d)
+
+	local st = get_hud():AddCustomStatic("main_task", true)
+	st:wnd():SetTextST(obj_desc)
+	st.m_endTime = time_global()/1000 + 7
+end
+
+function cancel_task(task_name)
+	if Actor:get_task_state(task_name, 0) ~= task.in_progress then
+		return
+	end
+
+	local _task = CGameTask()
+	_task:load(task_name)
+	for i = 0, _task:get_objectives_cnt()-1 do
+		Actor:set_task_state(task.task_dummy, task_name, i)
+	end
+	
+	local task_title = _task:get_title()
+	local task_time = string.find(task_title, "\\n", 1, true)
+	if task_time then
+		task_title = string.sub(task_title, 1, task_time-1)
+	end
+	local news_text = "%c[gray2]"..game.translate_string("general_cancel_task").."\\n"..
+		"%c[green_blue]"..game.translate_string(task_title)
+	local task_texture, task_rect = get_texture_info("ui_iconsTotal_stalker10", "ui_iconsTotal_stalker10")
+	if Actor:is_talking() then	
+		Actor:give_talk_message(news_text, task_texture, task_rect, "iconed_answer_item")
+	end	
+	--выдаем в любом случае чтобы попало в дневник
+	Actor:give_game_news(news_text, task_texture, task_rect, 0, 10000)
+
+	--' Играем дефолтный звук
+	pda_task:play(Actor, 0, sound_object.s2d)
+
+	local st = get_hud():AddCustomStatic("main_task", true)
+	st:wnd():SetTextST(news_text)
+	st.m_endTime = time_global()/1000 + 7
+end
+
 
 local article_types = {
 	[0] = "general_new_encyclopedy",
@@ -517,9 +585,10 @@ function send_treasure(name, level_name)
 	pda_news:play(Actor, 0, sound_object.s2d)
 	local task_texture, task_rect = get_texture_info("ui_iconsTotal_abstract5")
 	
-	local news_text = "%c[gray2]"..game.translate_string("st_found_new_treasure").."\\n".."%c[red_sms]"..game.translate_string(level_name)..": %c[gray3]"..game.translate_string(name)
+	local news_text = "%c[gray2]"..game.translate_string("st_found_new_treasure").."\\n"..
+		"%c[red_sms]"..game.translate_string(level_name)..": %c[gray3]"..game.translate_string(name)
 	if Actor:is_talking() then	
-		Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
+		Actor:give_talk_message(news_text, task_texture, task_rect, "iconed_answer_item")
 	end	
 	Actor:give_game_news(news_text, task_texture, task_rect, 0, 7000)
 end
@@ -535,14 +604,16 @@ function relocate_item(type, item, num)
 	--' Играем дефолтный звук
 	if type == "in" then
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_thing")
-		local news_text = "%c[green]"..game.translate_string("general_in_item").."\\n".."%c[default]"..game.translate_string(get_inv_name(item))..cnt
+		local news_text = "%c[green]"..game.translate_string("general_in_item").."\\n"..
+			"%c[default]"..game.translate_string(get_inv_name(item))..cnt
 		if Actor:is_talking() then
 			Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
 		end
 		Actor:give_game_news(news_text, task_texture, task_rect, 0, 5000)	
 	elseif type == "out" then
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_thing")
-		local news_text = "%c[red]"..game.translate_string("general_out_item").."\\n".."%c[default]"..game.translate_string(get_inv_name(item))..cnt
+		local news_text = "%c[red]"..game.translate_string("general_out_item").."\\n"..
+			"%c[default]"..game.translate_string(get_inv_name(item))..cnt
 		if Actor:is_talking() then
 			Actor:give_talk_message(news_text, task_texture, task_rect,"iconed_answer_item")
 		end
@@ -556,7 +627,8 @@ function relocate_money(actor, type, amount)
 	--' Играем дефолтный звук
 	if type == "in" then
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_found_money")
-		local news_text = "%c[green]"..game.translate_string("general_in_money").."\\n".."%c[default]"..game.translate_string(tostring(amount))
+		local news_text = "%c[green]"..game.translate_string("general_in_money").."\\n"..
+			"%c[default]"..game.translate_string(tostring(amount))
 		
 		if Actor:is_talking() then
 			Actor:give_talk_message(news_text, task_texture, task_rect, "iconed_answer_item")
@@ -564,7 +636,8 @@ function relocate_money(actor, type, amount)
 		Actor:give_game_news(news_text, task_texture, task_rect, 0, 5000)
 	elseif type == "out" then
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_lost_money")
-		local news_text = "%c[red]"..game.translate_string("general_out_money").."\\n".."%c[default]"..game.translate_string(tostring(amount))
+		local news_text = "%c[red]"..game.translate_string("general_out_money").."\\n"..
+			"%c[default]"..game.translate_string(tostring(amount))
 		
 		if Actor:is_talking() then
 			Actor:give_talk_message(news_text, task_texture, task_rect, "iconed_answer_item")
