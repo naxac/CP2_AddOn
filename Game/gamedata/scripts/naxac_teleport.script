@@ -2,6 +2,22 @@
 local registered = false
 local last_pos
 
+local function check_cam_pos()
+	local pos = device().cam_pos
+	if last_pos and pos:distance_to_sqr(last_pos) > 5 then
+		return true
+	end
+	last_pos = pos
+	return false
+end
+local function go_to_cam_pos()
+	if last_pos then
+		local wnd = naxac_teleport.teleport()
+		level.start_stop_menu(wnd, true)
+		level.remove_call(check_cam_pos, go_to_cam_pos)
+	end
+end
+
 function start_menu(self)
 	self:OnButton_return_game()
 	
@@ -40,8 +56,8 @@ class "teleport" (CUIScriptWnd)
 function teleport:__init() 
 	super()
 
-	if registered == true then 
-		xr_s.unsubscribe("update", naxac_teleport.update)
+	if registered == true then
+		level.remove_call(check_cam_pos, go_to_cam_pos)
 		registered = false
 	end
 
@@ -264,7 +280,7 @@ function teleport:on_ButtonFly_clicked()
 	last_pos = nil
 	if registered == false then
 		registered = true
-		xr_s.subscribe("update", naxac_teleport.update)
+		level.add_call(check_cam_pos, go_to_cam_pos)
 	end
 	get_console():execute("demo_record 1")
 	self:OnQuit()
@@ -338,21 +354,6 @@ function teleport:OnKeyboard(dik, keyboard_action)
 		end
 	end
 	return true
-end
-
-
-function update(delta)
-	local pos = device().cam_pos
---	log1('update teleport')
-	if last_pos and pos:distance_to_sqr(last_pos) > 15 then
-		xr_s.unsubscribe("update", naxac_teleport.update)
-		registered = false
-		
-		local wnd = naxac_teleport.teleport()
-		level.start_stop_menu(wnd, true)
-		return
-	end
-	last_pos = pos
 end
 
 function sort_points(t1, t2)
