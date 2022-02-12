@@ -1055,16 +1055,20 @@ function se_smart_terrain:update()
 							npc_info.stay_end:add(game_time)
 						else
 							local se_npc = npc_info.se_obj
-							self:unregister_npc(se_npc)
-							se_npc:brain():update()
-							if game_options.DEBUG then
-								local sm_id = se_npc:smart_terrain_id()
-								local sm_name = "no smart_terrain"
-								if sm_id ~= 65535 and AI:object(sm_id) then
-									sm_name = AI:object(sm_id):name()
+							if se_npc:alive() then
+								self:unregister_npc(se_npc)
+								se_npc:brain():update()
+								if game_options.DEBUG then
+									local sm_id = se_npc:smart_terrain_id()
+									local sm_name = "no smart_terrain"
+									if sm_id ~= 65535 and AI:object(sm_id) then
+										sm_name = AI:object(sm_id):name()
+									end
+									log("- [se_smart_terrain] unregister npc[%s] from smart %s: stay time is over\n* go to smart %s",
+										se_npc:name(), self:name(), sm_name)
 								end
-								log("- [se_smart_terrain] unregister npc[%s] from smart %s: stay time is over\n* go to smart %s",
-									se_npc:name(), self:name(), sm_name)
+							else
+								self.gulag:clear_dead(se_npc.id)
 							end
 						end
 					end
