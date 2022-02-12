@@ -147,9 +147,9 @@ function UICarBodyNew:OnItemTake(item)
 	local t = self.items_to_convert[item:id()]
 	if t == nil then return end
 
-	if t.condition<1 then
-		item:set_condition(t.condition)
-	end
+	-- if t.condition<1 then
+		-- item:set_condition(t.condition)
+	-- end
 	if t.ammo then
 		item:set_ammo_elapsed(t.ammo)
 	end
@@ -308,6 +308,7 @@ end
 function UICarBodyNew:ConvertFakeItem(item)
 	local sobj
 	local sect = item:section()
+	local t_on_spawn = {}
 	if item:is_ammo() then
 		sobj = AI:create_ammo(sect, vector():set(0,0,0), 0, 0, 0, item.ammo_left)
 	elseif (item.addon_flags and item.addon_flags ~= 0)
@@ -315,18 +316,31 @@ function UICarBodyNew:ConvertFakeItem(item)
 	then
 		local spawn_pos = Actor:position():add(vector():set(2, 2, 2))
 		sobj = AI:create(sect, spawn_pos, Actor:level_vertex_id(), Actor:game_vertex_id())
-		level.client_spawn_manager():add(sobj.id, -1, function(id, obj)
-			Actor:transfer_item(obj, Actor)
-		end)
+		t_on_spawn.transfer = true
 	else
 		sobj = AI:create(sect, vector():set(0,0,0), 0, 0, 0)
 	end
+	if item:condition() < 1 then
+		t_on_spawn.condition = item:condition()
+	end
+	if table.size(t_on_spawn) ~= 0 then
+		level.client_spawn_manager():add(sobj.id, -1, function(tbl, id, obj)
+			if tbl.condition then
+				obj:set_condition(tbl.condition)
+			end
+			if tbl.transfer then
+				Actor:transfer_item(obj, Actor)
+			end
+		end,
+		t_on_spawn)
+	end
+
 	sobj = AI:object(sobj.id)
 
 	item:write_server_object(sobj)
 
 	self.items_to_convert[sobj.id] = {
-		condition	= item:condition(),
+	--	condition	= item:condition(),
 		ammo		= item:get_ammo_in_magazine()
 	}
 
