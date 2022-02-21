@@ -2781,17 +2781,27 @@ function lc_from_generators_to_warlab(actor, npc)
 end
 
 function messer_bandit_friend(fs, ss)
-	local npc = AI:story_object(story_ids.val_sos_stalker)
+	level_community_relation_by_sid(story_ids.val_sos_stalker, "l04_darkvalley", "bandit", 1500)
+end
+
+function val_escort_bandit_friend(fs, ss)
+	level_community_relation_by_sid(story_ids.val_escort_captive, "l04_darkvalley", "bandit", 1500)
+	level_community_relation_by_sid(story_ids.val_escort_nap1, "l04_darkvalley", "bandit", 1500)
+end
+
+function level_community_relation_by_sid(sid, level, community, relation)
+	local npc = AI:story_object(sid)
 	if npc then
 		local npc_id = npc.id
 		local obj
 		for i = 1, 65534 do
-			obj = level.object_by_id(i)
+			obj = AI:object(i)
 			if obj and obj:clsid() == clsid.script_stalker
-				and obj:character_community() == "bandit"
+				and object_level_name(obj) == level
+				and obj:community() == community
 			then
-				relation_registry.set_goodwill(npc_id, i, 1000)
-				relation_registry.set_goodwill(i, npc_id, 1000)
+				relation_registry.set_goodwill(npc_id, i, relation)
+				relation_registry.set_goodwill(i, npc_id, relation)
 			end
 		end
 	end
@@ -2806,8 +2816,8 @@ function escape_make_peace()
 			if gulag2 then
 				for id1 in pairs(gulag1.npc_info) do
 					for id2 in pairs(gulag2.npc_info) do
-						relation_registry.set_goodwill(id1, id2, 1000)
-						relation_registry.set_goodwill(id2, id1, 1000)
+						relation_registry.set_goodwill(id1, id2, 1500)
+						relation_registry.set_goodwill(id2, id1, 1500)
 						-- log("escape_make_peace: %s to %s", AI:object(id1):name(), AI:object(id2):name())
 					end
 				end
@@ -2817,15 +2827,18 @@ function escape_make_peace()
 end
 
 function check_sak_lager(npc)
-	if level.name() ~= "l04_darkvalley" then return end
-	if npc:character_community() ~= "bandit" then return end
+	if level.name() ~= "l04_darkvalley"
+		or npc:character_community() ~= "bandit"
+	then
+		return
+	end
 
 	local gulag = xr_gulag.get_gulag("sak_lager")
 	if gulag then	
 		local npc_id = npc:id()
 		for id in pairs(gulag.npc_info) do
-			relation_registry.set_goodwill(npc_id, id, 1000)
-			relation_registry.set_goodwill(id, npc_id, 1000)
+			relation_registry.set_goodwill(npc_id, id, 1500)
+			relation_registry.set_goodwill(id, npc_id, 1500)
 		end
 	end
 end
@@ -2862,8 +2875,8 @@ function agro_arhara_friends(npc_id)
 	for i, v in ipairs(t) do
 		obj = AI:object(v)
 		if obj and obj:alive() then
-			relation_registry.set_goodwill(npc_id, obj.id, 1000)
-			relation_registry.set_goodwill(obj.id, npc_id, 1000)
+			relation_registry.set_goodwill(npc_id, obj.id, 1500)
+			relation_registry.set_goodwill(obj.id, npc_id, 1500)
 		end
 	end
 end
@@ -2883,6 +2896,16 @@ function voyaki_arhara_friends()
 	end
 end
 
+function check_val_prisoner_ransom(actor, npc)
+	if Actor:dont_has_info("val_prisoner_ransom_done") then
+		Actor:give_info_portion("val_prisoner_ransom_fail")
+		relation_registry.set_community_goodwill("bandit", Actor:id(), -1500)
+		return
+	end
+
+	level_community_relation_by_sid(story_ids.val_prisoner, "l04_darkvalley", "bandit", 1500)
+	dialogs_darkvalley.voronin_ransom_sms()
+end
 function del_aes_flames()
 	local obj
 	for i = 1, 65534 do

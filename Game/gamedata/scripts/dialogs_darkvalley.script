@@ -32,6 +32,7 @@ function has_good_art(fs, ss)
 		item = Actor:item_in_ruck(i)
 		if isArtefact(item)
 			and sys_ini:r_u32_ex(item:section(), "art_level", 0) >= 3
+			and item:cost() >= 4000
 		then
 			return true
 		end
@@ -42,41 +43,32 @@ function dont_has_good_art(fs, ss)
 	return not has_good_art(fs, ss)
 end
 function val_sacrifice_finish(fs, ss)
-	local npc = (fs:id() == 0) and ss or fs
-	local item
+	local arts = {}
 	for i = 0, Actor:ruck_count()-1 do
-		item = Actor:item_in_ruck(i)
+		local item = Actor:item_in_ruck(i)
 		if isArtefact(item)
 			and sys_ini:r_u32_ex(item:section(), "art_level", 0) >= 3
+			and item:cost() >= 4000
 		then
-			Actor:transfer_item(item, npc)
-			news_manager.relocate_item("out", item:section())
+			table.insert(arts, item)
 			break
 		end
 	end
-	npc:set_relation(game_object.friend, Actor)
 
-	local npc = AI:story_object(story_ids.val_sacrifice_victim)
-	if npc then
-		local npc_id = npc.id
-		local obj
-		for i = 1, 65534 do
-			obj = level.object_by_id(i)
-			if obj and obj:clsid() == clsid.script_stalker
-				and obj:character_community() == "bandit"
-			then
-				relation_registry.set_goodwill(npc_id, i, 1000)
-				relation_registry.set_goodwill(i, npc_id, 1000)
-			end
-		end
-	end
+	if #arts == 0 then return end
 
-	start_real_timer("run", 15, "dialogs_darkvalley.val_sacrifice_finish1()")
+	local npc = (fs:id() == 0) and ss or fs
+	local art = table.random(arts)
+	Actor:transfer_item(item, npc)
+	news_manager.relocate_item("out", item:section())
+
+	naxac.level_community_relation_by_sid(story_ids.val_sacrifice_victim, "l04_darkvalley", "bandit", 1500)
+
+	start_real_timer("run", 7, "dialogs_darkvalley.val_sacrifice_finish1()")
 end
 function val_sacrifice_finish1()
 	Actor:give_info_portion("val_sacrifice_finish")
 end
-
 
 function val_sacrifice_fail(fs, ss)
 	local npc = level_object_by_sid(story_ids.val_sacrifice_victim)
@@ -84,4 +76,71 @@ function val_sacrifice_fail(fs, ss)
 		AI:create("medkit", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
 		xr_wounded.unlock_medkit(npc)
 	end
+	naxac.level_community_relation_by_sid(story_ids.val_sacrifice_victim, "l04_darkvalley", "bandit", -1000)
+end
+
+function val_prisoner_ransom_start(fs, ss)
+	start_game_timer("run", 1, 0, 0, "dialogs_darkvalley.val_prisoner_ransom_fail()")
+end
+
+function val_prisoner_ransom_money(fs, ss)
+	return Actor:money() >= 100000
+end
+
+function val_prisoner_ransom_done(fs, ss)
+	local npc = (fs:id() == 0) and ss or fs
+	dialogs.relocate_money(npc, 100000, "out")
+	dialogs.relocate_money(npc, 2000, "in")
+
+	remove_timer_by_parameter("run", "dialogs_darkvalley.val_prisoner_ransom_fail()")
+
+	naxac.level_community_relation_by_sid(story_ids.val_prisoner, "l04_darkvalley", "bandit", 1500)
+end
+
+function val_prisoner_ransom_fail()
+	if Actor:has_info("val_prisoner_ransom_done") then
+		return
+	end
+	Actor:give_info_portion("val_prisoner_ransom_fail_1")
+end
+
+function sacrifice_victim_alive()
+	local npc = AI:story_object(story_ids.val_sacrifice_victim)
+	return npc and npc:alive()
+		and Actor:has_info("val_sacrifice_finish")
+end
+function escort_captive_alive()
+	local npc = AI:story_object(story_ids.val_escort_captive)
+	return npc and npc:alive()
+		and darkvalley_tasks.escort_task_done()
+end
+function dolg_both_alive(fs, ss)
+	return sacrifice_victim_alive()
+		and escort_captive_alive()
+end
+function dolg_some_one_alive(fs, ss)
+	local b1 = sacrifice_victim_alive()
+	local b2 = escort_captive_alive()
+	return (b1 and not b2) or (b2 and not b1)
+end
+function dolg_no_one_alive(fs, ss)
+	return ( not sacrifice_victim_alive() )
+		and ( not escort_captive_alive() )
+end
+
+function voronin_ransom_money(fs, ss)
+	start_real_timer("run", 50, "dialogs_darkvalley.voronin_ransom_money_1()")
+end
+function voronin_ransom_money_1()
+	dialogs.relocate_money(true, 100000, "in")
+	news_manager.send_tip("voronin_ransom_sms_1", 3, "voronin", 10000)
+	news_manager.send_tip("voronin_ransom_sms_2", 17, "meceniy", 10000)
+end
+function voronin_ransom_sms()
+	news_manager.send_tip("voronin_ransom_sms_3", 5, "meceniy", 10000)
+	news_manager.send_tip("voronin_ransom_sms_4", 19, "voronin", 10000)
+end
+
+function voronin_treasure(fs, ss)
+	treasure_manager.give_random_treasure(true)
 end
