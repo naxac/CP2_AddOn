@@ -2269,8 +2269,6 @@ function delete_m_teleport_27()
 end
 
 function spawn_teleport6()
-    local se_obj = AI:create("m_teleport_6",vector():set(-76.897171020508,2.4566078186035,-110.1841506958),3005,797)
-	xr_logic.pstor_store(Actor, "m_teleport_6", se_obj.id)
 end
 
 -- звук в схроне Стрелка
@@ -2281,8 +2279,21 @@ end
 
 -- инфопоршин после телепортации от входа
 function info1()
---	news_manager.send_tip("Получена информация.", nil, nil, 30000)
+end
+-- Костыль для spawn_restrictor.create_sr2()
+function info1_1()
+	if Actor:has_info("have_info1") then return end
+	-- info1()
 	Actor:give_info_portion("have_info1")
+	-- spawn_teleport6()
+    local se_obj = AI:create("m_teleport_6",vector():set(-76.897171020508,2.4566078186035,-110.1841506958),3005,797)
+	xr_logic.pstor_store(Actor, "m_teleport_6", se_obj.id)
+	-- create_sr5()
+	local custom = "[logic]\n"..
+	               "active = sr_idle\n"..
+	               "[sr_idle]\n"..
+	               "on_actor_inside = {+have_info1} nil %=delete_teleport2 =spawn_teleport26 =create_sr3 =create_sr4 =create_sr6%"
+	netpk:create_restrictor( vector():set(-72.414398193359,2.4857983589172,-116.41065979004),3256,797,custom,6.0 )
 end
 
 -- звук при спавне сакера
@@ -2320,12 +2331,7 @@ function create_sr4()
 end 
 
 
-function create_sr5() 
-	local custom = "[logic]\n"..
-	               "active = sr_idle\n"..
-	               "[sr_idle]\n"..
-	               "on_actor_inside = {+have_info1} nil %=delete_teleport2 =spawn_teleport26 =create_sr3 =create_sr4 =create_sr6%"
-	netpk:create_restrictor( vector():set(-72.414398193359,2.4857983589172,-116.41065979004),3256,797,custom,6.0 )
+function create_sr5()
 end 
 
 function create_sr6() 
