@@ -53,12 +53,16 @@ function action_teleport:update(delta)
 					Actor:set_actor_direction(-dir:getH())
 				--	Actor:give_info_portion("teleport_finished")
 					local snd_obj = xr_sound.get_safe_sound_object([[affects\tinnitus3a]])
-					snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)					
+					snd_obj:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+				--	log("sr_teleport: teleporting %s to [%s:%s]", self.object:name(), v.point, v.look)
 					break
 				end
 			end
 			self.state = teleport_idle
 		else
+			if self.object:get_shape_radius() < self.object:position():distance_to( Actor:position() ) then
+				Actor:set_actor_position( self.object:position() )
+			end
 			return
 		end
 	end
