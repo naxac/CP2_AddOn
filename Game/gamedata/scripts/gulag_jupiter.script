@@ -1,0 +1,170 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local t = {}
+local gulags = {
+	--'Юпитер зомби в тоннеле
+	["upi_zombie"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,10 do
+				t = { section = "logic@upi_zombie", 
+					prior = 20, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "zombie"
+		end
+	},
+	-- Гулаг танков на Юпитере №1
+	["upi_tanki_lager1"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,3 do
+				t = { section = "logic@upi_tanki_lager1",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "monolith"
+		end
+	},
+	-- Гулаг танков на Юпитере №2
+	["upi_tanki_lager2"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,4 do
+				t = { section = "logic@upi_tanki_lager2",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "monolith"
+		end
+	},
+	-- псевдыши на Юпе
+	["upiter_gigants"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,5 do
+				t = { section = "logic@upiter_gigants",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "pseudo_gigant"
+		end
+	},
+	-- библиотекари на Юпе
+	["upiter_bibliotekars"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,5 do
+				t = { section = "logic@upiter_bibliotekars",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "fracture"
+		end
+	},
+	-- Когти на Юпе
+	["upiter_kogots"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,6 do
+				t = { section = "logic@upiter_kogots",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "kogot"
+		end
+	},
+	--' прыгуны у копалки на Юпе
+	["upi_pryguny"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,6 do
+				t = { section = "logic@upi_pryguny", 
+					prior = 20, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "snork"
+		end
+	},
+	--' занозы в кустиках на Юпе
+	["upi_zanoza"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1,4 do
+				t = { section = "logic@upi_zanoza", 
+					prior = 20, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "flesh"
+		end
+	}
+}
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+	return nil
+end
+
+function check_state_stub(gulag)
+    return 0
+end
+
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
+end
+
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end

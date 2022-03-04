@@ -1,11 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
 --------------------------------------------------------------------------
--- Member counts
---------------------------------------------------------------------------
-local mob_spring_count = 20
-
---------------------------------------------------------------------------
 -- States
 --------------------------------------------------------------------------
 local state_normal = 0
@@ -17,22 +12,26 @@ local state_fight = 1
 -- General
 --------------------------------------------------------------------------
 local t = {}
-local gulags = {val_escort = {comm = {"bandit", "dolg"}},
-                val_sacrifice = {comm = {"bandit", "dolg"}},
-                val_prisoner = {comm = {"dolg"}},
---                val_sos = {},
-                val_rob = {comm = true},
-                val_lager_bandits = {comm = {"bandit"}},
-                val_watchtower = {comm = true},
-                val_soldiers_raid = {comm = {"military"}},
-                offline_group = {}}
+local gulags = {
+	val_escort = {},
+	val_sacrifice = {},
+	val_prisoner = {},
+	val_sos = {},
+	val_rob = {},
+	val_lager_bandits = {},
+	val_watchtower = {},
+	val_soldiers_raid = {},
+	offline_group = {}
+}
 
 -- Job -------------------------------------------------------------------
-function load_job(sj, gname, type, squad, groups)
-    local g = gulags[type]
+function load_job(sj, gname, gulag_type, squad, groups)
+    local g = gulags[gulag_type]
     if g then
-        g.job(sj, gname, type, squad, groups)
+        g.job(sj, gname, gulag_type, squad, groups)
+		return true
     end
+	return false
 end
 
 -- State -----------------------------------------------------------------
@@ -40,8 +39,8 @@ function check_state_stub(gulag)
     return 0
 end
 
-function load_states(gname, type)
-    local g = gulags[type]
+function load_states(gname, gulag_type)
+    local g = gulags[gulag_type]
 
     if g then
         return g.state or check_state_stub
@@ -51,79 +50,38 @@ function load_states(gname, type)
 end
         
 -- Dynamic ltx -----------------------------------------------------------
-function load_ltx(gname, type)
-    local g = gulags[type]
-    if g then
-        return g.ltx
-    end
-
+function load_ltx(gname, gulag_type)
+	local g = gulags[gulag_type]
+	if g then
+		if g.ltx then
+			return g.ltx
+		end
+		return false
+	end
     return nil
 end
 
 -- Check communities -----------------------------------------------------
-local function checkCommon(npc_community, gulag_type, npc_rank, se_obj, stalker)
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
     local g = gulags[gulag_type]
     if g then
-        if g.comm then
-            if type(g.comm) == "function" then
-                return g.comm(npc_community, gulag_type, npc_rank, se_obj, stalker)
-            end
-            if type(g.comm) == "boolean" then
-                return g.comm == stalker
-            end
-
-            local i, v = 0, 0
-            for i, v in pairs(g.comm) do
-                if npc_community == v then
-                    return true
-                end
-            end
-            if i > 0 then
-                return false
-            end
-        end
-        return true
-    end
-    return false
-end
-
-function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
-   -- return checkCommon(npc_community, gulag_type, npc_rank, se_obj, true)
-if gulag_type == "val_escort" then
-		return npc_community == "dolg" or npc_community == "bandit"
+		if g.check_stalker then
+			return g.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
 	end
-	if gulag_type == "val_sacrifice" then
-		return npc_community == "dolg" or npc_community == "bandit"
-	end
-	if gulag_type == "val_prisoner" then
-		return npc_community == "dolg"
-	end
---	if gulag_type == "val_sos" then
---		return npc_community == "stalker"
---	end
-	if gulag_type == "val_rob" then
-		return npc_community == "stalker"
-	end
-	if gulag_type == "val_lager_bandits" then
-		return npc_community == "bandit"
-	end
-	if gulag_type == "val_watchtower" then
-		return npc_community == "bandit"
-	end
-	if gulag_type == "val_soldiers_raid" then
-		return npc_community == "military"
-	end
-	if gulag_type == "offline_group" then
-		return true
-	end
-	return false
+	return nil
 end
 
 function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
---	if gulag_type == "val_sos" then
---		return npc_community == "bloodsucker"
---	end
-    return false
+    local g = gulags[gulag_type]
+    if g then
+		if g.check_monster then
+			return g.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+    return nil
 end
 
 
@@ -156,7 +114,7 @@ function e_predicate_g2(npc_info) -- guards
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_escort.job = function(sj, gname, type, squad, groups)
+gulags.val_escort.job = function(sj, gname, gulag_type, squad, groups)
 -- игнорирование
     local ltx = "[meet@ignore_abuse]\n" ..
                 "use             = true\n" ..
@@ -344,6 +302,11 @@ gulags.val_escort.job = function(sj, gname, type, squad, groups)
     gulags.val_escort.ltx = ltx
 end
 
+gulags.val_escort.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "dolg"
+		or npc_community == "bandit"
+end
+
 
 --------------------------------------------------------------------------
 -- Sacrifice (сцена возле ямы на главной базе бандитов)
@@ -366,7 +329,7 @@ function scf_predicate_tb(npc_info) -- tunnel bandit
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_sacrifice.job = function(sj, gname, type, squad, groups)
+gulags.val_sacrifice.job = function(sj, gname, gulag_type, squad, groups)
     -- пленный, которого убивают
     t = { section = "logic@" .. gname .. "_victim",
         idle = 0,
@@ -437,6 +400,10 @@ gulags.val_sacrifice.job = function(sj, gname, type, squad, groups)
     gulags.val_sacrifice.ltx = ltx
 end
 
+gulags.val_sacrifice.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "dolg"
+		or npc_community == "bandit"
+end
 
 --------------------------------------------------------------------------
 -- Prisoner (заключенный за решеткой в подвале на главной базе бандитов)
@@ -447,7 +414,7 @@ function p_predicate(npc_info) -- prisoner
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_prisoner.job = function(sj, gname, type, squad, groups)
+gulags.val_prisoner.job = function(sj, gname, gulag_type, squad, groups)
     -- за решеткой
     t = { section = "logic@" .. gname,
         idle = 0,
@@ -473,6 +440,9 @@ gulags.val_prisoner.job = function(sj, gname, type, squad, groups)
     gulags.val_prisoner.ltx = "#include \"scripts\\val_prisoner_captive.ltx\"\n"
 end
 
+gulags.val_prisoner.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "dolg"
+end
 -- States ----------------------------------------------------------------
 gulags.val_prisoner.state = function(gulag)
     if has_alife_info("val_prisoner_door_unlocked") then
@@ -482,137 +452,28 @@ gulags.val_prisoner.state = function(gulag)
 end
 
 
---------------------------------------------------------------------------
--- Sos (раненый на заправке и кровосос)
---------------------------------------------------------------------------
--- Predicates ------------------------------------------------------------
---function sos_predicate_w(npc_info) -- wounded
---    return npc_info.story_id == story_ids.val_sos_stalker
---end
-
-function sos_predicate_bs(npc_info) -- bloodsucker
-    -- нужен не абы какой кровосос, а вполне конкретный val_sos_bs
-    return npc_info.story_id == story_ids.val_sos_bs
-end
-
+--------------------------------------------------------------------
+-- Sos (раненый на заправке Мессер)
+--------------------------------------------------------------------
 -- Jobs ------------------------------------------------------------------
---[[
-gulags.val_sos.job = function(sj, gname, type, squad, groups)
-    local ltx = ""
-
-    -- раненый сталкер
-    t = { section = "logic@" .. gname .. "_wounded",
-        idle = 0,
-        prior = 1, state = {0},
-        squad = squad, group = groups[1],
-        in_rest = "", out_rest = "",
-        --online = true,
-        predicate = sos_predicate_w
-    }
-    table.insert(sj, t)
-    
-    ltx = ltx.."[logic@" .. gname .. "_wounded]\n" ..
-               "active        = remark1\n" ..
-               "on_death      = death@wounded\n" ..
-               "combat_ignore = combat_ignore\n" ..
-
-               "[death@wounded]\n" ..
-               "on_info = %+val_sos_dead +val_sos_scene_end%\n" ..
-
-               "[danger1]\n" ..
-               "ignore_distance = 5\n" ..
-               "ignore_types    = corpse\n" ..
-               "danger_inertion_time_sound = 4000\n" ..
-
-               "[danger2]\n" ..
-               "ignore_distance = 15\n" ..
-               "ignore_types    = corpse\n" ..
-               "danger_inertion_time_sound = 15000\n" ..
-
-               "[meet1]\n" ..
-               "meet_dialog    = val_sos_dialog\n" ..
-               "meet_state     = 5|wait\n" ..
-               "meet_state_wpn = 5|wait\n" ..
-               "victim         = 5|actor\n" ..
-               "victim_wpn     = 5|actor\n" ..
-               "use            = true\n" ..
-               "use_wpn        = true\n" ..
-
-               "[wounded]\n" ..
-               "hp_state          = 20|wounded_heavy@help\n" ..
-               "hp_state_see      = 20|wounded_heavy@help_see\n" ..
-               "hp_cover          = 20|false\n" ..
-               "hp_fight          = 20|false\n" ..
-               "syndata           = wounded_heavy@help\n" ..
-               "help_start_dialog = val_sos_dialog\n" ..
-
-               "[remark1]\n" ..
-               "path_walk          = wounded_walk\n" ..
-               "anim               = wait\n" ..
-               "on_info            = {+val_sos_got_medkit} remark2\n" ..
-               "meet               = no_meet\n" ..
-               "danger             = danger1\n" ..
-               "wounded            = wounded\n" ..
-               "combat_ignore_cond = always\n" ..
-
-               "[remark2]\n" ..
-               "anim                  = wait\n" ..
-               "meet                  = meet1\n" ..
-               "danger                = danger2\n" ..
-               "on_info               = {+val_sos_give_info} remark3\n" ..
-               "on_actor_dist_ge_nvis = 20 | walker@leave\n" ..
-
-               "[remark3]\n" ..
-               "anim                  = wait\n" ..
-               "meet                  = meet1\n" ..
-               "danger                = danger2\n" ..
-               "on_timer              = 5400 | walker@leave\n" ..
-               "on_actor_dist_ge_nvis = 20 | walker@leave\n" ..
-
-               "[walker@leave]\n" ..
-               "path_walk             = wounded_leave_walk\n" ..
-               "def_state_moving1     = sprint\n" ..
-               "def_state_moving2     = sprint\n" ..
-               "def_state_moving3     = sprint\n" ..
-               "on_signal             = arrived | %+val_sos_scene_end%\n" ..
-               "combat_ignore_cond    = always\n"
-
-    -- кровосос
-    t = { section = "logic@" .. gname .. "_bs",
-        idle = 0,
-        prior = 1, state = {0},
-        squad = squad, group = groups[1],
-        in_rest = "", out_rest = "",
-        --online = true,
-        predicate = sos_predicate_bs
-    }
-    table.insert(sj, t)
-    ltx = ltx.."[logic@val_sos_bs]\n" ..
-               "active = mob_home1\n" ..
-               "on_combat = mob_combat\n" ..
-
-               "[mob_combat]\n" ..
-               "on_info = nil %=disable_combat_handler%\n" ..
-
-               "[mob_home1]\n" ..
-               "path_home = bs_walk\n" ..
-               "on_info = {+val_sos_actor_near_wounded} mob_camp2 %=monster_berserk%\n" ..
-
-               "[mob_camp2]\n" ..
-               "path_home = bs_attack_walk\n" ..
-               "path_look = bs_attack_look\n"
-
-    gulags.val_sos.ltx = ltx --.."#include \"scripts\\val_sos_bs.ltx\"\n"
+gulags.val_sos.job = function(sj, gname, gulag_type, squad, groups)
+	t = { section = "logic@val_sos",
+		prior = 10, state = {0},
+		predicate = function(obj_info)
+						return obj_info.name == "val_sos_wounded"
+					end
+	}
+	table.insert(sj, t)
 end
---]]
 
---------------------------------------------------------------------------
+gulags.val_sos.check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+	return se_obj:profile_name() == "val_sos_wounded"
+end
+--------------------------------------------------------------------
 -- Robbers (грабители на ферме)
---------------------------------------------------------------------------
--- Predicates ------------------------------------------------------------
-
--- Jobs ------------------------------------------------------------------
-gulags.val_rob.job = function(sj, gname, type, squad, groups)
+--------------------------------------------------------------------
+-- Jobs --------------------------------------------------------------------
+gulags.val_rob.job = function(sj, gname, gulag_type, squad, groups)
     local i = 0
 
     local ltx = "[meet@ignore_abuse]\n" ..
@@ -680,6 +541,9 @@ gulags.val_rob.job = function(sj, gname, type, squad, groups)
     gulags.val_rob.ltx = ltx
 end
 
+gulags.val_rob.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "stalker"
+end
 
 --------------------------------------------------------------------------
 -- Bandits (главная база бандитов)
@@ -702,7 +566,7 @@ function lb_predicate3(npc_info)
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_lager_bandits.job = function(sj, gname, type, squad, groups)
+gulags.val_lager_bandits.job = function(sj, gname, gulag_type, squad, groups)
     local i, v, j = 0, 0, 0
     local restr = 0
     local ltx = ""
@@ -1156,6 +1020,10 @@ gulags.val_lager_bandits.job = function(sj, gname, type, squad, groups)
     gulags.val_lager_bandits.ltx = ltx
 end
 
+gulags.val_lager_bandits.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "bandit"
+end
+
 -- States ----------------------------------------------------------------
 gulags.val_lager_bandits.state = function(gulag)
 	-- if has_alife_info("val_bandit_talk") then
@@ -1197,7 +1065,7 @@ end
 -- Predicates ------------------------------------------------------------
 
 -- Jobs ------------------------------------------------------------------
-gulags.offline_group.job = function(sj, gname, type, squad, groups)
+gulags.offline_group.job = function(sj, gname, gulag_type, squad, groups)
     local i, it = 0, 1
     local ltx = ""
     local pname = "offgroup"
@@ -1247,6 +1115,10 @@ gulags.offline_group.job = function(sj, gname, type, squad, groups)
     gulags.offline_group.ltx = ltx
 end
 
+gulags.offline_group.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return true
+end
+
 
 --------------------------------------------------------------------------
 -- Soldiers raid group (аналог general_lager только с дополнительными рестрикторами)
@@ -1254,7 +1126,7 @@ end
 -- Predicates ------------------------------------------------------------
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_soldiers_raid.job = function(sj, gname, type, squad, groups)
+gulags.val_soldiers_raid.job = function(sj, gname, gulag_type, squad, groups)
     local i, ltx = 1, ""
 
     ltx = "[danger@ignore_corpse]\n" ..
@@ -1351,6 +1223,10 @@ gulags.val_soldiers_raid.state = function(gulag)
 	end
 end
 
+gulags.val_soldiers_raid.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "military"
+end
+
 
 --------------------------------------------------------------------------
 -- WatchTower (смотровые вышки)
@@ -1365,7 +1241,7 @@ function wt_predicate_s(npc_info, gulag) -- sniper
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.val_watchtower.job = function(sj, gname, type, squad, groups)
+gulags.val_watchtower.job = function(sj, gname, gulag_type, squad, groups)
     local i, ltx = 1, ""
 
     -- Проверяем наличие часовых на вышке.
@@ -1462,6 +1338,10 @@ gulags.val_watchtower.job = function(sj, gname, type, squad, groups)
     end
 
     gulags.val_watchtower.ltx = ltx
+end
+
+gulags.val_watchtower.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "bandit"
 end
 
 

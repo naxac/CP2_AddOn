@@ -22,10 +22,17 @@ level_gulags = {
 	gulag_radar_u,
 	gulag_yantar,
 	gulag_pripyat,
-	gulag_kishka,
 	gulag_sarcofag,
+	gulag_atp,
+	gulag_marsh,
+	gulag_red_forest,
+	gulag_limansk,
+	gulag_hospital,
+	gulag_aver,
+	gulag_generators,
 	gulag_deadcity,
-	gulag_amk,
+	gulag_zaton,
+	gulag_jupiter,
 	gulag_new
 }
 
@@ -1453,49 +1460,18 @@ end
 
 -----------------------------------------------------------------------------------------------------------------
 
-function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
-    --printf ("CHECKSTALKER, COMMUNITY = %s, TYPE = %s", npc_community, gulag_type)
-	-- if gulag_type == "test" or gulag_type == "test1" or gulag_type == "test_restr_changer" or gulag_type == "test_out"  then
-		-- return true
-	-- end
+function checkNpc( npc_community, is_stalker, gulag_type, npc_rank, se_obj )
+--	log("checkNpc %s[%s] for %s", se_obj:name(), npc_community, gulag_type)
 
-	if gulag_type == "campers" or
-	   gulag_type == "walkers" or
-	   gulag_type == "rest" or
-	   gulag_type == "search"
-	then
-		return npc_community ~= "military"
-	end
-
-	for i, v in ipairs( level_gulags ) do
-		if v.checkStalker(npc_community, gulag_type, npc_rank, se_obj) then
-			return true
-		end
-	end
-
-	return false
-end
-
-function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
-	if gulag_type == "test_mob" or gulag_type == "test_mob1" then
-		return true
-	end
-
+	local res
+	local func_name = is_stalker and "checkStalker" or "checkMonster"
+	
     for i, v in ipairs( level_gulags ) do
-		if v.checkMonster(npc_community, gulag_type, npc_rank, se_obj) then
-		    return true
+		res = v[func_name]( npc_community, gulag_type, npc_rank, se_obj )
+		if res ~= nil then
+		    return res
 		end
 	end
 
 	return false
-end
-
-function checkNpc(npc_community, is_stalker, gulag_type, npc_rank, se_obj)
---	printf("COMM %s !! %s", npc_community, gulag_type)
-
-	if is_stalker then
-		return checkStalker(npc_community, gulag_type, npc_rank, se_obj)
-	else
-		return checkMonster(npc_community, gulag_type, npc_rank, se_obj)
-	end
 end

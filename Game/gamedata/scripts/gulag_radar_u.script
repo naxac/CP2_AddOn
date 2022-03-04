@@ -1,0 +1,145 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local t = {}
+
+function is_monolith(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "monolith"
+end
+function bun_antenna_off(gulag)
+	if has_alife_info("bun_antenna_off") then
+		return 1
+	else
+		return 0
+	end
+end
+function predicate_campers(obj_info)
+	return obj_info.profile_name == "rad_monolit_bunker"
+end
+function predicate_patrols(obj_info)
+	return obj_info.profile_name == "rad_monolit_master"
+end
+
+local gulags = {}
+-- campers
+for i = 1, 22 do
+	gulags["bun_camper"..i] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@bun_camper"..i.."_camper1",
+				prior = 1, state = {0},
+				online = false,
+				predicate = predicate_campers
+			}
+			table.insert(sj, t)
+			
+			t = { section = "logic@bun_camper"..i.."_camper11",
+				prior = 1, state = {1},
+				predicate = predicate_campers
+			}
+			table.insert(sj, t)
+		end,
+		state = this.bun_antenna_off,
+		check_stalker = this.is_monolith
+	}
+end
+-- patrols
+for i = 1, 4 do
+	gulags["bun_patrol"..i] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@bun_patrol"..i.."_patrol1",
+				prior = 1, state = {0},
+				online = false,
+				predicate = predicate_patrols
+			}
+			table.insert(sj, t)	
+
+		   t = { section = "logic@bun_patrol"..i.."_patrol2",
+				prior = 1, state = {0},
+				online = false,
+				predicate = predicate_patrols
+			}
+			table.insert(sj, t)	
+			
+			t = { section = "logic@bun_patrol"..i.."_patrol11",
+				prior = 1, state = {1},
+				predicate = predicate_patrols
+			}
+			table.insert(sj, t)	
+
+		   t = { section = "logic@bun_patrol"..i.."_patrol21",
+				prior = 1, state = {1},
+				predicate = predicate_patrols
+			}
+			table.insert(sj, t)	
+		end,
+		state = this.bun_antenna_off,
+		check_stalker = this.is_monolith
+	}
+end
+
+gulags.bun_krovosos_nest = {
+	job = function(sj, gname, gulag_type, squad, groups)
+		for i = 1, 3 do
+			t = { section = "logic@bun_krovosos_nest_home"..i,
+				prior = 5, state = {0},
+				out_rest = "bun_krovosos_border3"
+			}
+			table.insert(sj, t)
+		end
+	end,
+	check_monster = function(npc_community, gulag_type, npc_rank, se_obj)
+		return npc_community == "bloodsucker"
+	end
+}
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+	return nil
+end
+
+function check_state_stub(gulag)
+    return 0
+end
+
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
+end
+
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end

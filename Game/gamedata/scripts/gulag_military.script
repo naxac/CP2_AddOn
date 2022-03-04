@@ -1,3 +1,4 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
 -------------------------------------------------------------------------------------------
 -- Загрузка работ для Свободы
 -------------------------------------------------------------------------------------------
@@ -9,6 +10,10 @@ local function predicate_mil_sniper(info, sid)
 		end
 	end
 	return (string.find(info.profile_name, "Svoboda_sniper") ~= nil)
+end
+
+function is_freeman(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "freedom"
 end
 
 function load_job_base (sj, gname, type, squad, groups)
@@ -1079,45 +1084,6 @@ function check_blockpost_state (gulag)
 end
 
 
-
---------------------------------------------------------------------------
--- Dynamic ltx
---------------------------------------------------------------------------
-function load_ltx(gname, type)
-	return nil
-end
---------------------------------------------------------------------------
--- Проверка принадлежности сталкеров гулагам
---------------------------------------------------------------------------
-function checkStalker(npc_community, gulag_type)
-	if gulag_type == "mil_fneutral" then
-	   return npc_community == "freedom"
-	end       
-	
-	if gulag_type == "mil_freedom" then
-	   return npc_community == "freedom"
-	end
-	
-	if gulag_type == "mil_fblockpost" then
-	   return npc_community == "freedom"
-	end   
-	
-	if gulag_type == "mil_village" then
-	   return npc_community == "freedom" 
-	end
-	
-	if gulag_type == "mil_dolg" then
-	   return  npc_community == "dolg" 
-	end   
-	
-	if gulag_type == "mil_monolit" then
-	   return npc_community == "monolith"
-	end
-	    
-	return false
-end
-
-
 --------------------------------------------------------------------------
 -- Функция загрузки работ для деревни
 --------------------------------------------------------------------------
@@ -1680,81 +1646,148 @@ function check_mil_monster_state (gulag)
     return 0
 end
 
--------------------------------------------------------------------------------------------
--- Проверка на принадлежность мутантов нам
--------------------------------------------------------------------------------------------
-function checkMonster(npc_community, gulag_type)
 
-    if gulag_type == "mil_monster" then
-       return true
-    end    
-    
-    return false   
+local t = {}
+local gulags = {
+	["mil_freedom"] = {
+		state = this.check_state,
+		job = this.load_job_base,
+		check_stalker = this.is_freeman
+	},
+	["mil_fblockpost"] = {
+		state = this.check_fblockpost_state,
+		job = this.load_job_fblockpost,
+		check_stalker = this.is_freeman
+	},
+	["mil_fneutral"] = {
+		state = this.check_blockpost_state,
+		job = this.load_job_fneutral,
+		check_stalker = this.is_freeman
+	},
+	["mil_village"] = {
+		state = this.check_village_state,
+		job = this.load_job_village,
+		check_stalker = this.is_freeman
+	},
+	["mil_dolg"] = {
+		state = this.check_dolg_state,
+		job = this.load_job_dolg,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "dolg"
+		end
+	},
+	["mil_monolit"] = {
+		state = this.check_monolith_state,
+		job = this.load_job_monolith,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "monolith"
+		end
+	},
+	["mil_monster"] = {
+		state = this.check_mil_monster_state,
+		job = this.load_job_mil_monster,
+		check_monster = function(npc_community, gulag_type, npc_rank, se_obj)
+			return true
+		end
+	},
+	--- as лагерь ---
+	["as_lager"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@as_lager_esc_kostya",
+				prior = 5, state = {0},
+				online = true
+			}
+			table.insert(sj, t)
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return se_obj:profile_name() == "esc_kostya"
+		end
+	},
+	-- Гулаг нейтралов на милитари
+	["military_neytral"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@military_neytral_walker1",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@military_neytral_kamp1",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@military_neytral_walker2",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@military_neytral_walker3",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@military_neytral_kamp2",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@military_neytral_kamp3",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+		end
+	}
+}
+
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+	return nil
 end
 
-
--------------------------------------------------------------------------------------------
--- Главная функция загрузки работ
--------------------------------------------------------------------------------------------
-function load_job (sj, gname, type, squad, groups)
-    if type == "mil_freedom" then 
-       this.load_job_base (sj, gname, type, squad, groups)
-       return
-    end
-    if type == "mil_fblockpost" then
-       this.load_job_fblockpost (sj, gname, type, squad, groups)
-       return 
-    end   
-    if type == "mil_fneutral" then
-       this.load_job_fneutral (sj, gname, type, squad, groups)
-       return
-    end   
-    if type == "mil_village" then
-       this.load_job_village (sj, gname, type, squad, groups)
-       return
-    end    
-    if type == "mil_dolg" then
-       this.load_job_dolg (sj, gname, type, squad, groups)
-       return
-    end   
-    if type == "mil_monolit" then
-       this.load_job_monolith (sj, gname, type, squad, groups)
-       return
-    end   
-    if type == "mil_monster" then
-       this.load_job_mil_monster (sj, gname, type, squad, groups)
-       return
-    end   
+function check_state_stub(gulag)
+    return 0
 end
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------------------------
--- Функция проверки состояний гулагов
--------------------------------------------------------------------------------------------
-function load_states (gname, type)
-    if type == "mil_freedom" then
-       return this.check_state -- (gulag)
-    elseif type == "mil_fblockpost" then
-       return this.check_fblockpost_state
-    elseif type == "mil_fneutral" then  
-       return this.check_blockpost_state
-    elseif type == "mil_village" then
-       return this.check_village_state    
-    elseif type == "mil_dolg" then
-       return this.check_dolg_state     
-    elseif type == "mil_monolit" then
-       return this.check_monolith_state    
-    elseif type == "mil_monster" then
-       return this.check_mil_monster_state    
-    end    
-    return nil    
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
 end
 
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
 
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end

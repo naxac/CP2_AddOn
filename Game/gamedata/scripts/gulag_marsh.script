@@ -1,0 +1,984 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local t = {}
+local gulags = {
+    -- МИТЯ НА БОЛОТАХ
+	["mitya_marsh"] = {
+		state = function(gulag)
+			if not has_alife_info("klyak_forest_doc_marsh") then
+				return 0 -- оффлайн
+			elseif has_alife_info("klyak_forest_doc_next") then 
+				return 2 -- отдыхаем
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@mitya_of",
+				prior = 25, state = {0},
+				online = false,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)	
+			t = { section = "logic@mitya",
+				prior = 25, state = {1},
+				online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)	
+			t = { section = "logic@mitya_free",
+				prior = 25, state = {2},
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return se_obj:profile_name() == "mitya"
+		end
+	},
+	-- ГРАБИТЕЛИ МИТИ НА БОЛОТАХ
+	["grab_mitya_marsh"] = {
+		state = function(gulag)
+			if not has_alife_info("klyak_forest_doc_marsh") then
+				return 0 -- оффлайн
+			else
+				return 1 -- онлайн
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@grab_stal1_speak_of",
+				prior = 25, state = {0},
+				online = false,
+				position_threshold = 400
+			}
+			table.insert(sj, t)
+			for i = 2, 5 do
+				t = { section = "logic@grab_stal"..i.."_of",
+					prior = 15, state = {0},
+					online = false,
+					position_threshold = 400
+				}
+				table.insert(sj, t)
+			end
+			t = { section = "logic@grab_stal1_speak",
+				prior = 25, state = {1},
+				online = true,
+				position_threshold = 400
+			}
+			table.insert(sj, t)
+			for i = 2, 5 do
+				t = { section = "logic@grab_stal"..i,
+				  prior = 15, state = {1},
+				  online = true,
+				  position_threshold = 400
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+				or npc_community == "bandit"
+		end
+	},
+	-- ХАЛЯВА И ДРУГ НА БОЛОТАХ	
+	["marsh_xalyava"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@xalmar",
+				prior = 25, state = {0},
+				position_threshold = 100,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "xalyava"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@xalmar_drug",
+				prior = 25, state = {0},
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "xalyava_drug"
+							end	
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "nebo"
+		end
+	},
+	-- ПСЕВДОГИГАНТЫ И СВИНЬИ НЕДАЛЕКО ОТ Ж\Д И ПЕРЕХОДА НА АГРОПРОМ, НА БОЛОТАХ
+	["poltergeist_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 6 do
+				t = { section = "logic@polt"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "flesh"
+				or npc_community == "pseudo_gigant"
+		end
+	},
+	-- КАБАНЫ НА БОЛОТАХ	
+	["boar_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 5 do
+				t = { section = "logic@boarmar"..i,
+				  prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "boar"
+		end
+	},
+	-- ЧАЕПИТИЕ НА БОЛОТАХ	№1
+	["stalker_green1"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 3 do
+				t = { section = "logic@stagreen"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "green"
+				or npc_community == "stalker"
+		end
+	},
+	-- ЧАЕПИТИЕ НА БОЛОТАХ	№2
+	["stalker_green2"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 3 do
+				t = { section = "logic@sta_green2"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "green"
+				or npc_community == "stalker"
+		end
+	},
+	--КАЛМЫК И КО НА БОЛОТАХ	
+	["kalmyak_marsh"] = {
+		state = function(gulag)
+			if not has_alife_info("kalmyak_vstreca_start") then
+				return 0 -- оффлайн
+			elseif has_alife_info("kalmyak_vstreca_begin") then 
+				return 2 -- отдыхаем или мочим игрока
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@kalmyak_offline",
+				prior = 30, state = {0},
+				online = false,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kalmyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar1_offline",
+				prior = 20, state = {0},
+				online = false,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar2_offline",
+				prior = 10, state = {0},
+				online = false,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar3_offline",
+				prior = 10, state = {0},
+				online = false,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_wait",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kalmyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar1",
+				prior = 20, state = {1},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar2",
+				prior = 10, state = {1},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar3",
+				prior = 10, state = {1},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak",
+				prior = 30, state = {2},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kalmyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar1_ohr",
+				prior = 20, state = {2},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar2_kam",
+				prior = 10, state = {2},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kalmyak_napar3_kam",
+				prior = 10, state = {2},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+		end
+	},
+	--КОНТРОЛЕР НА ХУТОРЕ(САМЫЙ КРАЙНИЙ НА СЕВЕРО-ЗАПАДЕ) НА БОЛОТАХ	
+	["marsh_controller_hutor"] = {
+		state = function(gulag)
+			if not has_alife_info("controller_hutor_start") then
+				return 0 -- оффлайн
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@controller_hu_offline",
+				prior = 30, state = {0},
+				online = false,
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@controller_hu",
+				prior = 30, state = {1},
+			} 
+			table.insert(sj, t)
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "controller"
+		end
+	},
+	--ЗОМБИ НА ХУТОРЕ(САМЫЙ КРАЙНИЙ НА СЕВЕРО-ЗАПАДЕ) НА БОЛОТАХ	
+	["marsh_zombi_hutor"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 6 do
+				t = { section = "logic@zombi_hu"..i,
+				prior = 10, state = {0}
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "zombie"
+		end
+	},
+	--МСТИТЕЛИ ВОЗЛЕ ПЕРЕХОДА НА КОРДОН, НА БОЛОТАХ
+	["marsh_sniper"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@snip_hu1",
+				prior = 20, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu2",
+				prior = 20, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu3",
+				prior = 15, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu4",
+				prior = 15, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu5",
+				prior = 15, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu6",
+				prior = 15, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@snip_hu7",
+				prior = 10, state = {0},
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "sniper"
+		end
+	},
+	--КОШКИ НЕДАЛЕКО ОТ ФЕРМЫ С ОХОТНИКАМИ, НА БОЛОТАХ
+	["marsh_cat"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 6 do
+				t = { section = "logic@cat_hu"..i,
+				  prior = 20, state = {0}
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "cat"
+		end
+	},
+	--БОЛОТНАЯ ТВАРЬ ЕЩЕ ОДНА ГДЕ-ТО ВОЗЛЕ ФЕРМЫ
+	["bloodsuker_mar2"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@sucker_eff",
+				prior = 20, state = {0},
+			} 
+			table.insert(sj, t)
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bloodsucker"
+		end
+	},
+	--БОЛОТНАЯ ТВАРЬ №3  ГДЕ-ТО ВОЗЛЕ ВЫШКИ(САМАЯ КРАЙНЯЯ НА ЮГО-ЗАПАДЕ)
+	["bloodsuker_mar3"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@bloodsuk_mar",
+				prior = 20, state = {0},
+			} 
+			table.insert(sj, t)
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bloodsucker"
+		end
+	},
+    --СОБАЧКИ, ВОЗЛЕ ЦЕРКВИ НА БОЛОТАХ
+	["dog_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 5 do
+				t = { section = "logic@dog_chu"..i,
+					prior = 20, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "dog"
+		end
+	},
+    -- КОТ ВОЗЛЕ ДЕРЕВНИ НА БОЛОТАХ	
+	["kot_mar_one"] = {
+		state = function(gulag)
+			if not has_alife_info("dan_about_kot") then
+				return 0 -- оффлайн
+			elseif has_alife_info("kot_need_doc_start") then 
+				return 2 -- работаем
+			else
+				return 1 -- сидим
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@kotsit_of",
+				prior = 30, state = {0},
+				online = false,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kotsit_centr",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kotsit",
+				prior = 30, state = {2},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return se_obj:profile_name() == "kot"
+		end
+	},
+	-- КОТ В БАРЕ НА БАЗЕ ЧИСТОГО НЕБА НА БОЛОТАХ
+	["kot_mar_two"] = {
+		state = function(gulag)
+			if not has_alife_info("kot_in_marsh_restr") then
+				return 0 -- идем на рестриктор
+			else
+				return 1 -- в баре
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@kotrestr",
+				prior = 30, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kotrestrbar",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return se_obj:profile_name() == "kot"
+		end
+	},
+	-- СНОРКИ НА БОЛОТАХ	
+	["snork_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 4 do
+				t = { section = "logic@snmar"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "snork"
+		end
+	},
+	-- КРОВОСОСИКИ НА БОЛОТАХ	
+	["bloodsucker_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 2 do
+				t = { section = "logic@blomar"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bloodsucker"
+		end
+	},
+	-- БЮРЕРЫ И СОБАКЕВИЧИ НА БОЛОТАХ
+	["burer_marsh"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 6 do
+				t = { section = "logic@burmar"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "burer"
+				or npc_community == "dog"
+		end
+	},
+	--БАЗА НЕБА НА БОЛОТАХ	
+	["marsh_baza_nebo"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@scy_leader",
+				prior = 30, state = {0},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "clear_scy_leader"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ohr_leader",
+				prior = 20, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@chasovoi1",
+				prior = 15, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@chasovoi2",
+				prior = 15, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@chasovoi3",
+				prior = 15, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@patbaz1",
+				prior = 15, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@patbaz2",
+				prior = 10, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@barpos",
+				prior = 15, state = {0},
+				online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam1",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam2",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam3",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam4",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam5",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@kam6",
+				prior = 5, state = {0},
+				--		  online = true,
+				position_threshold = 600
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ucen",
+				prior = 25, state = {0},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "agr_nebo_trader"
+							end	
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "nebo"
+		end
+	},
+	--НЕБО НЕДАЛЕКО ОТ БАЗЫ(ВОЗЛЕ ПРОХОДА НА БАЗУ)	
+	["marsh_small_nebo"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@post_neb1",
+				prior = 20, state = {0},
+				position_threshold = 200
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@post_neb2",
+				prior = 10, state = {0},
+				position_threshold = 200
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@post_cam1",
+				prior = 20, state = {0},
+				position_threshold = 200
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@post_cam2",
+				prior = 10, state = {0},
+				position_threshold = 200
+			}
+			table.insert(sj, t)
+			t = { section = "logic@post_cam3",
+				prior = 10, state = {0},
+				position_threshold = 200
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@post_neb3",
+				prior = 22, state = {0},
+				position_threshold = 200
+			}
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "nebo"
+		end
+	},
+	-- СНОРКИ АТАКУЮТ НЕБОВЦЕВ	
+	["marsh_snork"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 4 do
+				t = { section = "logic@snork_atak"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "snork"
+		end
+	},
+	--БАНДИТЫ В ЦЕРКВИ НА БОЛОТАХ	
+	["marsh_church_band"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@marshban1",
+				prior = 20, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban2",
+				prior = 20, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban3",
+				prior = 20, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban_patr",
+				prior = 25, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban_kos1",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban_kos2",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban_kos3",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@marshban_kos4",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bandit"
+		end
+	},
+	--БАЗА НЕБА У ВХОДА НА БОЛОТА	
+	["marsh_exit_nebo"] = {
+		state = function(gulag)
+			if not has_alife_info("dyak_help_start") then
+				return 0 -- ожидаем игрока
+			elseif has_alife_info("dyak_help_have") then 
+				return 2 -- отдыхаем
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@dyak_wait",
+				prior = 30, state = {0},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "dyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@esc_saha_plen_offline",
+				prior = 30, state = {0},
+				online = false,
+				position_threshold = 600,
+				predicate = function(obj_info) 
+									return obj_info.story_id == story_ids.esc_saha
+							 end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata1_sit",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata2_sit",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata3_sit",
+				prior = 10, state = {0},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@dyak_dal",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "dyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@esc_saha_plen",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info) 
+									return obj_info.story_id == story_ids.esc_saha
+							 end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata1",
+				prior = 10, state = {1},
+				online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata2",
+				prior = 10, state = {1},
+				online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata3",
+				prior = 10, state = {1},
+				online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@dyak",
+				prior = 30, state = {2},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "dyak"
+							end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@esc_saha",
+				prior = 30, state = {2},
+				--		  online = true,
+				position_threshold = 600,
+				predicate = function(obj_info) 
+									return obj_info.story_id == story_ids.esc_saha
+							 end	
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata1_ohr",
+				prior = 20, state = {2},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata2_patr",
+				prior = 15, state = {2},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+			t = { section = "logic@ex_nebo_ata3_free",
+				prior = 10, state = {2},
+				--		  online = true,
+				position_threshold = 400
+			} 
+			table.insert(sj, t)
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "nebo"
+		end
+	},
+	-- КОТЫ И ИЗЛОМЫ ВОЗЛЕ ЦЕРКВИ НА БОЛОТАХ	
+	["marsh_fracture"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 4 do
+				t = { section = "logic@zver"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "fracture" or npc_community == "cat"
+		end
+	},
+	-- ПСЕВДОПСЫ НЕДАЛЕКО ОТ ПЛАВУЧЕЙ БАЗЫ НА БОЛОТАХ
+	["marsh_psevdo"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@psevdo_bol1",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@psevdo_bol2",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+			t = { section = "logic@psevdo_bol3",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "pseudodog"
+		end
+	},
+	-- БОЛОТНАЯ ТВАРЬ НЕДАЛЕКО ОТ ПЛАВУЧЕЙ БАЗЫ НА БОЛОТАХ 	
+	["marsh_bloodsucker_effector"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@bloodsucker_effector",
+				prior = 10, state = {0},
+			}
+			table.insert(sj, t)
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bloodsucker"
+		end
+	},
+    -- ГУЛАГ ЗЕЛЕНЫХ НА БОЛОТАХ
+	["marsh_hunters"] = {
+		state = function(gulag)
+			if not has_alife_info("sveeblov_ferma_have") then
+				return 0 -- оффлайн
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@dan_do",
+				prior = 30, state = {0},
+				online = false,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "marsh_dan"
+							end	
+			} 
+			table.insert(sj, t)
+			for i = 1, 5 do
+				t = { section = "logic@oxot"..i.."_do",
+					prior = 10, state = {0},
+					online = false,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+			t = { section = "logic@dan",
+				prior = 30, state = {1},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "marsh_dan"
+							end	
+			} 
+			table.insert(sj, t)
+			for i = 1, 5 do
+				t = { section = "logic@oxot"..i,
+					prior = 10, state = {1},
+					online = true,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "green"
+		end
+	}
+}
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+	return nil
+end
+
+function check_state_stub(gulag)
+    return 0
+end
+
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
+end
+
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end

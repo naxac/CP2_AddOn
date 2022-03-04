@@ -56,20 +56,37 @@ end
 -- General
 --------------------------------------------------------------------------
 local t = {}
-local gulags = {pri_followers       = {comm = {"stalker"}},
-                pri_wave            = {comm = true},
-                pri_ambush7         = {comm = {"monolith"}},
-                pri_corner          = {comm = {"monolith"}},
-                pri_depot           = {comm = {"psy_dog", "pseudodog", "controller"}},
-                pri_monolith        = {comm = {"monolith"}},
-                pri_stadium         = {comm = {"monolith"}}}
+local gulags = {
+	--- pripyat лагерь ---
+	["pripyat_lager"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@pripyat_lager_esc_kostya",
+				prior = 5, state = {0},
+				online = true
+			}
+			table.insert(sj, t)
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return se_obj:profile_name() == "esc_kostya"
+		end
+	},
+	pri_followers       = {},
+	pri_wave            = {},
+	pri_ambush7         = {},
+	pri_corner          = {},
+	pri_depot           = {},
+	pri_monolith        = {},
+	pri_stadium         = {}
+}
 
 -- Job -------------------------------------------------------------------
-function load_job(sj, gname, type, squad, groups)
-    local g = gulags[type]
+function load_job(sj, gname, gulag_type, squad, groups)
+    local g = gulags[gulag_type]
     if g then
-        g.job(sj, gname, type, squad, groups)
+        g.job(sj, gname, gulag_type, squad, groups)
+		return true
     end
+	return nil
 end
 
 -- State -----------------------------------------------------------------
@@ -77,8 +94,8 @@ function check_state_stub(gulag)
     return 0
 end
 
-function load_states(gname, type)
-    local g = gulags[type]
+function load_states(gname, gulag_type)
+    local g = gulags[gulag_type]
 
     if g then
         return g.state or check_state_stub
@@ -88,8 +105,8 @@ function load_states(gname, type)
 end
         
 -- Dynamic ltx -----------------------------------------------------------
-function load_ltx(gname, type)
-    local g = gulags[type]
+function load_ltx(gname, gulag_type)
+    local g = gulags[gulag_type]
     if g then
         return g.ltx
     end
@@ -98,37 +115,27 @@ function load_ltx(gname, type)
 end
 
 -- Check communities -----------------------------------------------------
-local function checkCommon(npc_community, gulag_type, npc_rank, se_obj, stalker)
-    local g = gulags[gulag_type]
-    if g then
-        if g.comm then
-            if type(g.comm) == "function" then
-                return g.comm(npc_community, gulag_type, npc_rank, se_obj, stalker)
-            end
-            if type(g.comm) == "boolean" then
-                return g.comm == stalker
-            end
-
-            for i, v in pairs(g.comm) do
-                if npc_community == v then
-                    return true
-                end
-            end
-            return false
-        end
-        return false
-    end
-    return false
-end
-
 function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
-    return checkCommon(npc_community, gulag_type, npc_rank, se_obj, true)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
 end
 
 function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
-    return checkCommon(npc_community, gulag_type, npc_rank, se_obj, false)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
 end
-
 
 --------------------------------------------------------------------------
 -- Predicates
@@ -156,11 +163,13 @@ end
 
 function f_predicate_b(npc_info)
     local pn = npc_info.profile_name
-    return (pn == "pri_followers_bomber" or pn == "pri_followers") and obj_has_item(npc_info, "wpn_rpg7")
+    return (pn == "pri_followers_bomber"
+		or pn == "pri_followers")
+		and obj_has_item(npc_info, "wpn_rpg7")
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_followers.job = function(sj, gname, type, squad, groups)
+gulags.pri_followers.job = function(sj, gname, gulag_type, squad, groups)
     local i, v, j = 0, 0, 0
     local ltx = "#include \"misc\\gulag\\gulag_pripyat.ltx\"\n" ..
 				"[meet@ignore_abuse]\n" ..
@@ -485,6 +494,9 @@ gulags.pri_followers.state = function(gulag)
     return pri_followers_switcher[state](Actor, game.get_game_time():diffSec(gulag.stateBegin))
 end
 
+gulags.pri_followers.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "stalker"
+end
 
 --------------------------------------------------------------------------
 -- Ambush7 (не используется)
@@ -492,7 +504,7 @@ end
 -- Predicates ------------------------------------------------------------
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_ambush7.job = function(sj, gname, type, squad, groups)
+gulags.pri_ambush7.job = function(sj, gname, gulag_type, squad, groups)
     local i, ltx = 0, ""
     for i = 1, 7 do
         --- state 0
@@ -541,6 +553,9 @@ gulags.pri_ambush7.state = function(gulag)
     end
 end
 
+gulags.pri_ambush7.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "monolith"
+end
 
 --------------------------------------------------------------------------
 -- Wave (засады в первой половине Припяти: на крышах, в окнах, на земле)
@@ -571,7 +586,7 @@ function w_predicate_sn(npc_info)
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_wave.job = function(sj, gname, type, squad, groups)
+gulags.pri_wave.job = function(sj, gname, gulag_type, squad, groups)
     local i, ltx = 1, ""
     local ib_cond = "combat_ignore_cond = {=check_fighting(806)}\n"
 
@@ -868,6 +883,11 @@ gulags.pri_wave.job = function(sj, gname, type, squad, groups)
     gulags.pri_wave.ltx = ltx
 end
 
+gulags.pri_wave.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "stalker"
+		or npc_community == "nebo"
+		or npc_community == "green"
+end
 
 --------------------------------------------------------------------------
 -- Corners (сталкеры атакующие когда мы заходим в подземный переход)
@@ -875,7 +895,7 @@ end
 -- Predicates ------------------------------------------------------------
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_corner.job = function(sj, gname, type, squad, groups)
+gulags.pri_corner.job = function(sj, gname, gulag_type, squad, groups)
     local ltx, i = "", 0
 
     for i = 1, 3 do
@@ -904,6 +924,10 @@ gulags.pri_corner.job = function(sj, gname, type, squad, groups)
                                  "on_signal = arrived | %+pri_corner_end%\n" 
 end
 
+gulags.pri_corner.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "monolith"
+end
+
 
 --------------------------------------------------------------------------
 -- Depot (автовокзал)
@@ -919,7 +943,7 @@ function z_predicate_pd(npc_info)
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_depot.job = function(sj, gname, type, squad, groups)
+gulags.pri_depot.job = function(sj, gname, gulag_type, squad, groups)
     local i = 0
     local ltx = ""
 
@@ -972,6 +996,12 @@ gulags.pri_depot.job = function(sj, gname, type, squad, groups)
     gulags.pri_depot.ltx = ltx
 end
 
+gulags.pri_depot.check_monster = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "psy_dog"
+		or npc_community == "pseudodog"
+		or npc_community == "controller"
+end
+
 
 --------------------------------------------------------------------------
 -- Monolith (главная база монолита)
@@ -998,7 +1028,8 @@ function m_predicate_e(npc_info)
 end
 
 function m_predicate_s_rpg(npc_info)
-    return npc_info.profile_name == "pri_monolith_specnaz" and obj_has_item(npc_info, "wpn_rpg7")
+    return npc_info.profile_name == "pri_monolith_specnaz"
+		and obj_has_item(npc_info, "wpn_rpg7")
 end
 
 --function m_predicate_s_svd(npc_info)
@@ -1006,15 +1037,17 @@ end
 --end
 
 function m_predicate_s_sniper(npc_info)
-    return npc_info.profile_name == "pri_monolith_specnaz" and npc_info.is_sniper_name == true
+    return npc_info.profile_name == "pri_monolith_specnaz"
+		and npc_info.is_sniper_name == true
 end
 
 function m_predicate_e_rpg(npc_info)
-    return npc_info.profile_name == "pri_monolith_exo" and obj_has_item(npc_info, "wpn_rpg7")
+    return npc_info.profile_name == "pri_monolith_exo"
+		and obj_has_item(npc_info, "wpn_rpg7")
 end
 
 -- Jobs ------------------------------------------------------------------
-gulags.pri_monolith.job = function(sj, gname, type, squad, groups)
+gulags.pri_monolith.job = function(sj, gname, gulag_type, squad, groups)
     local i, j, v = 0, 0, 0
     local prior, pred = 0, 0
     local state1_kamp, state1_restr = 0, 0
@@ -1347,12 +1380,16 @@ gulags.pri_monolith.state = function(gulag)
     return 0 -- normal state
 end
 
+gulags.pri_monolith.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "monolith"
+end
+
 
 --------------------------------------------------------------------------
 -- Stadium (гранатометчики на стадионе)
 --------------------------------------------------------------------------
 -- Jobs ------------------------------------------------------------------
-gulags.pri_stadium.job = function(sj, gname, type, squad, groups)
+gulags.pri_stadium.job = function(sj, gname, gulag_type, squad, groups)
     local i, ltx = 1, ""
     -- Проверяем наличие снайперов в лагере.
     while level.patrol_path_exists(gname .. "_sniper_" .. i .. "_walk") do
@@ -1385,4 +1422,8 @@ gulags.pri_stadium.job = function(sj, gname, type, squad, groups)
     end
 
     gulags.pri_stadium.ltx = ltx
+end
+
+gulags.pri_stadium.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+	return npc_community == "monolith"
 end

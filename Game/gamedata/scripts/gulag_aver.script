@@ -1,0 +1,154 @@
+
+local t = {}
+local gulags = {
+	--' Снайперы на Неразведанной Земле база
+	["land_arhara_sniper"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 5 do
+				t = { section = "logic@land_arhara_sniper_snip"..i,
+					prior = 10, state = {0}
+							}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "sniper"
+		end
+	},
+	--' Снайперы на Неразведанной Земле микрогулаг_1
+	["aver_arhara_sniper_mikrogulag1"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 3 do
+				t = { section = "logic@aver_arhara_sniper_mikrogulag1_tip"..i,
+					prior = 30, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "sniper"
+		end
+	},
+	--' Снайперы на Неразведанной Земле гулаг_2
+	["aver_arhara_sniper_makrogulag2"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 6 do
+				t = { section = "logic@aver_arhara_sniper_makrogulag2_vrag"..i,
+					prior = 15, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "sniper"
+		end
+	},
+	--- Люди Отшельника ---
+	["aver_otshelnik"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 3, 5 do
+				t = { section = "logic@aver_otshelnik_zimovie"..i,
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+		end
+	},
+	--' 10 кабанов на авере
+	["aver_kaban_gulag"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 10 do
+				t = { section = "logic@aver_kaban_gulag",
+					prior = 20, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "boar"
+		end
+	},
+	-- ГУЛАГ ЗЕЛЕНЫХ НА НЕРАЗВЕДАННОЙ ЗЕМЛЕ
+	["aver_hunter"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@aver_hunter_kamp1",
+				prior = 10, state = {0}
+			}
+			table.insert(sj, t)
+			t = { section = "logic@aver_hunter_kamp2",
+				prior = 10, state = {0}
+			}
+			table.insert(sj, t)
+			t = { section = "logic@aver_hunter_walker3",
+				prior = 10, state = {0}
+			}
+			table.insert(sj, t)
+			t = { section = "logic@aver_hunter_walker4",
+				prior = 10, state = {0}
+			}
+			table.insert(sj, t)
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "green"
+		end
+	}
+}
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+
+	return nil
+end
+
+function check_state_stub(gulag)
+    return 0
+end
+
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
+end
+
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
+
+
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster( npc_community, gulag_type )
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end

@@ -1,0 +1,261 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+local t = {}
+local gulags = {
+	-- Гулаг чёрных в Госпитале
+	["hospital_black"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 3 do
+				t = { section = "logic@hospital_black_walker1",
+					prior = 10, state = {0}
+				}
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+		end
+	},
+	-- МОНОЛИТ В ПЕРВОЙ ЗАЛЕ В ГОСПИТАЛЕ
+	["pred_hos_mono"] = {
+		state = function(gulag)
+			if not has_alife_info("info_del_lim_teleport") then
+				return 0 -- оффлайн
+			elseif has_alife_info("pred_mono_atak") then 
+				return 2 -- работаем
+			else
+				return 1 -- ждем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 10 do
+				t = { section = "logic@hsmon"..i.."_of",
+					prior = 25, state = {0},
+					online = false,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+			for i = 1, 10 do
+				t = { section = "logic@hsmon"..i.."_wa",
+					prior = 25, state = {1},
+					online = true,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+			for i = 1, 10 do
+				t = { section = "logic@hsmon"..i,
+					prior = 25, state = {2},
+					online = true,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "monolith"
+		end
+	},
+    -- ЧЕРНЫЕ В ЦЕНТРАЛЬНОЙ ЗАЛЕ В ГОСПИТАЛЕ
+	["centr_black_mono"] = {
+		state = function(gulag)
+			if not has_alife_info("actor_in_tunel") then
+				return 0 -- оффлайн
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 3 do
+				t = { section = "logic@blacmon"..i.."_of",
+					prior = 25, state = {0},
+					online = false,
+					position_threshold = 600,
+					predicate = function(obj_info)
+									return obj_info.profile_name == "blizn_krug3"
+								end	
+				} 
+				table.insert(sj, t)
+			end
+			for i = 1, 3 do
+				t = { section = "logic@blacmon"..i,
+					prior = 25, state = {1},
+					online = true,
+					position_threshold = 600,
+					predicate = function(obj_info)
+									return obj_info.profile_name == "blizn_krug3"
+								end	
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "monolith"
+		end
+	},
+    -- БОЛОТНЫЕ ТВАРИ В ГОСПИТАЛЕ	
+	["centr_bloodsucker"] = {
+		state = function(gulag)
+			if not has_alife_info("actor_in_tunel") then
+				return 0 -- оффлайн
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 2 do
+				t = { section = "logic@hospblood"..i.."_of",
+					prior = 20, state = {0},
+					online = false
+				} 
+				table.insert(sj, t)
+			end
+			for i = 1, 2 do
+				t = { section = "logic@hospblood"..i,
+					prior = 20, state = {1},
+					online = true
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "bloodsucker"
+		end
+	},
+    -- БЮРЕР ИЛИ КРОВОСОС В ГОСПИТАЛЕ ПОСЛЕ РАЗБОРКИ
+	["after_doctor_blood"] = {
+		job = function(sj, gname, gulag_type, squad, groups)
+			for i = 1, 2 do
+				t = { section = "logic@hosafter"..i,
+					prior = 10, state = {0}
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_monster = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "burer"
+				or npc_community == "bloodsucker"
+		end
+	},
+	-- КОТ И КО В ГОСПИТАЛЕ	
+	["hos_stalker"] = {
+		state = function(gulag)
+			if not has_alife_info("info_del_lim_teleport") then
+				return 0 -- оффлайн
+			elseif has_alife_info("actor_in_tunel") then 
+				return 2 -- отдыхаем
+			else
+				return 1 -- работаем
+			end
+		end,
+		job = function(sj, gname, gulag_type, squad, groups)
+			t = { section = "logic@kot_hos_wa",
+				prior = 25, state = {0},
+				online = false,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kot"
+							end	
+			} 
+			table.insert(sj, t)
+			for i = 1, 3 do
+				t = { section = "logic@stalk_hos"..i.."_wa",
+				  prior = 20, state = {0},
+				  online = false,
+				  position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+			t = { section = "logic@kot_hos_kar",
+				prior = 25, state = {1},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kot"
+							end	
+			} 
+			table.insert(sj, t)
+			for i = 1, 3 do
+				t = { section = "logic@stalk_hos"..i.."_kar",
+					prior = 20, state = {1},
+					online = true,
+					position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+			t = { section = "logic@kot_hos",
+				prior = 25, state = {2},
+				online = true,
+				position_threshold = 600,
+				predicate = function(obj_info)
+								return obj_info.profile_name == "kot"
+							end	
+			} 
+			table.insert(sj, t)	
+			for i = 1, 3 do
+				t = { section = "logic@stalk_hos"..i,
+				  prior = 20, state = {2},
+				  position_threshold = 600
+				} 
+				table.insert(sj, t)
+			end
+		end,
+		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
+			return npc_community == "stalker"
+		end
+	}
+}
+
+function load_job(sj, gname, gulag_type, squad, groups)
+	local st = gulags[gulag_type]
+	if st then
+		st.job(sj, gname, gulag_type, squad, groups)
+		return true
+	end
+	return nil
+end
+
+function check_state_stub(gulag)
+    return 0
+end
+
+function load_states(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		return st.state or check_state_stub
+	end
+	return nil
+end
+
+function load_ltx(gname, gulag_type)
+	local st = gulags[gulag_type]
+	if st then
+		if st.ltx then
+			return st.ltx(gname, gulag_type)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_stalker then
+			return st.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
+
+function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
+	local st = gulags[gulag_type]
+	if st then
+		if st.check_monster then
+			return st.check_monster(npc_community, gulag_type, npc_rank, se_obj)
+		end
+		return false
+	end
+	return nil
+end
