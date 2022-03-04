@@ -139,7 +139,7 @@ function gulag:validate_jobs()
 	-- а)
 	for i, job in ipairs( self.Job ) do
 		if job.predicate == nil and
-		   job.idle == 0 and
+		   (job.idle or 0) == 0 and
 		   job.timeout == nil and
 		   job.fill_idle == nil
 		then
@@ -623,7 +623,9 @@ end
 -- работа доступна, когда время idle истекло (или не задано)
 -- и занята работа, от которой зависит данная работа.
 function gulag:availJob(job)
-	if job.begin == nil or amk.game_milliseconds() - job.begin > job.idle then
+	if (job.begin == nil)
+		or (amk.game_milliseconds() - job.begin > (job.idle or 0))
+	then
 		if job.idle_after_death_end == nil or job.idle_after_death_end < amk.game_milliseconds() then
 			if job.fill_idle ~= nil then
 				if job.fill_idle == idle_none then
@@ -1043,6 +1045,8 @@ function gulag:set_restrictions(obj, r_out, r_in, r_info)
 --'	printf( "RESTR [%s] NEED (IN)  : %s", obj:name(), r_in )
 --'	printf( "RESTR [%s] NEED (OUT) : %s", obj:name(), r_out )
 
+	if r_out == nil then r_out = "" end
+	if r_in == nil then r_in = "" end
 	-- узнать, какие рестрикторы уже были назначены этим гулагом
 	local restr = self.restrictors[obj:id()]
 
