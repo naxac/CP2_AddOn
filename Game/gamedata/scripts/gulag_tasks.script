@@ -1,70 +1,107 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local level_gulags = xr_gulag.level_gulags
 
 -- кэш для динамических ltx
 local dynamic_ltx = {}
 
-function loadJob(sj, gname, type, squad, groups, gulag)
-    for k, v in ipairs(level_gulags) do
-        if v.load_job(sj, gname, type, squad, groups, gulag) then
-			return
-		end
-    end
+local level_gulags = {
+	gulag_general,
+	gulag_escape,
+	gulag_garbage,
+	gulag_agroprom,
+	gulag_agroprom_underground,
+	gulag_dark_valley,
+	gulag_labx18,
+	gulag_bar,
+	gulag_military,
+	gulag_radar,
+	gulag_radar_u,
+	gulag_yantar,
+	gulag_pripyat,
+	gulag_sarcofag,
+	gulag_atp,
+	gulag_marsh,
+	gulag_red_forest,
+	gulag_limansk,
+	gulag_hospital,
+	gulag_aver,
+	gulag_generators,
+	gulag_deadcity,
+	gulag_zaton,
+	gulag_jupiter,
+	gulag_new
+}
 
-	if #sj == 0 then
-		log("! [gulag_tasks.loadJob] No job for gulag's type '%s'", type)
+local function get_gulag_settings(gulag_type)
+	local t
+	for k, v in ipairs(level_gulags) do
+		t = v.get_gulag(gulag_type)
+		if t then
+			return t
+		end
+	end
+
+	log("! [get_gulag_settings] No settings for gulag's type '%s'", gulag_type)
+	return nil
+end
+
+-- Jobs -------------------------------------------------------------------
+function loadJob(sj, gulag_name, gulag_type, squad, groups, gulag)
+	local v = get_gulag_settings(gulag_type)
+	if v then
+		v.job(sj, gulag_name, gulag_type, squad, groups, gulag)
 	end
 end
 
-function loadStates(gname, type)
-	local f
-
-    for k, v in ipairs(level_gulags) do
-	    f = v.load_states(gname, type)
-	    if f then
-		    return f
-	    end
-    end
-
-	log("! [gulag_tasks.loadJob] No state for gulag's type '%s'", type)
+-- States -----------------------------------------------------------------
+function check_state_stub(gulag)
+    return 0
 end
 
+function loadStates(gulag_name, gulag_type)
+	local v = get_gulag_settings(gulag_type)
+	if v then
+		return v.state or check_state_stub
+	end
+	return nil
+end
+
+-- Dynamic ltx -----------------------------------------------------------
 -- загрузка динамических ltx
 -- их имена: "*имя_смарттерейна*тип_гулага"
-function loadLtx(name, type)
-	--printf( "loadLtx: name=%s type=%s", name, type )
+function loadLtx(gulag_name, gulag_type)
+	--printf( "loadLtx: name=%s type=%s", gulag_name, gulag_type )
 
-	local h    = "*"..name.."*"..type
+	local h    = "*"..gulag_name.."*"..gulag_type
 	local dltx = dynamic_ltx[h]
 
 	if dltx then
 		return dltx, h
 	else
-		local l
-
-		for k, v in ipairs(level_gulags) do
-			l = v.load_ltx(name, type)
-			if l ~= nil then
-				if l then
-					dltx = create_ini_file(l)
-					--printf("gulag <ltx>:\n%s", l)
-					dynamic_ltx[h] = dltx
-
-					return dltx, h
-				end
-				return nil, nil
+		local v = get_gulag_settings(gulag_type)
+		if v and v.ltx then
+			if type(v.ltx) ~= "function" then
+				abort("[gulag_tasks.loadLtx] ltx for gulag type '%s' is no function!", gulag_type)
 			end
-    	end
-
+			local l = v.ltx(gulag_name, gulag_type)
+			if l then
+				dltx = create_ini_file(l)
+				dynamic_ltx[h] = dltx
+				return dltx, h
+			end
+		end
 	    return nil, nil
-    end
+	end
 end
 
-function get_megafone(type, name)
---	if type == "blockpost" then
---		st = gramofon.m_gramofon(name.."_rupor", "blockpost_commander")
---		st:event(0)
---		return st
---	end
-	return nil
+-- Check communities -----------------------------------------------------
+function checkNpc( npc_community, is_stalker, gulag_type, npc_rank, se_obj )
+--	log("checkNpc %s[%s] for %s", se_obj:name(), npc_community, gulag_type)
+	local v = get_gulag_settings(gulag_type)
+	if not v then return false end
+
+	if is_stalker then
+		return v.check_stalker and v.check_stalker( npc_community, gulag_type, npc_rank, se_obj )
+	else
+		return v.check_monster and v.check_monster( npc_community, gulag_type, npc_rank, se_obj )
+	end
 end

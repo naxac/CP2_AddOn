@@ -8,6 +8,7 @@ local state_alarm = 1
 local state_alarm_actor_inside = 2
 local state_fight = 1
 
+local ltx = ""
 --------------------------------------------------------------------------
 -- General
 --------------------------------------------------------------------------
@@ -24,64 +25,9 @@ local gulags = {
 	offline_group = {}
 }
 
--- Job -------------------------------------------------------------------
-function load_job(sj, gname, gulag_type, squad, groups)
-    local g = gulags[gulag_type]
-    if g then
-        g.job(sj, gname, gulag_type, squad, groups)
-		return true
-    end
-	return nil
+function get_gulag(gulag_type)
+	return gulags[gulag_type]
 end
-
--- State -----------------------------------------------------------------
-function check_state_stub(gulag)
-    return 0
-end
-
-function load_states(gname, gulag_type)
-    local g = gulags[gulag_type]
-    if g then
-        return g.state or check_state_stub
-    end
-    return nil
-end
-        
--- Dynamic ltx -----------------------------------------------------------
-function load_ltx(gname, gulag_type)
-	local g = gulags[gulag_type]
-	if g then
-		if g.ltx then
-			return g.ltx
-		end
-		return false
-	end
-    return nil
-end
-
--- Check communities -----------------------------------------------------
-function checkStalker(npc_community, gulag_type, npc_rank, se_obj)
-    local g = gulags[gulag_type]
-    if g then
-		if g.check_stalker then
-			return g.check_stalker(npc_community, gulag_type, npc_rank, se_obj)
-		end
-		return false
-	end
-	return nil
-end
-
-function checkMonster(npc_community, gulag_type, npc_rank, se_obj)
-    local g = gulags[gulag_type]
-    if g then
-		if g.check_monster then
-			return g.check_monster(npc_community, gulag_type, npc_rank, se_obj)
-		end
-		return false
-	end
-    return nil
-end
-
 
 --------------------------------------------------------------------------
 -- Gulags
@@ -114,7 +60,7 @@ end
 -- Jobs ------------------------------------------------------------------
 gulags.val_escort.job = function(sj, gname, gulag_type, squad, groups)
 -- игнорирование
-    local ltx = "[meet@ignore_abuse]\n" ..
+    ltx = "[meet@ignore_abuse]\n" ..
                 "use             = true\n" ..
                 "use_wpn         = false\n" ..
                 "abuse           = false\n"
@@ -296,8 +242,10 @@ gulags.val_escort.job = function(sj, gname, gulag_type, squad, groups)
                "target          = 406\n" ..
                "wounded         = wounded@" .. gname .. "_halfdead\n" ..
 			   "combat_ignore_cond  = always\n"
+end
 
-    gulags.val_escort.ltx = ltx
+gulags.val_escort.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.val_escort.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -369,33 +317,33 @@ gulags.val_sacrifice.job = function(sj, gname, gulag_type, squad, groups)
         predicate = scf_predicate_tb
     }
     table.insert(sj, t)
+end
 
-    local ltx = "[combat@" .. gname .. "]\n" ..
-                "on_info = {-val_bandit_talk =see_actor} %+val_sacrifice_plr_detected +val_sacrifice_finish%\n" ..
+gulags.val_sacrifice.ltx = function(gulag_name, gulag_type)
+	return "[combat@" .. gulag_name .. "]\n" ..
+			"on_info = {-val_bandit_talk =see_actor} %+val_sacrifice_plr_detected +val_sacrifice_finish%\n" ..
 
-                --"[hit@" .. gname .. "_guard]\n" ..
-                --"on_info = {=hit_by_actor} %+val_sacrifice_plr_detected +val_sacrifice_finish%\n" ..
+			--"[hit@" .. gulag_name .. "_guard]\n" ..
+			--"on_info = {=hit_by_actor} %+val_sacrifice_plr_detected +val_sacrifice_finish%\n" ..
 
-                "[danger@" .. gname .. "_guard]\n" ..
-                "ignore_distance               = 0\n" ..
-                --"ignore_distance_sound      = 4\n" ..
-                --"danger_inertion_time_sound = 2000\n" ..
+			"[danger@" .. gulag_name .. "_guard]\n" ..
+			"ignore_distance               = 0\n" ..
+			--"ignore_distance_sound      = 4\n" ..
+			--"danger_inertion_time_sound = 2000\n" ..
 
-                -- встреча отключена
-                "[meet@" .. gname .. "]\n" ..
-                "meet_state     = 0|guard\n" ..
-                "meet_state_wpn = 0|guard\n" ..
-                "victim         = 0|actor\n" ..
-                "victim_wpn     = 0|actor\n" ..
-                "use            = true\n" ..
-                "use_wpn        = false\n" ..
+			-- встреча отключена
+			"[meet@" .. gulag_name .. "]\n" ..
+			"meet_state     = 0|guard\n" ..
+			"meet_state_wpn = 0|guard\n" ..
+			"victim         = 0|actor\n" ..
+			"victim_wpn     = 0|actor\n" ..
+			"use            = true\n" ..
+			"use_wpn        = false\n" ..
 
-                "#include \"scripts\\val_sacrifice_victim.ltx\"\n" ..
-                "#include \"scripts\\val_sacrifice_guard1.ltx\"\n" ..
-                "#include \"scripts\\val_sacrifice_guard2.ltx\"\n" ..
-                "#include \"scripts\\val_tunnel_bandit.ltx\"\n"
-
-    gulags.val_sacrifice.ltx = ltx
+			"#include \"scripts\\val_sacrifice_victim.ltx\"\n" ..
+			"#include \"scripts\\val_sacrifice_guard1.ltx\"\n" ..
+			"#include \"scripts\\val_sacrifice_guard2.ltx\"\n" ..
+			"#include \"scripts\\val_tunnel_bandit.ltx\"\n"
 end
 
 gulags.val_sacrifice.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -434,8 +382,10 @@ gulags.val_prisoner.job = function(sj, gname, gulag_type, squad, groups)
         predicate = p_predicate
     }
     table.insert(sj, t)
+end
 
-    gulags.val_prisoner.ltx = "#include \"scripts\\val_prisoner_captive.ltx\"\n"
+gulags.val_prisoner.ltx = function(gulag_name, gulag_type)
+	return "#include \"scripts\\val_prisoner_captive.ltx\"\n"
 end
 
 gulags.val_prisoner.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -474,7 +424,7 @@ end
 gulags.val_rob.job = function(sj, gname, gulag_type, squad, groups)
     local i = 0
 
-    local ltx = "[meet@ignore_abuse]\n" ..
+    ltx = "[meet@ignore_abuse]\n" ..
                 "use             = true\n" ..
                 "use_wpn         = false\n" ..
                 "abuse           = false\n" ..
@@ -535,8 +485,10 @@ gulags.val_rob.job = function(sj, gname, gulag_type, squad, groups)
 
     ltx = ltx.."[logic@" .. gname .. "_kamp]\n" ..
                "active = kamp@" .. gname .. "_kamp\n"
+end
 
-    gulags.val_rob.ltx = ltx
+gulags.val_rob.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.val_rob.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -567,7 +519,7 @@ end
 gulags.val_lager_bandits.job = function(sj, gname, gulag_type, squad, groups)
     local i, v, j = 0, 0, 0
     local restr = 0
-    local ltx = ""
+    ltx = ""
     --local combat_ignore = "combat_ignore_cond = {=val_bandits_ci}\n"
     --local combat_ignore = "combat_ignore_cond = {=check_fighting(400) -val_escort_captive_enemy}, {=check_fighting(401) -val_sacrifice_finish}, {=check_fighting(402) -val_prisoner_free}\n"
     local combat_ignore = "{=check_fighting(400) -val_escort_captive_enemy}, {=check_fighting(401) -val_sacrifice_finish}, {=check_fighting(402) -val_prisoner_free}\n"
@@ -1014,8 +966,10 @@ gulags.val_lager_bandits.job = function(sj, gname, gulag_type, squad, groups)
                "use_wpn = false\n" ..
                "meet_talk_enabled = true\n" ..
                "precond = visibility\n"
+end
 
-    gulags.val_lager_bandits.ltx = ltx
+gulags.val_lager_bandits.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.val_lager_bandits.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -1065,7 +1019,7 @@ end
 -- Jobs ------------------------------------------------------------------
 gulags.offline_group.job = function(sj, gname, gulag_type, squad, groups)
     local i, it = 0, 1
-    local ltx = ""
+    ltx = ""
     local pname = "offgroup"
     local phdr = gname .. "_" .. pname .. "_"
 
@@ -1109,8 +1063,10 @@ gulags.offline_group.job = function(sj, gname, gulag_type, squad, groups)
                      "anim      = wait_na\n"
         it = it + 1
     end
+end
 
-    gulags.offline_group.ltx = ltx
+gulags.offline_group.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.offline_group.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
@@ -1125,7 +1081,7 @@ end
 
 -- Jobs ------------------------------------------------------------------
 gulags.val_soldiers_raid.job = function(sj, gname, gulag_type, squad, groups)
-    local i, ltx = 1, ""
+    local i = 1
 
     ltx = "[danger@ignore_corpse]\n" ..
           "ignore_types = corpse\n"
@@ -1203,8 +1159,10 @@ gulags.val_soldiers_raid.job = function(sj, gname, gulag_type, squad, groups)
 
         i = i + 1
     end
+end
 
-    gulags.val_soldiers_raid.ltx = ltx
+gulags.val_soldiers_raid.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.val_soldiers_raid.state = function(gulag)
@@ -1240,7 +1198,8 @@ end
 
 -- Jobs ------------------------------------------------------------------
 gulags.val_watchtower.job = function(sj, gname, gulag_type, squad, groups)
-    local i, ltx = 1, ""
+    local i = 1
+	ltx = ""
 
     -- Проверяем наличие часовых на вышке.
     local idstr = gname .. "_guard"
@@ -1334,8 +1293,10 @@ gulags.val_watchtower.job = function(sj, gname, gulag_type, squad, groups)
 
         i = i + 1
     end
+end
 
-    gulags.val_watchtower.ltx = ltx
+gulags.val_watchtower.ltx = function(gulag_name, gulag_type)
+	return ltx
 end
 
 gulags.val_watchtower.check_stalker = function(npc_community, gulag_type, npc_rank, se_obj)
