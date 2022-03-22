@@ -1,6 +1,5 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- Скрипт летающих островов
-local items = {}
 local levels = {
 	[33] = 36, -- jupiter
 	[26] = 29, -- generators
@@ -408,23 +407,19 @@ end
 
 -- Спавн кода и артов на островах. Вызов из биндера телепортов. Только так - иначе спавнятся на земле.
 function create_code(num)
-	local se_obj
-
+	local obj = codes[num]
+	local pos = vector():set( unpack(obj.position) )
+	local lv, gv = obj.lv, obj.gv
+		
 	if num == 99 then
 		for i = 1,#finarts do
-			se_obj = AI:create(finarts[i], vector():set(0,0,0),0,0,0)
-			table.insert(items, se_obj.id)
+			AI:create_no_ai( finarts[i], pos, lv, gv )
 		end
-		
 	else
-		local obj = codes[num]
+		AI:create_no_ai( "fli_code"..tostring(num), pos, lv, gv )
 		
-		se_obj = AI:create("fli_code"..tostring(num), vector():set(0,0,0),0,0,0)
-		table.insert(items, se_obj.id)
-		
-		for i = 1,obj.art do
-			se_obj = AI:create(arts[math.random(#arts)], vector():set(0,0,0),0,0,0)
-			table.insert(items, se_obj.id)
+		for i = 1, obj.art do
+			AI:create_no_ai( table.random(arts), pos, lv, gv )
 		end
 	end
 end
@@ -444,20 +439,6 @@ function spawn_zanoza(num)
 	for i = 1,obj.qty do
 		AI:create("zanoza_strong", vector():set( unpack(obj.position) ), obj.lv, obj.gv)
 	end
-end
-
--- Позиция для биндера телепортов
-function get_actor_pos(num)
-	local obj = codes[num]
-	return vector():set( unpack(obj.position) )
-end
-
--- Выброс на остров, тогда на землю не падают
-function drop_code()
-	for i = 1,#items do
-		Actor:drop_item_and_teleport(level.object_by_id(items[i]), Actor:position():add(random_dir()))
-	end
-	items = {}
 end
 
 function random_dir()
