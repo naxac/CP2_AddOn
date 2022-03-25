@@ -30,19 +30,26 @@ local level_gulags = {
 	gulag_jupiter,
 	gulag_new
 }
+local type2set = {}
 
 local function get_gulag_settings(gulag_type)
-	local t
-	for k, v in ipairs(level_gulags) do
-		t = v.get_gulag(gulag_type)
-		if t then
-			return t
+	local t = type2set[gulag_type]
+	if t then
+		return t
+	else
+		for i, v in ipairs(level_gulags) do
+			t = v.get_gulag(gulag_type)
+			if t then
+				type2set[gulag_type] = t
+				return t
+			end
 		end
-	end
 
-	log("! [get_gulag_settings] No settings for gulag's type '%s'", gulag_type)
-	return nil
+		log("! [get_gulag_settings] No settings for gulag's type '%s'", gulag_type)
+		return nil
+	end
 end
+
 
 -- Jobs -------------------------------------------------------------------
 function loadJob(sj, gulag_name, gulag_type, squad, groups, gulag)
