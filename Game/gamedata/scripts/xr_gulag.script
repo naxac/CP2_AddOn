@@ -118,7 +118,7 @@ function gulag:validate_jobs()
 	-- а)
 	for i, job in ipairs( self.Job ) do
 		if job.predicate == nil and
-		   (job.idle or 0) == 0 and
+		   job.idle == 0 and
 		   job.timeout == nil and
 		   job.fill_idle == nil
 		then
@@ -177,6 +177,10 @@ end
 -- подготовить работы.
 -- подготовить данные о местоположении каждой работы; о объекте, который на ней занят.
 -- подсчитать ёмкость = min(кол-во работ в 0 состоянии, поле capacity в custom data)
+local job_def_values = {
+	out_rest = "", in_rest = "",
+	idle = 0, state = {0}, prior = 0
+}
 function gulag:prepare_jobs()
 	local ptrl, path_name
 	local job_loaded
@@ -193,6 +197,12 @@ function gulag:prepare_jobs()
 		job.level_id		 = GGraph:vertex(job.game_vertex_id):level_id()
 		job.position         = ptrl:point( 0 )
 
+		for k, v in pairs(job_def_values) do
+			if job[k] == nil then
+				job[k] = v
+			end
+		end
+
 		job_loaded           = self.JobLoaded[i] or empty_table
 
 		job.begin            = job_loaded.begin
@@ -204,10 +214,10 @@ function gulag:prepare_jobs()
 
 	for obj_id, jobN in pairs( self.ObjectJob ) do
 		job = self.Job[jobN]
-          if job ~= nil then
-		job.object = obj_id
-		self.ObjectJobPathName[obj_id] = job.path_name
-          end
+		if job ~= nil then
+			job.object = obj_id
+			self.ObjectJobPathName[obj_id] = job.path_name
+		end
 	end
 end
 
@@ -603,7 +613,7 @@ end
 -- и занята работа, от которой зависит данная работа.
 function gulag:availJob(job)
 	if (job.begin == nil)
-		or (amk.game_milliseconds() - job.begin > (job.idle or 0))
+		or (amk.game_milliseconds() - job.begin > job.idle)
 	then
 		if job.idle_after_death_end == nil or job.idle_after_death_end < amk.game_milliseconds() then
 			if job.fill_idle ~= nil then
@@ -1024,8 +1034,6 @@ function gulag:set_restrictions(obj, r_out, r_in, r_info)
 --'	printf( "RESTR [%s] NEED (IN)  : %s", obj:name(), r_in )
 --'	printf( "RESTR [%s] NEED (OUT) : %s", obj:name(), r_out )
 
-	if r_out == nil then r_out = "" end
-	if r_in == nil then r_in = "" end
 	-- узнать, какие рестрикторы уже были назначены этим гулагом
 	local restr = self.restrictors[obj:id()]
 
