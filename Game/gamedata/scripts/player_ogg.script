@@ -277,13 +277,9 @@ function save_player()
 end
 
 function get_prev_track()
-	local v = played[#played-1]
-	if v~=nil then
-		local f, t = unpack(v)
-		table.remove(played)
-		return f, t
-	elseif played[1] then
-		return played[1][1], played[1][2]
+	local v = table.remove(played)
+	if v then
+		return unpack(v)
 	end
 	return nil, 0
 end
@@ -293,13 +289,13 @@ function start_pleer_post_save()
 	for i = 1, flash_total do
 		slot_flash[i]= 0	-- если 0 - флешки в слоте нет, 1 - флешка есть
 		rep_flash[i] = {}
-		local n = 0
+		local n = 1
 		while true do
-			n = n + 1
 			if fs:exist("$game_sounds$", "ogg_player\\flash_"..i.."\\sound_"..n..".ogg") == nil then
 				tracks_count[i] = n - 1
 				break
 			end
+			n = n + 1
 		end
 	end
 
