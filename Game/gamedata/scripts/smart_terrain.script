@@ -760,21 +760,14 @@ end
 
 -- может ли данный гулаг создаться в данный момент?
 function se_smart_terrain:is_gulag_available()
-  if self.gparams.cond then
-    local bb = xr_logic.pick_section_from_condlist( db.actor_proxy, self, self.gparams.cond ) ~= nil
---'   self:show_smart_debug_spot(bb)
---'   if self:name() == "gar_bandit_agr" then
---'     printf("[smartterrain %s] is_gulag_available = %s", self:name(), tostring(bb))
---'   end
-    return bb
-  else
---'   self:show_smart_debug_spot(true)
---'   if self:name() == "gar_bandit_agr" then
---'     printf("[smartterrain %s] is_gulag_available = %s extra", self:name(), tostring(true))
---'   end
-    return true
-  end
+	if self.gparams.cond then
+		if not task_manager.get_random_task():smart_is_protected(self) then
+			return xr_logic.pick_section_from_condlist( db.actor_proxy, self, self.gparams.cond ) ~= nil
+		end
+	end
+	return true
 end
+
 function se_smart_terrain:show_smart_debug_spot(avail)
   if sim_statistic.show_smart_spot == true then
     --' Показать отметку
