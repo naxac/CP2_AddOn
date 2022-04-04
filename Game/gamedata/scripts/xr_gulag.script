@@ -3,6 +3,7 @@
 
 local table_sort = table.sort
 local math_min = math.min
+local game_milliseconds = amk.game_milliseconds
 --function printf()
 --end
 
@@ -77,6 +78,10 @@ function gulag:__init(smrttrn, type, squad, groups, npc_info, capacity)
 end
 
 -- загрузка работ
+local job_def_values = {
+	out_rest = "", in_rest = "",
+	idle = 0, state = {0}, prior = 0
+}
 function gulag:load_jobs()
 	self.Job                  = {} -- работы
 	self.Job_avail_in_state_0 = {}
@@ -84,13 +89,16 @@ function gulag:load_jobs()
 	gulag_tasks.loadJob( self.Job, self.name, self.type, self.squad, self.groups, self )
 	self:init_ltx( self.name, self.type )
 
-	table_sort( self.Job, function(a,b) return a.prior > b.prior end )
-
-	self:prepare_jobs_for_new_state()
-
 	local capacity = 0
 
 	for i, job in ipairs( self.Job ) do
+		-- Выставляем дефолты
+		for k, v in pairs(job_def_values) do
+			if job[k] == nil then
+				job[k] = v
+			end
+		end
+
 		if self:job_exists_in_state_0( job ) then
 			table.insert( self.Job_avail_in_state_0, job )
 			capacity = capacity + 1
@@ -101,6 +109,10 @@ function gulag:load_jobs()
 			job.online          = xr_logic.parse_condlist( self.smrttrn, "gulag:setup_job_online", "job_online", job.online_condlist )
 		end
 	end
+
+	table_sort( self.Job, function(a,b) return a.prior > b.prior end )
+
+	self:prepare_jobs_for_new_state()
 
 	self.capacity               = math_min( capacity, self.capacity )
 	self.capacity_non_exclusive = self.capacity
@@ -177,10 +189,6 @@ end
 -- подготовить работы.
 -- подготовить данные о местоположении каждой работы; о объекте, который на ней занят.
 -- подсчитать ёмкость = min(кол-во работ в 0 состоянии, поле capacity в custom data)
-local job_def_values = {
-	out_rest = "", in_rest = "",
-	idle = 0, state = {0}, prior = 0
-}
 function gulag:prepare_jobs()
 	local ptrl, path_name
 	local job_loaded
@@ -196,12 +204,6 @@ function gulag:prepare_jobs()
 		job.game_vertex_id   = ptrl:game_vertex_id( 0 )
 		job.level_id		 = GGraph:vertex(job.game_vertex_id):level_id()
 		job.position         = ptrl:point( 0 )
-
-		for k, v in pairs(job_def_values) do
-			if job[k] == nil then
-				job[k] = v
-			end
-		end
 
 		job_loaded           = self.JobLoaded[i] or empty_table
 
@@ -507,7 +509,7 @@ function gulag:clear_dead(obj_id)
 	if self.ObjectJob[obj_id] then
 		self:changeCasualities( 1 )
 		local job = self.Job[self.ObjectJob[obj_id]]
-		job.idle_after_death_end = amk.game_milliseconds() + ( job.idle_after_death or job_idle_after_death ) * 1000
+		job.idle_after_death_end = game_milliseconds() + ( job.idle_after_death or job_idle_after_death ) * 1000
 	end
 
 	self.smrttrn:unregister_npc( self.npc_info[obj_id].se_obj )
@@ -613,13 +615,13 @@ end
 -- и занята работа, от которой зависит данная работа.
 function gulag:availJob(job)
 	if (job.begin == nil)
-		or (amk.game_milliseconds() - job.begin > job.idle)
+		or (game_milliseconds() - job.begin > job.idle)
 	then
-		if job.idle_after_death_end == nil or job.idle_after_death_end < amk.game_milliseconds() then
+		if job.idle_after_death_end == nil or job.idle_after_death_end < game_milliseconds() then
 			if job.fill_idle ~= nil then
 				if job.fill_idle == idle_none then
 					return false
-				elseif job.fill_idle ~= idle_once and job.fill_idle < amk.game_milliseconds() - job.begin then
+				elseif job.fill_idle ~= idle_once and job.fill_idle < game_milliseconds() - job.begin then
 					return false
 				end
 			end
@@ -633,7 +635,7 @@ end
 -- Текущая работа доступна, если не истекло ее время и занята работа, от которой она зависит
 function gulag:availCurrent(job)
 	if job.timeout == nil or
-	   job.begin == nil or amk.game_milliseconds() - job.begin < job.timeout
+	   job.begin == nil or game_milliseconds() - job.begin < job.timeout
 	then
 		return true
 	else
@@ -985,7 +987,7 @@ function gulag:beginJob( obj_id )
 
 	self.Object_begin_job[obj_id] = true
 
-	job.begin = amk.game_milliseconds()
+	job.begin = game_milliseconds()
 
 	if job.fill_idle == idle_once then
 		job.fill_idle = idle_none
