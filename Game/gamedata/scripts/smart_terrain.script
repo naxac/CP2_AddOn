@@ -580,33 +580,20 @@ end
 --   2) иначе ближе - лучше
 -- TODO Оптимизировать
 function se_smart_terrain:suitable( obj )
---' if obj:name() == "esc_wolf" then
---'   printf("[%s] suitable [%s]", self:name(), obj:name())
---' end
+	local v = 0
 
-  local v = 0
-  
-  --' Повысить подходящесть эксклюзивного смарттеррейна
-  if self:obj_accepts_smart_terrain(obj) == agreed_exclusive then
-    v = 100000 --'Так чтобы все эксклюзивные были заведомо лучше
-  end
+	--' Повысить подходящесть эксклюзивного смарттеррейна
+	if self:obj_accepts_smart_terrain(obj) == agreed_exclusive then
+		v = 100000 --'Так чтобы все эксклюзивные были заведомо лучше
+	end
 
-  for id, strn in pairs( smart_terrains[ object_level_name(self) ] ) do
+	for id, strn in pairs( smart_terrains[ object_level_name(self) ] ) do
+		if strn:is_gulag_available() then
+			v = v + strn.gulag.capacity - strn.gulag:get_population()
+		end
+	end
 
-    if strn:is_gulag_available() then
-      v = v + strn.gulag.capacity - strn.gulag:get_population()
-    end
-  end
-
---' if obj:name() == "esc_wolf" then
---'   printf( "[smart_terrain %s] obj=%s suitable=%d was_in_smart_terrain=%s",
---'           self:name(),
---'           obj:name(),
---'       v,
---'           tostring(obj.was_in_smart_terrain) )
---' end
-
-  return v
+	return v
 end
 
 -- добавить npc в smart terrain.
