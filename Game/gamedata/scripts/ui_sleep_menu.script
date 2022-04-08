@@ -37,9 +37,13 @@ function UISleepWnd:InitControls()
 	self.st_marker = xml:InitStatic("st_marker", self.static_cover)
 
 	self.sleep_st_tbl = {}
-	for i = 1, 24 do
-		self.sleep_st_tbl[i] = xml:InitStatic("sleep_st_"..i, self.back)
+	for i = 1, 25 do
+		local st = xml:InitStatic("sleep_st_"..i, self.back)
+		st:InitTexture("ui_inGame2_scale_line")
+		st:SetTextureOffset(-2, 0)
+		self.sleep_st_tbl[i] = st
 	end
+	self.shift_x = self.sleep_st_tbl[2]:GetWndPos().x - self.sleep_st_tbl[1]:GetWndPos().x
 
 	self.time_track = xml:InitTrackBar("time_track", self.back)
 	self:Register(self.time_track, "time_track")
@@ -66,21 +70,39 @@ function UISleepWnd:Update()
 end
 
 function UISleepWnd:Initialize()
-	local cur_hours = level.get_time_hours()-1
+	local cur_hours = level.get_time_hours()
+	local delta_x = self.shift_x * (60-level.get_time_minutes())/60
+	local st
 	for i = 1, 24 do
+		st = self.sleep_st_tbl[i]
 		local hours = cur_hours + i
 		if(hours>=24) then
 			hours = hours - 24
 		end
-		self.sleep_st_tbl[i]:SetText(hours.."ч")
+		st:SetText(hours.."ч")
+		st:SetTextX(2)
+		local pos = st:GetWndPos()
+		st:SetWndPos(pos.x + delta_x, pos.y)
 		if i-1 > self.can_sleep_time then
-			self.sleep_st_tbl[i]:SetTextColor(180, 160, 80, 80)
+			st:SetTextColor(180, 160, 80, 80)
 		else
-			self.sleep_st_tbl[i]:SetTextColor(255, 80, 160, 80)
+			st:SetTextColor(255, 80, 160, 80)
 		end
 	end
 
-	local delta = math.floor(591/24*cur_hours)
+	st = self.sleep_st_tbl[25]
+	if delta_x > self.shift_x/3 then
+		local pos = self.sleep_st_tbl[1]:GetWndPos()
+		st:SetWndPos(pos.x - self.shift_x, pos.y)
+		st:SetText(cur_hours.."ч")
+		st:SetTextX(2)
+		st:SetTextColor(180, 160, 80, 80)
+	else
+		local pos = st:GetWndPos()
+		st:SetWndPos(pos.x + delta_x, pos.y)
+	end
+
+	local delta = math.floor(591/24*(cur_hours-1)) - delta_x
 	self.sleep_static:SetOriginalRect(delta,413,591-delta,118)
 	local width = 591-delta
 	if self.wide then
@@ -117,14 +139,22 @@ end
 function UISleepWnd:OnButtonSleep()
 	local sleep_time = self.time_track:GetFValue() * 24
 	sleep_time = math.clamp(sleep_time, 1/6, self.can_sleep_time)
-	-- log("[UISleepWnd:OnButtonSleep]: sleep_time = %s", sleep_time)
+	
+	-- log("~ [UISleepWnd:OnButtonSleep]: sleep_time = %s", sleep_time)
 	self:OnButtonCancel()
+	_G.mus_vol = get_console():get_float("snd_volume_music")
+	_G.amb_vol = get_console():get_float("snd_volume_eff")
+	get_console():execute("snd_volume_music 0")
+	get_console():execute("snd_volume_eff 0")
 	sleep_manager.main( sleep_time )
 	local w = level.main_input_receiver()
 	if w then level.start_stop_menu( w, true ) end
 end
 
 function UISleepWnd:OnButtonCancel()
+	for i = #self.sleep_st_tbl, 1, -1 do
+		self.sleep_st_tbl[i] = nil
+	end
 	self:ClearCallbacks()
 	self:GetHolder():start_stop_menu( self, true )
 	BlockUIDescr( false )

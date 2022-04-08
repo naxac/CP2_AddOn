@@ -61,12 +61,14 @@ end
 function stop_scaling()
 	if not isSleepActive then return end
 
-	if set_sleep_time > 0 and last_health <= Actor.health then
+	if set_sleep_time > 0 and last_health <= Actor.health+0.02 then
 		last_health = Actor.health
 		game.start_tutorial("time_scaling")
 		return
 	elseif last_health > Actor.health+0.02 then
+		stopper()
 		news_manager.send_tip("st_sleep_actory_xpenovo", 7, "str", 10000)
+		return
 	end
 
 	sleep_manager.dreamer()
@@ -74,6 +76,11 @@ end
 
 function dreamer()
 	if not isSleepActive then return end
+
+	get_console():execute("snd_volume_music "..tostring(_G.mus_vol))
+	get_console():execute("snd_volume_eff "..tostring(_G.amb_vol))
+	_G.amb_vol = nil
+	_G.mus_vol = nil
 
 	level.set_time_factor(time_factor)
 
@@ -90,6 +97,13 @@ function stopper()
 
 	level.remove_call(check_sleep_time, restore_time_factor)
 	level.set_time_factor(time_factor)
+
+	if _G.amb_vol and _G.mus_vol then
+		get_console():execute("snd_volume_music "..tostring(_G.mus_vol))
+		get_console():execute("snd_volume_eff "..tostring(_G.amb_vol))
+		_G.amb_vol = nil
+		_G.mus_vol = nil
+	end
 
 	if Actor:alive() then
 		level.add_cam_effector("camera_effects\\prison_1.anm", 25, false, "level.enable_input")
