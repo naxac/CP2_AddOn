@@ -68,8 +68,9 @@ function actor_update(delta)
 				end
 
 				s.teleporte = nil
-			elseif not pos_in_zone(acter_poz, s.position, s.radius) then
-				Actor:set_actor_position(v.object:position())
+				s.last_pos = nil
+			elseif s.last_pos.y - acter_poz.y > 0.05 then	-- если падаем, то притормозим
+				Actor:set_actor_position(s.last_pos)
 			end
 			return
 		end
@@ -84,6 +85,7 @@ function actor_update(delta)
 			end
 
 			s.time = t + 1200
+			s.last_pos = acter_poz
 
 			-- Запускаем спецэфекты телепортации
 			level.add_pp_effector ("teleport.ppe", 3737, false)
