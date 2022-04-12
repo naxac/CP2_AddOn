@@ -407,19 +407,26 @@ end
 
 -- Спавн кода и артов на островах. Вызов из биндера телепортов. Только так - иначе спавнятся на земле.
 function create_code(num)
+	local function create(section, pos, lv, gv)
+		local x = math.random(-50, 50)/100
+		local y = math.random(30, 70)/100
+		local z = math.random(-50, 50)/100
+		local new_pos = vector():set( unpack(pos) ):add( vector():set(x, y, z) )
+		return AI:create_no_ai(section, new_pos, lv, gv)
+	end
+
 	local obj = codes[num]
-	local pos = vector():set( unpack(obj.position) )
-	local lv, gv = obj.lv, obj.gv
+	local pos, lv, gv = obj.position, obj.lv, obj.gv
 		
 	if num == 99 then
 		for i = 1,#finarts do
-			AI:create_no_ai( finarts[i], pos, lv, gv )
+			create( finarts[i], pos, lv, gv )
 		end
 	else
-		AI:create_no_ai( "fli_code"..tostring(num), pos, lv, gv )
+		create( "fli_code"..tostring(num), pos, lv, gv )
 		
 		for i = 1, obj.art do
-			AI:create_no_ai( table.random(arts), pos, lv, gv )
+			create( table.random(arts), pos, lv, gv )
 		end
 	end
 end
