@@ -2120,7 +2120,7 @@ function zahar_knifes_done(first_speaker, second_speaker)
 	local npc = (first_speaker:id() == 0 and second_speaker) or first_speaker
 	for i, sec in ipairs(knives) do
 		if not Actor:object(sec) then sec = "fake_"..sec end
-		dialogs.relocate_item_section(npc, sec, "out")
+		dialogs.relocate_item_section(npc, sec, "out", true)
 	end
 	local obj = AI:create_no_ai("a_inventory_box15",vector():set(205.93951416016,9.9083366394043,-81.311653137207),351590,2884)
 	level.map_add_object_spot_ser(obj.id, "crlc_big", "Тайник Захара")
@@ -4075,8 +4075,10 @@ function voron_kostya_have_all()
 	return
 		inventory.search("wpn_b94",1,true)
 end
-function voron_kostya_done()
-	inventory.out_items("wpn_b94",1)
+function voron_kostya_done(fs, ss)
+	local npc = (fs:id() == 0) and ss or fs
+	dialogs.relocate_item_section(npc, "wpn_b94", "out", true)
+	AI:create("ammo_12.7x108", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
 	aem_manager.manage_money(15000, "in")
 	inventory.give_items("wpn_kedr",1)
 	inventory.give_items("ammo_9x18_pmm",10)

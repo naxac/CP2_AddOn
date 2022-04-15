@@ -122,16 +122,6 @@ local quest_section = {
 	["medkit_army"] = true,
 	["medkit_scientic"] = true,
 	["bandage"] = true,
-	["fake_wpn_knif4"] = true,
-	["fake_wpn_bat_a"] = true,
-	["fake_wpn_bat_b"] = true,
-	["fake_wpn_elf"] = true,
-	["fake_wpn_knif3"] = true,
-	["fake_wpn_knifa"] = true,
-	["fake_wpn_knife"] = true,
-	["fake_wpn_knife_m"] = true,
-	["fake_wpn_knife_n"] = true,
-	["fake_wpn_knife_new"] = true,
 	["golem_pda"] = true,
 	["wpn_mp5_m1"] = true,
 	["bar_drunk_dolg_pda"] = true
@@ -150,12 +140,12 @@ function relocate_item(victim, obj, type)
 end
 	
 --' Use this function instead.
-function relocate_item_section(victim, section, type)
+function relocate_item_section(victim, section, type, need_transfer)
 	if Actor and victim then
 		if type == "in" then
 
 			--' Трансферить нужно только квестовые предметы.
-			if quest_section[section] == true and
+			if (quest_section[section] == true or need_transfer) and
 			   victim:object(section) ~= nil and
 			   victim:id() ~= Actor:id()
 			then
@@ -169,7 +159,7 @@ function relocate_item_section(victim, section, type)
 			end
 		elseif type == "out" then
 			--' Трансферить нужно только квестовые предметы.
-			if quest_section[section] == true and
+			if (quest_section[section] == true or need_transfer) and
 			   Actor:object(section) ~= nil 
 			then
 				Actor:transfer_item(Actor:object(section), victim)
