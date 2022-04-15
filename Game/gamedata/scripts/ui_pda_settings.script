@@ -24,13 +24,22 @@ function UISettingsWnd:InitControls()
 	frame_h = frame_h + 22
 
 	local dif = level.get_game_difficulty()
-	if dif == game_difficulty.novice then
+	if dif < game_difficulty.veteran then
 		self.show_enemy = xml:InitCheck("check_show_enemy", self.back)
 		self.show_enemy:SetCheck( Actor:has_info("pda_show_enemy") )
 		self.show_enemy:SetWndPos(15, frame_h)
 		frame_h = frame_h + 22
 	elseif Actor:has_info("pda_show_enemy") then
 		Actor:disable_info_portion("pda_show_enemy")
+	end
+
+	if dif < game_difficulty.veteran then
+		self.show_monsters = xml:InitCheck("check_show_monsters", self.back)
+		self.show_monsters:SetCheck( Actor:has_info("pda_show_monsters") )
+		self.show_monsters:SetWndPos(15, frame_h)
+		frame_h = frame_h + 22
+	elseif Actor:has_info("pda_show_monsters") then
+		Actor:disable_info_portion("pda_show_monsters")
 	end
 
 	if dif ~= game_difficulty.master then
@@ -87,6 +96,7 @@ function UISettingsWnd:SaveSettings()
 
 	check_option(self.show_npc, "pda_show_npc")
 	check_option(self.show_enemy, "pda_show_enemy")
+	check_option(self.show_monsters, "pda_show_monsters")
 	check_option(self.show_corpse, "pda_show_corpse")
 	check_option(self.show_time, "pda_show_time")
 	check_option(self.show_compass, "pda_show_compass")

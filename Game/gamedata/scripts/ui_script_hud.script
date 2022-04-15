@@ -3,6 +3,7 @@
 local show_npc = true
 local show_enemy = false
 local show_corpse = true
+local show_monsters = false
 local show_time = true
 local show_compass = true
 local show_quick_slots = false
@@ -361,12 +362,11 @@ function UIScriptHUD:CheckNewSpots()
 end
 
 function UIScriptHUD:UpdateSpots()
-	local t, sobj, obj
+	local t, obj
 	for i, spot in ipairs(self.map_spots) do
-		sobj = AI:object( spot.id )
 		obj = level_object(spot.id)
 		amk.oau_reason="UIScriptHUD:UpdateSpots "..spot.id
-		if obj and self:NeedShowSpot(sobj) then
+		if obj and self:NeedShowSpot( AI:object( spot.id ) ) then
 			if spot.type == "npc" or has_spot(spot.id, spot.type) ~= 0 then
 				t = spot2texture[spot.type]
 
@@ -537,11 +537,12 @@ function get_level_bound_rect()
 	)
 end
 
-local id2color = {
-	[0] = GetARGB(255,255,0,0),		-- enemy
-	[1] = GetARGB(255,255,200,0),	-- neutral
-	[2] = GetARGB(255,50,255,0),	-- friend
-	[3] = GetARGB(255,168,168,168)	-- corpse
+local colors = {
+	enemy    = GetARGB(200,255,0,0),
+	neutral  = GetARGB(255,255,200,0),
+	friend   = GetARGB(255,50,255,0),
+	corpse   = GetARGB(255,168,168,168),
+	monster  = GetARGB(200,255,0,190)
 }
 function get_point_color(obj)
 	if not obj then
@@ -557,33 +558,26 @@ function get_point_color(obj)
 		return nil
 	end
 
-	local colorID
-
 	if IsHuman[obj:clsid()] then
 		if obj:character_community() == "zombied" then
 			return nil
-		end
-		if obj:alive() then
+		elseif obj:alive() then
 			local rel = obj:relation(Actor)
 			if rel == game_object.friend then
-				colorID = 2
+				return colors.friend
 			elseif rel == game_object.neutral then
-				colorID = 1
+				return colors.neutral
 			elseif show_enemy and rel == game_object.enemy then
-				colorID = 0
-			else
-				return nil
+				return colors.enemy
 			end
 		elseif show_corpse then
-			colorID = 3
+			return colors.corpse
 		end
-	else
-		return nil
+	elseif show_monsters and obj:alive() then
+		return colors.monster
 	end
 
-	if colorID == nil then return nil end
-
-	return id2color[colorID]
+	return nil
 end
 
 ---------------------------------------------------------------------------
@@ -656,7 +650,8 @@ function init_settings()
 	local dif = level.get_game_difficulty()
 
 	show_npc			= has_alife_info("pda_show_npc")
-	show_enemy			= has_alife_info("pda_show_enemy") and dif == game_difficulty.novice
+	show_enemy			= has_alife_info("pda_show_enemy") --and dif < game_difficulty.veteran
+	show_monsters		= has_alife_info("pda_show_monsters")-- and dif < game_difficulty.veteran
 	show_corpse			= has_alife_info("pda_show_corpse") and dif ~= game_difficulty.master
 	show_time			= has_alife_info("pda_show_time")
 	show_compass		= has_alife_info("pda_show_compass")
