@@ -206,6 +206,8 @@ function CRandomTask:__init()
 		--' По id фразы выдачи квеста.
 		self.task_id_by_init_phrase_id[tostring(v.init_phrase_id)] = k
 	end
+
+	self.protected_smarts = {}
 end
 
 --------- Награда информацией --------
@@ -1112,6 +1114,7 @@ function CRandomTask:register_target(obj)
 					t.target_objects = {}
 				end
 				table.insert(t.target_objects, obj.id)
+				self.protected_smarts[t.target] = v
 			end
 		end
 		--' Либо регистрируется цель для квеста "защитить лагерь"
@@ -1125,6 +1128,11 @@ function CRandomTask:register_target(obj)
 					t.target_objects = {}
 				end
 				table.insert(t.target_objects, obj.id)
+				self.protected_smarts[t.target] = v
+				local sobj = AI:story_object(defend_target)
+				if sobj then
+					self.protected_smarts[sobj:name()] = v
+				end
 			end
 		end
 
@@ -1243,22 +1251,10 @@ function CRandomTask:remind()
 end
 
 function CRandomTask:smart_is_protected(sm)
-	for k, v in pairs(self.active_task_by_type) do
-		local task_desc = self.task_info[v]
-		if task_desc.type == "defend_lager"
-			or task_desc.type == "eliminate_lager"
-		then
-			if task_desc.status == "selected" then
-				if (task_desc.selected_target and task_desc.selected_target == sm.id)
-					or (task_desc.defend_target and task_desc.defend_target == sm.m_story_id)
-				then
-					return true
-				end
-			end
-		end
-	end
-	return false
+	local v = self.protected_smarts[sm:name()]
+	return v ~= nil and self.task_info[v].status == "selected"
 end
+
 
 function get_random_task()
 	if random_task == nil then
