@@ -29,6 +29,27 @@ end
 check_tbl['esc_shustryi_secret_find'] = function()
 	level_tasks.remove_location(story_ids.esc_toz_broken, "crlc_small")
 end
+check_tbl['esc_kill_bandits_quest_done'] = function()
+	if Actor:dont_has_info("esc_petruha_great") then
+		Actor:give_info_portion("esc_petruha_great")
+	end
+	if Actor:dont_has_info("esc_path_to_lager") then		
+		Actor:give_info_portion("esc_path_to_lager")
+	end
+end
+check_tbl['tutorial_end'] = function()
+	if Actor:dont_has_info("esc_path_to_lager") then
+		Actor:give_info_portion("esc_path_to_lager")
+	end
+end
+check_tbl['tutorial_wounded_die'] = function()
+	if Actor:dont_has_info("tutorial_wounded_fail")
+		and Actor:dont_has_info("tutorial_wounded_help")
+	then
+		Actor:give_info_portion("tutorial_wounded_fail")
+	end
+end
+check_tbl['tutorial_wounded_death'] = check_tbl['tutorial_wounded_die']
 -- garbage_tasks
 check_tbl['gar_hellcar_death'] = function()
 	level_tasks.remove_location(story_ids.gar_hellcar, "green_location")
@@ -127,9 +148,21 @@ end
 check_tbl['gar_remove_fake_spot11'] = function()
 	level_tasks.remove_location(story_ids.gar_spot_trash3, "crlc_big")
 end
+check_tbl['garbage_meetstalker_die'] = function()
+	if Actor:has_info("garbage_meetstalker_die")
+		and ( Actor:has_info("escape_stalker_give")
+		or Actor:has_info("agr_can_ask_krot_about_gunslinger") )	-- from garbage_tasks
+		and Actor:dont_has_info("agr_krot_band_start")
+	then
+		Actor:give_info_portion("agr_krot_band_start")
+		news_manager.send_tip("gar_seryi_info")
+	end
+end
+check_tbl['escape_stalker_give'] = check_tbl['garbage_meetstalker_die']
+check_tbl['agr_can_ask_krot_about_gunslinger'] = check_tbl['garbage_meetstalker_die']
 -- agroprom_tasks
 check_tbl['agr_krot_secret_info'] = function()
-	if not has_alife_info("agr_find_gunslinger_cache_start") then
+	if Actor:dont_has_info("agr_find_gunslinger_cache_start") then
 		Actor:give_info_portion("agr_find_gunslinger_cache_start")
         Actor:give_info_portion("agr_krot_task_complete")
         Actor:give_info_portion("agr_factory_spawn_spetsnaz")
@@ -180,6 +213,15 @@ end
 check_tbl['val_show_farm_zone'] = function()
 	level_tasks.add_location(story_ids.val_zone_farm, "crlc_big", "val_zone_farm_hint")
 end
+check_tbl['dar_ring_spawn2_1'] = function()
+	if Actor:has_info("dar_ring_spawn2_1") and
+		Actor:has_info("dar_ring_spawn2_2") and
+		Actor:dont_has_info("dar_ring_spawn2")
+	then
+		Actor:give_info_portion("dar_ring_spawn2")
+	end
+end
+check_tbl['dar_ring_spawn2_2'] = check_tbl['dar_ring_spawn2_1']
 -- bar_rostok_tasks
 check_tbl['bar_dolg_petrenko'] = function()
 	level_tasks.add_location(story_ids.bar_dolg_polkovnik_petrenko, "green_location", "bar_petrenko")
@@ -193,7 +235,7 @@ check_tbl['mil_rg6_gain'] = function()
 	level_tasks.set_task_state (task.completed, "mil_freedom_rg6_task", 0)
 end
 check_tbl['mil_bandit_flash_get'] = function()
-	if not has_alife_info("mil_bandit_secret_found") then
+	if Actor:dont_has_info("mil_bandit_secret_found") then
 		level_tasks.add_location (story_ids.Mil_Bandit_Secret, "mil_secret_location")
 	end
 end
@@ -221,25 +263,20 @@ check_tbl['cit_jail_doctor_pryp_task'] = function()
 end
 -- other
 check_tbl['escape_blockpost_case'] = function()
-	if (not has_alife_info("escape_blockpost_case_have"))
+	if (Actor:dont_has_info("escape_blockpost_case_have"))
 		and Actor:object("quest_case_01") ~= nil
 	then
 		Actor:give_info_portion("escape_blockpost_case_have")
 	end
 end
-check_tbl['esc_kill_bandits_quest_done'] = function()
-	if not has_alife_info("esc_petruha_great") then
-		Actor:give_info_portion("esc_petruha_great")
-	end
-end
 check_tbl['dar_password_info1'] = function()
-	if not has_alife_info("dar_password_info1_know") then
+	if Actor:dont_has_info("dar_password_info1_know") then
 		Actor:give_info_portion("dar_password_info1_know")
 		news_manager.send_tip("pass_to_1st_door_sms", 1, "ecolog")
 	end
 end
 check_tbl['dar_password_info2'] = function()
-	if not has_alife_info("dar_password_info2_know") then
+	if Actor:dont_has_info("dar_password_info2_know") then
 		Actor:give_info_portion("dar_password_info2_know")
 		news_manager.send_tip("pass_to_2nd_door_sms", 1, "ecolog")
 	end
@@ -250,37 +287,144 @@ check_tbl['komanda_na_posadku1'] = function()
 end
 -- braad_test
 check_tbl['brat_luis_have'] = function()
-	if not has_alife_info("brat_luis_killself") then
+	if Actor:dont_has_info("brat_luis_killself") then
 		start_real_timer("run", math.random(10,15), "braad_test.luis_killself()")
 		Actor:give_info_portion("brat_luis_killself")
 	end
 end
 check_tbl['black_doctor_finish_dialog'] = function()
-	if not has_alife_info("black_doctor_delete") then
+	if Actor:dont_has_info("black_doctor_delete") then
 		start_real_timer("run", math.random(10,15), "braad_test.delete_black_doctor()")
 		Actor:give_info_portion("black_doctor_delete")
 	end
 end
 check_tbl['mitya_dead'] = function()
-	if ( not has_alife_info("klyak_forest_doc_have") )
-		and not has_alife_info("mitya_dead_sms")
+	if ( Actor:dont_has_info("klyak_forest_doc_have") )
+		and Actor:dont_has_info("mitya_dead_sms")
 	then
 		start_real_timer("run", math.random(180,200), "braad_test.mitya_sms()")
 		Actor:give_info_portion("mitya_dead_sms")
 	end
 end
 check_tbl['forest_wound_dead'] = function()
-	if has_alife_info("denis_wound_start")
-		and has_alife_info("forest_wound_dead")
-		and not has_alife_info("denis_wound_next")
+	if Actor:has_info("denis_wound_start")
+		and Actor:has_info("forest_wound_dead")
+		and Actor:dont_has_info("denis_wound_next")
 	then
 		Actor:give_info_portion("denis_wound_fail")
 	end
 end
-check_tbl['arhara_shaxter_start'] = function()
---	if not has_alife_info("encyclopedy") then
---		Actor:give_info_portion("encyclopedy")
---	end
+check_tbl['esc_saha_dead'] = function()
+	if (Actor:dont_has_info("dyak_help_fail"))
+		and Actor:dont_has_info("dyak_help_done")
+	then
+		Actor:give_info_portion("dyak_help_fail")
+	end
+end
+check_tbl['dyak_dead'] = check_tbl['esc_saha_dead']
+check_tbl['add_church_ban1_dead'] = function()
+	Actor:give_info_portion("add_church_ban_signal")
+end
+check_tbl['add_church_ban2_dead'] = check_tbl['add_church_ban1_dead']
+check_tbl['add_church_ban3_dead'] = check_tbl['add_church_ban1_dead']
+check_tbl['chuk_dead'] = function()
+	if Actor:dont_has_info("kot_agro_mono_have") then
+		Actor:give_info_portion("kot_agro_mono_fail")
+	end
+end
+check_tbl['gek_dead'] = check_tbl['chuk_dead']
+check_tbl['xalyava_naemnik_see'] = function()
+	if Actor:dont_has_info("xalyava_nebo_have") then
+		Actor:give_info_portion("xalyava_nebo_fail")
+	end
+end
+check_tbl['xalyava_dead'] = check_tbl['xalyava_naemnik_see']
+check_tbl['kot_kalmyak_lekar_done'] = function()
+	if Actor:dont_has_info("kot_lekar_done") then
+		Actor:give_info_portion("kot_lekar_done")
+	end
+end
+check_tbl['kot_holod_lekar_done'] = check_tbl['kot_kalmyak_lekar_done']
+check_tbl['shadowman_zver_have'] = function()
+	if Actor:dont_has_info("shadowman_all") then
+		Actor:give_info_portion("shadowman_all")
+	end
+end
+check_tbl['shadowman_zver_fail'] = check_tbl['shadowman_zver_have']
+check_tbl['grab_stal1_dead'] = function()
+	if  Actor:has_info("grab_stal1_dead")
+		and Actor:has_info("grab_stal2_dead")
+		and Actor:has_info("grab_stal3_dead")
+		and Actor:has_info("grab_stal4_dead")
+		and Actor:has_info("grab_stal5_dead")
+	then
+		Actor:give_info_portion("grab_stal_deads")
+	end
+end
+check_tbl['grab_stal2_dead'] = check_tbl['grab_stal1_dead']
+check_tbl['grab_stal3_dead'] = check_tbl['grab_stal1_dead']
+check_tbl['grab_stal4_dead'] = check_tbl['grab_stal1_dead']
+check_tbl['grab_stal5_dead'] = check_tbl['grab_stal1_dead']
+check_tbl['contr_forest1_dead'] = function()
+	if Actor:has_info("contr_forest2_dead") then
+		Actor:give_info_portion("contr_forest_deads")
+	end
+end
+check_tbl['contr_forest2_dead'] = function()
+	if Actor:has_info("contr_forest1_dead") then
+		Actor:give_info_portion("contr_forest_deads")
+	end
+end
+-- sak
+check_tbl['agr_ratcatcher_umer'] = function()
+	if Actor:has_info("mil_Svoboda_trader_plan_faze") then
+		Actor:give_info_portion("mil_Svoboda_trader_plan_2faze")
+		sak.add_sak_plan()
+	end
+end
+check_tbl['mil_Svoboda_trader_plan_faze'] = function()
+	if Actor:has_info("agr_ratcatcher_umer") then
+		Actor:give_info_portion("mil_Svoboda_trader_plan_2faze")
+		sak.add_sak_plan()
+	end
+end
+check_tbl['esc_vagon_wounded_umer'] = function()
+	if ( Actor:has_info("esc_vagon_wounded_umer")
+		and Actor:has_info("esc_stalker_fanat_umer")
+		or Actor:has_info("esc_wolf_umer") )
+		and Actor:dont_has_info("mil_volk_resiver_fail")
+	then
+		Actor:give_info_portion("mil_volk_resiver_fail")
+	end
+end
+check_tbl['esc_stalker_fanat_umer'] = check_tbl['esc_vagon_wounded_umer']
+check_tbl['esc_wolf_umer'] = check_tbl['esc_vagon_wounded_umer']
+check_tbl['bar_dolg_ivancov_umer'] = function()
+	if ( Actor:has_info("bar_dolg_ivancov_umer")
+		or Actor:has_info("mil_freedom_member0021_umer") )
+		and Actor:dont_has_info("bar_ivancov_rg6_fail")
+	then
+		Actor:give_info_portion("bar_ivancov_rg6_fail")
+	end
+end
+check_tbl['mil_freedom_member0021_umer'] = check_tbl['bar_dolg_ivancov_umer']
+check_tbl["about_life_heart_sahar"] = function()
+	if ( Actor:has_info("about_life_heart_sahar")
+		and Actor:has_info("about_life_heart_sidor")
+		and Actor:has_info("about_life_heart_barman") )
+		and Actor:dont_has_info("about_life_heart_done")
+	then
+		Actor:give_info_portion("about_life_heart_done")
+	end
+end
+check_tbl['about_life_heart_sidor'] = check_tbl['about_life_heart_sahar']
+check_tbl['about_life_heart_barman'] = check_tbl['about_life_heart_sahar']
+-- akill
+check_tbl["hor_npc_dead"] = function()
+	akill.hor_npc_dead()
+end
+check_tbl["koiot_npc_dead"] = function()
+	akill.koiot_npc_dead()
 end
 
 
@@ -288,118 +432,4 @@ function check(info_id)
 	if check_tbl[info_id] then
 		check_tbl[info_id]()
 	end
-	
-	-- escape_tasks
-	if	( info_id == "tutorial_end"
-		or info_id == "esc_kill_bandits_quest_done" )
-		and not has_alife_info("esc_path_to_lager") 
-	then		
-		Actor:give_info_portion("esc_path_to_lager") 
-
-	elseif info_id == "tutorial_wounded_die"
-		or info_id == "tutorial_wounded_death"
-	then
-		if (not has_alife_info("tutorial_wounded_fail"))
-			and not has_alife_info("tutorial_wounded_help")
-		then
-			Actor:give_info_portion("tutorial_wounded_fail")
-		end
-
-	elseif has_alife_info("garbage_meetstalker_die")
-		and ( has_alife_info("escape_stalker_give")
-		or has_alife_info("agr_can_ask_krot_about_gunslinger") )	-- from garbage_tasks
-		and not has_alife_info("agr_krot_band_start")
-	then
-		Actor:give_info_portion("agr_krot_band_start")
-		news_manager.send_tip("gar_seryi_info")
-
-	-- darkvalley_tasks
-	elseif has_alife_info("dar_ring_spawn2_1") and
-		has_alife_info("dar_ring_spawn2_2") and
-		not has_alife_info("dar_ring_spawn2")
-	then
-		Actor:give_info_portion("dar_ring_spawn2")
-
-	-- braad_test
-	elseif ( info_id == "esc_saha_dead"
-		or info_id == "dyak_dead" )
-		and (not has_alife_info("dyak_help_fail"))
-		and not has_alife_info("dyak_help_done")
-	then
-		Actor:give_info_portion("dyak_help_fail")
-
-	elseif info_id == "add_church_ban1_dead"
-		or info_id == "add_church_ban2_dead"
-		or info_id == "add_church_ban3_dead"
-	then
-		Actor:give_info_portion("add_church_ban_signal")
-
-	elseif ( info_id == "chuk_dead"
-		or info_id == "gek_dead" )
-		and not has_alife_info("kot_agro_mono_have")
-	then
-		Actor:give_info_portion("kot_agro_mono_fail")
-
-	elseif ( info_id == "xalyava_naemnik_see"
-		or info_id == "xalyava_dead" )
-		and not has_alife_info("xalyava_nebo_have")
-	then
-		Actor:give_info_portion("xalyava_nebo_fail")
-
-	elseif ( info_id == "kot_kalmyak_lekar_done"
-		or info_id == "kot_holod_lekar_done" )
-		and not has_alife_info("kot_lekar_done")
-	then
-		Actor:give_info_portion("kot_lekar_done")
-
-	elseif ( info_id == "shadowman_zver_have"
-		or info_id == "shadowman_zver_fail" )
-		and not has_alife_info("shadowman_all")
-	then
-		Actor:give_info_portion("shadowman_all")
-
-	elseif  has_alife_info("grab_stal1_dead")
-		and has_alife_info("grab_stal2_dead")
-		and has_alife_info("grab_stal3_dead")
-		and has_alife_info("grab_stal4_dead")
-		and has_alife_info("grab_stal5_dead")
-	then
-		Actor:give_info_portion("grab_stal_deads")
-	end
-
-	if has_alife_info("contr_forest1_dead")
-		and has_alife_info("contr_forest2_dead")
-	then
-		Actor:give_info_portion("contr_forest_deads")
-	end
-
-	-- sak
-	if has_alife_info("mil_Svoboda_trader_plan_faze")
-		and  has_alife_info("agr_ratcatcher_umer")
-	then
-		Actor:give_info_portion("mil_Svoboda_trader_plan_2faze") add_sak_plan()
-	elseif ( has_alife_info("esc_vagon_wounded_umer")
-		and has_alife_info("esc_stalker_fanat_umer")
-		or has_alife_info("esc_wolf_umer") )
-		and not has_alife_info("mil_volk_resiver_fail")
-	then
-		Actor:give_info_portion("mil_volk_resiver_fail")
-	elseif ( has_alife_info("bar_dolg_ivancov_umer")
-		or has_alife_info("mil_freedom_member0021_umer") )
-		and not has_alife_info("bar_ivancov_rg6_fail")
-	then
-		Actor:give_info_portion("bar_ivancov_rg6_fail")
-	elseif ( has_alife_info("about_life_heart_sahar")
-		and has_alife_info("about_life_heart_sidor")
-		and has_alife_info("about_life_heart_barman") )
-		and not has_alife_info("about_life_heart_done")
-	then
-		Actor:give_info_portion("about_life_heart_done")
-	end
-end
-check_tbl["hor_npc_dead"] = function()
-	akill.hor_npc_dead()
-end
-check_tbl["koiot_npc_dead"] = function()
-	akill.koiot_npc_dead()
 end
