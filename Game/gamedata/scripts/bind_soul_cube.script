@@ -194,18 +194,19 @@ function soul_cube_binder:seek_target() -- поиск цели
 	local dist_search = 50
 	local cone_min = 0.5
 	self.target = nil
-	-- перебираем мутантов
-	for k,v in pairs (db.monster) do
-		if AI:object( k ) ~= nil then
-			local rvec = v:position():sub(device().cam_pos)
+	-- перебираем мутантов и врагов
+	for id, obj in pairs (db.creatures) do
+		if AI:object( id ) ~= nil then
+			if IsMonster(obj) or obj:relation(Actor) == game_object.enemy then 
+			local rvec = obj:position():sub(device().cam_pos)
 			local r = rvec:magnitude()
-			if r <= dist_search and Actor:see(v) and v:clsid() ~= clsid.boar_s then -- если цель в зоне поражения
+			if r <= dist_search and Actor:see(obj) then -- если цель в зоне поражения
 				local proj = rvec:dotproduct(device().cam_dir)
 				local cos_a = proj/r
 				if cos_a >= cone_min then -- объект ближе к оси прицеливания
 					-- сужаем конус поиска и запоминаем цель
 					cone_min = cos_a 
-					self.target = k
+					self.target = id
 				end
 			end
 		end
@@ -325,7 +326,7 @@ function soul_cube_binder:attack_cycle(delta)
 	local cube_pos = self.cube:position()
 	local pos
 	local target_obj = self.target and level_object(self.target) or nil
-	if target_obj and target_obj:alive() then
+	if target_obj and AI:object(self.target) and target_obj:alive() then
 		self.target_pos = target_obj:bone_position("bip01_head")
 		pos = target_obj:bone_position("bip01_head")
 		mode = "attack"

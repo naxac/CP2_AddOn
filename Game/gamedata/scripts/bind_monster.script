@@ -270,8 +270,6 @@ function generic_object_binder:death_callback(victim, who)
 
 	monster_effects.stop_effects(self, who)
 
-	db.del_monster(self.object) -- убираем из онлайн-живых
-
 	if who:id() == Actor:id() then 
 		kostya_dialog.on_wpn_hit()
 		
@@ -410,10 +408,7 @@ function generic_object_binder:net_spawn(sobject)
 		self:random_visual_zombie()
 	end
 		 
-	db.add_obj(self.object) 
-	if self.object:alive() then
-		db.add_monster(self.object) -- добавляем в онлайн-живых
-	end
+	db.add_obj(self.object)
 
 	xr_gulag.setup_gulag_and_logic_on_spawn( self.object, self.st, sobject, modules.stype_mobile, self.loaded ) 
 
@@ -456,10 +451,6 @@ function generic_object_binder:net_destroy()
 	end 
 	db.del_obj(self.object)
 	
-	if self.object:alive() then
-		db.del_monster(self.object) -- убираем из онлайн-живых
-	end
-
 	object_binder.net_destroy(self)
 	
 	-- АМК. Очистка рестрикторов
