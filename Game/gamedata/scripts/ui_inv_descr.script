@@ -185,12 +185,14 @@ function CUIDescriptionWnd:ShowDescription(item)
 
 	local owner = level.main_input_receiver()
 	if owner == nil then return end
-	
+
 	self.scroll_v:Clear()
 	
 	self.item = item
 	self.section = item:section()
 	self.condition = item:condition()
+
+	on_read_descr(self.section)
 
 	local inv_name = get_inv_name(self.section)
 
@@ -779,3 +781,48 @@ function CUIDescriptionWnd:OnKeyPress(dik, bind)
 	end
 end
 
+--------------------------------------------------------------------------------------------------
+local check_tbl = {}
+check_tbl["bezoar"] = function()
+	if Actor:dont_has_info("info_artmod_gusenica_have") then
+		Actor:give_info_portion( "info_artmod_gusenica_have" )
+	end
+end
+check_tbl["arhara_instruk"] = function()
+	if Actor:dont_has_info("info_artmod_art_acumm") then
+		Actor:give_info_portion( "info_artmod_art_acumm" )
+	end
+end
+check_tbl["wpn_bizon1"] = function ()
+	if Actor:dont_has_info("anom_bizon_info") then
+		Actor:give_info_portion( "anom_bizon_info" )
+	end
+end
+check_tbl["subway_scaner_doc"] = function ()
+	if Actor:has_info( "spatial_subway_doc" ) then return end
+	Actor:give_info_portion( "spatial_subway_doc" )
+	naxac.treasure_ss_1()
+	naxac.ss_teleports()
+end
+check_tbl["subway_scaner_doc2"] = function ()
+	if Actor:has_info( "spatial_subway_doc2" ) then return end
+	Actor:give_info_portion( "spatial_subway_doc2" )
+	naxac.treasure_ss_2()
+end
+check_tbl["subway_scaner_doc3"] = function ()
+	if Actor:has_info( "spatial_subway_start" ) then return end
+	Actor:give_info_portion( "spatial_subway_start" )
+end
+check_tbl['snp_note1'] = function ()
+	if Actor:dont_has_info("snp_find_name1_have") then 
+		local se_obj = AI:create("kotobegemot_bar",vector():set(115.00399780273,-5.3044028282166,14.159286499023),33614,1239)
+		set_story_id(se_obj, story_ids.kotobegemot_bar)
+		Actor:give_info_portion("snp_find_name1_have")
+	end
+end
+
+function on_read_descr(section)
+	if check_tbl[section] then
+		check_tbl[section]()
+	end
+end
