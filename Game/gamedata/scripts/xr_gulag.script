@@ -1266,6 +1266,17 @@ function setup_gulag_and_logic_on_spawn( obj, st, sobject, stype, loaded )
 			strn.gulag:object_setup_online( obj:id(), obj, need_setup_logic, need_setup_restrictors )
 
 			if not need_setup_logic then
+
+				local se_obj = AI:object(obj:id())
+				local data = netpk:get(se_obj, netpk.fState)
+				local cd = netpk:parse_custom_data(data.custom_data)
+				if cd.logic then
+					log("~ [setup_gulag_and_logic_on_spawn] del logic for %s", obj:name())
+					cd.logic = nil
+					data.custom_data = netpk:gen_custom_data(cd)
+					netpk:set(se_obj, data, netpk.fConvert)
+				end
+
 				xr_logic.initialize_obj(obj, st, loaded, Actor, stype)
 			end
 		else
