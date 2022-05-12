@@ -114,32 +114,25 @@ end
 
 function spawn_parts()
 	AI:create("manometr", vector():set(-146.01,6.04,-201.16), 91750, 621)
-	AI:create("trubka", vector():set(-57.36,22.54,-120.73), 118492, 298)
-	AI:create("gorelka", vector():set(-79.62,-10.69,39.95), 233164, 1595)
 end
 
 
 function set_metka()
-	local obj
-	for a=1,65534 do
-		obj = AI:object(a)
-		if obj then
-			if obj:section_name()=="trubka" then
-				amk.add_spot_on_map(obj.id,"red_location","Трубка")
-				return
-			end
-		end
-	end
+	local obj = AI:create("trubka", vector():set(-57.36,22.54,-120.73), 118492, 298)
+	amk.add_spot_on_map(obj.id,"red_location","Трубка")
 end
 
+function have_money2500(fs, ss)
+	return Actor:money() >= 2500
+end
 
 function relocate_to_barman(first_speaker, second_speaker)
 	dialogs.relocate_item_section(second_speaker, "gorelka", "in")
-    dialogs.relocate_money(second_speaker, 250, "out")
+    dialogs.relocate_money(second_speaker, 2500, "out")
 end
 
 function out_antirad(first_speaker, second_speaker)
-	dialogs.relocate_item_section(second_speaker, "antirad", "out")
+	inventory.out_items("antirad", 3)
 end
 
 function transfer_deneg_blockpost(first_speaker, second_speaker)
@@ -151,7 +144,7 @@ function give_flamethrower(first_speaker, second_speaker)
 end
 
 function have_a_flamethrower_bad(stalker, player)
-    return stalker:object ("flamethrower_bad") ~= nil
+    return Actor:object ("flamethrower_bad") ~= nil
 end
 
 function give_1000(first_speaker, second_speaker)
@@ -159,7 +152,7 @@ function give_1000(first_speaker, second_speaker)
 end
 
 function have_a_antirad(stalker, player)
-    return stalker:object ("antirad") ~= nil
+    return inventory.search("antirad", 3)
 end
 
 function out_flamethrower(first_speaker, second_speaker)
@@ -269,21 +262,13 @@ end
 function is_ready(first_speaker, second_speaker)
 	local gtime = amk.game_minutes()
 	local ftime = amk.load_variable("flame_start", gtime)
-	if (gtime - ftime) >= 60*24 then
-		return true
-	else
-		return false
-	end
+	return (gtime - ftime) >= 60*24
 end
 
 function not_ready(first_speaker, second_speaker)
 	local gtime = amk.game_minutes()
 	local ftime = amk.load_variable("flame_start", gtime)
-	if (gtime - ftime) >= 60*24 then
-		return false
-	else
-		return true
-	end
+	return (gtime - ftime) < 60*24
 end
 
 function clear_ready(first_speaker, second_speaker)
@@ -317,32 +302,17 @@ end
 
 function is_reload_ready(first_speaker, second_speaker)
 	local gtime = amk.game_minutes()
-	local ftime = amk.load_variable("flame_reload", 0)
-	if gtime >= ftime then
-		return true
-	else
-		return false
-	end
+	return gtime > amk.load_variable("flame_reload", gtime)
 end
 
 function is_reload_not_ready(first_speaker, second_speaker)
 	local gtime = amk.game_minutes()
-	local ftime = amk.load_variable("flame_reload", 0)
-	if gtime <= ftime then
-		return true
-	else
-		return false
-	end
+	return gtime <=amk.load_variable("flame_reload", gtime)
 end
 
 function is_reload_started(first_speaker, second_speaker)
-	local ftime = amk.load_variable("flame_reload", -1)
-	if ftime==-1 then
-		return false
-	else
-		return true
-	end
-	end
+	return amk.load_variable("flame_reload", 0) > 0
+end
 
 function finish_reload(first_speaker, second_speaker)
 	reload(first_speaker, second_speaker)
@@ -355,41 +325,10 @@ function clear_reload(first_speaker, second_speaker)
 	amk.del_variable("flame_reload_count")
 end
 
-function relocate_n_items_section(victim, section, type, n)
-    if Actor and victim then
-	local cnt = n or 1
-	if type == "in" then
-        for i=1,n do
-			AI:create(section,     
-					Actor:position(),
-					Actor:level_vertex_id(),     
-					Actor:game_vertex_id(),
-					Actor:id())
-		end
-    elseif type == "out" then
-		Actor:iterate_inventory(function (dummy,item)
-			if item:section()==section and n>0 then 
-				del_obj_by_id(item:id())
-				n=n-1
-			end
-		end, nil)
-	end
-	news_manager.relocate_item(type, section, cnt)
-	end
-end
-
 function calc_reload(actor, trader)
 	if have_a_ballon() and have_a_kanistra() then
-		local cnt_kanistra=0
-		local cnt_ballon=0
-		actor:iterate_inventory(function (dummy, item)
-			if item:section()=="amk_kanistra" then
-				cnt_kanistra = cnt_kanistra + 1
-			elseif item:section()=="amk_ballon" then
-				cnt_ballon = cnt_ballon + 1
-			end
-		end,
-		nil)
+		local cnt_kanistra = inventory.get_items_count("amk_kanistra")
+		local cnt_ballon = inventory.get_items_count("amk_ballon")
 		
 		local mm = math.min(cnt_kanistra, cnt_ballon)
 		if mm == 1 then
