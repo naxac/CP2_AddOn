@@ -512,10 +512,10 @@ local function get_wpn_upgrades(slot)
 	t.parent_section = t.section:gsub("_kalibr", ""):gsub("_otdaca", ""):gsub("_ves", "")
 	t.name = game.translate_string( get_inv_name(t.section) )
 	t.condition = ( 0.95 < item:condition() )
-	t.cost = math.ceil( item:cost() )
-	t.can_buy = (t.cost > 0) and (t.cost <= Actor:money())
 
 	if sys_ini:section_exist(t.parent_section) then
+		local parent_cost = sys_ini:r_u32(t.parent_section, "cost")
+		local money = Actor:money()
 		t.kalibr = (string.find(t.section, "_kalibr")) ~= nil
 		t.otdaca = (string.find(t.section, "_otdaca")) ~= nil
 		t.ves = (string.find(t.section, "_ves")) ~= nil
@@ -525,11 +525,13 @@ local function get_wpn_upgrades(slot)
 				"_kalibr"..
 				(t.otdaca and "_otdaca" or "")..
 				(t.ves and "_ves" or "")
-			t.kalibr_sect = sys_ini:section_exist(kalibr_sect) and kalibr_sect
-			if t.kalibr_sect then
+			if sys_ini:section_exist(kalibr_sect) then
+				t.kalibr_sect = kalibr_sect
+				t.kalibr_cost = math.ceil( (sys_ini:r_u32(kalibr_sect, "cost") - parent_cost) * 2.1 )
+				t.can_buy_kalibr = (t.kalibr_cost <= money)
 				local ammo_old = string.match(sys_ini:r_string(t.section, "ammo_class"), "[%d%.]+x[%d%.]+")
 				local ammo_new = string.match(sys_ini:r_string(kalibr_sect, "ammo_class"), "[%d%.]+x[%d%.]+")
-				t.kalibr_str = "с "..ammo_old.." на "..ammo_new
+				t.kalibr_str = " с "..ammo_old.." на "..ammo_new
 			end
 		end
 
@@ -538,7 +540,11 @@ local function get_wpn_upgrades(slot)
 				(t.kalibr and "_kalibr" or "")..
 				"_otdaca"..
 				(t.ves and "_ves" or "")
-			t.otdaca_sect = sys_ini:section_exist(otdaca_sect) and otdaca_sect
+			if sys_ini:section_exist(otdaca_sect) then
+				t.otdaca_sect = otdaca_sect
+				t.otdaca_cost = math.ceil( (sys_ini:r_u32(otdaca_sect, "cost") - parent_cost) * 1.9 )
+				t.can_buy_otdaca = (t.otdaca_cost <= money)
+			end
 		end
 
 		if not t.ves then
@@ -546,7 +552,11 @@ local function get_wpn_upgrades(slot)
 				(t.kalibr and "_kalibr" or "")..
 				(t.otdaca and "_otdaca" or "")..
 				"_ves"
-			t.ves_sect = sys_ini:section_exist(ves_sect) and ves_sect
+			if sys_ini:section_exist(ves_sect) then
+				t.ves_sect = ves_sect
+				t.ves_cost = math.ceil( (sys_ini:r_u32(ves_sect, "cost") - parent_cost) * 1.7 )
+				t.can_buy_ves = (t.ves_cost <= money)
+			end
 		end
 	end
 
@@ -651,27 +661,27 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 		else
 			str_text_1 = str_text_1.."Для него могу предложить следующие варианты:"
 			if t1.kalibr_sect then
-				str_text_1 = str_text_1.."\\n   - изменение калибра "..t1.kalibr_str
-				if t1.can_buy then
-					str_text_1 = str_text_1..". Это будет стоить \\n%c[255,238,155,23]"..t1.cost.." рублей%c[default]."
+				str_text_1 = str_text_1.."\\n   - изменение калибра"..t1.kalibr_str
+				if t1.can_buy_kalibr then
+					str_text_1 = str_text_1..". Это будет стоить \\n%c[255,238,155,23]"..t1.kalibr_cost.." рублей%c[default]."
 				else
-					str_text_1 = str_text_1..". Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.cost.." рублей%c[default], но у тебя нет столько денег."
+					str_text_1 = str_text_1..". Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.kalibr_cost.." рублей%c[default], но у тебя нет столько денег."
 				end
 			end
 			if t1.otdaca_sect ~= nil then
 				str_text_1 = str_text_1.."\\n   - увеличение кучности. "
-				if t1.can_buy then
-					str_text_1 = str_text_1.."Это будет стоить %c[255,238,155,23]"..t1.cost.." рублей%c[default]."
+				if t1.can_buy_otdaca then
+					str_text_1 = str_text_1.."Это будет стоить %c[255,238,155,23]"..t1.otdaca_cost.." рублей%c[default]."
 				else
-					str_text_1 = str_text_1.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.cost.." рублей%c[default], но у тебя столько денег нету."
+					str_text_1 = str_text_1.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.otdaca_cost.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
 			if t1.ves_sect then
 				str_text_1 = str_text_1.."\\n   - cнижение веса. "
-				if t1.can_buy then
-					str_text_1 = str_text_1.."Это будет стоить %c[255,238,155,23]"..t1.cost.." рублей%c[default]."
+				if t1.can_buy_ves then
+					str_text_1 = str_text_1.."Это будет стоить %c[255,238,155,23]"..t1.ves_cost.." рублей%c[default]."
 				else
-					str_text_1 = str_text_1.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.cost.." рублей%c[default], но у тебя столько нет."
+					str_text_1 = str_text_1.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t1.ves_cost.." рублей%c[default], но у тебя столько нет."
 				end
 			end
 		end
@@ -689,27 +699,27 @@ function upgrade_costs(trader, actor, first_speaker, second_speaker)
 		else
 			str_text_2 = str_text_2.."Для него могу предложить следующие варианты:"
 			if t2.kalibr_sect then
-				str_text_2 = str_text_2.."\\n   - изменение калибра "..t2.kalibr_str
-				if t2.can_buy then
-					str_text_2 = str_text_2..". Это будет стоить \\n%c[255,238,155,23]"..t2.cost.." рублей%c[default]."
+				str_text_2 = str_text_2.."\\n   - изменение калибра"..t2.kalibr_str
+				if t2.can_buy_kalibr then
+					str_text_2 = str_text_2..". Это будет стоить \\n%c[255,238,155,23]"..t2.kalibr_cost.." рублей%c[default]."
 				else
-					str_text_2 = str_text_2..". Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.cost.." рублей%c[default], но у тебя столько денег нету."
+					str_text_2 = str_text_2..". Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.kalibr_cost.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
 			if t2.otdaca_sect ~= nil then
 				str_text_2 = str_text_2.."\\n   - увеличение кучности. "
-				if t2.can_buy then
-					str_text_2 = str_text_2.."Это будет стоить %c[255,238,155,23]"..t2.cost.." рублей%c[default]."
+				if t2.can_buy_otdaca then
+					str_text_2 = str_text_2.."Это будет стоить %c[255,238,155,23]"..t2.otdaca_cost.." рублей%c[default]."
 				else
-					str_text_2 = str_text_2.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.cost.." рублей%c[default], но у тебя столько денег нету."
+					str_text_2 = str_text_2.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.otdaca_cost.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
 			if t2.ves_sect ~= nil then
 				str_text_2 = str_text_2.."\\n   - cнижение веса. "
-				if t2.can_buy then
-					str_text_2 = str_text_2.."Это будет стоить %c[255,238,155,23]"..t2.cost.." рублей%c[default]."
+				if t2.can_buy_ves then
+					str_text_2 = str_text_2.."Это будет стоить %c[255,238,155,23]"..t2.ves_cost.." рублей%c[default]."
 				else
-					str_text_2 = str_text_2.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.cost.." рублей%c[default], но у тебя столько денег нету."
+					str_text_2 = str_text_2.."Это обошлось бы тебе в \\n%c[255,255,32,23]"..t2.ves_cost.." рублей%c[default], но у тебя столько денег нету."
 				end
 			end
 		end
@@ -724,12 +734,18 @@ end
 
 function trader_check_money_upgr_s1(actor, trader)
 	local t = upgrade_tbl[inventory_slots.PISTOL]
-	return t.can_buy and t.condition
+	return (t.can_buy_ves
+		or t.can_buy_otdaca
+		or t.can_buy_kalibr)
+		and t.condition
 end
 
 function trader_check_money_upgr_s2(actor, trader)
 	local t = upgrade_tbl[inventory_slots.RIFLE]
-	return t.can_buy and t.condition
+	return (t.can_buy_ves
+		or t.can_buy_otdaca
+		or t.can_buy_kalibr)
+		and t.condition
 end
 
 
@@ -739,7 +755,7 @@ function trader_upgrade_weapon_s1_kalibr(actor, trader)
 	local t = upgrade_tbl[inventory_slots.PISTOL]
 	if t and t.kalibr_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.kalibr_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..t.kalibr_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
@@ -750,7 +766,7 @@ function trader_upgrade_weapon_s1_otdaca(actor, trader)
 	local t = upgrade_tbl[inventory_slots.PISTOL]
 	if t and t.otdaca_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.otdaca_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..t.otdaca_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
@@ -761,7 +777,7 @@ function trader_upgrade_weapon_s1_ves(actor, trader)
 	local t = upgrade_tbl[inventory_slots.PISTOL]
 	if t and t.ves_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.ves_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.PISTOL )
 		amk.save_variable(var,("1"..t.ves_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
@@ -774,7 +790,7 @@ function trader_upgrade_weapon_s2_kalibr(actor, trader)
 	local t = upgrade_tbl[inventory_slots.RIFLE]
 	if t and t.kalibr_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.kalibr_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..t.kalibr_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
@@ -785,7 +801,7 @@ function trader_upgrade_weapon_s2_otdaca(actor, trader)
 	local t = upgrade_tbl[inventory_slots.RIFLE]
 	if t and t.otdaca_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.otdaca_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..t.otdaca_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
@@ -796,7 +812,7 @@ function trader_upgrade_weapon_s2_ves(actor, trader)
 	local t = upgrade_tbl[inventory_slots.RIFLE]
 	if t and t.ves_sect then
 		local var = repairmasterlist[trader:name()][1]
-		dialogs.relocate_money(trader, t.cost, "out")
+		dialogs.relocate_money(trader, t.ves_cost, "out")
 		remove_repairitem_to_upgrade( inventory_slots.RIFLE )
 		amk.save_variable(var,("1"..t.ves_sect))
 		start_game_timer(var,0,0,120 + math.random(40, 80))
