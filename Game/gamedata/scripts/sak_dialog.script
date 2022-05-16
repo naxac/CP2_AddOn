@@ -1369,9 +1369,11 @@ function esc_find_groza_have()
 	end
 end
 function give_find_groza(first_speaker, second_speaker)
-	dialogs.relocate_item_section(first_speaker, "wpn_val", "out")
-	second_speaker:set_relation(game_object.friend, first_speaker)
-	inventory.out_items("wpn_addon_kobra",1)
+	local npc = (first_speaker:id() == 0) and second_speaker or first_speaker
+	dialogs.relocate_item_section(npc, "wpn_val", "out", true)
+	dialogs.relocate_item_section(npc, "wpn_addon_kobra", "out", true)
+	AI:create("ammo_9x39_ap", npc:position(), npc:level_vertex_id(), npc:game_vertex_id(), npc:id())
+	npc:set_relation(game_object.friend, first_speaker)
 	inventory.out_items("af_fosfor",10)
 end
 -- Akill end
