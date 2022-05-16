@@ -3,9 +3,81 @@ function ggg()
 	naxac_debug.show_debug_static()
 end
 
-
 --[[--------------------------------------------------------------------------------------------------------
-	level_changers.create_teleport_on_actor(vector():set(-586.895874023438,-1.76928663253784,-409.773040771484), 2578, 4129)
+	-- для рассчёта стоимости апрейженных стволов
+	local wpns = {
+		"wpn_ak74",
+		"wpn_ak74u",
+		"wpn_abakan",
+		"wpn_bizon",
+		"wpn_mp5",
+		"wpn_mp7a3",
+		"wpn_uzi",
+		"wpn_fn2000",
+		"wpn_g36",
+		"wpn_lr300",
+		"wpn_sig550",
+		"wpn_sg552_sk1",
+		"wpn_l85",
+		"wpn_famas_p3_sk1",
+		"wpn_m16a2_sk1",
+		"wpn_tavor",
+		"wpn_hk417_sk1",
+		"wpn_ak47",
+		"wpn_sr25_mk11_mod0_sk1",
+		"wpn_groza",
+		"wpn_val",
+		"wpn_svd",
+		"wpn_svu",
+		"wpn_m1891_30_scope",
+		"wpn_vintorez",
+		"wpn_b94",
+		"wpn_awm",
+		"wpn_saiga12c",
+		"wpn_spas12",
+		"wpn_wincheaster1300",
+		"wpn_bm16",
+		"wpn_toz34",
+		"wpn_ppsh41_sk2",
+		"wpn_kriss_super_v",
+		"wpn_p90",
+		"wpn_pkm",
+		"wpn_m4",
+		"wpn_m4super90",
+		"wpn_m79",
+		"wpn_mp5k",
+		"wpn_protecta",
+		"wpn_scorpion",
+		"wpn_aks74m",
+		"wpn_ak103",
+		"wpn_ak104",
+		"wpn_ak105",
+		"wpn_ak107",
+		"wpn_ak108",
+		"wpn_ak9",
+		"wpn_ak12"
+	}
+	local up = {
+		["_kalibr"] = 0.33, ["_ves"] = 0.37, ["_otdaca"] = 0.4,
+		["_kalibr_ves"] = 0.68, ["_kalibr_otdaca"] = 0.74,
+		["_otdaca_ves"] = 0.87, ["_kalibr_otdaca_ves"] = 1.4
+	}
+	for i, sect in ipairs(wpns) do
+		local t = {}
+		local base_cost = sys_ini:r_u32(sect, "cost")
+		log("~ %s (%s)", sect, tostring(base_cost))
+		for k, v in pairs(up) do
+			local new_sec = sect..k
+			if sys_ini:section_exist(new_sec) then
+				if base_cost <= 5000 then v = v * 1.5 end
+				local add_cost = math.ceil(base_cost*v/50)*50
+				local new_cost = add_cost + base_cost
+				log("	%s -> %s)", new_sec, tostring(new_cost))
+			end
+		end
+	end
+------------------------------------------------------------------------------------------------------------
+level_changers.create_teleport_on_actor(vector():set(-586.895874023438,-1.76928663253784,-409.773040771484), 2578, 4129)
 ------------------------------------------------------------------------------------------------------------
 	level_changers.create_level_changer("lc_pripyat_to_bar", true)
 ------------------------------------------------------------------------------------------------------------
