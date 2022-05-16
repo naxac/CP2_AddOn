@@ -21,7 +21,6 @@ function motivator_binder:__init (obj) super(obj)
 
 	self.first_update = false
 	self.particles = {}
-	self.rot_time = 65535
 
 	self.opened_doors = {} --Хранит таблицу дверей, открытых данным персонажем (чтобы потом закрыть)
 end
@@ -65,7 +64,15 @@ function motivator_binder:net_spawn(sobject)
 		return false
 	end
 
-	self.rot = self.rot_time <= amk.game_hours()
+	local obj = AI:object(self.object:id())
+	if obj then
+		if obj.rot_time > 0 and obj.rot_time <= amk.game_hours() then
+			self.rot = true
+		--	помер, либо гг нашел труп - выставляем время гниения
+		elseif obj.rot_time == 0 and not self.object:alive() then
+			obj.rot_time = amk.game_hours()+24
+		end
+	end
 
 	local zomb = amk.load_table("zombies")
 	for k, v in pairs( table.copy({},zomb) ) do
@@ -495,11 +502,7 @@ function motivator_binder:save(packet)
 	xr_logic.save_obj(self.object, packet)
 	dialog_manager.save(self.object, packet)
 
-	if self.rot_time == 65535 and not self.object:alive() then
-	--	помер, либо гг нашел труп - выставляем время гниения
-		self.rot_time = amk.game_hours()+24
-	end
-	packet:w_u16(self.rot_time)
+	packet:w_u16(0)
 
 	packet:w_u8( table.size(self.opened_doors) )
 	for k,v in pairs(self.opened_doors) do
@@ -525,7 +528,7 @@ function motivator_binder:load(reader)
 	xr_logic.load_obj(self.object, reader)
 	dialog_manager.load(self.object, reader)
   
-	self.rot_time = reader:r_u16()
+	local rot_time = reader:r_u16()
 
 	local i = reader:r_u8()
 	if i>0 then

@@ -37,6 +37,9 @@ function se_stalker:__init (section) super (section)
 	-- Trade
 	self.resupply_time = 0
 	self.wait_resupply = false
+
+	-- Rotting
+	self.rot_time = 0
 end
 --------------------
 function se_stalker:get_ini()
@@ -142,11 +145,23 @@ function se_stalker:STATE_Write (packet)
 	if self.treasure_processed	then ddw = bit_or(ddw, 4) end
 	if self.linspiro_traded		then ddw = bit_or(ddw, 8) end
 	packet:w_u8(ddw)
-	
+
+	local game_hours = amk.game_hours()
 	-- Trade
-	local _time = self.resupply_time - amk.game_hours()
+	local _time = self.resupply_time - game_hours
 	packet:w_s16(_time)
 --	log("[se_stalker:STATE_Write] %s -> saved resupply_time = %s", self:name(), _time)
+	--Rotting
+	if self.rot_time == 0 then
+		-- Ещё живой, или ГГ до него не добрался
+		packet:w_u8(0)
+	elseif self.rot_time > game_hours then
+		-- процесс пошёл, но пока не гниёт
+		packet:w_u8(self.rot_time - game_hours)
+	else
+		-- гниёт
+		packet:w_u8( math.max((game_hours - self.rot_time + 24), 255) )
+	end
 end
 --------------------
 function se_stalker:STATE_Read (packet, size)
@@ -180,6 +195,16 @@ function se_stalker:STATE_Read (packet, size)
 	-- log("[se_stalker:STATE_Read] %s -> resupply_time = %s", self:name(), _time)
 	if self.resupply_time > gh then
 		self.wait_resupply = true
+	end
+	--Rotting
+	if packet:r_eof() then return end
+	ddw = packet:r_u8()
+	if ddw == 0 then
+		self.rot_time = 0
+	elseif ddw > 24 then
+		self.rot_time = gh - ddw - 24
+	else
+		self.rot_time = gh + ddw
 	end
 end
 --------------------
