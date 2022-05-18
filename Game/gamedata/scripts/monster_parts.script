@@ -21,7 +21,7 @@ local knives = {
 	"wpn_knife_new",
 	"wpn_machete",
 	"wpn_kukri",
-	"wpn_topor",
+	"wpn_topor"
 }
 local timer_start = false
 local parts = {}
@@ -59,8 +59,8 @@ function on_part_take(obj)
 
 			local t = {
 				timer = time_global() + gd*2000,	--snd:length(),
-				parent = monster:id(),
-				pos = Actor:position()
+				pos = Actor:position(),
+				parent = monster:id()
 			}
 			xr_s.subscribe( "update", monster_parts.check_move, { userobj = t } )
 
@@ -103,14 +103,16 @@ end
 
 function check_move(delta, p)
 	if p.timer > time_global() then
-		if Actor:position():distance_to_sqr(p.pos) > 0.06
-			or (monster~=nil and monster:id()~=p.parent)
-			or (level.main_input_receiver() ~= nil and monster==nil)
+		local actor_pos = Actor:position()
+		local npc = level.object_by_id(p.parent)
+		if ( npc and (actor_pos:distance_to_sqr(p.pos) > 0.1
+			or actor_pos:distance_to_sqr( npc:center() ) > 4) )
+			or (monster ~= nil and monster:id() ~= p.parent)
+			or (level.main_input_receiver() ~= nil and monster == nil)
 		then
 			bind_actor.restore_weapon("monter_parts")
 			if snd and snd:playing() then snd:stop() end
 			
-			local npc = level.object_by_id(p.parent)
 			local item
 			if npc then
 				for i in pairs(parts) do
