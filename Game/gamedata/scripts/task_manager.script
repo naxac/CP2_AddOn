@@ -550,6 +550,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
 		task:set_title(task:get_title().."\\n%c[255,150,150,180]до "..title_time:dateToString(game.CTime.DateToDay))
 
 		time = task_desc.time * 1000
+		start_game_timer(id_to_hash[task_desc.name], 0, 0, task_desc.time/60)
 	end
 	Actor:give_task(task,time,false)
 
@@ -716,6 +717,7 @@ function CRandomTask:task_callback(p1, p2, state)
 			end
 		end
 		self.active_task_by_type[p1] = nil
+		remove_timer(id_to_hash[task_info.name])
 	end
 end
 --' Выводит список доступных квестов
@@ -1198,6 +1200,24 @@ function CRandomTask:unregister_target(obj)
 end
 
 --' Напоминания
+local function get_time_str(task_desc)
+	if task_desc.time then
+		local ms = get_timer_shift(id_to_hash[task_desc.name])
+		if ms then
+			local m = math.ceil(ms/60000)
+			local h = math.floor(m/60)
+			m = m%60
+			local d = math.floor(h/24)
+			h = h%24
+			return " (осталось"..
+				(d > 0 and " "..tostring(d).."дн." or "")..
+				(h > 0 and " "..tostring(h).."ч." or "")..
+				(m > 0 and " "..tostring(m).."мин." or "")..
+				")"
+		end
+	end
+	return ""
+end
 local parent_names = {}
 function CRandomTask:remind()
 	local parent, sid, task_desc, txt_desc
@@ -1230,7 +1250,8 @@ function CRandomTask:remind()
 				str = str..
 					"%c[green_blue]"..parent_names[sid]..
 					" > %c[green_blue_light2]"..get_string(task_desc.type)..
-					": %c[default]"..get_string(txt_desc).."\\n"
+					": %c[default]"..get_string(txt_desc)..
+					get_time_str(task_desc).."\\n"
 			end
 		elseif task_desc.status == "selected" then
 			if task_desc.type == "eliminate_lager"
@@ -1248,7 +1269,8 @@ function CRandomTask:remind()
 						str = str..
 							"%c[green_blue]"..parent_names[sid]..
 							" > %c[green_blue_light2]"..get_string(task_desc.type)..
-							": %c[default]"..get_string(task_desc.name).."\\n"
+							": %c[default]"..get_string(task_desc.name)..
+							get_time_str(task_desc).."\\n"
 					end
 				end
 			end
