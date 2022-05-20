@@ -1,0 +1,56 @@
+[logic]
+active = ph_idle
+on_hit = hit
+
+[ph_sound@humor]
+snd = humor
+on_info = {+esc_blockpost_alarm} ph_sound@alarm
+on_info2 = {=esc_blokpost_night} ph_idle
+on_info3 = {+esc_commander_die} ph_sound@epic_alone
+on_signal = sound_end|ph_idle@wait
+on_info4 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_idle@wait]
+on_timer = 10000| ph_sound@epic
+on_info2 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_sound@epic]
+snd = epic
+on_info = {+esc_blockpost_alarm} ph_sound@alarm
+on_info2 = {=esc_blokpost_night} ph_idle
+on_info3 = {+esc_commander_die} ph_sound@epic_alone
+on_signal = sound_end|ph_idle@wait2
+on_info4 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_idle@wait2]
+on_timer = 10000| ph_sound@humor
+on_info2 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_sound@alarm]
+snd = alarm1
+on_info = {+esc_blockpost_normal +esc_commander_die} ph_sound@epic_alone
+on_info2 = {+esc_blockpost_normal -esc_commander_die} ph_sound@humor
+on_info3 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_idle]
+on_info = {+esc_blockpost_alarm} ph_sound@alarm
+on_info2 = {!esc_blokpost_night -esc_commander_die} ph_sound@humor
+on_info3 = {!esc_blokpost_night +esc_commander_die} ph_sound@epic_alone
+on_info4 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_sound@epic_alone]
+snd = epic
+on_info = {+esc_blockpost_alarm} ph_sound@alarm
+on_info2 = {=esc_blokpost_night} ph_idle
+on_signal = sound_end|ph_idle@wait3
+on_info3 = {+esc_matugalnik_off} ph_idle@off
+
+[ph_idle@wait3]
+on_timer = 30000|ph_sound@epic_alone
+on_info = {+esc_matugalnik_off} ph_idle@off
+
+[ph_idle@off]
+on_actor_dist_ge = 150| {=gulag_population_ge(esc_blokpost:5)} ph_idle %-esc_matugalnik_off%
+
+[hit]
+on_info = %+esc_matugalnik_off%
