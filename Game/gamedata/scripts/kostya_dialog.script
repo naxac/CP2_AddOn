@@ -1895,11 +1895,38 @@ function kill_online_kontroller()
 	local result = false
 	for id,obj in pairs(db.creatures) do
 		if obj and obj:clsid() == clsid.controller_s and obj:alive() then
-			obj:kill(obj)
+			se_monster.off_online_kontroller = true
+			-- news_manager.send_tip("kill_online_kontroller", nil, "nano", 30000)
 			result = true
+			break
 		end
 	end
-	return result
+	if result then
+		_G._quit_dik = bind_to_dik( key_bindings.kQUIT )
+		get_console():execute( "unbind quit" )
+		_G._jump_dik = bind_to_dik( key_bindings.kJUMP )
+		get_console():execute( "unbind jump" )
+		local cs = get_hud():AddCustomStatic( "cs_reminder", true )
+		local w = cs:wnd()
+		w:SetFont( GetFontGraffiti32Russian() )
+		w:SetTextST( "kill_online_kontroller" )
+		w:SetWndPos( (512-w:GetWidth()/2), 50 )
+		w:SetTextAlign( CGameFont.alCenter )
+		start_small_timer(7000,
+			function ()
+			--	log("~ work binding")
+				local key = hotkeys.dik2key( _G._quit_dik )
+				if not key:find("MOUSE") then key = "k"..key end
+				get_console():execute( "bind quit "..string.lower( key ) )
+				key = hotkeys.dik2key( _G._jump_dik )
+				if not key:find("MOUSE") then key = "k"..key end
+				get_console():execute( "bind jump "..string.lower( key ) )
+				if get_hud():GetCustomStatic( "cs_reminder" ) then
+					get_hud():RemoveCustomStatic( "cs_reminder" )
+				end
+			end
+		)
+	end
 end
 
 function s_inventory_box1()

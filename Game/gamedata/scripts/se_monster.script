@@ -5,6 +5,7 @@
 	5 - сохранение поля was_in_smart_terrain
 	modyfied by xStream
 ]]
+off_online_kontroller = false
 custom_data_on_spawn = nil
 
 need_be_online = {}
@@ -146,10 +147,14 @@ function se_monster:can_switch_online()
 	if self:clsid() == clsid.psy_dog_phantom_s then
 		return save_state( self, cse_alife_monster_base.can_switch_online(self) )
 	end
- 
+
 	-- если игрока нет, то в оффлайн
 	if Actor == nil then
 		return save_state(self, false) 
+	end
+
+	if off_online_kontroller and self:clsid() == clsid.controller_s then
+		return save_state(self, false)
 	end
 
 	-- Если в custom_data зверушки есть cond в секции [spawner], то это условие должно иметь приоритет.
