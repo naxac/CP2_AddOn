@@ -2519,9 +2519,10 @@ function close_lock_box(box_id, code)
 	cd.logic = { cfg = "scripts\\code_inventory_box.ltx" }
 	data.custom_data = netpk:gen_custom_data(cd)
 	netpk:set(se_box, data)
-	zamok.restore(se_box, 1, code)
 
 	local box = level.object_by_id(box_id)
+	local num = 0
+
 	if box then
 		local zz = AI:create( "zamok", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id() )
 		start_small_timer(500, function()
@@ -2535,7 +2536,10 @@ function close_lock_box(box_id, code)
 		xr_logic.initialize_obj(box, st, false, Actor, modules.stype_item, "scripts\\code_inventory_box.ltx")
 	else
 		AI:create( "zamok", se_box.position, se_box.m_level_vertex_id, se_box.m_game_vertex_id, box_id )
+		num = 1
 	end
+
+	zamok.restore(se_box, num, code)
 
 	return code
 end
