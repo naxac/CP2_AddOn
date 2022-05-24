@@ -2002,11 +2002,12 @@ function do_seen_monster()
 					-- Слишком близко.
 					return
 				end
-				log("# [news_main.do_seen_monster] create monster for news: %s", class)
+				local lname = AI:level_name( GGraph:vertex(gv):level_id() )
+				log("# [news_main.do_seen_monster] create monster for news [%s] on level '%s'", class, lname)
 				se_monster.custom_data_on_spawn = "[smart_terrains]\n".."none = true"
 				obj = AI:create(class, new_pos, lv, gv)
 				if se_monster.custom_data_on_spawn then
-					log("~ [news_main.do_seen_monster] spawned obj is no monster: %s", obj:name())
+					log("! [news_main.do_seen_monster] spawned obj is no monster: %s", obj:name())
 					se_monster.custom_data_on_spawn = nil
 				end
 				if (obj) then
@@ -2788,7 +2789,7 @@ function on_miniquest_reward(trader)
 				local t = netpk:get(obj, netpk.fState)
 				local cd = netpk:parse_custom_data(t.custom_data)
 				cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
-				table.print(cd)
+			--	table.print(cd)
 				if (cd.microquest and cd.microquest.reward_money and cd.microquest.reward_items) then
 					money = tonumber(cd.microquest.reward_money)
 					items = cd.microquest.reward_items
