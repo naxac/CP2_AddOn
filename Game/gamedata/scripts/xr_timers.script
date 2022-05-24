@@ -150,6 +150,20 @@ function nTimers:remove_timer_by_parameter(name, parameter)
 	end
 end
 
+function nTimers:get_timer_shift( timer_name )
+	for k, v in pairs( self.timers ) do
+		for i, t in ipairs(v) do
+			if t.name == timer_name then
+				if k == "game" then
+					return t.time - game_time_ms
+				else
+					return t.time - time_global()
+				end
+			end
+		end
+	end
+end
+
 function nTimers:start_timer( name, time, params, real )
 	local t = {}
 	t.name = name
@@ -215,6 +229,9 @@ _G.has_timer = function ( name )
 end
 _G.get_timer = function ( name )
 	return get_mgr():get_timer( name )
+end
+_G.get_timer_shift = function ( name )
+	return get_mgr():get_timer_shift( name )
 end
 _G.has_timer_by_parameter = function( name, p )
 	return get_mgr():has_timer_by_parameter( name, p )
