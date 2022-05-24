@@ -25,14 +25,20 @@ function main( rewrite )
 
 	local info_portions = {}
 	local files = {}
-	ui_info_menu.list_info = {}
-	ui_info_menu.list_info.info_portions = info_portions
+
+	if ui_info_menu.list_info  and rewrite then
+		info_portions = ui_info_menu.list_info.info_portions
+	else
+		ui_info_menu.list_info = {}
+		ui_info_menu.list_info.info_portions = info_portions
+	end
 	ui_info_menu.list_info.files = files
 
 	local str = sys_ini:r_string( "info_portions", "files" )
 	for s in string.gmatch( str, "[^,^%s]+" ) do
 		table.insert( files, s )
 	end
+
 
 	local fs = getFS()
 	local ex = fs:exist( "$game_config$", "cheat_list_info.ltx" )
@@ -51,8 +57,12 @@ function main( rewrite )
 				info_portions[ f ] = "File not exist"
 				mylog( "! %s: Error! File not found: [%s]", script_name(), p )
 			elseif ex.modif == 0 then
-				info_portions[ f ] = "File don't unpack"
-				mylog( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
+				if not rewrite or info_portions[ f ] == nil then
+					info_portions[ f ] = "File don't unpack"
+					mylog( "! %s: folder 'config' hasn't full unpack! File not found: [%s]", script_name(), p )
+				else
+					mylog( "~ %s: File [%s] is not unpacked, can't update it", script_name(), p )
+				end
 			else
 				mylog( "parse file %s", p )
 				local file = fs:r_open("$game_config$", p)

@@ -157,6 +157,10 @@ function cheat_menu:InitControls()
 	self.btn_del = xml:Init3tButton("main_dialog:btn_delitem", dialog)
 	self.btn_del:Enable(false)
 	self:Register(self.btn_del, "btn_del")
+
+	ctrl = xml:Init3tButton("main_dialog:btn_update", dialog)
+	self:Register(ctrl, "btn_update")
+
 	-- Поиск по имени
 	ctrl = xml:Init3tButton("main_dialog:btn_search", dialog)
 	self:Register(ctrl, "btn_search")
@@ -223,6 +227,7 @@ function cheat_menu:InitCallBacks()
 	self:AddCallback("btn_cancel",         ui_events.BUTTON_CLICKED,          self.OnBtnCancel,         self)
 	self:AddCallback("btn_spawn",          ui_events.BUTTON_CLICKED,          self.OnBtnSpawn,          self)
 	self:AddCallback("btn_del",            ui_events.BUTTON_CLICKED,          self.OnBtnDelete,         self)
+	self:AddCallback("btn_update",         ui_events.BUTTON_CLICKED,          self.OnBtnUpdate,         self)
 	self:AddCallback("btn_search",         ui_events.BUTTON_CLICKED,          self.SearchItem,          self)
 	self:AddCallback("list_window",        ui_events.LIST_ITEM_CLICKED,       self.OnListItemClicked,   self)
 	self:AddCallback("list_window",        ui_events.WINDOW_LBUTTON_DB_CLICK, self.OnListItemDbClicked, self)
@@ -231,6 +236,12 @@ function cheat_menu:InitCallBacks()
 		self:AddCallback("btn_info",		ui_events.BUTTON_CLICKED,         self.OnBtnInfoMenu,       self)
 		self:AddCallback("btn_set_params",	ui_events.BUTTON_CLICKED,         self.SetActorParams,      self)
 	end
+end
+
+function cheat_menu:OnBtnUpdate()
+	self.list_sections = this.init_cheat_table(true)
+	self:FillList()
+	self:OnTabChange()
 end
 
 function cheat_menu:OnBtnShowDescr()
@@ -927,13 +938,13 @@ function start_menu( self )
 	self:Show( false )
 end
 
-function init_cheat_table()
+function init_cheat_table(update)
 	if not _G.sys_ini then
 		_G.sys_ini = system_ini()
 	end
 
 	local cheat_list = {}
-	local tmp = collect_sections.main()
+	local tmp = collect_sections.main(update)
 	local name
 	for i, v in ipairs(index2type) do
 		local tbl = tmp[v]

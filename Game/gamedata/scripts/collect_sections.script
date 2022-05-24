@@ -29,18 +29,20 @@ function main( rewrite )
 		return sections, sections_count
 	end
 
-	sections = {}
+	if sections == nil or not rewrite then
+		sections = {}
 
-	local ini = ini_file("collect_sections.ltx")
-	local res, id, val, s
-	for i = 0, ini:line_count("types")-1 do
-		res, id, val = ini:r_line("types", i, "", "")
-		sections[id] = {}
-		if ini:section_exist(id) then
-			for j = 0, ini:line_count(id)-1 do
-				res, s, val = ini:r_line(id, j, "", "")
-				if clsid[s] then
-					clsid2type[ clsid[s] ] = id
+		local ini = ini_file("collect_sections.ltx")
+		local res, id, val, s
+		for i = 0, ini:line_count("types")-1 do
+			res, id, val = ini:r_line("types", i, "", "")
+			sections[id] = {}
+			if ini:section_exist(id) then
+				for j = 0, ini:line_count(id)-1 do
+					res, s, val = ini:r_line(id, j, "", "")
+					if clsid[s] then
+						clsid2type[ clsid[s] ] = id
+					end
 				end
 			end
 		end
@@ -60,7 +62,7 @@ function main( rewrite )
 			local f2 = fs:update_path("$game_config$", "cheat_list.ltx")
 			fs:file_copy(f1, f2)
 			
-			this.collect()
+			this.collect(rewrite)
 
 			local file = io.open(f2,"w")
 			if file then
@@ -97,7 +99,7 @@ function main( rewrite )
 	return sections, sections_count
 end
 
-function collect()
+function collect(rewrite)
 	local fs = getFS()
 	local path, file, ex
 	while true do
@@ -109,13 +111,13 @@ function collect()
 			mylog( "~ collect_sections: folder 'config' hasn't full unpack! Can't read file: [%s]", path )
 		else
 			file = fs:r_open("$game_config$", path)
-			find_somewhat( file:r_stringZ(), path )
+			find_somewhat( file:r_stringZ(), path, rewrite )
 		end
 		if #included == 0 then break end
 	end
 end
 -- Ищем секции и инклуды в файле
-function find_somewhat( file, path )
+function find_somewhat( file, path, update )
 	-- если путь многоуровневый, то сформируем путь для инклуда
 	local do_path = nil
 	if path:find( "\\" ) then
@@ -132,8 +134,23 @@ function find_somewhat( file, path )
 		path = string.match( line, '^#include%s+(%b"")' )
 		if sect then	-- нашли секцию
 			sect = sect:sub( 2, -2 )
-			if check_section( sect ) then
-			--	mylog( "collect_sections: section found [%s]", sect )
+			if update then
+				local res = false
+				for k, v in pairs(sections) do
+					if table.find(v, sect) then
+						res = true
+						break
+					end
+				end
+				if not res then
+					if check_section( sect ) then
+						mylog( "# collect_sections: new section found [%s]", sect )
+					end
+				end
+			else
+				if check_section( sect ) then
+				--	mylog( "collect_sections: section found [%s]", sect )
+				end
 			end
 		elseif path then		-- нашли инклуд
 			path = path:sub( 2, -2 )
