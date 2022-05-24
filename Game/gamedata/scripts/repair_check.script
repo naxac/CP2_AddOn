@@ -106,17 +106,22 @@ end
 -- главный прекондишн: может ли непись ремонтировать? 
 function can_repair(first_speaker, second_speaker)
 	-- Общие поршни
-	if not has_alife_info("tutorial_end") then
+	if Actor:dont_has_info("tutorial_end") then
 		return false
 	end
-	
+
 	-- Поршни по неписям. 
+	local npc = (first_speaker:id() == 0) and second_speaker or first_speaker
 	-- Сяк на Радаре
-	if second_speaker:profile_name() == "Sak" and not has_alife_info("sak_repair_box_done") then 
+	if npc:profile_name() == "Sak" and Actor:dont_has_info("sak_repair_box_done") then 
 		return false
 	end
 	-- Долговязый
-	if second_speaker:profile_name() == "dolgovazyi" and not has_alife_info("dolgovazyi_toolkit_done") then 
+	if npc:profile_name() == "dolgovazyi" and Actor:dont_has_info("dolgovazyi_toolkit_done") then 
+		return false
+	end
+	-- Василий
+	if npc:profile_name() == "marsh_remont" and Actor:dont_has_info("marsh_remont_done") then 
 		return false
 	end
 
