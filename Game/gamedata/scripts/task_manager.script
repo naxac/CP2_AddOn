@@ -550,7 +550,7 @@ function CRandomTask:action_give_task(actor, npc, p1, p2)
 		task:set_title(task:get_title().."\\n%c[255,150,150,180]до "..title_time:dateToString(game.CTime.DateToDay))
 
 		time = task_desc.time * 1000
-		start_game_timer(id_to_hash[task_desc.name], 0, 0, task_desc.time/60)
+		amk.save_variable("tm"..tostring(id_to_hash[task_desc.name]), math.ceil(game_time_minutes + task_desc.time/60))
 	end
 	Actor:give_task(task,time,false)
 
@@ -717,7 +717,7 @@ function CRandomTask:task_callback(p1, p2, state)
 			end
 		end
 		self.active_task_by_type[p1] = nil
-		remove_timer(id_to_hash[task_info.name])
+		amk.del_variable("tm"..tostring(id_to_hash[task_info.name]))
 	end
 end
 --' Выводит список доступных квестов
@@ -1200,81 +1200,82 @@ function CRandomTask:unregister_target(obj)
 end
 
 --' Напоминания
-local function get_time_str(task_desc)
-	if task_desc.time then
-		local ms = get_timer_shift(id_to_hash[task_desc.name])
-		if ms then
-			local m = math.ceil(ms/60000)
-			local h = math.floor(m/60)
-			m = m%60
-			local d = math.floor(h/24)
-			h = h%24
-			return " (осталось"..
-				(d > 0 and " "..tostring(d).."дн." or "")..
-				(h > 0 and " "..tostring(h).."ч." or "")..
-				(m > 0 and " "..tostring(m).."мин." or "")..
-				")"
-		end
+local function get_time_str(task_name)
+	local m = amk.load_variable("tm"..tostring(id_to_hash[task_name]), nil)
+	if m then
+		m = m - game_time_minutes
+		local h = math.floor(m/60)
+		m = m%60
+		local d = math.floor(h/24)
+		h = h%24
+		return " (осталось"..
+			(d > 0 and " "..tostring(d).."дн." or "")..
+			(h > 0 and " "..tostring(h).."ч." or "")..
+			(m > 0 and " "..tostring(m).."мин." or "")..
+			")"
 	end
 	return ""
 end
 local parent_names = {}
 function CRandomTask:remind()
-	local parent, sid, task_desc, txt_desc
+	local parent, sid, task_desc, txt_desc, time_str
 	local str = ""
 	local level_id = AI:level_id()
-
+	local tmp = {}
 	for k,v in pairs(self.active_task_by_type) do
 		task_desc = self.task_info[v]
 
-		if task_desc.status == "completed" then
+		if task_desc.status == "selected"
+			or task_desc.status == "completed"
+		then
 			sid = tonumber(story_by_parent[task_desc.parent])
 			parent = AI:story_object(sid)
-
 			if parent
-				and (parent:clsid() == clsid.script_trader or parent:alive())
-				and GGraph:vertex(parent.m_game_vertex_id):level_id() == level_id
+				and ( parent:clsid() == clsid.script_trader
+				or parent:alive() )
 			then
-				-- формируем сообщение
-				if not parent_names[sid] then 
-					parent_names[sid] = reminder.get_npc_name(parent)
-				end
-				if task_desc.type == "artefact"
-					or task_desc.type == "monster_part"
-					or task_desc.type == "find_item"
+				local need_show = false
+				if task_desc.status == "completed"
+					and GGraph:vertex(parent.m_game_vertex_id):level_id() == level_id
 				then
-					txt_desc = task_desc.name
-				else
-					txt_desc = return_task_by_type[task_desc.type]
+					need_show = true
+			
+				elseif task_desc.status == "selected"
+					and ( task_desc.type == "eliminate_lager"
+					or task_desc.type == "defend_lager"
+					or task_desc.type == "kill_stalker" )
+					and task_desc.selected_target
+					and AI:object(task_desc.selected_target)
+					and GGraph:vertex( AI:object(task_desc.selected_target).m_game_vertex_id ):level_id() == level_id
+				then
+					need_show = true
+
+				elseif task_desc.time then
+					need_show = true
 				end
-				str = str..
-					"%c[green_blue]"..parent_names[sid]..
-					" > %c[green_blue_light2]"..get_string(task_desc.type)..
-					": %c[default]"..get_string(txt_desc)..
-					get_time_str(task_desc).."\\n"
-			end
-		elseif task_desc.status == "selected" then
-			if task_desc.type == "eliminate_lager"
-				or task_desc.type == "defend_lager"
-				or task_desc.type == "kill_stalker"
-			then
-				local oo = AI:object(task_desc.selected_target)
-				if oo and GGraph:vertex(oo.m_game_vertex_id):level_id() == level_id then
-					sid = tonumber(story_by_parent[task_desc.parent])
-					parent = AI:story_object(sid)
-					if parent and (parent:clsid() == clsid.script_trader or parent:alive()) then
-						if not parent_names[sid] then 
-							parent_names[sid] = reminder.get_npc_name(parent)
-						end
-						str = str..
-							"%c[green_blue]"..parent_names[sid]..
-							" > %c[green_blue_light2]"..get_string(task_desc.type)..
-							": %c[default]"..get_string(task_desc.name)..
-							get_time_str(task_desc).."\\n"
+
+				if need_show then
+					if not parent_names[sid] then 
+						parent_names[sid] = reminder.get_npc_name(parent)
 					end
+					if task_desc.status == "completed"
+						and ( task_desc.type == "eliminate_lager"
+						or task_desc.type == "defend_lager"
+						or task_desc.type == "kill_stalker" )
+					then
+						txt_desc = return_task_by_type[task_desc.type]
+					else
+						txt_desc = task_desc.name
+					end
+
+					str = str..
+						"%c[green_blue]"..parent_names[sid]..
+						" > %c[green_blue_light2]"..get_string(task_desc.type)..
+						": %c[default]"..get_string(txt_desc)..
+						get_time_str(task_desc.name).."\\n"
 				end
 			end
-		end       
+		end
 	end
 
 	-- Выдаем напоминания
