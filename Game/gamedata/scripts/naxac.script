@@ -1,6 +1,31 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
-local current_fix = 122
+local current_fix = 124
 
+function fix_124()
+	local anoms = {
+		"peshera_arhara_anom2",
+		"peshera_arhara_anom3",
+		"peshera_arhara_anom4",
+		"peshera_arhara_anom6"
+	}
+	for i, v in ipairs(anoms) do
+		local obj = AI:object(v)
+		if obj then
+			netpk:modify(obj, {disabled_time = 5}, netpk.fState)
+		end
+	end
+end
+function fix_123()
+	if Actor:has_info("angar_fanat") and Actor:dont_has_info("angar_fanat_have") then
+		Actor:disable_info_portion("angar_fanat")
+		Actor:give_info_portion("angar_fanat")
+	end
+	local obj = AI:story_object(story_ids.esc_matugalnik)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.esc_matugalnik) )
+	end
+end
 function fix_122()
 	local obj = AI:story_object(story_ids.grom_npc)
 	if obj and obj:alive() then

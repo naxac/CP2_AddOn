@@ -325,12 +325,12 @@ class CUITrackBar : CUIWindow {
 };
 
 class CUIStatic : CUIWindow {
-	void		SetTextComplexMode(bool);
-	void		SetVTextAlign(int<CGameFont*>);
-	void		AdjustHeightToText();	// xml: adjust_height_to_text
-	void		AdjustWeigthToText();	// xml: adjust_width_to_text
+	void		SetTextComplexMode(bool);		// xml: copmlex_mode
+	void		SetVTextAlign(int<CGameFont*>);	// xml: vert_align
+	void		AdjustHeightToText();			// xml: adjust_height_to_text
+	void		AdjustWeigthToText();			// xml: adjust_width_to_text
 	void		SetTextPos(float<x>, float<y>);
-	bool		CanRotate(bool);
+	bool		CanRotate(bool);				// xml: heading
 	vector2*	GetWndSize();
 };
 
