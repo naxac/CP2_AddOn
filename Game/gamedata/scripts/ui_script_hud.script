@@ -29,7 +29,7 @@ local detector = nil
 
 local level_spots = {}
 
-local spot2texture = {
+local map_spots = {
 	["blue_location"]              = { tex = "ui_icons_newPDA_SmallBlue",           sz = 11, below_above = true },
 	["green_location"]             = { tex = "ui_icons_newPDA_SmallGreen",          sz = 11, below_above = true },
 	["red_location"]               = { tex = "ui_icons_newPDA_SmallRed",            sz = 11, below_above = true },
@@ -61,23 +61,23 @@ local spot2texture = {
 	["anomaly_sphere_location"]    = { tex = "anomaly_sphere",                      sz = 16, below_above = false },
 	["anomaly_smallrain_location"] = { tex = "anomaly_smallrain",                   sz = 16, below_above = false },
 	["level_changer"]              = { tex = "ui_mapPDA_level_changer",             sz = 15, below_above = false },
-	["level_changer1"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
-	["level_changer2"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
-	["level_changer3"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
-	["level_changer4"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
+	["level_changer1"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false, heading = true },
+	["level_changer2"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false, heading = true },
+	["level_changer3"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false, heading = true },
+	["level_changer4"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false, heading = true },
 	["level_changer5"]             = { tex = "ui_mapPDA_level_changer5",            sz = 15, below_above = false },
 	["treasure"]                   = { tex = "ui_mapPDA_treasure",                  sz = 15, below_above = false },
 	["profi"]                      = { tex = "ui_mapPDA_profi_targ_spot",           sz = 16, below_above = false },
 	["rx_gl_alarm"]                = { tex = "ui_frame_error_sign_red",             sz = 48, below_above = false },
-	["crlc_big_1"]                 = { tex = "ui_icons_newPDA_Crclbig_1",           sz = 100, below_above = false },
-	["crlc_big_2"]                 = { tex = "ui_icons_newPDA_Crclbig_2",           sz = 100, below_above = false },
-	["crlc_big_3"]                 = { tex = "ui_icons_newPDA_Crclbig_3",           sz = 100, below_above = false },
-	["crlc_big_4"]                 = { tex = "ui_icons_newPDA_Crclbig_4",           sz = 100, below_above = false },
-	["crlc_big_5"]                 = { tex = "ui_icons_newPDA_Crclbig_5",           sz = 100, below_above = false },
-	["crlc_big_6"]                 = { tex = "ui_icons_newPDA_Crclbig_6",           sz = 100, below_above = false },
-	["crlc_big_7"]                 = { tex = "ui_icons_newPDA_Crclbig_7",           sz = 100, below_above = false },
-	["crlc_big_8"]                 = { tex = "ui_icons_newPDA_Crclbig_8",           sz = 100, below_above = false },
-	["crlc_big_9"]                 = { tex = "ui_icons_newPDA_Crclbig_9",           sz = 100, below_above = false },
+	["crlc_big_1"]                 = { tex = "ui_icons_newPDA_Crclbig_1",           sz = 100, below_above = false, heading = true },
+	["crlc_big_2"]                 = { tex = "ui_icons_newPDA_Crclbig_2",           sz = 100, below_above = false, heading = true },
+	["crlc_big_3"]                 = { tex = "ui_icons_newPDA_Crclbig_3",           sz = 100, below_above = false, heading = true },
+	["crlc_big_4"]                 = { tex = "ui_icons_newPDA_Crclbig_4",           sz = 100, below_above = false, heading = true },
+	["crlc_big_5"]                 = { tex = "ui_icons_newPDA_Crclbig_5",           sz = 100, below_above = false, heading = true },
+	["crlc_big_6"]                 = { tex = "ui_icons_newPDA_Crclbig_6",           sz = 100, below_above = false, heading = true },
+	["crlc_big_7"]                 = { tex = "ui_icons_newPDA_Crclbig_7",           sz = 100, below_above = false, heading = true },
+	["crlc_big_8"]                 = { tex = "ui_icons_newPDA_Crclbig_8",           sz = 100, below_above = false, heading = true },
+	["crlc_big_9"]                 = { tex = "ui_icons_newPDA_Crclbig_9",           sz = 100, below_above = false, heading = true },
 	["npc"]                        = { tex = "ui_minimap_point",                    sz =  3, below_above = false }
 }
 ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ function UIScriptHUD:__init()
 	)
 	self.minimap_center = st
 
-	self.map_spots = {}
+	self.level_spots = {}
 	self.del_spots = {}
 
 	st = xml:InitStatic("background", self)
@@ -184,7 +184,7 @@ function UIScriptHUD:Update(delta)
 		for i, v in ipairs(self.del_spots) do
 			n = self:FindSpot( v[1], v[2] )
 			if n then
-				self.map:DetachChild( table.remove(self.map_spots, n) )
+				self.map:DetachChild( table.remove(self.level_spots, n) )
 			end
 		end
 		self.del_spots = {}
@@ -305,8 +305,8 @@ function UIScriptHUD:UpdateMap()
 end
 
 function UIScriptHUD:RemoveAllSpots()
-	for i = 1, #self.map_spots do
-		self.map:DetachChild( table.remove(self.map_spots) )
+	for i = 1, #self.level_spots do
+		self.map:DetachChild( table.remove(self.level_spots) )
 	end
 	self.del_spots = {}
 end
@@ -324,7 +324,7 @@ function UIScriptHUD:NeedShowSpot(obj)
 			and obj.position:distance_to_xz(self.actor_pos) < map_dist
 end
 function UIScriptHUD:FindSpot(obj_id, spot_type)
-	for i, v in ipairs(self.map_spots) do
+	for i, v in ipairs(self.level_spots) do
 		if v.id == obj_id and v.type == spot_type then
 			return i
 		end
@@ -372,15 +372,18 @@ end
 
 function UIScriptHUD:UpdateSpots()
 	local t, obj
-	for i, spot in ipairs(self.map_spots) do
+	for i, spot in ipairs(self.level_spots) do
 		obj = level_object(spot.id)
 		amk.oau_reason="UIScriptHUD:UpdateSpots "..spot.id
 		if obj and self:NeedShowSpot( AI:object( spot.id ) ) then
 			if spot.type == "npc" or has_spot(spot.id, spot.type) ~= 0 then
-				t = spot2texture[spot.type]
+				t = map_spots[spot.type]
 
 				local offset = vector2():set(t.sz*kScreen/2, t.sz/2)
 				spot:SetWndPos( self:ConvertRealToLocal( obj:position() ):sub(offset):get() )
+				if t.heading then
+					spot:SetHeading(self.map_angle)
+				end
 
 				if t.below_above then
 					local below = self.actor_pos.y - obj:position().y
@@ -436,7 +439,7 @@ end
 function UIScriptHUD:DrawSpot(obj, spot_type)
 	if spot_type == nil then return nil end
 
-	local t = spot2texture[spot_type]
+	local t = map_spots[spot_type]
 	if not t then
 		log("[UIScriptHUD:DrawSpot] No settings for spot type '%s'", spot_type)
 		return
@@ -451,12 +454,15 @@ function UIScriptHUD:DrawSpot(obj, spot_type)
 	st:Init(t.tex, pos.x-w/2, pos.y-h/2, w, h)
 	st:SetAutoDelete(true)
 	st:SetStretchTexture(true)
+	if t.heading then
+		st:CanRotate(true)
+	end
 	self.map:AttachChild(st)
 	st:Show(true)
 	st.id = obj.id
 	st.type = spot_type
 
-	table_insert(self.map_spots, st)
+	table_insert(self.level_spots, st)
 
 	return st
 end
@@ -591,7 +597,7 @@ end
 
 ---------------------------------------------------------------------------
 function add_spot(spot_type, obj_id)
-	if not spot2texture[spot_type] then
+	if not map_spots[spot_type] then
 		return
 	end
 
@@ -623,7 +629,7 @@ end
 
 function load_spot_from_obj(se_obj)
 	local id = se_obj.id
-	for st in pairs(spot2texture) do
+	for st in pairs(map_spots) do
 		if st ~= "npc" and has_spot(id, st) ~= 0 then
 		--	log("load_spot_from_obj: %s (%s::%s)", se_obj:name(), id, st)
 			table_insert( level_spots, {id, st} )
