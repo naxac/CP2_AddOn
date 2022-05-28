@@ -20,6 +20,8 @@ local set_sleep_time = 0
 local get_seconds = amk.game_seconds
 local time_factor = nil
 local last_health = 0
+local no_sleep_health = false
+local mus_vol, amb_vol
 
 local function check_sleep_time()
 	if ( get_seconds() >= set_sleep_time ) or isSleepActive == false then
@@ -36,6 +38,11 @@ function main(scale)		-- in hours
 	if isSleepActive then
 		return
 	end
+
+	mus_vol = get_console():get_float("snd_volume_music")
+	amb_vol = get_console():get_float("snd_volume_eff")
+	get_console():execute("snd_volume_music 0")
+	get_console():execute("snd_volume_eff 0")
 
 	isSleepActive = true
 	Actor:stop_talk()
@@ -66,6 +73,7 @@ function stop_scaling()
 		game.start_tutorial("time_scaling")
 		return
 	elseif last_health > Actor.health+0.02 then
+		no_sleep_health = true
 		stopper()
 		news_manager.send_tip("st_sleep_actory_xpenovo", 7, "str", 10000)
 		return
@@ -77,10 +85,10 @@ end
 function dreamer()
 	if not isSleepActive then return end
 
-	get_console():execute("snd_volume_music "..tostring(_G.mus_vol))
-	get_console():execute("snd_volume_eff "..tostring(_G.amb_vol))
-	_G.amb_vol = nil
-	_G.mus_vol = nil
+	get_console():execute("snd_volume_music "..tostring(mus_vol))
+	get_console():execute("snd_volume_eff "..tostring(amb_vol))
+	amb_vol = nil
+	mus_vol = nil
 
 	level.set_time_factor(time_factor)
 
@@ -98,11 +106,11 @@ function stopper()
 	level.remove_call(check_sleep_time, restore_time_factor)
 	level.set_time_factor(time_factor)
 
-	if _G.amb_vol and _G.mus_vol then
-		get_console():execute("snd_volume_music "..tostring(_G.mus_vol))
-		get_console():execute("snd_volume_eff "..tostring(_G.amb_vol))
-		_G.amb_vol = nil
-		_G.mus_vol = nil
+	if amb_vol and mus_vol then
+		get_console():execute("snd_volume_music "..tostring(mus_vol))
+		get_console():execute("snd_volume_eff "..tostring(amb_vol))
+		amb_vol = nil
+		mus_vol = nil
 	end
 
 	if Actor:alive() then
@@ -146,7 +154,7 @@ function reduce_need_sleep(_time)	-- in hours
 end
 
 function test_for_need_sleep()
-	if not sleep_manager.is_sleep_active() then
+	if not isSleepActive then
 		-- одна единица этой переменной содержит 6 игровых минут бодрствования
 		local v = amk.load_variable("gg_need_sleep",0) + 1
 		amk.save_variable("gg_need_sleep", v)
@@ -174,8 +182,8 @@ function test_sleep_pp(val)
 	local need_sleep = val/10	-- в часах для наглядности
 
 	-- вырубаемся на пять часоов + время, "занятое" энергетиками
-	if need_sleep > sleep_critical then
-		if sleep_manager.is_sleep_active() then return end
+	if need_sleep > sleep_critical and not no_sleep_health then
+		if isSleepActive then return end
 		level.add_cam_effector("camera_effects\\fusker.anm", 999, false, "sleep_manager.sleep_force")
 		return
 	end
@@ -195,6 +203,7 @@ end
 function test_for_need_sleep_med(v)
 	local vv = amk.load_variable("gg_need_sleep",0) + (v or 3)
 	amk.save_variable("gg_need_sleep", vv)
+	no_sleep_health = false
 	-- test_sleep_pp(vv)
 end
 
@@ -263,7 +272,7 @@ function test_for_need_sleep_matras()
 end
 
 function add_sleep(v)
-	if is_sleep_active() then return end
+	if isSleepActive then return end
 	amk.save_variable( "gg_need_sleep", amk.load_variable( "gg_need_sleep",0 ) + v*level.get_time_factor() )
 end
 
