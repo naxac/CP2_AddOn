@@ -1200,22 +1200,7 @@ function CRandomTask:unregister_target(obj)
 end
 
 --' Напоминания
-local function get_time_str(task_name)
-	local m = amk.load_variable("tm"..tostring(id_to_hash[task_name]), nil)
-	if m then
-		m = m - game_time_minutes
-		local h = math.floor(m/60)
-		m = m%60
-		local d = math.floor(h/24)
-		h = h%24
-		return " (осталось"..
-			(d > 0 and " "..tostring(d).."дн." or "")..
-			(h > 0 and " "..tostring(h).."ч." or "")..
-			(m > 0 and " "..tostring(m).."мин." or "")..
-			")"
-	end
-	return ""
-end
+local show_time_limit = 12*60 	-- game minutes
 local parent_names = {}
 function CRandomTask:remind()
 	if not game_options.RemindTaskMgr then
@@ -1239,6 +1224,7 @@ function CRandomTask:remind()
 				or parent:alive() )
 			then
 				local need_show = false
+				local time_str = ""
 				if task_desc.status == "completed"
 					and GGraph:vertex(parent.m_game_vertex_id):level_id() == level_id
 				then
@@ -1254,8 +1240,25 @@ function CRandomTask:remind()
 				then
 					need_show = true
 
-				elseif task_desc.time then
-					need_show = true
+				end
+
+				if task_desc.time then
+					local m = amk.load_variable("tm"..tostring(id_to_hash[task_desc.name]), nil)
+					if m then
+						m = m - game_time_minutes
+						if m < show_time_limit then
+							local h = math.floor(m/60)
+							m = m%60
+							--local d = math.floor(h/24)
+							--h = h%24
+							time_str = " (осталось"..
+							--	(d > 0 and " "..tostring(d).."дн." or "")..
+								(h > 0 and " "..tostring(h).."ч." or "")..
+								(m > 0 and " "..tostring(m).."мин." or "")..
+								")"
+							need_show = true
+						end
+					end
 				end
 
 				if need_show then
@@ -1275,8 +1278,7 @@ function CRandomTask:remind()
 					str = str..
 						"%c[green_blue]"..parent_names[sid]..
 						" > %c[green_blue_light2]"..get_string(task_desc.type)..
-						": %c[default]"..get_string(txt_desc)..
-						get_time_str(task_desc.name).."\\n"
+						": %c[default]"..get_string(txt_desc)..time_str.."\\n"
 				end
 			end
 		end
