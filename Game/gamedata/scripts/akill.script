@@ -9828,7 +9828,10 @@ end
 
 -- ПОДЗАРЯДКА
 function docent_chimera_start()
-	inventory.give_items("acumm",26)
+	for i = 1, 26 do
+		inventory.create_cond_item_to_actor("acumm", math.random(5,12)/100)
+	end
+	news_manager.relocate_item("in", "acumm", 26)
 	inventory.give_items("af_dummy_battery",2)
 	AI:create("chimera_quest",vector():set(390.01467895508,19.332548141479,-280.462890625),88301,1287)
 end
@@ -9844,16 +9847,39 @@ function docent_chimera_have()
 		return false
 	end
 end
+local use_timeout = 0
 function give_docent_acumm(actor, npc)
-	amk.remove_item_from_inventory_by_name("acumm",Actor)
-	amk_particle.amk_particle({particle="anomaly2\\electra2_blast", pos=npc:bone_position("bip01_spine"), sound="anomaly\\electra_blast1"})
-	inventory.give_items("docent_acumm",1)
-	Actor.health = -0.05
+	if inventory.search("docent_acumm",26)
+		or use_timeout > time_global()
+	then
+		return
+	end
+	use_timeout = time_global() + 500
+
+	local res, obj = false, nil
+	for i = 0, Actor:object_count()-1 do
+		obj = Actor:object(i)
+		if obj and obj:section() == "acumm"
+			and AI:object(obj:id()) ~= nil
+			and obj:condition() < 0.5
+		then
+			AI:release( AI:object(obj:id()), true )
+			AI:create("docent_acumm", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
+			amk.send_tip("Аккумулятор заряжен.", nil, nil, nil, "nano", "no_sound")
+			amk_particle.amk_particle( {
+				particle = "anomaly2\\electra2_blast",
+				pos      = npc:bone_position("bip01_spine"),
+				sound    = "anomaly\\electra_blast1"
+			} )
+			Actor.health = -0.05
+			break
+		end
+	end
 end
 function docent_chimera_done()
-	inventory.out_items("docent_acumm",26)
+	inventory.out_items_all("docent_acumm")
 	inventory.give_items("wpn_akms_otdaca_ves",1)
-	inventory.give_items("ammo_7.62x39_fmj",1)
+	inventory.give_items("ammo_7.62x39_fmj",2)
 	local obj
 	for a=1,65534,1 do
 	obj=AI:object(a)
