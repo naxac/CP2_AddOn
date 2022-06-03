@@ -110,7 +110,7 @@ function se_stalker:can_switch_online ()
 
 	if Actor ~= nil and Actor:alive () == false then
 		return self.online
-	end    
+	end
 
 	if self.online == false then
 		return (xr_logic.pick_section_from_condlist(Actor, self, self.spawner) ~= nil) and cse_alife_human_stalker.can_switch_online(self)
@@ -160,7 +160,7 @@ function se_stalker:STATE_Write (packet)
 		packet:w_u8(self.rot_time - game_hours)
 	else
 		-- гниёт
-		packet:w_u8( math.max((game_hours - self.rot_time + 24), 255) )
+		packet:w_u8(255)
 	end
 end
 --------------------
@@ -201,8 +201,8 @@ function se_stalker:STATE_Read (packet, size)
 	ddw = packet:r_u8()
 	if ddw == 0 then
 		self.rot_time = 0
-	elseif ddw > 24 then
-		self.rot_time = gh - ddw - 24
+	elseif ddw == 255 then
+		self.rot_time = gh - 1
 	else
 		self.rot_time = gh + ddw
 	end
