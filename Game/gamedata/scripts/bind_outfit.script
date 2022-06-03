@@ -170,13 +170,7 @@ function outfit_binder:set_accumm(sect, chrg, unload)
 	if self.current_accumm then
 		w = w - sys_ini:r_float(self.current_accumm, "inv_weight")
 		if unload and self.current_chrg > 0 then
-			local accum = AI:create(self.current_accumm, vector():set(0,0,0), 0, 0, 0)
-			netpk:modify(accum, {condition = self.current_chrg}, netpk.fState)
-			level.client_spawn_manager():add(accum.id, -1,
-				function(condition, id, obj)
-					obj:set_condition(condition)
-				end,
-			self.current_chrg)
+			inventory.create_cond_item_to_actor(self.current_accumm, self.current_chrg)
 		end
 	end
 	if w ~= 0 then

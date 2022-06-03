@@ -94,13 +94,7 @@ function minigun_binder:charge(new_charge)
 
 	local old_charge = self:get_charge_level()
 	if old_charge > 0 then
-		local accum = AI:create(self.accum_sect, vector():set(0,0,0), 0, 0, 0)
-		netpk:modify(accum, {condition = old_charge}, netpk.fState)
-		level.client_spawn_manager():add(accum.id, -1,
-			function(condition, id, obj)
-				obj:set_condition(condition)
-			end,
-		old_charge)
+		inventory.create_cond_item_to_actor(self.accum_sect, old_charge)
 		self.object:set_weight( self.object:get_weight() - sys_ini:r_float(self.accum_sect, "inv_weight") )
 	end
 
