@@ -206,25 +206,28 @@ function motivator_binder:hit_callback(obj, amount, local_direction, who, bone_i
 	end
 
 	if who then
-		local gulag = xr_gulag.get_npc_gulag( self.object )
 		if who:section()=="stationary_pkm" then	-- стрелять из турели кроме актора некому: делаем его виновником
 			who = Actor
 			if self.object:relation(Actor) ~= game_object.enemy then
 				self.object:set_relation(game_object.enemy, Actor)
+				local gulag = xr_gulag.get_npc_gulag( self.object )
 				if gulag then
 					xr_gulag.setGulagEnemy(gulag.name , Actor)
 				--	log("motivator_binder:hit_callback, set gulag [%s] enemy for actor", gulag.name)
 				end
 			end
 		end
-		if gulag then
-			for obj_id, o in pairs( gulag.Object ) do
-				if o ~= true and level.object_by_id( obj_id ) ~= nil then
-					o:enable_memory_object(who, true)
+		if IsStalker(who) or IsMonster(who) then
+			local gulag = xr_gulag.get_npc_gulag( self.object )
+			if gulag then
+				for obj_id, o in pairs( gulag.Object ) do
+					if o ~= true and level.object_by_id( obj_id ) ~= nil then
+						o:enable_memory_object(who, true)
+					end
 				end
+			else
+				self.object:enable_memory_object(who, true)	-- это вообще работает? что-то толку не особо...
 			end
-		else
-			self.object:enable_memory_object(who, true)	-- это вообще работает? что-то толку не особо...
 		end
 	end
 
@@ -541,7 +544,7 @@ end
 function motivator_binder:rotting()
 	self.pos = self.object:position()
 	
-	if self.pos:distance_to(Actor:position()) < 3 then
+	if self.pos:distance_to_sqr(Actor:position()) < 25 then
 		if not self.rot_sound then
 			self.rot_sound = sound_object([[anomaly\rot_flies]])
 			db.rotting = db.rotting+1
