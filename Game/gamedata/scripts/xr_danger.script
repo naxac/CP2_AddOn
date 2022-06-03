@@ -4,19 +4,26 @@
 --'	автор: Диденко Руслан (Stohe)
 --'	TODO: 
 ----------------------------------------------------------------------------------------------------------------------
+local def = {
+	ignore_distance			= 150,
+	ignore_distance_grenade	= 15,
+	ignore_distance_corpse	= 10,
+	ignore_distance_hit		= 150,
+	ignore_distance_sound	= 50,
 
-local def_ignore_distance			= 150
-local def_ignore_distance_grenade	= 15
-local def_ignore_distance_corpse	= 10
-local def_ignore_distance_hit		= 150
-local def_ignore_distance_sound		= 50
-
-local def_danger_inertion_time_grenade	= 20000
-local def_danger_inertion_time_corpse	= 10000
-local def_danger_inertion_time_hit		= 60000
-local def_danger_inertion_time_sound	= 15000
-local def_danger_inertion_time_ricochet	= 30000
-
+	danger_inertion_time_grenade	= 20000,
+	danger_inertion_time_corpse		= 10000,
+	danger_inertion_time_hit		= 60000,
+	danger_inertion_time_sound		= 15000,
+	danger_inertion_time_ricochet	= 30000
+}
+local sqr = {
+	ignore_distance = true,
+	ignore_distance_grenade = true,
+	ignore_distance_corpse = true,
+	ignore_distance_hit = true,
+	ignore_distance_sound = true
+}
 
 local engage_after_update 	= 5 	-- С какого апдейта схема начинает работать. Нельзя чтобы схема стартовала включенной сразу же, иначе будут застранцы без вариантов
 local count_update 			= {}		-- Счетчик апдейтов
@@ -274,11 +281,13 @@ function evaluator_danger:evaluate()
 				self.a.exist = true
 				return true
 			else
+				self.danger_time = best_danger:time()
 				return false
 			end
+		else
+			self.danger_time = best_danger:time()
 		end
 		
-		self.danger_time = best_danger:time()
 	end
 
 --	printf("DANGER [%s]->[%s] [FALSE] default", self.object:name(), best_danger_name)
@@ -304,30 +313,46 @@ function set_danger(npc, ini, scheme, section)
 end
 
 function reset_danger(npc, scheme, st, section)
+	if not npc:alive() then return end
+
+	-- log("- reset_danger for %s", npc:name())
 	local danger_section
 	if scheme ~= nil and scheme ~= "nil" then
 		danger_section = utils.cfg_get_string(st.ini, section, "danger", npc, false, "")
 	end
 	count_update[npc:id()] = 0
 --	printf("DANGER SECTION [%s]", utils.to_str(danger_section))
-	st.danger.ignore_types = {}
-	if danger_section then
-		local t = parse_names(utils.cfg_get_string(st.ini, danger_section, "ignore_types", npc, false, "", ""))
-		for k,v in pairs(t) do
-			st.danger.ignore_types[v] = true
+	local danger = st.danger
+	danger.ignore_types = {}
+
+	if danger_section and st.ini:section_exist(danger_section) then
+		-- log("read from section [%s]", danger_section)
+		if st.ini:line_exist(danger_section, "ignore_types") then
+			local t = parse_names( st.ini:r_string(danger_section, "ignore_types") )
+			for k,v in pairs(t) do
+				danger.ignore_types[v] = true
+			end
+		end
+
+		for k, v in pairs(def) do
+			danger[k] = st.ini:r_float_ex(danger_section, k, v)
+			if sqr[k] then
+				danger[k] = math.pow(danger[k], 2)
+			end
+		end
+	else
+		-- log("set default")
+		for k, v in pairs(def) do
+			if sqr[k] then
+				danger[k] = math.pow(v, 2)
+			else
+				danger[k] = v
+			end
 		end
 	end
-	st.danger.ignore_distance			=  math.pow(utils.cfg_get_number(st.ini, danger_section, "ignore_distance", npc, false, def_ignore_distance), 2)
-	st.danger.ignore_distance_grenade	=  math.pow(utils.cfg_get_number(st.ini, danger_section, "ignore_distance_grenade", npc, false, def_ignore_distance_grenade), 2)
-	st.danger.ignore_distance_corpse	=  math.pow(utils.cfg_get_number(st.ini, danger_section, "ignore_distance_corpse", npc, false, def_ignore_distance_corpse), 2)
-	st.danger.ignore_distance_hit		=  math.pow(utils.cfg_get_number(st.ini, danger_section, "ignore_distance_hit", npc, false, def_ignore_distance_hit), 2)
-	st.danger.ignore_distance_sound		=  math.pow(utils.cfg_get_number(st.ini, danger_section, "ignore_distance_sound", npc, false, def_ignore_distance_sound), 2)
 
-	st.danger.danger_inertion_time_grenade		=  utils.cfg_get_number(st.ini, danger_section, "danger_inertion_time_grenade", npc, false, def_danger_inertion_time_grenade)
-	st.danger.danger_inertion_time_corpse		=  utils.cfg_get_number(st.ini, danger_section, "danger_inertion_time_corpse", npc, false, def_danger_inertion_time_corpse)
-	st.danger.danger_inertion_time_hit			=  utils.cfg_get_number(st.ini, danger_section, "danger_inertion_time_hit", npc, false, def_danger_inertion_time_hit)	
-	st.danger.danger_inertion_time_sound		=  utils.cfg_get_number(st.ini, danger_section, "danger_inertion_time_sound", npc, false, def_danger_inertion_time_sound)	
-	st.danger.danger_inertion_time_ricochet		=  utils.cfg_get_number(st.ini, danger_section, "danger_inertion_time_ricochet", npc, false, def_danger_inertion_time_ricochet)
+	-- log("successfully")
+	-- table.print(danger)
 end
 
 
@@ -362,26 +387,26 @@ function check_danger_inertion_time(npc, danger, passed_time)
 		end
 	else
 		if bd_type == danger_object.grenade then
-			if def_danger_inertion_time_grenade <= passed_time then
+			if def.danger_inertion_time_grenade <= passed_time then
 				return false
 			end
 		elseif bd_type == danger_object.entity_corpse then
-			if def_danger_inertion_time_corpse <= passed_time then
+			if def.danger_inertion_time_corpse <= passed_time then
 				return false
 			end
 		elseif bd_type == danger_object.entity_attacked or
 			bd_type == danger_object.attacked then
-			if def_danger_inertion_time_hit <= passed_time then
+			if def.danger_inertion_time_hit <= passed_time then
 				return false
 			end	
 		elseif bd_type == danger_object.enemy_sound or
 			bd_type == danger_object.attack_sound or
 	        bd_type == danger_object.entity_death then
-			if def_danger_inertion_time_sound <= passed_time then
+			if def.danger_inertion_time_sound <= passed_time then
 				return false
 			end	
 		elseif bd_type == danger_object.bullet_ricochet then
-			if def_danger_inertion_time_ricochet <= passed_time then
+			if def.danger_inertion_time_ricochet <= passed_time then
 				return false
 			end	
 		end
@@ -421,26 +446,26 @@ function check_danger_distance(npc, danger)
 			end
 		end		   	   
 	else
-		if danger_distance_sqr >= def_ignore_distance then
+		if danger_distance_sqr >= def.ignore_distance then
 			return false
 		end
 		if bd_type == danger_object.grenade then
-			if danger_distance_sqr >= def_ignore_distance_grenade then
+			if danger_distance_sqr >= def.ignore_distance_grenade then
 				return false
 			end
 		elseif bd_type == danger_object.entity_corpse then
-			if danger_distance_sqr >= def_ignore_distance_corpse then
+			if danger_distance_sqr >= def.ignore_distance_corpse then
 				return false
 			end
 		elseif bd_type == danger_object.entity_attacked or
 			   bd_type == danger_object.attacked then
-			if danger_distance_sqr >= def_ignore_distance_hit then
+			if danger_distance_sqr >= def.ignore_distance_hit then
 				return false
 			end
 		elseif bd_type == danger_object.enemy_sound or
 			   bd_type == danger_object.attack_sound or
 			   bd_type == danger_object.entity_death then
-			if danger_distance_sqr >= def_ignore_distance_sound then
+			if danger_distance_sqr >= def.ignore_distance_sound then
 				return false
 			end
 		end	
