@@ -254,6 +254,7 @@ function foto_binder:update(delta)
 			-- end
 			-- вызываем поочередно проверки. останавливаем при первой удачной
 			if self:check_creatures() or self:check_anomaly() or self:check_territory_from_places() then
+				make_photo()
 			end
 		end
 
@@ -443,4 +444,61 @@ end
 function on_options_change()
 	ShowFocus = game_options.FotoFocus
 	CheatFoto = game_options.FotoCheat
+end
+
+function make_photo()
+	local console = get_console()
+	hud_weapon = console:get_bool("hud_weapon")
+	hud_crosshair = console:get_bool("hud_crosshair")
+	console:execute("hud_weapon 0")
+	console:execute("hud_crosshair 0")
+	level.hide_indicators()
+	xr_s.subscribe("update", this.make_photo1, {
+		timeout = 700,
+		once = true
+	} )
+end
+function make_photo1()
+	screenshot0()
+	xr_s.subscribe("update", this.make_photo2, {
+		timeout = 500,
+		once = true
+	} )
+end
+function make_photo2()
+	local console = get_console()
+	console:execute( "hud_weapon "..(hud_weapon and "1" or "0") )
+	console:execute( "hud_crosshair "..(hud_crosshair and "1" or "0") )
+	hud_weapon = nil
+	hud_crosshair = nil
+	level.show_indicators()
+
+	local fs = getFS()
+	local flist = fs:file_list_open_ex("$screenshots$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.jpg")
+	flist:Sort(FS.FS_sort_by_modif_down)
+	local file = flist:GetAt(0)
+	if file then
+		local fname = file:NameFull()
+		local path = fs:update_path( "$screenshots$", fname )
+		local tm = game.get_game_time()
+		local foto_name = level.name().."_"..
+			tm:dateToString(game.CTime.DateToDay).."_"..
+			tm:timeToString(game.CTime.TimeToSeconds)..".jpg"
+		foto_name = string.gsub(foto_name, "[/:]", "-")
+		local new_path = fs:update_path("$app_data_root$", "photos\\"..foto_name)
+		fs:file_copy(path, new_path)
+		news_manager.send_tip("Фото сохранено по пути %c[green_blue]\"Папка с игрой\\appdata\\photos\\"..foto_name.."\"", 0, "nano", 1000)
+		xr_s.subscribe("update", this.make_photo3, {
+			userobj = fname,
+			timeout = 300,
+			once = true
+		} )
+	else
+		log("! failed to make photo")
+	end
+end
+function make_photo3(delta, fname)
+	if getFS():exist("$screenshots$", fname) then
+		getFS():file_delete("$screenshots$", fname)
+	end
 end
