@@ -21,8 +21,6 @@ function remind()
 end
 
 function start_remind()
-	if need_init then init() end
-
 	if game_options.HudTIme then
 		if m_ClockWnd == nil then
 			local cs_os_time = get_hud():AddCustomStatic("cs_os_time", true)
@@ -41,18 +39,26 @@ function start_remind()
 		xr_s.subscribe("update", this.update_clock)
 	end
 
+	if not ( game_options.RemindStoryline
+		or game_options.RemindTaskMgr
+		or game_options.RemindTreasures )
+	then return end
+
+	if game_options.RemindStoryline and need_init then
+		init()
+	end
 	tmr = start_small_timer(1000, this.remind)
 end
 
 local last_sec = -1
+local two_pi = -2*math.pi
+local sec_step = two_pi/60
+
 function update_clock(delta)
 	local tm = os.date("*t")
 	if last_sec == tm.sec then return end
 	last_sec = tm.sec
 
-	local two_pi = -2*math.pi
-
-	local sec_step = two_pi/60
 	local sec_angle = sec_step*tm.sec
 	m_ClockWnd.seconds:SetHeading(sec_angle)
 	m_ClockWnd.minutes:SetHeading(sec_step*tm.min + sec_angle/60)
@@ -79,6 +85,10 @@ function on_key_release(dik, bind)
 end
 -- сюжетные задания
 function remind_storyline()
+	if not game_options.RemindStoryline then
+		return false
+	end
+
 	local obj, npc_name
 	local str = ""
 
