@@ -1350,7 +1350,7 @@ end
 
 function save_obj(obj, packet)
 	local st = db.storage[ obj:id() ]
---[[
+
 	-- сообщение по побившейся логике физобъектов и вертолетов
 	if ((st.loaded_data and not st.loaded_data.ini_filename)
 		or not st.ini_filename)
@@ -1362,7 +1362,7 @@ function save_obj(obj, packet)
 			abort("У объекта '%s' повисла логика. Удалите созданное только что сохранение и переиграйте с предыдущего", obj:name())
 		end
 	end
-]]
+
 	if st.loaded_data == nil then
 		packet:w_stringZ(st.ini_filename or "")
 		packet:w_stringZ(st.section_logic or "")
@@ -1478,8 +1478,10 @@ function logic_not_empty(npc, ini)
 	if not ini then
 		ini = npc:spawn_ini()
 	end
-	return ini and ini:section_exist("logic") and (
-		ini:line_exist("logic", "cfg") or (ini:line_exist("logic", "active") and ini:r_string("logic", "active") ~= "nil")
+	return ini and ini:section_exist("logic")
+		and ( ini:line_exist("logic", "cfg")
+		or ( ini:line_exist("logic", "active")
+		and ini:r_string("logic", "active") ~= "nil" )
 	)
 end
 
