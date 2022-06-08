@@ -45,6 +45,13 @@ function actor_update(delta)
 	for i, v in pairs(teleport_binders) do
 		s = v.parametrs
 
+		if s.del then
+			local obj_id = v.object:id()
+			del_obj_by_id(obj_id)
+			teleport_binders[obj_id] = nil
+			return
+		end
+	
 		-- Телепорт запущен
 		if s.teleporte then
 			-- время отведенное на показ спецэфектов прошло
@@ -52,7 +59,7 @@ function actor_update(delta)
 				-- производим телепортацию
 				Actor:set_actor_position(s.destination)
 				-- news_manager.send_tip(v.section, nil, nil, 10000) -- какой ТП сработал
-				-- log("work teleport %s", v.section)
+				 log("work teleport %s", v.section)
 				if s.rotate then
 					Actor:set_actor_direction(s.rotate)
 				end
@@ -115,6 +122,11 @@ function restrictor_teleport:net_spawn(data)
 	-- Заполним таблицу параметров
 	local t = {}
 	self.parametrs = t
+
+	if sys_ini:line_exist(self.section, "delete") then
+		t.del = true
+		return true
+	end
 
 	-- Радиус действия телепорта
 	local r = sys_ini:r_float_ex(self.section, "radius", DEF_RADIUS)
