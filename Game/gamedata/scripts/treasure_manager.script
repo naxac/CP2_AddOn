@@ -379,13 +379,22 @@ function is_active_treasure(box_story_id)
 	return false
 end
 
-function give_random_treasure(good_items)
+function give_random_treasure(good_items, level_name)
 	local mgr = get_treasure_manager()
 	local tmp = {}
 	for k, v in pairs(mgr.treasure_info) do
 		if not (v.active or v.done or v.named) then
-			table.insert(tmp, k)
+			if (not level_name)
+				or level_name == object_level_name( AI:story_object(v.target) )
+			then
+				table.insert(tmp, k)
+			end
 		end
+	end
+
+	if #tmp == 0 then
+		give_random_treasure(good_items, nil)
+		return
 	end
 
 	if good_items then
