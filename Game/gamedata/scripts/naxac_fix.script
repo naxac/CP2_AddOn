@@ -1,0 +1,2352 @@
+-- -*- mode: lua; encoding: windows-1251 -*-
+function fix_126()
+	local obj = AI:object("bar_help_professor_restrictor")
+	if obj then
+		local cd =	"[logic]\n"..
+					"active = sr_idle\n"..
+					"[sr_idle]\n"..
+					"on_actor_inside = {+bar_kruglov_follow_actor} nil %+bar_actor_helps_kruglov%"
+		netpk:modify(obj, {custom_data = cd}, netpk.fState)
+	end
+	local tt = {
+		"yakut_agro",
+		"stalker_yakut1",
+		"stalker_yakut2",
+		"stalker_yakut3",
+		"stalker_yakut4",
+		"stalker_yakut5"
+	}
+	local cd_str = "[smart_terrains]\n"..
+					"none = true\n"..
+					"[spawner]\n"..
+					"cond = {+dan_grab_start}\n"..
+					"[logic]\n"..
+					"cfg = scripts\\agr\\"
+	for i, name in ipairs(tt) do
+		obj = AI:object(name)
+		if obj and obj:alive() then
+			netpk:modify(obj, {
+				custom_data = cd_str..name..".ltx"
+			}, netpk.fState + netpk.fConvert)
+		end
+	end
+end
+function fix_125()
+	local obj = AI:object("kashei")
+	if obj then AI:release(obj, true) end
+	obj = AI:create( AI:spawn_id(story_ids.kashei) )
+	if Actor:has_info("sveeblov_ferma_start")
+		and Actor:dont_has_info("sveeblov_ferma_begin")
+	then
+		level.map_add_object_spot_ser(obj.id, "blue_location", "Кащей")
+	end
+end
+function fix_124()
+	local anoms = {
+		"peshera_arhara_anom2",
+		"peshera_arhara_anom3",
+		"peshera_arhara_anom4",
+		"peshera_arhara_anom6"
+	}
+	for i, v in ipairs(anoms) do
+		local obj = AI:object(v)
+		if obj then
+			netpk:modify(obj, {disabled_time = 5}, netpk.fState)
+		end
+	end
+end
+function fix_123()
+	if Actor:has_info("angar_fanat") and Actor:dont_has_info("angar_fanat_have") then
+		Actor:disable_info_portion("angar_fanat")
+		Actor:give_info_portion("angar_fanat")
+	end
+	local obj = AI:story_object(story_ids.esc_matugalnik)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.esc_matugalnik) )
+	end
+end
+function fix_122()
+	local obj = AI:story_object(story_ids.grom_npc)
+	if obj and obj:alive() then
+		AI:release(obj, true)
+		obj = AI:create("grom_npc",vector():set(27.641338348389,-10.942045211792,-280.30341186523),54978,1480)
+		set_story_id(obj, story_ids.grom_npc)
+	end
+end
+function fix_121()
+	local sids = {
+		story_ids.lc_agroprom_to_agr_und_1,
+		story_ids.lc_agroprom_to_agr_und_2,
+		story_ids.lc_agroprom_to_agr_und_3,
+		story_ids.lc_agr_und_to_agroprom_1,
+		story_ids.lc_agr_und_to_agroprom_2
+	}
+	for i, v in ipairs(sids) do
+		local obj = AI:story_object(v)
+		if obj then
+			AI:release(obj, true)
+			AI:create( AI:spawn_id(v) )
+		end
+	end
+end
+function fix_120()
+	local obj = AI:story_object(story_ids.bar_ecolog_professor)
+	if obj then
+		netpk:modify(obj, {visual_name = "actors\\ecolog\\stalker_ecolog_military"})
+	end
+	if Actor:dont_has_info("yan_x16_documents_gain") then
+		obj = AI:story_object(story_ids.yan_ecolog_help)
+		if obj then
+			netpk:modify(obj, {visual_name = "actors\\ecolog\\stalker_ecolog_military"})
+		end
+	end
+end
+function fix_119()
+	if Actor:has_info("dont_forget_pda") then
+		Actor:disable_info_portion("dont_forget_pda")
+		Actor:give_info_portion("dont_forget_pda")
+	end
+end
+function fix_118()
+	local del = {"esc_akim_lager", "escape_buusty_team"}
+	for i, v in ipairs(del) do
+		local obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+end
+function fix_117()
+	local obj = AI:object("dar_m_poltergeist_normal_flame_0000")
+	if (obj == nil)
+		and Actor:dont_has_info("x18_actor_fall")
+		and Actor:has_info("dar_door3_free")
+	then
+		Actor:disable_info_portion("dar_door3_free")
+		local cd = "[smart_terrains]\n".."dar_control_poltergeist = true"
+		se_monster.custom_data_on_spawn = cd
+		obj = AI:create("m_poltergeist_normal_flame",
+			vector():set(14.560417175293,-10.8184814453125,-21.9602661132813),
+			4981, 1139)
+		local data = {
+			custom_data = cd,
+			base_out_restrictors = "dar_poltergeist_territory"
+		}
+		netpk:modify(obj, data)
+	end
+end
+function fix_116()
+	if Actor:dont_has_info("portal_na_mg") then
+		local obj = AI:object("udalyem_molniu_restrictor")
+		if obj then AI:release(obj, true) end
+		AI:create( spawn_ids.udalyem_molniu_restrictor )
+	end
+end
+function fix_115()
+	local obj = AI:object("yan_stalker")
+	if obj then AI:release(obj, true) end
+	AI:create( spawn_ids.yan_stalker )
+end
+function fix_114()
+	local objects = {
+		"darkscape_zombi_respawn",
+		"darkscape_zombi_1"
+	}
+	for i, v in ipairs(objects) do
+		local obj = AI:object(v)
+		if obj == nil then
+			AI:create( spawn_ids[v] )
+		end
+	end
+end
+function fix_113()
+	local obj = AI:story_object(story_ids.elsa_yantar)
+	if obj then
+		netpk:modify(obj, {base_out_restrictors = "yantar_bunker_space_restrictor"})
+	end
+	local obj = AI:object("yantar_bunker_space_restrictor")
+	if obj then
+		netpk:modify(obj, {restrictor_type = 3})
+	end
+	obj = AI:object("anim_ph_zone_0004")
+	if obj then
+		AI:teleport_object("", obj.position:add(vector():set(0,3,0)), obj.m_level_vertex_id, obj.m_game_vertex_id, obj.id)
+	end
+end
+function fix_112()
+	local objects = {
+		"upiter_dogs",
+		"upiter_dogs_2",
+		"upiter_chimera",
+		"upiter_kontroller",
+		"upiter_monsters_respawn"
+	}
+	for i, v in ipairs(objects) do
+		local obj = AI:object(v)
+		if obj == nil then
+			AI:create( spawn_ids[v] )
+		end
+	end
+end
+function fix_111()
+	local obj
+	for i = 1, 4 do
+		obj = AI:story_object(220000+i)
+		if obj and obj:clsid() == clsid.level_changer then
+			local pk = netpk:get(obj)
+			pk.position = obj.position
+			pk.level_vertex_id = obj.m_level_vertex_id
+			pk.game_vertex_id = obj.m_game_vertex_id
+			AI:release(obj, true)
+
+			obj = AI:create("space_restrictor", pk.position, pk.level_vertex_id, pk.game_vertex_id)
+			local data = {}
+			data.object_flags = pk.object_flags
+			data.story_id = pk.story_id
+			data.shapes = pk.shapes
+			for j = 1, #data.shapes do
+				data.shapes[j].radius = data.shapes[j].radius + 0.2
+			end
+			data.restrictor_type = pk.restrictor_type
+			local cd = {
+				logic = {
+					active = "sr_level_changer"
+				},
+				sr_level_changer = {
+					dest_game_vertex_id = tostring(pk.dest_game_vertex_id),
+					dest_level_vertex_id = tostring(pk.dest_level_vertex_id),
+					dest_position = string.format("%s,%s,%s",
+						pk.dest_position.x,
+						pk.dest_position.y,
+						pk.dest_position.z
+					),
+					dest_direction = string.format("%s,%s,%s",
+						pk.dest_direction.x,
+						pk.dest_direction.y,
+						pk.dest_direction.z
+					)
+				}
+			}
+			data.custom_data = netpk:gen_custom_data(cd)
+			netpk:modify(obj, data, netpk.fState)
+		end
+	end
+end
+function fix_110()
+	for i = 0, 7 do
+		AI:create( spawn_ids[ "aes2_clmbl"..tostring(28+i) ] )
+	end
+	AI:create(spawn_ids.aes2_teleport_0025)
+
+	local obj = AI:object("aes2_zone_teleport_0000")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.aes2_zone_teleport_0000)
+	end
+	obj = AI:object("aes2_physic_destroyable_object_box_wood_0038")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.aes2_physic_destroyable_object_box_wood_0038)
+	end
+end
+function fix_109()
+	local obj
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and obj:name() == "_lights_hanging_lamp_0014"
+			and object_level_name(obj) == "l04_darkvalley"
+		then
+			AI:release(obj, true)
+			AI:create( spawn_ids.dar_lights_hanging_lamp_0014 )
+			break
+		end
+	end
+
+	obj = AI:object("agr2_st_factory")
+	if obj then
+		local gulag = obj.gulag
+		if gulag then
+			for id, v in pairs(gulag.npc_info) do
+				gulag:free_obj_and_reinit(id)
+			end
+		end
+	end
+end
+function fix_108()
+	local gm = amk.game_minutes()
+	local varnames = {
+		"vasily_lekar1",
+		"vasily_lekar2",
+		"vasily_lekar3",
+		"vasily_lekar4",
+		"vasily_lekar5",
+		"vasily_lekar6",
+		"zastava_vasily",
+		"mossberg_vasily",
+		"aug_vasily"
+	}
+	for i, v in ipairs(varnames) do
+		local m = amk.load_variable(v)
+		if m then
+			start_game_timer( v, 0, 0, math.max(m - gm, 1) )
+			amk.del_variable(v)
+		end
+	end
+end
+function fix_107()
+	if Actor:has_info("kontrik_vodka_start")
+		and Actor:dont_has_info("kontrik_vodka_have")
+	then
+		local obj = AI:story_object( story_ids.kontik_vodka_box )
+		if not obj then
+			local res = false
+			for i = 1, 65534 do
+				obj = AI:object(i)
+				if obj and obj:section_name() == "a_inventory_box60" then
+					set_story_id( obj, story_ids.kontik_vodka_box )
+					res = true
+					break
+				end
+			end
+			if not res then
+				xr_effects.kontrik_vodka_spawn()
+			end
+		end
+	end
+end
+function fix_106()
+	naxac_lc_fix.main()
+end
+function fix_105()
+	local obj = AI:object("aes_space_restrictor_sound_battle_0000")
+	if obj then AI:release(obj, true) end
+	obj = AI:object("aes_space_restrictor_sound_battle_0001")
+	if obj then AI:release(obj, true) end
+
+	if Actor:dont_has_info("sar2_monolith_miracle") then
+		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0000 )
+		AI:create( spawn_ids.aes_space_restrictor_sound_battle_0001 )
+	else
+		naxac.del_aes_flames()
+	end
+	if Actor:has_info("yantar_professor_talk_about_brain") then
+		naxac.ros_flames_off()
+	end
+
+	local names = {
+		"pri_ambient_battle_sound_zone_0000",
+		"pri_ambient_battle_sound_zone_0001",
+		"pri_ambient_battle_sound_zone_0002",
+		"pri_ambient_battle_sound_zone_0003"
+	}
+	local obj
+	for i, v in ipairs(names) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
+	end
+end
+function fix_104() end
+function fix_103()
+	local obj = AI:object("esc_hunter_zaschita_2")
+	if obj then
+		set_story_id(obj, story_ids.esc_sepator)
+
+		if Actor:get_task_state("atak_larger", 0) == task.in_progress then
+			Actor:set_task_state(task.completed, "atak_larger", 0)
+			local tt = CGameTask()
+			tt:load("atak_larger")
+			Actor:give_task(tt, 0, false)
+		end
+	end
+end
+function fix_102()
+	local obj = AI:story_object(777888)
+	if obj then
+		set_story_id(obj, story_ids.mil_Svoboda_engineer)
+	end
+end
+function fix_101()
+	local obj = AI:story_object(story_ids.yakut_treasure_box)
+	if obj and Actor:dont_has_info("dan_flash_done") then
+		AI:release(obj, true)
+	end
+end
+function fix_100()
+	local obj = AI:object("prapor_mafon")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.prapor_mafon)
+	end
+end
+function fix_99()
+	local obj = AI:object("gar_boars_nest2")
+	if not obj then
+		AI:create(spawn_ids.gar_boars_nest2)
+	end
+	if Actor:has_info("gar_free_pass") then
+		Actor:give_info_portion("gar_kill_boars_done")
+	end
+end
+function fix_98() end
+function fix_97()
+	local obj = AI:story_object(story_ids.Mil_Kap)
+	if obj then
+		netpk:modify( obj, { visual_name = "actors\\svoboda\\stalker_sv_balon_10" }, netpk.fState + netpk.fConvert )
+	end
+end
+function fix_96()
+	local obj = AI:story_object(story_ids.lc_east_pripyat_to_zaton)
+	if obj then
+		netpk:modify(obj, {
+			dest_direction = vector():set(0,3.2543857097626,0),
+			dest_position = vector():set(-321.52276611328,19.36598777771,616.81066894531),
+			dest_level_vertex_id = 307351,
+			dest_game_vertex_id = 3665,
+			dest_graph_point = "start_actor_99"
+		})
+	end
+end
+function fix_95()
+	local obj = AI:story_object(story_ids.lc_garbage_to_puzir)
+	if obj then
+		netpk:modify(obj, {dest_direction = vector():set(0,-1.2575997114182,0)})
+	end
+end
+function fix_94()
+	artefact_hunter.first_run()
+end
+function fix_93()
+	local obj = snp.object_by_section_offline("stalker_alexandrych")
+	if obj then
+		netpk:modify(obj, {visual_name = "actors\\neytral\\alex_stalker"}, netpk.fConvert)
+		set_story_id(obj, story_ids.alexandrych_marsh)
+	end
+end
+function fix_92()
+	if Actor:has_info("spatial_subway_start") then
+		Actor:disable_info_portion("spatial_subway_start")
+		AI:create("subway_scaner_doc3", Actor:position(), Actor:level_vertex_id(), Actor:game_vertex_id(), Actor:id())
+	else
+		local obj
+		for i = 1, 65534 do
+			obj = AI:object(i)
+			if obj and obj:section_name() == "device_scaner" then
+				local parent = AI:object(obj.parent_id)
+				if parent and parent:clsid() == clsid.inventory_box
+					and parent.m_level_vertex_id == 1427937
+					and parent.m_game_vertex_id == 3745
+				then
+					AI:create("subway_scaner_doc3", parent.position, parent.m_level_vertex_id, parent.m_game_vertex_id, parent.id)
+					break
+				end
+			end
+		end
+	end
+	mil_tasks.add_watertower_sid()
+end
+function fix_91()
+	-- Надо удалить лишний рестриктор по теням,
+	-- который появлялся после взятия рюкзака Шадовмена в Красном Лесу
+	local obj
+	local tmp = {}
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and obj:clsid() == clsid.script_restr
+			and obj.m_game_vertex_id == 3630
+			and obj.m_level_vertex_id == 283236
+			and obj.position:distance_to( vector():set(-64.039001464844,2.2065124511719,73.642807006836) ) < 0.5
+		then
+			table.insert(tmp, i)
+		end
+	end
+	if #tmp > 0 then
+		log("[naxac_fix.fix_91] : %s restrictions found", #tmp)
+		while #tmp > 1 do
+			del_obj_by_id( table.remove(tmp) )
+		end
+		if #tmp > 0
+			and ( Actor:dont_has_info("snp_wolffrend3_done")
+			or Actor:has_info("snp_shadows_start") )
+		then
+			del_obj_by_id( tmp[1] )
+		end
+	end
+end
+function fix_90()
+	local obj = AI:object("dark_no_gravity_vuxod")
+	if obj then
+		AI:teleport_object("", vector():set(-50.708484649658,-2.9816555976868,-143.94256591797), 115055, 879, obj.id)
+	end
+end
+function fix_89()
+	local obj = AI:object("val_watchtower_bandit_respawn")
+	if not obj then
+		AI:create( spawn_ids.val_watchtower_bandit_respawn )
+	end
+	obj = AI:object("val_fireball")
+	if obj then
+		AI:release(obj, true)
+	end
+	naxac.val_watchtowers_online()
+end
+function fix_88()
+	local obj = AI:story_object(story_ids.lc_zaton_to_jupiter)
+	if obj then
+		netpk:modify(obj, {dest_direction = vector():set(0,3.7127826213837,0)})
+	end
+end
+function fix_87()
+	local t = {
+		"zat_travel_kampers",
+		"zat_travel_bandit_respawn",
+		"zat_travel_stalker_respawn",
+		"zat_zone_flame_small_0000",
+		"zat_zone_flame_small_0001",
+		"zat_zone_flame_small_0002",
+		"zat_zone_flame_small_0003",
+		"zat_zone_flame_small_0004",
+		"zat_zone_flame_small_0005",
+		"zat_zone_flame_small_0006"
+	}
+	for i, v in ipairs(t) do
+		AI:create( spawn_ids[v] )
+	end
+end
+function fix_86()
+	if Actor:dont_has_info("bar_dolg_base_pass") then
+		local obj = AI:object("bar_dolg_petrenko_kill_zone")
+		if obj == nil then
+			AI:create( spawn_ids.bar_dolg_petrenko_kill_zone )
+		end
+	end
+end
+function fix_85()
+	local spawn = {
+		"pri_monolith_river_port",
+		"pri_monolith_prometei",
+		"pri_monolith_respawn"
+	}
+	local obj
+	for i, v in ipairs(spawn) do
+		obj = AI:object(v)
+		if obj == nil then
+			AI:create( spawn_ids[v] )
+		end
+	end
+
+	obj = AI:story_object(story_ids.ecolog_wound_bunker)
+	if obj and obj:alive() then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.ecolog_wound_bunker) )
+	end
+end
+function fix_84()
+	local tbl = {
+		"val_kocherga",
+		"sim_stalker_fraer"
+	}
+	for i, v in ipairs( tbl ) do
+		obj = AI:object( v )
+		if obj and obj:alive() then
+			local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
+			AI:release( obj, true )
+			obj = AI:create( spawn_ids[v] )
+			AI:teleport_object( "", pos, lv, gv, obj.id )
+		end
+	end
+end
+function fix_83()
+	local obj = AI:story_object( story_ids.lc_generators_to_warlab )
+	if obj then AI:release( obj, true ) end
+	obj = AI:object( "generators_door_0001" )
+	if obj then AI:release( obj, true ) end
+	obj = AI:create( AI:spawn_id( story_ids.lc_generators_to_warlab ) )
+	level.map_add_object_spot_ser( obj.id, "level_changer3", "to_warlab" )
+end
+function fix_82()
+	local obj = AI:object( "lim_physic_object_0031" )
+	if obj then
+		AI:release( obj, true )
+		AI:create( spawn_ids.lim_physic_object_0031 )
+	end
+end
+function fix_81()
+	local obj = AI:object("sms_molniy_bar_restrictor")
+	if obj then AI:release(obj, true) end
+	obj = AI:object("dcity_nachalnik_zvonok_restrictor")
+	if obj then AI:release(obj, true) end
+
+	obj = AI:story_object(story_ids.forest_last_snip_proval_restrictor)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.forest_last_snip_proval_restrictor) )
+	end
+end
+function fix_80()
+	local del = {
+		"agro_tainik_norman_ok_restrictor",
+		"dcity_iskra_zvonok_restrictor",
+		"dcity_duda_zvonok_restrictor",
+		"dcity_otkl_zona_shtab_restrictor",
+		"mil1_plata1_restrictor"
+	}
+	local obj
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+
+	obj = AI:object("esc_inventory_box_0003")
+	if not obj then
+		for i = 1, 65535 do
+			obj = AI:object(i)
+			if obj
+				and obj:name() == "level_prefix_inventory_box_0003"
+				and object_level_name(obj) == "l01_escape"
+			then
+				AI:release(obj, true)
+				break
+			end
+		end
+		AI:create( spawn_ids.esc_inventory_box_0003 )
+	end
+
+	obj = AI:object("dcity_otvet_ok_obmor_restrictor")
+	if obj then
+		AI:release(obj, true)
+		AI:create( spawn_ids.dcity_otvet_ok_obmor_restrictor )
+	end
+	obj = AI:object("otkr_perex_zaton")
+	if obj then
+		AI:release(obj, true)
+		if AI:story_object(story_ids.lc_dead_city_to_zaton) == nil then
+			AI:create( spawn_ids.otkr_perex_zaton )
+		end
+	end
+	obj = AI:object("parfumer_shtab_restrictor")
+	if obj then
+		AI:release(obj, true)
+		if Actor:dont_has_info("parfumer_shtab_spawn") then
+			AI:create( spawn_ids.parfumer_shtab_restrictor )
+		end
+	end
+end
+function fix_79()
+	log("- all.spawn cleanup...")
+end
+function fix_78()
+	local obj = AI:object("atp_dcity_pobeg_restrictor")
+	if obj then
+		AI:release(obj, true)
+		if Actor:dont_has_info("agro_tainik_norman_start") then
+			AI:create( spawn_ids.atp_dcity_pobeg_restrictor )
+		end
+	end
+end
+function fix_77()
+	local obj
+	local t = {
+		["sp_btr_nevid1_restrictor"] = "sp_btr_nevid1",
+		["sp_btr_nevid2_restrictor"] = "sp_btr_nevid2"
+	}
+	for k, v in pairs(t) do
+		obj = AI:object(k)
+		if obj then
+			AI:release(obj, true)
+			if not has_alife_info(v) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+	local del = {
+		"podval_btr_nevid1",
+		"podval_btr_nevid2"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+	obj = AI:story_object(story_ids.svalka_plot_stalk)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.svalka_plot_stalk) )
+	end
+	if Actor:has_info("pili_foto_poddelka_start") then
+		Actor:disable_info_portion("pili_foto_poddelka_start")
+		Actor:give_info_portion("pili_foto_poddelka_start")
+	end
+end
+function fix_76()
+	local obj = AI:story_object( story_ids.lc_sarkofag_to_aes2 )
+	if obj then
+		local t = {
+			dest_position		= vector():set( 656.37884521484,0.0051160752773285,143.57861328125 ),
+			dest_level_vertex	= 191334,
+			dest_game_vertex	= 2623,
+			dest_direction		= vector():set( 0,1.5480016469955,0 )
+		}
+		netpk:modify( obj, t, netpk.fState )
+	end
+end
+function fix_75()
+	local obj = AI:object("strelka_mesto_dialog_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+	obj = AI:object("aver_odnonogiy")
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.aver_odnonogiy) )
+	end
+	obj = AI:story_object(story_ids.aver_zlobnuy)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.aver_zlobnuy) )
+	end
+end
+function fix_74()
+	local obj = AI:story_object(story_ids.lc_escape_to_darkscape)
+	if obj then
+		netpk:modify(obj, { dest_direction = vector():set(0,3.808632850647,0) }, netpk.fState)
+	end
+	obj = AI:story_object(story_ids.lc_darkscape_to_darkvalley)
+	if obj then
+		netpk:modify(obj, { dest_direction = vector():set(0,0.029126342386007,0) }, netpk.fState)
+	end
+	obj = AI:object("pri_stadium_snipers_restr")
+	if obj then
+		netpk:modify(obj, {restrictor_type = 0}, netpk.fState)
+	end
+end
+function fix_73()
+	local obj = AI:object("vedro_1000")
+	if obj then
+		netpk:modify(obj, {visual_name = "physics\\decor\\vedro_01"}, netpk.fState)
+	end
+end
+function fix_72()
+	arhara_dialog.imitat_tele_final1_dell()
+	local obj = AI:object("forest_superzhekan_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+	level_changers.create_allspawn_lc("lc_warlab_to_brainlab", "info_way_arhara_warlab_brainlab", true)
+end
+function fix_71()
+	local obj
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj and obj:clsid() == clsid.respawn then
+			local oini = obj:spawn_ini()
+			if oini:section_exist("smart_terrains") then
+				AI:release(obj, true)
+			end
+		end
+	end
+end
+function fix_70()
+	local obj = AI:object("bunker_art_v_spiral_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+	obj = AI:object("bunker_last1")
+	if obj then
+		AI:release(obj, true)
+		AI:create( spawn_ids.bunker_last1)
+	end
+end
+function fix_69()
+	local t = {
+		"esc_foto_muzhik",
+		"zapasnoy_foto_muzhik",
+		"military_fotomuzhik",
+		"milit_zapas_fotomuzhik",
+		"foto_monolitovets",
+		"nevid_monolit",
+		"bunker_last1",
+		"bunker_last2",
+		"bunker_last3",
+		"bunker_last4"
+	}
+	local obj
+	for i, v in ipairs( t ) do
+		obj = AI:object( v )
+		if obj then
+			netpk:modify( obj, { visual_name = "new\\nevidimka_talk" } )
+		end
+	end
+
+	obj = AI:object( "pili_sdelal_psevdofoto_restrictor" )
+	if obj then AI:release( obj, true ) end
+
+	local new = {
+		"village_shtab_koster_rest",
+		"gener_vertel_vedro_rest"
+	}
+	for i, v in ipairs( new ) do
+		obj = AI:object( v )
+		if not obj then AI:create( spawn_ids[v] ) end
+	end
+end
+function fix_68()
+	local del = {
+		"parfum_sms_kontrik_restrictor",
+		"sms_zlobnomu_rasstrel_restrictor",
+		"esc_pantera_stop_sms_restrictor"
+	}
+	local obj
+	for k, v in ipairs( del ) do
+		obj = AI:object( v )
+		if obj then AI:release( obj, true ) end
+	end
+	local t = {
+		["spawn_molniy2_restrictor"]          = "spawn_dead_city_molniy",
+		["esc_pantera_spawn_restrictor"]      = "father_est_2dialog",
+		["aver_kluk0_put0_restrictor"]        = "kluk_na_1",
+		["aver_kluk1_put1_restrictor"]        = "kluk_na_2",
+		["aver_kluk2_put2_restrictor"]        = "kluk_na_3",
+		["aver_kluk3_put3_restrictor"]        = "kluk_posled",
+		["aver_kluk4_put4_restrictor"]        = "kluk_na_walk",
+		["yantar_psi_radiotion_sound"]        = "yan_kill_brain_done",
+		["hos_zamena_art_restrictor"]         = "podlovim_chiterov"
+	}
+	for k, v in pairs( t ) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if (not v) or Actor:dont_has_info( v ) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+
+	obj = AI:story_object( story_ids.esc_pantera_bomba )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.esc_pantera_bomba ) )
+	end
+end
+function fix_67()
+	local t = {
+		["strannik_lima_restrictor"]          = "podval_lima_done",
+		["strelka_obmorok_restrictor"]        = "uhod_iz_mg_start",
+		["dcity_obmorok"]                     = "nachlo_zvonka",
+		["dcity_bodyguard_obmorok"]           = false,
+		["soldier_v_piyanux_restrictor"]      = "poshla1_piyan1_gulyt1"
+	}
+	local obj
+	for k, v in pairs( t ) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if (not v) or Actor:dont_has_info( v ) then
+				AI:create( spawn_ids[k] )
+			end
+		end
+	end
+
+	local del = {
+		"sms_after_semetskiy_restrictor",
+		"sms_preduprezhd_odnonogogo_restrictor",
+		"sms_preduprezhd1_odnonogogo1_restrictor",
+		"sms_preduprezhd2_odnonogogo2_restrictor",
+		"molniy_posle_foto_restrictor",
+		"sms_taynik_zlobnuy_restrictor",
+		"ynt_after_perexod_sms_restrictor",
+		"snayperka_zombi_restrictor",
+		"yantar_moroz_restrictor",
+		"esc_novisy_moroz_restrictor",
+		"esc_moroz_sms_restrictor",
+		"svalka_moroz_restrictor",
+		"military_moroz_restrictor",
+		"pripyat_moroz_restrictor",
+		"red_forest_moroz_restrictor",
+		"radist_pogib_sadik_restrictor",
+		"forest_zapiska_trup_restrictor",
+		"sms_kuznets_restrictor",
+		"narod_napilsy_sms_restrictor",
+		"pereh_warlab_na_gener_restrictor"
+	}
+	for k, v in ipairs( del ) do
+		obj = AI:object( v )
+		if obj then AI:release( obj, true ) end
+	end
+end
+function fix_66()
+	if has_alife_info( "info_pri1_lab" ) then
+		level_changers.create_level_changer("lc_east_pripyat_to_labx8", true)
+	end
+
+	-- Установим логику дверям в подземке Юпитера
+	local obj
+	local doors = {
+		"jund_pas_b400_physic_door",
+		"jund_pas_b400_door_track",
+		"jund_pas_b400_door_downstairs",
+		"jund_pas_b400_physic_door_0000",
+		"jund_pas_b400_door_hall",
+		"jund_pas_b400_door_way",
+		"lx8_physic_door",
+		"lx8_door_katakomb_big_2_lock_0000"
+	}
+	for i, v in ipairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
+	end
+
+	if Actor:has_info( "dimak_tele_done" ) then
+		Actor:give_info_portion( "x8_code_door_code" )
+	end
+
+	local obj = AI:object( "sms_girl3_nachalo_restrictor" )
+	if obj then AI:release( obj, true ) end
+end
+function fix_65()
+	local n = 0
+	local obj
+	local del = {
+		["under_tele_1"] = true,
+		["under_tele_2"] = true,
+		["under_tele_3"] = true
+	}
+	for i = 1, 65534 do
+		obj = AI:object( i )
+		if obj and del[ obj:section_name() ] then
+			AI:release(obj, true)
+			n = n + 1
+			if n == 3 then break end
+		end
+	end
+
+end
+function fix_64()
+	if AI:story_object( story_ids.lc_generators_to_hospital ) ~= nil then
+		level_changers.create_allspawn_lc("lc_generators_to_hospital", "info_way_arhara_gener_hospital", true)
+	end
+
+	local obj = AI:object( "sms_k_generalu_restrictor" )
+	if obj then
+		AI:release( obj, true )
+	end
+
+	if has_alife_info("podlovim_chiterov") then
+		obj = AI:object( "door_hospital_01_l_0003" )
+		if obj then
+			AI:release( obj, true )
+		end
+		obj = AI:object( "door_hospital_01_r_0003" )
+		if obj then
+			AI:release( obj, true )
+		end
+	end
+
+	if not has_alife_info("spawn_final_arhara") then
+		obj = AI:object("muha_hosp_live")
+		if obj then
+			netpk:modify(obj, {visual_name = "actors\\woman\\devchonka"}, netpk.fState + netpk.fConvert)
+		end
+		obj = AI:object("final_agro_boltobny_restrictor")
+		if obj then
+			AI:release( obj, true )
+			AI:create ( spawn_ids.final_agro_boltobny_restrictor )
+		end
+	end
+	if not has_alife_info("real_dok_say2_start") then
+		obj = AI:object("hospital_pantera_girl")
+		if obj then
+			AI:release( obj, true )
+			AI:create ( spawn_ids.hospital_pantera_girl )
+		end
+	end
+	obj = AI:object("poshel_bazar_otsek_restrictor")
+	if obj then
+		AI:release( obj, true )
+		AI:create ( spawn_ids.poshel_bazar_otsek_restrictor )
+	end
+	obj = AI:story_object(story_ids.chaes2_arhara_beter2_kluk)
+	if obj then
+		AI:release(obj, true)
+		AI:create(AI:spawn_id(story_ids.chaes2_arhara_beter2_kluk))
+	end
+	obj = AI:story_object(story_ids.chaes2_mono_fugas)
+	if obj then
+		AI:release(obj, true)
+		AI:create(AI:spawn_id(story_ids.chaes2_mono_fugas))
+	end
+	obj = AI:object("kluk_btr_restrictor")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.kluk_btr_restrictor)
+	end
+end
+function fix_63()
+	local obj = AI:object( "mil_freedom_barier_respawn_1" )
+	if obj then
+		AI:release( obj, true )
+		AI:create ( spawn_ids.mil_freedom_barier_respawn_1 )
+	end
+	obj = AI:story_object( story_ids.gen_solvador1 )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.gen_solvador1 ) )
+	end
+	obj = AI:story_object( story_ids.gen_andersen1 )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.gen_andersen1 ) )
+	end
+end
+function fix_62()
+	if AI:story_object( story_ids.lc_radar_to_warlab ) ~= nil then
+		level_changers.create_allspawn_lc("lc_radar_to_warlab", "info_way_arhara_radar_warlab", true)
+	end
+end
+function fix_61()
+	local obj
+	local t = {
+		"chaes2_kran_zad_rukzak",
+		"chaes2_kran_verh_rukzak",
+		"chaes2_truba_art_rukzak"
+	}
+	for i, v in ipairs(t) do
+		obj = AI:object(v)
+		if obj then AI:release(obj, true) end
+	end
+end
+function fix_60()
+	local obj = AI:object("padar_spawn_zombi_kukla_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+	if not has_alife_info("muha_kukla_have") then
+		AI:create( spawn_ids.padar_spawn_zombi_kukla_restrictor )
+	end
+end
+function fix_59()
+	local t = {
+		"esc_zombie_weak_0000",
+		"esc_zombie_1",
+		"esc_zombie_weak_0001",
+		"esc_zombie_weak_0002",
+		"esc_zombie_weak_0003",
+		"esc_zombie_2"
+	}
+	for i, v in ipairs(t) do
+		if AI:object(v) == nil then
+			AI:create( spawn_ids[v] )
+		end
+	end
+end
+function fix_58()
+	if not has_alife_info("vkluchit_generator_done") then
+		if not AI:story_object( story_ids.new_kluk_nz ) then
+			AI:create( AI:spawn_id( story_ids.new_kluk_nz ) )
+		end
+	end
+end
+function fix_57()
+end
+function fix_56()
+	local obj = AI:story_object( story_ids.marsh_udav )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.marsh_udav ) )
+	end
+end
+function fix_55()
+	local obj = AI:story_object( story_ids.lc_atp_to_pripyat )
+	if obj then
+		netpk:modify( obj, {
+			dest_direction = vector():set(0,-0.050400383770466,0)
+		}, netpk.fState )
+	end
+	local npcs = {
+		"generators_prizrak",
+		"generators_black_dok",
+		"frits"
+	}
+	for i, name in ipairs(npcs) do
+		obj = AI:object(name)
+		if obj then
+			local data = netpk:get(obj, netpk.fState)
+			local cd = netpk:parse_custom_data(data.custom_data)
+			cd.logic = {
+				cfg = "scripts\\generators\\"..name..".ltx"
+			}
+			data.custom_data = netpk:gen_custom_data(cd)
+			netpk:set(obj, data, netpk.fState + netpk.fConvert)
+		end
+	end
+
+	local del = {
+		"gen_hit_heli_hit_sms_restrictor",
+		"gen_hit1_heli1_hit1_sms_restrictor",
+		"sms_doc_letit_restrictor"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then AI:release(obj, true) end
+	end
+
+	AI:create(spawn_ids.frits_zone_restrictor)
+
+	obj = AI:story_object( story_ids.lc_aes_to_generators )
+	if obj then
+		netpk:modify( obj, {
+			dest_game_vertex_id = 3147,
+			dest_level_vertex_id = 603299,
+			dest_position = vector():set(231.33750915527,20.032674789429,-99.971549987793),
+			dest_direction = vector():set(0,2.5367867946625,0),
+		}, netpk.fState )
+	end
+end
+function fix_54()
+	local obj = AI:story_object( story_ids.lc_x18_to_warlab )
+	if obj then
+		netpk:modify( obj, {
+			dest_position = vector():set(-8.9587984085083,-13.860092163086,13.769829750061),
+			dest_direction = vector():set(0,3.0887975692749,0)
+		}, netpk.fState )
+	end
+	obj = AI:story_object( story_ids.lc_warlab_to_military )
+	if obj then
+		netpk:modify( obj, {
+			dest_position = vector():set(113.47244262695,-9.3721179962158,53.680458068848),
+			dest_direction = vector():set(0,1.6103852987289,0)
+		}, netpk.fState )
+	end
+	obj = AI:story_object( story_ids.lc_bar_to_pripyat )
+	if obj then
+		netpk:modify( obj, {
+			dest_position = vector():set(-106.85562133789,-0.58082216978073,268.09664916992),
+			dest_direction = vector():set(0,3.4439854621887,0)
+		}, netpk.fState )
+	end
+end
+function fix_53()
+	local obj = AI:story_object( story_ids.kolmogor )
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id( story_ids.kolmogor ) )
+	end
+
+	local del = {
+		"kolm_stroy_sms_restrictor",
+		"kolmo_say_pobeda_sms_restrictor",
+		"kap_tele_restrictor",
+		"privyzka_generatorov_restrictor"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+		end
+	end
+
+	obj = AI:object( "spawn_dialog_foto_restrictor" )
+	if obj then
+		AI:release( obj, true )
+		if Actor:dont_has_info( "dialog_foto_pili" ) then
+			AI:create ( spawn_ids["spawn_dialog_foto_restrictor"] )
+		end
+	end
+end
+function fix_52()
+	local obj = AI:story_object( story_ids.lc_lost_village_to_limansk )
+	if obj then
+		netpk:modify( obj, { dest_direction = vector():set(0,2.9826085567474,0) }, netpk.fState )
+	end
+end
+function fix_51()
+	local obj = AI:story_object( story_ids.generators_udav )
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id( story_ids.generators_udav ) )
+	end
+end
+function fix_50()
+	level_changers.create_allspawn_lc("lc_hospital_to_limansk", nil, true)
+
+	obj = AI:story_object( story_ids.lc_limansk_to_hospital )
+	if obj then
+		netpk:modify( obj, { dest_direction = vector():set(0,2.9923055171967,0) }, netpk.fState )
+	end
+
+	obj = AI:story_object( story_ids.klenov )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.klenov ) )
+	end
+
+	local t = {
+		"warlab_trupak_sekret",
+		"warlab_sekret_mozg",
+		"warlab_arhara_sekret_stol1",
+		"warlab_sekret_nout1",
+		"warlab_sekret_nout2",
+		"warlab_radio",
+		"pantera_space_restrictor_timer"
+	}
+	for i, v in ipairs(t) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+		end
+		AI:create ( spawn_ids[v] )
+	end
+end
+function fix_49()
+	local t = {
+		"pri_helicopters2_start_zone",
+		"pri_helicopter_21",
+		"pri_helicopter_22"
+	}
+	local obj
+	for i, v in ipairs(t) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+		end
+		AI:create ( spawn_ids[v] )
+	end
+
+	obj = AI:object( "pri_boar_strong" )
+	if obj then
+		AI:release( obj, true )
+	end
+	AI:create( AI:spawn_id( story_ids.pri_gigant1 ) )
+
+	obj = AI:object( "pri_boar_strong_0001" )
+	if obj then
+		AI:release( obj, true )
+	end
+	AI:create( AI:spawn_id( story_ids.pri_gigant2 ) )
+end
+function fix_48()
+	local obj = AI:story_object( story_ids.borman )
+	if obj then
+		AI:release( obj, true )
+		AI:create( AI:spawn_id( story_ids.borman ) )
+	end
+end
+function fix_47()
+	local obj
+	local obj2info = {
+		["mono_netu_restrictor"] = "vkluchit_generator_start",
+		["u_shlagbauma_space_restrictor"] = "idu_k_generatoru",
+		["u_tretego_generatora_restrictor"] = "vkluchit_generator_done",
+		["vertuhi_poshli_restrictor"] = "gener_boy_heli_go",
+		["predesant_black_heli_restrictor"] = "predesant_black_heli"
+	}
+	for k, v in pairs(obj2info) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if Actor:dont_has_info( v ) then
+				AI:create ( spawn_ids[k] )
+			end
+		end
+	end
+
+	local del = {
+		"vitamin_posrednik_restrictor",
+		"sv_chern_peregovor_restrictor",
+		"chaes2_kluk_sms_restrictor",
+		"iz_moskvy_sms_restrictor",
+		"ona_mehy_dostala_restrictor",
+		"aver_muha_pilot_vzlet_sms_restrictor",
+		"vzruv_aver_vert_restrictor",
+		"after_die_muha_restrictor",
+		"podgotovka_zahvata_restrictor",
+		"plan_zahvata_restrictor",
+		"mu_opozdaly_restrictor"
+	}
+	for i, v in ipairs(del) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+
+	obj = AI:story_object( story_ids.devchonka )
+	if obj and obj:alive() then
+		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
+		AI:release( obj, true )
+		obj = AI:create( AI:spawn_id( story_ids.devchonka ) )
+		AI:teleport_object( "", pos, lv, gv, obj.id )
+	end
+
+	obj = AI:story_object( story_ids.stalker_rost_sysh )
+	if obj and obj:alive() then
+		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
+		AI:release( obj, true )
+		obj = AI:create( AI:spawn_id( story_ids.stalker_rost_sysh ) )
+		AI:teleport_object( "", pos, lv, gv, obj.id )
+	end
+
+	local resp = {
+		"marsh_sych_stalk1",
+		"marsh_sych_stalk2",
+		"marsh_sych_stalk3",
+		"marsh_sych_stalk4"
+	}
+	for i, v in ipairs(resp) do
+		obj = AI:object( v )
+		if obj and obj:alive() then
+			AI:release( obj, true )
+			AI:create ( spawn_ids[v] )
+		end
+	end
+end
+function fix_46()
+	this.fix_7()
+	this.fix_33()
+
+	local rem = {
+		"voronin_voen_sms_restrictor",
+		"aver_muha_bazar_sms_restrictor",
+		"posadka_pantera_restrictor",
+		"kluk_shuher_restrictor",
+		"idu_na_nz_restrictor",
+		"dok_podvox_restrictor",
+		"spasibo_frits_restrictor",
+		"esc_klenov_posulka_restrictor",
+		"klenov_posulku_poluchil_restrictor"
+	}
+	local obj
+	for i, v in ipairs(rem) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+
+	obj = AI:story_object( story_ids.new_kluk_nz )
+	if obj then
+		local pos, lv, gv = obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id
+		AI:release( obj, true )
+		obj = AI:create ( AI:spawn_id( story_ids.new_kluk_nz ) )
+		AI:teleport_object( "", pos, lv, gv, obj.id )
+	end
+
+	local obj2info = {
+		["aver_sekret_nashel_restrictor"] = "peshera_nz_poisk_ok",
+		["sms_otez_poreshil_ubiysu_restrictor"] = "as_ubiysa_done",
+		["perehov_na_yantar_restrictor"] = "control_monol_svalka",
+		["spawn_svalka_plot_stalk_restrictor"] = "svalka_plot_stalk_spawn",
+		["marsh_otl_dok_vert_restrictor"] = "dok_heli_vusadil",
+		["esc_pantera_dead_restrictor"] = "remark_otez"
+	}
+	for k, v in pairs(obj2info) do
+		obj = AI:object( k )
+		if obj then
+			AI:release( obj, true )
+			if Actor:dont_has_info( v ) then
+				AI:create ( spawn_ids[k] )
+			end
+		end
+	end
+end
+function fix_45() end
+function fix_44()
+	local obj, name
+	for i = 1, 8 do
+		name = "bar_dolg_attackers_stop" .. tostring( i )
+		obj = AI:object( name )
+		if obj and obj:alive() then
+			AI:release( obj, true )
+			AI:create ( spawn_ids[name] )
+		end
+	end
+
+	obj = AI:story_object(story_ids.lc_atp_to_garbage)
+	if obj then
+		netpk:modify(obj, {
+			dest_position = vector():set(-37.915710449219,7.1127805709839,247.47064208984),
+			dest_direction = vector():set(0,-1.3996797800064,0)
+		}, netpk.fState)
+	end
+end
+function fix_43()
+	local anoms = {
+		"marsh_zone_ameba1_mex_dvor",
+		"marsh_zone_ameba1_vushka",
+		"marsh_zone_ameba1_tele_baza",
+		"marsh_zone_ameba1_vagonu",
+		"marsh_ameba1",
+		"marsh_ameba2",
+		"marsh_ameba3"
+	}
+	local obj
+	for i, v in ipairs(anoms) do
+		obj = AI:object(v)
+		if obj then
+			netpk:modify(obj, {restrictor_type = 2}, netpk.fState)
+		end
+	end
+end
+function fix_42()
+	if not AI:object("rebyta_smertniki_koster_rest") then
+		AI:create(spawn_ids.rebyta_smertniki_koster_rest)
+	end
+end
+function fix_41()
+	local sids = {
+		"wolffrend_talk_zaton2",
+		"wolffrend_talk_zaton",
+		"bibliofrend_talk_zaton",
+		"bibliofrend_talk_black_zaton"
+	}
+	for i, v in ipairs(sids) do
+		obj = AI:story_object( story_ids[v] )
+		if obj then
+			netpk:modify(
+				obj,
+				{ visual_name = "new\\nevidimka_talk" },
+				netpk.fState + netpk.fConvert
+			)
+		end
+	end
+
+	local t = {
+		"gener_stalky_koster2_rest",
+		"gener_stalky_koster1_rest"
+	}
+	for i, v in ipairs(t) do
+		if not AI:object(v) then
+			AI:create(spawn_ids[v])
+		end
+	end
+end
+function fix_40()
+	if has_alife_info("pechatka_taken") and Actor:character_name() == "Стрелок" then
+		local new_name = amk_names_lists.get_strings(false)
+		naxac.hero_rename_start(new_name)
+	end
+
+	local obj = AI:object("warlab_boss")
+	if obj and obj:alive() then
+		AI:release(obj, true)
+		AI:create(spawn_ids.warlab_boss)
+	end
+
+	local sids = {
+		"Mil_patrol_kamikadze1",
+		"Mil_patrol_kamikadze2",
+		"Mil_patrol_kamikadze3"
+	}
+	for i, v in ipairs(sids) do
+		obj = AI:story_object( story_ids[v] )
+		if obj and obj:alive() then
+			AI:release(obj, true)
+			AI:create( AI:spawn_id( story_ids[v] ) )
+		end
+	end
+end
+function fix_39()
+	local obj = AI:object("warlab_radio")
+	if obj then
+		AI:release(obj, true)
+	end
+	AI:create(spawn_ids.warlab_radio)
+	obj = AI:object("pantera_space_restrictor_timer")
+	if obj then
+		AI:release(obj, true)
+	end
+	AI:create(spawn_ids.pantera_space_restrictor_timer)
+end
+function fix_38()
+	local lamps = {
+		"aver_lazaret_lamp_2",
+		"aver_lazaret_lamp_3",
+		"aver_lazaret_lamp_5",
+		"aver_sekret_lamp_1"
+	}
+	local obj
+	for i, v in ipairs(lamps) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+
+	obj = AI:object("land_arhara_koster_1")
+	if obj then AI:release(obj, true) end
+	AI:create(spawn_ids.land_arhara_koster_1)
+	obj = AI:object("land_arhara_koster_1_rest")
+	if not obj then AI:create(spawn_ids.land_arhara_koster_1_rest) end
+	obj = AI:object("land_arhara_koster_2_rest")
+	if not obj then AI:create(spawn_ids.land_arhara_koster_2_rest) end
+
+	obj = AI:story_object(story_ids.lc_agroprom_to_marsh)
+	if obj then
+		netpk:modify(obj, {
+			dest_direction = vector():set(0,3.3004789352417,0)
+		}, netpk.fState)
+	end
+
+	obj = AI:story_object(story_ids.lc_radar_to_warlab)
+	if obj then
+		if level.map_has_object_spot(obj.id, "level_changer4") ~= 0 then
+			level.map_remove_object_spot(obj.id, "level_changer4")
+			level.map_add_object_spot_ser(obj.id, "level_changer2", "to_warlab")
+		end
+		netpk:modify(obj, {
+			dest_level_vertex_id = 4507,
+			dest_position = vector():set(-0.24238891899586,11.090615272522,22.223293304443),
+			dest_direction = vector():set(0,4.5623860359192,0)
+		}, netpk.fState)
+	end
+end
+function fix_37()
+	local obj = AI:story_object(story_ids.lc_darkvalley_to_aver)
+	if obj then
+		netpk:modify(obj, {
+			dest_game_vertex_id = 2908,
+			dest_level_vertex_id = 1673008,
+			dest_position = vector():set(442.62689208984,-5.3303380012512,-319.21130371094),
+			dest_direction = vector():set(0,1.5768010616302,0),
+			dest_graph_point = "start_actor_99"
+		}, netpk.fState)
+	end
+end
+function fix_36()
+	local obj
+
+	if not has_alife_info("val_prisoner_scene_end") then
+		obj = AI:story_object(story_ids.val_prisoner)
+		if obj then
+			AI:release(obj, true)
+			AI:create( AI:spawn_id(story_ids.val_prisoner) )
+		end
+		local obj = AI:object("val_prisoner_cage_zone")
+		if obj then
+			AI:release(obj, true)
+			AI:create(spawn_ids.val_prisoner_cage_zone)
+		end
+		if (not has_alife_info("val_prisoner_door_unlocked")) and has_alife_info("val_prisoner_free") then
+			Actor:disable_info_portion("val_prisoner_free")
+		end
+	end
+
+	local t = {
+		lc_aver_to_svalka		= "info_way_arhara_svalka_earth",
+		lc_aver_to_darkvalley	= "info_way_arhara_td_earth",
+		lc_aver_to_military		= "info_way_arhara_military_earth"
+	}
+	for k, v in pairs(t) do
+		if not has_alife_info(v) then
+			obj = AI:story_object( story_ids[k] )
+			if obj then
+				AI:release(obj, true)
+			end
+		end
+	end
+	if has_alife_info("info_way_arhara_svalka_earth") then
+		level_changers.create_allspawn_lc("lc_aver_to_svalka","info_way_arhara_svalka_earth", true)
+	end
+end
+function fix_35()
+	local obj = AI:story_object(story_ids.viking_npc)
+	if obj then
+		AI:release(obj, true)
+		akill.viking_npc_spawn()
+	end
+	obj = AI:object("dead_mono_labirint")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.dead_mono_labirint)
+	end
+	obj = AI:story_object(story_ids.lc_military_to_aver)
+	if obj then
+		AI:release(obj, true)
+		level_changers.create_allspawn_lc("lc_military_to_aver","info_way_arhara_military_earth", true)
+	end
+end
+function fix_34()
+	local obj = AI:object("esc_wpn_pm")
+	if obj then
+		AI:release(obj, true)
+	end
+	AI:create(spawn_ids.esc_wpn_pm)
+
+	local lc = {
+		"lc_escape_to_bar",
+		"lc_pripyat_to_bar"
+	}
+	for i, v in ipairs(lc) do
+		obj = AI:story_object( story_ids[v] )
+		if obj then
+			AI:release(obj, true)
+			level_changers.create_level_changer(v)
+		end
+	end
+end
+function fix_33()
+	if has_alife_info("vitamin_reyd_zadan_done") then
+		arhara_dialog.delete_svoboda_radars()
+	end
+
+	local obj
+
+	local respawn_sid = {
+		story_ids.ziclop,
+		story_ids.jora_anomaly,
+		story_ids.lazaret_golograma,
+		story_ids.tehnik_golograma
+	}
+	for i, sid in ipairs( respawn_sid ) do
+		obj = AI:story_object( sid )
+		if obj then
+			AI:release( obj, true )
+			AI:create( AI:spawn_id( sid ) )
+		end
+	end
+
+	local respawn_names = {
+		"vert_zimovie_stalker_1",
+		"vert_zimovie_stalker_2"
+	}
+	for i, v in ipairs( respawn_names ) do
+		obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+			AI:create( spawn_ids[v] )
+		end
+	end
+
+	obj = AI:story_object( story_ids.fotograf_npc )
+	if obj then
+		AI:release( obj, true )
+		akill.fotograf_npc_spawn()
+	end
+end
+function fix_32()
+	local obj
+	local doors = {
+		"mon_door_from_monolith_control",
+		"mon_door_from_monolith_control_0000"
+	}
+	for i, v in ipairs( doors ) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
+	end
+	obj = AI:object("control_dver_open_restrictor")
+	if obj then
+		AI:release(obj, true)
+	end
+end
+function fix_31()
+	local obj = AI:story_object( story_ids.kot )
+	if obj == nil and has_alife_info("bkot_spawn") then
+		AI:create( AI:spawn_id( story_ids.kot ) )
+	end
+
+	fly_island.fix()
+end
+function fix_30()
+	local obj = AI:story_object( story_ids.lc_yantar_to_aes )
+	if obj then
+		AI:release( obj, true )
+		level_changers.create_level_changer( "lc_yantar_to_aes" )
+	end
+end
+function fix_29()
+	local obj
+	for i = 1, 3 do
+		obj = AI:object("new_prizrak_treasure"..i)
+		if obj then
+			AI:release(obj, true)
+		end
+	end
+	if has_alife_info("tri_tainik_start") and not has_alife_info("tri_tainik_done") then
+		new_dialog.tri_tainik_spawn()
+	end
+end
+function fix_28()
+	local obj = AI:object("rostok_space_restrictor_0001")
+	if obj then
+		AI:release(obj, true)
+		AI:create(spawn_ids.rostok_space_restrictor_0001)
+	end
+
+	obj = AI:story_object(story_ids.lc_jupiter_to_east_pripyat)
+	if obj then
+		AI:release(obj, true)
+		level_changers.create_level_changer("lc_jupiter_to_east_pripyat")
+	end
+end
+function fix_27()
+	local npc = {
+		"esc_banderos",
+		"esc_dimorin",
+		"esc_n6260",
+		"esc_vergas",
+		"esc_tirex",
+		"esc_wawka"
+	}
+	local obj
+	for i, v in ipairs(npc) do
+		obj = AI:object(v)
+		if obj and obj:alive() then
+			AI:release(obj, true)
+			AI:create( spawn_ids[v] )
+		end
+	end
+end
+function fix_26()
+	local doors = {"door_trader_0000","door_trader"}
+	for i, v in ipairs(doors) do
+		local obj = AI:object( v )
+		if obj then
+			AI:release( obj, true )
+			AI:create( spawn_ids[v] )
+		end
+	end
+
+	if has_alife_info("raritet_saharov") then
+		local obj = AI:story_object( story_ids.grom_npc )
+		if not obj then return end
+
+		AI:release( obj, true )
+
+		obj = AI:create( "grom_npc",vector():set(27.641338348389,-10.942045211792,-280.30341186523), 54978, 1480 )
+		if not has_alife_info("taynik_bandit_x18_start") then
+			local tbl = {
+				health = 0.1,
+				upd = { health = 0.1 }
+			}
+			netpk:modify( obj, tbl )
+		end
+		set_story_id( obj, story_ids.grom_npc )
+	end
+end
+function fix_25()
+	local obj = AI:story_object( story_ids.bkot )
+	if obj then
+		AI:release( obj, true )
+	end
+	obj = AI:story_object( story_ids.kot_hos )
+	if obj then
+		AI:release( obj, true )
+	end
+	obj = AI:story_object( story_ids.kot )
+	if obj then
+		AI:release( obj, true )
+	end
+	obj = AI:create( AI:spawn_id( story_ids.kot ) )
+
+	if has_alife_info("kostya_pripyat_taynik_done") then
+		Actor:give_info_portion("kostya_pripyat_kamp")
+		news_manager.send_tip("naxac_fix_kostya_sms", 7, "kostya", 10000)
+	end
+end
+function fix_24()
+	local obj = AI:object("dcity_dok_bolot")
+	if obj then
+		set_story_id(obj, story_ids.Doktor_dcity)
+	end
+	obj = AI:object("dcity2_dok2_bolot2_vid")
+	if obj then
+		set_story_id(obj, story_ids.Doktor_dcity2)
+	end
+end
+function fix_23()
+	local restr = {
+		"aes2_space_restrictor_particle_0000",
+		"aes2_space_restrictor_particle_0001",
+		"aes2_space_restrictor_particle_0003",
+		"aes2_space_restrictor_particle_0004",
+		"aes2_space_restrictor_particle_0005",
+		"aes2_space_restrictor_particle_0002",
+		"aes2_space_restrictor_particle_final",
+		"aes2_space_restrictor_particle_final_0000"
+	}
+	local obj
+	for i, v in ipairs(restr) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+			AI:create( spawn_ids[v] )
+		end
+	end
+end
+function fix_22()
+	local obj = AI:story_object(story_ids.pri_dimak)
+	if obj then
+		AI:release(obj, true)
+		obj = AI:create("pri_dimak",vector():set(135.55590820313,4.9057364463806,-202.5612487793),363721,3765)
+		set_story_id(obj, story_ids.pri_dimak)
+	end
+	local obj = AI:story_object(story_ids.aaz_upi)
+	if obj then
+		AI:release(obj, true)
+		local obj = AI:create("aaz_upi_torg",vector():set(-12.37338924408,23.103647232056,245.67727661133),695048,3725)
+		set_story_id(obj, story_ids.aaz_upi)
+	end
+end
+function fix_21()
+	local obj, obj_sect
+	for i = 1, 65534 do
+		obj = AI:object(i)
+		if obj then
+			obj_sect = obj:section_name()
+			if obj_sect == "marsh_ariadna2" then
+				AI:release(obj, true)
+				AI:create("marsh_ariadna2",vector():set(-143.60943603516,0.63742542266846,-293.34475708008),73908,3376)
+			elseif obj_sect == "marsh_ariadna" then
+				AI:release(obj, true)
+				AI:create("marsh_ariadna",vector():set(111.07360839844,0.80768406391144,335.32708740234),201895,3461)
+			elseif obj_sect == "zone_teleport_new" then
+				AI:release(obj, true)
+			elseif obj_sect == "zone_teleport_new_out" then
+				AI:release(obj, true)
+			end
+		end
+	end
+end
+function fix_20()
+	-- переспавн зон, которые постоянно выдают никому не нужный поршень pri_monolith_snipers_free
+	local obj = AI:story_object(story_ids.pri_hotel_zone)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.pri_hotel_zone) )
+	end
+	obj = AI:story_object(story_ids.pri_monolith_base_zone)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.pri_monolith_base_zone) )
+	end
+end
+function fix_19()
+	local obj = AI:story_object(story_ids.dragunof_npc)
+	if obj then
+		AI:release(obj, true)
+		obj = AI:create("dragunof_npc",vector():set(191.67535400391,2.8055994510651,212.01971435547),260495,2219)
+		set_story_id(obj, story_ids.dragunof_npc)
+	end
+end
+function fix_18()
+	-- Правка некорретных story_id у переходов
+	-- функция alife():assign_story_id(), окзывается, принимает только uint16, т.е. целые числа до 65535
+	-- а story_id - это uint32.
+	local t = {
+		"lc_warlab_to_control_monolith",
+		"lc_sarkofag_to_x10",
+		"lc_x10_to_sarkofag",
+		"lc_sarkofag_to_aes2",
+		"lc_aes2_to_sarkofag",
+		"lc_military_to_limansk",
+		"lc_dead_city_to_atp_timing",
+		"lc_aver_to_east_pripyat",
+		"lc_yantar_to_east_pripyat",
+		"lc_east_pripyat_to_aver",
+		"lc_east_pripyat_to_labx8",
+		"lc_labx8_to_jup_underground",
+		"lc_jup_underground_to_east_pripyat",
+		"lc_east_pripyat_to_jupiter",
+		"lc_jupiter_to_jup_underground",
+		"lc_east_pripyat_to_zaton",
+		"lc_garbage_to_east_pripyat",
+		"lc_zaton_to_east_pripyat",
+		"lc_labx8_to_east_pripyat",
+		"lc_east_pripyat_to_pripyat",
+		"lc_pripyat_to_east_pripyat",
+		"lc_zaton_to_jupiter",
+		"lc_jupiter_to_zaton",
+		"lc_jupiter_to_east_pripyat",
+		"lc_labrint_to_sarkofag",
+		"lc_yantar_to_aes",
+		"lc_escape_to_bar",
+		"lc_bar_to_escape",
+		"lc_bar_to_pripyat",
+		"lc_pripyat_to_bar",
+		"lc_east_pripyat_to_jup_underground"
+	}
+	local lc_ini = ini_file("misc\\level_changers.ltx")
+	local obj
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and obj:clsid() == clsid.level_changer
+			and obj:name() == obj:section_name()..obj.id
+		then
+			log("~ attempt to correct story_id for object %s", obj:name())
+			local data = netpk:get(obj)
+			local repair = false
+			for j, s in ipairs(t) do
+				if lc_ini:r_u32(s, "game_vertex") == obj.m_game_vertex_id
+					and lc_ini:r_u32(s, "dest_game_vertex") == data.dest_game_vertex_id
+				then
+					if obj.m_story_id ~= story_ids[s] then
+						data.story_id = story_ids[s] or abort("story id not exist: %s", s)
+						netpk:set(obj, data)
+						log("- successfully: set story_id %s [%s]", s, story_ids[s])
+					else
+						log("# not needed: story_id is correspond")
+					end
+					table.remove(t, j)
+					repair = true
+					break
+				end
+			end
+			if not repair then
+				log("! faied: story_id %s", obj.m_story_id)
+				AI:release(obj, true)
+			end
+		end
+	end
+end
+function fix_17()
+	-- Установим логику дверям в подземке Юпитера
+	local obj
+	local doors = {
+		"jund_pas_b400_physic_door",
+		"jund_pas_b400_door_track",
+		"jund_pas_b400_door_downstairs",
+		"jund_pas_b400_physic_door_0000",
+		"jund_pas_b400_door_hall",
+		"jund_pas_b400_door_control_down",
+		"jund_pas_b400_door_control_up",
+		"jund_pas_b400_door_way"
+	}
+	for i, v in ipairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
+	end
+	-- Наспавним аномалий - для атмосферности
+	for i = spawn_ids.jup_underground_anoms_start, spawn_ids.jup_underground_anoms_end, 1 do
+		AI:create(i)
+	end
+end
+function fix_16()
+	-- Переделаем немного двери в Х-10 и на Радаре
+	local obj
+	local doors = {
+		"rad_code_door_keylock",
+		"rad_code_door",
+		"codedoor_door_0001",
+		"codedoor_door_0002",
+		"codedoor_door_0003",
+		"codedoor_door_0004",
+		"codedoor_door_0006",
+		"codedoor_door_0007",
+		"codedoor_key_0004"
+	}
+	for i, v in ipairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create( spawn_ids[v] )
+	end
+	-- Объекты, имеющие одинаковые имена с другими объектами в спавне
+	local double_names = {
+		["codedoor_key_0000"] = spawn_ids.bun_codedoor_key_0000,
+		["codedoor_key_0001"] = spawn_ids.bun_codedoor_key_0001,
+		["codedoor_key_0002"] = spawn_ids.bun_codedoor_key_0002,
+		["codedoor_key_0003"] = spawn_ids.bun_codedoor_key_0003
+	}
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and double_names[ obj:name() ] then
+			if object_level_name(obj) == "l10u_bunker" then
+				local name = obj:name()
+				AI:release(obj, true)
+				AI:create( double_names[ name ] )
+				double_names[ name ] = nil
+				if table.size( double_names ) == 0 then
+					break
+				end
+			end
+		end
+	end
+	-- Неписи с кодом от двери
+	local npcs = {
+		"rad_antenna_camper1",
+		"rad_antenna_camper2",
+		"rad_antenna_camper3"
+	}
+	local respawn = false
+	for i, v in ipairs(npcs) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+			AI:create( spawn_ids[v] )
+			respawn = true
+		end
+	end
+	-- никого не переспавнили, значит уже некого - выдадим статью просто так
+	if (respawn == false) and not has_alife_info("bun_door_3_code") then
+		Actor:give_info_portion("bun_door_3_code")
+	end
+end
+function fix_15()
+	local rem = {
+		"amk_zone_ogon_average_11",
+		"amk_zone_ogon_average_48",
+		"amk_zone_ogon_average_83",
+		"amk_zone_ogon_average_162",
+		"amk_zone_ogon_average_261",
+		"amk_zone_ogon_average_201",
+		"amk_zone_ogon_average_299",
+		"amk_zone_ogon_average_353",
+		"amk_zone_ogon_average_402",
+		"stancia2_ogon1_truba_niz",
+		"stancia2_ogon2_truba_verh"
+	}
+	local obj
+	for i, name in ipairs(rem) do
+		obj = AI:object(name)
+		if obj then
+			amk_anoms.release_anomaly(obj)
+		end
+	end
+	obj = AI:object("darkscape_fireshit_ogon_strong")
+	if not obj then
+		AI:create(spawn_ids.darkscape_fireshit_ogon_strong)
+	end
+
+	local doors = {
+		"pri_b303_one_side_door",
+		"pri_b303_door_01",	
+		"pri_b304_physic_door_0005",	
+		"pri_b304_physic_door_0006",	
+		"pri_b304_physic_door_0007",	
+		"pri_b304_physic_door_0008",	
+		"pri_b304_physic_door_0009",	
+		"pri_b304_physic_door_0010",	
+		"pri_b304_physic_door_0011",	
+		"pri_b304_physic_door_0012",	
+		"pri_b304_physic_door_0013",	
+		"pri_b304_physic_door_0014",	
+		"pri_a16_ph_door",			
+		"pri_a16_ph_door_0000",		
+		"pri_a16_ph_door_0001",		
+		"pri_a16_ph_door_0002",		
+		"pri_a16_ph_door_0003",		
+		"pri_a16_ph_door_0006",		
+		"pri_a28_physic_door_end_surge_room",
+		"pri_a28_physic_door_end_surge_room_0000"
+	}
+	for i, v in ipairs(doors) do
+		obj = AI:object(v)
+		if obj then
+			AI:release(obj, true)
+		end
+		AI:create(spawn_ids[v])
+	end
+end
+function fix_14()
+	local obj = AI:story_object(story_ids.Mil_Kap)
+	if obj then
+		local t = {
+			custom_data = "[smart_terrains]\n"..
+						  "mil_fblockpost = true"
+		}
+		netpk:modify(obj, t, netpk.fState)
+	end
+end
+function fix_13()
+	local obj_sect
+	Actor:iterate_inventory( function(dummy, item)
+		obj_sect = item:section()
+		if sys_ini:r_bool_ex(obj_sect, "energy_consuming", false) == true
+			and sys_ini:line_exist(obj_sect, "condition")
+		then
+			local v = sys_ini:r_float(obj_sect, "condition")
+			item:set_condition(v)
+			netpk:modify( AI:object( item:id() ), {condition = v} )
+		end
+	end,
+	Actor)
+end
+function fix_12()
+	if level.name() == "l04_darkvalley" then
+		start_real_timer("run", 10, "naxac_fix.fix_12()")
+		return
+	end
+
+	local obj = AI:story_object(story_ids.val_bandit_trader)
+	if obj then
+		AI:release(obj, true)
+		AI:create( AI:spawn_id(story_ids.val_bandit_trader) )
+	end
+end
+function fix_11()
+	local obj = AI:object("darkscape_military_respawn")
+	if obj == nil then
+		AI:create(spawn_ids.darkscape_military_respawn)
+	end
+end
+function fix_10()
+	local obj
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj and obj:section_name() == "wpn_awm" then
+			local pid = obj.parent_id
+			if pid and pid ~= 65535 then
+				local par = AI:object(pid)
+				if par and par:section_name() == "inventory_box"
+					and (not is_story_object(par))
+					and object_level_name(par) == "l05_bar"
+				then
+					AI:release(par, true)
+				--	log("~ release wmgr box with some 'wpn_awm'")
+					break
+				end
+			end
+		end
+	end
+end
+function fix_9()
+	local obj = AI:story_object(story_ids.lc_radar_to_military)
+	if obj then
+		netpk:modify(obj, {
+			dest_direction = vector():set(0, 1.7905013561249, 0)
+		}, netpk.fState)
+	end
+	obj = AI:story_object(story_ids.lc_military_to_darkvalley)
+	if obj then
+		netpk:modify(obj, {
+			dest_game_vertex_id = 998,
+			dest_level_vertex_id = 140394,
+			dest_position = vector():set(-42.56294631958,-1.8161754608154,-21.93950843811),
+			dest_direction = vector():set(0, -0.94331800937653, 0)
+		}, netpk.fState)
+	end
+	obj = AI:story_object(story_ids.lc_military_to_rostok)
+	if obj then
+		netpk:modify(obj, {
+			dest_game_vertex_id = 1360,
+			dest_level_vertex_id = 715,
+			dest_position = vector():set(-285.29742431641,-0.00052946805953979,103.03450775146),
+			dest_direction = vector():set(0, 4.0257377624512, 0)
+		}, netpk.fState)
+	end
+end
+function fix_8()
+	start_small_timer(3000, function()
+		amk_anoms.pre_blow_off()
+		amk_anoms.after_blow_on()
+	end)
+end
+function fix_7()
+	-- Зададим story_id некоторым квестовым нпс
+	-- Циклоп
+	local obj = AI:object("land_lazaret_stalker1")
+	if obj and AI:story_object(story_ids.ziclop) == nil then
+		set_story_id(obj, story_ids.ziclop)
+	end
+	-- прозрачный Витя Голограмма
+	obj = AI:object("land_lazaret_stalker2")
+	if obj and AI:story_object(story_ids.lazaret_golograma) == nil then
+		set_story_id(obj, story_ids.lazaret_golograma)
+	end
+	-- Жора Аномалия
+	obj =  AI:object("land_lazaret_stalker3")
+	if obj and AI:story_object(story_ids.jora_anomaly) == nil then
+		set_story_id(obj, story_ids.jora_anomaly)
+	end
+	-- бородатый Пилигрим
+	obj =  AI:object("piligrim")
+	if obj and AI:story_object(story_ids.piligrim) == nil then
+		set_story_id(obj, story_ids.piligrim)
+	end
+	-- Хог (сталкер, у которого плоть на Свалке сожрала рюкзак)
+	obj =  AI:object("svalka_plot_stalk")
+	if obj and AI:story_object(story_ids.svalka_plot_stalk) == nil then
+		set_story_id(obj, story_ids.svalka_plot_stalk)
+	end
+	-- Клёнов
+	obj =  AI:object("warlab_stalker_oso")
+	if obj and AI:story_object(story_ids.klenov) == nil then
+		set_story_id(obj, story_ids.klenov)
+	end
+	-- Знаток Болот
+	obj =  AI:object("boloto_provodnik")
+	if obj and AI:story_object(story_ids.boloto_provodnik) == nil then
+		set_story_id(obj, story_ids.boloto_provodnik)
+	end
+	-- Санёк Разбойник (кидала на Кордоне)
+	obj =  AI:object("esc_kidalo")
+	if obj and AI:story_object(story_ids.esc_kidalo) == nil then
+		set_story_id(obj, story_ids.esc_kidalo)
+	end
+end
+function fix_6()
+	-- переспавним награду от Лукаша за мозги контролёра в рюкзак
+	if not has_alife_info("svoboda_lukash_done") then return end
+	local sect, obj
+	local need_spawn = false
+	for i = 1, 65535 do
+		obj = AI:object(i)
+		if obj then
+			sect = obj:section_name()
+			if (sect == "arhara_tele" or sect == "meceniy_outfit_new" or sect == "wpn_aa12")
+				and obj.parent_id == 65535 and object_level_name(obj) == "l12u_sarcofag"
+			then
+				AI:release(obj, true)
+				need_spawn = true
+			end
+		end
+	end
+	if need_spawn then
+		arhara_dialog.arhara_teleport()
+	end
+end
+function fix_5()
+	-- Уберём ненужный рестриктор и исправим радио Василию на болотах
+	local obj = AI:object("marsh_moroz_restrictor")
+	if obj then
+		AI:release(obj, true)
+		if AI:object("marsh_vasilij_radio") == nil then
+			netpk:create_restrictor(
+				vector():set(-136.51177978516,4.1848711967468,-305.32223510742),
+				77674, 3374, 
+				"[logic]\ncfg = scripts\\marsh\\vasilij_radio.ltx",
+				1.0
+			)
+		end
+	end
+end
+function fix_4()
+	-- поправим переход Кордон - Болота
+	local obj = AI:object("escape_to_marsh")
+	if obj then
+		local data = {
+			dest_direction = vector():set(0,1.1001601219177,0),
+			shapes = {
+				{ shtype = 0, center = vector():set(0,0,0), radius = 1.2 }
+			}
+		}
+		netpk:modify(obj, data, netpk.fState)
+	end
+	-- поправим переход Болота - Кордон
+	obj = AI:object("mar_level_changer_to_escape_1")
+	if obj then
+		local data = {
+			dest_game_vertex_id = 41,
+			dest_level_vertex_id = 8615,
+			dest_position = vector():set(-253.77577209473,-14.679865837097,-194.29989624023)
+		}
+		netpk:modify(obj, data, netpk.fState)
+	end
+end
+function fix_3()
+	-- уберём сделавшую своё дело мину на Янтаре
+	local obj = AI:object("yantar_arhara_mine1")
+	if obj and has_alife_info("sms_barmen_otvet") then
+		AI:release(obj, true)
+	end
+end
+function fix_2()
+	--Если переходов в Тёмную Лощину нет, значит локацию только добавили - нужно заспавнить её содержимое
+	if AI:story_object(story_ids.lc_darkscape_to_escape) == nil
+		and AI:story_object(story_ids.lc_darkscape_to_darkvalley) == nil
+	then
+		-- спавним по номеру секции в спавне: придётся обновлять каждый раз при редактировании спавна.
+		for i = spawn_ids.darkscape_spawn_start, spawn_ids.darkscape_spawn_end, 1 do
+			AI:create(i)
+		end
+		-- отметим переходы
+		local obj = AI:story_object(story_ids.lc_darkscape_to_escape)
+		if obj then
+			level.map_add_object_spot_ser(obj.id, "level_changer4", "to_escape")
+		end
+		obj = AI:story_object(story_ids.lc_darkscape_to_darkvalley)
+		if obj then
+			level.map_add_object_spot_ser(obj.id, "level_changer1", "to_darkvalley")
+		end
+		-- переспавним переходы ТД-Кордон и Кордон-ТД: теперь это ТД-ТЛ и Кордон-ТЛ
+		obj = AI:story_object(story_ids.lc_escape_to_darkscape)
+		if obj then
+			AI:release(obj, true)
+			obj = AI:create( AI:spawn_id(story_ids.lc_escape_to_darkscape) )
+			level.map_add_object_spot_ser(obj.id, "level_changer2", "to_darkscape")
+		end
+		obj = AI:story_object(story_ids.lc_darkvalley_to_darkscape)
+		if obj then
+			AI:release(obj, true)
+			obj = AI:create( AI:spawn_id(story_ids.lc_darkvalley_to_darkscape) )
+			level.map_add_object_spot_ser(obj.id, "level_changer3", "to_darkscape")
+		end
+		-- телепорт к дому
+		AI:create("darkscape_teleport_01",vector():set(-248.57592773438,12.540954589844,-329.14068603516),139494,3997)
+	end
+end
+function fix_1()
+	local obj
+	if not has_alife_info( "naxac_test_repair5" ) then
+		Actor:give_info_portion( "naxac_test_repair5" )
+		-- удаляем ставший не нужным балласт от контеёнеров с артефактами
+		Actor:iterate_inventory(function(dummy, item)
+			if item:section() == "wpn_ballast" then
+				obj = AI:object(item:id())
+				if obj then AI:release(obj, true) end
+			end
+		end,
+		Actor)
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if not has_alife_info( "naxac_test_repair4" ) then
+		Actor:give_info_portion( "naxac_test_repair4" )
+
+		obj = AI:object("radar_kukla")
+		if obj then
+			AI:create("kukla_1",vector():set(-10.734,0.198,-54.009),7084,1960)
+			AI:release(obj, true)
+		end
+
+		obj = snp.object_by_section_offline("good_psy_helmet1")
+		if obj then
+			if obj.parent_id == 65535 then
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id)
+			else
+				AI:create("good_psy_helmet", obj.position, obj.m_level_vertex_id, obj.m_game_vertex_id, obj.parent_id)
+			end
+			AI:release(obj, true)
+		end
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if not has_alife_info( "naxac_test_repair3" ) then
+		Actor:give_info_portion( "naxac_test_repair3" )
+		-- правим замену артов в Госпитале
+		obj = AI:object( "podlovim_chiterov_restrictor" )
+		if obj then AI:release( obj, true ) end
+		obj = AI:object( "podlovim_chiterov1_restrictor" )
+		if obj then AI:release( obj, true ) end
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if not has_alife_info( "naxac_test_repair2" ) then
+		Actor:give_info_portion( "naxac_test_repair2" )
+		-- меняем имя ГГ, если встреча с Доктором уже была
+		if has_alife_info( "cit_fail_first_task" ) then
+			naxac.hero_rename_agrund()
+		end
+	end
+-------------------------------------------------------------------------------------------------------------------
+	if not has_alife_info( "naxac_test_repair1" ) then
+		Actor:give_info_portion( "naxac_test_repair1" )
+
+		if AI:object( "subway_scaner_doc_0001" ) == nil then
+			AI:create( "subway_scaner_doc", vector():set(-28.548599243164,-10.811845779419,-25.668081283569),517,1152 )
+		end
+	end
+end
