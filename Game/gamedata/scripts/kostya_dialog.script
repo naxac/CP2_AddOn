@@ -1,7 +1,7 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 -- stealth
 function stealth_start()
-	if has_alife_info("stealth1_done") then return end
+	if Actor:has_info("stealth1_done") then return end
 	start_real_timer("run",1.0,"kostya_dialog.stealth_start2()")
 end
 function stealth_start2()
@@ -57,8 +57,8 @@ function stealth5_done()
 end
 -- проверка на провал при убийстве, сняти амулета или одевании маскхалата
 function stealth_fail_task(victim, who)
-	if has_alife_info("stealth2_done")
-		and (not has_alife_info("stealth_find_pda_done"))
+	if Actor:has_info("stealth2_done")
+		and Actor:dont_has_info("stealth_find_pda_done")
 		and ( (not who) or who:id() == Actor:id() )
 	then
 		Actor:give_info_portion("stealth_find_pda_fail")
@@ -93,14 +93,14 @@ end
 
 local peshera_table
 function init_peshera_table()
-	if has_alife_info("peshera_go") then
+	if Actor:has_info("peshera_go") then
 		xr_s.subscribe("item_take", kostya_dialog.peshera_go)
 		peshera_table = xr_logic.pstor_get_custom(Actor, "peshera_clear", "peshera_clear")
 	end
 end
 
 function peshera_go(obj)
-	if not has_alife_info("peshera_go") then
+	if Actor:dont_has_info("peshera_go") then
 		xr_s.unsubscribe("item_take", kostya_dialog.peshera_go, true)
 		return
 	end
@@ -237,50 +237,50 @@ end
 -- Взносы
 function vzn_begin()
 	return Actor:money()>=2000000 and
-		has_alife_info("sar_monolith_destroy")
+		Actor:has_info("sar_monolith_destroy")
 end
 function vzn()
 	return
 		Actor:money()>=2000000 and
-		has_alife_info("vzn_begin") and 
-		not	has_alife_info("vzn_start") and 
+		Actor:has_info("vzn_begin") and 
+		Actor:dont_has_info("vzn_start") and 
 		not (
-			has_alife_info("vzn1") and 
-			has_alife_info("vzn2") and 
-			has_alife_info("vzn3") and 
-			has_alife_info("vzn4") and 
-			has_alife_info("vzn5") and 
-			has_alife_info("vzn6") and 
-			has_alife_info("vzn7") and 
-			has_alife_info("vzn8") and 
-			has_alife_info("vzn9") and 
-			has_alife_info("vzn10") and 
-			has_alife_info("vzn11") and 
-			has_alife_info("vzn12") and 
-			has_alife_info("vzn13") and 
-			has_alife_info("vzn14") and 
-			has_alife_info("vzn15") and 
-			has_alife_info("vzn16")
+			Actor:has_info("vzn1") and 
+			Actor:has_info("vzn2") and 
+			Actor:has_info("vzn3") and 
+			Actor:has_info("vzn4") and 
+			Actor:has_info("vzn5") and 
+			Actor:has_info("vzn6") and 
+			Actor:has_info("vzn7") and 
+			Actor:has_info("vzn8") and 
+			Actor:has_info("vzn9") and 
+			Actor:has_info("vzn10") and 
+			Actor:has_info("vzn11") and 
+			Actor:has_info("vzn12") and 
+			Actor:has_info("vzn13") and 
+			Actor:has_info("vzn14") and 
+			Actor:has_info("vzn15") and 
+			Actor:has_info("vzn16")
 		)
 end
 function vzn_end()
 	return
-		has_alife_info("vzn1_done") and 
-		has_alife_info("vzn2_done") and 
-		has_alife_info("vzn3_done") and 
-		has_alife_info("vzn4_done") and 
-		has_alife_info("vzn5_done") and 
-		has_alife_info("vzn6_done") and 
-		has_alife_info("vzn7_done") and 
-		has_alife_info("vzn8_done") and 
-		has_alife_info("vzn9_done") and 
-		has_alife_info("vzn10_done") and 
-		has_alife_info("vzn11_done") and 
-		has_alife_info("vzn12_done") and 
-		has_alife_info("vzn13_done") and 
-		has_alife_info("vzn14_done") and 
-		has_alife_info("vzn15_done") and 
-		has_alife_info("vzn16_done")
+		Actor:has_info("vzn1_done") and 
+		Actor:has_info("vzn2_done") and 
+		Actor:has_info("vzn3_done") and 
+		Actor:has_info("vzn4_done") and 
+		Actor:has_info("vzn5_done") and 
+		Actor:has_info("vzn6_done") and 
+		Actor:has_info("vzn7_done") and 
+		Actor:has_info("vzn8_done") and 
+		Actor:has_info("vzn9_done") and 
+		Actor:has_info("vzn10_done") and 
+		Actor:has_info("vzn11_done") and 
+		Actor:has_info("vzn12_done") and 
+		Actor:has_info("vzn13_done") and 
+		Actor:has_info("vzn14_done") and 
+		Actor:has_info("vzn15_done") and 
+		Actor:has_info("vzn16_done")
 end
 
 -- перенесено в spawn_teleport.script
@@ -347,17 +347,17 @@ function vzn_fill(vzn) -- создание тайника
 			vzn_fill_taynik("vzn_vodka", 1, obj)
 			aem_manager.manage_money(400000, "out")
 		elseif vzn == 4 then
-			if     has_alife_info("vzn_temp1") then
+			if     Actor:has_info("vzn_temp1") then
 				vzn_fill_taynik("vzn_prez", 1, obj)
 				vzn_fill_taynik("vzn_stirka", 1, obj)
 				vzn_fill_taynik("vzn_vivarka", 1, obj)
 				vzn_fill_taynik("vzn_polovnik", 1, obj)
-			elseif has_alife_info("vzn_temp2") then
+			elseif Actor:has_info("vzn_temp2") then
 				vzn_fill_taynik("vzn_prez", 2, obj)
 				vzn_fill_taynik("vzn_stirka", 2, obj)
 				vzn_fill_taynik("vzn_vivarka", 2, obj)
 				vzn_fill_taynik("vzn_polovnik", 2, obj)
-			elseif has_alife_info("vzn_temp3") then
+			elseif Actor:has_info("vzn_temp3") then
 				vzn_fill_taynik("vzn_prez", 3, obj)
 				vzn_fill_taynik("vzn_stirka", 3, obj)
 				vzn_fill_taynik("vzn_vivarka", 3, obj)
@@ -506,7 +506,7 @@ function vzn_taynik_stvol()
 	-- Ищем неиспользованный ствол
 	repeat
 		i = math.random(#vzn_stvol)
-	until not has_alife_info("vzn_stvol"..tostring(i))
+	until Actor:dont_has_info("vzn_stvol"..tostring(i))
 	
 	Actor:give_info_portion("vzn_stvol"..tostring(i))
 	return vzn_stvol[i]
@@ -575,7 +575,7 @@ function checking_taken_item63(obj)
 		end
 	end
 
-	if not has_alife_info("tm_find_all") then 
+	if Actor:dont_has_info("tm_find_all") then 
 		Actor:give_info_portion("tm_find_all")
 		news_manager.send_tip("tm_find_all_sms", nil, nil, 30000)
 		this.tm_done1()
@@ -662,27 +662,27 @@ function checking_taken_item61(obj)
 		Actor:give_info_portion("zonedocs_have"..string.sub(sect,10))
 
 		local total = 60
-		if     has_alife_info("voronin_docs1_start_as") then
+		if     Actor:has_info("voronin_docs1_start_as") then
 			total = 24
-		elseif has_alife_info("voronin_docs1_start_yan") then
+		elseif Actor:has_info("voronin_docs1_start_yan") then
 			total = 23
-		elseif has_alife_info("voronin_docs1_start_dt") then
+		elseif Actor:has_info("voronin_docs1_start_dt") then
 			total = 22
-		elseif has_alife_info("voronin_docs1_start_atp") then
+		elseif Actor:has_info("voronin_docs1_start_atp") then
 			total = 15
-		elseif has_alife_info("voronin_docs1_start_td") then
+		elseif Actor:has_info("voronin_docs1_start_td") then
 			total = 30
-		elseif has_alife_info("voronin_docs1_start_puzir") then
+		elseif Actor:has_info("voronin_docs1_start_puzir") then
 			total = 6
-		elseif has_alife_info("voronin_docs1_start_agro") then
+		elseif Actor:has_info("voronin_docs1_start_agro") then
 			total = 26
-		elseif has_alife_info("voronin_docs1_start_marsh") then
+		elseif Actor:has_info("voronin_docs1_start_marsh") then
 			total = 30
-		elseif has_alife_info("voronin_docs1_start_esc") then
+		elseif Actor:has_info("voronin_docs1_start_esc") then
 			total = 60
-		elseif has_alife_info("voronin_docs1_start_garbage") then
+		elseif Actor:has_info("voronin_docs1_start_garbage") then
 			total = 60
-		elseif has_alife_info("voronin_docs1_start_bar") then
+		elseif Actor:has_info("voronin_docs1_start_bar") then
 			total = 60
 		end
 		
@@ -722,7 +722,7 @@ end
 
 function voronin_docs1_done()
 	inventory.out_items_all("zone_docs")
-	if not has_alife_info("voronin_docs1_have") then -- удаляем ненайденные части
+	if Actor:dont_has_info("voronin_docs1_have") then -- удаляем ненайденные части
 		local sobj
 		for i = 1,65534 do
 			sobj = AI:object(i)
@@ -732,78 +732,78 @@ function voronin_docs1_done()
 		end
 	end
 	
-	if     has_alife_info("voronin_docs1_start_as") then
-		if has_alife_info("voronin_docs1_have") then
+	if     Actor:has_info("voronin_docs1_start_as") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_as")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_as")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_yan") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_yan") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_yan")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_yan")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_dt") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_dt") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_dt")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_dt")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_atp") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_atp") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_atp")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_atp")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_td") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_td") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_td")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_td")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_puzir") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_puzir") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_puzir")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_puzir")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_agro") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_agro") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_agro")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_agro")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_marsh") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_marsh") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_marsh")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_marsh")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_esc") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_esc") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_esc")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_esc")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_garbage") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_garbage") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_garbage")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_garbage")
 			Actor:give_info_portion("acv_docs_fail")
 		end
-	elseif has_alife_info("voronin_docs1_start_bar") then
-		if has_alife_info("voronin_docs1_have") then
+	elseif Actor:has_info("voronin_docs1_start_bar") then
+		if Actor:has_info("voronin_docs1_have") then
 			Actor:give_info_portion("voronin_docs1_done_bar")
 		else
 			Actor:give_info_portion("voronin_docs1_fail_bar")
@@ -811,10 +811,10 @@ function voronin_docs1_done()
 		end
 	end
 	
-	if has_alife_info("zonedocs_have0") then
+	if Actor:has_info("zonedocs_have0") then
 		Actor:give_info_portion("acv_docs_fail")
 	end
-	if has_alife_info("voronin_docs1_have") then
+	if Actor:has_info("voronin_docs1_have") then
 		this.give_ammo(3)
 	end
 	Actor:give_info_portion("voronin_docs1_reset")
@@ -855,7 +855,7 @@ function t_zonedocs_as()
 end
 
 function zonedocs_give_info_2()
-	if has_alife_info("zonedocs_have1") then
+	if Actor:has_info("zonedocs_have1") then
 		Actor:give_info_portion("zonedocs_have2")
 	end
 end
@@ -902,18 +902,18 @@ end
 
 function sidor_biznes_over()
 	return not (
-		has_alife_info("sidor_biznes1_done") and 
-		has_alife_info("sidor_biznes2_done") and 
-		has_alife_info("sidor_biznes3_done") and 
-		has_alife_info("sidor_biznes4_done") and
-		has_alife_info("sidor_biznes5_done") and
-		has_alife_info("sidor_biznes6_done") and
-		has_alife_info("sidor_biznes7_done")
+		Actor:has_info("sidor_biznes1_done") and 
+		Actor:has_info("sidor_biznes2_done") and 
+		Actor:has_info("sidor_biznes3_done") and 
+		Actor:has_info("sidor_biznes4_done") and
+		Actor:has_info("sidor_biznes5_done") and
+		Actor:has_info("sidor_biznes6_done") and
+		Actor:has_info("sidor_biznes7_done")
 	)
 end
 
 function sidor_biznes1_have_all()
-	return has_alife_info("sidor_biznes1_start") and
+	return Actor:has_info("sidor_biznes1_start") and
 		inventory.search("mutant_spider_gland",2) and
 		inventory.search("mutant_rotan_heart",2) and
 		inventory.search("mutant_plague_hand",2) and
@@ -996,7 +996,7 @@ function sidor_biznes1_done()
 end
 
 function sidor_biznes2_have_all()
-	return has_alife_info("sidor_biznes2_start") and
+	return Actor:has_info("sidor_biznes2_start") and
 		inventory.search("af_dummy_battery_red",3) and
 		inventory.search("af_dummy_spring_red",3) and
 		inventory.search("af_dummy_pellicle_red",3) and
@@ -1027,7 +1027,7 @@ function sidor_biznes2_done()
 end
 
 function sidor_biznes3_have_all()
-	return has_alife_info("sidor_biznes3_start") and
+	return Actor:has_info("sidor_biznes3_start") and
 		inventory.search("af_buliz",15) and
 		inventory.search("af_drops",1) and
 		inventory.search("af_cry_1",1) and
@@ -1117,7 +1117,7 @@ function sidor_biznes3_done()
 end
 
 function sidor_biznes4_have_all()
-	return has_alife_info("sidor_biznes4_start") and
+	return Actor:has_info("sidor_biznes4_start") and
 		inventory.search("wpn_gauss",6,true) and
 		inventory.search_ammo("ammo_gauss",100) and
 		inventory.search_ammo("ammo_super_gauss",45) and
@@ -1146,7 +1146,7 @@ function sidor_biznes4_done()
 end
 
 function sidor_biznes5_have_all()
-	return has_alife_info("sidor_biznes5_start") and
+	return Actor:has_info("sidor_biznes5_start") and
 		inventory.search("broken_exoskeleton",2, true) and
 		inventory.search("voen_exo_outfit",2, true) and
 		inventory.search("exo_outfit",2, true) and
@@ -1186,7 +1186,7 @@ function sidor_biznes5_done()
 end
 
 function sidor_biznes6_have_all()
-	return has_alife_info("sidor_biznes6_start") and
+	return Actor:has_info("sidor_biznes6_start") and
 		inventory.search("wpn_crossbow",5, true) and
 		inventory.search_ammo("ammo_arbolt",30) and
 		inventory.search("wpn_awm",5, true) and
@@ -1229,7 +1229,7 @@ function sidor_biznes6_done()
 	inventory.give_items("cube_chip",1)
 end
 function sidor_biznes7_have_all()
-	return has_alife_info("sidor_biznes7_start") and
+	return Actor:has_info("sidor_biznes7_start") and
 		inventory.search("mutant_spider_gland",2) and
 		inventory.search("mutant_rotan_heart",2) and
 		inventory.search("mutant_plague_hand",2) and
@@ -1384,7 +1384,7 @@ function adrenalin_biznes1_done3()
 		this.adrenalin_biznes1_done()
 end
 function adrenalin_biznes1_done()
-	if has_alife_info("adrenalin_biznes1_done1") and has_alife_info("adrenalin_biznes1_done2") and has_alife_info("adrenalin_biznes1_done3") then
+	if Actor:has_info("adrenalin_biznes1_done1") and Actor:has_info("adrenalin_biznes1_done2") and Actor:has_info("adrenalin_biznes1_done3") then
 		inventory.give_items("ammo_12.7x108",30)
 		inventory.give_items("ammo_7.62x39_k",10)
 		inventory.give_items("ammo_5.56x45_gd",10)
@@ -1847,7 +1847,7 @@ function borov_biznes1_done()
 end
 
 function doktor_lekar1_have()
-	if not has_alife_info("doktor_lekar1_start") or has_alife_info("acv_lekar2") then return end
+	if Actor:dont_has_info("doktor_lekar1_start") or Actor:has_info("acv_lekar2") then return end
 
 	local cnt = amk.load_variable("lekar",0)
 	cnt = cnt+1
@@ -1885,7 +1885,7 @@ function doktor_lekar1_have()
 end
 
 function doktor_lekar1_money()
-	if has_alife_info("acv_lekar2") then
+	if Actor:has_info("acv_lekar2") then
 		aem_manager.manage_money(math.random(100,200), "in")
 	end
 end
@@ -1974,7 +1974,7 @@ function s_inventory_box7()
 end
 
 function strelok_taynik_pda1_have(task, objective)
-    return has_alife_info("strelok_taynik_pda1_found") and inventory.search("strelok_taynik_pda1", 1)
+    return Actor:has_info("strelok_taynik_pda1_found") and inventory.search("strelok_taynik_pda1", 1)
 end
 function strelok_taynik_pda1_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "strelok_taynik_pda1", "out")
@@ -2017,7 +2017,7 @@ function strelok_taynik_pda3_drop()
 end
 
 function strelok_taynik_pda4_have(task, objective)
-	return has_alife_info("strelok_taynik_pda4_found")
+	return Actor:has_info("strelok_taynik_pda4_found")
 		and inventory.search("strelok_taynik_pda4", 1)
 end
 function strelok_taynik_pda4_done(first_speaker, second_speaker)
@@ -2032,7 +2032,7 @@ function strelok_taynik_pda5_done(first_speaker, second_speaker)
 end
 
 function strelok_taynik_pda6_have(task, objective)
-	return has_alife_info("strelok_taynik_pda6_found")
+	return Actor:has_info("strelok_taynik_pda6_found")
 		and inventory.search("strelok_taynik_pda6", 1)
 end
 function strelok_taynik_pda6_done(first_speaker, second_speaker)
@@ -2040,7 +2040,7 @@ function strelok_taynik_pda6_done(first_speaker, second_speaker)
 end
 
 function strelok_taynik_pda7_have(task, objective)
-	return has_alife_info("strelok_taynik_pda7_found") 
+	return Actor:has_info("strelok_taynik_pda7_found") 
 		and inventory.search("strelok_taynik_pda7", 1)
 end
 
@@ -2113,19 +2113,19 @@ function checking_taken_item59(obj)
   local obj_sect = obj:section()
   if string.find(obj_sect,"kostya_taynik_pda1_") then
 	Actor:give_info_portion("kostya_taynik_pda_have_1_"..string.sub(obj_sect,string.find(obj_sect,"1_")+2))
-	if not has_alife_info("kostya_taynik_pda1_tele") then 
+	if Actor:dont_has_info("kostya_taynik_pda1_tele") then 
 	  news_manager.send_tip("kostya_taynik_pda1_tele_sms", nil, nil, 30000)
 	  this.spawn_t_teleport1_1()
 	  Actor:give_info_portion("kostya_taynik_pda1_tele")
 	end
 	if obj_sect=="kostya_taynik_pda1_2" then 
-	  if not has_alife_info("kostya_taynik_pda1_2_xvatit_spawn") then 
+	  if Actor:dont_has_info("kostya_taynik_pda1_2_xvatit_spawn") then 
 	    news_manager.send_tip("kostya_taynik_pda1_2_xvatit_spawn_sms", nil, nil, 30000)
 	    Actor:give_info_portion("kostya_taynik_pda1_2_xvatit_spawn")
 	  end
 	end
-    if has_alife_info("kostya_taynik_pda_have_1_1") and has_alife_info("kostya_taynik_pda_have_1_2") and has_alife_info("kostya_taynik_pda_have_1_3") and has_alife_info("kostya_taynik_pda_have_1_4") and has_alife_info("kostya_taynik_pda_have_1_5") then
-	  if not has_alife_info("kostya_taynik_pda1_have") then 
+    if Actor:has_info("kostya_taynik_pda_have_1_1") and Actor:has_info("kostya_taynik_pda_have_1_2") and Actor:has_info("kostya_taynik_pda_have_1_3") and Actor:has_info("kostya_taynik_pda_have_1_4") and Actor:has_info("kostya_taynik_pda_have_1_5") then
+	  if Actor:dont_has_info("kostya_taynik_pda1_have") then 
 	    this.delete_t_teleport1_1()
 	    this.spawn_t_teleport1_2()
 	    news_manager.send_tip("kostya_taynik_pda1_have_sms", nil, nil, 30000)
@@ -2139,7 +2139,7 @@ function t_inventory_box1()
   spawn_restrictor.kostya_taynik_pda1_sr1()
 end
 function kostya_taynik_pda1_have(task, objective)
-    return has_alife_info("kostya_taynik_pda1_have")
+    return Actor:has_info("kostya_taynik_pda1_have")
 end
 function kostya_taynik_pda1_done(first_speaker, second_speaker)
   dialogs.relocate_item_section(second_speaker, "kostya_taynik_pda1_1", "out")
@@ -2458,7 +2458,7 @@ end
 
 
 function taynik_kostya2_call()
-    if has_alife_info("kostya_sacharov_done") and has_alife_info("sahar_sumka_done") and has_alife_info("kostya_biznes1_done") then 
+    if Actor:has_info("kostya_sacharov_done") and Actor:has_info("sahar_sumka_done") and Actor:has_info("kostya_biznes1_done") then 
 	  news_manager.send_tip("taynik_kostya2_call_sms", 7, nil, 30000)
 	  -- Звуковое сопровождение
 	  local snd_obj = xr_sound.get_safe_sound_object([[device\pda\pda_tip]])
