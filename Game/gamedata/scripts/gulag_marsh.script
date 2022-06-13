@@ -621,55 +621,51 @@ local gulags = {
 	},
 	--БАНДИТЫ В ЦЕРКВИ НА БОЛОТАХ	
 	["marsh_church_band"] = {
+		state = function(gulag)
+			if has_alife_info("dyak_help_done") then
+				return 1
+			else
+				return 0
+			end
+		end,
 		job = function(sj, gname, gulag_type, squad, groups)
-			t = { section = "logic@marshban1",
-				prior = 20,
-				--		  online = true,
-				position_threshold = 400
-			} 
-			table.insert(sj, t)
-			t = { section = "logic@marshban2",
-				prior = 20,
-				--		  online = true,
-				position_threshold = 400
-			} 
-			table.insert(sj, t)
-			t = { section = "logic@marshban3",
-				prior = 20,
-				--		  online = true,
-				position_threshold = 400
-			} 
+			for i = 1, 3 do
+				t = { section = "logic@marshban"..i,
+					prior = 20,
+					position_threshold = 400
+				}
+				table.insert(sj, t)
+			end
 			table.insert(sj, t)
 			t = { section = "logic@marshban_patr",
 				prior = 25,
-				--		  online = true,
 				position_threshold = 400
-			} 
+			}
 			table.insert(sj, t)
-			t = { section = "logic@marshban_kos1",
-				prior = 10,
-				--		  online = true,
-				position_threshold = 400
-			} 
+			for i = 1, 4 do
+				t = { section = "logic@marshban_kos"..i,
+					prior = 10,
+					position_threshold = 400
+				}
+				table.insert(sj, t)
+			end
+			
+			for i = 1, 3 do
+				t = { section = "logic@marshban1"..i,
+					prior = 20, state = {1}
+				}
+				table.insert(sj, t)
+			end
+			t = { section = "logic@marshban_patr",
+				prior = 25, state = {1}
+			}
 			table.insert(sj, t)
-			t = { section = "logic@marshban_kos2",
-				prior = 10,
-				--		  online = true,
-				position_threshold = 400
-			} 
-			table.insert(sj, t)
-			t = { section = "logic@marshban_kos3",
-				prior = 10,
-				--		  online = true,
-				position_threshold = 400
-			} 
-			table.insert(sj, t)
-			t = { section = "logic@marshban_kos4",
-				prior = 10,
-				--		  online = true,
-				position_threshold = 400
-			} 
-			table.insert(sj, t)
+			for i = 1, 4 do
+				t = { section = "logic@marshban_kamp",
+					prior = 10, state = {1}
+				}
+				table.insert(sj, t)
+			end
 		end,
 		check_stalker = function (npc_community, gulag_type, npc_rank, se_obj)
 			return npc_community == "bandit"
