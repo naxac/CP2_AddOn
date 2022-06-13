@@ -1904,6 +1904,10 @@ function on_heli_retreat(obj)
 end
 
 -- Видели монстров. Будем спавнить.
+local reward_type = {
+	money = 1,
+	items = 2
+}
 function do_seen_monster()
 	local avail = {}
 --	local name, sname = amk_names_lists.get_strings()
@@ -2034,28 +2038,32 @@ function do_seen_monster()
 						if not cd.smart_terrains then cd.smart_terrains={} end
 						cd.smart_terrains.none = "true"
 						-- Микроквест
-						if (not microquest_created) and (z.reward and z.reward.c_min and z.reward.c_max) then
+						if (not microquest_created) and z.reward then
 							microquest_created = true
 							if not cd.microquest then cd.microquest={} end
-							cd.microquest.reward_money = math_random(z.reward.c_min, z.reward.c_max) * 100
-							cd.microquest.reward_items = ""
-							local re_npc = author_id and AI:object(author_id)
-							local rank
-							if re_npc then
-								rank = ranks.get_obj_rank_name(re_npc)
-							else
-								rank = ranks.get_rank_name_by_val( math_random(100, 5000), true )
+							if bit_and(z.reward.r_type, reward_type.money)~=0 then
+								cd.microquest.reward_money = math_random(z.reward.c_min, z.reward.c_max) * 100
 							end
-							if (rank and news_data.miniquest_rewards[rank]) then
-								for i=1, math_random(1,3) do
-									local section = table_random(news_data.miniquest_rewards[rank])
-									if (section) then
-										if (cd.microquest.reward_items == "" or cd.microquest.reward_items == "<nil>") then
-											cd.microquest.reward_items = section
-										else
-											cd.microquest.reward_items = cd.microquest.reward_items..","..section
+							if bit_and(z.reward.r_type, reward_type.items)~=0 then
+								cd.microquest.reward_items = ""
+								local re_npc = author_id and AI:object(author_id)
+								local rank
+								if re_npc then
+									rank = ranks.get_obj_rank_name(re_npc)
+								else
+									rank = ranks.get_rank_name_by_val( math_random(100, 5000), true )
+								end
+								if (rank and news_data.miniquest_rewards[rank]) then
+									for i=1, math_random(1,3) do
+										local section = table_random(news_data.miniquest_rewards[rank])
+										if (section) then
+											if (cd.microquest.reward_items == "" or cd.microquest.reward_items == "<nil>") then
+												cd.microquest.reward_items = section
+											else
+												cd.microquest.reward_items = cd.microquest.reward_items..","..section
+											end
+											cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
 										end
-										cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
 									end
 								end
 							end
@@ -2778,16 +2786,16 @@ function on_miniquest_reward(trader)
 		local money = 0
 		local items = ""
 		local story_id = -1
-		if (trader.m_story_id) then
+		if trader.m_story_id then
 			story_id = trader.m_story_id
-		elseif(trader.story_id) then
+		elseif trader.story_id then
 			story_id = trader:story_id()
 		end
 		if (story_id == story_ids.Escape_Trader)
 			or (story_id == story_ids.bar_Barman)
 		then
 			local obj = AI:story_object(story_id)
-			if (obj) then
+			if obj then
 				local t = netpk:get(obj, netpk.fState)
 				local cd = netpk:parse_custom_data(t.custom_data)
 				cd.microquest.reward_items = string.gsub(cd.microquest.reward_items, "%<nil%>", "")
@@ -2796,8 +2804,12 @@ function on_miniquest_reward(trader)
 					money = tonumber(cd.microquest.reward_money)
 					items = cd.microquest.reward_items
 				end
-				if (money and items and money > 0 and items ~= "") then
+				local res = false
+				if money and money > 0 then
 					dialogs.relocate_money(trader, money, "in")
+					res = true
+				end
+				if items and items ~= "" then
 					local tbl = string.explode(items, ",", true)
 					local spawn = {}
 					for i,v in pairs(tbl) do
@@ -2808,6 +2820,9 @@ function on_miniquest_reward(trader)
 					for k,v in pairs(spawn) do
 						inventory.give_items(k,v)
 					end
+					res = true
+				end
+				if res then
 					cd.microquest = {}
 					cd.microquest.reward_money = 0
 					cd.microquest.reward_items = ""
