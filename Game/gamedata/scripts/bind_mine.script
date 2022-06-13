@@ -6,7 +6,7 @@
 -- Актёр можнет подойти к мине только с зажатым Shift.
 -- Устанавливать мины, соответственно, тоже надо с зажатым Shift.
 
-local EXPLODE_DIST_SQR = 1.5^2
+local EXPLODE_DIST_SQR = math.pow(1.5, 2)
 
 function init(obj)
 	if obj:section() == "bomba_mina_b_pantera" then return end
@@ -33,9 +33,10 @@ end
 function mine_binder:update(delta)
 	object_binder.update(self)
 
-	if self.object:parent() then return end
-
-	if self.object:condition() == 0 then return end
+	if self.exploded
+		or self.object:parent() ~= nil
+		or self.object:condition() == 0
+	then return end
 
 	local mine_pos = self.object:position()
 
@@ -43,10 +44,11 @@ function mine_binder:update(delta)
 	for k, v in pairs(db.creatures) do
 		if AI:object(k) and v:alive() and v:position():distance_to_sqr(mine_pos) < EXPLODE_DIST_SQR then
 			if k == 0 and ShiftPressed() then
-				return true
+				return
 			end
 			self.object:explode(0)
-			return true
+			self.exploded = true
+			return
 		end
 	end
 
@@ -54,7 +56,8 @@ function mine_binder:update(delta)
 	for k, v in pairs(db.btr) do
 		if AI:object(k) and v:position():distance_to_sqr(mine_pos) < EXPLODE_DIST_SQR then
 			self.object:explode(0)
-			return true
+			self.exploded = true
+			return
 		end
 	end
 end
