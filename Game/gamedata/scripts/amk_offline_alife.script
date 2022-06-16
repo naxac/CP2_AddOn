@@ -216,7 +216,7 @@ function add_fresh_meat(obj)
 					local p_obj = AI:object(obj.parent_id)
 					if p_obj then
 						if p_obj.m_game_vertex_id and GGraph:valid_vertex_id(p_obj.m_game_vertex_id) then
-							if p_cls == clsid.inventory_box then
+							if p_obj:clsid() == clsid.inventory_box then
 								-- НПС "не видят" этого
 								map = ""
 							else
@@ -240,7 +240,7 @@ function add_fresh_meat(obj)
 				local p_obj = AI:object(obj.parent_id)
 				if p_obj then
 					if p_obj.m_game_vertex_id and GGraph:valid_vertex_id(p_obj.m_game_vertex_id) then
-						if p_cls == clsid.inventory_box then
+						if p_obj:clsid() == clsid.inventory_box then
 							-- НПС "не видят" этого
 							map = ""
 						else
@@ -1317,6 +1317,9 @@ function pick_item(npc, obj)
 	local new = nil
 	if (npc and obj and Actor and obj.id ~= Actor:id()) then
 		local section = obj:section_name()
+		if protected_items.is_grab_body_item_keep(section) then
+			return nil
+		end
 		new = AI:create(section, npc.position, npc.m_level_vertex_id, npc.m_game_vertex_id, npc.id)
 		if (new) then
 			if (obj.parent_id and items[obj.parent_id] and #items[obj.parent_id]>0) then
