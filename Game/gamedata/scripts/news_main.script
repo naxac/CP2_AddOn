@@ -778,7 +778,12 @@ function show_news(text, from, timeout, showtime, section)
 	table.insert(spammers, from)
 
 	text = "%c[gray2]"..from.."\\n%c[default]"..text
-	news_manager.send_tip(text, timeout, section, showtime*1000)
+	if ( string.find(text, "\\n%c[gray2]", 1, true) ) ~= nil then
+		amk_mod.show_news_queue(text, timeout)
+	else
+		news_manager.send_tip(text, timeout, section, showtime*1000)
+	end
+
 	timer_last_showed = game_time_minutes
 end
 
@@ -1718,7 +1723,7 @@ function on_daytime()
 							name = amk_names_lists.get_strings(true)
 						end
 						s_text = v
-						show_news(s_text, name, base_wait + k * 2, 7)
+						show_news(s_text, name, base_wait + k * 3, 7)
 						i = i + 1
 					end
 					if (probl and comments and news_data.comments_templates[comments] and math_random() < probl) then
