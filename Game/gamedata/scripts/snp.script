@@ -258,7 +258,10 @@ function ariadna3_done()
 	game.start_tutorial("finish_dopa_dream")
 end
 function ariadna_talk()
-	Actor:run_talk_dialog(object_by_section("ariadna_zaton"))
+	local obj = object_by_section("ariadna_zaton")
+	if obj then
+		Actor:run_talk_dialog(obj)
+	end
 end
 function ariadna4_done()
     Actor:hide_weapon()
@@ -267,7 +270,10 @@ function ariadna4_done()
 end
 
 function op2_done1()
-	del_obj_by_id(object_by_section("skadovsk_radio"):id())
+	local obj = object_by_section("skadovsk_radio")
+	if obj then
+		del_obj_by_id( obj:id() )
+	end
 	xr_sound.stop_all_sound_object()
 	level.add_pp_effector("agr_u_fade.ppe", 2009, false)
 	level.hide_indicators()
@@ -576,15 +582,18 @@ function actor_shoot_bibliofrend()
 end
 
 -- воскрешение Фенрира
-local fenrir = nil
-function fenrir_recurrection()
-	local art = object_by_section_nobinder("af_zvezda_proroka")
-	fenrir = object_by_section("fenrir_jupiter")
+function fenrir_recurrection(art)
+	local fenrir = object_by_section("fenrir_jupiter")
+	if not fenrir then
+		log("! [snp.fenrir_recurrection]: fenrir_jupiter not found!")
+		return
+	end
+
 	if art:position():distance_to(fenrir:position()) > 2.5 then return end
 	
 	level.start_stop_menu(level.main_input_receiver(), true)
 	xr_effects.disable_ui()
-	amk.remove_item(art)
+	del_obj_by_id( art:id() )
 	level.add_cam_effector("camera_effects\\radar_stop.anm", 2920, false, "")
 	local snd = xr_sound.get_safe_sound_object("ambient\\sparks1")
 	snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
@@ -599,13 +608,18 @@ function fenrir_recurrection2()
 	start_real_timer("run2",snd:length()/1000+2,"snp.fenrir_recurrection4()")
 end
 function fenrir_recurrection3()
-	del_obj_by_id(fenrir:id())
-	del_obj_by_id(object_by_section("resident_evil_jupiter"):id())
-	del_obj_by_id(object_by_section("anna_jupiter"):id())
---	Actor:give_info_portion("teleport_started")
-	Actor:set_actor_position(vector():set(-223.79437255859,-3.5704712867737,78.461990356445))
+	local for_del = {
+		"fenrir_jupiter",
+		"resident_evil_jupiter",
+		"anna_jupiter"
+	}
+	local obj
+	for i, v in ipairs(for_del) do
+		obj = object_by_section(v)
+		if obj then del_obj_by_id( obj:id() ) end
+	end
+	Actor:set_actor_position( vector():set(-223.79437255859,-3.5704712867737,78.461990356445) )
 	Actor:set_actor_direction(0)
---	Actor:give_info_portion("teleport_finished")
 	level.remove_cam_effector(2920)
 	level.add_cam_effector("camera_effects\\radar_stop.anm", 2920, false, "")
 end
