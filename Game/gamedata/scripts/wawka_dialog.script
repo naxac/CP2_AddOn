@@ -370,17 +370,23 @@ local voron_text_take = {
 -- Создание диалога Ворона
 function init_mosinka_dialog(dlg)
 	local phr = dlg:AddPhrase("mosinka_0","0","",-10000)
-	local phrase_script = phr:GetPhraseScript()
-	phrase_script:AddGiveInfo("price_voron_mosin")
 
 	phr = dlg:AddPhrase("mosinka_1","1","0",-10000)
+	local phrase_script = phr:GetPhraseScript()
+	phrase_script:AddGiveInfo("price_voron_mosin")
+	phrase_script:AddDontHasInfo("price_voron_mosin")
+
+	phr = dlg:AddPhrase("mosinka_2","2","0",-10000)
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddHasInfo("price_voron_mosin")
 
 	local str
 	local actor_name = Actor:character_name()
 	for i = 1, #voron_wpn do
-		phr = dlg:AddPhrase(table.random(voron_text_give)[1]..game.translate_string(get_inv_name(voron_wpn[i][1]))..table.random(voron_text_give)[2], tostring(1000+i), "1", -10000)		
+		phr = dlg:AddPhrase(table.random(voron_text_give)[1]..game.translate_string(get_inv_name(voron_wpn[i][1]))..table.random(voron_text_give)[2], tostring(1000+i), "1", -10000)
 		phrase_script = phr:GetPhraseScript()
 		phrase_script:AddPrecondition("wawka_dialog.v_have_good_wpn")
+		dlg:AddPhrase("", tostring(1000+i), "2", 0)
 
 		str = string.gsub(table.random(voron_text_take), "%$actor", actor_name)
 		phr = dlg:AddPhrase(str, tostring(2000+i), tostring(1000+i), -10000)		
@@ -389,6 +395,7 @@ function init_mosinka_dialog(dlg)
 	end
 
 	phr = dlg:AddPhrase("mosinka_9999","9999","1",-10000)
+	dlg:AddPhrase("","9999","2",0)
 end
 
 function v_have_good_wpn(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
