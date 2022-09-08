@@ -2,6 +2,30 @@
 -- DocViewer for "Authentic documents"
 -- 7.9 (79mxm@rambler.ru)
 
+local check_tbl = {}
+check_tbl['dosye_zvez'] = function()
+	if level.name()~="generators" then return end
+	if Actor:dont_has_info("idu_na_nz") then
+		Actor:give_info_portion("idu_na_nz")
+		arhara_dialog.idu_na_nz_sms1()
+	end
+end
+check_tbl['razved_karta'] = function()
+	if Actor:dont_has_info("otkput_march_perexod") then
+		Actor:give_info_portion("otkput_march_perexod")
+	end
+end
+check_tbl['recipi_bpb'] = function()
+	if Actor:dont_has_info("info_artmod_probabka_burera") then
+		Actor:give_info_portion("info_artmod_probabka_burera")
+	end
+end
+check_tbl['stukach_book'] = function()
+	if Actor:dont_has_info("info_artmod_cristall_buzz") then
+		Actor:give_info_portion("info_artmod_cristall_buzz")
+	end
+end
+
 function doc_view_on(section)
 	AI:create(section, vector():set(0,0,0), 0, 0, 0)
 
@@ -57,6 +81,10 @@ function UIDocsViewer:InitControls()
 end
 
 function UIDocsViewer:OnButtonQuit()
+	if check_tbl[self.item] then
+		check_tbl[self.item]()
+	end
+
 	self:ClearCallbacks()
 	self:GetHolder():start_stop_menu(self, true)
 	self.dlg = nil
