@@ -1,8 +1,83 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
 local documents = {
-	"gunslinger_flash",
-	"decoder",
-	"pri_decoder_documents"
+	{item = "gunslinger_flash",       info = "sar2_monolith_miracle"},
+	{item = "decoder",                info = "sar2_monolith_miracle"},
+	{item = "pri_decoder_documents",  info = "sar2_monolith_miracle"},
+	{item = "ara_pda"},
+	{item = "garbage_pda"},
+	{item = "rad_pda"},
+	{item = "stukach_book"},
+	{item = "volkodav_pda"}
 }
 
+function has_some_docs(first_speaker, second_speaker)
+	for i, v in ipairs(documents) do
+		if Actor:object(v.item) ~= nil
+			and ( v.info == nil or Actor:has_info(v.info) )
+		then
+			return true
+		end
+	end
+	return false
+end
+
+function has_doc(first_speaker, second_speaker, dialog_id, prev_phrase_id, phrase_id)
+	local v = documents[tonumber(phrase_id)-1000]
+	if v then
+		if v.info == nil or Actor:has_info(v.info) then
+			return Actor:object(v.item) ~= nil
+		end
+	end
+	return false
+end
+
+function trade_doc(first_speaker, second_speaker, dialog_id, phrase_id)
+	local section = documents[tonumber(phrase_id)-2000].item
+	inventory.out_items(section, 1)
+	treasure_manager.give_random_treasure(true)
+end
+
+function init_buy_pda_dialog(dlg)
+	local phr = dlg:AddPhrase("informator_beret_pda_0","0","",-10000)
+	phr = dlg:AddPhrase("informator_beret_pda_1","1","0",-10000)
+
+	phr = dlg:AddPhrase("informator_beret_pda_2","2","1",-10000)
+	local phrase_script = phr:GetPhraseScript()
+	phrase_script:AddPrecondition("new_dialog.inform_20_pda_have")
+
+	phr = dlg:AddPhrase("informator_beret_pda_5","5","2",-10000)
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddAction("new_dialog.inform_20_pda")
+
+	phr = dlg:AddPhrase("informator_beret_pda_3","3","1",-10000)
+	local phrase_script = phr:GetPhraseScript()
+	phrase_script:AddPrecondition("new_dialog.inform_40_pda_have")
+
+	phr = dlg:AddPhrase("informator_beret_pda_6","6","3",-10000)
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddAction("new_dialog.inform_40_pda")
+
+	phr = dlg:AddPhrase("informator_beret_pda_11","11","1",-10000)
+	phrase_script = phr:GetPhraseScript()
+	phrase_script:AddPrecondition("trade_docs.has_some_docs")
+	phr = dlg:AddPhrase("informator_beret_pda_12","12","11",-10000)
+
+	for i, v in ipairs(documents) do
+		phr = dlg:AddPhrase(
+			game.translate_string( get_inv_name(v.item) ),
+			tostring(1000+i), "12", -10000
+		)
+		phrase_script = phr:GetPhraseScript()
+		phrase_script:AddPrecondition("trade_docs.has_doc")
+
+		phr = dlg:AddPhrase("informator_beret_pda_100", tostring(2000+i), tostring(1000+i), -10000)
+		phrase_script = phr:GetPhraseScript()
+		phrase_script:AddAction("trade_docs.trade_doc")
+	end
+
+	phr = dlg:AddPhrase("informator_beret_pda_9999","9999","12",-10000)
+
+	phr = dlg:AddPhrase("informator_beret_pda_4","4","1",-10000)
+	phr = dlg:AddPhrase("informator_beret_pda_7","7","4",-10000)
+end
