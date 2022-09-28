@@ -513,16 +513,29 @@ game_object.set_additional_inventory_weight2 = function( obj, v )
 end
 
 -- class alife_simulator
-alife_simulator.create_no_ai = function( sim, ... )
-	local obj = sim:create( ... )
-	obj = sim:object( obj.id )
-	obj:use_ai_locations( false )
-	return obj
-end
 alife_simulator.create_ammo_no_ai = function( sim, ... )
 	local obj = sim:create_ammo( ... )
 	obj = sim:object( obj.id )
 	obj:use_ai_locations( false )
+	return obj
+end
+local cd_no_smart = "[smart_terrains]\n".."none = true"
+alife_simulator.create_free = function( sim, section, ... )
+	local cls = sys_ini:r_clsid( section, "class" )
+	local obj
+	if IAmAMonster[cls] then
+		se_monster.custom_data_on_spawn = cd_no_smart
+		obj = sim:create( section, ... )
+		netpk:modify( obj, { custom_data = cd_no_smart }, netpk.fState )
+	elseif IAmAStalker[cls] then
+		se_stalker.custom_data_on_spawn = cd_no_smart
+		obj = sim:create( section, ... )
+		netpk:modify( obj, { custom_data = cd_no_smart }, netpk.fState )
+	else
+		obj = sim:create( section, ... )
+		obj = sim:object( obj.id )
+		obj:use_ai_locations( false )
+	end
 	return obj
 end
 
