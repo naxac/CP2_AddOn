@@ -638,12 +638,14 @@ end
 -- Показываем параметры костмов
 function CUIDescriptionWnd:ShowOutfitParams()
 	local params = {}
-	local val, txt = 0, ""
+	local val, val2, txt = 0, 0, ""
 	for i,t in ipairs(hit_types) do
 		val = sys_ini:r_float(self.section, t.prop.."_protection")
 		if val~=0 then
-			val = val*100*self.condition
-			txt = t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
+			val = val*100
+			val2 = val*self.condition
+			txt = t.text.." "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)..
+				"%c[gray] ("..(val2>0 and "+" or "")..string_format("%d%%",val2)..")"
 			table_insert( params, {t.prop, txt} )
 		end
 	end
@@ -651,23 +653,40 @@ function CUIDescriptionWnd:ShowOutfitParams()
 	if sys_ini:line_exist(self.section, "physic_strike_protection") then
 		val = sys_ini:r_float(self.section, "physic_strike_protection")
 		if val~=0 then
-			val = val*100*self.condition
-			txt = "Удар: "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)
+			val = val*100
+			val2 = val*self.condition
+			txt = "Удар: "..(val<0 and "%c[red]" or "%c[green]+")..string_format("%d%%",val)..
+				"%c[gray] ("..(val2>0 and "+" or "")..string_format("%d%%",val2)..")"
 			table_insert( params, {"physic_strike", txt} )
 		end
 	end
 
+	local f = false
 	val = self.item:get_power_loss()
 	if val ~= 1 then
 		val = val*100 - 100
-		txt = "Усталость: "..(val>0 and "%c[red]+" or "%c[green]")..string_format("%d%%",val)
+		f = true
+	end
+	val2 = 0
+	if sys_ini:line_exist(self.section, "power_loss") then
+		val2 = sys_ini:r_float(self.section, "power_loss")
+		if val2 ~= 1 then
+			val2 = val2*100 - 100
+			f = true
+		end
+	end
+	if f then
+		txt = "Усталость: "..( (val2>0 and "%c[red]+") or (val2<0 and "%c[green]") or "%c[white]" )..string_format("%d%%",val2)..
+			"%c[gray] ("..(val>0 and "+" or "" )..string_format("%d%%",val)..")"
 		table_insert( params, {"power_loss", txt} )
 	end
 
 	if sys_ini:line_exist(self.section, "additional_inventory_weight") then
 		val = self.item:get_additional_inventory_weight()
-		if val>0 then
-			txt = "Грузоподъёмность: %c[green]+"..string_format("%.1f",val).." кг"
+		val2 = sys_ini:r_float(self.section, "additional_inventory_weight")
+		if val > 0 or val2 > 0 then
+			txt = "Грузоподъёмность: "..(val2>0 and "%c[green]+" or "%c[white]")..string_format("%.1f",val2).." кг"..
+				"%c[gray] ("..(val>0 and "+" or "")..string_format("%.1f",val).." кг)"
 			table_insert( params, {"additional_weight", txt} )
 		end
 	end
