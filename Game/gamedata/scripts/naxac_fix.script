@@ -5,6 +5,22 @@ function fix_133()
 		AI:create(spawn_ids.val_fireball)
 	end
 end
+	local sids = {
+		story_ids.himik_zl,
+		story_ids.prigorshnya_zl
+	}
+	for i, sid in ipairs(sids) do
+		local obj = AI:story_object(sid)
+		if obj and obj:alive() then
+			local pk = netpk:get(obj, netpk.fState)
+			local cd = netpk:parse_custom_data(pk.custom_data)
+			if cd.logic then
+				cd.logic.active = "{+prigorshnya_stop} kamp, walker"
+				pk.custom_data = netpk:gen_custom_data(cd)
+				netpk:set(obj, pk)
+			end
+		end
+	end
 function fix_131()
 	local names = {
 		"rad_antenna_sniper1",
