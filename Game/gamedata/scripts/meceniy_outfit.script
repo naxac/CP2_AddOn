@@ -72,7 +72,7 @@ function on_actor_update()
 	end
 
 	for i, v in ipairs( outfits[ sect ] ) do
-		system_outfit( system_data[ v ] )
+		system_outfit( v )
 	end
 end
 
@@ -151,10 +151,13 @@ function spawner()
 	AI:create_free("art_acumm",vector():set(-89.387,-2.457,-25.271),19105,2875)
 end
 
-function system_outfit( t )
+function system_outfit( p )
+	local t = system_data[ p ]
 	if not has_alife_info( t.info ) then return end
 
-	if t.check() or t.need_treat then
+	if t.check() or t.need_treat
+		or slow_med.healing_is_active( p )
+	then
 		t.f = nil
 		t.f_end = nil
 		return 
