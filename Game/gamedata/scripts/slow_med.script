@@ -11,10 +11,15 @@ local med_data = {
 local medkits = {}
 local base_time_factor = sys_ini:r_u32("alife", "time_factor")
 
-function on_before_use_item( item )
-	local section = item:section()
-	if section == "bleeding_heal" then return end
+slow_shift = false
 
+function on_before_use_item( item )
+	if slow_shift then
+		slow_shift = false
+		return
+	end
+
+	local section = item:section()
 	local t = medkits[section]
 	if t == nil then
 		medkits[section] = {}
