@@ -304,8 +304,8 @@ function foto_binder:check_creatures()
 			-- монстры
 			if IAmAMonster[clsid] and obj:alive() and Actor:see(obj) and not protected_items.is_monster_friend(section) then
 				-- сначала смотрим тихую охоту
-				if  (has_alife_info("silent_hunt_start") and not has_alife_info("silent_hunt_done")) and
-					(silent_hunt_monsters[clsid] and not has_alife_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
+				if  (Actor:has_info("silent_hunt_start") and Actor:dont_has_info("silent_hunt_done")) and
+					(silent_hunt_monsters[clsid] and Actor:dont_has_info("monster_stealth_"..silent_hunt_monsters[clsid])) and
 					( CheatFoto or self:obj_in_shot(obj:bone_position("bip01_head"), 0, 4, 5.0, true, nil, true) )
 				then
 					-- удачный снимок и такого еще не было
@@ -317,7 +317,7 @@ function foto_binder:check_creatures()
 				-- затем фото уникальных монстров
 				elseif 
 					foto_unique_monster[section] and 
-					has_alife_info(foto_unique_monster[section].has_info) and not has_alife_info(foto_unique_monster[section].info) and
+					Actor:has_info(foto_unique_monster[section].has_info) and Actor:dont_has_info(foto_unique_monster[section].info) and
 					( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
 				then
 					-- удачный снимок и такого еще не было
@@ -326,8 +326,8 @@ function foto_binder:check_creatures()
 					return true
 
 				-- затем обычную охоту
-				elseif (has_alife_info("foto_ohota_start") and not has_alife_info("foto_ohota_done")) and
-					foto_ohota_monsters[section] and not has_alife_info(foto_ohota_monsters[section]) and
+				elseif (Actor:has_info("foto_ohota_start") and Actor:dont_has_info("foto_ohota_done")) and
+					foto_ohota_monsters[section] and Actor:dont_has_info(foto_ohota_monsters[section]) and
 					( CheatFoto or self:obj_in_shot(obj:center(), 5, 10, 5.0, false, nil, false) )
 				then
 					-- удачный снимок и такого еще не было
@@ -487,7 +487,7 @@ function make_photo2()
 		foto_name = string.gsub(foto_name, "[/:]", "-")
 		local new_path = fs:update_path("$app_data_root$", "photos\\"..foto_name)
 		fs:file_copy(path, new_path)
-		news_manager.send_tip("Фото сохранено по пути %c[green_blue]\"Папка с игрой\\appdata\\photos\\"..foto_name.."\"", 0, "nano", 1000)
+		news_manager.send_tip("Фото сохранено по пути %c[green_blue]\"Папка с игрой\\appdata\\photos\\"..foto_name.."\"", 2, "nano", 1000)
 		xr_s.subscribe("update", this.make_photo3, {
 			userobj = fname,
 			timeout = 300,
