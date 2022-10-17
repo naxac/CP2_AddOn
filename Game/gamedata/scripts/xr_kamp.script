@@ -796,6 +796,7 @@ function CKampManager:getDestVertex(npc, radius)
 	-- update position fix
 	elseif level.vertex_position(self.center):distance_to(npc:position()) > 10 then
 		xr_logic.pstor_store(npc, "vused", nil)
+		used_verts[v] = nil
 		return self:getDestVertex(npc, radius)
 	end
 
@@ -1100,67 +1101,126 @@ function CKampManager:updateNpc(npc)
 	--printf("Proceed Update Npc [%s] sound [%s]", state, sound)
 	return state, sound, substate
 end
+
+local cant_eat_visual = {
+	["act_tank"] = true,
+	["exoskelet_black"] = true,
+	["green_stalker_antigas"] = true,
+	["inkvizitor_cherep"] = true,
+	["inkvizitor_exolight"] = true,
+	["inkvizitor_redeye"] = true,
+	["inkvizitor_light"] = true,
+	["komander_alfa"] = true,
+	["military_exo"] = true,
+	["nauchniy_0"] = true,
+	["nauchniy_1"] = true,
+	["nauchniy_white"] = true,
+	["sol_alfa"] = true,
+	["soldier_antigas"] = true,
+	["soldier_omon"] = true,
+	["stalker_2_gas"] = true,
+	["stalker_3_gas"] = true,
+	["stalker_4_gas"] = true,
+	["stalker_arhara"] = true,
+	["stalker_arhara1"] = true,
+	["stalker_bandit_exoskeleton"] = true,
+	["stalker_do_antigas"] = true,
+	["stalker_do_exoskeleton"] = true,
+	["stalker_do_nauchniy"] = true,
+	["stalker_ecolog"] = true,
+	["stalker_ecolog_military"] = true,
+	["stalker_ecologi_2exoskeleton"] = true,
+	["stalker_exoskeleton"] = true,
+	["stalker_fantom_exoskeleton"] = true,
+	["stalker_ki_antigas"] = true,
+	["stalker_ki_exoskeleton"] = true,
+	["stalker_ki_nauchniy"] = true,
+	["stalker_militari_antigas_1"] = true,
+	["stalker_militari_antigas_2"] = true,
+	["stalker_military_black"] = true,
+	["stalker_military_green"] = true,
+	["stalker_mo_exo"] = true,
+	["stalker_mo_nauchniy"] = true,
+	["stalker_ne_exoskeleton"] = true,
+	["stalker_neytral_exoskeleton"] = true,
+	["stalker_neytral_hood_9"] = true,
+	["stalker_neytral_nauchniy"] = true,
+	["stalker_neytral_nauchnyu_exo"] = true,
+	["stalker_nano"] = true,
+	["stalker_nebo_exoskeleton"] = true,
+	["stalker_nebo_nauchniy"] = true,
+	["stalker_sv_exoskeleton"] = true,
+	["stalker_sv_nauchniy"] = true,
+	["stalker_svns_exoskeleton"] = true,
+	["stalker_svs_exoskeleton"] = true,
+	["stalker_zp_exoskeleton"] = true,
+	["tank_exo_x003"] = true,
+	["ucheniy_golo"] = true
+}
 function CKampManager:checkNpcAbility(npc)
 	-- проверяем, что можем делать
 	local comm = npc:character_community()
 	if comm ~= "monolith" and comm ~= "zombied" then
-		local npc_states = self.npc[npc:id()].states
-		
+		local t_npc = self.npc[npc:id()]
+		local npc_states = t_npc.states
+		local can_eat = t_npc.can_eat
+
 		-- есть колбасу
-		npc_states["eat_kolbasa"] = npc:object("kolbasa")~=nil
+		npc_states["eat_kolbasa"] = npc:object("kolbasa")~=nil and can_eat
 		-- пить водку
-		npc_states["eat_vodka"] = npc:object("vodka")~=nil
+		npc_states["eat_vodka"] = npc:object("vodka")~=nil and can_eat
 		-- пить енергитический напиток
-		npc_states["eat_energy"] = npc:object("energy_drink")~=nil
+		npc_states["eat_energy"] = npc:object("energy_drink")~=nil and can_eat
 		-- есть хлеб
-		npc_states["eat_bread"] = npc:object("bread")~=nil
+		npc_states["eat_bread"] = npc:object("bread")~=nil and can_eat
 		-- курить
-		npc_states["kurit"] = npc:object("sigaret")~=nil
+		npc_states["kurit"] = npc:object("sigaret")~=nil and can_eat
 		-- пить из фляжки
-		npc_states["flaska"] = npc:object("flaska")~=nil
+		npc_states["flaska"] = npc:object("flaska")~=nil and can_eat
 		-- есть сладость
-		npc_states["sweetness"] = npc:object("sweetness")~=nil
+		npc_states["sweetness"] = npc:object("sweetness")~=nil and can_eat
 		-- пить пиво
-		npc_states["beer_a"] = npc:object("beer_a")~=nil
+		npc_states["beer_a"] = npc:object("beer_a")~=nil and can_eat
 		-- курить сигару
-		npc_states["kurit_cigara"] = npc:object("cigara")~=nil
+		npc_states["kurit_cigara"] = npc:object("cigara")~=nil and can_eat
 		-- есть бутерброд
-		npc_states["eat_sandwich"] = npc:object("sandwich")~=nil
-		
+		npc_states["eat_sandwich"] = npc:object("sandwich")~=nil and can_eat
+
+		local ks = self.kamp_states
 		local p = self.population > 1
 		-- играть на гармошке
-		local f = npc:object("harmonica_a")~=nil and p
+		local f = npc:object("harmonica_a")~=nil and p and can_eat
 		npc_states["play_harmonica"] = f
 		npc_states["wait_harmonica"] = f
-		self.kamp_states["pre_harmonica"] = f
-		self.kamp_states["harmonica"] = f
-		self.kamp_states["post_harmonica"] = f
-		
+		ks["pre_harmonica"] = f
+		ks["harmonica"] = f
+		ks["post_harmonica"] = f
+
 		-- играть на гитаре
 		f = npc:object("guitar_a")~=nil and p
 		npc_states["play_guitar"] = f
 		npc_states["wait_guitar"] = f
-		self.kamp_states["pre_guitar"] = f
-		self.kamp_states["guitar"] = f
-		self.kamp_states["post_guitar"] = f
-		
+		ks["pre_guitar"] = f
+		ks["guitar"] = f
+		ks["post_guitar"] = f
+
 		-- играть на балалайке
 		f = npc:object("balalaika_a")~=nil and p
 		npc_states["play_balalaika"] = f
 		npc_states["wait_balalaika"] = f
-		self.kamp_states["pre_balalaika"] = f
-		self.kamp_states["balalaika"] = f
-		self.kamp_states["post_balalaika"] = f
-		
+		ks["pre_balalaika"] = f
+		ks["balalaika"] = f
+		ks["post_balalaika"] = f
+
 		-- анекдоты
-		self.kamp_states["pre_joke"] = p
-		self.kamp_states["joke"] = p
-		self.kamp_states["post_joke"] = p
-		
+		ks["pre_joke"] = p
+		ks["joke"] = p
+		ks["post_joke"] = p
+
 		-- Если непись знает истории, надо добавить их к лагерю
 		f = (p and db.story_by_id[npc:id()] ~= nil)
-		self.kamp_states["story"] = f
-		self.kamp_states["post_story"] = f
+		ks["story"] = f
+		ks["post_story"] = f
 	end
 end
 function CKampManager:addNpc(npc)
@@ -1194,7 +1254,11 @@ function CKampManager:addNpc(npc)
 			}
 		}
 	end
-	
+
+	local visual = string.explode( npc:get_visual_name(), "\\" )
+	visual = visual[ #visual ]
+	self.npc[npc_id].can_eat = ( cant_eat_visual[visual] == nil )
+
 --	self:selectPosition(npc)
 
 	if db.story_by_id[npc_id] == nil then
