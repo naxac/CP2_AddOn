@@ -85,8 +85,19 @@ function sg_class_binder:get_ammo_load()
 	self.load = self.object:get_ammo_in_magazine()
 	if self.load > self.mag_size then
 		log("! '%s' has ammo more than 'ammo_mag_size' [%s:%s]! Correct...", self.object:name(), self.load, self.mag_size)
+		self.object:set_ammo_elapsed(0)
 		self.object:set_ammo_elapsed(self.mag_size)
 		self.load = self.mag_size
+		local obj = AI:object(self.object:id())
+		if obj then
+			netpk:modify( obj, {
+				ammo_elapsed = self.mag_size,
+				upd = {
+					ammo_elapsed = self.mag_size,
+					ammo_ids = {0}
+				}
+			} )
+		end
 	end
 end
 
