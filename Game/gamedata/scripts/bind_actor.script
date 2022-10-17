@@ -261,6 +261,9 @@ function actor_binder:death_callback(victim, who)
 	kostya_dialog.kill_online_kontroller()
 end
 ----------------------------------------------------------------------------------------------------------------------
+local taken_by_name = {
+	["av_peshera_inventory_box_0001"] = true
+}
 function actor_binder:take_item_from_box(box, item)
 	local s = item:section()
 	if string.find(s,"val_zapis_") then
@@ -277,7 +280,9 @@ function actor_binder:take_item_from_box(box, item)
 		treasure_manager.take_item_from_box(box, box:story_id())
 
 		s = box:section()
-		if transparent_treasure.IsTaken(s) and s ~= "m_inventory_box" then
+		if (transparent_treasure.IsTaken(s) and s ~= "m_inventory_box")
+			or taken_by_name[ box:name() ]
+		then
 			shiftCheckDropItem()
 			level.start_stop_menu(level.main_input_receiver(), true)
 
