@@ -1,5 +1,6 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 
+local smart_confusion = false
 -- кэш для динамических ltx
 local dynamic_ltx = {}
 
@@ -109,6 +110,18 @@ function checkNpc( npc_community, is_stalker, gulag_type, npc_rank, se_obj )
 	if is_stalker then
 		return v.check_stalker and v.check_stalker( npc_community, gulag_type, npc_rank, se_obj )
 	else
-		return v.check_monster and v.check_monster( npc_community, gulag_type, npc_rank, se_obj )
+		if v.check_monster then
+			if smart_confusion then
+				return true
+			end
+			return v.check_monster( npc_community, gulag_type, npc_rank, se_obj )
+		end
+		return false
 	end
+end
+
+function on_options_change()
+	smart_confusion = has_alife_info("bar_deactivate_radar_done")
+		and has_alife_info("snp_parad_done") 
+		and game_options.SmartConfusion
 end
