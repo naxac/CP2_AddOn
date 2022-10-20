@@ -185,7 +185,7 @@ end
 --'*******************************************************************************
 --'   **   **   **   **   **    **   **   **      NEWS_AMK          **   **   **   **   **    **   **   **   **
 --'*******************************************************************************
-function show_news_queue(text, timeout)
+function show_news_queue(text, timeout, sender)
 	local tmp_news = {}
 	local f
 	while true do
@@ -207,7 +207,7 @@ function show_news_queue(text, timeout)
 	end
 	local showtime = 7000
 	for i, v in ipairs(tmp_news) do
-		news_manager.send_tip(v, timeout/1000, nil, showtime)
+		news_manager.send_tip(v, timeout/1000, sender, showtime)
 		timeout = timeout + showtime + math_random(1500, 3000)
 	end
 end
@@ -232,17 +232,22 @@ function show_news()
 			news_text = amk_freedom.get_strings()
 			sender = "freedom"
 		end
+	elseif math_random()>0.95 then
+		local name = amk_names_lists.get_strings(false)
+		local reason, lname = amk_death_lists.get_strings()
+		news_text = "%c[gray2]Погиб сталкер\\n%c[default]"..name..", "..lname..". "..reason
+		sender = "death"
 	else
-		if math_random()>0.53 then    
+		if math_random()>0.45 then    
 			local uniq = amk_uniq_news_lists.get_strings()
 			local name = amk_names_lists.get_strings(true)
 			news_text = "%c[gray2]"..name.."\\n%c[default]"..uniq
 		else
 			news_text = amk_modders.get_strings()
 		end
-		sender = "uniq"
+	--	sender = "uniq"
 	end
-	this.show_news_queue(news_text)
+	this.show_news_queue(news_text, nil, sender)
 end
 
 --'*******************************************************************************
