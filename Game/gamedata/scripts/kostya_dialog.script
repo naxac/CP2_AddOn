@@ -1891,6 +1891,11 @@ function doktor_lekar1_money()
 end
 
 -- Убийство контролеров в онлайне, чтобы не было зацикливания пения
+local unbind_comms = {
+	["quit"]       = key_bindings.kQUIT,
+	["jump"]       = key_bindings.kJUMP,
+	["quick_load"] = key_bindings.kQUICK_LOAD
+}
 function kill_online_kontroller()
 	local result = false
 	for id,obj in pairs(db.creatures) do
@@ -1902,10 +1907,10 @@ function kill_online_kontroller()
 		end
 	end
 	if result then
-		_G._quit_dik = bind_to_dik( key_bindings.kQUIT )
-		get_console():execute( "unbind quit" )
-		_G._jump_dik = bind_to_dik( key_bindings.kJUMP )
-		get_console():execute( "unbind jump" )
+		for k, v in pairs(unbind_comms) do
+			unbind_comms[k] = bind_to_dik(v)
+			get_console():execute( "unbind "..k )
+		end
 		local cs = get_hud():AddCustomStatic( "cs_reminder", true )
 		local w = cs:wnd()
 		w:SetFont( GetFontGraffiti32Russian() )
@@ -1915,12 +1920,13 @@ function kill_online_kontroller()
 		start_small_timer(7000,
 			function ()
 			--	log("~ work binding")
-				local key = hotkeys.dik2key( _G._quit_dik )
-				if not key:find("MOUSE") then key = "k"..key end
-				get_console():execute( "bind quit "..string.lower( key ) )
-				key = hotkeys.dik2key( _G._jump_dik )
-				if not key:find("MOUSE") then key = "k"..key end
-				get_console():execute( "bind jump "..string.lower( key ) )
+				local key
+				for k, v in pairs(unbind_comms) do
+					key = hotkeys.dik2key( v )
+					if not key:find("MOUSE") then key = "k"..key end
+					get_console():execute( "bind "..k.." "..string.lower( key ) )
+					unbind_comms[k] = dik_to_bind(v)
+				end
 				if get_hud():GetCustomStatic( "cs_reminder" ) then
 					get_hud():RemoveCustomStatic( "cs_reminder" )
 				end
