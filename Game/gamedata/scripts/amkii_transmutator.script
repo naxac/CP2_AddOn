@@ -797,7 +797,7 @@ function CAmkTransmutacion:CreateAtrefact()
 	-- собираем табличку подготовленных для варки компонентов
 	local komp = {}
 	local cel = {}
-	
+
 	local tmp = aRecipts[iInfo]
 	tmp["comp_cond"] = nil
 
@@ -809,11 +809,7 @@ function CAmkTransmutacion:CreateAtrefact()
 			--	Вытащить артефакт из базы компонентов.
 			local oObject = aArtInfo.aArts[table.getn(aArtInfo.aArts)]
 		--	local obj_sect = oObject:section()
-			if tmp["comp_cond"] == nil then
-				tmp["comp_cond"] = oObject:condition()
-			else
-				tmp["comp_cond"] = ( tmp["comp_cond"] + oObject:condition() ) /2
-			end
+			tmp["comp_cond"] = (tmp["comp_cond"] or 0) + oObject:condition()
 			table.remove(aArtInfo.aArts, table.getn(aArtInfo.aArts))
 			--	Удалить артефакт и очистить слот.
 			amkDelObj(oObject:id())
@@ -824,37 +820,38 @@ function CAmkTransmutacion:CreateAtrefact()
 	end
 
 	local cel				= self.sTransmutants
-	local komp 				= tmp["komp"]
 	local v_udachi 			= amk_mod.get_af_transform_param("v_udachi", tmp, aRecipts)
 	local v_virogd 			= amk_mod.get_af_transform_param("v_virogd", tmp, aRecipts)
-	local virogd 			= amk_mod.get_af_transform_param("virogd", tmp, aRecipts)
-	local vremya 			= amk_mod.get_af_transform_param("vremya", tmp, aRecipts)
-	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
-	local remove_anomaly_id = remove_anomaly and aAnomId or nil
-	local result		 	= amk_mod.af_select_result(v_udachi, v_virogd, tmp["comp_cond"])
-	local lv 				= Actor:level_vertex_id()
-	local gv 				= Actor:game_vertex_id()
-	local pos 				= Actor:position()	
-	
-	if cel == nil or v_udachi == nil or v_virogd == nil
-		or virogd == nil or vremya == nil or remove_anomaly == nil 
-		or (cel == nil and remove_anomaly == false)
-		or (v_udachi + v_virogd > 100)
-	then
+
+	if table.size(cel) == 0 or (v_udachi + v_virogd > 100) then
 		-- кривой рецепт  - выходим с сообщением в лог
 		log("! Wrong transform recipe found: %s", iInfo)
 		table.print(tmp)
 		oDevice:Quit()
 	end
 
-	-- неудача
-	if result ~= 2 then
-		remove_anomaly_id = nil
+	local vremya 			= amk_mod.get_af_transform_param("vremya", tmp, aRecipts)
+	local remove_anomaly 	= amk_mod.get_af_transform_param("remove_anomaly", tmp, aRecipts)
+	local komp 				= tmp["komp"]
+	local result_cond		= tmp["comp_cond"]/table.size(komp)
+	local result		 	= amk_mod.af_select_result(v_udachi, v_virogd, result_cond)
+	local lv 				= Actor:level_vertex_id()
+	local gv 				= Actor:game_vertex_id()
+	local pos 				= Actor:position()	
+
+	local remove_anomaly_id
+	if remove_anomaly then
+		if result == 2 then
+			remove_anomaly_id = aAnomId
+		end
+	else
+		remove_anomaly_id = math.ceil(result_cond*1000)
 	end
+
 	level.add_pp_effector("teleport.ppe", 1524, false)
 
 	amk_mod.af_start_universal_transform_timer(iInfo, result, vremya, pos, gv, lv, remove_anomaly_id)
-	
+
 	-- на случай если захотим сварить такой же арт (для корректной строки недостающих компонентов)
 	if aReciptsHave[iInfo] then
 		for cSect, m in pairs(aReciptsHave[iInfo]["komp"]) do

@@ -1406,11 +1406,16 @@ local anom_recept_komp = {
 }
 -- Может быть только три вида результата: значит, сохраняем только индекс,
 -- а остальное вычитаем на финише из таблицы с рецептами.
-local res2key = {
-	[0] = "komp",	-- отторжение
-	[1] = "virogd",	-- вырождение
-	[2] = "cel"		-- удача
+local af_result = {
+	komp   = 0, -- отторжение
+	virogd = 1, -- вырождение
+	cel    = 2  -- удача
 }
+local res2key = {}
+for k, v in pairs(af_result) do
+	res2key[v] = k
+end
+
 local bad_art_prob = 0.3
 local good_art_prob = 0.15
 
@@ -1510,14 +1515,13 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 								local cel            = get_af_transform_param("cel", recept, recepti)
 								local v_udachi       = get_af_transform_param("v_udachi", recept, recepti)
 								local v_virogd       = get_af_transform_param("v_virogd", recept, recepti)
-								if (v_udachi + v_virogd) > 100 then
+								if table.size(cel) == 0 or (v_udachi + v_virogd) > 100 then
 									-- кривой рецепт  - выходим с сообщением в лог
 									log("! Wrong transform recipe found: %s", info)
 									table.print(recept)
 									finish = true
 									break
 								end
-								local virogd         = get_af_transform_param("virogd", recept, recepti)
 								local vremya         = get_af_transform_param("vremya", recept, recepti)
 								local remove_anomaly = get_af_transform_param("remove_anomaly", recept, recepti)
 								local komp           = recept["komp"]
@@ -1525,11 +1529,11 @@ function check_af_transform(af, af_sect, obj_pos, anom_id, anom_sect, anom_pos, 
 								local result         = af_select_result(v_udachi, v_virogd, result_cond)
 
 								local remove_anomaly_id
-								if result == 2 then
-									if remove_anomaly then
+								if remove_anomaly then
+									if result == af_result.cel then
 										remove_anomaly_id = anom_id
 									end
-								elseif remove_anomaly == false then
+								else
 									remove_anomaly_id = math.ceil(result_cond*1000)
 								end
 
@@ -1569,12 +1573,12 @@ function af_select_result(v_udachi, v_virogd, k_cond)
 	v_udachi = v_udachi * k_cond	-- если компоненты имеют среднее состояние меньше 1, то уменьшаем вероятность удачного исхода
 	if rnd > v_udachi then --неудача
 		if rnd > v_virogd + v_udachi then -- отторжение
-			return 0
+			return af_result.komp
 		else -- вырождение
-			return 1
+			return af_result.virogd
 		end
 	else -- удача
-		return 2
+		return af_result.cel
 	end
 end
 
@@ -1668,7 +1672,7 @@ function af_transform_universal_end(var)
 				this.set_wpn_after_transform(obj, cond/1000)
 			end
 			
-			if params.result == 2 and string_find(sect, "^af_") then
+			if params.result == af_result.cel and string_find(sect, "^af_") then
 				archievements.acv_count_event("acv_art", 100, "Сварщик")
 				actor_stats.add_points( "artefacts_2", get_inv_name(sect), 1, 1 )
 				xr_statistic.add_actor_rank( xr_statistic.get_af_rank(sect) )
@@ -1692,7 +1696,7 @@ function af_transform_universal_end(var)
 	end
 	
 	-- даём инфопорцию, если есть
-	if Actor:dont_has_info(info) and params.result == 2 then
+	if Actor:dont_has_info(info) and params.result == af_result.cel then
 		Actor:give_info_portion(info)
 	end
 	
