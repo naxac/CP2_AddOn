@@ -1906,33 +1906,37 @@ function kill_online_kontroller()
 			break
 		end
 	end
-	if result then
-		for k, v in pairs(unbind_comms) do
-			unbind_comms[k] = bind_to_dik(v)
-			get_console():execute( "unbind "..k )
-		end
-		local cs = get_hud():AddCustomStatic( "cs_reminder", true )
-		local w = cs:wnd()
-		w:SetFont( GetFontGraffiti32Russian() )
-		w:SetTextST( "kill_online_kontroller" )
-		w:SetWndPos( (512-w:GetWidth()/2), 50 )
-		w:SetTextAlign( CGameFont.alCenter )
-		start_small_timer(7000,
-			function ()
-			--	log("~ work binding")
-				local key
-				for k, v in pairs(unbind_comms) do
-					key = hotkeys.dik2key( v )
-					if not key:find("MOUSE") then key = "k"..key end
-					get_console():execute( "bind "..k.." "..string.lower( key ) )
-					unbind_comms[k] = dik_to_bind(v)
-				end
-				if get_hud():GetCustomStatic( "cs_reminder" ) then
-					get_hud():RemoveCustomStatic( "cs_reminder" )
-				end
-			end
-		)
+
+	if not result then
+		return false
 	end
+
+	for k, v in pairs(unbind_comms) do
+		unbind_comms[k] = bind_to_dik(v)
+		get_console():execute( "unbind "..k )
+	end
+	local cs = get_hud():AddCustomStatic( "cs_reminder", true )
+	local w = cs:wnd()
+	w:SetFont( GetFontGraffiti32Russian() )
+	w:SetTextST( "kill_online_kontroller" )
+	w:SetWndPos( (512-w:GetWidth()/2), 50 )
+	w:SetTextAlign( CGameFont.alCenter )
+	start_small_timer(7000,
+		function ()
+		--	log("~ work binding")
+			local key
+			for k, v in pairs(unbind_comms) do
+				key = hotkeys.dik2key( v )
+				if not key:find("MOUSE") then key = "k"..key end
+				get_console():execute( "bind "..k.." "..string.lower( key ) )
+				unbind_comms[k] = dik_to_bind(v)
+			end
+			if get_hud():GetCustomStatic( "cs_reminder" ) then
+				get_hud():RemoveCustomStatic( "cs_reminder" )
+			end
+		end
+	)
+	return true
 end
 
 function s_inventory_box1()
