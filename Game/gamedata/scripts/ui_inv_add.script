@@ -299,6 +299,13 @@ function InvWnd:on_drag_drop(drag_item, drop_on_item)
 		end
 
 		local sec = drop_on_item:section()
+		if sys_ini:line_exist(sec, "container_slots") then
+			if arc_ui_container_menu.item_can_move_to_container( section, drag_item:is_artefact() ) then
+				arc_containers.put_item_to_container(drag_item, drop_on_item)
+			end
+			return
+		end
+
 		if sys_ini:r_bool_ex(sec, "energy_consuming", false) == true then
 			local energy_src = sys_ini:r_list(sec, "energy_source")
 			if energy_src then

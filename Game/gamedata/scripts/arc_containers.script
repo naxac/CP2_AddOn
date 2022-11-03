@@ -161,6 +161,50 @@ function change_container_params(cont_id, weight_delta, cost_delta)
 	end
 end
 
+local put_sounds = {
+	"material\\barrel\\collide\\hithard01hl",
+	"material\\barrel\\collide\\hithard02hl",
+	"material\\barrel\\collide\\hithard03hl",
+	"device\\metal_small_close_stop"
+}
+function put_item_to_container(art, cont)
+	local cont_id = cont:id()
+	local arts = get_container_arts(cont_id)
+	for i, v in ipairs(arts) do
+		if v.s == "_" then
+			local sart = AI:object( art:id() )
+			if not sart then return end
+
+			v.s = art:section()
+			v.c = art:condition()
+			v.ar = sart.art_loss or 0
+			v.tr = sart.transformed == true
+
+			set_container_arts(cont_id, arts)
+			change_container_params( cont_id, art:get_weight(), art:cost() )
+
+			local inv_rad = sys_ini:r_float_ex(v.s, "radiation_restore_speed")
+			local rad_protect = sys_ini:r_float(cont:section(), "rad_protection")
+			if inv_rad > rad_protect then
+				local add_rad = inv_rad-rad_protect
+				arc_radiation.change_inv_radiation(add_rad)
+				local msg = string.format(
+					game.translate_string("st_no_full_radiation_protection"),
+					add_rad / sys_ini:r_float('actor_condition', 'radiation_v')
+				)
+				ui_inv_add.show_inv_msg(msg, nil, 4000)
+			end
+
+			local snd = xr_sound.get_safe_sound_object( table.random(put_sounds) )
+			snd:play_no_feedback(Actor, sound_object.s2d, 0, vector(), 1.0)
+
+			AI:release(sart, true)
+			return
+		end
+	end
+
+	ui_inv_add.show_inv_msg("st_no_space_in_container", "red")
+end
 --========================================================================================--
 class "container_binder" (object_binder)
 
