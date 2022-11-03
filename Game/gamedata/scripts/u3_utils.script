@@ -149,7 +149,20 @@ function on_quick_save()
 	end
 end
 
+local load_timer_started = false
 function load_quicksave()
+	if load_timer_started then return end
+	if kostya_dialog.kill_online_kontroller() then
+		if not load_timer_started then
+			start_small_timer(7500, function()
+				load_timer_started = false
+				u3_utils.load_quicksave()
+			end)
+			load_timer_started = true
+		end
+		return
+	end
+
 	if old_user_name() == user_name() then return end
 
 	local save_name = user_name().."_quicksave"
