@@ -1,8 +1,16 @@
 -- -*- mode: lua; encoding: windows-1251 -*-
 function fix_137()
+	if level.name() == "l41_darkscape_ogse" then
+		start_real_timer("run", 60, "naxac_fix.fix_137()")
+		return
+	end
 	xr_gulag.reinit_gulag_npc_all("darkscape_bandos_lager")
 end
 function fix_136()
+	if level.name() == "l03_agroprom" then
+		start_real_timer("run", 60, "naxac_fix.fix_136()")
+		return
+	end
 	xr_gulag.reinit_gulag_npc_all("agr2_st_factory")
 end
 function fix_135()
@@ -74,7 +82,6 @@ function fix_130()
 		Actor:disable_info_portion("alexandrych_box_done")
 		Actor:give_info_portion("alexandrych_box_done")
 	end
-		
 end
 function fix_129()
 	local obj
@@ -110,27 +117,18 @@ function fix_126()
 					"on_actor_inside = {+bar_kruglov_follow_actor} nil %+bar_actor_helps_kruglov%"
 		netpk:modify(obj, {custom_data = cd}, netpk.fState)
 	end
-	local tt = {
-		"yakut_agro",
-		"stalker_yakut1",
-		"stalker_yakut2",
-		"stalker_yakut3",
-		"stalker_yakut4",
-		"stalker_yakut5"
-	}
+
 	local cd_str = "[smart_terrains]\n"..
 					"none = true\n"..
 					"[spawner]\n"..
 					"cond = {+dan_grab_start}\n"..
 					"[logic]\n"..
-					"cfg = scripts\\agr\\"
-	for i, name in ipairs(tt) do
-		obj = AI:object(name)
-		if obj and obj:alive() then
-			netpk:modify(obj, {
-				custom_data = cd_str..name..".ltx"
-			}, netpk.fState + netpk.fConvert)
-		end
+					"cfg = scripts\\agr\\yakut_agro.ltx"
+	local obj = AI:object("yakut_agro")
+	if obj and obj:alive() then
+		netpk:modify(obj, {
+			custom_data = cd_str
+		}, netpk.fState + netpk.fConvert)
 	end
 end
 function fix_125()
@@ -364,8 +362,6 @@ function fix_109()
 			break
 		end
 	end
-
-	xr_gulag.reinit_gulag_npc_all("agr2_st_factory")
 end
 function fix_108()
 	local gm = amk.game_minutes()
