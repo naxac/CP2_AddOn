@@ -1406,13 +1406,12 @@ function n_netpk:r_st_se_smart_terrain( ret, stpk )
 		t.population_non_exclusive	= stpk:r_u8()
 		t.JobLoaded = {}
 		local n = stpk:r_u8()
-		local job
 		for i = 1, n do
-			job = {}
-			table.insert( t.JobLoaded, job )
+			local job = {}
 			job.begin            = stpk:r_u32()
 			job.fill_idle        = stpk:r_u32()
 			job.idle_after_death_end = stpk:r_u32()
+			table.insert( t.JobLoaded, job )
 		end
 		-- read npc_info
 		ret.npc_info = {}
@@ -1466,9 +1465,9 @@ function n_netpk:w_st_se_smart_terrain( data, stpk )
 			stpk:w_bool ( v.exclusive )
 			stpk:w_CTime ( v.stay_end )
 			-- gulag:save_obj
-			stpk:w_bool ( t.Object_begin_job[id] )
-			stpk:w_bool ( t.Object_didnt_begin_job[id] )
-			stpk:w_u8   ( t.ObjectJob[id] )
+			stpk:w_bool ( t.Object_begin_job[id]==true )
+			stpk:w_bool ( t.Object_didnt_begin_job[id]==true )
+			stpk:w_u8   ( t.ObjectJob[id] or 0 )
 		end
 		stpk:w_bool ( data.population_locked )
 	end
