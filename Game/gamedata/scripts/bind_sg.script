@@ -88,20 +88,25 @@ function sg_class_binder:get_ammo_load()
 		self.object:set_ammo_elapsed(0)
 		self.object:set_ammo_elapsed(self.mag_size)
 		self.load = self.mag_size
-		local obj = AI:object(self.object:id())
-		if obj then
-			local ai = {}
-			for i = 1, self.mag_size do
-				ammo_ids[i] = 0
-			end
-			netpk:modify( obj, {
-				ammo_elapsed = self.mag_size,
-				upd = {
+--[[----------------------------------------------------
+		start_small_timer( 500, function(obj_id)
+			local obj = AI:object(obj_id)
+			if obj then
+				local ammo_ids = {}
+				for i = 1, self.mag_size do
+					ammo_ids[i] = 0
+				end
+				netpk:modify( obj, {
 					ammo_elapsed = self.mag_size,
-					ammo_ids = ai
-				}
-			} )
-		end
+					upd = {
+						ammo_elapsed = self.mag_size,
+						ammo_ids = ammo_ids
+					}
+				} )
+			end
+		end,
+		self.object:id() )
+--]]----------------------------------------------------
 	end
 end
 
