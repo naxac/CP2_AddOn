@@ -278,26 +278,23 @@ end
 function start_reload(first_speaker, second_speaker)
 	local trader = (first_speaker:id() == 0 and second_speaker) or first_speaker
 	dialogs.relocate_money(trader, 2000, "out")
-	dialogs.relocate_item_section(trader, "vodka", "out")	
-	dialogs.relocate_item_section(trader, "wpn_flame", "out")	
-	local gtime = amk.game_minutes()
-	amk.save_variable("flame_reload", gtime + 30)
+	dialogs.relocate_item_section(trader, "vodka", "out")
 	dialogs.relocate_item_section(trader, "amk_kanistra", "out")
 	dialogs.relocate_item_section(trader, "amk_ballon", "out")
+	clear_flame()
+	local gtime = amk.game_minutes()
+	amk.save_variable("flame_reload", gtime + 30)
 	amk.save_variable("flame_reload_count", max_fuel)
---	calc_reload(Actor, trader)
-	clear_flame(Actor)
 end
 
 function start_find_and_reload(first_speaker, second_speaker)
 	local trader = (first_speaker:id() == 0 and second_speaker) or first_speaker
 	dialogs.relocate_money(trader, 30000, "out")
-	dialogs.relocate_item_section(trader, "vodka", "out")	
-	dialogs.relocate_item_section(trader, "wpn_flame", "out")	
+	dialogs.relocate_item_section(trader, "vodka", "out")
+	clear_flame()
 	local gtime = amk.game_minutes()
 	amk.save_variable("flame_reload", gtime + math_random(12, 24) * 60)
 	amk.save_variable("flame_reload_count", max_fuel)
-	clear_flame(Actor)
 end
 
 function is_reload_ready(first_speaker, second_speaker)
@@ -364,11 +361,15 @@ function set_flame_ammo(ammo)
 	end
 end
 
-function clear_flame(person)
-	if person and person:object("wpn_flame") then
-		local sobj = AI:object(person:object("wpn_flame"):id())
-		if sobj then AI:release(sobj, true) end
-	end
+function clear_flame()
+	local wpn = "wpn_flame"
+	local obj = Actor:object(wpn)
+	ASSERT(obj~=nil, "[flamethrower.start_reload]: actor has not wpn_flame")
+	local se_obj = AI:object(obj:id())
+	if not se_obj then return end
+	repair_check.release_addons(se_obj, wpn, obj)
+	AI:release(se_obj, true)
+	news_manager.relocate_item("out", wpn)
 end
 
 function set_ammo(first_speaker, second_speaker)
