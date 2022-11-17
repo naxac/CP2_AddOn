@@ -48,12 +48,10 @@ function on_mm_init(mm)
 
 	if game_options.PauseTraderCall then
 		mm.time_to_call = 0
-		mm.call = 0
-		mm.prev_call = 0
+		mm.prev_call = ""
 		mm.stop_call = 15*1000*1000 -- зовем игрока 15 секунд
 		mm.tmr = profile_timer() -- создаем таймер
 		mm.tmr:start() -- запускаем его
-		mm.last_time = 0 -- инициализируем время последнего апдейта
 	else
 		con:execute("snd_volume_eff 0")
 		level.set_snd_volume(0)
@@ -77,14 +75,15 @@ function on_mm_update(mm)
 		
 		-- зовем игрока
 		if ( not mm.call_sound ) or ( not mm.call_sound:playing() and mm.time_to_call < mm.tmr:time() and mm.time_to_call < mm.stop_call ) then
+			local call_snd_name
 			repeat
-				mm.call = table.random( calls )
-			until mm.call ~= mm.prev_call
-			mm.call_sound = xr_sound.get_safe_sound_object( "characters_voice\\scenario\\trader\\"..mm.call )
-			mm.call_interval = math.random(4,6)
-			mm.call_sound:play( Actor, mm.call_interval, sound_object.s2d )
-			mm.time_to_call = mm.tmr:time() + ( mm.call_sound:length() + mm.call_interval * 1000 ) * 1000
-			mm.prev_call = mm.call
+				call_snd_name = table.random( calls )
+			until call_snd_name ~= mm.prev_call
+			mm.call_sound = xr_sound.get_safe_sound_object( "characters_voice\\scenario\\trader\\"..call_snd_name )
+			local call_interval = math.random(4,6)
+			mm.call_sound:play( Actor, call_interval, sound_object.s2d )
+			mm.time_to_call = mm.tmr:time() + ( mm.call_sound:length() + call_interval * 1000 ) * 1000
+			mm.prev_call = call_snd_name
 		end
 		
 		mm.tmr:start()
