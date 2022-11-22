@@ -6761,8 +6761,10 @@ namespace  {
     namespace actor_stats {
         function remove_from_ranking(number);
         function add_to_ranking(number);
+		function get_actor_ranking();
         function get_points(string);
         function add_points(string, string, number, number);
+		function add_points_str(string, string, string);
     };
 };
 End of list of the namespaces exported to LUA
