@@ -202,61 +202,62 @@ function getNpcType(npc)
 	if npc == nil then return nil end
 	
 	local section = npc:section()
+	local cls = npc:clsid()
 	if section == nil then return nil end
-	local community
 
 	if actor_active_item then
 		local weapon_sect = actor_active_item:section()
 		if weapon_sect == "wpn_kuvalda" then
-			archievements.acv_count_2event("acv_kuv", 100, "Молотобоец", "acv_kuv2", 300, "Кузнец")
+			archievements.acv_count_2event("acv_kuv", 100,  "acv_kuv2", 300)
 		elseif weapon_sect == "wpn_topor" then
-			archievements.acv_count_2event("acv_top", 100, "Раскольников", "acv_top2", 300, "Дровосек")
+			archievements.acv_count_2event("acv_top", 100, "acv_top2", 300)
 		elseif weapon_sect == "wpn_crowbar" then
-			archievements.acv_count_2event("acv_crow", 100, "Дальнобойщик", "acv_crow2", 300, "Гордон Фримен")
+			archievements.acv_count_2event("acv_crow", 100, "acv_crow2", 300)
 		elseif weapon_sect == "wpn_machete" then
-			archievements.acv_count_2event("acv_mach", 100, "Хирург", "acv_mach2", 300, "Патологоанатом")
+			archievements.acv_count_2event("acv_mach", 100, "acv_mach2", 300)
 		elseif weapon_sect == "wpn_kukri" then
-			archievements.acv_count_2event("acv_kuk", 100, "Гуркх", "acv_kuk2", 300, "Самурай")
-		elseif (string.find(weapon_sect, "ognemet") or string.find(weapon_sect, "flame")) and IAmAMonster[npc:clsid()] then	
-		    archievements.acv_count_event("acv_pir", 100, "Пироман")
+			archievements.acv_count_2event("acv_kuk", 100, "acv_kuk2", 300)
+		elseif (string.find(weapon_sect, "ognemet") or string.find(weapon_sect, "flame")) and IAmAMonster[cls] then	
+		    archievements.acv_count_event("acv_pir", 100)
 		end
 	end
 
-	if IAmAMonster[npc:clsid()] then
-		if npc:clsid() == clsid.poltergeist_s then
-			archievements.acv_count_event("acv_ftom", 50, "Фантом")   
+	if IAmAMonster[cls] then
+		if cls == clsid.poltergeist_s then
+			archievements.acv_count_event("acv_ftom", 50)   
 		end
 		
 		if string.find(section, "gigant") then
-			archievements.acv_count_event("acv_gob", 50, "Гоблин")
+			archievements.acv_count_event("acv_gob", 50)
 		elseif string.find(section, "chimera") and Actor:active_slot() == inventory_slots.KNIFE then
-			archievements.acv_count_event("acv_ukro", 50, "Укротитель хищников")
+			archievements.acv_count_event("acv_ukro", 50)
 		elseif string.find(section, "rat") then
-			archievements.acv_count_event("acv_krs", 100, "Крысолов")
+			archievements.acv_count_event("acv_krs", 100)
 		elseif string.find(section, "bloodsucker") and Actor:active_slot() == inventory_slots.KNIFE then
-			archievements.acv_count_event("acv_gum", 50, "Гуманоид")  
+			archievements.acv_count_event("acv_gum", 50)  
 		elseif string.find(section, "vodjanoj") then
-			archievements.acv_count_event("acv_bbk", 40, "Буль-буль карасики") 
+			archievements.acv_count_event("acv_bbk", 40) 
 		elseif string.find(section, "deathclaw") and Actor:active_slot() == inventory_slots.KNIFE then
-			archievements.acv_count_event("acv_tigr", 10, "Саблезубый тигр")  
+			archievements.acv_count_event("acv_tigr", 10)  
 		elseif string.find(section, "controller") then
-			archievements.acv_count_event("acv_mgvd", 50, "Мозговед") 
+			archievements.acv_count_event("acv_mgvd", 50) 
 		elseif string.find(section, "burer") then
-			archievements.acv_count_event("acv_lxlt", 50, "Любитель халатов") 
+			archievements.acv_count_event("acv_lxlt", 50) 
 		elseif string.find(section, "snork") then
-			archievements.acv_count_event("acv_tprg", 50, "Торговец противогазами") 
+			archievements.acv_count_event("acv_tprg", 50) 
 		elseif string.find(section, "flesh") then
-			archievements.acv_count_event("acv_svin", 50, "Свинопас") 
+			archievements.acv_count_event("acv_svin", 50) 
 		elseif string.find(section, "boar") then
-			archievements.acv_count_event("acv_barb", 50, "Шашлычник") 
+			archievements.acv_count_event("acv_barb", 50) 
 		elseif string.find(section, "vypolzen") then
-			archievements.acv_count_event("acv_xob", 50, "Хоббит") 
+			archievements.acv_count_event("acv_xob", 50) 
 		elseif string.find(section, "carlic") then
-			archievements.acv_count_event("acv_guli", 50, "Гулливер")
+			archievements.acv_count_event("acv_guli", 50)
 		end
 	end
 	
-	if IAmAStalker[npc:clsid()] then
+	local community
+	if IAmAStalker[cls] then
 		community = communityByCommunity[npc:character_community()]
 		if not community then
 			community = "neutral"
@@ -265,28 +266,30 @@ function getNpcType(npc)
 		
 		archievements.acv_kill()
 		if community == "killer" then
-			archievements.acv_count_event("acv_anki", 100, "Антикиллер")
+			archievements.acv_count_event("acv_anki", 100)
 		elseif community == "bandit" then
-			archievements.acv_count_event("acv_ment", 150, "Мент в законе")  
+			archievements.acv_count_event("acv_ment", 150)  
 		elseif community == "monolith" then
-			archievements.acv_count_event("acv_vrgm", 150, "Враг Монолита") 
+			archievements.acv_count_event("acv_vrgm", 150) 
 		elseif community == "vermaht" then
-			archievements.acv_count_event("acv_prtz", 50, "Партизан")	  
+			archievements.acv_count_event("acv_prtz", 50)	  
 		end
 		
 		return "stalkerkills", community.."_"..rank
 		
-	elseif string.find(section, "helicopter") then
+	elseif cls == clsid.script_heli then
 		archievements.acv_mons()
-		return "monsterkills", "helicopter"
+		return "techkills", "helicopter"
 	
-	elseif string.find(section, "vehicle_btr") then
-		archievements.acv_mons()
-		return "monsterkills", "vehicle_btr"
+	elseif cls == clsid.car_s then
+		if string.find(section, "vehicle_btr") then
+			archievements.acv_mons()
+			return "techkills", "vehicle_btr"
+		end
 	
-	elseif string.find(section, "turret") then
+	elseif cls == clsid.turret_mgun then
 		archievements.acv_mons()
-		return "monsterkills", "turret"
+		return "techkills", "turret"
 	
 	else
 		for _,k in ipairs(monster_types) do
@@ -301,8 +304,8 @@ function getNpcType(npc)
 			return nil, nil
 		end
 
-		if npc:clsid() == clsid.zombie_s then
-			archievements.acv_count_event("acv_zoms", 1000, "Могильщик")
+		if cls == clsid.zombie_s then
+			archievements.acv_count_event("acv_zoms", 1000)
 		end
 		archievements.acv_mons()
 
@@ -348,7 +351,7 @@ function QuestStat:__init(owner) super()
 end
 
 function QuestStat:InitControls()
-	self:SetWndRect(70,510,240,120)
+	self:SetWndRect(70,527,240,120)
 	self:SetAutoDelete(true)
 	self:Show(true)
 	self.owner:AttachChild(self)
@@ -538,12 +541,12 @@ function add_actor_rank(value)
 	local rank = Actor:character_rank() + value
     Actor:set_character_rank( rank )
 	
-	if rank >= 10000 and rank < 10100 then
-		Actor:give_info_portion("acv_rank1")
-	elseif rank >= 30000 and rank < 30100 then
-		Actor:give_info_portion("acv_rank2")
-	elseif rank >= 50000 and rank < 50100 then
-		Actor:give_info_portion("acv_rank3")
+	if rank >= 50000 and Actor:dont_has_info("acv_rank3") then
+		archievements.send_archievement("acv_rank3")
+	elseif rank >= 30000 and Actor:dont_has_info("acv_rank2") then
+		archievements.send_archievement("acv_rank2")
+	elseif rank >= 10000 and Actor:dont_has_info("acv_rank1") then
+		archievements.send_archievement("acv_rank1")
 	end
 end
 ----------------------------------------------------------------------------------------------

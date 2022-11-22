@@ -299,7 +299,7 @@ function actor_binder:take_item_from_box(box, item)
 			end,
 			box:id() )
 
-			archievements.acv_count_event("acv_sled", 300, "Следопыт")
+			archievements.acv_count_event("acv_sled", 300)
 		end
 	end
 
@@ -476,6 +476,7 @@ function actor_binder:update(delta)
 				start_real_timer( "set_runner_key", 20 )
 			end
 		end
+		self.no_load_time = amk.game_minutes()+9*60
 		
 		self.bCheckStart = nil
 	end
@@ -492,13 +493,21 @@ function actor_binder:update(delta)
 	amk.oau_watchdog=3001
 	if upd_time4 < time then
 	--	log1("upd_time4: "..delta)
-		upd_time4 = time + 10000
+		upd_time4 = time + 30000
 		amk.oau_watchdog=301
 
-		if (not has_alife_info("acv_stay1")) and amk.game_days() > 182 then
-			actor:give_info_portion("acv_stay1")
-		elseif (not has_alife_info("acv_stay2")) and amk.game_days() > 365 then
-			actor:give_info_portion("acv_stay2")
+		if actor:dont_has_info("acv_giv")
+			and self.no_load_time
+			and self.no_load_time < amk.game_minutes()
+		then
+			archievements.send_archievement("acv_giv")
+			self.no_load_time = nil
+		end
+
+		if actor:dont_has_info("acv_stay1") and amk.game_days() > 182 then
+			archievements.send_archievement("acv_stay1")
+		elseif actor:dont_has_info("acv_stay2") and amk.game_days() > 365 then
+			archievements.send_archievement("acv_stay2")
 		end
 	elseif upd_time3 < time then
 	--	log1("upd_time3: "..delta)
@@ -729,7 +738,7 @@ function actor_binder:save(packet)
 	if utils.level_changing() then
 		Actor:give_info_portion("level_changing")
 		if not has_alife_info("teleport_started") then
-			archievements.acv_count_event("acv_skit", 300, "Скиталец")
+			archievements.acv_count_event("acv_skit", 300)
 		end
 		naxac.get_actor_pursuit()
 	end

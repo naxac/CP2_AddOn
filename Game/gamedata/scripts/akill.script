@@ -2202,7 +2202,7 @@ function lukash_counter_have()
 end
 function lukash_counter_done()
 	inventory.out_items("army_counter",100)
-	archievements.acv_count_event("acv_inkv", 200, "Инквизитор", 100) 
+	archievements.acv_count_event("acv_inkv", 200, 100) 
 	inventory.give_items("wpn_awp_m1",1)
 	inventory.give_items("ammo_7.62x51_fmj",2)
 	inventory.give_items("ammo_7.62x51_ap",2)
@@ -2213,7 +2213,7 @@ function lukash_counter_new_all()
 end
 function lukash_counter_new()
 	inventory.out_items("army_counter",10)
-	archievements.acv_count_event("acv_inkv", 200, "Инквизитор", 10) 
+	archievements.acv_count_event("acv_inkv", 200, 10) 
 	kostya_dialog.give_ammo(2)
 end
 
@@ -9643,7 +9643,7 @@ local achieve_point={
     {position={x=132.3073425293,y=-2.2649962902069,z=-289.80804443359},gv=3765,lv=356226}, -- вост припять
     {position={x=-281.80773925781,y=-0.003607302904129,z=204.34854125977},gv=1340,lv=1463} -- дт
 }
-function achieve_taynik()
+function achieve_taynik(acv_name)
 	local a = table.random(achieve_point)
 	start_small_timer(4000, function()
 		-- Сообщение о тайнике
@@ -9651,7 +9651,8 @@ function achieve_taynik()
 		local news_text = "%c[gray2]"..
 			game.translate_string("st_found_new_treasure")..
 			"\\n%c[120,255,120,160]"..game.translate_string(lname)..
-			": %c[170,200,200,200]"..game.translate_string("st_achievement_treasure")
+			": %c[170,200,200,200]"..game.translate_string("st_achievement_treasure")..
+			": \""..game.translate_string(acv_name).."\""
 		xr_sound.get_safe_sound_object([[device\pda\pda_news]]):play(Actor, 0, sound_object.s2d)
 		local task_texture, task_rect = get_texture_info("ui_iconsTotal_abstract5")
 		if Actor:is_talking() then	
@@ -9673,16 +9674,21 @@ function achieve_fill_taynik(obj)
 		amk.convert_npc[obj.id] = 1 -- ставим в очередь на вывод в онлайн
 	end
 end
-function achieve_taynik_spawn()
-	local obj = achieve_taynik()
-	level.map_add_object_spot_ser(obj.id, "treasure", "st_achievement_treasure")
+function achieve_taynik_spawn(acv_name)
+	local hint = game.translate_string("st_achievement_treasure")
+	if type(acv_name) == "string" then
+		hint = hint..": \""..game.translate_string(acv_name).."\""
+	end
+	local obj = achieve_taynik(acv_name)
+	level.map_add_object_spot_ser(obj.id, "treasure", hint)
 	achieve_fill_taynik(obj)
 end
-function achieve_all_taynik_spawn()
+function achieve_all_taynik_spawn(acv_name)
 	local obj
+	local hint = game.translate_string("st_achievement_treasure")..": \""..game.translate_string(acv_name).."\""
 	for _,a in pairs(achieve_point) do
 		obj =  AI:create_free("a_inventory_box68", vector():set(a.position.x,a.position.y,a.position.z), a.lv, a.gv)
-		level.map_add_object_spot_ser(obj.id, "treasure", "st_achievement_treasure")
+		level.map_add_object_spot_ser(obj.id, "treasure", hint)
 		achieve_fill_taynik(obj)
 	end
 end
