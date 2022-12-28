@@ -31,13 +31,25 @@ function savegame(save_name, save_anyway)
 end
 
 function savegame_date(save_name)
-	savegame(save_name..". "..game.translate_string(level.name())..". День "..(amk.game_days()+1))
+	savegame(
+		save_name..". "..
+		game.translate_string(level.name())..
+		". День "..tostring(amk.game_days()+1)
+	)
 end
 function savegame_lc(name, to_level)
-	savegame(name.." "..game.translate_string(level.name()).." - "..game.translate_string(to_level)..". День "..(amk.game_days()+1))
+	if can_save() then
+		savegame(
+			name.." "..game.translate_string(level.name())..
+			" - "..game.translate_string(to_level)..
+			". День "..tostring(amk.game_days()+1)
+		)
+	else
+		start_real_timer( "run", 2, "u3_utils.savegame_lc('"..name.."','"..to_level.."')" )
+	end
 end
 function savegame_on_level()
-	savegame("Сохранение на уровне. "..game.translate_string(level.name())..". День "..(amk.game_days()+1), true)
+	savegame("Сохранение на уровне. "..game.translate_string(level.name())..". День "..tostring(amk.game_days()+1), true)
 end
 
 function can_save() -- не сохраняем во время открытых окон, когда нельзя сделать квиксейв
