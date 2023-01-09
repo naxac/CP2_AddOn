@@ -13,19 +13,19 @@ local anoms_difficulty_koef = {
 	[game_difficulty.master ]	= 1.5
 }
 local anoms_sections = {
-	buzz			= { "buzz",              {shtype=0, radius=1.8, center={0,0,0}}                             },
-	electra			= { "witches_galantine", {shtype=0, radius=4,   center={0,0,0}}                             },
-	fountain		= { "fountain",          {shtype=0, radius=2.5, center={0,0,0}}                             },
-	gravi			= { "gravi_zone",        {shtype=0, radius=3,   center={0,0,0}}                             },
-	mincer			= { "mincer",            {shtype=0, radius=3.5, center={0,0,0}}                             },
-	mosquito_bald	= { "mosquito_bald",     {shtype=0, radius=3,   center={0,0,0}}                             },
-	sakbuzz			= { "sakbuzz",           {shtype=0, radius=4,   center={0,0,0}}                             },
-	smallrain		= { "smallrain",         {shtype=0, radius=4,   center={0,0,0}}                             },
-	sphere			= { "sphere",            {shtype=0, radius=2.8, center={0,0,0}}                             },
-	zavesa			= { "zavesa",            {shtype=0, radius=3,   center={0,0,0}}                             },
-	zharka			= { "zharka_static",     {shtype=1, v1={1.8,0,0}, v2={0,5,0}, v3={0,0,1.5}, offset={0,0,0}} },
-	radiation		= { "radioactive",       {shtype=0, radius=7,   center={0,0,0}}                             },
-	zone_ice		= { "zone_ice",          {shtype=0, radius=4,   center={0,0,0}}                             }
+	buzz			= { section = "buzz",              shape = {shtype=0, radius=1.8, center={0,0,0}}                             },
+	electra			= { section = "witches_galantine", shape = {shtype=0, radius=4,   center={0,0,0}}                             },
+	fountain		= { section = "fountain",          shape = {shtype=1, v1={1.8,0,0}, v2={0,5,0}, v3={0,0,1.5}, offset={0,0,0}} },
+	gravi			= { section = "gravi_zone",        shape = {shtype=0, radius=3,   center={0,0,0}}, addH=0.3                   },
+	mincer			= { section = "mincer",            shape = {shtype=0, radius=3.5, center={0,0,0}}, addH=0.3                   },
+	mosquito_bald	= { section = "mosquito_bald",     shape = {shtype=0, radius=3,   center={0,0,0}}, addH=0.3                   },
+	sakbuzz			= { section = "sakbuzz",           shape = {shtype=0, radius=4,   center={0,0,0}}                             },
+	smallrain		= { section = "smallrain",         shape = {shtype=0, radius=4,   center={0,0,0}}                             },
+	sphere			= { section = "sphere",            shape = {shtype=0, radius=2.8, center={0,0,0}}, addH=0.5                   },
+	zavesa			= { section = "zavesa",            shape = {shtype=0, radius=3,   center={0,0,0}}                             },
+	zharka			= { section = "zharka_static",     shape = {shtype=1, v1={1.8,0,0}, v2={0,5,0}, v3={0,0,1.5}, offset={0,0,0}} },
+	radiation		= { section = "radioactive",       shape = {shtype=0, radius=7,   center={0,0,0}}                             },
+	zone_ice		= { section = "zone_ice",          shape = {shtype=0, radius=4,   center={0,0,0}}                             }
 }
 local anom_suffix_by_level = {
 	l01_escape			= { weak = 60, average = 25, strong = 15 },
@@ -664,12 +664,19 @@ function generate_anoms()
 						if rnd <= v then section = k break end
 						rnd = rnd - v
 					end
-					t_shape = anoms_sections[section][2]
+					t_shape = anoms_sections[section].shape
+					if anoms_sections[section].addH then
+						local y = math.random(
+							anoms_sections[section].addH*100,
+							((t_shape.radius or 2)-1)*100
+						) / 100
+						pos:add( vector():set( 0, y, 0 ) )
+					end
 					section = "amk_zone_"..
-							anoms_sections[section][1]..
+							anoms_sections[section].section..
 							anom_suffix(lname)
 				else
-					t_shape = anoms_sections[section][2]
+					t_shape = anoms_sections[section].shape
 				end
 
 				local t = {}
@@ -687,7 +694,7 @@ function generate_anoms()
 							)
 				end
 
-				sobj = AI:create( section, pos, new_lv, n_vertexes.get_nearest_gv(pos) )
+				sobj = AI:create_free( section, pos, new_lv, n_vertexes.get_nearest_gv(pos) )
 				if sobj then
 					netpk:modify( sobj, { shapes = shapes }, netpk.fState )
 					cnt = cnt + 1
