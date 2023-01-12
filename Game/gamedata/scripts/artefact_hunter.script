@@ -33,12 +33,14 @@ local scient = {
 
 local artefacts = {}
 local id2art = {}
+local hash2art = {}
 local info2art = {}
 local art2child = {}
 
 function init()
 	local ini = ini_file( "misc\\artefact_hunter.ltx" )
 	local res, id, val
+	local h = 0
 	for i = 0, ini:line_count( "artefacts" ) - 1 do
 		res, id, val = ini:r_line( "artefacts", i, "", "" )
 		if id and sys_ini:section_exist(id) then
@@ -54,11 +56,17 @@ function init()
 				table.insert( art2child[t.parent], id )
 			else
 				table.insert( id2art, id )
+				local h = stringhash(id)
+				ASSERT( (hash2art[h]==nil),
+					"[artefact_hunter.init] collision with hash: %s :: %s",
+					id, tostring(hash2art[h]) )
+				hash2art[h] = id
 
 				t.lvl       = sys_ini:r_u32   ( id, "art_level"      )
 				t.power     = sys_ini:r_float ( id, "art_power"      )
 				t.hit_type  = sys_ini:r_string( id, "art_hit_type"   )
 				t.info      = sys_ini:r_list  ( id, "art_known_info" )
+				t.hash      = h
 
 				if t.info and #t.info > 0 then
 					for j, v in ipairs( t.info ) do
@@ -190,27 +198,45 @@ function load(reader)
 		this.first_run()
 		return
 	end
-
+	-- old
 	local n = reader:r_u8()
+	if n ~= 255 then
+		local id
+		for i = 1, n do
+			id = reader:r_u8()
+			if id ~= 0 and id2art[id]  then
+				artefacts[ id2art[id] ].known = true
+			end
+		end
+		return
+	end
+	-- new
+	n = reader:r_u8()
 	if n == 0 then return end
 
-	local id
+	local h
 	for i = 1, n do
-		id = reader:r_u8()
-		if id ~= 0 and id2art[id]  then
-			artefacts[ id2art[id] ].known = true
-		end
+		h = reader:r_u16()
+		ASSERT(hash2art[h], "[artefact_hunter.load] no section for saved hash %s", h)
+		artefacts[ hash2art[h] ].known = true
 	end
 end
 -- сохранять будем всю таблицу, чтобы можно было ее изменять
 function save(packet)
-	packet:w_u8(#id2art)
-	for i, s in ipairs(id2art) do
-		if artefacts[s].known then
-			packet:w_u8(i)
-		else
-			packet:w_u8(0)
+	packet:w_u8(255)
+
+	local n = 0
+	local tmp = {}
+	for s, t in pairs(artefacts) do
+		if t.known then
+			n = n + 1
+			table.insert(tmp, t.hash)
 		end
+	end
+
+	packet:w_u8(n)
+	for i, v in ipairs(tmp) do
+		packet:w_u16(v)
 	end
 end
 
