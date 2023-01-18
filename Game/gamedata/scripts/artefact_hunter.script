@@ -33,57 +33,57 @@ local scient = {
 
 local artefacts = {}
 local id2art = {}
-local hash2art = {}
+local id2art_l = {}
 local info2art = {}
 local art2child = {}
 
 function init()
 	local ini = ini_file( "misc\\artefact_hunter.ltx" )
-	local res, id, val
+	local res, sec, id
 	local h = 0
 	for i = 0, ini:line_count( "artefacts" ) - 1 do
-		res, id, val = ini:r_line( "artefacts", i, "", "" )
-		if id and sys_ini:section_exist(id) then
+		res, sec, id = ini:r_line( "artefacts", i, "", "" )
+		if sec and sys_ini:section_exist(sec) then
 			local t = {}
 
 			t.known = false
 
-			if sys_ini:line_exist( id, "art_parent" ) then
-				t.parent = sys_ini:r_string( id, "art_parent" )
+			if sys_ini:line_exist( sec, "art_parent" ) then
+				t.parent = sys_ini:r_string( sec, "art_parent" )
 				if art2child[t.parent] == nil then
 					art2child[t.parent] = {}
 				end
-				table.insert( art2child[t.parent], id )
+				table.insert( art2child[t.parent], sec )
 			else
-				table.insert( id2art, id )
-				local h = stringhash(id)
-				ASSERT( (hash2art[h]==nil),
-					"[artefact_hunter.init] collision with hash: %s :: %s",
-					id, tostring(hash2art[h]) )
-				hash2art[h] = id
+				id = tonumber(id)
+				ASSERT( id and (id2art[id]==nil),
+					"[artefact_hunter.init] error with id: %s :: %s",
+					sec, tostring(id2art[id]) )
+				id2art[id] = sec
+				t.id       = id
 
-				t.lvl       = sys_ini:r_u32   ( id, "art_level"      )
-				t.power     = sys_ini:r_float ( id, "art_power"      )
-				t.hit_type  = sys_ini:r_string( id, "art_hit_type"   )
-				t.info      = sys_ini:r_list  ( id, "art_known_info" )
-				t.hash      = h
+				table.insert(id2art_l, sec)
+				
+				t.lvl      = sys_ini:r_u32   ( sec, "art_level"      )
+				t.power    = sys_ini:r_float ( sec, "art_power"      )
+				t.hit_type = sys_ini:r_string( sec, "art_hit_type"   )
+				t.info     = sys_ini:r_list  ( sec, "art_known_info" )
 
 				if t.info and #t.info > 0 then
 					for j, v in ipairs( t.info ) do
 						if info2art[v] == nil then
 							info2art[v] = {}
 						end
-						table.insert( info2art[v], id )
+						table.insert( info2art[v], sec )
 					end
 				end
 			end
 			
-			artefacts[id] = t
+			artefacts[sec] = t
 		end
 	end
 --	table.print(artefacts)
-
-	table.sort( id2art, function(s1, s2) return s1 < s2 end )
+	table.sort( id2art_l, function(s1, s2) return s1 < s2 end )
 end
 -----------------------------------------------------------------------------------------------
 local cant_hit = true
@@ -204,39 +204,38 @@ function load(reader)
 		local id
 		for i = 1, n do
 			id = reader:r_u8()
-			if id ~= 0 and id2art[id]  then
-				artefacts[ id2art[id] ].known = true
+			if id ~= 0 and id2art_l[id]  then
+				artefacts[ id2art_l[id] ].known = true
 			end
 		end
+		id2art_l = nil
 		return
 	end
+	id2art_l = nil
 	-- new
 	n = reader:r_u8()
 	if n == 0 then return end
 
-	local h
+	local id
 	for i = 1, n do
-		h = reader:r_u16()
-		ASSERT(hash2art[h], "[artefact_hunter.load] no section for saved hash %s", h)
-		artefacts[ hash2art[h] ].known = true
+		id = reader:r_u8()
+		ASSERT(id2art[id], "[artefact_hunter.load] no section for saved id %s", id)
+		artefacts[ id2art[id] ].known = true
 	end
 end
--- сохранять будем всю таблицу, чтобы можно было ее изменять
 function save(packet)
 	packet:w_u8(255)
 
-	local n = 0
 	local tmp = {}
 	for s, t in pairs(artefacts) do
 		if t.known then
-			n = n + 1
-			table.insert(tmp, t.hash)
+			table.insert(tmp, t.id)
 		end
 	end
 
-	packet:w_u8(n)
+	packet:w_u8(#tmp)
 	for i, v in ipairs(tmp) do
-		packet:w_u16(v)
+		packet:w_u8(v)
 	end
 end
 
@@ -272,10 +271,7 @@ function init_known_art_dialog( dlg, str_sid )
 	ASSERT(t, "[init_known_art_dialog] trader with story_id %s[%s] not found in 'info_traders'", str_sid, sid)
 
 	local get_string = game.translate_string
-
-	local trader = t.name
-	local p = "known_art_"..trader
-
+	local p = "known_art_"..t.name
 	local fmt = {}
 	fmt.actor = Actor:character_name()
 
@@ -307,7 +303,7 @@ function init_known_art_dialog( dlg, str_sid )
 	local lvl = t.lvl
 	local f = false
 	local phr_id
-	for i, sect in ipairs(id2art) do
+	for i, sect in pairs(id2art) do
 		local n = tostring( math.random(1,10) )
 
 		phr_id = tostring( 1000+i )
@@ -335,8 +331,8 @@ function init_known_art_dialog( dlg, str_sid )
 			phr = dlg:AddPhrase( text, tostring(5000+i), tostring(3000+i), -10000 )
 			phrase_script = phr:GetPhraseScript()
 			phrase_script:AddAction("artefact_hunter.trader_add_art_info")
-		else
 			fmt.art = nil
+		else
 			text = format_text_pairs( get_string("known_art_dont_know_"..n), fmt )
 			dlg:AddPhrase( text, tostring(2000+i), phr_id, -10000 )
 		end
