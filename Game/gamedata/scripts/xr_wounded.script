@@ -647,14 +647,17 @@ end
 -- Помощь раненому
 function help_wounded(npc)
 	local npc_name = npc:name()
+	local gulag = xr_gulag.get_npc_gulag_name(npc)
 	if npc_name == "esc_vagon_wounded"				-- Толик
 		or npc_name == "val_escort_bandit_halfdead"	-- Жила
-		or xr_gulag.get_npc_gulag_name(npc) == "esc_bridge"	-- солдаты под мостом на Кордоне
-	then return
+		or ( gulag and (gulag == "esc_bridge" or gulag == "amk_embankment") )	-- солдаты под мостом на Кордоне
+	then
+		relation_registry.set_goodwill(npc:id(), Actor:id(), 3500)
+		return
 
 	elseif npc_name == "mil_stalker0012" then		-- Сумасшедший Сталкер
 		if not has_alife_info("psih_flash_enemy") then
-			relation_registry.set_goodwill(npc:id(), Actor:id(), 2500)
+			relation_registry.set_goodwill(npc:id(), Actor:id(), 3500)
 		end
 		return
 	end
