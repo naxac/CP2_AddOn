@@ -6,7 +6,6 @@ psy_threshold = 1
 power_penalty = 0
 
 local prev_power
-local prev_health = 0
 
 local upd_power = 0
 
@@ -30,8 +29,6 @@ function on_actor_update(delta)
 		Actor.health = -dh*(1-math.pow(0.998, delta/100))
 	end
 	
-	prev_health = h
-	
 	local ph = Actor.psy_health
 	local dph = ph - psy_threshold
 	
@@ -44,11 +41,10 @@ function on_actor_update(delta)
 	if not prev_power then
 		prev_power = p
 	else
-		local dp = p - prev_power
-		
-		if power_penalty>0 then
+		local tmp = 0
+		if power_penalty > 0 then
+			local dp = p - prev_power
 		--	local k = 1 + power_penalty
-			local tmp = 0
 			
 			if dp>0 then
 				tmp = -dp*power_penalty/(power_penalty+1)
@@ -56,9 +52,17 @@ function on_actor_update(delta)
 				tmp = dp*power_penalty
 			end
 			
+			if p > h then
+				tmp = tmp+h-p
+			end
 			Actor.power = tmp
-			prev_power = p + tmp
+		else
+			if p > h then
+				tmp = h-p
+				Actor.power = tmp
+			end
 		end
+		prev_power = p+tmp
 	end
 	
 	if upd_power > 1000 then
