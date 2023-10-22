@@ -125,10 +125,9 @@ function find_somewhat( file, path, update )
 	--	mylog( "collect_sections: create do-path: %s", do_path )
 	end
 	
-	local sect
+	local sect, path1
 	for line in string.gmatch( file, "[^\n]+" ) do
 		sect = string.match( line, "^(%b[])" )
-		path = string.match( line, '^#include%s+(%b"")' )
 		if sect then	-- нашли секцию
 			sect = sect:sub( 2, -2 )
 			if update then
@@ -149,11 +148,14 @@ function find_somewhat( file, path, update )
 				--	mylog( "collect_sections: section found [%s]", sect )
 				end
 			end
-		elseif path then		-- нашли инклуд
-			path = path:sub( 2, -2 )
-			if do_path then path = do_path..path end
-		--	mylog( "collect_sections: include file found '%s'", path )
-			table.insert( included, path )
+		else
+			path1 = string.match( line, '^#include%s+(%b"")' )
+			if path1 then		-- нашли инклуд
+				path1 = path1:sub( 2, -2 )
+				if do_path then path1 = do_path..path1 end
+			--	mylog( "collect_sections: include file found '%s'", path1 )
+				table.insert( included, path1 )
+			end
 		end
 	end
 end

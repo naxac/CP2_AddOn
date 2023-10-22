@@ -332,6 +332,7 @@ class CUIStatic : CUIWindow {
 	void		SetTextPos(float<x>, float<y>);
 	bool		CanRotate(bool);				// xml: heading
 	vector2*	GetWndSize();
+	vector2*	GetWndPos();
 };
 
 class CUIScriptWnd : CUIDialogWnd,DLL_Pure {
