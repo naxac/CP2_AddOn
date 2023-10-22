@@ -31,7 +31,7 @@ local actor_conditions = {
 	satiety_restore_speed	= sys_ini:r_float('actor_condition', 'satiety_v') /100,
 	radiation_restore_speed	= sys_ini:r_float('actor_condition', 'radiation_v')
 }
--- параметры костюмов и артов
+-- параметры артов
 local conditions_params = {
 	{ prop = "health_restore_speed",	text = "Здоровье:",		tex = "health"		},
 	{ prop = "bleeding_restore_speed",	text = "Кровотечение:",	tex = "bleeding"	},
@@ -409,7 +409,7 @@ function CUIDescriptionWnd:GetContainerParams()
 	} )
 	p = sys_ini:r_u32(self.section, "container_slots")
 	self:ShowProps( {
-		{ "settings", "Количество ячеек: %c[green]"..string_format("%d", p) }
+		{ "container", "Количество ячеек: %c[green]"..string_format("%d", p) }
 	} )
 end
 -- Показываем описание оружия
@@ -691,9 +691,11 @@ function CUIDescriptionWnd:ShowOutfitParams()
 		end
 	end
 
-	if #params > 0 then
-		self:ShowProps(params)
-	end
+	val = sys_ini:r_u32(self.section, "belt_slots")
+	txt = "Пояс: %c[green]"..tostring(val)..naxac.declension(val, " ячейка", " ячейки", " ячеек")
+	table_insert( params, {"container", txt} )
+
+	self:ShowProps(params)
 end
 -- Показываем параметры энергозависимых предметов
 function CUIDescriptionWnd:ShowEnergyConsumingItemParams(charge)

@@ -109,7 +109,36 @@ function InvWnd:InitControls()
 	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_RECEIVED, self.acum_slot_focus)
 	self:AddCallbackEx("accumm_slot", ui_events.STATIC_FOCUS_LOST, self.acum_slot_focus_lost)
 
+	self.belt_plugs = {}
+	local _st = xml:InitStatic("dragdrop_belt_plugs", self)
+	local _st_pos = _st:GetWndPos()
+	local _cell1 = xml:InitStatic("dragdrop_belt_plugs:cell", _st)
+	local _cell_size = _cell1:GetWndSize()
+	local n = _st:GetWidth() / _cell_size.x
+	_cell1:Show(false)
+	self.belt_plugs[1] = _cell1
+	for i = 2, n do
+		local _cell = xml:InitStatic("dragdrop_belt_plugs:cell", self)
+		_cell:Init(
+			_st_pos.x+_cell_size.x *(i-1),
+			_st_pos.y,
+			_cell_size.x,
+			_cell_size.y
+		)
+		_cell:Show(false)
+		self.belt_plugs[i] = _cell
+	end
+	_st_pos,_cell_size = nil,nil
+
 	self.DescrWnd = ui_inv_descr.CUIDescriptionWnd(self)
+end
+
+function InvWnd:CheckBeltPlugs(outfit)
+	if not outfit then outfit = "without_outfit" end
+	local bs = sys_ini:r_u32(outfit, "belt_slots")
+	for i, v in pairs(self.belt_plugs) do
+		v:Show(bs < i)
+	end
 end
 
 function InvWnd:InitAccummSlot()
@@ -117,6 +146,8 @@ function InvWnd:InitAccummSlot()
 
 	local outfit = Actor:get_current_outfit()
 	local sect = outfit and outfit:section()
+
+	self:CheckBeltPlugs(sect)
 
 	if (not sect) or not ( sys_ini:line_exist(sect, "energy_consuming")
 		and sys_ini:r_bool(sect, "energy_consuming") == true )

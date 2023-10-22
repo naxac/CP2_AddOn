@@ -11,6 +11,7 @@ end
 function on_item_drop(item)
 	this.inventory_update(item, -1)
 	this.remove_from_belt(item)
+	this.check_current_outfit(item, false)
 end
 
 function on_item_to_belt(item)
@@ -19,10 +20,12 @@ end
 
 function on_item_to_slot(item)
 	this.remove_from_belt(item)
+	this.check_current_outfit(item, true)
 end
 
 function on_item_to_ruck(item)
 	this.remove_from_belt(item)
+	this.check_current_outfit(item, false)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -61,6 +64,10 @@ end
 function add_on_belt( item )
 	local id = item:id()
 	if belt_id[ id ]~=nil then return end
+
+	if this.check_belt_slots(item) then
+		return
+	end
 
 	local t = {}
 	belt_id[ id ] = t
@@ -110,8 +117,11 @@ function item_on_belt(item)
 	return belt_id[item:id()]~=nil
 end
 
+
+local max_belt = sys_ini:r_u32("inventory", "max_belt")
+
 function is_free_belt_slot()
-	return Actor:belt_count() < sys_ini:r_u32('inventory', 'max_belt')
+	return Actor:belt_count() < max_belt
 end
 
 function get_free_belt_slot()
@@ -126,6 +136,39 @@ function get_free_belt_slot()
 		end
 	end
 end
+
+function check_belt_slots(item)
+	if Actor:belt_count() > max_belt then
+		trade_precondition.skip_treat_item = true
+		Actor:move_to_ruck(item)
+		return true
+	end
+	return false
+end
+
+function check_without_outfit()
+	if Actor:get_current_outfit() == nil then
+		max_belt = sys_ini:r_u32("without_outfit", "belt_slots")
+		while Actor:belt_count() > max_belt do
+			Actor:move_to_ruck( Actor:item_on_belt( Actor:belt_count()-1 ) )
+		end
+	end
+end
+
+function check_current_outfit(item, mode)
+	if item:get_slot() ~= 6 then return end
+
+	if mode then
+		local sect = item:section()
+		max_belt = sys_ini:r_u32(sect, "belt_slots")
+		while Actor:belt_count() > max_belt do
+			Actor:move_to_ruck( Actor:item_on_belt( Actor:belt_count()-1 ) )
+		end
+	else
+		start_small_timer(200, this.check_without_outfit)
+	end
+end
+
 -------------------------------------------------------------------------------
 -- Кеш текущего состояния инвентаря ГГ (только предметы проверяемые функцией search, их обычно немного)
 -- Структура: [секция_предмета] = { count = количество_в_инвентаре,
