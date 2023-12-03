@@ -254,8 +254,8 @@ function foto_binder:update(delta)
 			-- end
 			-- вызываем поочередно проверки. останавливаем при первой удачной
 			if self:check_creatures() or self:check_anomaly() or self:check_territory_from_places() then
-				make_photo()
 			end
+			make_photo()
 		end
 
 		self.load = load
@@ -447,16 +447,28 @@ function on_options_change()
 end
 
 function make_photo()
+	if not game_options.PhotoSS then return end
+
 	local console = get_console()
-	hud_weapon = console:get_bool("hud_weapon")
-	hud_crosshair = console:get_bool("hud_crosshair")
-	console:execute("hud_weapon 0")
-	console:execute("hud_crosshair 0")
-	level.hide_indicators()
-	xr_s.subscribe("update", this.make_photo1, {
-		timeout = 700,
-		once = true
-	} )
+	if console:get_bool("rs_fullscreen") == false then return end
+
+	if scopeUsed then
+		screenshot0()
+		xr_s.subscribe("update", this.make_photo3, {
+			timeout = 500,
+			once = true
+		} )
+	else
+		hud_weapon = console:get_bool("hud_weapon")
+		hud_crosshair = console:get_bool("hud_crosshair")
+		console:execute("hud_weapon 0")
+		console:execute("hud_crosshair 0")
+		level.hide_indicators()
+		xr_s.subscribe("update", this.make_photo1, {
+			timeout = 700,
+			once = true
+		} )
+	end
 end
 function make_photo1()
 	screenshot0()
@@ -472,7 +484,9 @@ function make_photo2()
 	hud_weapon = nil
 	hud_crosshair = nil
 	level.show_indicators()
-
+	make_photo3()
+end
+function make_photo3()
 	local fs = getFS()
 	local flist = fs:file_list_open_ex("$screenshots$", bit_or(FS.FS_ListFiles, FS.FS_RootOnly), "*.jpg")
 	flist:Sort(FS.FS_sort_by_modif_down)
@@ -488,7 +502,7 @@ function make_photo2()
 		local new_path = fs:update_path("$app_data_root$", "photos\\"..foto_name)
 		fs:file_copy(path, new_path)
 		news_manager.send_tip("Фото сохранено по пути %c[green_blue]\"Папка с игрой\\appdata\\photos\\"..foto_name.."\"", 2, "nano", 1000)
-		xr_s.subscribe("update", this.make_photo3, {
+		xr_s.subscribe("update", this.make_photo4, {
 			userobj = fname,
 			timeout = 300,
 			once = true
@@ -497,7 +511,7 @@ function make_photo2()
 		log("! failed to make photo")
 	end
 end
-function make_photo3(delta, fname)
+function make_photo4(delta, fname)
 	if getFS():exist("$screenshots$", fname) then
 		getFS():file_delete("$screenshots$", fname)
 	end
