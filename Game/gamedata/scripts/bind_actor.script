@@ -2,7 +2,7 @@
 -- файл из мода "Народной солянки 2009" от 14.06.
 -- Адаптирован для Менеджера оружия. Rulix aka Bak от 2.07.09
 -- Адатировал: Idler.
-
+local no_load_time = nil
 local upd_time = 0
 local upd_time1 = 0
 local upd_time2 = 0
@@ -476,7 +476,7 @@ function actor_binder:update(delta)
 				start_real_timer( "set_runner_key", 20 )
 			end
 		end
-		self.no_load_time = amk.game_minutes()+9*60
+		no_load_time = amk.game_minutes()+9*60
 		
 		self.bCheckStart = nil
 	end
@@ -497,11 +497,11 @@ function actor_binder:update(delta)
 		amk.oau_watchdog=301
 
 		if actor:dont_has_info("acv_giv")
-			and self.no_load_time
-			and self.no_load_time < amk.game_minutes()
+			and no_load_time
+			and no_load_time < amk.game_minutes()
 		then
 			archievements.send_archievement("acv_giv")
-			self.no_load_time = nil
+			no_load_time = nil
 		end
 
 		if actor:dont_has_info("acv_stay1") and amk.game_days() > 182 then
@@ -937,7 +937,10 @@ end
 function restore_weapon(v)
 	weap_hide_tbl[v or -1] = nil
 end
-
+--------------------------------------------------------------------------------------------------
+function correct_no_load_time(t)
+	no_load_time = no_load_time + t*60
+end
 --------------------------------------------------------------------------------------------------
 function init(npc)
 	npc:bind_object(actor_binder(npc))

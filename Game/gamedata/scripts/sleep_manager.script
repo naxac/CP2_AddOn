@@ -15,6 +15,7 @@ local sleep_time_factor = 3460
 local max_sleep_hours = 24
 
 local start_sleep_time = 0
+local need_sleep_time = 0
 local isSleepActive = false
 local set_sleep_time = 0
 local get_seconds = amk.game_seconds
@@ -48,6 +49,8 @@ function main(scale)		-- in hours
 	Actor:stop_talk()
 	bind_actor.hide_weapon("sleep")
 	level.disable_input()
+	bind_actor.correct_no_load_time(scale)
+	need_sleep_time = scale
 	sleep_manager.starter (scale)
 	-- log("actor start sleep %s hours", scale)
 end
@@ -125,6 +128,7 @@ function stopper()
 		local slept = (amk.game_minutes() - start_sleep_time)/60	-- in hours
 		-- log("sleep_manager.stopper: slept = %s", slept)
 		this.reduce_need_sleep(slept)
+		bind_actor.correct_no_load_time( math.min(slept - need_sleep_time, 0) )
 
 		archievements.acv_count_event("acv_slp", 2160, slept)
 	else
